@@ -42,5 +42,5 @@ public interface CurrentState {
    */
   Set<KeyExtent> migrationsSnapshot();
 
-  ManagerState getMasterState();
+  ManagerState getManagerState();
 }

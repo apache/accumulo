@@ -75,7 +75,7 @@ function verify_config {
   fi
   if [[ ! -f "${conf}/tracers" ]]; then
     if [[ -z "${manager1}" ]] ; then
-      echo "Could not find a master node to use as a default for the tracer role."
+      echo "Could not find a manager node to use as a default for the tracer role."
       echo "Either set up \"${conf}/tracers\" or make sure \"${conf}/$manager_file\" is non-empty."
       exit 1
     else
@@ -254,7 +254,7 @@ function kill_all() {
   done
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -master -tservers -tracers
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -tracers
 }
 
 
@@ -262,7 +262,7 @@ function stop_all() {
   echo "Stopping Accumulo cluster..."
   if ! ${accumulo_cmd} admin stopAll
   then
-    echo "Invalid password or unable to connect to the master"
+    echo "Invalid password or unable to connect to the manager"
     echo "Initiating forced shutdown in 15 seconds (Ctrl-C to abort)"
     sleep 10
     echo "Initiating forced shutdown in  5 seconds (Ctrl-C to abort)"
@@ -294,7 +294,7 @@ function stop_all() {
   stop_tservers
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -master -tservers -tracers
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -tracers
 }
 
 function stop_here() {

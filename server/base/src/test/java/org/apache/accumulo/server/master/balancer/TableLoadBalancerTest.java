@@ -109,7 +109,7 @@ public class TableLoadBalancerTest {
     }
   }
 
-  // ugh... so wish I had provided mock objects to the LoadBalancer in the master
+  // ugh... so wish I had provided mock objects to the LoadBalancer in the manager
   class TableLoadBalancer extends org.apache.accumulo.server.master.balancer.TableLoadBalancer {
 
     // use our new classname to test class loading

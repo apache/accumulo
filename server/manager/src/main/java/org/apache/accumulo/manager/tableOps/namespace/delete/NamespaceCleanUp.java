@@ -42,30 +42,30 @@ class NamespaceCleanUp extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager master) {
+  public long isReady(long tid, Manager manager) {
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(long id, Manager master) {
+  public Repo<Manager> call(long id, Manager manager) {
 
     // remove from zookeeper
     try {
-      master.getTableManager().removeNamespace(namespaceId);
+      manager.getTableManager().removeNamespace(namespaceId);
     } catch (Exception e) {
       log.error("Failed to find namespace in zookeeper", e);
     }
-    Tables.clearCache(master.getContext());
+    Tables.clearCache(manager.getContext());
 
     // remove any permissions associated with this namespace
     try {
-      AuditedSecurityOperation.getInstance(master.getContext())
-          .deleteNamespace(master.getContext().rpcCreds(), namespaceId);
+      AuditedSecurityOperation.getInstance(manager.getContext())
+          .deleteNamespace(manager.getContext().rpcCreds(), namespaceId);
     } catch (ThriftSecurityException e) {
       log.error("{}", e.getMessage(), e);
     }
 
-    Utils.unreserveNamespace(master, namespaceId, id, true);
+    Utils.unreserveNamespace(manager, namespaceId, id, true);
 
     log.debug("Deleted namespace " + namespaceId);
 

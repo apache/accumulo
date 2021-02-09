@@ -25,6 +25,6 @@ public class MetricsTestSinkProperties {
 
   public static final String METRICS_PROP_FILENAME = "hadoop-metrics2-accumulo.properties";
   public static final String ACC_GC_SINK_PREFIX = "accumulo.sink.file-gc";
-  public static final String ACC_MASTER_SINK_PREFIX = "accumulo.sink.file-master";
+  public static final String ACC_MANAGER_SINK_PREFIX = "accumulo.sink.file-manager";
 
 }

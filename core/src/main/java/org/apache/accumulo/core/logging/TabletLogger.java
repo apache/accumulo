@@ -63,7 +63,7 @@ public class TabletLogger {
   }
 
   /**
-   * A tablet server has received an assignment message from master and queued the tablet for
+   * A tablet server has received an assignment message from manager and queued the tablet for
    * loading.
    */
   public static void loading(KeyExtent extent, TServerInstance server) {

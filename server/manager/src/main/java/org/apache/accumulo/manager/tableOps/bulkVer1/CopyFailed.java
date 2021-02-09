@@ -70,12 +70,12 @@ class CopyFailed extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager master) {
+  public long isReady(long tid, Manager manager) {
     Set<TServerInstance> finished = new HashSet<>();
-    Set<TServerInstance> running = master.onlineTabletServers();
+    Set<TServerInstance> running = manager.onlineTabletServers();
     for (TServerInstance server : running) {
       try {
-        TServerConnection client = master.getConnection(server);
+        TServerConnection client = manager.getConnection(server);
         if (client != null && !client.isActive(tid))
           finished.add(server);
       } catch (TException ex) {
@@ -89,10 +89,10 @@ class CopyFailed extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager master) throws Exception {
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
     // This needs to execute after the arbiter is stopped
-    master.updateBulkImportStatus(source, BulkImportState.COPY_FILES);
-    VolumeManager fs = master.getVolumeManager();
+    manager.updateBulkImportStatus(source, BulkImportState.COPY_FILES);
+    VolumeManager fs = manager.getVolumeManager();
 
     if (!fs.exists(new Path(error, BulkImport.FAILURES_TXT)))
       return new CleanUpBulkImport(tableId, source, bulk, error);
@@ -116,7 +116,7 @@ class CopyFailed extends ManagerRepo {
      */
 
     // determine which failed files were loaded
-    AccumuloClient client = master.getContext();
+    AccumuloClient client = manager.getContext();
     try (Scanner mscanner =
         new IsolatedScanner(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY))) {
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
@@ -142,8 +142,8 @@ class CopyFailed extends ManagerRepo {
 
     if (!loadedFailures.isEmpty()) {
       DistributedWorkQueue bifCopyQueue = new DistributedWorkQueue(
-          Constants.ZROOT + "/" + master.getInstanceID() + Constants.ZBULK_FAILED_COPYQ,
-          master.getConfiguration());
+          Constants.ZROOT + "/" + manager.getInstanceID() + Constants.ZBULK_FAILED_COPYQ,
+          manager.getConfiguration());
 
       HashSet<String> workIds = new HashSet<>();
 

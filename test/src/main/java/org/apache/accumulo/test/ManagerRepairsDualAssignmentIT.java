@@ -139,7 +139,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       TabletMutator tabletMutator = serverContext.getAmple().mutateTablet(moved.extent);
       tabletMutator.putLocation(moved.current, LocationType.CURRENT);
       tabletMutator.mutate();
-      // wait for the master to fix the problem
+      // wait for the manager to fix the problem
       waitForCleanStore(store);
       // now jam up the metadata table
       tabletMutator =

@@ -57,7 +57,7 @@ import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.tserver.compactions.Compactable;
 import org.apache.accumulo.tserver.compactions.CompactionManager;
-import org.apache.accumulo.tserver.mastermessage.TabletStatusMessage;
+import org.apache.accumulo.tserver.managermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.tablet.Compactor.CompactionCanceledException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -201,7 +201,7 @@ public class CompactableImpl implements Compactable {
     MetadataTableUtil.chopped(tablet.getTabletServer().getContext(), getExtent(),
         tablet.getTabletServer().getLock());
     tablet.getTabletServer()
-        .enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.CHOPPED, getExtent()));
+        .enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.CHOPPED, getExtent()));
   }
 
   private Set<StoredTabletFile> selectChopFiles(Set<StoredTabletFile> chopCandidates) {

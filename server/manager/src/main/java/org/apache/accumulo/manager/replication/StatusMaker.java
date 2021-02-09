@@ -233,7 +233,7 @@ public class StatusMaker {
   }
 
   /**
-   * Because there is only one active Master, and thus one active StatusMaker, the only safe time
+   * Because there is only one active Manager, and thus one active StatusMaker, the only safe time
    * that we can issue the delete for a Status which is closed is immediately after writing it to
    * the replication table.
    * <p>

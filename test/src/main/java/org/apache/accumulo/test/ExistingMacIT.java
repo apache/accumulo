@@ -159,7 +159,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
   public void testExistingRunningInstance() throws Exception {
     final String table = getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      // Ensure that a master and tserver are up so the existing instance check won't fail.
+      // Ensure that a manager and tserver are up so the existing instance check won't fail.
       client.tableOperations().create(table);
       try (BatchWriter bw = client.createBatchWriter(table)) {
         Mutation m = new Mutation("foo");

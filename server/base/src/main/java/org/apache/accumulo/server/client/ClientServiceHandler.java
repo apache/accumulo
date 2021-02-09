@@ -129,7 +129,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   @Override
   public void ping(TCredentials credentials) {
     // anybody can call this; no authentication check
-    log.info("Master reports: I just got pinged!");
+    log.info("Manager reports: I just got pinged!");
   }
 
   @Override

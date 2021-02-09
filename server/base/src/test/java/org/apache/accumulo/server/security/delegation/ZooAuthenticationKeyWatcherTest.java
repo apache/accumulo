@@ -326,7 +326,7 @@ public class ZooAuthenticationKeyWatcherTest {
     expect(zk.exists(baseNode, keyWatcher)).andReturn(true);
     // We saw key1
     expect(zk.getChildren(baseNode, keyWatcher)).andReturn(children);
-    // but it was gone when we tried to access it (master deleted it)
+    // but it was gone when we tried to access it (manager deleted it)
     expect(zk.getData(baseNode + "/" + key1.getKeyId(), keyWatcher))
         .andThrow(new NoNodeException());
 

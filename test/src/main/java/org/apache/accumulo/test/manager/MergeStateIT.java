@@ -91,7 +91,7 @@ public class MergeStateIT extends ConfigurableMacBase {
     }
 
     @Override
-    public ManagerState getMasterState() {
+    public ManagerState getManagerState() {
       return ManagerState.NORMAL;
     }
 

@@ -16,29 +16,41 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.mastermessage;
+package org.apache.accumulo.tserver.managermessage;
+
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.master.thrift.ManagerClientService.Iface;
-import org.apache.accumulo.core.master.thrift.TabletLoadState;
+import org.apache.accumulo.core.master.thrift.ManagerClientService;
+import org.apache.accumulo.core.master.thrift.TabletSplit;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 
-public class TabletStatusMessage implements ManagerMessage {
+public class SplitReportMessage implements ManagerMessage {
+  private Map<KeyExtent,Text> extents;
+  private KeyExtent old_extent;
 
-  private KeyExtent extent;
-  private TabletLoadState status;
-
-  public TabletStatusMessage(TabletLoadState status, KeyExtent extent) {
-    this.extent = extent;
-    this.status = status;
+  public SplitReportMessage(KeyExtent old_extent, KeyExtent ne1, Text np1, KeyExtent ne2,
+      Text np2) {
+    this.old_extent = old_extent;
+    extents = new TreeMap<>();
+    extents.put(ne1, np1);
+    extents.put(ne2, np2);
   }
 
   @Override
-  public void send(TCredentials auth, String serverName, Iface client)
+  public void send(TCredentials credentials, String serverName, ManagerClientService.Iface client)
       throws TException, ThriftSecurityException {
-    client.reportTabletStatus(TraceUtil.traceInfo(), auth, serverName, status, extent.toThrift());
+    TabletSplit split = new TabletSplit();
+    split.oldTablet = old_extent.toThrift();
+    split.newTablets =
+        extents.keySet().stream().map(KeyExtent::toThrift).collect(Collectors.toList());
+    client.reportSplitExtent(TraceUtil.traceInfo(), credentials, serverName, split);
   }
+
 }

@@ -113,7 +113,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
       var ntc = new NewTableConfiguration().setProperties(props).withSplits(splits);
       c.tableOperations().create(tableName, ntc);
 
-      ManagerMonitorInfo stats = getCluster().getMasterMonitorInfo();
+      ManagerMonitorInfo stats = getCluster().getManagerMonitorInfo();
       assertEquals(1, stats.tServerInfo.size());
 
       log.info("Creating lots of bulk import files");

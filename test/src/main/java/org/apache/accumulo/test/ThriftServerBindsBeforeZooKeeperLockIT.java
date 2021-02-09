@@ -131,33 +131,33 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
   @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET",
       justification = "unencrypted socket is okay for testing")
   @Test
-  public void testMasterService() throws Exception {
+  public void testManagerService() throws Exception {
     final MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String instanceID = client.instanceOperations().getInstanceID();
 
-      // Wait for the Master to grab its lock
+      // Wait for the Manager to grab its lock
       while (true) {
         final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
         try {
           List<String> locks =
-              reader.getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZMASTER_LOCK);
+              reader.getChildren(Constants.ZROOT + "/" + instanceID + Constants.ZMANAGER_LOCK);
           if (!locks.isEmpty()) {
             break;
           }
         } catch (Exception e) {
-          LOG.debug("Failed to find active master location, retrying", e);
+          LOG.debug("Failed to find active manager location, retrying", e);
           Thread.sleep(1000);
         }
       }
 
-      LOG.debug("Found active master");
+      LOG.debug("Found active manager");
 
       int freePort = PortUtils.getRandomFreePort();
-      Process master = null;
+      Process manager = null;
       try {
-        LOG.debug("Starting standby master on {}", freePort);
-        master = startProcess(cluster, ServerType.MANAGER, freePort);
+        LOG.debug("Starting standby manager on {}", freePort);
+        manager = startProcess(cluster, ServerType.MANAGER, freePort);
 
         while (true) {
           try (Socket s = new Socket("localhost", freePort)) {
@@ -166,7 +166,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
               return;
             }
           } catch (Exception e) {
-            LOG.debug("Caught exception trying to connect to Master", e);
+            LOG.debug("Caught exception trying to connect to Manager", e);
           }
           // Wait before trying again
           Thread.sleep(1000);
@@ -174,15 +174,15 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
           // actually
           // free and the process
           // died trying to bind it. Pick a new port and restart it in that case.
-          if (!master.isAlive()) {
+          if (!manager.isAlive()) {
             freePort = PortUtils.getRandomFreePort();
-            LOG.debug("Master died, restarting it listening on {}", freePort);
-            master = startProcess(cluster, ServerType.MANAGER, freePort);
+            LOG.debug("Manager died, restarting it listening on {}", freePort);
+            manager = startProcess(cluster, ServerType.MANAGER, freePort);
           }
         }
       } finally {
-        if (master != null) {
-          master.destroyForcibly();
+        if (manager != null) {
+          manager.destroyForcibly();
         }
       }
     }
@@ -196,7 +196,7 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String instanceID = client.instanceOperations().getInstanceID();
 
-      // Wait for the Master to grab its lock
+      // Wait for the Manager to grab its lock
       while (true) {
         final ZooReader reader = new ZooReader(cluster.getZooKeepers(), 30000);
         try {
@@ -214,10 +214,10 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
       LOG.debug("Found active gc");
 
       int freePort = PortUtils.getRandomFreePort();
-      Process master = null;
+      Process manager = null;
       try {
         LOG.debug("Starting standby gc on {}", freePort);
-        master = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort);
+        manager = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort);
 
         while (true) {
           try (Socket s = new Socket("localhost", freePort)) {
@@ -234,15 +234,15 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
           // actually
           // free and the process
           // died trying to bind it. Pick a new port and restart it in that case.
-          if (!master.isAlive()) {
+          if (!manager.isAlive()) {
             freePort = PortUtils.getRandomFreePort();
             LOG.debug("GC died, restarting it listening on {}", freePort);
-            master = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort);
+            manager = startProcess(cluster, ServerType.GARBAGE_COLLECTOR, freePort);
           }
         }
       } finally {
-        if (master != null) {
-          master.destroyForcibly();
+        if (manager != null) {
+          manager.destroyForcibly();
         }
       }
     }

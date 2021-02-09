@@ -96,7 +96,7 @@ public class RestartIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void restartMaster() throws Exception {
+  public void restartManager() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
@@ -122,7 +122,7 @@ public class RestartIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void restartMasterRecovery() throws Exception {
+  public void restartManagerRecovery() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
@@ -141,36 +141,38 @@ public class RestartIT extends AccumuloClusterHarness {
       ClientInfo info = ClientInfo.from(c.properties());
       ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       ZooCache zcache = new ZooCache(zreader, null);
-      byte[] masterLockData;
+      byte[] managerLockData;
       do {
-        masterLockData = ZooLock.getLockData(zcache,
-            ZooUtil.getRoot(c.instanceOperations().getInstanceID()) + Constants.ZMASTER_LOCK, null);
-        if (masterLockData != null) {
-          log.info("Master lock is still held");
+        managerLockData = ZooLock.getLockData(zcache,
+            ZooUtil.getRoot(c.instanceOperations().getInstanceID()) + Constants.ZMANAGER_LOCK,
+            null);
+        if (managerLockData != null) {
+          log.info("Manager lock is still held");
           Thread.sleep(1000);
         }
-      } while (masterLockData != null);
+      } while (managerLockData != null);
 
       cluster.start();
       sleepUninterruptibly(5, TimeUnit.MILLISECONDS);
       control.stopAllServers(ServerType.MANAGER);
 
-      masterLockData = new byte[0];
+      managerLockData = new byte[0];
       do {
-        masterLockData = ZooLock.getLockData(zcache,
-            ZooUtil.getRoot(c.instanceOperations().getInstanceID()) + Constants.ZMASTER_LOCK, null);
-        if (masterLockData != null) {
-          log.info("Master lock is still held");
+        managerLockData = ZooLock.getLockData(zcache,
+            ZooUtil.getRoot(c.instanceOperations().getInstanceID()) + Constants.ZMANAGER_LOCK,
+            null);
+        if (managerLockData != null) {
+          log.info("Manager lock is still held");
           Thread.sleep(1000);
         }
-      } while (masterLockData != null);
+      } while (managerLockData != null);
       cluster.start();
       VerifyIngest.verifyIngest(c, params);
     }
   }
 
   @Test
-  public void restartMasterSplit() throws Exception {
+  public void restartManagerSplit() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
       final ClusterControl control = getCluster().getClusterControl();
@@ -194,15 +196,16 @@ public class RestartIT extends AccumuloClusterHarness {
       ClientInfo info = ClientInfo.from(c.properties());
       ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       ZooCache zcache = new ZooCache(zreader, null);
-      byte[] masterLockData;
+      byte[] managerLockData;
       do {
-        masterLockData = ZooLock.getLockData(zcache,
-            ZooUtil.getRoot(c.instanceOperations().getInstanceID()) + Constants.ZMASTER_LOCK, null);
-        if (masterLockData != null) {
-          log.info("Master lock is still held");
+        managerLockData = ZooLock.getLockData(zcache,
+            ZooUtil.getRoot(c.instanceOperations().getInstanceID()) + Constants.ZMANAGER_LOCK,
+            null);
+        if (managerLockData != null) {
+          log.info("Manager lock is still held");
           Thread.sleep(1000);
         }
-      } while (masterLockData != null);
+      } while (managerLockData != null);
 
       cluster.start();
       assertEquals(0, ret.get().intValue());

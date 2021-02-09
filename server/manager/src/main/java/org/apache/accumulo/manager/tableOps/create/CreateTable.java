@@ -65,17 +65,17 @@ public class CreateTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager master) throws Exception {
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
     // first step is to reserve a table id.. if the machine fails during this step
     // it is ok to retry... the only side effect is that a table id may not be used
     // or skipped
 
-    // assuming only the master process is creating tables
+    // assuming only the manager process is creating tables
 
     Utils.getIdLock().lock();
     try {
       String tName = tableInfo.getTableName();
-      tableInfo.setTableId(Utils.getNextId(tName, master.getContext(), TableId::of));
+      tableInfo.setTableId(Utils.getNextId(tName, manager.getContext(), TableId::of));
       return new SetupPermissions(tableInfo);
     } finally {
       Utils.getIdLock().unlock();

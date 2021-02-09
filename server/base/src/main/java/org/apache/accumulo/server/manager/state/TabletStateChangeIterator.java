@@ -57,7 +57,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
   private static final String MERGES_OPTION = "merges";
   private static final String DEBUG_OPTION = "debug";
   private static final String MIGRATIONS_OPTION = "migrations";
-  private static final String MASTER_STATE_OPTION = "managerState";
+  private static final String MANAGER_STATE_OPTION = "managerState";
   private static final String SHUTTING_DOWN_OPTION = "shuttingDown";
   private static final Logger log = LoggerFactory.getLogger(TabletStateChangeIterator.class);
 
@@ -78,10 +78,10 @@ public class TabletStateChangeIterator extends SkippingIterator {
     debug = options.containsKey(DEBUG_OPTION);
     migrations = parseMigrations(options.get(MIGRATIONS_OPTION));
     try {
-      managerState = ManagerState.valueOf(options.get(MASTER_STATE_OPTION));
+      managerState = ManagerState.valueOf(options.get(MANAGER_STATE_OPTION));
     } catch (Exception ex) {
-      if (options.get(MASTER_STATE_OPTION) != null) {
-        log.error("Unable to decode managerState {}", options.get(MASTER_STATE_OPTION));
+      if (options.get(MANAGER_STATE_OPTION) != null) {
+        log.error("Unable to decode managerState {}", options.get(MANAGER_STATE_OPTION));
       }
     }
     Set<TServerInstance> shuttingDown = parseServers(options.get(SHUTTING_DOWN_OPTION));
@@ -168,7 +168,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
         if (tls == null)
           return;
       } catch (BadLocationStateException e) {
-        // maybe the master can do something with a tablet with bad/inconsistent state
+        // maybe the manager can do something with a tablet with bad/inconsistent state
         return;
       }
       // we always want data about merges
@@ -263,8 +263,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
     cfg.addOption(MIGRATIONS_OPTION, encoded);
   }
 
-  public static void setMasterState(IteratorSetting cfg, ManagerState state) {
-    cfg.addOption(MASTER_STATE_OPTION, state.toString());
+  public static void setManagerState(IteratorSetting cfg, ManagerState state) {
+    cfg.addOption(MANAGER_STATE_OPTION, state.toString());
   }
 
   public static void setShuttingDown(IteratorSetting cfg, Set<TServerInstance> servers) {

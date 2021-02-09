@@ -44,14 +44,14 @@ import org.slf4j.LoggerFactory;
 /**
  * Bulk import makes requests of tablet servers, and those requests can take a long time. Our
  * communications to the tablet server may fail, so we won't know the status of the request. The
- * master will repeat failed requests so now there are multiple requests to the tablet server. The
+ * manager will repeat failed requests so now there are multiple requests to the tablet server. The
  * tablet server will not execute the request multiple times, so long as the marker it wrote in the
- * metadata table stays there. The master needs to know when all requests have finished so it can
+ * metadata table stays there. The manager needs to know when all requests have finished so it can
  * remove the markers. Did it start? Did it finish? We can see that *a* request completed by seeing
  * the flag written into the metadata table, but we won't know if some other rogue thread is still
  * waiting to start a thread and repeat the operation.
  *
- * The master can ask the tablet server if it has any requests still running. Except the tablet
+ * The manager can ask the tablet server if it has any requests still running. Except the tablet
  * server might have some thread about to start a request, but before it has made any bookkeeping
  * about the request. To prevent problems like this, an Arbitrator is used. Before starting any new
  * request, the tablet server checks the Arbitrator to see if the request is still valid.
@@ -69,7 +69,7 @@ class BulkImportMove extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager master) throws Exception {
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
     final Path bulkDir = new Path(bulkInfo.bulkDir);
     final Path sourceDir = new Path(bulkInfo.sourceDir);
 
@@ -77,16 +77,16 @@ class BulkImportMove extends ManagerRepo {
 
     log.debug("{} sourceDir {}", fmtTid, sourceDir);
 
-    VolumeManager fs = master.getVolumeManager();
+    VolumeManager fs = manager.getVolumeManager();
 
     if (bulkInfo.tableState == TableState.ONLINE) {
-      ZooArbitrator.start(master.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
+      ZooArbitrator.start(manager.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
     }
 
     try {
       Map<String,String> oldToNewNameMap =
           BulkSerialize.readRenameMap(bulkDir.toString(), fs::open);
-      moveFiles(tid, sourceDir, bulkDir, master, fs, oldToNewNameMap);
+      moveFiles(tid, sourceDir, bulkDir, manager, fs, oldToNewNameMap);
 
       return new LoadFiles(bulkInfo);
     } catch (Exception ex) {
@@ -99,12 +99,12 @@ class BulkImportMove extends ManagerRepo {
   /**
    * For every entry in renames, move the file from the key path to the value path
    */
-  private void moveFiles(long tid, Path sourceDir, Path bulkDir, Manager master,
+  private void moveFiles(long tid, Path sourceDir, Path bulkDir, Manager manager,
       final VolumeManager fs, Map<String,String> renames) throws Exception {
-    MetadataTableUtil.addBulkLoadInProgressFlag(master.getContext(),
+    MetadataTableUtil.addBulkLoadInProgressFlag(manager.getContext(),
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), tid);
 
-    AccumuloConfiguration aConf = master.getConfiguration();
+    AccumuloConfiguration aConf = manager.getConfiguration();
     @SuppressWarnings("deprecation")
     int workerCount = aConf.getCount(
         aConf.resolve(Property.MANAGER_RENAME_THREADS, Property.MANAGER_BULK_RENAME_THREADS));

@@ -46,7 +46,7 @@ public class ListInstances {
 
   private static final int NAME_WIDTH = 20;
   private static final int UUID_WIDTH = 37;
-  private static final int MASTER_WIDTH = 30;
+  private static final int MANAGER_WIDTH = 30;
 
   private static final int ZOOKEEPER_TIMER_MILLIS = 30 * 1000;
 
@@ -137,42 +137,42 @@ public class ListInstances {
   }
 
   private static void printHeader() {
-    System.out.printf(" %-" + NAME_WIDTH + "s| %-" + UUID_WIDTH + "s| %-" + MASTER_WIDTH + "s%n",
-        "Instance Name", "Instance ID", "Master");
+    System.out.printf(" %-" + NAME_WIDTH + "s| %-" + UUID_WIDTH + "s| %-" + MANAGER_WIDTH + "s%n",
+        "Instance Name", "Instance ID", "Manager");
     System.out.printf(
-        "%" + (NAME_WIDTH + 1) + "s+%" + (UUID_WIDTH + 1) + "s+%" + (MASTER_WIDTH + 1) + "s%n",
+        "%" + (NAME_WIDTH + 1) + "s+%" + (UUID_WIDTH + 1) + "s+%" + (MANAGER_WIDTH + 1) + "s%n",
         new CharFiller('-'), new CharFiller('-'), new CharFiller('-'));
 
   }
 
   private static void printInstanceInfo(ZooCache cache, String instanceName, UUID iid,
       boolean printErrors) {
-    String master = getMaster(cache, iid, printErrors);
+    String manager = getManager(cache, iid, printErrors);
     if (instanceName == null) {
       instanceName = "";
     }
 
-    if (master == null) {
-      master = "";
+    if (manager == null) {
+      manager = "";
     }
 
-    System.out.printf("%" + NAME_WIDTH + "s |%" + UUID_WIDTH + "s |%" + MASTER_WIDTH + "s%n",
-        "\"" + instanceName + "\"", iid, master);
+    System.out.printf("%" + NAME_WIDTH + "s |%" + UUID_WIDTH + "s |%" + MANAGER_WIDTH + "s%n",
+        "\"" + instanceName + "\"", iid, manager);
   }
 
-  private static String getMaster(ZooCache cache, UUID iid, boolean printErrors) {
+  private static String getManager(ZooCache cache, UUID iid, boolean printErrors) {
 
     if (iid == null) {
       return null;
     }
 
     try {
-      String masterLocPath = Constants.ZROOT + "/" + iid + Constants.ZMASTER_LOCK;
-      byte[] master = ZooLock.getLockData(cache, masterLocPath, null);
-      if (master == null) {
+      String managerLocPath = Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK;
+      byte[] manager = ZooLock.getLockData(cache, managerLocPath, null);
+      if (manager == null) {
         return null;
       }
-      return new String(master, UTF_8);
+      return new String(manager, UTF_8);
     } catch (Exception e) {
       handleException(e, printErrors);
       return null;

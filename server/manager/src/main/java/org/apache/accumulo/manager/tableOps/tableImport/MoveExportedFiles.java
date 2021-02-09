@@ -55,11 +55,11 @@ class MoveExportedFiles extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager master) throws Exception {
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
     String fmtTid = FateTxId.formatTid(tid);
 
-    int workerCount = master.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);
-    VolumeManager fs = master.getVolumeManager();
+    int workerCount = manager.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);
+    VolumeManager fs = manager.getVolumeManager();
     Map<Path,Path> oldToNewPaths = new HashMap<>();
 
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {

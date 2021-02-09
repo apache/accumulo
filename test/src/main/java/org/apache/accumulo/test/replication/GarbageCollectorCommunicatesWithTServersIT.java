@@ -97,8 +97,8 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     cfg.setProperty(Property.GC_CYCLE_DELAY, GC_PERIOD_SECONDS + "s");
     // Wait longer to try to let the replication table come online before a cycle runs
     cfg.setProperty(Property.GC_CYCLE_START, "10s");
-    cfg.setProperty(Property.REPLICATION_NAME, "master");
-    // Set really long delays for the master to do stuff for replication. We don't need
+    cfg.setProperty(Property.REPLICATION_NAME, "manager");
+    // Set really long delays for the manager to do stuff for replication. We don't need
     // it to be doing anything, so just let it sleep
     cfg.setProperty(Property.REPLICATION_WORK_PROCESSOR_DELAY, "240s");
     cfg.setProperty(Property.MANAGER_REPLICATION_SCAN_INTERVAL, "240s");
@@ -384,7 +384,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     client.tableOperations().flush(otherTable, null, null, true);
 
-    // Get the tservers which the master deems as active
+    // Get the tservers which the manager deems as active
     final ClientContext context = (ClientContext) client;
     List<String> tservers = ManagerClient.execute(context,
         cli -> cli.getActiveTservers(TraceUtil.traceInfo(), context.rpcCreds()));

@@ -47,22 +47,22 @@ import org.apache.accumulo.monitor.rest.tservers.ServersShuttingDown;
 import org.apache.accumulo.server.manager.state.TabletServerState;
 
 /**
- * Responsible for generating a new Master information JSON object
+ * Responsible for generating a new Manager information JSON object
  *
  * @since 2.0.0
  */
-@Path("/master")
+@Path("/manager")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class ManagerResource {
-  public static final String NO_MASTERS = "No Masters running";
+  public static final String NO_MANAGERS = "No Managers running";
 
   @Inject
   private Monitor monitor;
 
   /**
-   * Generates a master information JSON object
+   * Generates a manager information JSON object
    *
-   * @return master JSON object
+   * @return manager JSON object
    */
   @GET
   public ManagerInformation getTables() {
@@ -99,10 +99,10 @@ public class ManagerResource {
       for (DeadServer down : mmi.deadTabletServers) {
         tservers.add(down.server);
       }
-      List<String> masters = monitor.getContext().getMasterLocations();
+      List<String> managers = monitor.getContext().getManagerLocations();
 
-      String master =
-          masters.isEmpty() ? "Down" : AddressUtil.parseAddress(masters.get(0), false).getHost();
+      String manager =
+          managers.isEmpty() ? "Down" : AddressUtil.parseAddress(managers.get(0), false).getHost();
       int onlineTabletServers = mmi.tServerInfo.size();
       int totalTabletServers = tservers.size();
       int tablets = monitor.getTotalTabletCount();
@@ -119,7 +119,7 @@ public class ManagerResource {
       long lookups = monitor.getTotalLookups();
       long uptime = System.currentTimeMillis() - monitor.getStartTime();
 
-      managerInformation = new ManagerInformation(master, onlineTabletServers, totalTabletServers,
+      managerInformation = new ManagerInformation(manager, onlineTabletServers, totalTabletServers,
           gcStatus, tablets, unassignedTablets, entries, ingest, entriesRead, entriesReturned,
           holdTime, osLoad, tables, deadTabletServers, lookups, uptime, label,
           getGoalState(monitor), getState(monitor), getNumBadTservers(monitor),
@@ -131,27 +131,27 @@ public class ManagerResource {
   }
 
   /**
-   * Returns the current state of the master
+   * Returns the current state of the manager
    *
-   * @return master state
+   * @return manager state
    */
   public static String getState(Monitor monitor) {
     ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
-      return NO_MASTERS;
+      return NO_MANAGERS;
     }
     return mmi.state.toString();
   }
 
   /**
-   * Returns the goal state of the master
+   * Returns the goal state of the manager
    *
-   * @return master goal state
+   * @return manager goal state
    */
   public static String getGoalState(Monitor monitor) {
     ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
-      return NO_MASTERS;
+      return NO_MANAGERS;
     }
     return mmi.goalState.name();
   }

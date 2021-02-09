@@ -134,7 +134,7 @@ public class Fate<T> {
     /**
      * The Hadoop Filesystem registers a java shutdown hook that closes the file system. This can
      * cause threads to get spurious IOException. If this happens, instead of failing a FATE
-     * transaction just wait for process to die. When the master start elsewhere the FATE
+     * transaction just wait for process to die. When the manager start elsewhere the FATE
      * transaction can resume.
      */
     private void blockIfHadoopShutdown(long tid, Exception e) {

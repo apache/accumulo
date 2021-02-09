@@ -52,16 +52,16 @@ public class RenameNamespace extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long id, Manager master) throws Exception {
+  public Repo<Manager> call(long id, Manager manager) throws Exception {
 
-    ZooReaderWriter zoo = master.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
 
     Utils.getTableNameLock().lock();
     try {
-      Utils.checkNamespaceDoesNotExist(master.getContext(), newName, namespaceId,
+      Utils.checkNamespaceDoesNotExist(manager.getContext(), newName, namespaceId,
           TableOperation.RENAME);
 
-      final String tap = master.getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId
+      final String tap = manager.getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId
           + Constants.ZNAMESPACE_NAME;
 
       zoo.mutateExisting(tap, current -> {
@@ -74,10 +74,10 @@ public class RenameNamespace extends ManagerRepo {
         }
         return newName.getBytes(UTF_8);
       });
-      Tables.clearCache(master.getContext());
+      Tables.clearCache(manager.getContext());
     } finally {
       Utils.getTableNameLock().unlock();
-      Utils.unreserveNamespace(master, namespaceId, id, true);
+      Utils.unreserveNamespace(manager, namespaceId, id, true);
     }
 
     LoggerFactory.getLogger(RenameNamespace.class).debug("Renamed namespace {} {} {}", namespaceId,

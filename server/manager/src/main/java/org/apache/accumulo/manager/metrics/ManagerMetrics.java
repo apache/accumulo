@@ -23,7 +23,7 @@ import org.apache.accumulo.server.metrics.Metrics;
 public abstract class ManagerMetrics extends Metrics {
 
   protected ManagerMetrics(String subName, String description, String record) {
-    super("Master,sub=" + subName, description, "master", record);
+    super("Manager,sub=" + subName, description, "manager", record);
   }
 
 }

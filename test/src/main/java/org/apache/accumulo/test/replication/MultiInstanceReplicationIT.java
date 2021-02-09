@@ -115,7 +115,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
     cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
     cfg.setProperty(Property.MANAGER_REPLICATION_SCAN_INTERVAL, "1s");
     cfg.setProperty(Property.REPLICATION_MAX_UNIT_SIZE, "8M");
-    cfg.setProperty(Property.REPLICATION_NAME, "master");
+    cfg.setProperty(Property.REPLICATION_NAME, "manager");
     cfg.setProperty(Property.REPLICATION_WORK_ASSIGNER, SequentialWorkAssigner.class.getName());
     cfg.setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX, "1M");
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -180,11 +180,11 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
     peerCluster.start();
 
-    try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
+    try (AccumuloClient clientManager = Accumulo.newClient().from(getClientProperties()).build();
         AccumuloClient clientPeer =
             peerCluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
 
-      ReplicationTable.setOnline(clientMaster);
+      ReplicationTable.setOnline(clientManager);
 
       String peerUserName = "peer", peerPassword = "foo";
 
@@ -193,19 +193,19 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       clientPeer.securityOperations().createLocalUser(peerUserName,
           new PasswordToken(peerPassword));
 
-      clientMaster.instanceOperations()
+      clientManager.instanceOperations()
           .setProperty(Property.REPLICATION_PEER_USER.getKey() + peerClusterName, peerUserName);
-      clientMaster.instanceOperations()
+      clientManager.instanceOperations()
           .setProperty(Property.REPLICATION_PEER_PASSWORD.getKey() + peerClusterName, peerPassword);
 
       // ...peer = AccumuloReplicaSystem,instanceName,zookeepers
-      clientMaster.instanceOperations().setProperty(
+      clientManager.instanceOperations().setProperty(
           Property.REPLICATION_PEERS.getKey() + peerClusterName,
           ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
               AccumuloReplicaSystem.buildConfiguration(peerCluster.getInstanceName(),
                   peerCluster.getZooKeepers())));
 
-      final String masterTable = "master", peerTable = "peer";
+      final String managerTable = "manager", peerTable = "peer";
 
       clientPeer.tableOperations().create(peerTable, new NewTableConfiguration());
       String peerTableId = clientPeer.tableOperations().tableIdMap().get(peerTable);
@@ -219,13 +219,13 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       props.put(Property.TABLE_REPLICATION.getKey(), "true");
       props.put(Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId);
 
-      clientMaster.tableOperations().create(masterTable,
+      clientManager.tableOperations().create(managerTable,
           new NewTableConfiguration().setProperties(props));
-      String masterTableId = clientMaster.tableOperations().tableIdMap().get(masterTable);
-      assertNotNull(masterTableId);
+      String managerTableId = clientManager.tableOperations().tableIdMap().get(managerTable);
+      assertNotNull(managerTableId);
 
       // Write some data to table1
-      try (BatchWriter bw = clientMaster.createBatchWriter(masterTable)) {
+      try (BatchWriter bw = clientManager.createBatchWriter(managerTable)) {
         for (int rows = 0; rows < 5000; rows++) {
           Mutation m = new Mutation(Integer.toString(rows));
           for (int cols = 0; cols < 100; cols++) {
@@ -236,10 +236,10 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
         }
       }
 
-      log.info("Wrote all data to master cluster");
+      log.info("Wrote all data to manager cluster");
 
       final Set<String> filesNeedingReplication =
-          clientMaster.replicationOperations().referencedFiles(masterTable);
+          clientManager.replicationOperations().referencedFiles(managerTable);
 
       log.info("Files to replicate: " + filesNeedingReplication);
 
@@ -249,17 +249,17 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       cluster.exec(TabletServer.class);
 
       log.info("TabletServer restarted");
-      Iterators.size(ReplicationTable.getScanner(clientMaster).iterator());
+      Iterators.size(ReplicationTable.getScanner(clientManager).iterator());
       log.info("TabletServer is online");
 
-      while (!ReplicationTable.isOnline(clientMaster)) {
+      while (!ReplicationTable.isOnline(clientManager)) {
         log.info("Replication table still offline, waiting");
         Thread.sleep(5000);
       }
 
       log.info("");
       log.info("Fetching metadata records:");
-      try (var scanner = clientMaster.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      try (var scanner = clientManager.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         for (Entry<Key,Value> kv : scanner) {
           if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
             log.info("{} {}", kv.getKey().toStringNoTruncate(),
@@ -272,7 +272,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       log.info("");
       log.info("Fetching replication records:");
-      try (var scanner = ReplicationTable.getScanner(clientMaster)) {
+      try (var scanner = ReplicationTable.getScanner(clientManager)) {
         for (Entry<Key,Value> kv : scanner) {
           log.info("{} {}", kv.getKey().toStringNoTruncate(),
               ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
@@ -281,7 +281,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       Future<Boolean> future = executor.submit(() -> {
         long then = System.currentTimeMillis();
-        clientMaster.replicationOperations().drain(masterTable, filesNeedingReplication);
+        clientManager.replicationOperations().drain(managerTable, filesNeedingReplication);
         long now = System.currentTimeMillis();
         log.info("Drain completed in " + (now - then) + "ms");
         return true;
@@ -300,7 +300,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       log.info("");
       log.info("Fetching metadata records:");
-      try (var scanner = clientMaster.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      try (var scanner = clientManager.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         for (Entry<Key,Value> kv : scanner) {
           if (ReplicationSection.COLF.equals(kv.getKey().getColumnFamily())) {
             log.info("{} {}", kv.getKey().toStringNoTruncate(),
@@ -313,30 +313,30 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       log.info("");
       log.info("Fetching replication records:");
-      try (var scanner = ReplicationTable.getScanner(clientMaster)) {
+      try (var scanner = ReplicationTable.getScanner(clientManager)) {
         for (Entry<Key,Value> kv : scanner) {
           log.info("{} {}", kv.getKey().toStringNoTruncate(),
               ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
         }
       }
 
-      try (Scanner master = clientMaster.createScanner(masterTable, Authorizations.EMPTY);
+      try (Scanner manager = clientManager.createScanner(managerTable, Authorizations.EMPTY);
           Scanner peer = clientPeer.createScanner(peerTable, Authorizations.EMPTY)) {
-        Iterator<Entry<Key,Value>> masterIter = master.iterator(), peerIter = peer.iterator();
-        Entry<Key,Value> masterEntry = null, peerEntry = null;
-        while (masterIter.hasNext() && peerIter.hasNext()) {
-          masterEntry = masterIter.next();
+        Iterator<Entry<Key,Value>> managerIter = manager.iterator(), peerIter = peer.iterator();
+        Entry<Key,Value> managerEntry = null, peerEntry = null;
+        while (managerIter.hasNext() && peerIter.hasNext()) {
+          managerEntry = managerIter.next();
           peerEntry = peerIter.next();
-          assertEquals(masterEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
-              masterEntry.getKey().compareTo(peerEntry.getKey(),
+          assertEquals(managerEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
+              managerEntry.getKey().compareTo(peerEntry.getKey(),
                   PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
-          assertEquals(masterEntry.getValue(), peerEntry.getValue());
+          assertEquals(managerEntry.getValue(), peerEntry.getValue());
         }
 
-        log.info("Last master entry: {}", masterEntry);
+        log.info("Last manager entry: {}", managerEntry);
         log.info("Last peer entry: {}", peerEntry);
 
-        assertFalse("Had more data to read from the master", masterIter.hasNext());
+        assertFalse("Had more data to read from the manager", managerIter.hasNext());
         assertFalse("Had more data to read from the peer", peerIter.hasNext());
       }
     } finally {
@@ -359,7 +359,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
     peer1Cluster.start();
 
-    try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
+    try (AccumuloClient clientManager = Accumulo.newClient().from(getClientProperties()).build();
         AccumuloClient clientPeer =
             peer1Cluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
       String peerClusterName = "peer";
@@ -369,19 +369,19 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       clientPeer.securityOperations().createLocalUser(peerUserName,
           new PasswordToken(peerPassword));
 
-      clientMaster.instanceOperations()
+      clientManager.instanceOperations()
           .setProperty(Property.REPLICATION_PEER_USER.getKey() + peerClusterName, peerUserName);
-      clientMaster.instanceOperations()
+      clientManager.instanceOperations()
           .setProperty(Property.REPLICATION_PEER_PASSWORD.getKey() + peerClusterName, peerPassword);
 
       // ...peer = AccumuloReplicaSystem,instanceName,zookeepers
-      clientMaster.instanceOperations().setProperty(
+      clientManager.instanceOperations().setProperty(
           Property.REPLICATION_PEERS.getKey() + peerClusterName,
           ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
               AccumuloReplicaSystem.buildConfiguration(peer1Cluster.getInstanceName(),
                   peer1Cluster.getZooKeepers())));
 
-      String masterTable1 = "master1", peerTable1 = "peer1", masterTable2 = "master2",
+      String managerTable1 = "manager1", peerTable1 = "peer1", managerTable2 = "manager2",
           peerTable2 = "peer2";
 
       // Create tables
@@ -397,18 +397,18 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       props1.put(Property.TABLE_REPLICATION.getKey(), "true");
       props1.put(Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId1);
 
-      clientMaster.tableOperations().create(masterTable1,
+      clientManager.tableOperations().create(managerTable1,
           new NewTableConfiguration().setProperties(props1));
-      String masterTableId1 = clientMaster.tableOperations().tableIdMap().get(masterTable1);
-      assertNotNull(masterTableId1);
+      String managerTableId1 = clientManager.tableOperations().tableIdMap().get(managerTable1);
+      assertNotNull(managerTableId1);
       Map<String,String> props2 = new HashMap<>();
       props2.put(Property.TABLE_REPLICATION.getKey(), "true");
       props2.put(Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId2);
 
-      clientMaster.tableOperations().create(masterTable2,
+      clientManager.tableOperations().create(managerTable2,
           new NewTableConfiguration().setProperties(props2));
-      String masterTableId2 = clientMaster.tableOperations().tableIdMap().get(masterTable2);
-      assertNotNull(masterTableId2);
+      String managerTableId2 = clientManager.tableOperations().tableIdMap().get(managerTable2);
+      assertNotNull(managerTableId2);
 
       // Give our replication user the ability to write to the tables
       clientPeer.securityOperations().grantTablePermission(peerUserName, peerTable1,
@@ -417,37 +417,37 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
           TablePermission.WRITE);
 
       // Write some data to table1
-      long masterTable1Records = 0L;
-      try (BatchWriter bw = clientMaster.createBatchWriter(masterTable1)) {
+      long managerTable1Records = 0L;
+      try (BatchWriter bw = clientManager.createBatchWriter(managerTable1)) {
         for (int rows = 0; rows < 2500; rows++) {
-          Mutation m = new Mutation(masterTable1 + rows);
+          Mutation m = new Mutation(managerTable1 + rows);
           for (int cols = 0; cols < 100; cols++) {
             String value = Integer.toString(cols);
             m.put(value, "", value);
-            masterTable1Records++;
+            managerTable1Records++;
           }
           bw.addMutation(m);
         }
       }
 
       // Write some data to table2
-      long masterTable2Records = 0L;
-      try (BatchWriter bw = clientMaster.createBatchWriter(masterTable2)) {
+      long managerTable2Records = 0L;
+      try (BatchWriter bw = clientManager.createBatchWriter(managerTable2)) {
         for (int rows = 0; rows < 2500; rows++) {
-          Mutation m = new Mutation(masterTable2 + rows);
+          Mutation m = new Mutation(managerTable2 + rows);
           for (int cols = 0; cols < 100; cols++) {
             String value = Integer.toString(cols);
             m.put(value, "", value);
-            masterTable2Records++;
+            managerTable2Records++;
           }
           bw.addMutation(m);
         }
       }
 
-      log.info("Wrote all data to master cluster");
+      log.info("Wrote all data to manager cluster");
 
-      Set<String> filesFor1 = clientMaster.replicationOperations().referencedFiles(masterTable1),
-          filesFor2 = clientMaster.replicationOperations().referencedFiles(masterTable2);
+      Set<String> filesFor1 = clientManager.replicationOperations().referencedFiles(managerTable1),
+          filesFor2 = clientManager.replicationOperations().referencedFiles(managerTable2);
 
       log.info("Files to replicate for table1: " + filesFor1);
       log.info("Files to replicate for table2: " + filesFor2);
@@ -461,43 +461,43 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       log.info("Restarted the tserver");
 
       // Read the data -- the tserver is back up and running
-      Iterators.size(clientMaster.createScanner(masterTable1, Authorizations.EMPTY).iterator());
+      Iterators.size(clientManager.createScanner(managerTable1, Authorizations.EMPTY).iterator());
 
-      while (!ReplicationTable.isOnline(clientMaster)) {
+      while (!ReplicationTable.isOnline(clientManager)) {
         log.info("Replication table still offline, waiting");
         Thread.sleep(5000);
       }
 
       // Wait for both tables to be replicated
-      log.info("Waiting for {} for {}", filesFor1, masterTable1);
-      clientMaster.replicationOperations().drain(masterTable1, filesFor1);
+      log.info("Waiting for {} for {}", filesFor1, managerTable1);
+      clientManager.replicationOperations().drain(managerTable1, filesFor1);
 
-      log.info("Waiting for {} for {}", filesFor2, masterTable2);
-      clientMaster.replicationOperations().drain(masterTable2, filesFor2);
+      log.info("Waiting for {} for {}", filesFor2, managerTable2);
+      clientManager.replicationOperations().drain(managerTable2, filesFor2);
 
       long countTable = 0L;
       try (var scanner = clientPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
         for (Entry<Key,Value> entry : scanner) {
           countTable++;
           assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
-              + entry.getValue(), entry.getKey().getRow().toString().startsWith(masterTable1));
+              + entry.getValue(), entry.getKey().getRow().toString().startsWith(managerTable1));
         }
       }
 
       log.info("Found {} records in {}", countTable, peerTable1);
-      assertEquals(masterTable1Records, countTable);
+      assertEquals(managerTable1Records, countTable);
 
       countTable = 0L;
       try (var scanner = clientPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
         for (Entry<Key,Value> entry : scanner) {
           countTable++;
           assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
-              + entry.getValue(), entry.getKey().getRow().toString().startsWith(masterTable2));
+              + entry.getValue(), entry.getKey().getRow().toString().startsWith(managerTable2));
         }
       }
 
       log.info("Found {} records in {}", countTable, peerTable2);
-      assertEquals(masterTable2Records, countTable);
+      assertEquals(managerTable2Records, countTable);
 
     } finally {
       peer1Cluster.stop();
@@ -519,7 +519,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
     peerCluster.start();
 
-    try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
+    try (AccumuloClient clientManager = Accumulo.newClient().from(getClientProperties()).build();
         AccumuloClient clientPeer =
             peerCluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
 
@@ -533,7 +533,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       String peerClusterName = "peer";
 
       // ...peer = AccumuloReplicaSystem,instanceName,zookeepers
-      clientMaster.instanceOperations().setProperty(
+      clientManager.instanceOperations().setProperty(
           Property.REPLICATION_PEERS.getKey() + peerClusterName,
           ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
               AccumuloReplicaSystem.buildConfiguration(peerCluster.getInstanceName(),
@@ -541,12 +541,12 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       // Configure the credentials we should use to authenticate ourselves to the peer for
       // replication
-      clientMaster.instanceOperations()
+      clientManager.instanceOperations()
           .setProperty(Property.REPLICATION_PEER_USER.getKey() + peerClusterName, peerUserName);
-      clientMaster.instanceOperations()
+      clientManager.instanceOperations()
           .setProperty(Property.REPLICATION_PEER_PASSWORD.getKey() + peerClusterName, peerPassword);
 
-      String masterTable = "master", peerTable = "peer";
+      String managerTable = "manager", peerTable = "peer";
       clientPeer.tableOperations().create(peerTable, new NewTableConfiguration());
       String peerTableId = clientPeer.tableOperations().tableIdMap().get(peerTable);
       assertNotNull(peerTableId);
@@ -559,13 +559,13 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       props.put(Property.TABLE_REPLICATION.getKey(), "true");
       // Replicate this table to the peerClusterName in a table with the peerTableId table id
       props.put(Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId);
-      clientMaster.tableOperations().create(masterTable,
+      clientManager.tableOperations().create(managerTable,
           new NewTableConfiguration().setProperties(props));
-      String masterTableId = clientMaster.tableOperations().tableIdMap().get(masterTable);
-      assertNotNull(masterTableId);
+      String managerTableId = clientManager.tableOperations().tableIdMap().get(managerTable);
+      assertNotNull(managerTableId);
 
       // Write some data to table1
-      try (BatchWriter bw = clientMaster.createBatchWriter(masterTable)) {
+      try (BatchWriter bw = clientManager.createBatchWriter(managerTable)) {
         for (int rows = 0; rows < 5000; rows++) {
           Mutation m = new Mutation(Integer.toString(rows));
           for (int cols = 0; cols < 100; cols++) {
@@ -576,9 +576,9 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
         }
       }
 
-      log.info("Wrote all data to master cluster");
+      log.info("Wrote all data to manager cluster");
 
-      Set<String> files = clientMaster.replicationOperations().referencedFiles(masterTable);
+      Set<String> files = clientManager.replicationOperations().referencedFiles(managerTable);
 
       log.info("Files to replicate:" + files);
 
@@ -588,34 +588,34 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       cluster.exec(TabletServer.class);
 
-      while (!ReplicationTable.isOnline(clientMaster)) {
+      while (!ReplicationTable.isOnline(clientManager)) {
         log.info("Replication table still offline, waiting");
         Thread.sleep(5000);
       }
 
-      Iterators.size(clientMaster.createScanner(masterTable, Authorizations.EMPTY).iterator());
+      Iterators.size(clientManager.createScanner(managerTable, Authorizations.EMPTY).iterator());
 
-      try (var scanner = ReplicationTable.getScanner(clientMaster)) {
+      try (var scanner = ReplicationTable.getScanner(clientManager)) {
         for (Entry<Key,Value> kv : scanner) {
           log.debug("{} {}", kv.getKey().toStringNoTruncate(),
               ProtobufUtil.toString(Status.parseFrom(kv.getValue().get())));
         }
       }
 
-      clientMaster.replicationOperations().drain(masterTable, files);
+      clientManager.replicationOperations().drain(managerTable, files);
 
-      try (Scanner master = clientMaster.createScanner(masterTable, Authorizations.EMPTY);
+      try (Scanner manager = clientManager.createScanner(managerTable, Authorizations.EMPTY);
           Scanner peer = clientPeer.createScanner(peerTable, Authorizations.EMPTY)) {
-        Iterator<Entry<Key,Value>> masterIter = master.iterator(), peerIter = peer.iterator();
-        while (masterIter.hasNext() && peerIter.hasNext()) {
-          Entry<Key,Value> masterEntry = masterIter.next(), peerEntry = peerIter.next();
+        Iterator<Entry<Key,Value>> managerIter = manager.iterator(), peerIter = peer.iterator();
+        while (managerIter.hasNext() && peerIter.hasNext()) {
+          Entry<Key,Value> managerEntry = managerIter.next(), peerEntry = peerIter.next();
           assertEquals(peerEntry.getKey() + " was not equal to " + peerEntry.getKey(), 0,
-              masterEntry.getKey().compareTo(peerEntry.getKey(),
+              managerEntry.getKey().compareTo(peerEntry.getKey(),
                   PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
-          assertEquals(masterEntry.getValue(), peerEntry.getValue());
+          assertEquals(managerEntry.getValue(), peerEntry.getValue());
         }
 
-        assertFalse("Had more data to read from the master", masterIter.hasNext());
+        assertFalse("Had more data to read from the manager", managerIter.hasNext());
         assertFalse("Had more data to read from the peer", peerIter.hasNext());
       }
     } finally {
@@ -638,7 +638,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
     peer1Cluster.start();
 
-    try (AccumuloClient clientMaster = Accumulo.newClient().from(getClientProperties()).build();
+    try (AccumuloClient clientManager = Accumulo.newClient().from(getClientProperties()).build();
         AccumuloClient clientPeer =
             peer1Cluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
 
@@ -653,19 +653,19 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       // Configure the credentials we should use to authenticate ourselves to the peer for
       // replication
-      clientMaster.instanceOperations()
+      clientManager.instanceOperations()
           .setProperty(Property.REPLICATION_PEER_USER.getKey() + peerClusterName, peerUserName);
-      clientMaster.instanceOperations()
+      clientManager.instanceOperations()
           .setProperty(Property.REPLICATION_PEER_PASSWORD.getKey() + peerClusterName, peerPassword);
 
       // ...peer = AccumuloReplicaSystem,instanceName,zookeepers
-      clientMaster.instanceOperations().setProperty(
+      clientManager.instanceOperations().setProperty(
           Property.REPLICATION_PEERS.getKey() + peerClusterName,
           ReplicaSystemFactory.getPeerConfigurationValue(AccumuloReplicaSystem.class,
               AccumuloReplicaSystem.buildConfiguration(peer1Cluster.getInstanceName(),
                   peer1Cluster.getZooKeepers())));
 
-      String masterTable1 = "master1", peerTable1 = "peer1", masterTable2 = "master2",
+      String managerTable1 = "manager1", peerTable1 = "peer1", managerTable2 = "manager2",
           peerTable2 = "peer2";
       // Create tables
       clientPeer.tableOperations().create(peerTable1, new NewTableConfiguration());
@@ -680,19 +680,19 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       props1.put(Property.TABLE_REPLICATION.getKey(), "true");
       props1.put(Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId2);
 
-      clientMaster.tableOperations().create(masterTable1,
+      clientManager.tableOperations().create(managerTable1,
           new NewTableConfiguration().setProperties(props1));
-      String masterTableId1 = clientMaster.tableOperations().tableIdMap().get(masterTable1);
-      assertNotNull(masterTableId1);
+      String managerTableId1 = clientManager.tableOperations().tableIdMap().get(managerTable1);
+      assertNotNull(managerTableId1);
 
       Map<String,String> props2 = new HashMap<>();
       props2.put(Property.TABLE_REPLICATION.getKey(), "true");
       props2.put(Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId2);
 
-      clientMaster.tableOperations().create(masterTable2,
+      clientManager.tableOperations().create(managerTable2,
           new NewTableConfiguration().setProperties(props2));
-      String masterTableId2 = clientMaster.tableOperations().tableIdMap().get(masterTable2);
-      assertNotNull(masterTableId2);
+      String managerTableId2 = clientManager.tableOperations().tableIdMap().get(managerTable2);
+      assertNotNull(managerTableId2);
 
       // Give our replication user the ability to write to the tables
       clientPeer.securityOperations().grantTablePermission(peerUserName, peerTable1,
@@ -701,15 +701,15 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
           TablePermission.WRITE);
 
       // Replicate this table to the peerClusterName in a table with the peerTableId table id
-      clientMaster.tableOperations().setProperty(masterTable1,
+      clientManager.tableOperations().setProperty(managerTable1,
           Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId1);
-      clientMaster.tableOperations().setProperty(masterTable2,
+      clientManager.tableOperations().setProperty(managerTable2,
           Property.TABLE_REPLICATION_TARGET.getKey() + peerClusterName, peerTableId2);
 
       // Write some data to table1
-      try (BatchWriter bw = clientMaster.createBatchWriter(masterTable1)) {
+      try (BatchWriter bw = clientManager.createBatchWriter(managerTable1)) {
         for (int rows = 0; rows < 2500; rows++) {
-          Mutation m = new Mutation(masterTable1 + rows);
+          Mutation m = new Mutation(managerTable1 + rows);
           for (int cols = 0; cols < 100; cols++) {
             String value = Integer.toString(cols);
             m.put(value, "", value);
@@ -719,9 +719,9 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       }
 
       // Write some data to table2
-      try (BatchWriter bw = clientMaster.createBatchWriter(masterTable2)) {
+      try (BatchWriter bw = clientManager.createBatchWriter(managerTable2)) {
         for (int rows = 0; rows < 2500; rows++) {
-          Mutation m = new Mutation(masterTable2 + rows);
+          Mutation m = new Mutation(managerTable2 + rows);
           for (int cols = 0; cols < 100; cols++) {
             String value = Integer.toString(cols);
             m.put(value, "", value);
@@ -730,7 +730,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
         }
       }
 
-      log.info("Wrote all data to master cluster");
+      log.info("Wrote all data to manager cluster");
 
       for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
         cluster.killProcess(ServerType.TABLET_SERVER, proc);
@@ -738,7 +738,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       cluster.exec(TabletServer.class);
 
-      while (!ReplicationTable.isOnline(clientMaster)) {
+      while (!ReplicationTable.isOnline(clientManager)) {
         log.info("Replication table still offline, waiting");
         Thread.sleep(5000);
       }
@@ -748,7 +748,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
       for (int i = 0; i < 10 && !fullyReplicated; i++) {
         sleepUninterruptibly(2, TimeUnit.SECONDS);
 
-        try (Scanner s = ReplicationTable.getScanner(clientMaster)) {
+        try (Scanner s = ReplicationTable.getScanner(clientManager)) {
           WorkSection.limit(s);
           for (Entry<Key,Value> entry : s) {
             Status status = Status.parseFrom(entry.getValue().get());
@@ -761,7 +761,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       assertNotEquals(0, fullyReplicated);
 
-      // We have to wait for the master to assign the replication work, a local tserver to process
+      // We have to wait for the manager to assign the replication work, a local tserver to process
       // it, and then the remote tserver to replay it
       // Be cautious in how quickly we assert that the data is present on the peer
       long countTable = 0L;
@@ -769,7 +769,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
         for (Entry<Key,Value> entry : clientPeer.createScanner(peerTable1, Authorizations.EMPTY)) {
           countTable++;
           assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
-              + entry.getValue(), entry.getKey().getRow().toString().startsWith(masterTable1));
+              + entry.getValue(), entry.getKey().getRow().toString().startsWith(managerTable1));
         }
 
         log.info("Found {} records in {}", countTable, peerTable1);
@@ -783,7 +783,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
       assertTrue("Found no records in " + peerTable1 + " in the peer cluster", countTable > 0);
 
-      // We have to wait for the master to assign the replication work, a local tserver to process
+      // We have to wait for the manager to assign the replication work, a local tserver to process
       // it, and then the remote tserver to replay it
       // Be cautious in how quickly we assert that the data is present on the peer
       for (int i = 0; i < 10; i++) {
@@ -791,7 +791,7 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
         for (Entry<Key,Value> entry : clientPeer.createScanner(peerTable2, Authorizations.EMPTY)) {
           countTable++;
           assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
-              + entry.getValue(), entry.getKey().getRow().toString().startsWith(masterTable2));
+              + entry.getValue(), entry.getKey().getRow().toString().startsWith(managerTable2));
         }
 
         log.info("Found {} records in {}", countTable, peerTable2);

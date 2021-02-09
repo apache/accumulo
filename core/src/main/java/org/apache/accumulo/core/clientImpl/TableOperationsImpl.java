@@ -261,7 +261,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
-        log.debug("Contacted a Master which is no longer active, retrying");
+        log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         ManagerClient.close(client);
@@ -286,7 +286,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
-        log.debug("Contacted a Master which is no longer active, retrying");
+        log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         ManagerClient.close(client);
@@ -306,7 +306,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
-        log.debug("Contacted a Master which is no longer active, retrying");
+        log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         ManagerClient.close(client);
@@ -326,7 +326,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
-        log.debug("Contacted a Master which is no longer active, retrying");
+        log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         ManagerClient.close(client);
@@ -942,7 +942,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         } catch (ThriftNotActiveServiceException e) {
           // Let it loop, fetching a new location
-          log.debug("Contacted a Master which is no longer active, retrying");
+          log.debug("Contacted a Manager which is no longer active, retrying");
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         } finally {
           ManagerClient.close(client);
@@ -962,7 +962,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         } catch (ThriftNotActiveServiceException e) {
           // Let it loop, fetching a new location
-          log.debug("Contacted a Master which is no longer active, retrying");
+          log.debug("Contacted a Manager which is no longer active, retrying");
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         } finally {
           ManagerClient.close(client);

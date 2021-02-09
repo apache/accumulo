@@ -515,20 +515,20 @@ public class AdminUtil<T> {
   public boolean checkGlobalLock(ZooReaderWriter zk, String path) {
     try {
       if (ZooLock.getLockData(zk.getZooKeeper(), path) != null) {
-        System.err.println("ERROR: Master lock is held, not running");
+        System.err.println("ERROR: Manager lock is held, not running");
         if (this.exitOnError)
           System.exit(1);
         else
           return false;
       }
     } catch (KeeperException e) {
-      System.err.println("ERROR: Could not read master lock, not running " + e.getMessage());
+      System.err.println("ERROR: Could not read manager lock, not running " + e.getMessage());
       if (this.exitOnError)
         System.exit(1);
       else
         return false;
     } catch (InterruptedException e) {
-      System.err.println("ERROR: Could not read master lock, not running" + e.getMessage());
+      System.err.println("ERROR: Could not read manager lock, not running" + e.getMessage());
       if (this.exitOnError)
         System.exit(1);
       else

@@ -53,7 +53,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   protected MiniAccumuloClusterImpl cluster;
 
   Process zooKeeperProcess = null;
-  Process masterProcess = null;
+  Process managerProcess = null;
   Process gcProcess = null;
   Process monitor = null;
   Process tracer = null;
@@ -143,8 +143,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         break;
       case MASTER:
       case MANAGER:
-        if (masterProcess == null) {
-          masterProcess = cluster._exec(Manager.class, server, configOverrides).getProcess();
+        if (managerProcess == null) {
+          managerProcess = cluster._exec(Manager.class, server, configOverrides).getProcess();
         }
         break;
       case ZOOKEEPER:
@@ -189,15 +189,15 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     switch (server) {
       case MASTER:
       case MANAGER:
-        if (masterProcess != null) {
+        if (managerProcess != null) {
           try {
-            cluster.stopProcessWithTimeout(masterProcess, 30, TimeUnit.SECONDS);
+            cluster.stopProcessWithTimeout(managerProcess, 30, TimeUnit.SECONDS);
           } catch (ExecutionException | TimeoutException e) {
-            log.warn("Master did not fully stop after 30 seconds", e);
+            log.warn("Manager did not fully stop after 30 seconds", e);
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
           } finally {
-            masterProcess = null;
+            managerProcess = null;
           }
         }
         break;
@@ -298,13 +298,13 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     switch (type) {
       case MASTER:
       case MANAGER:
-        if (procRef.getProcess().equals(masterProcess)) {
+        if (procRef.getProcess().equals(managerProcess)) {
           try {
-            cluster.stopProcessWithTimeout(masterProcess, 30, TimeUnit.SECONDS);
+            cluster.stopProcessWithTimeout(managerProcess, 30, TimeUnit.SECONDS);
           } catch (ExecutionException | TimeoutException e) {
-            log.warn("Master did not fully stop after 30 seconds", e);
+            log.warn("Manager did not fully stop after 30 seconds", e);
           }
-          masterProcess = null;
+          managerProcess = null;
           found = true;
         }
         break;

@@ -54,24 +54,24 @@ public class CleanUpBulkImport extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager master) throws Exception {
-    master.updateBulkImportStatus(source, BulkImportState.CLEANUP);
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+    manager.updateBulkImportStatus(source, BulkImportState.CLEANUP);
     log.debug("removing the bulkDir processing flag file in " + bulk);
     Path bulkDir = new Path(bulk);
-    MetadataTableUtil.removeBulkLoadInProgressFlag(master.getContext(),
+    MetadataTableUtil.removeBulkLoadInProgressFlag(manager.getContext(),
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
-    master.getContext().getAmple().putGcFileAndDirCandidates(tableId,
+    manager.getContext().getAmple().putGcFileAndDirCandidates(tableId,
         Collections.singleton(bulkDir.toString()));
     log.debug("removing the metadata table markers for loaded files");
-    AccumuloClient client = master.getContext();
+    AccumuloClient client = manager.getContext();
     MetadataTableUtil.removeBulkLoadEntries(client, tableId, tid);
     log.debug("releasing HDFS reservations for " + source + " and " + error);
-    Utils.unreserveHdfsDirectory(master, source, tid);
-    Utils.unreserveHdfsDirectory(master, error, tid);
-    Utils.getReadLock(master, tableId, tid).unlock();
+    Utils.unreserveHdfsDirectory(manager, source, tid);
+    Utils.unreserveHdfsDirectory(manager, error, tid);
+    Utils.getReadLock(manager, tableId, tid).unlock();
     log.debug("completing bulkDir import transaction " + FateTxId.formatTid(tid));
-    ZooArbitrator.cleanup(master.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
-    master.removeBulkImportStatus(source);
+    ZooArbitrator.cleanup(manager.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
+    manager.removeBulkImportStatus(source);
     return null;
   }
 }

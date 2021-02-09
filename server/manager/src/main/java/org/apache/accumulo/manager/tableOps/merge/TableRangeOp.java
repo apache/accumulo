@@ -94,7 +94,7 @@ public class TableRangeOp extends ManagerRepo {
 
   @Override
   public void undo(long tid, Manager env) throws Exception {
-    // Not sure this is a good thing to do. The Master state engine should be the one to remove it.
+    // Not sure this is a good thing to do. The Manager state engine should be the one to remove it.
     MergeInfo mergeInfo = env.getMergeInfo(tableId);
     if (mergeInfo.getState() != MergeState.NONE)
       log.info("removing merge information {}", mergeInfo);

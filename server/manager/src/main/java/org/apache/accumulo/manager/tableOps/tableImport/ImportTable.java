@@ -86,7 +86,7 @@ public class ImportTable extends ManagerRepo {
     // it is ok to retry... the only side effect is that a table id may not be used
     // or skipped
 
-    // assuming only the master process is creating tables
+    // assuming only the manager process is creating tables
 
     Utils.getIdLock().lock();
     try {

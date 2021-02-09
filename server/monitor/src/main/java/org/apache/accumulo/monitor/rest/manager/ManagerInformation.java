@@ -24,18 +24,18 @@ import org.apache.accumulo.monitor.rest.tservers.DeadServerList;
 import org.apache.accumulo.monitor.rest.tservers.ServersShuttingDown;
 
 /**
- * Responsible for storing master information as a JSON object
+ * Responsible for storing manager information as a JSON object
  *
  * @since 2.0.0
  */
 public class ManagerInformation {
 
   // Variable names become JSON keys
-  public String master = "No Masters running";
+  public String manager = "No Managers running";
   public String lastGC = "0";
   public String gcStatus;
-  public String masterGoalState;
-  public String masterState;
+  public String managerGoalState;
+  public String managerState;
 
   public Integer onlineTabletServers = 0;
   public Integer totalTabletServers = 0;
@@ -61,19 +61,19 @@ public class ManagerInformation {
   public DeadLoggerList deadLoggers;
 
   /**
-   * Creates an empty master JSON object
+   * Creates an empty manager JSON object
    */
   public ManagerInformation() {}
 
-  public ManagerInformation(String master) {
-    this.master = master;
+  public ManagerInformation(String manager) {
+    this.manager = manager;
   }
 
   /**
-   * Stores a new master JSON object
+   * Stores a new manager JSON object
    *
-   * @param master
-   *          Master location
+   * @param manager
+   *          Manager location
    * @param onlineTabletServers
    *          Number of online tservers
    * @param totalTabletServers
@@ -106,10 +106,10 @@ public class ManagerInformation {
    *          Time the Monitor has been running
    * @param gcStatus
    *          Status of the garbage collector
-   * @param masterGoalState
-   *          Goal state of the master
-   * @param masterState
-   *          Current state of the master
+   * @param managerGoalState
+   *          Goal state of the manager
+   * @param managerState
+   *          Current state of the manager
    * @param badTabletServers
    *          Number of bad tservers
    * @param tabletServersShuttingDown
@@ -119,15 +119,15 @@ public class ManagerInformation {
    * @param deadLoggers
    *          Number of dead loggers
    */
-  public ManagerInformation(String master, int onlineTabletServers, int totalTabletServers,
+  public ManagerInformation(String manager, int onlineTabletServers, int totalTabletServers,
       String lastGC, int tablets, int unassignedTablets, long entries, double ingest,
       double entriesRead, double entriesReturned, long holdTime, double osLoad, int tables,
       int deadTabletServersCount, long lookups, long uptime, String gcStatus,
-      String masterGoalState, String masterState, BadTabletServers badTabletServers,
+      String managerGoalState, String managerState, BadTabletServers badTabletServers,
       ServersShuttingDown tabletServersShuttingDown, DeadServerList deadTabletServers,
       DeadLoggerList deadLoggers) {
 
-    this.master = master;
+    this.manager = manager;
     this.onlineTabletServers = onlineTabletServers;
     this.totalTabletServers = totalTabletServers;
     this.lastGC = lastGC;
@@ -144,8 +144,8 @@ public class ManagerInformation {
     this.lookups = lookups;
     this.uptime = uptime;
     this.gcStatus = gcStatus;
-    this.masterGoalState = masterGoalState;
-    this.masterState = masterState;
+    this.managerGoalState = managerGoalState;
+    this.managerState = managerState;
     this.badTabletServers = badTabletServers;
     this.tabletServersShuttingDown = tabletServersShuttingDown;
     this.deadTabletServers = deadTabletServers;

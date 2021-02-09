@@ -127,19 +127,19 @@ public class WebViews {
   }
 
   /**
-   * Returns the master template
+   * Returns the manager template
    *
-   * @return Master model
+   * @return Manager model
    */
   @GET
-  @Path("{parameter: master|monitor}")
+  @Path("{parameter: manager|monitor}")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getMaster() {
+  public Map<String,Object> getManager() {
 
     Map<String,Object> model = getModel();
-    model.put("title", "Master Server");
-    model.put("template", "master.ftl");
-    model.put("js", "master.js");
+    model.put("title", "Manager Server");
+    model.put("template", "manager.ftl");
+    model.put("js", "manager.js");
 
     model.put("tablesTitle", "Table Status");
     model.put("tablesTemplate", "tables.ftl");

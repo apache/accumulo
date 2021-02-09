@@ -48,29 +48,29 @@ import org.slf4j.LoggerFactory;
 public class ManagerReplicationCoordinator implements ReplicationCoordinator.Iface {
   private static final Logger log = LoggerFactory.getLogger(ManagerReplicationCoordinator.class);
 
-  private final Manager master;
+  private final Manager manager;
   private final Random rand;
   private final ZooReader reader;
   private final SecurityOperation security;
 
-  public ManagerReplicationCoordinator(Manager master) {
-    this(master, new ZooReader(master.getContext().getZooKeepers(),
-        master.getContext().getZooKeepersSessionTimeOut()));
+  public ManagerReplicationCoordinator(Manager manager) {
+    this(manager, new ZooReader(manager.getContext().getZooKeepers(),
+        manager.getContext().getZooKeepersSessionTimeOut()));
   }
 
-  protected ManagerReplicationCoordinator(Manager master, ZooReader reader) {
-    this.master = master;
+  protected ManagerReplicationCoordinator(Manager manager, ZooReader reader) {
+    this.manager = manager;
     this.rand = new SecureRandom();
     this.rand.setSeed(358923462L);
     this.reader = reader;
-    this.security = AuditedSecurityOperation.getInstance(master.getContext());
+    this.security = AuditedSecurityOperation.getInstance(manager.getContext());
   }
 
   @Override
   public String getServicerAddress(String remoteTableId, TCredentials creds)
       throws ReplicationCoordinatorException, TException {
     try {
-      security.authenticateUser(master.getContext().rpcCreds(), creds);
+      security.authenticateUser(manager.getContext().rpcCreds(), creds);
     } catch (ThriftSecurityException e) {
       log.error("{} failed to authenticate for replication to {}", creds.getPrincipal(),
           remoteTableId);
@@ -78,7 +78,7 @@ public class ManagerReplicationCoordinator implements ReplicationCoordinator.Ifa
           "Could not authenticate " + creds.getPrincipal());
     }
 
-    Set<TServerInstance> tservers = master.onlineTabletServers();
+    Set<TServerInstance> tservers = manager.onlineTabletServers();
     if (tservers.isEmpty()) {
       throw new ReplicationCoordinatorException(
           ReplicationCoordinatorErrorCode.NO_AVAILABLE_SERVERS,
@@ -88,7 +88,7 @@ public class ManagerReplicationCoordinator implements ReplicationCoordinator.Ifa
     TServerInstance tserver = getRandomTServer(tservers, rand.nextInt(tservers.size()));
     String replServiceAddr;
     try {
-      replServiceAddr = new String(reader.getData(master.getZooKeeperRoot()
+      replServiceAddr = new String(reader.getData(manager.getZooKeeperRoot()
           + ReplicationConstants.ZOO_TSERVERS + "/" + tserver.getHostPort()), UTF_8);
     } catch (KeeperException | InterruptedException e) {
       log.error("Could not fetch repliation service port for tserver", e);

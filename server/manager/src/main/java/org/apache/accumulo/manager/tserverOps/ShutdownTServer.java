@@ -50,24 +50,24 @@ public class ShutdownTServer extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager master) {
+  public long isReady(long tid, Manager manager) {
     TServerInstance server = new TServerInstance(hostAndPort, serverSession);
     // suppress assignment of tablets to the server
     if (force) {
       return 0;
     }
 
-    // Inform the master that we want this server to shutdown
-    master.shutdownTServer(server);
+    // Inform the manager that we want this server to shutdown
+    manager.shutdownTServer(server);
 
-    if (master.onlineTabletServers().contains(server)) {
-      TServerConnection connection = master.getConnection(server);
+    if (manager.onlineTabletServers().contains(server)) {
+      TServerConnection connection = manager.getConnection(server);
       if (connection != null) {
         try {
           TabletServerStatus status = connection.getTableMap(false);
           if (status.tableMap != null && status.tableMap.isEmpty()) {
             log.info("tablet server hosts no tablets {}", server);
-            connection.halt(master.getMasterLock());
+            connection.halt(manager.getManagerLock());
             log.info("tablet server asked to halt {}", server);
             return 0;
           }
@@ -78,7 +78,7 @@ public class ShutdownTServer extends ManagerRepo {
         }
 
         // If the connection was non-null and we could communicate with it
-        // give the master some more time to tell it to stop and for the
+        // give the manager some more time to tell it to stop and for the
         // tserver to ack the request and stop itself.
         return 1000;
       }
@@ -88,13 +88,13 @@ public class ShutdownTServer extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager master) throws Exception {
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
     // suppress assignment of tablets to the server
     if (force) {
-      ZooReaderWriter zoo = master.getContext().getZooReaderWriter();
-      String path = master.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + hostAndPort;
+      ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
+      String path = manager.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + hostAndPort;
       ZooLock.deleteLock(zoo, path);
-      path = master.getZooKeeperRoot() + Constants.ZDEADTSERVERS + "/" + hostAndPort;
+      path = manager.getZooKeeperRoot() + Constants.ZDEADTSERVERS + "/" + hostAndPort;
       zoo.putPersistentData(path, "forced down".getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     }
 

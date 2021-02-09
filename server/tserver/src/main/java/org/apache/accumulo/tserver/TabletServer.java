@@ -134,8 +134,8 @@ import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.LogSorter;
 import org.apache.accumulo.tserver.log.MutationReceiver;
 import org.apache.accumulo.tserver.log.TabletServerLogger;
-import org.apache.accumulo.tserver.mastermessage.ManagerMessage;
-import org.apache.accumulo.tserver.mastermessage.SplitReportMessage;
+import org.apache.accumulo.tserver.managermessage.ManagerMessage;
+import org.apache.accumulo.tserver.managermessage.SplitReportMessage;
 import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
@@ -173,7 +173,7 @@ public class TabletServer extends AbstractServer {
   private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = 60 * 60 * 1000;
 
   final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
-  final ZooCache masterLockCache;
+  final ZooCache managerLockCache;
 
   final TabletServerLogger logger;
 
@@ -239,7 +239,7 @@ public class TabletServer extends AbstractServer {
     super("tserver", opts, args);
     ServerContext context = super.getContext();
     context.setupCrypto();
-    this.masterLockCache = new ZooCache(context.getZooReaderWriter(), null);
+    this.managerLockCache = new ZooCache(context.getZooReaderWriter(), null);
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstanceID());
@@ -498,8 +498,8 @@ public class TabletServer extends AbstractServer {
     // lose the reference to the old tablet and open two new ones
     onlineTablets.split(tablet.getExtent(), newTablets[0], newTablets[1]);
 
-    // tell the master
-    enqueueMasterMessage(new SplitReportMessage(tablet.getExtent(), newTablets[0].getExtent(),
+    // tell the manager
+    enqueueManagerMessage(new SplitReportMessage(tablet.getExtent(), newTablets[0].getExtent(),
         new Text("/" + newTablets[0].getDirName()), newTablets[1].getExtent(),
         new Text("/" + newTablets[1].getDirName())));
 
@@ -511,8 +511,8 @@ public class TabletServer extends AbstractServer {
     return tabletInfo;
   }
 
-  // add a message for the main thread to send back to the master
-  public void enqueueMasterMessage(ManagerMessage m) {
+  // add a message for the main thread to send back to the manager
+  public void enqueueManagerMessage(ManagerMessage m) {
     managerMessages.addLast(m);
   }
 
@@ -540,35 +540,35 @@ public class TabletServer extends AbstractServer {
     return sp.address;
   }
 
-  private HostAndPort getMasterAddress() {
+  private HostAndPort getManagerAddress() {
     try {
-      List<String> locations = getContext().getMasterLocations();
+      List<String> locations = getContext().getManagerLocations();
       if (locations.isEmpty()) {
         return null;
       }
       return HostAndPort.fromString(locations.get(0));
     } catch (Exception e) {
-      log.warn("Failed to obtain master host " + e);
+      log.warn("Failed to obtain manager host " + e);
     }
 
     return null;
   }
 
-  // Connect to the master for posting asynchronous results
-  private ManagerClientService.Client masterConnection(HostAndPort address) {
+  // Connect to the manager for posting asynchronous results
+  private ManagerClientService.Client managerConnection(HostAndPort address) {
     try {
       if (address == null) {
         return null;
       }
-      // log.info("Listener API to master has been opened");
+      // log.info("Listener API to manager has been opened");
       return ThriftUtil.getClient(new ManagerClientService.Client.Factory(), address, getContext());
     } catch (Exception e) {
-      log.warn("Issue with masterConnection (" + address + ") " + e, e);
+      log.warn("Issue with managerConnection (" + address + ") " + e, e);
     }
     return null;
   }
 
-  private void returnMasterConnection(ManagerClientService.Client client) {
+  private void returnManagerConnection(ManagerClientService.Client client) {
     ThriftUtil.returnClient(client);
   }
 
@@ -780,7 +780,7 @@ public class TabletServer extends AbstractServer {
         new BulkImportCacheCleaner(this), CLEANUP_BULK_LOADED_CACHE_MILLIS,
         CLEANUP_BULK_LOADED_CACHE_MILLIS, TimeUnit.MILLISECONDS);
 
-    HostAndPort masterHost;
+    HostAndPort managerHost;
     while (!serverStopRequested) {
       // send all of the pending messages
       try {
@@ -794,10 +794,10 @@ public class TabletServer extends AbstractServer {
             mm = managerMessages.poll(1000, TimeUnit.MILLISECONDS);
           }
 
-          // have a message to send to the master, so grab a
+          // have a message to send to the manager, so grab a
           // connection
-          masterHost = getMasterAddress();
-          iface = masterConnection(masterHost);
+          managerHost = getManagerAddress();
+          iface = managerConnection(managerHost);
           TServiceClient client = iface;
 
           // if while loop does not execute at all and mm != null,
@@ -826,7 +826,7 @@ public class TabletServer extends AbstractServer {
           if (mm != null) {
             managerMessages.putFirst(mm);
           }
-          returnMasterConnection(iface);
+          returnManagerConnection(iface);
 
           sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
@@ -835,17 +835,17 @@ public class TabletServer extends AbstractServer {
         serverStopRequested = true;
 
       } catch (Exception e) {
-        // may have lost connection with master
+        // may have lost connection with manager
         // loop back to the beginning and wait for a new one
-        // this way we survive master failures
-        log.error(getClientAddressString() + ": TServerInfo: Exception. Master down?", e);
+        // this way we survive manager failures
+        log.error(getClientAddressString() + ": TServerInfo: Exception. Manager down?", e);
       }
     }
 
     // wait for shutdown
-    // if the main thread exits oldServer the master listener, the JVM will
+    // if the main thread exits oldServer the manager listener, the JVM will
     // kill the other threads and finalize objects. We want the shutdown that is
-    // running in the master listener thread to complete oldServer this happens.
+    // running in the manager listener thread to complete oldServer this happens.
     // consider making other threads daemon threads so that objects don't
     // get prematurely finalized
     synchronized (this) {

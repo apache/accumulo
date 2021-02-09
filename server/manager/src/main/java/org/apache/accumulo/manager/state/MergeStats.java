@@ -105,7 +105,7 @@ public class MergeStats {
       this.unassigned++;
   }
 
-  public MergeState nextMergeState(AccumuloClient accumuloClient, CurrentState master)
+  public MergeState nextMergeState(AccumuloClient accumuloClient, CurrentState manager)
       throws Exception {
     MergeState state = info.getState();
     if (state == MergeState.NONE)
@@ -153,7 +153,7 @@ public class MergeStats {
         log.info("{} tablets are chopped, {} are offline {}", chopped, unassigned,
             info.getExtent());
         if (unassigned == total) {
-          if (verifyMergeConsistency(accumuloClient, master))
+          if (verifyMergeConsistency(accumuloClient, manager))
             state = MergeState.MERGING;
           else
             log.info("Merge consistency check failed {}", info.getExtent());
@@ -186,13 +186,13 @@ public class MergeStats {
     return state;
   }
 
-  private boolean verifyMergeConsistency(AccumuloClient accumuloClient, CurrentState master)
+  private boolean verifyMergeConsistency(AccumuloClient accumuloClient, CurrentState manager)
       throws TableNotFoundException, IOException {
     MergeStats verify = new MergeStats(info);
     KeyExtent extent = info.getExtent();
     Scanner scanner = accumuloClient
         .createScanner(extent.isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY);
-    MetaDataTableScanner.configureScanner(scanner, master);
+    MetaDataTableScanner.configureScanner(scanner, manager);
     Text start = extent.prevEndRow();
     if (start == null) {
       start = new Text();
@@ -230,8 +230,8 @@ public class MergeStats {
           return false;
         }
 
-        if (tls.getState(master.onlineTabletServers()) != TabletState.UNASSIGNED
-            && tls.getState(master.onlineTabletServers()) != TabletState.SUSPENDED) {
+        if (tls.getState(manager.onlineTabletServers()) != TabletState.UNASSIGNED
+            && tls.getState(manager.onlineTabletServers()) != TabletState.SUSPENDED) {
           log.debug("failing consistency: assigned or hosted {}", tls);
           return false;
         }
@@ -243,7 +243,7 @@ public class MergeStats {
 
       prevExtent = tls.extent;
 
-      verify.update(tls.extent, tls.getState(master.onlineTabletServers()), tls.chopped,
+      verify.update(tls.extent, tls.getState(manager.onlineTabletServers()), tls.chopped,
           !tls.walogs.isEmpty());
       // stop when we've seen the tablet just beyond our range
       if (tls.extent.prevEndRow() != null && extent.endRow() != null

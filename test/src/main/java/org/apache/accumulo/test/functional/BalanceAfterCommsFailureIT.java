@@ -118,7 +118,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
           break;
         } catch (ThriftNotActiveServiceException e) {
           // Let it loop, fetching a new location
-          log.debug("Contacted a Master which is no longer active, retrying");
+          log.debug("Contacted a Manager which is no longer active, retrying");
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         } finally {
           if (client != null)

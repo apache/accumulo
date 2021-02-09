@@ -125,7 +125,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
   @Override
   public List<String> getManagerLocations() {
-    return context.getMasterLocations();
+    return context.getManagerLocations();
   }
 
   @Override
@@ -139,7 +139,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
         var copy = new ArrayList<>(children);
         Collections.sort(copy);
         var data = cache.get(path + "/" + candidate + "/" + copy.get(0));
-        if (data != null && !"master".equals(new String(data, UTF_8))) {
+        if (data != null && !"manager".equals(new String(data, UTF_8))) {
           results.add(candidate);
         }
       }

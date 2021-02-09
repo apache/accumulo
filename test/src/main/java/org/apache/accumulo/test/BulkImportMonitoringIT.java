@@ -82,7 +82,7 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
       var ntc = new NewTableConfiguration().setProperties(props).withSplits(splits);
       c.tableOperations().create(tableName, ntc);
 
-      ManagerMonitorInfo stats = getCluster().getMasterMonitorInfo();
+      ManagerMonitorInfo stats = getCluster().getManagerMonitorInfo();
       assertEquals(1, stats.tServerInfo.size());
       assertEquals(0, stats.bulkImports.size());
       assertEquals(0, stats.tServerInfo.get(0).bulkImports.size());
@@ -137,7 +137,7 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
       while (!es.isTerminated()
           && stats.bulkImports.size() + stats.tServerInfo.get(0).bulkImports.size() == 0) {
         es.awaitTermination(10, TimeUnit.MILLISECONDS);
-        stats = getCluster().getMasterMonitorInfo();
+        stats = getCluster().getManagerMonitorInfo();
       }
       log.info(stats.bulkImports.toString());
       assertTrue(!stats.bulkImports.isEmpty());

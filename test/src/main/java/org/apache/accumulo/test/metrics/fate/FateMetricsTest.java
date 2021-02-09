@@ -62,7 +62,7 @@ public class FateMetricsTest {
   private ZooStore<Manager> zooStore = null;
   private ZooKeeper zookeeper = null;
   private ServerContext context = null;
-  private Manager master;
+  private Manager manager;
 
   @BeforeClass
   public static void setupZk() {
@@ -77,8 +77,8 @@ public class FateMetricsTest {
   }
 
   /**
-   * Instantiate a test zookeeper and setup mocks for Master and Context. The test zookeeper is used
-   * create a ZooReaderWriter. The zookeeper used in tests needs to be the one from the
+   * Instantiate a test zookeeper and setup mocks for Manager and Context. The test zookeeper is
+   * used create a ZooReaderWriter. The zookeeper used in tests needs to be the one from the
    * zooReaderWriter, not the test server, because the zooReaderWriter sets up ACLs.
    *
    * @throws Exception
@@ -94,13 +94,13 @@ public class FateMetricsTest {
 
     zooStore = new ZooStore<>(MOCK_ZK_ROOT + Constants.ZFATE, zooReaderWriter);
 
-    master = EasyMock.createMock(Manager.class);
+    manager = EasyMock.createMock(Manager.class);
     context = EasyMock.createMock(ServerContext.class);
 
     EasyMock.expect(context.getZooReaderWriter()).andReturn(zooReaderWriter).anyTimes();
     EasyMock.expect(context.getZooKeeperRoot()).andReturn(MOCK_ZK_ROOT).anyTimes();
 
-    EasyMock.replay(master, context);
+    EasyMock.replay(manager, context);
   }
 
   @After
@@ -141,7 +141,7 @@ public class FateMetricsTest {
     assertEquals(0L, collector.getValue("FateTxState_IN_PROGRESS"));
     assertEquals(0L, collector.getValue("currentFateOps"));
 
-    EasyMock.verify(master);
+    EasyMock.verify(manager);
 
   }
 
@@ -172,7 +172,7 @@ public class FateMetricsTest {
     assertTrue(collector.contains("FateTxState_IN_PROGRESS"));
     assertEquals(0L, collector.getValue("FateTxState_IN_PROGRESS"));
 
-    EasyMock.verify(master);
+    EasyMock.verify(manager);
 
   }
 
@@ -205,7 +205,7 @@ public class FateMetricsTest {
     assertEquals(1L, collector.getValue("FateTxState_IN_PROGRESS"));
     assertEquals(1L, collector.getValue("FateTxOpType_FakeOp"));
 
-    EasyMock.verify(master);
+    EasyMock.verify(manager);
   }
 
   private long seedTransaction() throws Exception {

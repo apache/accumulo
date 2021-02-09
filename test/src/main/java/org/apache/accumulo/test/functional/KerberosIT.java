@@ -513,7 +513,7 @@ public class KerberosIT extends AccumuloITBase {
   }
 
   @Test
-  public void testRestartedMasterReusesSecretKey() throws Exception {
+  public void testRestartedManagerReusesSecretKey() throws Exception {
     // Login as the "root" user
     UserGroupInformation root = UserGroupInformation.loginUserFromKeytabAndReturnUGI(
         rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
@@ -537,10 +537,10 @@ public class KerberosIT extends AccumuloITBase {
           return token;
         });
 
-    log.info("Stopping master");
+    log.info("Stopping manager");
     mac.getClusterControl().stop(ServerType.MANAGER);
     Thread.sleep(5000);
-    log.info("Restarting master");
+    log.info("Restarting manager");
     mac.getClusterControl().start(ServerType.MANAGER);
 
     // Make sure our original token is still good
@@ -571,7 +571,7 @@ public class KerberosIT extends AccumuloITBase {
           return token;
         });
 
-    // A restarted master should reuse the same secret key after a restart if the secret key hasn't
+    // A restarted manager should reuse the same secret key after a restart if the secret key hasn't
     // expired (1day by default)
     DelegationTokenImpl dt1 = (DelegationTokenImpl) delegationToken1;
     DelegationTokenImpl dt2 = (DelegationTokenImpl) delegationToken2;
@@ -649,7 +649,7 @@ public class KerberosIT extends AccumuloITBase {
 
   /**
    * Creates a table, adds a record to it, and then compacts the table. A simple way to make sure
-   * that the system user exists (since the master does an RPC to the tserver which will create the
+   * that the system user exists (since the manager does an RPC to the tserver which will create the
    * system user if it doesn't already exist).
    */
   private void createTableWithDataAndCompact(AccumuloClient client) throws TableNotFoundException,

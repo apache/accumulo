@@ -44,9 +44,9 @@ import org.slf4j.LoggerFactory;
  * by tablet servers and the replication machinery.
  *
  * <p>
- * The Master needs to know the state of the WALs to mark tablets during recovery. The GC needs to
- * know when a log is no longer needed so it can be removed. The replication mechanism needs to know
- * when a log is closed and can be forwarded to the destination table.
+ * The Accumulo Manager needs to know the state of the WALs to mark tablets during recovery. The GC
+ * needs to know when a log is no longer needed so it can be removed. The replication mechanism
+ * needs to know when a log is closed and can be forwarded to the destination table.
  *
  * <p>
  * The state of the WALs is kept in Zookeeper under /accumulo/&lt;instanceid&gt;/wals. For each
@@ -59,7 +59,7 @@ import org.slf4j.LoggerFactory;
  * file.
  *
  * <p>
- * In the event of a recovery, the log is identified as belonging to a dead server. The master will
+ * In the event of a recovery, the log is identified as belonging to a dead server. The manager will
  * update the tablets assigned to that server with log references. Once all tablets have been
  * reassigned and the log references are removed, the log will be eligible for deletion.
  *
@@ -157,7 +157,7 @@ public class WalStateManager {
     return new Pair<>(WalState.valueOf(parts[0]), new Path(parts[1]));
   }
 
-  // Master needs to know the logs for the given instance
+  // Manager needs to know the logs for the given instance
   public List<Path> getWalsInUse(TServerInstance tsi) throws WalMarkerException {
     List<Path> result = new ArrayList<>();
     try {
@@ -166,13 +166,13 @@ public class WalStateManager {
       for (String child : zoo.getChildren(zpath)) {
         byte[] zdata = null;
         try {
-          // This function is called by the Master. Its possible that Accumulo GC deletes an
+          // This function is called by the Manager. Its possible that Accumulo GC deletes an
           // unreferenced WAL in ZK after the call to getChildren above. Catch this exception inside
           // the loop so that not all children are ignored.
           zdata = zoo.getData(zpath + "/" + child);
         } catch (KeeperException.NoNodeException e) {
           log.debug("WAL state removed {} {} during getWalsInUse.  Likely a race condition between "
-              + "master and GC.", tsi, child);
+              + "manager and GC.", tsi, child);
         }
 
         if (zdata != null) {
@@ -257,7 +257,7 @@ public class WalStateManager {
   }
 
   // tablet server can mark the log as closed (but still needed), for replication to begin
-  // master can mark a log as unreferenced after it has made log recovery markers on the tablets
+  // manager can mark a log as unreferenced after it has made log recovery markers on the tablets
   // that need to be recovered
   public void closeWal(TServerInstance instance, Path path) throws WalMarkerException {
     updateState(instance, path, WalState.CLOSED);

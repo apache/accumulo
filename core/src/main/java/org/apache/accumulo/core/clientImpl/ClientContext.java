@@ -168,7 +168,7 @@ public class ClientContext implements AccumuloClient {
 
       @Override
       public List<String> getMasterLocations() {
-        return context.getMasterLocations();
+        return context.getManagerLocations();
       }
 
       @Override
@@ -355,31 +355,31 @@ public class ClientContext implements AccumuloClient {
   }
 
   /**
-   * Returns the location(s) of the accumulo master and any redundant servers.
+   * Returns the location(s) of the accumulo manager and any redundant servers.
    *
    * @return a list of locations in "hostname:port" form
    */
-  public List<String> getMasterLocations() {
+  public List<String> getManagerLocations() {
     ensureOpen();
-    return getMasterLocations(zooCache, getInstanceID());
+    return getManagerLocations(zooCache, getInstanceID());
   }
 
   // available only for sharing code with old ZooKeeperInstance
-  public static List<String> getMasterLocations(ZooCache zooCache, String instanceId) {
-    String masterLocPath = ZooUtil.getRoot(instanceId) + Constants.ZMASTER_LOCK;
+  public static List<String> getManagerLocations(ZooCache zooCache, String instanceId) {
+    String managerLocPath = ZooUtil.getRoot(instanceId) + Constants.ZMANAGER_LOCK;
 
     OpTimer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Looking up master location in zookeeper.", Thread.currentThread().getId());
+      log.trace("tid={} Looking up manager location in zookeeper.", Thread.currentThread().getId());
       timer = new OpTimer().start();
     }
 
-    byte[] loc = zooCache.getLockData(masterLocPath);
+    byte[] loc = zooCache.getLockData(managerLocPath);
 
     if (timer != null) {
       timer.stop();
-      log.trace("tid={} Found master at {} in {}", Thread.currentThread().getId(),
+      log.trace("tid={} Found manager at {} in {}", Thread.currentThread().getId(),
           (loc == null ? "null" : new String(loc, UTF_8)),
           String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
     }

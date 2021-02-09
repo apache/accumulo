@@ -374,8 +374,8 @@ public class Admin implements KeywordExecutable {
 
   private static void stopTabletServer(final ClientContext context, List<String> servers,
       final boolean force) throws AccumuloException, AccumuloSecurityException {
-    if (context.getMasterLocations().isEmpty()) {
-      log.info("No masters running. Not attempting safe unload of tserver.");
+    if (context.getManagerLocations().isEmpty()) {
+      log.info("No managers running. Not attempting safe unload of tserver.");
       return;
     }
     final String zTServerRoot = getTServersZkPath(context);

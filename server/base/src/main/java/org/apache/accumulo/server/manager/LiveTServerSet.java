@@ -79,7 +79,7 @@ public class LiveTServerSet implements Watcher {
     }
 
     private String lockString(ZooLock mlock) {
-      return mlock.getLockID().serialize(context.getZooKeeperRoot() + Constants.ZMASTER_LOCK);
+      return mlock.getLockID().serialize(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
     }
 
     private void loadTablet(TabletClientService.Client client, ZooLock lock, KeyExtent extent)

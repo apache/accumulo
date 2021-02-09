@@ -135,7 +135,7 @@ public class ZooKeeperInstance implements Instance {
 
   @Override
   public List<String> getMasterLocations() {
-    return ClientContext.getMasterLocations(zooCache, getInstanceID());
+    return ClientContext.getManagerLocations(zooCache, getInstanceID());
   }
 
   @Override
