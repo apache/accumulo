@@ -111,6 +111,10 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
   @Override
   public WriterFSOptions to(String filename) {
     Objects.requireNonNull(filename);
+    if (!filename.endsWith(".rf")) {
+      throw new IllegalArgumentException(
+          "Provided filename (" + filename + ") does not end with '.rf'");
+    }
     this.out = new OutputArgs(filename);
     return this;
   }
