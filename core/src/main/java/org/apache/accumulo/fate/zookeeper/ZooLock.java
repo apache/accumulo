@@ -182,7 +182,7 @@ public class ZooLock implements Watcher {
    */
   public static List<String> validateAndSortChildrenByLockPrefix(String path,
       List<String> children) {
-    LOG.debug("validating and sorting children at path {}", path);
+    LOG.trace("validating and sorting children at path {}", path);
     List<String> validChildren = new ArrayList<>();
     if (null == children || children.size() == 0) {
       return validChildren;
@@ -235,10 +235,7 @@ public class ZooLock implements Watcher {
         }
       });
     }
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Children nodes: {}", validChildren.size());
-      validChildren.forEach(c -> LOG.debug("- {}", c));
-    }
+    LOG.trace("Children nodes (size: {}): {}", validChildren.size(), validChildren);
     return validChildren;
   }
 
