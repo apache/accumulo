@@ -20,13 +20,11 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.WeakHashMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -195,22 +193,6 @@ public abstract class TabletLocator {
   }
 
   public static class TabletLocation implements Comparable<TabletLocation> {
-    private static final WeakHashMap<String,WeakReference<String>> tabletLocs = new WeakHashMap<>();
-
-    private static String dedupeLocation(String tabletLoc) {
-      synchronized (tabletLocs) {
-        WeakReference<String> lref = tabletLocs.get(tabletLoc);
-        if (lref != null) {
-          String loc = lref.get();
-          if (loc != null) {
-            return loc;
-          }
-        }
-
-        tabletLocs.put(tabletLoc, new WeakReference<>(tabletLoc));
-        return tabletLoc;
-      }
-    }
 
     public final KeyExtent tablet_extent;
     public final String tablet_location;
@@ -221,8 +203,8 @@ public abstract class TabletLocator {
       checkArgument(tablet_location != null, "tablet_location is null");
       checkArgument(session != null, "session is null");
       this.tablet_extent = tablet_extent;
-      this.tablet_location = dedupeLocation(tablet_location);
-      this.tablet_session = dedupeLocation(session);
+      this.tablet_location = tablet_location.intern();
+      this.tablet_session = session.intern();
     }
 
     @Override
