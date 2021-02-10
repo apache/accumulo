@@ -107,6 +107,19 @@ public class ZooLock implements Watcher {
     }
   }
 
+  protected ZooLock(ZooKeeper zookeeper, String path, UUID uuid) {
+    this.zooKeeper = zookeeper;
+    this.path = path;
+    try {
+      zooKeeper.exists(path, this);
+      watchingParent = true;
+      this.vmLockPrefix = new Prefix(ZLOCK_PREFIX + uuid.toString() + "#");
+    } catch (Exception ex) {
+      LOG.error("Error setting initial watch", ex);
+      throw new RuntimeException(ex);
+    }
+  }
+
   private static class LockWatcherWrapper implements AccumuloLockWatcher {
 
     boolean acquiredLock = false;
