@@ -32,7 +32,7 @@ import org.apache.hadoop.io.Text;
 /**
  * Volume chooser authors should avoid using this class when testing their volume chooser. The
  * constructors for this class may change at any time. For testing purposes mocking the interface
- * {@link VolumeChooserEnvironment} should result in more stable code over time than using this
+ * {@code VolumeChooserEnvironment} should result in more stable code over time than using this
  * class.
  */
 @SuppressWarnings("deprecation")
