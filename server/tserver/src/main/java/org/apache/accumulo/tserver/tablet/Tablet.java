@@ -68,7 +68,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.YieldCallback;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.logging.TabletLogger;
-import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
