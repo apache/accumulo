@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.util.Collections;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
@@ -26,6 +25,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.manager.Manager;
@@ -52,13 +52,13 @@ public class BackupManagerIT extends ConfigurableMacBase {
       // wait for 2 lock entries
       do {
         UtilWaitThread.sleep(100);
-        children = writer.getChildren(root + Constants.ZMANAGER_LOCK);
+        String path = root + Constants.ZMANAGER_LOCK;
+        children = ZooLock.validateAndSortChildrenByLockPrefix(path, writer.getChildren(path));
       } while (children.size() != 2);
-      Collections.sort(children);
       // wait for the backup manager to learn to be the backup
       UtilWaitThread.sleep(1000);
       // generate a false zookeeper event
-      String lockPath = root + Constants.ZMANAGER_LOCK + children.get(0);
+      String lockPath = root + Constants.ZMANAGER_LOCK + "/" + children.get(0);
       byte[] data = writer.getData(lockPath);
       writer.getZooKeeper().setData(lockPath, data, -1);
       // let it propagate

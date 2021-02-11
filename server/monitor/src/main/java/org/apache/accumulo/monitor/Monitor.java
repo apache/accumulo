@@ -392,9 +392,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       // Read the gc location from its lock
       ZooReaderWriter zk = context.getZooReaderWriter();
       String path = context.getZooKeeperRoot() + Constants.ZGC_LOCK;
-      List<String> locks = zk.getChildren(path);
+      List<String> locks = ZooLock.validateAndSortChildrenByLockPrefix(path, zk.getChildren(path));
       if (locks != null && !locks.isEmpty()) {
-        Collections.sort(locks);
         address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0)), UTF_8))
             .getAddress(Service.GC_CLIENT);
         GCMonitorService.Client client =
