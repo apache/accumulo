@@ -95,7 +95,17 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 /**
- * Handles upgrading from 2.0 to 2.1
+ * Handles upgrading from 2.0 to 2.1.
+ * <ul>
+ * <li><strong>Rename master properties (Issue
+ * <a href="https://github.com/apache/accumulo/issues/1640">#1640</a>):</strong> Rename any
+ * ZooKeeper system properties that start with "master." to the equivalent property starting with
+ * "manager." instead. Note that this change was part of a larger effort to replace references to
+ * master with manager. See issues
+ * <a href="https://github.com/apache/accumulo/issues/1641">#1641</a>,
+ * <a href="https://github.com/apache/accumulo/issues/1642">#1642</a>, and
+ * <a href="https://github.com/apache/accumulo/issues/1643">#1643</a> as well.</li>
+ * </ul>
  */
 public class Upgrader9to10 implements Upgrader {
 
