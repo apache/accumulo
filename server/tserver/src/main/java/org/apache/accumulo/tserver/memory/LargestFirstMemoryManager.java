@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -147,6 +148,11 @@ public class LargestFirstMemoryManager {
     return context.getTableConfiguration(tableId) != null;
   }
 
+  private boolean tableBeingDeleted(TableId tableId) {
+    var state = context.getTableManager().getTableState(tableId);
+    return state.equals(TableState.DELETING);
+  }
+
   public List<KeyExtent> tabletsToMinorCompact(List<TabletMemoryReport> tablets) {
     if (maxMemory < 0)
       throw new IllegalStateException(
@@ -167,9 +173,10 @@ public class LargestFirstMemoryManager {
 
     // find the largest and most idle tablets
     for (TabletMemoryReport ts : tablets) {
+      KeyExtent tablet = ts.getExtent();
       // Make sure that the table still exists
-      if (!tableExists(ts.getExtent().tableId())) {
-        log.trace("Ignoring extent for deleted table: {}", ts.getExtent());
+      if (!tableExists(tablet.tableId()) || tableBeingDeleted(tablet.tableId())) {
+        log.debug("Ignoring extent for deleted table: {}", tablet);
         continue;
       }
 
@@ -179,17 +186,16 @@ public class LargestFirstMemoryManager {
       final long timeMemoryLoad = timeMemoryLoad(memTabletSize, idleTime);
       ingestMemory += memTabletSize;
       if (minorCompactingSize == 0 && memTabletSize > 0) {
-        TabletInfo tabletInfo =
-            new TabletInfo(ts.getExtent(), memTabletSize, idleTime, timeMemoryLoad);
+        TabletInfo tabletInfo = new TabletInfo(tablet, memTabletSize, idleTime, timeMemoryLoad);
         try {
           // If the table was deleted, getMinCIdleThreshold will throw an exception
-          if (idleTime > getMinCIdleThreshold(ts.getExtent())) {
+          if (idleTime > getMinCIdleThreshold(tablet)) {
             largestIdleMemTablets.put(timeMemoryLoad, tabletInfo);
           }
         } catch (IllegalArgumentException e) {
           Throwable cause = e.getCause();
           if (cause != null && cause instanceof TableNotFoundException) {
-            log.trace("Ignoring extent for deleted table: {}", ts.getExtent());
+            log.trace("Ignoring extent for deleted table: {}", tablet);
 
             // The table might have been deleted during the iteration of the tablets
             // We just want to eat this exception, do nothing with this tablet, and continue
