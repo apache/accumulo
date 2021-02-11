@@ -28,7 +28,6 @@ import static org.junit.Assert.fail;
 
 import java.io.UncheckedIOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -262,15 +261,13 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       for (int i = 0; i < 5; i++) {
         List<String> locks;
         try {
-          locks = zk.getChildren(path);
+          locks = ZooLock.validateAndSortChildrenByLockPrefix(path, zk.getChildren(path));
         } catch (NoNodeException e) {
           Thread.sleep(5000);
           continue;
         }
 
         if (locks != null && !locks.isEmpty()) {
-          Collections.sort(locks);
-
           String lockPath = path + "/" + locks.get(0);
 
           String gcLoc = new String(zk.getData(lockPath));

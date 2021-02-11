@@ -21,7 +21,6 @@ package org.apache.accumulo.fate.zookeeper;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -184,7 +183,7 @@ public class ZooLock implements Watcher {
       List<String> children) {
     LOG.trace("validating and sorting children at path {}", path);
     List<String> validChildren = new ArrayList<>();
-    if (null == children || children.size() == 0) {
+    if (children == null || children.isEmpty()) {
       return validChildren;
     }
     children.forEach(c -> {
@@ -221,18 +220,14 @@ public class ZooLock implements Watcher {
     });
 
     if (validChildren.size() > 1) {
-      validChildren.sort(new Comparator<String>() {
-        @Override
-        public int compare(String o1, String o2) {
-
-          // Lock should be of the form:
-          // zlock#UUID#sequenceNumber
-          // Example:
-          // zlock#44755fbe-1c9e-40b3-8458-03abaf950d7e#0000000000
-          int secondHashIdx = 43;
-          return Integer.valueOf(o1.substring(secondHashIdx))
-              .compareTo(Integer.valueOf(o2.substring(secondHashIdx)));
-        }
+      validChildren.sort((o1, o2) -> {
+        // Lock should be of the form:
+        // zlock#UUID#sequenceNumber
+        // Example:
+        // zlock#44755fbe-1c9e-40b3-8458-03abaf950d7e#0000000000
+        int secondHashIdx = 43;
+        return Integer.valueOf(o1.substring(secondHashIdx))
+            .compareTo(Integer.valueOf(o2.substring(secondHashIdx)));
       });
     }
     LOG.trace("Children nodes (size: {}): {}", validChildren.size(), validChildren);
