@@ -559,7 +559,7 @@ public class TabletServerResourceManager {
               Tablet tablet = tabletReport.getTablet();
               var state = context.getTableManager().getTableState(tablet.getExtent().tableId());
               if (!tablet.initiateMinorCompaction(MinorCompactionReason.SYSTEM, state)) {
-                if (tablet.isClosed() || state.equals(TableState.DELETING)) {
+                if (tablet.isClosed() || state == TableState.DELETING) {
                   // attempt to remove it from the current reports if still there
                   synchronized (tabletReports) {
                     TabletMemoryReport latestReport = tabletReports.remove(keyExtent);
