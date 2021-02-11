@@ -149,8 +149,7 @@ public class LargestFirstMemoryManager {
   }
 
   private boolean tableBeingDeleted(TableId tableId) {
-    var state = context.getTableManager().getTableState(tableId);
-    return state.equals(TableState.DELETING);
+    return context.getTableManager().getTableState(tableId) == TableState.DELETING;
   }
 
   public List<KeyExtent> tabletsToMinorCompact(List<TabletMemoryReport> tablets) {
