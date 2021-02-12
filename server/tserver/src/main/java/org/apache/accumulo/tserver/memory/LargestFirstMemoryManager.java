@@ -148,7 +148,7 @@ public class LargestFirstMemoryManager {
     return context.getTableConfiguration(tableId) != null;
   }
 
-  private boolean tableBeingDeleted(TableId tableId) {
+  protected boolean tableBeingDeleted(TableId tableId) {
     return context.getTableManager().getTableState(tableId) == TableState.DELETING;
   }
 
@@ -175,7 +175,7 @@ public class LargestFirstMemoryManager {
       KeyExtent tablet = ts.getExtent();
       // Make sure that the table still exists
       if (!tableExists(tablet.tableId()) || tableBeingDeleted(tablet.tableId())) {
-        log.debug("Ignoring extent for deleted table: {}", tablet);
+        log.trace("Ignoring extent for deleted table: {}", tablet);
         continue;
       }
 
