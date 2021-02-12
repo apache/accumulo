@@ -52,7 +52,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
 import org.apache.accumulo.core.file.blockfile.impl.ScanCacheProvider;
-import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
@@ -557,9 +556,8 @@ public class TabletServerResourceManager {
                 continue;
               }
               Tablet tablet = tabletReport.getTablet();
-              var state = context.getTableManager().getTableState(tablet.getExtent().tableId());
-              if (!tablet.initiateMinorCompaction(MinorCompactionReason.SYSTEM, state)) {
-                if (tablet.isClosed() || state == TableState.DELETING) {
+              if (!tablet.initiateMinorCompaction(MinorCompactionReason.SYSTEM)) {
+                if (tablet.isClosed() || tablet.isBeingDeleted()) {
                   // attempt to remove it from the current reports if still there
                   synchronized (tabletReports) {
                     TabletMemoryReport latestReport = tabletReports.remove(keyExtent);

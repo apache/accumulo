@@ -876,11 +876,11 @@ public class Tablet {
 
   }
 
-  public boolean initiateMinorCompaction(MinorCompactionReason mincReason, TableState tableState) {
+  public boolean initiateMinorCompaction(MinorCompactionReason mincReason) {
     if (isClosed()) {
       return false;
     }
-    if (isBeingDeleted(tableState)) {
+    if (isBeingDeleted()) {
       log.debug("Table {} is being deleted so don't flush {}", extent.tableId(), extent);
       return false;
     }
@@ -1583,8 +1583,8 @@ public class Tablet {
     return localCS == CloseState.CLOSED || localCS == CloseState.COMPLETE;
   }
 
-  public boolean isBeingDeleted(TableState state) {
-    return state == TableState.DELETING;
+  public boolean isBeingDeleted() {
+    return context.getTableManager().getTableState(extent.tableId()) == TableState.DELETING;
   }
 
   public boolean isCloseComplete() {
@@ -1911,8 +1911,7 @@ public class Tablet {
     if (reason != null) {
       // initiate and log outside of tablet lock
       log.debug("Initiating minor compaction for {} because {}", getExtent(), reason);
-      TableState tableState = context.getTableManager().getTableState(extent.tableId());
-      initiateMinorCompaction(MinorCompactionReason.SYSTEM, tableState);
+      initiateMinorCompaction(MinorCompactionReason.SYSTEM);
     }
   }
 
