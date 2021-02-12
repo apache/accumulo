@@ -340,7 +340,7 @@ public class Tablet {
 
     tabletMemory = new TabletMemory(this);
 
-    if (!logEntries.isEmpty()) {
+    if (!logEntries.isEmpty() && !isBeingDeleted()) {
       TabletLogger.recovering(extent, logEntries);
       final AtomicLong entriesUsedOnTablet = new AtomicLong(0);
       // track max time from walog entries without timestamps
