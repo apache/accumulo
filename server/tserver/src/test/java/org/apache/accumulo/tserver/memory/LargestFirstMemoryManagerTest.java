@@ -25,7 +25,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -176,10 +176,9 @@ public class LargestFirstMemoryManagerTest {
   public void testDeletedTable() {
     final String deletedTableId = "1";
     final String beingDeleted = "2";
-    Function<TableId,Boolean> existenceCheck =
+    Predicate<TableId> existenceCheck =
         tableId -> !deletedTableId.contentEquals(tableId.canonical());
-    Function<TableId,Boolean> deletingCheck =
-        tableId -> beingDeleted.contentEquals(tableId.canonical());
+    Predicate<TableId> deletingCheck = tableId -> beingDeleted.contentEquals(tableId.canonical());
     LargestFirstMemoryManagerWithExistenceCheck mgr =
         new LargestFirstMemoryManagerWithExistenceCheck(existenceCheck, deletingCheck);
 
@@ -222,11 +221,11 @@ public class LargestFirstMemoryManagerTest {
   private static class LargestFirstMemoryManagerWithExistenceCheck
       extends LargestFirstMemoryManagerUnderTest {
 
-    Function<TableId,Boolean> existenceCheck;
-    Function<TableId,Boolean> deletingCheck;
+    Predicate<TableId> existenceCheck;
+    Predicate<TableId> deletingCheck;
 
-    public LargestFirstMemoryManagerWithExistenceCheck(Function<TableId,Boolean> existenceCheck,
-        Function<TableId,Boolean> deletingCheck) {
+    public LargestFirstMemoryManagerWithExistenceCheck(Predicate<TableId> existenceCheck,
+        Predicate<TableId> deletingCheck) {
       super();
       this.existenceCheck = existenceCheck;
       this.deletingCheck = deletingCheck;
@@ -234,12 +233,12 @@ public class LargestFirstMemoryManagerTest {
 
     @Override
     protected boolean tableExists(TableId tableId) {
-      return existenceCheck.apply(tableId);
+      return existenceCheck.test(tableId);
     }
 
     @Override
     protected boolean tableBeingDeleted(TableId tableId) {
-      return deletingCheck.apply(tableId);
+      return deletingCheck.test(tableId);
     }
   }
 

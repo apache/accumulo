@@ -880,7 +880,7 @@ public class Tablet {
     if (isClosed()) {
       return false;
     }
-    if (tableState.equals(TableState.DELETING)) {
+    if (isBeingDeleted(tableState)) {
       log.debug("Table {} is being deleted so don't flush {}", extent.tableId(), extent);
       return false;
     }
@@ -1581,6 +1581,10 @@ public class Tablet {
     // comparisons are done.
     CloseState localCS = closeState;
     return localCS == CloseState.CLOSED || localCS == CloseState.COMPLETE;
+  }
+
+  public boolean isBeingDeleted(TableState state) {
+    return state == TableState.DELETING;
   }
 
   public boolean isCloseComplete() {
