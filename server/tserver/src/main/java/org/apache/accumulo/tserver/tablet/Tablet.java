@@ -68,6 +68,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.YieldCallback;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -879,6 +880,10 @@ public class Tablet {
     if (isClosed()) {
       return false;
     }
+    if (isBeingDeleted()) {
+      log.debug("Table {} is being deleted so don't flush {}", extent.tableId(), extent);
+      return false;
+    }
 
     // get the flush id before the new memmap is made available for write
     long flushId;
@@ -1259,6 +1264,8 @@ public class Tablet {
     // wait for reads and writes to complete
     while (writesInProgress > 0 || !activeScans.isEmpty()) {
       try {
+        log.debug("Waiting to completeClose for {}. {} writes {} scans", extent, writesInProgress,
+            activeScans.size());
         this.wait(50);
       } catch (InterruptedException e) {
         log.error(e.toString());
@@ -1574,6 +1581,10 @@ public class Tablet {
     // comparisons are done.
     CloseState localCS = closeState;
     return localCS == CloseState.CLOSED || localCS == CloseState.COMPLETE;
+  }
+
+  public boolean isBeingDeleted() {
+    return context.getTableManager().getTableState(extent.tableId()) == TableState.DELETING;
   }
 
   public boolean isCloseComplete() {
@@ -1899,8 +1910,8 @@ public class Tablet {
 
     if (reason != null) {
       // initiate and log outside of tablet lock
-      initiateMinorCompaction(MinorCompactionReason.SYSTEM);
       log.debug("Initiating minor compaction for {} because {}", getExtent(), reason);
+      initiateMinorCompaction(MinorCompactionReason.SYSTEM);
     }
   }
 

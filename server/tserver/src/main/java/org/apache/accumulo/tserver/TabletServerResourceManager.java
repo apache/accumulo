@@ -557,13 +557,13 @@ public class TabletServerResourceManager {
               }
               Tablet tablet = tabletReport.getTablet();
               if (!tablet.initiateMinorCompaction(MinorCompactionReason.SYSTEM)) {
-                if (tablet.isClosed()) {
+                if (tablet.isClosed() || tablet.isBeingDeleted()) {
                   // attempt to remove it from the current reports if still there
                   synchronized (tabletReports) {
                     TabletMemoryReport latestReport = tabletReports.remove(keyExtent);
                     if (latestReport != null) {
                       if (latestReport.getTablet() == tablet) {
-                        log.debug("Cleaned up report for closed tablet {}", keyExtent);
+                        log.debug("Cleaned up report for closed/deleted tablet {}", keyExtent);
                       } else {
                         // different tablet instance => put it back
                         tabletReports.put(keyExtent, latestReport);
