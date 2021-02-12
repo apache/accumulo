@@ -843,7 +843,8 @@ public class Tablet {
           return;
         }
 
-        if (isClosing() || isClosed() || getTabletMemory().memoryReservedForMinC()) {
+        if (isClosing() || isClosed() || isBeingDeleted()
+            || getTabletMemory().memoryReservedForMinC()) {
           return;
         }
 
