@@ -44,12 +44,13 @@ public class ServerBulkImportStatus {
   }
 
   private void updateFile(String file, BulkImportState state) {
-    BulkImportStatus initial = new BulkImportStatus(System.currentTimeMillis(), file, state);
-    status.putIfAbsent(file, initial);
-    initial = status.get(file);
-    if (initial != null) {
-      initial.state = state;
-    }
+    status.compute(file, (key, currentStatus) -> {
+      if (currentStatus == null) {
+        return new BulkImportStatus(System.currentTimeMillis(), file, state);
+      }
+      currentStatus.state = state;
+      return currentStatus;
+    });
   }
 
   public void updateBulkImportStatus(Set<TabletFile> newFileMap, BulkImportState state) {
