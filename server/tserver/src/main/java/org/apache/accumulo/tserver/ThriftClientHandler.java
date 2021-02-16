@@ -237,8 +237,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
           path = ns.makeQualified(path);
           newFileMap.put(new TabletFile(path), mapping.getValue());
         }
-        var fileStream = newFileMap.keySet().stream().map(TabletFile::getPathStr);
-        List<String> files = fileStream.collect(Collectors.toList());
+        var files = newFileMap.keySet().stream().map(TabletFile::getPathStr).collect(toList());
         server.updateBulkImportState(files, BulkImportState.INITIAL);
 
         Tablet importTablet = server.getOnlineTablet(KeyExtent.fromThrift(tke));
