@@ -199,9 +199,10 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     log.debug("Current state = {}", state);
     scanner.updateScanIteratorOption("tabletChange", "debug", "1");
     for (Entry<Key,Value> e : scanner) {
-      if (e != null)
+      if (e != null) {
         results++;
-      resultList.add(e.getKey());
+        resultList.add(e.getKey());
+      }
     }
     log.debug("Tablets in flux: {}", resultList);
     return results;
