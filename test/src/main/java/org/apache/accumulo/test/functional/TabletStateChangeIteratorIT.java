@@ -19,10 +19,12 @@ package org.apache.accumulo.test.functional;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
@@ -63,6 +65,8 @@ import org.apache.accumulo.server.master.state.TabletStateChangeIterator;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
@@ -71,6 +75,7 @@ import com.google.common.collect.Sets;
  * in the metadata table when there is no work to be done on the tablet (see ACCUMULO-3580)
  */
 public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
+  private final static Logger log = LoggerFactory.getLogger(TabletStateChangeIteratorIT.class);
 
   @Override
   public int defaultTimeoutSeconds() {
@@ -97,9 +102,12 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     copyTable(MetadataTable.NAME, metaCopy1);
 
     State state = new State();
-    while (findTabletsNeedingAttention(metaCopy1, state) > 0) {
+    int tabletsInFlux = findTabletsNeedingAttention(metaCopy1, state);
+    while (tabletsInFlux > 0) {
+      log.debug("Waiting for {} tablets for {}", tabletsInFlux, metaCopy1);
       UtilWaitThread.sleep(500);
       copyTable(MetadataTable.NAME, metaCopy1);
+      tabletsInFlux = findTabletsNeedingAttention(metaCopy1, state);
     }
     assertEquals("No tables should need attention", 0,
         findTabletsNeedingAttention(metaCopy1, state));
@@ -184,14 +192,18 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
 
   private int findTabletsNeedingAttention(String table, State state) throws TableNotFoundException {
     int results = 0;
+    List<Key> resultList = new ArrayList<>();
+
     Scanner scanner = getConnector().createScanner(table, Authorizations.EMPTY);
     MetaDataTableScanner.configureScanner(scanner, state);
+    log.debug("Current state = {}", state);
     scanner.updateScanIteratorOption("tabletChange", "debug", "1");
     for (Entry<Key,Value> e : scanner) {
       if (e != null)
         results++;
+      resultList.add(e.getKey());
     }
-
+    log.debug("Tablets in flux: {}", resultList);
     return results;
   }
 
@@ -208,6 +220,10 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     }
   }
 
+  /**
+   * Create a copy of the source table by first gathering all the rows of the source in a list of
+   * mutations. Then create the copy of the table and apply the mutations to the copy.
+   */
   private void copyTable(String source, String copy) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException, TableExistsException {
     try {
@@ -216,10 +232,10 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       // ignored
     }
 
-    getConnector().tableOperations().create(copy);
+    log.info("Gathering rows to copy {} ", source);
+    List<Mutation> mutations = new ArrayList<>();
 
-    try (Scanner scanner = getConnector().createScanner(source, Authorizations.EMPTY);
-        BatchWriter writer = getConnector().createBatchWriter(copy, new BatchWriterConfig())) {
+    try (Scanner scanner = getConnector().createScanner(source, Authorizations.EMPTY)) {
       RowIterator rows = new RowIterator(new IsolatedScanner(scanner));
 
       while (rows.hasNext()) {
@@ -236,9 +252,22 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
               k.getTimestamp(), entry.getValue());
         }
 
+        mutations.add(m);
+      }
+    }
+
+    // metadata should be stable with only 7 rows (1 replication + 2 for each table)
+    log.debug("Gathered {} rows to create copy {}", mutations.size(), copy);
+    assertEquals("Metadata should have 7 rows (1 repl + 2 for each table)", 7, mutations.size());
+    getConnector().tableOperations().create(copy);
+
+    try (BatchWriter writer = getConnector().createBatchWriter(copy, new BatchWriterConfig())) {
+      for (Mutation m : mutations) {
         writer.addMutation(m);
       }
     }
+
+    log.info("Finished creating copy " + copy);
   }
 
   private void dropTables(String... tables)
@@ -249,6 +278,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
   }
 
   private class State implements CurrentState {
+    private Set<TServerInstance> tservers;
+    private Set<String> onlineTables;
 
     @Override
     public Set<TServerInstance> onlineTabletServers() {
@@ -264,6 +295,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
           throw new RuntimeException(e);
         }
       }
+      this.tservers = Collections.unmodifiableSet(tservers);
       return tservers;
     }
 
@@ -271,9 +303,10 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     public Set<String> onlineTables() {
       HashSet<String> onlineTables =
           new HashSet<>(getConnector().tableOperations().tableIdMap().values());
-      return Sets.filter(onlineTables,
+      this.onlineTables = Sets.filter(onlineTables,
           tableId -> Tables.getTableState(getConnector().getInstance(), tableId)
               == TableState.ONLINE);
+      return this.onlineTables;
     }
 
     @Override
@@ -294,6 +327,11 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     @Override
     public MasterState getMasterState() {
       return MasterState.NORMAL;
+    }
+
+    @Override
+    public String toString() {
+      return "tservers: " + tservers + " onlineTables: " + onlineTables;
     }
   }
 
