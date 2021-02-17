@@ -127,8 +127,8 @@ public class VolumeImpl implements Volume {
     if (basePath.isBlank()) {
       log.error("Basepath is empty. Make sure instance.volumes is set to a correct path");
       throw new IllegalArgumentException(
-              "Accumulo cannot be initialized because basepath is empty. "
-                      + "This probably means instace.volumes is an incorrect value");
+          "Accumulo cannot be initialized because basepath is empty. "
+              + "This probably means instace.volumes is an incorrect value");
     }
 
     if (p.isBlank()) {
