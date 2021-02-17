@@ -30,6 +30,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
@@ -84,6 +85,7 @@ class BulkImportMove extends ManagerRepo {
     }
 
     try {
+      manager.updateBulkImportStatus(sourceDir.toString(), BulkImportState.MOVING);
       Map<String,String> oldToNewNameMap =
           BulkSerialize.readRenameMap(bulkDir.toString(), fs::open);
       moveFiles(tid, sourceDir, bulkDir, manager, fs, oldToNewNameMap);

@@ -24,6 +24,7 @@ import java.util.Collections;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
@@ -49,6 +50,7 @@ public class CleanUpBulkImport extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
+    manager.updateBulkImportStatus(info.sourceDir, BulkImportState.CLEANUP);
     log.debug("removing the bulkDir processing flag file in " + info.bulkDir);
     Path bulkDir = new Path(info.bulkDir);
     MetadataTableUtil.removeBulkLoadInProgressFlag(manager.getContext(),
@@ -76,6 +78,7 @@ public class CleanUpBulkImport extends ManagerRepo {
     if (info.tableState == TableState.ONLINE) {
       ZooArbitrator.cleanup(manager.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
     }
+    manager.removeBulkImportStatus(info.sourceDir);
     return null;
   }
 }

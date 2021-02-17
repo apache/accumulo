@@ -19,6 +19,7 @@
 package org.apache.accumulo.tserver;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
@@ -85,6 +86,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -229,21 +231,27 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
     transactionWatcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
       tabletImports.forEach((tke, fileMap) -> {
         Map<TabletFile,MapFileInfo> newFileMap = new HashMap<>();
+
         for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
           Path path = new Path(dir, mapping.getKey());
           FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
           path = ns.makeQualified(path);
           newFileMap.put(new TabletFile(path), mapping.getValue());
         }
+        var files = newFileMap.keySet().stream().map(TabletFile::getPathStr).collect(toList());
+        server.updateBulkImportState(files, BulkImportState.INITIAL);
 
         Tablet importTablet = server.getOnlineTablet(KeyExtent.fromThrift(tke));
 
         if (importTablet != null) {
           try {
+            server.updateBulkImportState(files, BulkImportState.PROCESSING);
             importTablet.importMapFiles(tid, newFileMap, setTime);
           } catch (IOException ioe) {
             log.debug("files {} not imported to {}: {}", fileMap.keySet(),
                 KeyExtent.fromThrift(tke), ioe.getMessage());
+          } finally {
+            server.removeBulkImportState(files);
           }
         }
       });

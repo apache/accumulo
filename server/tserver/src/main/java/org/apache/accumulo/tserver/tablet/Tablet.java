@@ -1764,7 +1764,7 @@ public class Tablet {
 
     for (Entry<TabletFile,MapFileInfo> entry : fileMap.entrySet()) {
       entries.put(entry.getKey(), new DataFileValue(entry.getValue().estimatedSize, 0L));
-      files.add(entry.getKey().getMetaInsert());
+      files.add(entry.getKey().getPathStr());
     }
 
     // Clients timeout and will think that this operation failed.

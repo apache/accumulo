@@ -37,12 +37,13 @@ public class ServerBulkImportStatus {
 
   public void updateBulkImportStatus(List<String> files, BulkImportState state) {
     for (String file : files) {
-      BulkImportStatus initial = new BulkImportStatus(System.currentTimeMillis(), file, state);
-      status.putIfAbsent(file, initial);
-      initial = status.get(file);
-      if (initial != null) {
-        initial.state = state;
-      }
+      status.compute(file, (key, currentStatus) -> {
+        if (currentStatus == null) {
+          return new BulkImportStatus(System.currentTimeMillis(), file, state);
+        }
+        currentStatus.state = state;
+        return currentStatus;
+      });
     }
   }
 

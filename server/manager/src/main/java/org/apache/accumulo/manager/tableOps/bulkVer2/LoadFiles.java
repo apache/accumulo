@@ -45,6 +45,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -96,6 +97,7 @@ class LoadFiles extends ManagerRepo {
     }
     VolumeManager fs = manager.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.bulkDir);
+    manager.updateBulkImportStatus(bulkInfo.sourceDir, BulkImportState.LOADING);
     try (LoadMappingIterator lmi =
         BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
       return loadFiles(bulkInfo.tableId, bulkDir, lmi, manager, tid);
