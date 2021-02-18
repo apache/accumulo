@@ -222,7 +222,7 @@ public class TabletServerResource {
     majorStdDev = stddev(total.majors.elapsed, total.majors.num, total.majors.sumDev);
     majorQueueStdDev = stddev(total.majors.queueTime, total.majors.num, total.majors.queueSumDev);
     splitStdDev =
-        stddev(historical.splits.num, historical.splits.elapsed, historical.splits.sumDev);
+        stddev(historical.splits.elapsed, historical.splits.num, historical.splits.sumDev);
 
     TabletServerDetailInformation details = doDetails(tsStats.size());
 
