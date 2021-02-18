@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.metrics;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertTrue;
 
 import java.io.FileWriter;
@@ -53,7 +54,7 @@ public class MetricsFileTailerTest {
   @Test
   public void fileUpdates() throws InterruptedException {
 
-    boolean passed = Boolean.FALSE;
+    boolean passed = false;
     try (MetricsFileTailer tailer = new MetricsFileTailer("foo", TEST_OUTFILE_NAME)) {
       tailer.startDaemonThread();
 
@@ -69,7 +70,7 @@ public class MetricsFileTailerTest {
           lastUpdate = tailer.getLastUpdate();
           log.trace("{} - {}", tailer.getLastUpdate(), tailer.getLast());
           if (SUCCESS.compareTo(tailer.getLast()) == 0) {
-            passed = Boolean.TRUE;
+            passed = true;
             break;
           }
         }
@@ -84,7 +85,7 @@ public class MetricsFileTailerTest {
    * Simulate write record(s) to the file.
    */
   private void writeToFile() {
-    try (FileWriter writer = new FileWriter(TEST_OUTFILE_NAME, true);
+    try (FileWriter writer = new FileWriter(TEST_OUTFILE_NAME, UTF_8, true);
         PrintWriter printWriter = new PrintWriter(writer)) {
       printWriter.println("foo");
       // needs to be last line for test to pass
