@@ -520,6 +520,16 @@
               </arguments>
             </configuration>
           </execution>
+          <execution>
+            <id>create-jshell</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>compile</phase>
+            <configuration>
+              <executable>${basedir}/conf/create-jshell.sh</executable>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>
