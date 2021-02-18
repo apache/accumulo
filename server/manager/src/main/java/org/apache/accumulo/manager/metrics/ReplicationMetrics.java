@@ -28,7 +28,7 @@ import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
@@ -37,23 +37,23 @@ import org.apache.hadoop.metrics2.lib.MutableStat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ReplicationMetrics extends MasterMetrics {
+public class ReplicationMetrics extends ManagerMetrics {
 
   private static final Logger log = LoggerFactory.getLogger(ReplicationMetrics.class);
 
-  private final Master master;
+  private final Manager manager;
   private final ReplicationUtil replicationUtil;
   private final MutableQuantiles replicationQueueTimeQuantiles;
   private final MutableStat replicationQueueTimeStat;
   private final Map<Path,Long> pathModTimes;
 
-  ReplicationMetrics(Master master) {
-    super("Replication", "Data-Center Replication Metrics", "MasterReplication");
-    this.master = master;
+  ReplicationMetrics(Manager manager) {
+    super("Replication", "Data-Center Replication Metrics", "ManagerReplication");
+    this.manager = manager;
 
     pathModTimes = new HashMap<>();
 
-    replicationUtil = new ReplicationUtil(master.getContext());
+    replicationUtil = new ReplicationUtil(manager.getContext());
     MetricsRegistry registry = super.getRegistry();
     replicationQueueTimeQuantiles = registry.newQuantiles("replicationQueue10m",
         "Replication queue time quantiles in milliseconds", "ops", "latency", 600);
@@ -65,7 +65,7 @@ public class ReplicationMetrics extends MasterMetrics {
   protected void prepareMetrics() {
     final String PENDING_FILES = "filesPendingReplication";
     // Only add these metrics if the replication table is online and there are peers
-    if (TableState.ONLINE == Tables.getTableState(master.getContext(), ReplicationTable.ID)
+    if (TableState.ONLINE == Tables.getTableState(manager.getContext(), ReplicationTable.ID)
         && !replicationUtil.getPeers().isEmpty()) {
       getRegistry().add(PENDING_FILES, getNumFilesPendingReplication());
       addReplicationQueueTimeMetrics();
@@ -103,7 +103,7 @@ public class ReplicationMetrics extends MasterMetrics {
   }
 
   protected int getMaxReplicationThreads() {
-    return replicationUtil.getMaxReplicationThreads(master.getMasterMonitorInfo());
+    return replicationUtil.getMaxReplicationThreads(manager.getManagerMonitorInfo());
   }
 
   protected void addReplicationQueueTimeMetrics() {
@@ -119,7 +119,7 @@ public class ReplicationMetrics extends MasterMetrics {
       if (!pathModTimes.containsKey(path)) {
         try {
           pathModTimes.put(path,
-              master.getVolumeManager().getFileStatus(path).getModificationTime());
+              manager.getVolumeManager().getFileStatus(path).getModificationTime());
         } catch (IOException e) {
           // Ignore all IOExceptions
           // Either the system is unavailable or the file was deleted

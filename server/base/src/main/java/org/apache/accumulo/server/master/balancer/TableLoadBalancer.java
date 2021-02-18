@@ -50,6 +50,14 @@ public class TableLoadBalancer extends TabletBalancer {
 
   Map<TableId,TabletBalancer> perTableBalancers = new HashMap<>();
 
+  public TableLoadBalancer() {
+    log.warn(
+        "{} has been deprecated and will be removed in a future release. Please update your "
+            + "configuration to use the equivalent {} instead.",
+        getClass().getName(),
+        org.apache.accumulo.core.spi.balancer.TableLoadBalancer.class.getName());
+  }
+
   private TabletBalancer constructNewBalancerForTable(String clazzName, TableId tableId)
       throws Exception {
     String context = null;

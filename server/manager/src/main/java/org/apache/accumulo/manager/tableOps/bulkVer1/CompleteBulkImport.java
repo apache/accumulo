@@ -21,11 +21,11 @@ package org.apache.accumulo.manager.tableOps.bulkVer1;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 
-public class CompleteBulkImport extends MasterRepo {
+public class CompleteBulkImport extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -42,8 +42,8 @@ public class CompleteBulkImport extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
-    ZooArbitrator.stop(master.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+    ZooArbitrator.stop(manager.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
     return new CopyFailed(tableId, source, bulk, error);
   }
 }

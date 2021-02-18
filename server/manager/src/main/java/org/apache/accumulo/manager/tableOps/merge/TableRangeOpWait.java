@@ -21,8 +21,8 @@ package org.apache.accumulo.manager.tableOps.merge;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.MergeState;
@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
  * Normal operations, like bulk imports, will grab the read lock and prevent merges (writes) while
  * they run. Merge operations will lock out some operations while they run.
  */
-class TableRangeOpWait extends MasterRepo {
+class TableRangeOpWait extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(TableRangeOpWait.class);
 
   private static final long serialVersionUID = 1L;
@@ -59,7 +59,7 @@ class TableRangeOpWait extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master env) {
+  public long isReady(long tid, Manager env) {
     if (!env.getMergeInfo(tableId).getState().equals(MergeState.NONE)) {
       return 50;
     }
@@ -67,12 +67,12 @@ class TableRangeOpWait extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
-    MergeInfo mergeInfo = master.getMergeInfo(tableId);
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+    MergeInfo mergeInfo = manager.getMergeInfo(tableId);
     log.info("removing merge information " + mergeInfo);
-    master.clearMergeState(tableId);
-    Utils.unreserveTable(master, tableId, tid, true);
-    Utils.unreserveNamespace(master, namespaceId, tid, false);
+    manager.clearMergeState(tableId);
+    Utils.unreserveTable(manager, tableId, tid, true);
+    Utils.unreserveNamespace(manager, namespaceId, tid, false);
     return null;
   }
 

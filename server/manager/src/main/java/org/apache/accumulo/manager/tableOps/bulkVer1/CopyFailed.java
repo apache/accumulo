@@ -42,8 +42,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Bu
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
@@ -52,7 +52,7 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class CopyFailed extends MasterRepo {
+class CopyFailed extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(CopyFailed.class);
 
   private static final long serialVersionUID = 1L;
@@ -70,12 +70,12 @@ class CopyFailed extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master master) {
+  public long isReady(long tid, Manager manager) {
     Set<TServerInstance> finished = new HashSet<>();
-    Set<TServerInstance> running = master.onlineTabletServers();
+    Set<TServerInstance> running = manager.onlineTabletServers();
     for (TServerInstance server : running) {
       try {
-        TServerConnection client = master.getConnection(server);
+        TServerConnection client = manager.getConnection(server);
         if (client != null && !client.isActive(tid))
           finished.add(server);
       } catch (TException ex) {
@@ -89,10 +89,10 @@ class CopyFailed extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
     // This needs to execute after the arbiter is stopped
-    master.updateBulkImportStatus(source, BulkImportState.COPY_FILES);
-    VolumeManager fs = master.getVolumeManager();
+    manager.updateBulkImportStatus(source, BulkImportState.COPY_FILES);
+    VolumeManager fs = manager.getVolumeManager();
 
     if (!fs.exists(new Path(error, BulkImport.FAILURES_TXT)))
       return new CleanUpBulkImport(tableId, source, bulk, error);
@@ -116,7 +116,7 @@ class CopyFailed extends MasterRepo {
      */
 
     // determine which failed files were loaded
-    AccumuloClient client = master.getContext();
+    AccumuloClient client = manager.getContext();
     try (Scanner mscanner =
         new IsolatedScanner(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY))) {
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
@@ -142,8 +142,8 @@ class CopyFailed extends MasterRepo {
 
     if (!loadedFailures.isEmpty()) {
       DistributedWorkQueue bifCopyQueue = new DistributedWorkQueue(
-          Constants.ZROOT + "/" + master.getInstanceID() + Constants.ZBULK_FAILED_COPYQ,
-          master.getConfiguration());
+          Constants.ZROOT + "/" + manager.getInstanceID() + Constants.ZBULK_FAILED_COPYQ,
+          manager.getConfiguration());
 
       HashSet<String> workIds = new HashSet<>();
 

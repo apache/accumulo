@@ -21,7 +21,7 @@ package org.apache.accumulo.monitor.rest.tservers;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.accumulo.monitor.rest.manager.MasterInformation;
+import org.apache.accumulo.monitor.rest.manager.ManagerInformation;
 
 /**
  * Generates a list of servers, bad servers, and dead servers
@@ -45,9 +45,9 @@ public class TabletServers {
    * Adds bad and dead servers to the list
    *
    * @param info
-   *          Master information to get bad and dead server information
+   *          Manager information to get bad and dead server information
    */
-  public void addBadTabletServer(MasterInformation info) {
+  public void addBadTabletServer(ManagerInformation info) {
     badServers = info.badTabletServers.badTabletServer;
     deadServers = info.deadTabletServers.deadTabletServer;
   }

@@ -37,14 +37,14 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.thrift.TException;
 import org.slf4j.LoggerFactory;
 
-class CompactionDriver extends MasterRepo {
+class CompactionDriver extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -64,17 +64,17 @@ class CompactionDriver extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master master) throws Exception {
+  public long isReady(long tid, Manager manager) throws Exception {
 
     if (tableId.equals(RootTable.ID)) {
       // this codes not properly handle the root table. See #798
       return 0;
     }
 
-    String zCancelID = Constants.ZROOT + "/" + master.getInstanceID() + Constants.ZTABLES + "/"
+    String zCancelID = Constants.ZROOT + "/" + manager.getInstanceID() + Constants.ZTABLES + "/"
         + tableId + Constants.ZTABLE_COMPACT_CANCEL_ID;
 
-    ZooReaderWriter zoo = master.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
 
     if (Long.parseLong(new String(zoo.getData(zCancelID))) >= compactId) {
       // compaction was canceled
@@ -90,7 +90,7 @@ class CompactionDriver extends MasterRepo {
 
     TabletsMetadata tablets =
         TabletsMetadata.builder().forTable(tableId).overlapping(startRow, endRow)
-            .fetch(LOCATION, PREV_ROW, COMPACT_ID).build(master.getContext());
+            .fetch(LOCATION, PREV_ROW, COMPACT_ID).build(manager.getContext());
 
     for (TabletMetadata tablet : tablets) {
       if (tablet.getCompactId().orElse(-1) < compactId) {
@@ -105,13 +105,13 @@ class CompactionDriver extends MasterRepo {
 
     long scanTime = System.currentTimeMillis() - t1;
 
-    Tables.clearCache(master.getContext());
-    if (tabletCount == 0 && !Tables.exists(master.getContext(), tableId))
+    Tables.clearCache(manager.getContext());
+    if (tabletCount == 0 && !Tables.exists(manager.getContext(), tableId))
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
 
     if (serversToFlush.size() == 0
-        && Tables.getTableState(master.getContext(), tableId) == TableState.OFFLINE)
+        && Tables.getTableState(manager.getContext(), tableId) == TableState.OFFLINE)
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.OFFLINE, null);
 
@@ -120,9 +120,9 @@ class CompactionDriver extends MasterRepo {
 
     for (TServerInstance tsi : serversToFlush.keySet()) {
       try {
-        final TServerConnection server = master.getConnection(tsi);
+        final TServerConnection server = manager.getConnection(tsi);
         if (server != null)
-          server.compact(master.getMasterLock(), tableId.canonical(), startRow, endRow);
+          server.compact(manager.getManagerLock(), tableId.canonical(), startRow, endRow);
       } catch (TException ex) {
         LoggerFactory.getLogger(CompactionDriver.class).error(ex.toString());
       }
@@ -142,7 +142,7 @@ class CompactionDriver extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master env) throws Exception {
+  public Repo<Manager> call(long tid, Manager env) throws Exception {
     CompactRange.removeIterators(env, tid, tableId);
     Utils.getReadLock(env, tableId, tid).unlock();
     Utils.getReadLock(env, namespaceId, tid).unlock();
@@ -150,7 +150,7 @@ class CompactionDriver extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master environment) {
+  public void undo(long tid, Manager environment) {
 
   }
 

@@ -81,7 +81,7 @@
          */
         function refresh() {
           <#if js??>
-            refreshMaster();
+            refreshManager();
           </#if>
 
           tableList.ajax.reload(null, false ); // user paging is not reset on reload

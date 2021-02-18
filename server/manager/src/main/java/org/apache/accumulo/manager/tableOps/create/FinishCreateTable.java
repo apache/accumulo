@@ -23,8 +23,8 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.hadoop.fs.FileSystem;
@@ -32,7 +32,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class FinishCreateTable extends MasterRepo {
+class FinishCreateTable extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(FinishCreateTable.class);
@@ -44,12 +44,12 @@ class FinishCreateTable extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) {
+  public long isReady(long tid, Manager environment) {
     return 0;
   }
 
   @Override
-  public Repo<Master> call(long tid, Master env) throws Exception {
+  public Repo<Manager> call(long tid, Manager env) throws Exception {
 
     if (tableInfo.getInitialTableState() == InitialTableState.OFFLINE) {
       env.getContext().getTableManager().transitionTableState(tableInfo.getTableId(),
@@ -70,7 +70,7 @@ class FinishCreateTable extends MasterRepo {
     return null;
   }
 
-  private void cleanupSplitFiles(Master env) throws IOException {
+  private void cleanupSplitFiles(Manager env) throws IOException {
     // it is sufficient to delete from the parent, because both files are in the same directory, and
     // we want to delete the directory also
     Path p = null;
@@ -89,6 +89,6 @@ class FinishCreateTable extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) {}
+  public void undo(long tid, Manager env) {}
 
 }

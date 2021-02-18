@@ -32,9 +32,9 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.master.thrift.MasterGoalState;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
-import org.apache.accumulo.core.master.thrift.MasterState;
+import org.apache.accumulo.core.master.thrift.ManagerGoalState;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.security.Authorizations;
@@ -103,9 +103,9 @@ public class MiniAccumuloClusterImplTest {
 
   @Test(timeout = 60000)
   public void saneMonitorInfo() throws Exception {
-    MasterMonitorInfo stats;
+    ManagerMonitorInfo stats;
     while (true) {
-      stats = accumulo.getMasterMonitorInfo();
+      stats = accumulo.getManagerMonitorInfo();
       if (stats.tableMap.size() <= 2) {
         continue;
       }
@@ -114,10 +114,10 @@ public class MiniAccumuloClusterImplTest {
         break;
       }
     }
-    List<MasterState> validStates = Arrays.asList(MasterState.values());
-    List<MasterGoalState> validGoals = Arrays.asList(MasterGoalState.values());
-    assertTrue("master state should be valid.", validStates.contains(stats.state));
-    assertTrue("master goal state should be in " + validGoals + ". is " + stats.goalState,
+    List<ManagerState> validStates = Arrays.asList(ManagerState.values());
+    List<ManagerGoalState> validGoals = Arrays.asList(ManagerGoalState.values());
+    assertTrue("manager state should be valid.", validStates.contains(stats.state));
+    assertTrue("manager goal state should be in " + validGoals + ". is " + stats.goalState,
         validGoals.contains(stats.goalState));
     assertNotNull("should have a table map.", stats.tableMap);
     assertTrue("root table should exist in " + stats.tableMap.keySet(),

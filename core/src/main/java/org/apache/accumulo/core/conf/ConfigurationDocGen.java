@@ -70,7 +70,7 @@ public class ConfigurationDocGen {
         + " that is copied from Accumulo build (from core/target/generated-docs)" + " -->\n");
     doc.println("Below are properties set in `accumulo.properties` or the"
         + " Accumulo shell that configure Accumulo servers (i.e tablet server,"
-        + " master, etc). Properties labeled 'Experimental' could be part of an incomplete"
+        + " manager, etc). Properties labeled 'Experimental' could be part of an incomplete"
         + " feature or have a higher risk of changing in the future.\n");
   }
 

@@ -219,9 +219,9 @@ public class TServerUtilsTest {
     // uses those port numbers to Accumulo services in the below (ascending) sequence
     // 0. TServer default client port (this test binds to this port to force a port search)
     // 1. GC
-    // 2. Master
+    // 2. Manager
     // 3. Monitor
-    // 4. Master Replication Coordinator
+    // 4. Manager Replication Coordinator
     // 5. One free port - this is the one that we expect the TServer to finally use
     int[] ports = findTwoFreeSequentialPorts(1024);
     int tserverDefaultPort = ports[0];
@@ -230,14 +230,14 @@ public class TServerUtilsTest {
     conf.set(Property.GC_PORT, Integer.toString(gcPort));
 
     ports = findTwoFreeSequentialPorts(gcPort + 1);
-    int masterPort = ports[0];
-    conf.set(Property.MANAGER_CLIENTPORT, Integer.toString(masterPort));
+    int managerPort = ports[0];
+    conf.set(Property.MANAGER_CLIENTPORT, Integer.toString(managerPort));
     int monitorPort = ports[1];
     conf.set(Property.MONITOR_PORT, Integer.toString(monitorPort));
 
     ports = findTwoFreeSequentialPorts(monitorPort + 1);
-    int masterReplCoordPort = ports[0];
-    conf.set(Property.MANAGER_REPLICATION_COORDINATOR_PORT, Integer.toString(masterReplCoordPort));
+    int managerReplCoordPort = ports[0];
+    conf.set(Property.MANAGER_REPLICATION_COORDINATOR_PORT, Integer.toString(managerReplCoordPort));
     int tserverFinalPort = ports[1];
 
     conf.set(Property.TSERV_PORTSEARCH, "true");
@@ -246,12 +246,12 @@ public class TServerUtilsTest {
     Map<Integer,Property> reservedPorts = TServerUtils.getReservedPorts(conf);
     assertFalse(reservedPorts.containsKey(tserverDefaultPort));
 
-    // Ensure that all the ports we assigned (GC, Master, Monitor) are included in the reserved
+    // Ensure that all the ports we assigned (GC, Manager, Monitor) are included in the reserved
     // ports as returned by TServerUtils
     assertTrue(reservedPorts.containsKey(gcPort));
-    assertTrue(reservedPorts.containsKey(masterPort));
+    assertTrue(reservedPorts.containsKey(managerPort));
     assertTrue(reservedPorts.containsKey(monitorPort));
-    assertTrue(reservedPorts.containsKey(masterReplCoordPort));
+    assertTrue(reservedPorts.containsKey(managerReplCoordPort));
 
     InetAddress addr = InetAddress.getByName("localhost");
     try (ServerSocket s = new ServerSocket(tserverDefaultPort, 50, addr)) {

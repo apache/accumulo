@@ -20,13 +20,13 @@ package org.apache.accumulo.manager.tableOps.tableImport;
 
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.LoggerFactory;
 
-class FinishImportTable extends MasterRepo {
+class FinishImportTable extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -37,12 +37,12 @@ class FinishImportTable extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) {
+  public long isReady(long tid, Manager environment) {
     return 0;
   }
 
   @Override
-  public Repo<Master> call(long tid, Master env) throws Exception {
+  public Repo<Manager> call(long tid, Manager env) throws Exception {
 
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
       env.getVolumeManager().deleteRecursively(new Path(dm.importDir, "mappings.txt"));
@@ -71,6 +71,6 @@ class FinishImportTable extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) {}
+  public void undo(long tid, Manager env) {}
 
 }

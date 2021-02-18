@@ -523,7 +523,7 @@ public class TServerUtils {
     // their configuration.
     if (!hostname.equals(fqdn)) {
       log.error("Expected hostname of '{}' but got '{}'. Ensure the entries in"
-          + " the Accumulo hosts files (e.g. masters, tservers) are the FQDN for"
+          + " the Accumulo hosts files (e.g. managers, tservers) are the FQDN for"
           + " each host when using SASL.", fqdn, hostname);
       transport.close();
       throw new RuntimeException("SASL requires that the address the thrift"

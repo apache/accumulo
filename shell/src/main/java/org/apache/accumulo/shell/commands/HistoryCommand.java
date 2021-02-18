@@ -27,7 +27,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.jline.reader.History;
-import org.jline.reader.History.Entry;
 
 import com.google.common.collect.Iterators;
 

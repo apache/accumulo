@@ -41,7 +41,7 @@ public interface Instance {
   String getRootTabletLocation();
 
   /**
-   * Returns the location(s) of the accumulo master and any redundant servers.
+   * Returns the location(s) of the accumulo manager and any redundant servers.
    *
    * @return a list of locations in "hostname:port" form
    */

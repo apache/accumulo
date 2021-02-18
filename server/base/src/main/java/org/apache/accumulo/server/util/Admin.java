@@ -44,7 +44,7 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.MasterClient;
+import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -107,7 +107,11 @@ public class Admin implements KeywordExecutable {
     String tableName = null;
   }
 
-  @Parameters(commandDescription = "stop the master")
+  @Parameters(commandDescription = "stop the manager")
+  static class StopManagerCommand {}
+
+  @Deprecated(since = "2.1.0")
+  @Parameters(commandDescription = "stop the master (DEPRECATED -- use stopManager instead)")
   static class StopMasterCommand {}
 
   @Parameters(commandDescription = "stop all the servers")
@@ -204,6 +208,8 @@ public class Admin implements KeywordExecutable {
     cl.addCommand("stop", stopOpts);
     StopAllCommand stopAllOpts = new StopAllCommand();
     cl.addCommand("stopAll", stopAllOpts);
+    StopManagerCommand stopManagerOpts = new StopManagerCommand();
+    cl.addCommand("stopManager", stopManagerOpts);
     StopMasterCommand stopMasterOpts = new StopMasterCommand();
     cl.addCommand("stopMaster", stopMasterOpts);
 
@@ -362,14 +368,14 @@ public class Admin implements KeywordExecutable {
 
   private static void stopServer(final ClientContext context, final boolean tabletServersToo)
       throws AccumuloException, AccumuloSecurityException {
-    MasterClient.executeVoid(context,
+    ManagerClient.executeVoid(context,
         client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo));
   }
 
   private static void stopTabletServer(final ClientContext context, List<String> servers,
       final boolean force) throws AccumuloException, AccumuloSecurityException {
-    if (context.getMasterLocations().isEmpty()) {
-      log.info("No masters running. Not attempting safe unload of tserver.");
+    if (context.getManagerLocations().isEmpty()) {
+      log.info("No managers running. Not attempting safe unload of tserver.");
       return;
     }
     final String zTServerRoot = getTServersZkPath(context);
@@ -380,7 +386,7 @@ public class Admin implements KeywordExecutable {
         final String finalServer =
             qualifyWithZooKeeperSessionId(zTServerRoot, zc, address.toString());
         log.info("Stopping server {}", finalServer);
-        MasterClient.executeVoid(context, client -> client
+        ManagerClient.executeVoid(context, client -> client
             .shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(), finalServer, force));
       }
     }

@@ -23,11 +23,11 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 
-public class DeleteTable extends MasterRepo {
+public class DeleteTable extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -40,20 +40,20 @@ public class DeleteTable extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master env) throws Exception {
+  public long isReady(long tid, Manager env) throws Exception {
     return Utils.reserveNamespace(env, namespaceId, tid, false, false, TableOperation.DELETE)
         + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.DELETE);
   }
 
   @Override
-  public Repo<Master> call(long tid, Master env) {
+  public Repo<Manager> call(long tid, Manager env) {
     env.getTableManager().transitionTableState(tableId, TableState.DELETING);
     env.getEventCoordinator().event("deleting table %s ", tableId);
     return new CleanUp(tableId, namespaceId);
   }
 
   @Override
-  public void undo(long tid, Master env) {
+  public void undo(long tid, Manager env) {
     Utils.unreserveTable(env, tableId, tid, true);
     Utils.unreserveNamespace(env, namespaceId, tid, false);
   }

@@ -42,7 +42,7 @@ import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.accumulo.fate.zookeeper.ZooQueueLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReservation;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -86,7 +86,7 @@ public class Utils {
   static final Lock tableNameLock = new ReentrantLock();
   static final Lock idLock = new ReentrantLock();
 
-  public static long reserveTable(Master env, TableId tableId, long tid, boolean writeLock,
+  public static long reserveTable(Manager env, TableId tableId, long tid, boolean writeLock,
       boolean tableMustExist, TableOperation op) throws Exception {
     if (getLock(env.getContext(), tableId, tid, writeLock).tryLock()) {
       if (tableMustExist) {
@@ -102,20 +102,20 @@ public class Utils {
       return 100;
   }
 
-  public static void unreserveTable(Master env, TableId tableId, long tid, boolean writeLock) {
+  public static void unreserveTable(Manager env, TableId tableId, long tid, boolean writeLock) {
     getLock(env.getContext(), tableId, tid, writeLock).unlock();
     log.info("table {} ({}) unlocked for {}", tableId, Long.toHexString(tid),
         (writeLock ? "write" : "read"));
   }
 
-  public static void unreserveNamespace(Master env, NamespaceId namespaceId, long id,
+  public static void unreserveNamespace(Manager env, NamespaceId namespaceId, long id,
       boolean writeLock) {
     getLock(env.getContext(), namespaceId, id, writeLock).unlock();
     log.info("namespace {} ({}) unlocked for {}", namespaceId, Long.toHexString(id),
         (writeLock ? "write" : "read"));
   }
 
-  public static long reserveNamespace(Master env, NamespaceId namespaceId, long id,
+  public static long reserveNamespace(Manager env, NamespaceId namespaceId, long id,
       boolean writeLock, boolean mustExist, TableOperation op) throws Exception {
     if (getLock(env.getContext(), namespaceId, id, writeLock).tryLock()) {
       if (mustExist) {
@@ -132,7 +132,7 @@ public class Utils {
       return 100;
   }
 
-  public static long reserveHdfsDirectory(Master env, String directory, long tid)
+  public static long reserveHdfsDirectory(Manager env, String directory, long tid)
       throws KeeperException, InterruptedException {
     String resvPath = env.getContext().getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
@@ -145,7 +145,7 @@ public class Utils {
       return 50;
   }
 
-  public static void unreserveHdfsDirectory(Master env, String directory, long tid)
+  public static void unreserveHdfsDirectory(Manager env, String directory, long tid)
       throws KeeperException, InterruptedException {
     String resvPath = env.getContext().getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
@@ -177,7 +177,7 @@ public class Utils {
     return tableNameLock;
   }
 
-  public static Lock getReadLock(Master env, AbstractId<?> id, long tid) {
+  public static Lock getReadLock(Manager env, AbstractId<?> id, long tid) {
     return Utils.getLock(env.getContext(), id, tid, false);
   }
 
@@ -200,9 +200,9 @@ public class Utils {
    * @param path
    *          the fully-qualified path
    */
-  public static SortedSet<Text> getSortedSetFromFile(Master master, Path path, boolean encoded)
+  public static SortedSet<Text> getSortedSetFromFile(Manager manager, Path path, boolean encoded)
       throws IOException {
-    FileSystem fs = path.getFileSystem(master.getContext().getHadoopConf());
+    FileSystem fs = path.getFileSystem(manager.getContext().getHadoopConf());
     var data = new TreeSet<Text>();
     try (var file = new java.util.Scanner(fs.open(path), UTF_8)) {
       while (file.hasNextLine()) {

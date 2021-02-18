@@ -43,8 +43,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -56,7 +56,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class CleanUp extends MasterRepo {
+class CleanUp extends ManagerRepo {
 
   private static final Logger log = LoggerFactory.getLogger(CleanUp.class);
 
@@ -86,26 +86,26 @@ class CleanUp extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master master) throws Exception {
-    if (!master.hasCycled(creationTime)) {
+  public long isReady(long tid, Manager manager) throws Exception {
+    if (!manager.hasCycled(creationTime)) {
       return 50;
     }
 
     boolean done = true;
     Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
-    Scanner scanner = master.getContext().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    MetaDataTableScanner.configureScanner(scanner, master);
+    Scanner scanner = manager.getContext().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    MetaDataTableScanner.configureScanner(scanner, manager);
     scanner.setRange(tableRange);
 
     for (Entry<Key,Value> entry : scanner) {
       TabletLocationState locationState =
           MetaDataTableScanner.createTabletLocationState(entry.getKey(), entry.getValue());
-      TabletState state = locationState.getState(master.onlineTabletServers());
+      TabletState state = locationState.getState(manager.onlineTabletServers());
       if (!state.equals(TabletState.UNASSIGNED)) {
         // This code will even wait on tablets that are assigned to dead tablets servers. This is
-        // intentional because the master may make metadata writes for these tablets. See #587
-        log.debug("Still waiting for table to be deleted: " + tableId + " locationState: "
-            + locationState);
+        // intentional because the manager may make metadata writes for these tablets. See #587
+        log.debug("Still waiting for table({}) to be deleted; Target tablet state: UNASSIGNED, "
+            + "Current tablet state: {}, locationState: {}", tableId, state, locationState);
         done = false;
         break;
       }
@@ -118,15 +118,15 @@ class CleanUp extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) {
+  public Repo<Manager> call(long tid, Manager manager) {
 
-    master.clearMigrations(tableId);
+    manager.clearMigrations(tableId);
 
     int refCount = 0;
 
     try {
       // look for other tables that references this table's files
-      AccumuloClient client = master.getContext();
+      AccumuloClient client = manager.getContext();
       try (BatchScanner bs =
           client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8)) {
         Range allTables = TabletsSection.getRange();
@@ -155,19 +155,19 @@ class CleanUp extends MasterRepo {
 
     // remove metadata table entries
     try {
-      // Intentionally do not pass master lock. If master loses lock, this operation may complete
-      // before master can kill itself.
-      // If the master lock passed to deleteTable, it is possible that the delete mutations will be
+      // Intentionally do not pass manager lock. If manager loses lock, this operation may complete
+      // before manager can kill itself.
+      // If the manager lock passed to deleteTable, it is possible that the delete mutations will be
       // dropped. If the delete operations
       // are dropped and the operation completes, then the deletes will not be repeated.
-      MetadataTableUtil.deleteTable(tableId, refCount != 0, master.getContext(), null);
+      MetadataTableUtil.deleteTable(tableId, refCount != 0, manager.getContext(), null);
     } catch (Exception e) {
       log.error("error deleting " + tableId + " from metadata table", e);
     }
 
     // remove any problem reports the table may have
     try {
-      ProblemReports.getInstance(master.getContext()).deleteProblemReports(tableId);
+      ProblemReports.getInstance(manager.getContext()).deleteProblemReports(tableId);
     } catch (Exception e) {
       log.error("Failed to delete problem reports for table " + tableId, e);
     }
@@ -175,8 +175,8 @@ class CleanUp extends MasterRepo {
     if (refCount == 0) {
       // delete the map files
       try {
-        VolumeManager fs = master.getVolumeManager();
-        for (String dir : ServerConstants.getTablesDirs(master.getContext())) {
+        VolumeManager fs = manager.getVolumeManager();
+        for (String dir : ServerConstants.getTablesDirs(manager.getContext())) {
           fs.deleteRecursively(new Path(dir, tableId.canonical()));
         }
       } catch (IOException e) {
@@ -193,22 +193,22 @@ class CleanUp extends MasterRepo {
 
     // remove table from zookeeper
     try {
-      master.getTableManager().removeTable(tableId);
-      Tables.clearCache(master.getContext());
+      manager.getTableManager().removeTable(tableId);
+      Tables.clearCache(manager.getContext());
     } catch (Exception e) {
       log.error("Failed to find table id in zookeeper", e);
     }
 
     // remove any permissions associated with this table
     try {
-      AuditedSecurityOperation.getInstance(master.getContext())
-          .deleteTable(master.getContext().rpcCreds(), tableId, namespaceId);
+      AuditedSecurityOperation.getInstance(manager.getContext())
+          .deleteTable(manager.getContext().rpcCreds(), tableId, namespaceId);
     } catch (ThriftSecurityException e) {
       log.error("{}", e.getMessage(), e);
     }
 
-    Utils.unreserveTable(master, tableId, tid, true);
-    Utils.unreserveNamespace(master, namespaceId, tid, false);
+    Utils.unreserveTable(manager, tableId, tid, true);
+    Utils.unreserveNamespace(manager, namespaceId, tid, false);
 
     LoggerFactory.getLogger(CleanUp.class).debug("Deleted table " + tableId);
 
@@ -216,7 +216,7 @@ class CleanUp extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master environment) {
+  public void undo(long tid, Manager environment) {
     // nothing to do
   }
 

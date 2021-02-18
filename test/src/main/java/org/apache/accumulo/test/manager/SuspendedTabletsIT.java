@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.MasterClient;
+import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
@@ -126,8 +126,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
       for (int i1 = 0; i1 < count; ++i1) {
         final String tserverName = tserversList.get(i1).getHostPortSession();
-        MasterClient.executeVoid(ctx, client -> {
-          log.info("Sending shutdown command to {} via MasterClientService", tserverName);
+        ManagerClient.executeVoid(ctx, client -> {
+          log.info("Sending shutdown command to {} via ManagerClientService", tserverName);
           client.shutdownTabletServer(null, ctx.rpcCreds(), tserverName, false);
         });
       }
@@ -206,7 +206,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       // Eventually some tablets will be suspended.
       log.info("Waiting on suspended tablets");
       ds = TabletLocations.retrieve(ctx, tableName);
-      // Until we can scan the metadata table, the master probably can't either, so won't have been
+      // Until we can scan the metadata table, the manager probably can't either, so won't have been
       // able to suspend the tablets.
       // So we note the time that we were first able to successfully scan the metadata table.
       long killTime = System.nanoTime();

@@ -119,7 +119,7 @@ public abstract class TabletBalancer
   }
 
   /**
-   * Assign tablets to tablet servers. This method is called whenever the master finds tablets that
+   * Assign tablets to tablet servers. This method is called whenever the manager finds tablets that
    * are unassigned.
    *
    * @param current

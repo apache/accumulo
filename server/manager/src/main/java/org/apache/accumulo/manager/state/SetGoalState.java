@@ -22,10 +22,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.master.thrift.MasterGoalState;
+import org.apache.accumulo.core.master.thrift.ManagerGoalState;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.manager.upgrade.RenameMasterDirInZK;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerUtil;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -33,10 +34,10 @@ import org.apache.accumulo.server.security.SecurityUtil;
 public class SetGoalState {
 
   /**
-   * Utility program that will change the goal state for the master from the command line.
+   * Utility program that will change the goal state for the manager from the command line.
    */
   public static void main(String[] args) throws Exception {
-    if (args.length != 1 || MasterGoalState.valueOf(args[0]) == null) {
+    if (args.length != 1 || ManagerGoalState.valueOf(args[0]) == null) {
       System.err.println(
           "Usage: accumulo " + SetGoalState.class.getName() + " [NORMAL|SAFE_MODE|CLEAN_STOP]");
       System.exit(-1);
@@ -44,10 +45,11 @@ public class SetGoalState {
 
     try {
       var context = new ServerContext(SiteConfiguration.auto());
+      RenameMasterDirInZK.renameMasterDirInZK(context);
       SecurityUtil.serverLogin(context.getConfiguration());
       ServerUtil.waitForZookeeperAndHdfs(context);
       context.getZooReaderWriter().putPersistentData(
-          context.getZooKeeperRoot() + Constants.ZMASTER_GOAL_STATE, args[0].getBytes(UTF_8),
+          context.getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE, args[0].getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
     } finally {
       SingletonManager.setMode(Mode.CLOSED);

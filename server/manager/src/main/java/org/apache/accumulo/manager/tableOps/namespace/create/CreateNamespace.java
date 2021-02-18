@@ -22,11 +22,11 @@ import java.util.Map;
 
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 
-public class CreateNamespace extends MasterRepo {
+public class CreateNamespace extends ManagerRepo {
   private static final long serialVersionUID = 1L;
 
   private NamespaceInfo namespaceInfo;
@@ -39,16 +39,16 @@ public class CreateNamespace extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) {
+  public long isReady(long tid, Manager environment) {
     return 0;
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
     Utils.getIdLock().lock();
     try {
       namespaceInfo.namespaceId =
-          Utils.getNextId(namespaceInfo.namespaceName, master.getContext(), NamespaceId::of);
+          Utils.getNextId(namespaceInfo.namespaceName, manager.getContext(), NamespaceId::of);
       return new SetupNamespacePermissions(namespaceInfo);
     } finally {
       Utils.getIdLock().unlock();
@@ -57,7 +57,7 @@ public class CreateNamespace extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) {
+  public void undo(long tid, Manager env) {
     // nothing to do, the namespace id was allocated!
   }
 

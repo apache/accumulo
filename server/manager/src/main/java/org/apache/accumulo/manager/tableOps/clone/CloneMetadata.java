@@ -19,12 +19,12 @@
 package org.apache.accumulo.manager.tableOps.clone;
 
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.slf4j.LoggerFactory;
 
-class CloneMetadata extends MasterRepo {
+class CloneMetadata extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
   private CloneInfo cloneInfo;
@@ -34,27 +34,27 @@ class CloneMetadata extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) {
+  public long isReady(long tid, Manager environment) {
     return 0;
   }
 
   @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
+  public Repo<Manager> call(long tid, Manager environment) throws Exception {
     LoggerFactory.getLogger(CloneMetadata.class)
         .info(String.format("Cloning %s with tableId %s from srcTableId %s", cloneInfo.tableName,
             cloneInfo.tableId, cloneInfo.srcTableId));
     // need to clear out any metadata entries for tableId just in case this
     // died before and is executing again
     MetadataTableUtil.deleteTable(cloneInfo.tableId, false, environment.getContext(),
-        environment.getMasterLock());
+        environment.getManagerLock());
     MetadataTableUtil.cloneTable(environment.getContext(), cloneInfo.srcTableId, cloneInfo.tableId);
     return new FinishCloneTable(cloneInfo);
   }
 
   @Override
-  public void undo(long tid, Master environment) throws Exception {
+  public void undo(long tid, Manager environment) throws Exception {
     MetadataTableUtil.deleteTable(cloneInfo.tableId, false, environment.getContext(),
-        environment.getMasterLock());
+        environment.getManagerLock());
   }
 
 }

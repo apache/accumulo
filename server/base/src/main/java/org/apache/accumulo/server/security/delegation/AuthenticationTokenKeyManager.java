@@ -113,7 +113,7 @@ public class AuthenticationTokenKeyManager implements Runnable {
 
         // Try to use the last key instead of creating a new one right away. This will present more
         // expected
-        // functionality if the active master happens to die for some reason
+        // functionality if the active manager happens to die for some reason
         AuthenticationKey currentKey = secretManager.getCurrentKey();
         if (currentKey != null) {
           log.info("Updating last key update to {} from current secret manager key",

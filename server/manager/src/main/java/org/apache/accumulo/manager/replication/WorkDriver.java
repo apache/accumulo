@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.replication.WorkAssigner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,18 +36,18 @@ import org.slf4j.LoggerFactory;
 public class WorkDriver implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(WorkDriver.class);
 
-  private Master master;
+  private Manager manager;
   private AccumuloClient client;
   private AccumuloConfiguration conf;
 
   private WorkAssigner assigner;
   private String assignerImplName;
 
-  public WorkDriver(Master master) {
+  public WorkDriver(Manager manager) {
     super();
-    this.master = master;
-    this.client = master.getContext();
-    this.conf = master.getConfiguration();
+    this.manager = manager;
+    this.client = manager.getContext();
+    this.conf = manager.getConfiguration();
     configureWorkAssigner();
   }
 
@@ -79,7 +79,7 @@ public class WorkDriver implements Runnable {
   public void run() {
     log.info("Starting replication work assignment thread using {}", assignerImplName);
 
-    while (master.stillMaster()) {
+    while (manager.stillManager()) {
       // Assign the work using the configured implementation
       try {
         assigner.assignWork();

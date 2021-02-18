@@ -30,9 +30,9 @@ import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.ZooKeeper;
@@ -59,10 +59,10 @@ public class FateMetricsTest {
   private static final Logger log = LoggerFactory.getLogger(FateMetricsTest.class);
   private static ZooKeeperTestingServer szk = null;
   private static ZooReaderWriter zooReaderWriter;
-  private ZooStore<Master> zooStore = null;
+  private ZooStore<Manager> zooStore = null;
   private ZooKeeper zookeeper = null;
   private ServerContext context = null;
-  private Master master;
+  private Manager manager;
 
   @BeforeClass
   public static void setupZk() {
@@ -77,8 +77,8 @@ public class FateMetricsTest {
   }
 
   /**
-   * Instantiate a test zookeeper and setup mocks for Master and Context. The test zookeeper is used
-   * create a ZooReaderWriter. The zookeeper used in tests needs to be the one from the
+   * Instantiate a test zookeeper and setup mocks for Manager and Context. The test zookeeper is
+   * used create a ZooReaderWriter. The zookeeper used in tests needs to be the one from the
    * zooReaderWriter, not the test server, because the zooReaderWriter sets up ACLs.
    *
    * @throws Exception
@@ -94,13 +94,13 @@ public class FateMetricsTest {
 
     zooStore = new ZooStore<>(MOCK_ZK_ROOT + Constants.ZFATE, zooReaderWriter);
 
-    master = EasyMock.createMock(Master.class);
+    manager = EasyMock.createMock(Manager.class);
     context = EasyMock.createMock(ServerContext.class);
 
     EasyMock.expect(context.getZooReaderWriter()).andReturn(zooReaderWriter).anyTimes();
     EasyMock.expect(context.getZooKeeperRoot()).andReturn(MOCK_ZK_ROOT).anyTimes();
 
-    EasyMock.replay(master, context);
+    EasyMock.replay(manager, context);
   }
 
   @After
@@ -141,7 +141,7 @@ public class FateMetricsTest {
     assertEquals(0L, collector.getValue("FateTxState_IN_PROGRESS"));
     assertEquals(0L, collector.getValue("currentFateOps"));
 
-    EasyMock.verify(master);
+    EasyMock.verify(manager);
 
   }
 
@@ -172,7 +172,7 @@ public class FateMetricsTest {
     assertTrue(collector.contains("FateTxState_IN_PROGRESS"));
     assertEquals(0L, collector.getValue("FateTxState_IN_PROGRESS"));
 
-    EasyMock.verify(master);
+    EasyMock.verify(manager);
 
   }
 
@@ -205,7 +205,7 @@ public class FateMetricsTest {
     assertEquals(1L, collector.getValue("FateTxState_IN_PROGRESS"));
     assertEquals(1L, collector.getValue("FateTxOpType_FakeOp"));
 
-    EasyMock.verify(master);
+    EasyMock.verify(manager);
   }
 
   private long seedTransaction() throws Exception {
@@ -215,10 +215,10 @@ public class FateMetricsTest {
 
     zooStore.setStatus(txId, ReadOnlyTStore.TStatus.IN_PROGRESS);
 
-    Repo<Master> repo = new FakeOp();
+    Repo<Manager> repo = new FakeOp();
     zooStore.push(txId, repo);
 
-    Repo<Master> step = new FakeOpStep1();
+    Repo<Manager> step = new FakeOpStep1();
     zooStore.push(txId, step);
 
     zooStore.setProperty(txId, "debug", repo.getDescription());
@@ -290,20 +290,20 @@ public class FateMetricsTest {
     }
   }
 
-  private static class FakeOp extends MasterRepo {
+  private static class FakeOp extends ManagerRepo {
     private static final long serialVersionUID = -1L;
 
     @Override
-    public Repo<Master> call(long tid, Master environment) {
+    public Repo<Manager> call(long tid, Manager environment) {
       return null;
     }
   }
 
-  private static class FakeOpStep1 extends MasterRepo {
+  private static class FakeOpStep1 extends ManagerRepo {
     private static final long serialVersionUID = -1L;
 
     @Override
-    public Repo<Master> call(long tid, Master environment) {
+    public Repo<Manager> call(long tid, Manager environment) {
       return null;
     }
   }

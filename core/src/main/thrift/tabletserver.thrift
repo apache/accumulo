@@ -22,7 +22,7 @@ namespace cpp org.apache.accumulo.core.tabletserver.thrift
 include "data.thrift"
 include "security.thrift"
 include "client.thrift"
-include "master.thrift"
+include "manager.thrift"
 include "trace.thrift"
 
 exception NotServingTabletException {
@@ -64,7 +64,7 @@ struct TabletStats {
   5:i64 numEntries
   6:double ingestRate
   7:double queryRate
-  // zero if loaded by the master, currentTimeMillis when the split was created
+  // zero if loaded by the manager, currentTimeMillis when the split was created
   8:i64 splitCreationTime
 }
 
@@ -380,7 +380,7 @@ service TabletClientService extends client.ClientService {
     6:binary endRow
   )
 
-  master.TabletServerStatus getTabletServerStatus(
+  manager.TabletServerStatus getTabletServerStatus(
     3:trace.TInfo tinfo
     1:security.TCredentials credentials
   ) throws (

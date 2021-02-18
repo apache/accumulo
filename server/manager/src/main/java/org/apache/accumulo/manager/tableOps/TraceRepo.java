@@ -21,7 +21,7 @@ package org.apache.accumulo.manager.tableOps;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.htrace.TraceScope;
 
 import com.google.gson.Gson;
@@ -78,12 +78,12 @@ public class TraceRepo<T> implements Repo<T> {
   /**
    * @return string version of Repo that is suitable for logging
    */
-  public static String toLogString(Repo<Master> repo) {
+  public static String toLogString(Repo<Manager> repo) {
     if (repo instanceof TraceRepo) {
       // There are two reasons the repo is unwrapped. First I could not figure out how to get this
       // to work with Gson. Gson kept serializing nothing for the generic pointer TraceRepo.repo.
       // Second I thought this information was not useful for logging.
-      repo = ((TraceRepo<Master>) repo).repo;
+      repo = ((TraceRepo<Manager>) repo).repo;
     }
 
     // Inorder for Gson to work with generic types, the following passes repo.getClass() to Gson.

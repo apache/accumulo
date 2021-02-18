@@ -141,7 +141,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
 
       // wait for the metadata table to go back online
       getRecoveryMarkers(c);
-      // allow a little time for the master to notice ASSIGNED_TO_DEAD_SERVER tablets
+      // allow a little time for the manager to notice ASSIGNED_TO_DEAD_SERVER tablets
       sleepUninterruptibly(5, TimeUnit.SECONDS);
       Map<KeyExtent,List<String>> markers = getRecoveryMarkers(c);
       // log.debug("markers " + markers);

@@ -288,7 +288,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
 
     TDelegationToken thriftToken;
     try {
-      thriftToken = MasterClient.execute(context,
+      thriftToken = ManagerClient.execute(context,
           client -> client.getDelegationToken(TraceUtil.traceInfo(), context.rpcCreds(), tConfig));
     } catch (TableNotFoundException e) {
       // should never happen

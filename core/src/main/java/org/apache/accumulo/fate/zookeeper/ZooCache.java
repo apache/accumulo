@@ -21,7 +21,6 @@ package org.apache.accumulo.fate.zookeeper;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.security.SecureRandom;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
@@ -567,18 +566,11 @@ public class ZooCache {
   }
 
   public byte[] getLockData(String path) {
-
-    List<String> children = getChildren(path);
-
+    List<String> children = ZooLock.validateAndSortChildrenByLockPrefix(path, getChildren(path));
     if (children == null || children.isEmpty()) {
       return null;
     }
-
-    children = new ArrayList<>(children);
-    Collections.sort(children);
-
     String lockNode = children.get(0);
-
     return get(path + "/" + lockNode);
   }
 

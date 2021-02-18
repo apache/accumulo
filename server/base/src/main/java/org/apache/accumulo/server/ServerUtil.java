@@ -249,7 +249,7 @@ public class ServerUtil {
    * upgrade. The status of the operations is irrelevant; those in SUCCESSFUL status cause the same
    * problem as those just queued.
    *
-   * Note that the Master should not allow write access to Fate until after all upgrade steps are
+   * Note that the Manager should not allow write access to Fate until after all upgrade steps are
    * complete.
    *
    * Should be called as a guard before performing any upgrade steps, after determining that an

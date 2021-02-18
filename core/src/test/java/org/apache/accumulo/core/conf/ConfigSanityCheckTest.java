@@ -36,7 +36,7 @@ public class ConfigSanityCheckTest {
   public void testPass() {
     m.put(Property.MANAGER_CLIENTPORT.getKey(), "9999");
     m.put(Property.MANAGER_TABLET_BALANCER.getKey(),
-        "org.apache.accumulo.server.master.balancer.TableLoadBalancer");
+        "org.apache.accumulo.server.manager.balancer.TableLoadBalancer");
     m.put(Property.MANAGER_BULK_RETRIES.getKey(), "3");
     ConfigSanityCheck.validate(m.entrySet());
   }

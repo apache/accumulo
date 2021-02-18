@@ -26,10 +26,10 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.MasterClient;
+import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerClientService;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -52,20 +52,20 @@ public class ListBulkCommand extends Command {
 
     List<String> tservers;
 
-    MasterMonitorInfo stats;
-    MasterClientService.Iface client = null;
+    ManagerMonitorInfo stats;
+    ManagerClientService.Iface client = null;
     ClientContext context = shellState.getContext();
     while (true) {
       try {
-        client = MasterClient.getConnectionWithRetry(context);
-        stats = client.getMasterStats(TraceUtil.traceInfo(), context.rpcCreds());
+        client = ManagerClient.getConnectionWithRetry(context);
+        stats = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
         break;
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         if (client != null)
-          MasterClient.close(client);
+          ManagerClient.close(client);
       }
     }
 

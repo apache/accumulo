@@ -45,8 +45,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
@@ -71,7 +71,7 @@ import com.google.common.annotations.VisibleForTesting;
  *
  * @since 2.0.0
  */
-public class PrepBulkImport extends MasterRepo {
+public class PrepBulkImport extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -88,15 +88,15 @@ public class PrepBulkImport extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master master) throws Exception {
-    if (!Utils.getReadLock(master, bulkInfo.tableId, tid).tryLock())
+  public long isReady(long tid, Manager manager) throws Exception {
+    if (!Utils.getReadLock(manager, bulkInfo.tableId, tid).tryLock())
       return 100;
 
-    if (master.onlineTabletServers().isEmpty())
+    if (manager.onlineTabletServers().isEmpty())
       return 500;
-    Tables.clearCache(master.getContext());
+    Tables.clearCache(manager.getContext());
 
-    return Utils.reserveHdfsDirectory(master, bulkInfo.sourceDir, tid);
+    return Utils.reserveHdfsDirectory(manager, bulkInfo.sourceDir, tid);
   }
 
   @VisibleForTesting
@@ -180,12 +180,12 @@ public class PrepBulkImport extends MasterRepo {
     }
   }
 
-  private void checkForMerge(final long tid, final Master master) throws Exception {
+  private void checkForMerge(final long tid, final Manager manager) throws Exception {
 
-    VolumeManager fs = master.getVolumeManager();
+    VolumeManager fs = manager.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.sourceDir);
 
-    int maxTablets = Integer.parseInt(master.getContext().getTableConfiguration(bulkInfo.tableId)
+    int maxTablets = Integer.parseInt(manager.getContext().getTableConfiguration(bulkInfo.tableId)
         .get(Property.TABLE_BULK_MAX_TABLETS));
 
     try (LoadMappingIterator lmi =
@@ -193,25 +193,25 @@ public class PrepBulkImport extends MasterRepo {
 
       TabletIterFactory tabletIterFactory = startRow -> TabletsMetadata.builder()
           .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency().fetch(PREV_ROW)
-          .build(master.getContext()).stream().map(TabletMetadata::getExtent).iterator();
+          .build(manager.getContext()).stream().map(TabletMetadata::getExtent).iterator();
 
       sanityCheckLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets, tid);
     }
   }
 
   @Override
-  public Repo<Master> call(final long tid, final Master master) throws Exception {
+  public Repo<Manager> call(final long tid, final Manager manager) throws Exception {
     // now that table lock is acquired check that all splits in load mapping exists in table
-    checkForMerge(tid, master);
+    checkForMerge(tid, manager);
 
-    bulkInfo.tableState = Tables.getTableState(master.getContext(), bulkInfo.tableId);
+    bulkInfo.tableState = Tables.getTableState(manager.getContext(), bulkInfo.tableId);
 
-    VolumeManager fs = master.getVolumeManager();
-    final UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
+    VolumeManager fs = manager.getVolumeManager();
+    final UniqueNameAllocator namer = manager.getContext().getUniqueNameAllocator();
     Path sourceDir = new Path(bulkInfo.sourceDir);
     List<FileStatus> files = BulkImport.filterInvalid(fs.listStatus(sourceDir));
 
-    Path bulkDir = createNewBulkDir(master.getContext(), fs, bulkInfo.tableId);
+    Path bulkDir = createNewBulkDir(manager.getContext(), fs, bulkInfo.tableId);
     Path mappingFile = new Path(sourceDir, Constants.BULK_LOAD_MAPPING);
 
     Map<String,String> oldToNewNameMap = new HashMap<>();
@@ -256,7 +256,7 @@ public class PrepBulkImport extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master environment) throws Exception {
+  public void undo(long tid, Manager environment) throws Exception {
     // unreserve sourceDir/error directories
     Utils.unreserveHdfsDirectory(environment, bulkInfo.sourceDir, tid);
     Utils.getReadLock(environment, bulkInfo.tableId, tid).unlock();

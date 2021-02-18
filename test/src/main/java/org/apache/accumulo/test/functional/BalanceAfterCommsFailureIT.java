@@ -33,11 +33,11 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.MasterClient;
+import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerClientService;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.security.Authorizations;
@@ -107,22 +107,22 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
   private void checkBalance(AccumuloClient c) throws Exception {
     ClientContext context = (ClientContext) c;
 
-    MasterMonitorInfo stats = null;
+    ManagerMonitorInfo stats = null;
     int unassignedTablets = 1;
     for (int i = 0; unassignedTablets > 0 && i < 10; i++) {
-      MasterClientService.Iface client = null;
+      ManagerClientService.Iface client = null;
       while (true) {
         try {
-          client = MasterClient.getConnectionWithRetry(context);
-          stats = client.getMasterStats(TraceUtil.traceInfo(), context.rpcCreds());
+          client = ManagerClient.getConnectionWithRetry(context);
+          stats = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
           break;
         } catch (ThriftNotActiveServiceException e) {
           // Let it loop, fetching a new location
-          log.debug("Contacted a Master which is no longer active, retrying");
+          log.debug("Contacted a Manager which is no longer active, retrying");
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         } finally {
           if (client != null)
-            MasterClient.close(client);
+            ManagerClient.close(client);
         }
       }
       unassignedTablets = stats.getUnassignedTablets();

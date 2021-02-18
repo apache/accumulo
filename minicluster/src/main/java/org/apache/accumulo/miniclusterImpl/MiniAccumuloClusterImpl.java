@@ -49,6 +49,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.Constants;
@@ -58,7 +59,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.MasterClient;
+import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -67,9 +68,9 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.master.thrift.MasterGoalState;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerClientService;
+import org.apache.accumulo.core.master.thrift.ManagerGoalState;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -86,6 +87,7 @@ import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -262,6 +264,18 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     cleanup.add(process);
 
     return new ProcessInfo(process, stdOut);
+  }
+
+  public ProcessInfo _exec(KeywordExecutable server, ServerType serverType,
+      Map<String,String> configOverrides, String... args) throws IOException {
+    String[] modifiedArgs;
+    if (args == null || args.length == 0) {
+      modifiedArgs = new String[] {server.keyword()};
+    } else {
+      modifiedArgs =
+          Stream.concat(Stream.of(server.keyword()), Stream.of(args)).toArray(String[]::new);
+    }
+    return _exec(Main.class, serverType, configOverrides, modifiedArgs);
   }
 
   public ProcessInfo _exec(Class<?> clazz, ServerType serverType,
@@ -568,7 +582,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     int ret = 0;
     for (int i = 0; i < 5; i++) {
-      ret = exec(Main.class, SetGoalState.class.getName(), MasterGoalState.NORMAL.toString())
+      ret = exec(Main.class, SetGoalState.class.getName(), ManagerGoalState.NORMAL.toString())
           .getProcess().waitFor();
       if (ret == 0) {
         break;
@@ -576,7 +590,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
     if (ret != 0) {
-      throw new RuntimeException("Could not set master goal state, process returned " + ret
+      throw new RuntimeException("Could not set manager goal state, process returned " + ret
           + ". Check the logs in " + config.getLogDir() + " for errors.");
     }
 
@@ -612,7 +626,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public Map<ServerType,Collection<ProcessReference>> getProcesses() {
     Map<ServerType,Collection<ProcessReference>> result = new HashMap<>();
     MiniAccumuloClusterControl control = getClusterControl();
-    result.put(ServerType.MANAGER, references(control.masterProcess));
+    result.put(ServerType.MANAGER, references(control.managerProcess));
     result.put(ServerType.TABLET_SERVER,
         references(control.tabletServerProcesses.toArray(new Process[0])));
     if (control.zooKeeperProcess != null) {
@@ -756,24 +770,24 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    *
    * @since 1.6.1
    */
-  public MasterMonitorInfo getMasterMonitorInfo()
+  public ManagerMonitorInfo getManagerMonitorInfo()
       throws AccumuloException, AccumuloSecurityException {
-    MasterClientService.Iface client = null;
+    ManagerClientService.Iface client = null;
     while (true) {
       try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-        client = MasterClient.getConnectionWithRetry((ClientContext) c);
-        return client.getMasterStats(TraceUtil.traceInfo(), ((ClientContext) c).rpcCreds());
+        client = ManagerClient.getConnectionWithRetry((ClientContext) c);
+        return client.getManagerStats(TraceUtil.traceInfo(), ((ClientContext) c).rpcCreds());
       } catch (ThriftSecurityException exception) {
         throw new AccumuloSecurityException(exception);
       } catch (ThriftNotActiveServiceException e) {
         // Let it loop, fetching a new location
-        log.debug("Contacted a Master which is no longer active, retrying");
+        log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } catch (TException exception) {
         throw new AccumuloException(exception);
       } finally {
         if (client != null) {
-          MasterClient.close(client);
+          ManagerClient.close(client);
         }
       }
     }

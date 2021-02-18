@@ -46,6 +46,7 @@ import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.commons.lang3.mutable.MutableInt;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
@@ -80,6 +81,13 @@ public abstract class GroupBalancer extends TabletBalancer {
 
   public GroupBalancer(TableId tableId) {
     this.tableId = tableId;
+
+    LoggerFactory.getLogger(getClass().getName())
+        .warn("{} has been deprecated and will be "
+            + "removed in a future release. Please update your configuration to use the equivalent "
+            + "{} instead.", getClass().getName(),
+            org.apache.accumulo.core.spi.balancer.GroupBalancer.class.getName());
+
   }
 
   protected Map<KeyExtent,TServerInstance> getLocationProvider() {

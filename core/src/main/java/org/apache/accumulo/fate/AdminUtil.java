@@ -63,7 +63,6 @@ public class AdminUtil<T> {
    *          <code>System.exit(1)</code> on error if true
    */
   public AdminUtil(boolean exitOnError) {
-    super();
     this.exitOnError = exitOnError;
   }
 
@@ -274,9 +273,9 @@ public class AdminUtil<T> {
 
       try {
 
-        List<String> lockNodes = zk.getChildren(lockPath + "/" + id);
-        lockNodes = new ArrayList<>(lockNodes);
-        Collections.sort(lockNodes);
+        String path = lockPath + "/" + id;
+        List<String> lockNodes =
+            ZooLock.validateAndSortChildrenByLockPrefix(path, zk.getChildren(path));
 
         int pos = 0;
         boolean sawWriteLock = false;
@@ -293,12 +292,10 @@ public class AdminUtil<T> {
 
             if (pos == 0) {
               locks = heldLocks;
+            } else if (lda[0].charAt(0) == 'R' && !sawWriteLock) {
+              locks = heldLocks;
             } else {
-              if (lda[0].charAt(0) == 'R' && !sawWriteLock) {
-                locks = heldLocks;
-              } else {
-                locks = waitingLocks;
-              }
+              locks = waitingLocks;
             }
 
             locks.computeIfAbsent(Long.parseLong(lda[1], 16), k -> new ArrayList<>())
@@ -515,20 +512,20 @@ public class AdminUtil<T> {
   public boolean checkGlobalLock(ZooReaderWriter zk, String path) {
     try {
       if (ZooLock.getLockData(zk.getZooKeeper(), path) != null) {
-        System.err.println("ERROR: Master lock is held, not running");
+        System.err.println("ERROR: Manager lock is held, not running");
         if (this.exitOnError)
           System.exit(1);
         else
           return false;
       }
     } catch (KeeperException e) {
-      System.err.println("ERROR: Could not read master lock, not running " + e.getMessage());
+      System.err.println("ERROR: Could not read manager lock, not running " + e.getMessage());
       if (this.exitOnError)
         System.exit(1);
       else
         return false;
     } catch (InterruptedException e) {
-      System.err.println("ERROR: Could not read master lock, not running" + e.getMessage());
+      System.err.println("ERROR: Could not read manager lock, not running" + e.getMessage());
       if (this.exitOnError)
         System.exit(1);
       else

@@ -26,8 +26,8 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
@@ -38,7 +38,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class ChooseDir extends MasterRepo {
+class ChooseDir extends ManagerRepo {
   private static final long serialVersionUID = 1L;
 
   private final TableInfo tableInfo;
@@ -49,26 +49,26 @@ class ChooseDir extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) {
+  public long isReady(long tid, Manager environment) {
     return 0;
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
     if (tableInfo.getInitialSplitSize() > 0) {
-      createTableDirectoriesInfo(master);
+      createTableDirectoriesInfo(manager);
     }
     return new PopulateMetadata(tableInfo);
   }
 
   @Override
-  public void undo(long tid, Master master) throws Exception {
+  public void undo(long tid, Manager manager) throws Exception {
     // Clean up split files if ChooseDir operation fails
     Path p = null;
     try {
       if (tableInfo.getInitialSplitSize() > 0) {
         p = tableInfo.getSplitDirsPath();
-        FileSystem fs = p.getFileSystem(master.getContext().getHadoopConf());
+        FileSystem fs = p.getFileSystem(manager.getContext().getHadoopConf());
         fs.delete(p, true);
       }
     } catch (IOException e) {
@@ -81,19 +81,19 @@ class ChooseDir extends MasterRepo {
    * Create unique table directory names that will be associated with split values. Then write these
    * to the file system for later use during this FATE operation.
    */
-  private void createTableDirectoriesInfo(Master master) throws IOException {
-    SortedSet<Text> splits = Utils.getSortedSetFromFile(master, tableInfo.getSplitPath(), true);
-    SortedSet<Text> tabletDirectoryInfo = createTabletDirectoriesSet(master, splits.size());
-    writeTabletDirectoriesToFileSystem(master, tabletDirectoryInfo);
+  private void createTableDirectoriesInfo(Manager manager) throws IOException {
+    SortedSet<Text> splits = Utils.getSortedSetFromFile(manager, tableInfo.getSplitPath(), true);
+    SortedSet<Text> tabletDirectoryInfo = createTabletDirectoriesSet(manager, splits.size());
+    writeTabletDirectoriesToFileSystem(manager, tabletDirectoryInfo);
   }
 
   /**
    * Create a set of unique table directories. These will be associated with splits in a follow-on
    * FATE step.
    */
-  private static SortedSet<Text> createTabletDirectoriesSet(Master master, int num) {
+  private static SortedSet<Text> createTabletDirectoriesSet(Manager manager, int num) {
     String tabletDir;
-    UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
+    UniqueNameAllocator namer = manager.getContext().getUniqueNameAllocator();
     SortedSet<Text> splitDirs = new TreeSet<>();
     for (int i = 0; i < num; i++) {
       tabletDir = Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
@@ -106,10 +106,10 @@ class ChooseDir extends MasterRepo {
    * Write the SortedSet of Tablet Directory names to the file system for use in the next phase of
    * the FATE operation.
    */
-  private void writeTabletDirectoriesToFileSystem(Master master, SortedSet<Text> dirs)
+  private void writeTabletDirectoriesToFileSystem(Manager manager, SortedSet<Text> dirs)
       throws IOException {
     Path p = tableInfo.getSplitDirsPath();
-    FileSystem fs = p.getFileSystem(master.getContext().getHadoopConf());
+    FileSystem fs = p.getFileSystem(manager.getContext().getHadoopConf());
     if (fs.exists(p))
       fs.delete(p, true);
     try (FSDataOutputStream stream = fs.create(p)) {

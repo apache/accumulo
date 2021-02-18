@@ -258,12 +258,12 @@ function createTableCell(index, sortValue, showValue) {
 ///// REST Calls /////////////
 
 /**
- * REST GET call for the master information,
+ * REST GET call for the manager information,
  * stores it on a sessionStorage variable
  */
-function getMaster() {
-  return $.getJSON('/rest/master', function(data) {
-    sessionStorage.master = JSON.stringify(data);
+function getManager() {
+  return $.getJSON('/rest/manager', function(data) {
+    sessionStorage.manager = JSON.stringify(data);
   });
 }
 

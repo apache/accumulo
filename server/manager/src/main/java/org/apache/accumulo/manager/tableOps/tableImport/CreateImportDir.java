@@ -23,15 +23,15 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class CreateImportDir extends MasterRepo {
+class CreateImportDir extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(CreateImportDir.class);
   private static final long serialVersionUID = 1L;
 
@@ -42,11 +42,11 @@ class CreateImportDir extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
 
-    Set<String> tableDirs = ServerConstants.getTablesDirs(master.getContext());
+    Set<String> tableDirs = ServerConstants.getTablesDirs(manager.getContext());
 
-    create(tableDirs, master);
+    create(tableDirs, manager);
 
     return new MapImportFileNames(tableInfo);
   }
@@ -58,19 +58,19 @@ class CreateImportDir extends MasterRepo {
    * @param tableDirs
    *          the set of table directories on HDFS where files will be moved e.g:
    *          hdfs://volume1/accumulo/tables/
-   * @param master
-   *          the master instance performing the table import.
+   * @param manager
+   *          the manager instance performing the table import.
    * @throws IOException
    *           if any import directory does not reside on a volume configured for accumulo.
    */
-  void create(Set<String> tableDirs, Master master) throws IOException {
-    UniqueNameAllocator namer = master.getContext().getUniqueNameAllocator();
+  void create(Set<String> tableDirs, Manager manager) throws IOException {
+    UniqueNameAllocator namer = manager.getContext().getUniqueNameAllocator();
 
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
       Path exportDir = new Path(dm.exportDir);
 
       log.info("Looking for matching filesystem for {} from options {}", exportDir, tableDirs);
-      Path base = master.getVolumeManager().matchingFileSystem(exportDir, tableDirs);
+      Path base = manager.getVolumeManager().matchingFileSystem(exportDir, tableDirs);
       if (base == null) {
         throw new IOException(
             dm.exportDir + " is not in the same file system as any volume configured for Accumulo");

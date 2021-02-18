@@ -38,7 +38,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeUtil;
@@ -64,21 +64,21 @@ public class RecoveryManager {
   private Set<String> sortsQueued = new HashSet<>();
   private Cache<Path,Boolean> existenceCache;
   private ScheduledExecutorService executor;
-  private Master master;
+  private Manager manager;
   private ZooCache zooCache;
 
-  public RecoveryManager(Master master, long timeToCacheExistsInMillis) {
-    this.master = master;
+  public RecoveryManager(Manager manager, long timeToCacheExistsInMillis) {
+    this.manager = manager;
     existenceCache =
         CacheBuilder.newBuilder().expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
             .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()).build();
 
     executor = ThreadPools.createScheduledExecutorService(4, "Walog sort starter ", false);
-    zooCache = new ZooCache(master.getContext().getZooReaderWriter(), null);
+    zooCache = new ZooCache(manager.getContext().getZooReaderWriter(), null);
     try {
       List<String> workIDs =
-          new DistributedWorkQueue(master.getZooKeeperRoot() + Constants.ZRECOVERY,
-              master.getConfiguration()).getWorkQueued();
+          new DistributedWorkQueue(manager.getZooKeeperRoot() + Constants.ZRECOVERY,
+              manager.getConfiguration()).getWorkQueued();
       sortsQueued.addAll(workIDs);
     } catch (Exception e) {
       log.warn("{}", e.getMessage(), e);
@@ -102,8 +102,8 @@ public class RecoveryManager {
     public void run() {
       boolean rescheduled = false;
       try {
-        long time = closer.close(master.getConfiguration(), master.getContext().getHadoopConf(),
-            master.getVolumeManager(), new Path(source));
+        long time = closer.close(manager.getConfiguration(), manager.getContext().getHadoopConf(),
+            manager.getVolumeManager(), new Path(source));
 
         if (time > 0) {
           executor.schedule(this, time, TimeUnit.MILLISECONDS);
@@ -129,20 +129,20 @@ public class RecoveryManager {
   private void initiateSort(String sortId, String source, final String destination)
       throws KeeperException, InterruptedException {
     String work = source + "|" + destination;
-    new DistributedWorkQueue(master.getZooKeeperRoot() + Constants.ZRECOVERY,
-        master.getConfiguration()).addWork(sortId, work.getBytes(UTF_8));
+    new DistributedWorkQueue(manager.getZooKeeperRoot() + Constants.ZRECOVERY,
+        manager.getConfiguration()).addWork(sortId, work.getBytes(UTF_8));
 
     synchronized (this) {
       sortsQueued.add(sortId);
     }
 
-    final String path = master.getZooKeeperRoot() + Constants.ZRECOVERY + "/" + sortId;
+    final String path = manager.getZooKeeperRoot() + Constants.ZRECOVERY + "/" + sortId;
     log.info("Created zookeeper entry {} with data {}", path, work);
   }
 
   private boolean exists(final Path path) throws IOException {
     try {
-      return existenceCache.get(path, () -> master.getVolumeManager().exists(path));
+      return existenceCache.get(path, () -> manager.getVolumeManager().exists(path));
     } catch (ExecutionException e) {
       throw new IOException(e);
     }
@@ -155,8 +155,9 @@ public class RecoveryManager {
     for (Collection<String> logs : walogs) {
       for (String walog : logs) {
 
-        Path switchedWalog = VolumeUtil.switchVolume(walog, FileType.WAL, ServerConstants
-            .getVolumeReplacements(master.getConfiguration(), master.getContext().getHadoopConf()));
+        Path switchedWalog =
+            VolumeUtil.switchVolume(walog, FileType.WAL, ServerConstants.getVolumeReplacements(
+                manager.getConfiguration(), manager.getContext().getHadoopConf()));
         if (switchedWalog != null) {
           // replaces the volume used for sorting, but do not change entry in metadata table. When
           // the tablet loads it will change the metadata table entry. If
@@ -176,7 +177,7 @@ public class RecoveryManager {
         }
 
         if (sortQueued
-            && zooCache.get(master.getZooKeeperRoot() + Constants.ZRECOVERY + "/" + sortId)
+            && zooCache.get(manager.getZooKeeperRoot() + Constants.ZRECOVERY + "/" + sortId)
                 == null) {
           synchronized (this) {
             sortsQueued.remove(sortId);
@@ -195,7 +196,7 @@ public class RecoveryManager {
         recoveryNeeded = true;
         synchronized (this) {
           if (!closeTasksQueued.contains(sortId) && !sortsQueued.contains(sortId)) {
-            AccumuloConfiguration aconf = master.getConfiguration();
+            AccumuloConfiguration aconf = manager.getConfiguration();
             LogCloser closer = Property.createInstanceFromPropertyName(aconf,
                 Property.MANAGER_WALOG_CLOSER_IMPLEMETATION, LogCloser.class,
                 new HadoopLogCloser());

@@ -35,12 +35,12 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
-import org.apache.accumulo.core.clientImpl.MasterClient;
+import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerClientService;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.util.UtilWaitThread;
@@ -155,25 +155,25 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
       log.debug("fetch the list of tablets assigned to each tserver.");
 
-      MasterClientService.Iface client = null;
-      MasterMonitorInfo stats;
+      ManagerClientService.Iface client = null;
+      ManagerMonitorInfo stats;
       while (true) {
         try {
-          client = MasterClient.getConnectionWithRetry((ClientContext) accumuloClient);
-          stats = client.getMasterStats(TraceUtil.traceInfo(),
+          client = ManagerClient.getConnectionWithRetry((ClientContext) accumuloClient);
+          stats = client.getManagerStats(TraceUtil.traceInfo(),
               creds.toThrift(accumuloClient.instanceOperations().getInstanceID()));
           break;
         } catch (ThriftSecurityException exception) {
           throw new AccumuloSecurityException(exception);
         } catch (ThriftNotActiveServiceException e) {
           // Let it loop, fetching a new location
-          log.debug("Contacted a Master which is no longer active, retrying");
+          log.debug("Contacted a Manager which is no longer active, retrying");
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         } catch (TException exception) {
           throw new AccumuloException(exception);
         } finally {
           if (client != null) {
-            MasterClient.close(client);
+            ManagerClient.close(client);
           }
         }
       }

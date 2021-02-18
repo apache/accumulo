@@ -27,7 +27,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.manager.metrics.MasterMetrics;
+import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 import org.apache.hadoop.metrics2.lib.MutableGaugeLong;
@@ -35,7 +35,7 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FateMetrics extends MasterMetrics {
+public class FateMetrics extends ManagerMetrics {
 
   private static final Logger log = LoggerFactory.getLogger(FateMetrics.class);
 

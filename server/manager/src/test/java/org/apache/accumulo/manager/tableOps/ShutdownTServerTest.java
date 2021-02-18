@@ -29,7 +29,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.easymock.EasyMock;
@@ -45,7 +45,7 @@ public class ShutdownTServerTest {
 
     final ShutdownTServer op = new ShutdownTServer(tserver, force);
 
-    final Master master = EasyMock.createMock(Master.class);
+    final Manager manager = EasyMock.createMock(Manager.class);
     final long tid = 1L;
 
     final TServerConnection tserverCnxn = EasyMock.createMock(TServerConnection.class);
@@ -54,44 +54,44 @@ public class ShutdownTServerTest {
     // Put in a table info record, don't care what
     status.tableMap.put("a_table", new TableInfo());
 
-    master.shutdownTServer(tserver);
+    manager.shutdownTServer(tserver);
     EasyMock.expectLastCall().once();
-    EasyMock.expect(master.onlineTabletServers()).andReturn(Collections.singleton(tserver));
-    EasyMock.expect(master.getConnection(tserver)).andReturn(tserverCnxn);
+    EasyMock.expect(manager.onlineTabletServers()).andReturn(Collections.singleton(tserver));
+    EasyMock.expect(manager.getConnection(tserver)).andReturn(tserverCnxn);
     EasyMock.expect(tserverCnxn.getTableMap(false)).andReturn(status);
 
-    EasyMock.replay(tserverCnxn, master);
+    EasyMock.replay(tserverCnxn, manager);
 
     // FATE op is not ready
-    long wait = op.isReady(tid, master);
+    long wait = op.isReady(tid, manager);
     assertTrue("Expected wait to be greater than 0", wait > 0);
 
-    EasyMock.verify(tserverCnxn, master);
+    EasyMock.verify(tserverCnxn, manager);
 
     // Reset the mocks
-    EasyMock.reset(tserverCnxn, master);
+    EasyMock.reset(tserverCnxn, manager);
 
     // reset the table map to the empty set to simulate all tablets unloaded
     status.tableMap = new HashMap<>();
-    master.shutdownTServer(tserver);
+    manager.shutdownTServer(tserver);
     EasyMock.expectLastCall().once();
-    EasyMock.expect(master.onlineTabletServers()).andReturn(Collections.singleton(tserver));
-    EasyMock.expect(master.getConnection(tserver)).andReturn(tserverCnxn);
+    EasyMock.expect(manager.onlineTabletServers()).andReturn(Collections.singleton(tserver));
+    EasyMock.expect(manager.getConnection(tserver)).andReturn(tserverCnxn);
     EasyMock.expect(tserverCnxn.getTableMap(false)).andReturn(status);
-    EasyMock.expect(master.getMasterLock()).andReturn(null);
+    EasyMock.expect(manager.getManagerLock()).andReturn(null);
     tserverCnxn.halt(null);
     EasyMock.expectLastCall().once();
 
-    EasyMock.replay(tserverCnxn, master);
+    EasyMock.replay(tserverCnxn, manager);
 
     // FATE op is not ready
-    wait = op.isReady(tid, master);
+    wait = op.isReady(tid, manager);
     assertTrue("Expected wait to be 0", wait == 0);
 
-    Repo<Master> op2 = op.call(tid, master);
+    Repo<Manager> op2 = op.call(tid, manager);
     assertNull("Expected no follow on step", op2);
 
-    EasyMock.verify(tserverCnxn, master);
+    EasyMock.verify(tserverCnxn, manager);
   }
 
 }

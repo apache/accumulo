@@ -25,7 +25,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -34,9 +34,13 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 public class LargestFirstMemoryManagerTest {
+  @Rule
+  public Timeout timeout = Timeout.seconds(60);
 
   private static final long ZERO = System.currentTimeMillis();
   private static final long LATER = ZERO + 20 * 60 * 1000;
@@ -171,17 +175,20 @@ public class LargestFirstMemoryManagerTest {
   @Test
   public void testDeletedTable() {
     final String deletedTableId = "1";
-    Function<TableId,Boolean> existenceCheck =
+    final String beingDeleted = "2";
+    Predicate<TableId> existenceCheck =
         tableId -> !deletedTableId.contentEquals(tableId.canonical());
+    Predicate<TableId> deletingCheck = tableId -> beingDeleted.contentEquals(tableId.canonical());
     LargestFirstMemoryManagerWithExistenceCheck mgr =
-        new LargestFirstMemoryManagerWithExistenceCheck(existenceCheck);
+        new LargestFirstMemoryManagerWithExistenceCheck(existenceCheck, deletingCheck);
 
     mgr.init(context);
     List<KeyExtent> tabletsToMinorCompact;
     // one tablet is really big and the other is for a nonexistent table
-    KeyExtent extent = new KeyExtent(TableId.of("2"), new Text("j"), null);
-    tabletsToMinorCompact = mgr
-        .tabletsToMinorCompact(tablets(t(extent, ZERO, ONE_GIG, 0), t(k("j"), ZERO, ONE_GIG, 0)));
+    KeyExtent extent = new KeyExtent(TableId.of("3"), new Text("j"), null);
+    KeyExtent extent2 = new KeyExtent(TableId.of("2"), new Text("j"), null);
+    tabletsToMinorCompact = mgr.tabletsToMinorCompact(tablets(t(extent, ZERO, ONE_GIG, 0),
+        t(extent2, ZERO, ONE_GIG, 0), t(k("j"), ZERO, ONE_GIG, 0)));
     assertEquals(1, tabletsToMinorCompact.size());
     assertEquals(extent, tabletsToMinorCompact.get(0));
   }
@@ -204,21 +211,34 @@ public class LargestFirstMemoryManagerTest {
     protected boolean tableExists(TableId tableId) {
       return true;
     }
+
+    @Override
+    protected boolean tableBeingDeleted(TableId tableId) {
+      return false;
+    }
   }
 
   private static class LargestFirstMemoryManagerWithExistenceCheck
       extends LargestFirstMemoryManagerUnderTest {
 
-    Function<TableId,Boolean> existenceCheck;
+    Predicate<TableId> existenceCheck;
+    Predicate<TableId> deletingCheck;
 
-    public LargestFirstMemoryManagerWithExistenceCheck(Function<TableId,Boolean> existenceCheck) {
+    public LargestFirstMemoryManagerWithExistenceCheck(Predicate<TableId> existenceCheck,
+        Predicate<TableId> deletingCheck) {
       super();
       this.existenceCheck = existenceCheck;
+      this.deletingCheck = deletingCheck;
     }
 
     @Override
     protected boolean tableExists(TableId tableId) {
-      return existenceCheck.apply(tableId);
+      return existenceCheck.test(tableId);
+    }
+
+    @Override
+    protected boolean tableBeingDeleted(TableId tableId) {
+      return deletingCheck.test(tableId);
     }
   }
 

@@ -31,7 +31,7 @@ public enum TabletServerState {
   UNRESPONSIVE((byte) 2),
   DOWN((byte) 3),
 
-  // the following are bad states and cause tservers to be ignored by the master
+  // the following are bad states and cause tservers to be ignored by the manager
   BAD_SYSTEM_PASSWORD((byte) 101),
   BAD_VERSION((byte) 102),
   BAD_INSTANCE((byte) 103),

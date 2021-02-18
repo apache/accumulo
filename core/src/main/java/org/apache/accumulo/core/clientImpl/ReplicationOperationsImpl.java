@@ -95,11 +95,11 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     final TInfo tinfo = TraceUtil.traceInfo();
     final TCredentials rpcCreds = context.rpcCreds();
 
-    // Ask the master if the table is fully replicated given these WALs, but don't poll inside the
-    // master
+    // Ask the manager if the table is fully replicated given these WALs, but don't poll inside the
+    // manager
     boolean drained = false;
     while (!drained) {
-      drained = getMasterDrain(tinfo, rpcCreds, tableName, wals);
+      drained = getManagerDrain(tinfo, rpcCreds, tableName, wals);
 
       if (!drained) {
         try {
@@ -112,10 +112,10 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     }
   }
 
-  protected boolean getMasterDrain(final TInfo tinfo, final TCredentials rpcCreds,
+  protected boolean getManagerDrain(final TInfo tinfo, final TCredentials rpcCreds,
       final String tableName, final Set<String> wals)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    return MasterClient.execute(context,
+    return ManagerClient.execute(context,
         client -> client.drainReplicationTable(tinfo, rpcCreds, tableName, wals));
   }
 

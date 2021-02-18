@@ -59,8 +59,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
@@ -69,7 +69,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 
-class WriteExportFiles extends MasterRepo {
+class WriteExportFiles extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
   private final ExportInfo tableInfo;
@@ -90,17 +90,17 @@ class WriteExportFiles extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master master) throws Exception {
+  public long isReady(long tid, Manager manager) throws Exception {
 
-    long reserved = Utils.reserveNamespace(master, tableInfo.namespaceID, tid, false, true,
+    long reserved = Utils.reserveNamespace(manager, tableInfo.namespaceID, tid, false, true,
         TableOperation.EXPORT)
-        + Utils.reserveTable(master, tableInfo.tableID, tid, false, true, TableOperation.EXPORT);
+        + Utils.reserveTable(manager, tableInfo.tableID, tid, false, true, TableOperation.EXPORT);
     if (reserved > 0)
       return reserved;
 
-    AccumuloClient client = master.getContext();
+    AccumuloClient client = manager.getContext();
 
-    checkOffline(master.getContext());
+    checkOffline(manager.getContext());
 
     Scanner metaScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
     metaScanner.setRange(new KeyExtent(tableInfo.tableID, null, null).toMetaRange());
@@ -130,23 +130,23 @@ class WriteExportFiles extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
     try {
-      exportTable(master.getVolumeManager(), master.getContext(), tableInfo.tableName,
+      exportTable(manager.getVolumeManager(), manager.getContext(), tableInfo.tableName,
           tableInfo.tableID, tableInfo.exportDir);
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonical(),
           tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
           "Failed to create export files " + ioe.getMessage());
     }
-    Utils.unreserveNamespace(master, tableInfo.namespaceID, tid, false);
-    Utils.unreserveTable(master, tableInfo.tableID, tid, false);
-    Utils.unreserveHdfsDirectory(master, new Path(tableInfo.exportDir).toString(), tid);
+    Utils.unreserveNamespace(manager, tableInfo.namespaceID, tid, false);
+    Utils.unreserveTable(manager, tableInfo.tableID, tid, false);
+    Utils.unreserveHdfsDirectory(manager, new Path(tableInfo.exportDir).toString(), tid);
     return null;
   }
 
   @Override
-  public void undo(long tid, Master env) {
+  public void undo(long tid, Manager env) {
     Utils.unreserveNamespace(env, tableInfo.namespaceID, tid, false);
     Utils.unreserveTable(env, tableInfo.tableID, tid, false);
   }

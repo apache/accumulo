@@ -150,7 +150,7 @@ public class ZooAuthenticationKeyWatcher implements Watcher {
         secretManager.addKey(key);
         keysAdded++;
       } catch (NoNodeException e) {
-        // The master expired(deleted) the key between when we saw it in getChildren() and when we
+        // The manager expired(deleted) the key between when we saw it in getChildren() and when we
         // went to add it to our secret manager.
         log.trace("{} was deleted when we tried to access it", childPath);
       }

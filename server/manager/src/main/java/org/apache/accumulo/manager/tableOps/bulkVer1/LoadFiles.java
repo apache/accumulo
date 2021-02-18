@@ -51,8 +51,8 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -60,7 +60,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class LoadFiles extends MasterRepo {
+class LoadFiles extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -82,26 +82,26 @@ class LoadFiles extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master master) {
-    if (master.onlineTabletServers().isEmpty())
+  public long isReady(long tid, Manager manager) {
+    if (manager.onlineTabletServers().isEmpty())
       return 500;
     return 0;
   }
 
-  private static synchronized ExecutorService getThreadPool(Master master) {
+  private static synchronized ExecutorService getThreadPool(Manager manager) {
     if (threadPool == null) {
-      threadPool = ThreadPools.createExecutorService(master.getConfiguration(),
+      threadPool = ThreadPools.createExecutorService(manager.getConfiguration(),
           Property.MANAGER_BULK_THREADPOOL_SIZE);
     }
     return threadPool;
   }
 
   @Override
-  public Repo<Master> call(final long tid, final Master master) throws Exception {
-    master.updateBulkImportStatus(source, BulkImportState.LOADING);
-    ExecutorService executor = getThreadPool(master);
-    final AccumuloConfiguration conf = master.getConfiguration();
-    VolumeManager fs = master.getVolumeManager();
+  public Repo<Manager> call(final long tid, final Manager manager) throws Exception {
+    manager.updateBulkImportStatus(source, BulkImportState.LOADING);
+    ExecutorService executor = getThreadPool(manager);
+    final AccumuloConfiguration conf = manager.getConfiguration();
+    VolumeManager fs = manager.getVolumeManager();
     List<FileStatus> files = new ArrayList<>();
     Collections.addAll(files, fs.listStatus(new Path(bulk)));
     log.debug(FateTxId.formatTid(tid) + " importing " + files.size() + " files");
@@ -125,11 +125,11 @@ class LoadFiles extends MasterRepo {
     for (int attempt = 0; attempt < RETRIES && !filesToLoad.isEmpty(); attempt++) {
       List<Future<Void>> results = new ArrayList<>();
 
-      if (master.onlineTabletServers().isEmpty())
+      if (manager.onlineTabletServers().isEmpty())
         log.warn("There are no tablet server to process bulk import, waiting (tid = "
             + FateTxId.formatTid(tid) + ")");
 
-      while (master.onlineTabletServers().isEmpty()) {
+      while (manager.onlineTabletServers().isEmpty()) {
         sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
       }
 
@@ -139,11 +139,11 @@ class LoadFiles extends MasterRepo {
       final TServerInstance[] servers;
       String prop = conf.get(Property.MANAGER_BULK_TSERVER_REGEX);
       if (prop == null || "".equals(prop)) {
-        servers = master.onlineTabletServers().toArray(new TServerInstance[0]);
+        servers = manager.onlineTabletServers().toArray(new TServerInstance[0]);
       } else {
         Pattern regex = Pattern.compile(prop);
         List<TServerInstance> subset = new ArrayList<>();
-        master.onlineTabletServers().forEach(t -> {
+        manager.onlineTabletServers().forEach(t -> {
           if (regex.matcher(t.getHost()).matches()) {
             subset.add(t);
           }
@@ -161,17 +161,17 @@ class LoadFiles extends MasterRepo {
             HostAndPort server = null;
             try {
               // get a connection to a random tablet server, do not prefer cached connections
-              // because this is running on the master and there are lots of connections to tablet
+              // because this is running on the manager and there are lots of connections to tablet
               // servers serving the metadata tablets
               long timeInMillis =
-                  master.getConfiguration().getTimeInMillis(Property.MANAGER_BULK_TIMEOUT);
+                  manager.getConfiguration().getTimeInMillis(Property.MANAGER_BULK_TIMEOUT);
               server = servers[random.nextInt(servers.length)].getHostAndPort();
-              client = ThriftUtil.getTServerClient(server, master.getContext(), timeInMillis);
+              client = ThriftUtil.getTServerClient(server, manager.getContext(), timeInMillis);
               List<String> attempt1 = Collections.singletonList(file);
               log.debug("Asking " + server + " to bulk import " + file);
               List<String> fail =
-                  client.bulkImportFiles(TraceUtil.traceInfo(), master.getContext().rpcCreds(), tid,
-                      tableId.canonical(), attempt1, errorDir, setTime);
+                  client.bulkImportFiles(TraceUtil.traceInfo(), manager.getContext().rpcCreds(),
+                      tid, tableId.canonical(), attempt1, errorDir, setTime);
               if (fail.isEmpty()) {
                 loaded.add(file);
               }

@@ -68,6 +68,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.YieldCallback;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -80,6 +81,7 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanDirectives;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
@@ -90,7 +92,6 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
@@ -102,7 +103,7 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.util.FileUtil;
-import org.apache.accumulo.server.util.MasterMetadataUtil;
+import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
@@ -842,7 +843,8 @@ public class Tablet {
           return;
         }
 
-        if (isClosing() || isClosed() || getTabletMemory().memoryReservedForMinC()) {
+        if (isClosing() || isClosed() || isBeingDeleted()
+            || getTabletMemory().memoryReservedForMinC()) {
           return;
         }
 
@@ -877,6 +879,10 @@ public class Tablet {
 
   public boolean initiateMinorCompaction(MinorCompactionReason mincReason) {
     if (isClosed()) {
+      return false;
+    }
+    if (isBeingDeleted()) {
+      log.debug("Table {} is being deleted so don't flush {}", extent.tableId(), extent);
       return false;
     }
 
@@ -1259,6 +1265,8 @@ public class Tablet {
     // wait for reads and writes to complete
     while (writesInProgress > 0 || !activeScans.isEmpty()) {
       try {
+        log.debug("Waiting to completeClose for {}. {} writes {} scans", extent, writesInProgress,
+            activeScans.size());
         this.wait(50);
       } catch (InterruptedException e) {
         log.error(e.toString());
@@ -1576,6 +1584,10 @@ public class Tablet {
     return localCS == CloseState.CLOSED || localCS == CloseState.COMPLETE;
   }
 
+  public boolean isBeingDeleted() {
+    return context.getTableManager().getTableState(extent.tableId()) == TableState.DELETING;
+  }
+
   public boolean isCloseComplete() {
     return closeState == CloseState.COMPLETE;
   }
@@ -1679,7 +1691,7 @@ public class Tablet {
 
       MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio,
           getTabletServer().getContext(), getTabletServer().getLock());
-      MasterMetadataUtil.addNewTablet(getTabletServer().getContext(), low, lowDirectoryName,
+      ManagerMetadataUtil.addNewTablet(getTabletServer().getContext(), low, lowDirectoryName,
           getTabletServer().getTabletSession(), lowDatafileSizes, bulkImported, time, lastFlushID,
           lastCompactID, getTabletServer().getLock());
       MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove,
@@ -1753,7 +1765,7 @@ public class Tablet {
 
     for (Entry<TabletFile,MapFileInfo> entry : fileMap.entrySet()) {
       entries.put(entry.getKey(), new DataFileValue(entry.getValue().estimatedSize, 0L));
-      files.add(entry.getKey().getMetaInsert());
+      files.add(entry.getKey().getPathStr());
     }
 
     // Clients timeout and will think that this operation failed.
@@ -1899,8 +1911,8 @@ public class Tablet {
 
     if (reason != null) {
       // initiate and log outside of tablet lock
-      initiateMinorCompaction(MinorCompactionReason.SYSTEM);
       log.debug("Initiating minor compaction for {} because {}", getExtent(), reason);
+      initiateMinorCompaction(MinorCompactionReason.SYSTEM);
     }
   }
 
@@ -2127,7 +2139,7 @@ public class Tablet {
         persistedTime = maxCommittedTime;
       }
 
-      return MasterMetadataUtil.updateTabletDataFile(getTabletServer().getContext(), extent,
+      return ManagerMetadataUtil.updateTabletDataFile(getTabletServer().getContext(), extent,
           newDatafile, dfv, tabletTime.getMetadataTime(persistedTime),
           tabletServer.getClientAddressString(), tabletServer.getLock(), unusedWalLogs,
           lastLocation, flushId);

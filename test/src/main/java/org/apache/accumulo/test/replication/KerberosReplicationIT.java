@@ -211,22 +211,22 @@ public class KerberosReplicationIT extends AccumuloITBase {
 
         primaryclient.tableOperations().create(primaryTable1,
             new NewTableConfiguration().setProperties(props));
-        String masterTableId1 = primaryclient.tableOperations().tableIdMap().get(primaryTable1);
-        assertNotNull(masterTableId1);
+        String managerTableId1 = primaryclient.tableOperations().tableIdMap().get(primaryTable1);
+        assertNotNull(managerTableId1);
 
         // Grant write permission
         peerclient.securityOperations().grantTablePermission(replicationUser.getPrincipal(),
             peerTable1, TablePermission.WRITE);
 
         // Write some data to table1
-        long masterTable1Records = 0L;
+        long managerTable1Records = 0L;
         try (BatchWriter bw = primaryclient.createBatchWriter(primaryTable1)) {
           for (int rows = 0; rows < 2500; rows++) {
             Mutation m = new Mutation(primaryTable1 + rows);
             for (int cols = 0; cols < 100; cols++) {
               String value = Integer.toString(cols);
               m.put(value, "", value);
-              masterTable1Records++;
+              managerTable1Records++;
             }
             bw.addMutation(m);
           }
@@ -264,7 +264,7 @@ public class KerberosReplicationIT extends AccumuloITBase {
         }
 
         log.info("Found {} records in {}", countTable, peerTable1);
-        assertEquals(masterTable1Records, countTable);
+        assertEquals(managerTable1Records, countTable);
 
         return null;
       }

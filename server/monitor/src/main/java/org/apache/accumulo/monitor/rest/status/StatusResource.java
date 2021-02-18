@@ -26,11 +26,11 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.monitor.Monitor;
 
 /**
- * Generates the status for master, gc, and tservers as well as log and problem reports
+ * Generates the status for manager, gc, and tservers as well as log and problem reports
  *
  * @since 2.0.0
  */
@@ -53,10 +53,10 @@ public class StatusResource {
   @GET
   public StatusInformation getTables() {
 
-    Status masterStatus;
+    Status managerStatus;
     Status gcStatus;
     Status tServerStatus = Status.ERROR;
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
 
     if (mmi != null) {
       if (monitor.getGcStatus() != null) {
@@ -65,8 +65,8 @@ public class StatusResource {
         gcStatus = Status.ERROR;
       }
 
-      List<String> masters = monitor.getContext().getMasterLocations();
-      masterStatus = masters.isEmpty() ? Status.ERROR : Status.OK;
+      List<String> managers = monitor.getContext().getManagerLocations();
+      managerStatus = managers.isEmpty() ? Status.ERROR : Status.OK;
 
       int tServerUp = mmi.getTServerInfoSize();
       int tServerDown = mmi.getDeadTabletServersSize();
@@ -85,7 +85,7 @@ public class StatusResource {
         tServerStatus = Status.ERROR;
       }
     } else {
-      masterStatus = Status.ERROR;
+      managerStatus = Status.ERROR;
       if (monitor.getGcStatus() == null) {
         gcStatus = Status.ERROR;
       } else {
@@ -94,7 +94,7 @@ public class StatusResource {
       tServerStatus = Status.ERROR;
     }
 
-    return new StatusInformation(masterStatus.toString(), gcStatus.toString(),
+    return new StatusInformation(managerStatus.toString(), gcStatus.toString(),
         tServerStatus.toString(), monitor.recentLogs().numEvents(),
         monitor.recentLogs().eventsIncludeErrors(), monitor.getProblemSummary().entrySet().size());
   }

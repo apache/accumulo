@@ -74,7 +74,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       log.warn("{} was deprecated and will be removed in a future release;"
           + " setting its replacement {} instead", property, replacement);
     });
-    MasterClient.executeVoid(context, client -> client.setSystemProperty(TraceUtil.traceInfo(),
+    ManagerClient.executeVoid(context, client -> client.setSystemProperty(TraceUtil.traceInfo(),
         context.rpcCreds(), property, value));
     checkLocalityGroups(property);
   }
@@ -89,7 +89,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       log.warn("{} was deprecated and will be removed in a future release; assuming user meant"
           + " its replacement {} and will remove that instead", property, replacement);
     });
-    MasterClient.executeVoid(context,
+    ManagerClient.executeVoid(context,
         client -> client.removeSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property));
     checkLocalityGroups(property);
   }
@@ -125,7 +125,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
   @Override
   public List<String> getManagerLocations() {
-    return context.getMasterLocations();
+    return context.getManagerLocations();
   }
 
   @Override
@@ -139,7 +139,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
         var copy = new ArrayList<>(children);
         Collections.sort(copy);
         var data = cache.get(path + "/" + candidate + "/" + copy.get(0));
-        if (data != null && !"master".equals(new String(data, UTF_8))) {
+        if (data != null && !"manager".equals(new String(data, UTF_8))) {
           results.add(candidate);
         }
       }
@@ -218,7 +218,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public void waitForBalance() throws AccumuloException {
     try {
-      MasterClient.executeVoid(context, client -> client.waitForBalance(TraceUtil.traceInfo()));
+      ManagerClient.executeVoid(context, client -> client.waitForBalance(TraceUtil.traceInfo()));
     } catch (AccumuloSecurityException ex) {
       // should never happen
       throw new RuntimeException("Unexpected exception thrown", ex);

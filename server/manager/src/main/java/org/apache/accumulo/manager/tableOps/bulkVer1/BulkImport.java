@@ -42,8 +42,8 @@ import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
@@ -62,19 +62,19 @@ import com.google.common.annotations.VisibleForTesting;
 /**
  * Bulk import makes requests of tablet servers, and those requests can take a long time. Our
  * communications to the tablet server may fail, so we won't know the status of the request. The
- * master will repeat failed requests so now there are multiple requests to the tablet server. The
+ * manager will repeat failed requests so now there are multiple requests to the tablet server. The
  * tablet server will not execute the request multiple times, so long as the marker it wrote in the
- * metadata table stays there. The master needs to know when all requests have finished so it can
+ * metadata table stays there. The manager needs to know when all requests have finished so it can
  * remove the markers. Did it start? Did it finish? We can see that *a* request completed by seeing
  * the flag written into the metadata table, but we won't know if some other rogue thread is still
  * waiting to start a thread and repeat the operation.
  *
- * The master can ask the tablet server if it has any requests still running. Except the tablet
+ * The manager can ask the tablet server if it has any requests still running. Except the tablet
  * server might have some thread about to start a request, but before it has made any bookkeeping
  * about the request. To prevent problems like this, an Arbitrator is used. Before starting any new
  * request, the tablet server checks the Arbitrator to see if the request is still valid.
  */
-public class BulkImport extends MasterRepo {
+public class BulkImport extends ManagerRepo {
   public static final String FAILURES_TXT = "failures.txt";
 
   private static final long serialVersionUID = 1L;
@@ -94,16 +94,16 @@ public class BulkImport extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master master) throws Exception {
-    if (!Utils.getReadLock(master, tableId, tid).tryLock())
+  public long isReady(long tid, Manager manager) throws Exception {
+    if (!Utils.getReadLock(manager, tableId, tid).tryLock())
       return 100;
 
-    Tables.clearCache(master.getContext());
-    if (Tables.getTableState(master.getContext(), tableId) == TableState.ONLINE) {
+    Tables.clearCache(manager.getContext());
+    if (Tables.getTableState(manager.getContext(), tableId) == TableState.ONLINE) {
       long reserve1, reserve2;
-      reserve1 = reserve2 = Utils.reserveHdfsDirectory(master, sourceDir, tid);
+      reserve1 = reserve2 = Utils.reserveHdfsDirectory(manager, sourceDir, tid);
       if (reserve1 == 0)
-        reserve2 = Utils.reserveHdfsDirectory(master, errorDir, tid);
+        reserve2 = Utils.reserveHdfsDirectory(manager, errorDir, tid);
       return reserve2;
     } else {
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
@@ -112,15 +112,15 @@ public class BulkImport extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master master) throws Exception {
+  public Repo<Manager> call(long tid, Manager manager) throws Exception {
     String fmtTid = FateTxId.formatTid(tid);
 
     log.debug(" {} sourceDir {}", fmtTid, sourceDir);
 
-    Utils.getReadLock(master, tableId, tid).lock();
+    Utils.getReadLock(manager, tableId, tid).lock();
 
     // check that the error directory exists and is empty
-    VolumeManager fs = master.getVolumeManager();
+    VolumeManager fs = manager.getVolumeManager();
 
     Path errorPath = new Path(errorDir);
     FileStatus errorStatus = null;
@@ -142,11 +142,11 @@ public class BulkImport extends MasterRepo {
           TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY,
           errorDir + " is not empty");
 
-    ZooArbitrator.start(master.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
-    master.updateBulkImportStatus(sourceDir, BulkImportState.MOVING);
+    ZooArbitrator.start(manager.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
+    manager.updateBulkImportStatus(sourceDir, BulkImportState.MOVING);
     // move the files into the directory
     try {
-      String bulkDir = prepareBulkImport(master.getContext(), fs, sourceDir, tableId, tid);
+      String bulkDir = prepareBulkImport(manager.getContext(), fs, sourceDir, tableId, tid);
       log.debug(" {} bulkDir {}", tid, bulkDir);
       return new LoadFiles(tableId, sourceDir, bulkDir, errorDir, setTime);
     } catch (IOException ex) {
@@ -189,19 +189,19 @@ public class BulkImport extends MasterRepo {
   }
 
   @VisibleForTesting
-  public static String prepareBulkImport(ServerContext master, final VolumeManager fs, String dir,
+  public static String prepareBulkImport(ServerContext manager, final VolumeManager fs, String dir,
       TableId tableId, long tid) throws Exception {
-    final Path bulkDir = createNewBulkDir(master, fs, dir, tableId);
+    final Path bulkDir = createNewBulkDir(manager, fs, dir, tableId);
 
-    MetadataTableUtil.addBulkLoadInProgressFlag(master,
+    MetadataTableUtil.addBulkLoadInProgressFlag(manager,
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), tid);
 
     Path dirPath = new Path(dir);
     FileStatus[] mapFiles = fs.listStatus(dirPath);
 
-    final UniqueNameAllocator namer = master.getUniqueNameAllocator();
+    final UniqueNameAllocator namer = manager.getUniqueNameAllocator();
 
-    AccumuloConfiguration serverConfig = master.getConfiguration();
+    AccumuloConfiguration serverConfig = manager.getConfiguration();
     @SuppressWarnings("deprecation")
     ExecutorService workers = ThreadPools.createExecutorService(serverConfig, serverConfig
         .resolve(Property.MANAGER_RENAME_THREADS, Property.MANAGER_BULK_RENAME_THREADS));
@@ -276,7 +276,7 @@ public class BulkImport extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master environment) throws Exception {
+  public void undo(long tid, Manager environment) throws Exception {
     // unreserve source/error directories
     Utils.unreserveHdfsDirectory(environment, sourceDir, tid);
     Utils.unreserveHdfsDirectory(environment, errorDir, tid);

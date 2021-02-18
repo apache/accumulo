@@ -178,7 +178,7 @@ public class KerberosRenewalIT extends AccumuloITBase {
 
   /**
    * Creates a table, adds a record to it, and then compacts the table. A simple way to make sure
-   * that the system user exists (since the master does an RPC to the tserver which will create the
+   * that the system user exists (since the manager does an RPC to the tserver which will create the
    * system user if it doesn't already exist).
    */
   private void createReadWriteDrop(AccumuloClient client) throws TableNotFoundException,

@@ -24,11 +24,11 @@ import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 
-class CloneZookeeper extends MasterRepo {
+class CloneZookeeper extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -42,7 +42,7 @@ class CloneZookeeper extends MasterRepo {
   }
 
   @Override
-  public long isReady(long tid, Master environment) throws Exception {
+  public long isReady(long tid, Manager environment) throws Exception {
     long val = 0;
     if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId))
       val += Utils.reserveNamespace(environment, cloneInfo.namespaceId, tid, false, true,
@@ -53,7 +53,7 @@ class CloneZookeeper extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
+  public Repo<Manager> call(long tid, Manager environment) throws Exception {
     Utils.getTableNameLock().lock();
     try {
       // write tableName & tableId to zookeeper
@@ -73,7 +73,7 @@ class CloneZookeeper extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master environment) throws Exception {
+  public void undo(long tid, Manager environment) throws Exception {
     environment.getTableManager().removeTable(cloneInfo.tableId);
     if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId))
       Utils.unreserveNamespace(environment, cloneInfo.namespaceId, tid, false);

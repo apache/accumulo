@@ -64,7 +64,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.Compacting;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.master.thrift.ManagerClientService;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -76,6 +76,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
@@ -105,7 +106,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.TabletLevel;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
@@ -134,8 +134,8 @@ import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.LogSorter;
 import org.apache.accumulo.tserver.log.MutationReceiver;
 import org.apache.accumulo.tserver.log.TabletServerLogger;
-import org.apache.accumulo.tserver.mastermessage.MasterMessage;
-import org.apache.accumulo.tserver.mastermessage.SplitReportMessage;
+import org.apache.accumulo.tserver.managermessage.ManagerMessage;
+import org.apache.accumulo.tserver.managermessage.SplitReportMessage;
 import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
@@ -173,7 +173,7 @@ public class TabletServer extends AbstractServer {
   private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = 60 * 60 * 1000;
 
   final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
-  final ZooCache masterLockCache;
+  final ZooCache managerLockCache;
 
   final TabletServerLogger logger;
 
@@ -206,7 +206,7 @@ public class TabletServer extends AbstractServer {
   final TabletServerResourceManager resourceManager;
   private final SecurityOperation security;
 
-  private final BlockingDeque<MasterMessage> masterMessages = new LinkedBlockingDeque<>();
+  private final BlockingDeque<ManagerMessage> managerMessages = new LinkedBlockingDeque<>();
 
   HostAndPort clientAddress;
 
@@ -239,7 +239,7 @@ public class TabletServer extends AbstractServer {
     super("tserver", opts, args);
     ServerContext context = super.getContext();
     context.setupCrypto();
-    this.masterLockCache = new ZooCache(context.getZooReaderWriter(), null);
+    this.managerLockCache = new ZooCache(context.getZooReaderWriter(), null);
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstanceID());
@@ -498,8 +498,8 @@ public class TabletServer extends AbstractServer {
     // lose the reference to the old tablet and open two new ones
     onlineTablets.split(tablet.getExtent(), newTablets[0], newTablets[1]);
 
-    // tell the master
-    enqueueMasterMessage(new SplitReportMessage(tablet.getExtent(), newTablets[0].getExtent(),
+    // tell the manager
+    enqueueManagerMessage(new SplitReportMessage(tablet.getExtent(), newTablets[0].getExtent(),
         new Text("/" + newTablets[0].getDirName()), newTablets[1].getExtent(),
         new Text("/" + newTablets[1].getDirName())));
 
@@ -511,9 +511,9 @@ public class TabletServer extends AbstractServer {
     return tabletInfo;
   }
 
-  // add a message for the main thread to send back to the master
-  public void enqueueMasterMessage(MasterMessage m) {
-    masterMessages.addLast(m);
+  // add a message for the main thread to send back to the manager
+  public void enqueueManagerMessage(ManagerMessage m) {
+    managerMessages.addLast(m);
   }
 
   void acquireRecoveryMemory(KeyExtent extent) {
@@ -540,35 +540,35 @@ public class TabletServer extends AbstractServer {
     return sp.address;
   }
 
-  private HostAndPort getMasterAddress() {
+  private HostAndPort getManagerAddress() {
     try {
-      List<String> locations = getContext().getMasterLocations();
+      List<String> locations = getContext().getManagerLocations();
       if (locations.isEmpty()) {
         return null;
       }
       return HostAndPort.fromString(locations.get(0));
     } catch (Exception e) {
-      log.warn("Failed to obtain master host " + e);
+      log.warn("Failed to obtain manager host " + e);
     }
 
     return null;
   }
 
-  // Connect to the master for posting asynchronous results
-  private MasterClientService.Client masterConnection(HostAndPort address) {
+  // Connect to the manager for posting asynchronous results
+  private ManagerClientService.Client managerConnection(HostAndPort address) {
     try {
       if (address == null) {
         return null;
       }
-      // log.info("Listener API to master has been opened");
-      return ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, getContext());
+      // log.info("Listener API to manager has been opened");
+      return ThriftUtil.getClient(new ManagerClientService.Client.Factory(), address, getContext());
     } catch (Exception e) {
-      log.warn("Issue with masterConnection (" + address + ") " + e, e);
+      log.warn("Issue with managerConnection (" + address + ") " + e, e);
     }
     return null;
   }
 
-  private void returnMasterConnection(MasterClientService.Client client) {
+  private void returnManagerConnection(ManagerClientService.Client client) {
     ThriftUtil.returnClient(client);
   }
 
@@ -780,24 +780,24 @@ public class TabletServer extends AbstractServer {
         new BulkImportCacheCleaner(this), CLEANUP_BULK_LOADED_CACHE_MILLIS,
         CLEANUP_BULK_LOADED_CACHE_MILLIS, TimeUnit.MILLISECONDS);
 
-    HostAndPort masterHost;
+    HostAndPort managerHost;
     while (!serverStopRequested) {
       // send all of the pending messages
       try {
-        MasterMessage mm = null;
-        MasterClientService.Client iface = null;
+        ManagerMessage mm = null;
+        ManagerClientService.Client iface = null;
 
         try {
           // wait until a message is ready to send, or a sever stop
           // was requested
           while (mm == null && !serverStopRequested) {
-            mm = masterMessages.poll(1000, TimeUnit.MILLISECONDS);
+            mm = managerMessages.poll(1000, TimeUnit.MILLISECONDS);
           }
 
-          // have a message to send to the master, so grab a
+          // have a message to send to the manager, so grab a
           // connection
-          masterHost = getMasterAddress();
-          iface = masterConnection(masterHost);
+          managerHost = getManagerAddress();
+          iface = managerConnection(managerHost);
           TServiceClient client = iface;
 
           // if while loop does not execute at all and mm != null,
@@ -811,22 +811,22 @@ public class TabletServer extends AbstractServer {
               mm = null;
             } catch (TException ex) {
               log.warn("Error sending message: queuing message again");
-              masterMessages.putFirst(mm);
+              managerMessages.putFirst(mm);
               mm = null;
               throw ex;
             }
 
             // if any messages are immediately available grab em and
             // send them
-            mm = masterMessages.poll();
+            mm = managerMessages.poll();
           }
 
         } finally {
 
           if (mm != null) {
-            masterMessages.putFirst(mm);
+            managerMessages.putFirst(mm);
           }
-          returnMasterConnection(iface);
+          returnManagerConnection(iface);
 
           sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
@@ -835,17 +835,17 @@ public class TabletServer extends AbstractServer {
         serverStopRequested = true;
 
       } catch (Exception e) {
-        // may have lost connection with master
+        // may have lost connection with manager
         // loop back to the beginning and wait for a new one
-        // this way we survive master failures
-        log.error(getClientAddressString() + ": TServerInfo: Exception. Master down?", e);
+        // this way we survive manager failures
+        log.error(getClientAddressString() + ": TServerInfo: Exception. Manager down?", e);
       }
     }
 
     // wait for shutdown
-    // if the main thread exits oldServer the master listener, the JVM will
+    // if the main thread exits oldServer the manager listener, the JVM will
     // kill the other threads and finalize objects. We want the shutdown that is
-    // running in the master listener thread to complete oldServer this happens.
+    // running in the manager listener thread to complete oldServer this happens.
     // consider making other threads daemon threads so that objects don't
     // get prematurely finalized
     synchronized (this) {
@@ -963,7 +963,7 @@ public class TabletServer extends AbstractServer {
 
   private static void checkWalCanSync(ServerContext context) {
     VolumeChooserEnvironment chooserEnv =
-        new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.ChooserScope.LOGGER, context);
+        new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.LOGGER, context);
     Set<String> prefixes;
     var options = ServerConstants.getBaseUris(context);
     try {

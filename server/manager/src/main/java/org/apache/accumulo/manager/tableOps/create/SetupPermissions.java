@@ -21,14 +21,14 @@ package org.apache.accumulo.manager.tableOps.create;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.slf4j.LoggerFactory;
 
-class SetupPermissions extends MasterRepo {
+class SetupPermissions extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -39,7 +39,7 @@ class SetupPermissions extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master env) throws Exception {
+  public Repo<Manager> call(long tid, Manager env) throws Exception {
     // give all table permissions to the creator
     SecurityOperation security = AuditedSecurityOperation.getInstance(env.getContext());
     if (!tableInfo.getUser().equals(env.getContext().getCredentials().getPrincipal())) {
@@ -61,7 +61,7 @@ class SetupPermissions extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) throws Exception {
+  public void undo(long tid, Manager env) throws Exception {
     AuditedSecurityOperation.getInstance(env.getContext()).deleteTable(env.getContext().rpcCreds(),
         tableInfo.getTableId(), tableInfo.getNamespaceId());
   }

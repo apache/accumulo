@@ -30,8 +30,8 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.manager.Master;
-import org.apache.accumulo.manager.tableOps.MasterRepo;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.hadoop.fs.FileStatus;
@@ -39,7 +39,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class MapImportFileNames extends MasterRepo {
+class MapImportFileNames extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(MapImportFileNames.class);
 
   private static final long serialVersionUID = 1L;
@@ -51,7 +51,7 @@ class MapImportFileNames extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
+  public Repo<Manager> call(long tid, Manager environment) throws Exception {
 
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
       Path path = new Path(dm.importDir, "mappings.txt");
@@ -114,7 +114,7 @@ class MapImportFileNames extends MasterRepo {
   }
 
   @Override
-  public void undo(long tid, Master env) throws Exception {
+  public void undo(long tid, Manager env) throws Exception {
     // TODO: will this be OK for partially complete operations?
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
       env.getVolumeManager().deleteRecursively(new Path(dm.importDir));

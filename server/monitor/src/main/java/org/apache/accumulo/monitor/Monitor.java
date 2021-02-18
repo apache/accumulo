@@ -43,13 +43,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import javax.inject.Singleton;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.MasterClient;
+import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.master.thrift.ManagerClientService;
+import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -91,7 +91,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Serve master statistics with an embedded web server.
+ * Serve manager statistics with an embedded web server.
  */
 public class Monitor extends AbstractServer implements HighlyAvailableService {
 
@@ -158,7 +158,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private EventCounter dataCacheRequestTracker = new EventCounter();
 
   private final AtomicBoolean fetching = new AtomicBoolean(false);
-  private MasterMonitorInfo mmi;
+  private ManagerMonitorInfo mmi;
   private Map<TableId,Map<ProblemType,Integer>> problemSummary = Collections.emptyMap();
   private Exception problemException;
   private GCStatus gcStatus;
@@ -251,15 +251,15 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     // Otherwise, we'll never release the lock by unsetting 'fetching' in the the finally block
     try {
       while (retry) {
-        MasterClientService.Iface client = null;
+        ManagerClientService.Iface client = null;
         try {
-          client = MasterClient.getConnection(context);
+          client = ManagerClient.getConnection(context);
           if (client != null) {
-            mmi = client.getMasterStats(TraceUtil.traceInfo(), context.rpcCreds());
+            mmi = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
             retry = false;
           } else {
             mmi = null;
-            log.error("Unable to get info from Master");
+            log.error("Unable to get info from Manager");
           }
           gcStatus = fetchGcStatus();
         } catch (Exception e) {
@@ -267,7 +267,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
           log.info("Error fetching stats: ", e);
         } finally {
           if (client != null) {
-            MasterClient.close(client);
+            ManagerClient.close(client);
           }
         }
         if (mmi == null) {
@@ -392,9 +392,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       // Read the gc location from its lock
       ZooReaderWriter zk = context.getZooReaderWriter();
       String path = context.getZooKeeperRoot() + Constants.ZGC_LOCK;
-      List<String> locks = zk.getChildren(path);
+      List<String> locks = ZooLock.validateAndSortChildrenByLockPrefix(path, zk.getChildren(path));
       if (locks != null && !locks.isEmpty()) {
-        Collections.sort(locks);
         address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0)), UTF_8))
             .getAddress(Service.GC_CLIENT);
         GCMonitorService.Client client =
@@ -705,7 +704,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
   }
 
-  public MasterMonitorInfo getMmi() {
+  public ManagerMonitorInfo getMmi() {
     return mmi;
   }
 

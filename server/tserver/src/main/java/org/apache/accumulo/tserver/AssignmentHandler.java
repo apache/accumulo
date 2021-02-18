@@ -35,9 +35,9 @@ import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.util.MasterMetadataUtil;
+import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
-import org.apache.accumulo.tserver.mastermessage.TabletStatusMessage;
+import org.apache.accumulo.tserver.managermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletData;
 import org.apache.hadoop.io.Text;
@@ -107,7 +107,7 @@ class AssignmentHandler implements Runnable {
 
       if (canLoad && tabletMetadata.sawOldPrevEndRow()) {
         KeyExtent fixedExtent =
-            MasterMetadataUtil.fixSplit(server.getContext(), tabletMetadata, server.getLock());
+            ManagerMetadataUtil.fixSplit(server.getContext(), tabletMetadata, server.getLock());
 
         synchronized (server.openingTablets) {
           server.openingTablets.remove(extent);
@@ -132,7 +132,7 @@ class AssignmentHandler implements Runnable {
         server.openingTablets.notifyAll();
       }
       log.warn("Failed to verify tablet " + extent, e);
-      server.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
+      server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
       throw new RuntimeException(e);
     }
 
@@ -143,7 +143,7 @@ class AssignmentHandler implements Runnable {
         server.openingTablets.remove(extent);
         server.openingTablets.notifyAll();
       }
-      server.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
+      server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
       return;
     }
 
@@ -203,7 +203,7 @@ class AssignmentHandler implements Runnable {
     }
 
     if (successful) {
-      server.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOADED, extent));
+      server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOADED, extent));
     } else {
       synchronized (server.unopenedTablets) {
         synchronized (server.openingTablets) {
@@ -212,8 +212,8 @@ class AssignmentHandler implements Runnable {
           server.openingTablets.notifyAll();
         }
       }
-      log.warn("failed to open tablet {} reporting failure to master", extent);
-      server.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
+      log.warn("failed to open tablet {} reporting failure to manager", extent);
+      server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
       long reschedule = Math.min((1L << Math.min(32, retryAttempt)) * 1000, 10 * 60 * 1000L);
       log.warn(String.format("rescheduling tablet load in %.2f seconds", reschedule / 1000.));
       ThreadPools.createGeneralScheduledExecutorService(server.getConfiguration())

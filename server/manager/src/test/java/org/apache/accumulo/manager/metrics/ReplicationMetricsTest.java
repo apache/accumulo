@@ -21,7 +21,7 @@ package org.apache.accumulo.manager.metrics;
 import java.lang.reflect.Field;
 import java.util.Set;
 
-import org.apache.accumulo.manager.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.ReplicationUtil;
@@ -39,8 +39,8 @@ public class ReplicationMetricsTest {
    * Extend the class to override the current time for testing
    */
   public class ReplicationMetricsTestMetrics extends ReplicationMetrics {
-    ReplicationMetricsTestMetrics(Master master) {
-      super(master);
+    ReplicationMetricsTestMetrics(Manager manager) {
+      super(manager);
     }
 
     @Override
@@ -51,7 +51,7 @@ public class ReplicationMetricsTest {
 
   @Test
   public void testAddReplicationQueueTimeMetrics() throws Exception {
-    Master master = EasyMock.createMock(Master.class);
+    Manager manager = EasyMock.createMock(Manager.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
     VolumeManager fileSystem = EasyMock.createMock(VolumeManager.class);
     ReplicationUtil util = EasyMock.createMock(ReplicationUtil.class);
@@ -62,11 +62,11 @@ public class ReplicationMetricsTest {
     Path path2 = new Path("hdfs://localhost:9000/accumulo/wal/file2");
 
     // First call will initialize the map of paths to modification time
-    EasyMock.expect(master.getContext()).andReturn(context).anyTimes();
+    EasyMock.expect(manager.getContext()).andReturn(context).anyTimes();
     EasyMock.expect(util.getPendingReplicationPaths()).andReturn(Set.of(path1, path2));
-    EasyMock.expect(master.getVolumeManager()).andReturn(fileSystem);
+    EasyMock.expect(manager.getVolumeManager()).andReturn(fileSystem);
     EasyMock.expect(fileSystem.getFileStatus(path1)).andReturn(createStatus(100));
-    EasyMock.expect(master.getVolumeManager()).andReturn(fileSystem);
+    EasyMock.expect(manager.getVolumeManager()).andReturn(fileSystem);
     EasyMock.expect(fileSystem.getFileStatus(path2)).andReturn(createStatus(200));
 
     // Second call will recognize the missing path1 and add the latency stat
@@ -83,9 +83,9 @@ public class ReplicationMetricsTest {
     stat.add(currentTime - 100);
     EasyMock.expectLastCall();
 
-    EasyMock.replay(master, fileSystem, util, stat, quantiles);
+    EasyMock.replay(manager, fileSystem, util, stat, quantiles);
 
-    ReplicationMetrics metrics = new ReplicationMetricsTestMetrics(master);
+    ReplicationMetrics metrics = new ReplicationMetricsTestMetrics(manager);
 
     // Inject our mock objects
     replaceField(metrics, "replicationUtil", util);
@@ -96,7 +96,7 @@ public class ReplicationMetricsTest {
     metrics.addReplicationQueueTimeMetrics();
     metrics.addReplicationQueueTimeMetrics();
 
-    EasyMock.verify(master, fileSystem, util, stat, quantiles);
+    EasyMock.verify(manager, fileSystem, util, stat, quantiles);
   }
 
   private void replaceField(Object instance, String fieldName, Object target)

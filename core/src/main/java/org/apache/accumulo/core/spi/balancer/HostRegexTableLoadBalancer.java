@@ -76,7 +76,7 @@ import com.google.common.collect.Multimap;
  * Periodically (default 5m) this balancer will check to see if a tablet server is hosting tablets
  * that it should not be according to the regex configuration. If this occurs then the offending
  * tablets will be reassigned. This would cover the case where the configuration is changed and the
- * master is restarted while the tablet servers are up. To change the out of bounds check time
+ * manager is restarted while the tablet servers are up. To change the out of bounds check time
  * period, set the following property:<br>
  * <b>table.custom.balancer.host.regex.oob.period=5m</b><br>
  * Regex matching can be based on either the host name (default) or host ip address. To set this
