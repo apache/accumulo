@@ -536,8 +536,8 @@ public class CompactableUtils {
     StoredTabletFile metaFile;
     CompactionEnv cenv = new CompactionEnv() {
       @Override
-      public boolean isCompactionEnabled(long entriesCompacted) {
-        return compactionCheck.isCompactionEnabled(entriesCompacted);
+      public boolean isCompactionEnabled() {
+        return compactionCheck.isCompactionEnabled();
       }
 
       @Override

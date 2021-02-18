@@ -59,7 +59,7 @@ public class MinorCompactor extends Compactor {
         new CompactionEnv() {
 
           @Override
-          public boolean isCompactionEnabled(long entriesCompacted) {
+          public boolean isCompactionEnabled() {
             return true;
           }
 
