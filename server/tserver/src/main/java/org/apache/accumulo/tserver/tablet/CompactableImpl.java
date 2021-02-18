@@ -532,7 +532,7 @@ public class CompactableImpl implements Compactable {
       }, 100, TimeUnit.MILLISECONDS);
     }
 
-    public boolean isCompactionEnabled(long entriesCompacted) {
+    public boolean isCompactionEnabled() {
       return memoizedCheck.get();
     }
   }
