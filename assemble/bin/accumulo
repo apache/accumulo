@@ -58,21 +58,30 @@ function main() {
     echo "$CLASSPATH"
     exit 0
   fi
-
-  # Set up path variable for jshell command
-  export jShellPath="$conf/jshell-init.jsh" 
   
-  # Verify jShell-init file is present before starting jShell
-  if [[ $cmd == "jshell" ]] && [[ -f "$jShellPath" ]]; then 
-    CLASSPATH="$CLASSPATH" "$@" 
+  # Set up path variable for default import config file
+  export jShellPath="$conf/jshell-init.jsh"
+ 
+  # Verify what file(s) is loaded into JShell
+  if [[ $cmd == "jshell" ]] && [[ "$#" -eq 1 ]]; then
+    # Load in default Accumulo APIs into JShell
+    CLASSPATH="$CLASSPATH" "$@" "$jShellPath" 
+    exit 0
+
+  elif [[ $cmd == "jshell" ]] && [[ "$#" -ne 1 ]]; then
+    cmdArr=( "$@" )
+    # Traverse through user bash command and verify -startup argument exists
+    for arg in "${!cmdArr[@]}"; do
+       if [[ "${cmdArr[arg]}" =~ "-startup" ]]; then
+         # Insert "DEFAULT" JShell script after -startup argument
+         cmdArr=( "${cmdArr[@]:0:arg}" "DEFAULT" "${cmdArr[@]:arg+1}" )
+       fi
+    done
+    # Load in default java libraries first followed by custom file(s)
+    CLASSPATH="$CLASSPATH" "${cmdArr[@]}"
     exit 0
   fi
-  # Does jShell-init exists?
-  if [[ $cmd == "jshell" ]] && [[ ! -f "$jShellPath" ]]; then
-    echo "Could not start jshell with Accumulo. Please ensure "jshell-init.jsh" exists in $conf"
-    exit 1
-  fi
-
+  
   if [[ -x "$JAVA_HOME/bin/java" ]]; then
     JAVA="$JAVA_HOME/bin/java"
   else
