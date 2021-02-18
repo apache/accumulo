@@ -340,6 +340,7 @@ public class Tablet {
 
     tabletMemory = new TabletMemory(this);
 
+    // don't bother examining WALs for recovery if Table is being deleted
     if (!logEntries.isEmpty() && !isBeingDeleted()) {
       TabletLogger.recovering(extent, logEntries);
       final AtomicLong entriesUsedOnTablet = new AtomicLong(0);
