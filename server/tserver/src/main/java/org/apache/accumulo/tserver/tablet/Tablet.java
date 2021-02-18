@@ -2114,6 +2114,15 @@ public class Tablet {
     queryBytes += numBytes;
   }
 
+  public void updateTimer(Operation operation, long queued, long start, long count,
+      boolean failed) {
+    timer.updateTime(operation, queued, start, count, failed);
+  }
+
+  public void incrementStatusMajor() {
+    timer.incrementStatusMajor();
+  }
+
   TabletServer getTabletServer() {
     return tabletServer;
   }

@@ -532,7 +532,8 @@ public class CompactableUtils {
   static StoredTabletFile compact(Tablet tablet, CompactionJob job, Set<StoredTabletFile> jobFiles,
       Long compactionId, boolean propogateDeletes, CompactableImpl.CompactionHelper helper,
       List<IteratorSetting> iters, CompactionCheck compactionCheck, RateLimiter readLimiter,
-      RateLimiter writeLimiter) throws IOException, CompactionCanceledException {
+      RateLimiter writeLimiter, CompactionStats stats)
+      throws IOException, CompactionCanceledException {
     StoredTabletFile metaFile;
     CompactionEnv cenv = new CompactionEnv() {
       @Override
@@ -580,6 +581,8 @@ public class CompactableUtils {
         }
       });
     }
+    // mutate the empty stats to allow returning their values
+    stats.add(mcs);
 
     metaFile = tablet.getDatafileManager().bringMajorCompactionOnline(compactFiles.keySet(),
         compactTmpName, newFile, compactionId,
