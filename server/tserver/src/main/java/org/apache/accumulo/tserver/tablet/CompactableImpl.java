@@ -689,7 +689,7 @@ public class CompactableImpl implements Compactable {
       else
         selectFiles();
 
-      tablet.updateTimer(MAJOR, queuedTime, startTime, stats.getEntriesRead(), failed);
+      tablet.updateTimer(MAJOR, queuedTime, startTime, stats.getEntriesRead(), metaFile == null);
     }
   }
 
