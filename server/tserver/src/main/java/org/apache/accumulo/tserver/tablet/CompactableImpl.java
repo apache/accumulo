@@ -644,8 +644,7 @@ public class CompactableImpl implements Compactable {
 
     StoredTabletFile metaFile = null;
     long startTime = System.currentTimeMillis();
-    long entriesWritten = 0;
-    boolean failed = false;
+    // create an empty stats object to be populated by CompactableUtils.compact()
     CompactionStats stats = new CompactionStats();
     try {
 
@@ -676,8 +675,6 @@ public class CompactableImpl implements Compactable {
 
         if (metaFile != null) {
           choppedFiles.add(metaFile);
-        } else {
-          failed = true;
         }
       }
 
