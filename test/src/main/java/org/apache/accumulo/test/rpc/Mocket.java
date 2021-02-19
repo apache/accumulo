@@ -26,8 +26,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransport;
 
-import com.google.common.base.Preconditions;
-
 /**
  * Mocket - a Mock Socket
  * <p>
@@ -76,7 +74,7 @@ public class Mocket {
 
     public void write(byte[] buf, int off, int len) {
       Objects.requireNonNull(buf);
-      Preconditions.checkPositionIndexes(off, off + len, buf.length);
+      Objects.checkFromToIndex(off, off + len, buf.length);
       if (len == 0) {
         return;
       }
@@ -108,7 +106,7 @@ public class Mocket {
 
     public int read(byte[] buf, int off, int len) {
       Objects.requireNonNull(buf);
-      Preconditions.checkPositionIndexes(off, off + len, buf.length);
+      Objects.checkFromToIndex(off, off + len, buf.length);
       if (len == 0) {
         return 0;
       }
