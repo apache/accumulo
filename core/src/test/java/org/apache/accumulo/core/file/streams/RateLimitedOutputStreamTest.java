@@ -20,13 +20,13 @@ package org.apache.accumulo.core.file.streams;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.OutputStream;
 import java.security.SecureRandom;
 import java.util.Random;
 
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.junit.Test;
 
-import com.google.common.io.ByteStreams;
 import com.google.common.io.CountingOutputStream;
 
 public class RateLimitedOutputStreamTest {
@@ -50,7 +50,7 @@ public class RateLimitedOutputStreamTest {
 
   public static class NullOutputStream extends FSDataOutputStream {
     public NullOutputStream() {
-      super(new CountingOutputStream(ByteStreams.nullOutputStream()), null);
+      super(new CountingOutputStream(OutputStream.nullOutputStream()), null);
     }
   }
 

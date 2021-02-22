@@ -77,8 +77,8 @@ public class SequenceLexicoder<E> extends AbstractLexicoder<List<E>> {
   @Override
   protected List<E> decodeUnchecked(final byte[] b, final int offset, final int len) {
     final byte[][] escapedElements = split(b, offset, len);
-    assert escapedElements.length
-        > 0 : "ByteUtils.split always returns a minimum of 1 element, even for empty input";
+    assert escapedElements.length > 0
+        : "ByteUtils.split always returns a minimum of 1 element, even for empty input";
     // There should be no bytes after the final delimiter. Lack of delimiter indicates empty list.
     final byte[] lastElement = escapedElements[escapedElements.length - 1];
     if (lastElement.length > 0) {

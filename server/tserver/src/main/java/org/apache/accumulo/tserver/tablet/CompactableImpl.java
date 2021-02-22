@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import static org.apache.accumulo.tserver.TabletStatsKeeper.Operation.MAJOR;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collection;
@@ -532,14 +534,14 @@ public class CompactableImpl implements Compactable {
       }, 100, TimeUnit.MILLISECONDS);
     }
 
-    public boolean isCompactionEnabled(long entriesCompacted) {
+    public boolean isCompactionEnabled() {
       return memoizedCheck.get();
     }
   }
 
   @Override
   public void compact(CompactionServiceId service, CompactionJob job, RateLimiter readLimiter,
-      RateLimiter writeLimiter) {
+      RateLimiter writeLimiter, long queuedTime) {
 
     Set<StoredTabletFile> jobFiles = job.getFiles().stream()
         .map(cf -> ((CompactableFileImpl) cf).getStortedTabletFile()).collect(Collectors.toSet());
@@ -641,13 +643,17 @@ public class CompactableImpl implements Compactable {
     }
 
     StoredTabletFile metaFile = null;
+    long startTime = System.currentTimeMillis();
+    // create an empty stats object to be populated by CompactableUtils.compact()
+    CompactionStats stats = new CompactionStats();
     try {
 
       TabletLogger.compacting(getExtent(), job, localCompactionCfg);
+      tablet.incrementStatusMajor();
 
       metaFile = CompactableUtils.compact(tablet, job, jobFiles, compactionId, propogateDeletes,
           localHelper, iters, new CompactionCheck(service, job.getKind(), checkCompactionId),
-          readLimiter, writeLimiter);
+          readLimiter, writeLimiter, stats);
 
       TabletLogger.compacted(getExtent(), job, metaFile);
 
@@ -679,6 +685,8 @@ public class CompactableImpl implements Compactable {
         selectedCompactionCompleted(job, jobFiles, metaFile);
       else
         selectFiles();
+
+      tablet.updateTimer(MAJOR, queuedTime, startTime, stats.getEntriesRead(), metaFile == null);
     }
   }
 

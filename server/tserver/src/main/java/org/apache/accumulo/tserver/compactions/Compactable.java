@@ -83,7 +83,7 @@ public interface Compactable {
   Optional<Files> getFiles(CompactionServiceId service, CompactionKind kind);
 
   void compact(CompactionServiceId service, CompactionJob job, RateLimiter readLimiter,
-      RateLimiter writeLimiter);
+      RateLimiter writeLimiter, long queuedTime);
 
   CompactionServiceId getConfiguredService(CompactionKind kind);
 

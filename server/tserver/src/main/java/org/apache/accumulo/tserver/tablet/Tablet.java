@@ -340,7 +340,8 @@ public class Tablet {
 
     tabletMemory = new TabletMemory(this);
 
-    if (!logEntries.isEmpty()) {
+    // don't bother examining WALs for recovery if Table is being deleted
+    if (!logEntries.isEmpty() && !isBeingDeleted()) {
       TabletLogger.recovering(extent, logEntries);
       final AtomicLong entriesUsedOnTablet = new AtomicLong(0);
       // track max time from walog entries without timestamps
@@ -843,7 +844,8 @@ public class Tablet {
           return;
         }
 
-        if (isClosing() || isClosed() || getTabletMemory().memoryReservedForMinC()) {
+        if (isClosing() || isClosed() || isBeingDeleted()
+            || getTabletMemory().memoryReservedForMinC()) {
           return;
         }
 
@@ -2111,6 +2113,15 @@ public class Tablet {
   public synchronized void updateQueryStats(int size, long numBytes) {
     queryCount += size;
     queryBytes += numBytes;
+  }
+
+  public void updateTimer(Operation operation, long queued, long start, long count,
+      boolean failed) {
+    timer.updateTime(operation, queued, start, count, failed);
+  }
+
+  public void incrementStatusMajor() {
+    timer.incrementStatusMajor();
   }
 
   TabletServer getTabletServer() {

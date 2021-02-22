@@ -69,6 +69,7 @@ public class CompactionExecutor {
     private Compactable compactable;
     private CompactionServiceId csid;
     private Consumer<Compactable> completionCallback;
+    private final long queuedTime;
 
     public CompactionTask(CompactionJob job, Compactable compactable, CompactionServiceId csid,
         Consumer<Compactable> completionCallback) {
@@ -77,6 +78,7 @@ public class CompactionExecutor {
       this.csid = csid;
       this.completionCallback = completionCallback;
       queuedTask.add(this);
+      queuedTime = System.currentTimeMillis();
     }
 
     @Override
@@ -85,7 +87,7 @@ public class CompactionExecutor {
       try {
         if (status.compareAndSet(Status.QUEUED, Status.RUNNING)) {
           queuedTask.remove(this);
-          compactable.compact(csid, getJob(), readLimiter, writeLimiter);
+          compactable.compact(csid, getJob(), readLimiter, writeLimiter, queuedTime);
           completionCallback.accept(compactable);
         }
       } catch (Exception e) {
@@ -134,7 +136,6 @@ public class CompactionExecutor {
 
       return canceled;
     }
-
   }
 
   private static CompactionJob getJob(Runnable r) {
