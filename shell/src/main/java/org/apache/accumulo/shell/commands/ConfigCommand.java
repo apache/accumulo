@@ -127,6 +127,11 @@ public class ConfigCommand extends Command {
           throw new BadArgumentException("Invalid per-table property.", fullCommand,
               fullCommand.indexOf(property));
         }
+        if (property.startsWith(Property.TABLE_SAMPLER_OPTS.getKey())
+            && !Property.isValidSamplerOption(property)) {
+          throw new BadArgumentException("Invalid per-table sampler option.", fullCommand,
+              fullCommand.indexOf("="));
+        }
         if (property.equals(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey())) {
           new ColumnVisibility(value); // validate that it is a valid expression
         }
