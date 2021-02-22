@@ -141,7 +141,7 @@
             <thead>
               <tr>
                 <th>Table&nbsp;</th>
-                <th>Tablet&nbsp;</th>
+                <th>Tablet&nbsp;(run shell cmd: getsplits -v)</th>
                 <th class="big-num">Entries&nbsp;</th>
                 <th class="big-num">Ingest&nbsp;</th>
                 <th class="big-num">Query&nbsp;</th>
