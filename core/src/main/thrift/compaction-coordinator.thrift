@@ -58,6 +58,7 @@ struct CompactionJob {
   11:tabletserver.CompactionType type
   # Need to add SELECTOR To CompactionReason, delete CompactionKind?
   12:tabletserver.CompactionReason reason
+  13:string outputFile
 }
 
 struct Status {
@@ -74,11 +75,10 @@ service CompactionCoordinator {
    * Called by TabletServer (or CLI) to add, update, or cancel a compaction for a tablet
    */
   void AddOrUpdateCompaction(
-    1:string tableId
-    2:string endRow
-    3:string queueName
-    4:i64 priority
-    5:Action action
+    1:data.TKeyExtent extent
+    2:string queueName
+    3:i64 priority
+    4:Action action
   )
   
   /*

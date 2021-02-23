@@ -39,6 +39,7 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
   private static final org.apache.thrift.protocol.TField ITERATOR_SETTINGS_FIELD_DESC = new org.apache.thrift.protocol.TField("iteratorSettings", org.apache.thrift.protocol.TType.STRUCT, (short)10);
   private static final org.apache.thrift.protocol.TField TYPE_FIELD_DESC = new org.apache.thrift.protocol.TField("type", org.apache.thrift.protocol.TType.I32, (short)11);
   private static final org.apache.thrift.protocol.TField REASON_FIELD_DESC = new org.apache.thrift.protocol.TField("reason", org.apache.thrift.protocol.TType.I32, (short)12);
+  private static final org.apache.thrift.protocol.TField OUTPUT_FILE_FIELD_DESC = new org.apache.thrift.protocol.TField("outputFile", org.apache.thrift.protocol.TType.STRING, (short)13);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new CompactionJobStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new CompactionJobTupleSchemeFactory();
@@ -62,6 +63,7 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
    * @see org.apache.accumulo.core.tabletserver.thrift.CompactionReason
    */
   public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.CompactionReason reason; // required
+  public @org.apache.thrift.annotation.Nullable java.lang.String outputFile; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -83,7 +85,8 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
      * 
      * @see org.apache.accumulo.core.tabletserver.thrift.CompactionReason
      */
-    REASON((short)12, "reason");
+    REASON((short)12, "reason"),
+    OUTPUT_FILE((short)13, "outputFile");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -121,6 +124,8 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
           return TYPE;
         case 12: // REASON
           return REASON;
+        case 13: // OUTPUT_FILE
+          return OUTPUT_FILE;
         default:
           return null;
       }
@@ -193,6 +198,8 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
         new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, org.apache.accumulo.core.tabletserver.thrift.CompactionType.class)));
     tmpMap.put(_Fields.REASON, new org.apache.thrift.meta_data.FieldMetaData("reason", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, org.apache.accumulo.core.tabletserver.thrift.CompactionReason.class)));
+    tmpMap.put(_Fields.OUTPUT_FILE, new org.apache.thrift.meta_data.FieldMetaData("outputFile", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(CompactionJob.class, metaDataMap);
   }
@@ -211,7 +218,8 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
     int writeRate,
     org.apache.accumulo.core.tabletserver.thrift.IteratorConfig iteratorSettings,
     org.apache.accumulo.core.tabletserver.thrift.CompactionType type,
-    org.apache.accumulo.core.tabletserver.thrift.CompactionReason reason)
+    org.apache.accumulo.core.tabletserver.thrift.CompactionReason reason,
+    java.lang.String outputFile)
   {
     this();
     this.traceInfo = traceInfo;
@@ -229,6 +237,7 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
     this.iteratorSettings = iteratorSettings;
     this.type = type;
     this.reason = reason;
+    this.outputFile = outputFile;
   }
 
   /**
@@ -262,6 +271,9 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
     if (other.isSetReason()) {
       this.reason = other.reason;
     }
+    if (other.isSetOutputFile()) {
+      this.outputFile = other.outputFile;
+    }
   }
 
   public CompactionJob deepCopy() {
@@ -285,6 +297,7 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
     this.iteratorSettings = null;
     this.type = null;
     this.reason = null;
+    this.outputFile = null;
   }
 
   @org.apache.thrift.annotation.Nullable
@@ -586,6 +599,31 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
     }
   }
 
+  @org.apache.thrift.annotation.Nullable
+  public java.lang.String getOutputFile() {
+    return this.outputFile;
+  }
+
+  public CompactionJob setOutputFile(@org.apache.thrift.annotation.Nullable java.lang.String outputFile) {
+    this.outputFile = outputFile;
+    return this;
+  }
+
+  public void unsetOutputFile() {
+    this.outputFile = null;
+  }
+
+  /** Returns true if field outputFile is set (has been assigned a value) and false otherwise */
+  public boolean isSetOutputFile() {
+    return this.outputFile != null;
+  }
+
+  public void setOutputFileIsSet(boolean value) {
+    if (!value) {
+      this.outputFile = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
     case TRACE_INFO:
@@ -676,6 +714,14 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
       }
       break;
 
+    case OUTPUT_FILE:
+      if (value == null) {
+        unsetOutputFile();
+      } else {
+        setOutputFile((java.lang.String)value);
+      }
+      break;
+
     }
   }
 
@@ -715,6 +761,9 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
     case REASON:
       return getReason();
 
+    case OUTPUT_FILE:
+      return getOutputFile();
+
     }
     throw new java.lang.IllegalStateException();
   }
@@ -748,6 +797,8 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
       return isSetType();
     case REASON:
       return isSetReason();
+    case OUTPUT_FILE:
+      return isSetOutputFile();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -866,6 +917,15 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
         return false;
     }
 
+    boolean this_present_outputFile = true && this.isSetOutputFile();
+    boolean that_present_outputFile = true && that.isSetOutputFile();
+    if (this_present_outputFile || that_present_outputFile) {
+      if (!(this_present_outputFile && that_present_outputFile))
+        return false;
+      if (!this.outputFile.equals(that.outputFile))
+        return false;
+    }
+
     return true;
   }
 
@@ -908,6 +968,10 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
     hashCode = hashCode * 8191 + ((isSetReason()) ? 131071 : 524287);
     if (isSetReason())
       hashCode = hashCode * 8191 + reason.getValue();
+
+    hashCode = hashCode * 8191 + ((isSetOutputFile()) ? 131071 : 524287);
+    if (isSetOutputFile())
+      hashCode = hashCode * 8191 + outputFile.hashCode();
 
     return hashCode;
   }
@@ -1030,6 +1094,16 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
         return lastComparison;
       }
     }
+    lastComparison = java.lang.Boolean.valueOf(isSetOutputFile()).compareTo(other.isSetOutputFile());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetOutputFile()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.outputFile, other.outputFile);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -1120,6 +1194,14 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
       sb.append("null");
     } else {
       sb.append(this.reason);
+    }
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("outputFile:");
+    if (this.outputFile == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.outputFile);
     }
     first = false;
     sb.append(")");
@@ -1281,6 +1363,14 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 13: // OUTPUT_FILE
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+              struct.outputFile = iprot.readString();
+              struct.setOutputFileIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -1350,6 +1440,11 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
         oprot.writeI32(struct.reason.getValue());
         oprot.writeFieldEnd();
       }
+      if (struct.outputFile != null) {
+        oprot.writeFieldBegin(OUTPUT_FILE_FIELD_DESC);
+        oprot.writeString(struct.outputFile);
+        oprot.writeFieldEnd();
+      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -1401,7 +1496,10 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
       if (struct.isSetReason()) {
         optionals.set(10);
       }
-      oprot.writeBitSet(optionals, 11);
+      if (struct.isSetOutputFile()) {
+        optionals.set(11);
+      }
+      oprot.writeBitSet(optionals, 12);
       if (struct.isSetTraceInfo()) {
         struct.traceInfo.write(oprot);
       }
@@ -1441,12 +1539,15 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
       if (struct.isSetReason()) {
         oprot.writeI32(struct.reason.getValue());
       }
+      if (struct.isSetOutputFile()) {
+        oprot.writeString(struct.outputFile);
+      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, CompactionJob struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(11);
+      java.util.BitSet incoming = iprot.readBitSet(12);
       if (incoming.get(0)) {
         struct.traceInfo = new org.apache.accumulo.core.trace.thrift.TInfo();
         struct.traceInfo.read(iprot);
@@ -1503,6 +1604,10 @@ public class CompactionJob implements org.apache.thrift.TBase<CompactionJob, Com
       if (incoming.get(10)) {
         struct.reason = org.apache.accumulo.core.tabletserver.thrift.CompactionReason.findByValue(iprot.readI32());
         struct.setReasonIsSet(true);
+      }
+      if (incoming.get(11)) {
+        struct.outputFile = iprot.readString();
+        struct.setOutputFileIsSet(true);
       }
     }
   }

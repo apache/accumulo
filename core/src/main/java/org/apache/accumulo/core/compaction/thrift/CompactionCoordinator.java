@@ -29,7 +29,7 @@ public class CompactionCoordinator {
 
   public interface Iface {
 
-    public void AddOrUpdateCompaction(java.lang.String tableId, java.lang.String endRow, java.lang.String queueName, long priority, Action action) throws org.apache.thrift.TException;
+    public void AddOrUpdateCompaction(org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, java.lang.String queueName, long priority, Action action) throws org.apache.thrift.TException;
 
     public Status getCompactionStatus(java.lang.String tableId, java.lang.String endRow, java.lang.String queueName) throws org.apache.thrift.TException;
 
@@ -43,7 +43,7 @@ public class CompactionCoordinator {
 
   public interface AsyncIface {
 
-    public void AddOrUpdateCompaction(java.lang.String tableId, java.lang.String endRow, java.lang.String queueName, long priority, Action action, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void AddOrUpdateCompaction(org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, java.lang.String queueName, long priority, Action action, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
     public void getCompactionStatus(java.lang.String tableId, java.lang.String endRow, java.lang.String queueName, org.apache.thrift.async.AsyncMethodCallback<Status> resultHandler) throws org.apache.thrift.TException;
 
@@ -75,17 +75,16 @@ public class CompactionCoordinator {
       super(iprot, oprot);
     }
 
-    public void AddOrUpdateCompaction(java.lang.String tableId, java.lang.String endRow, java.lang.String queueName, long priority, Action action) throws org.apache.thrift.TException
+    public void AddOrUpdateCompaction(org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, java.lang.String queueName, long priority, Action action) throws org.apache.thrift.TException
     {
-      send_AddOrUpdateCompaction(tableId, endRow, queueName, priority, action);
+      send_AddOrUpdateCompaction(extent, queueName, priority, action);
       recv_AddOrUpdateCompaction();
     }
 
-    public void send_AddOrUpdateCompaction(java.lang.String tableId, java.lang.String endRow, java.lang.String queueName, long priority, Action action) throws org.apache.thrift.TException
+    public void send_AddOrUpdateCompaction(org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, java.lang.String queueName, long priority, Action action) throws org.apache.thrift.TException
     {
       AddOrUpdateCompaction_args args = new AddOrUpdateCompaction_args();
-      args.setTableId(tableId);
-      args.setEndRow(endRow);
+      args.setExtent(extent);
       args.setQueueName(queueName);
       args.setPriority(priority);
       args.setAction(action);
@@ -214,23 +213,21 @@ public class CompactionCoordinator {
       super(protocolFactory, clientManager, transport);
     }
 
-    public void AddOrUpdateCompaction(java.lang.String tableId, java.lang.String endRow, java.lang.String queueName, long priority, Action action, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void AddOrUpdateCompaction(org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, java.lang.String queueName, long priority, Action action, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      AddOrUpdateCompaction_call method_call = new AddOrUpdateCompaction_call(tableId, endRow, queueName, priority, action, resultHandler, this, ___protocolFactory, ___transport);
+      AddOrUpdateCompaction_call method_call = new AddOrUpdateCompaction_call(extent, queueName, priority, action, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class AddOrUpdateCompaction_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
-      private java.lang.String tableId;
-      private java.lang.String endRow;
+      private org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent;
       private java.lang.String queueName;
       private long priority;
       private Action action;
-      public AddOrUpdateCompaction_call(java.lang.String tableId, java.lang.String endRow, java.lang.String queueName, long priority, Action action, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public AddOrUpdateCompaction_call(org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, java.lang.String queueName, long priority, Action action, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.tableId = tableId;
-        this.endRow = endRow;
+        this.extent = extent;
         this.queueName = queueName;
         this.priority = priority;
         this.action = action;
@@ -239,8 +236,7 @@ public class CompactionCoordinator {
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("AddOrUpdateCompaction", org.apache.thrift.protocol.TMessageType.CALL, 0));
         AddOrUpdateCompaction_args args = new AddOrUpdateCompaction_args();
-        args.setTableId(tableId);
-        args.setEndRow(endRow);
+        args.setExtent(extent);
         args.setQueueName(queueName);
         args.setPriority(priority);
         args.setAction(action);
@@ -451,7 +447,7 @@ public class CompactionCoordinator {
 
       public AddOrUpdateCompaction_result getResult(I iface, AddOrUpdateCompaction_args args) throws org.apache.thrift.TException {
         AddOrUpdateCompaction_result result = new AddOrUpdateCompaction_result();
-        iface.AddOrUpdateCompaction(args.tableId, args.endRow, args.queueName, args.priority, args.action);
+        iface.AddOrUpdateCompaction(args.extent, args.queueName, args.priority, args.action);
         return result;
       }
     }
@@ -633,7 +629,7 @@ public class CompactionCoordinator {
       }
 
       public void start(I iface, AddOrUpdateCompaction_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
-        iface.AddOrUpdateCompaction(args.tableId, args.endRow, args.queueName, args.priority, args.action,resultHandler);
+        iface.AddOrUpdateCompaction(args.extent, args.queueName, args.priority, args.action,resultHandler);
       }
     }
 
@@ -885,17 +881,15 @@ public class CompactionCoordinator {
   public static class AddOrUpdateCompaction_args implements org.apache.thrift.TBase<AddOrUpdateCompaction_args, AddOrUpdateCompaction_args._Fields>, java.io.Serializable, Cloneable, Comparable<AddOrUpdateCompaction_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("AddOrUpdateCompaction_args");
 
-    private static final org.apache.thrift.protocol.TField TABLE_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("tableId", org.apache.thrift.protocol.TType.STRING, (short)1);
-    private static final org.apache.thrift.protocol.TField END_ROW_FIELD_DESC = new org.apache.thrift.protocol.TField("endRow", org.apache.thrift.protocol.TType.STRING, (short)2);
-    private static final org.apache.thrift.protocol.TField QUEUE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("queueName", org.apache.thrift.protocol.TType.STRING, (short)3);
-    private static final org.apache.thrift.protocol.TField PRIORITY_FIELD_DESC = new org.apache.thrift.protocol.TField("priority", org.apache.thrift.protocol.TType.I64, (short)4);
-    private static final org.apache.thrift.protocol.TField ACTION_FIELD_DESC = new org.apache.thrift.protocol.TField("action", org.apache.thrift.protocol.TType.I32, (short)5);
+    private static final org.apache.thrift.protocol.TField EXTENT_FIELD_DESC = new org.apache.thrift.protocol.TField("extent", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField QUEUE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("queueName", org.apache.thrift.protocol.TType.STRING, (short)2);
+    private static final org.apache.thrift.protocol.TField PRIORITY_FIELD_DESC = new org.apache.thrift.protocol.TField("priority", org.apache.thrift.protocol.TType.I64, (short)3);
+    private static final org.apache.thrift.protocol.TField ACTION_FIELD_DESC = new org.apache.thrift.protocol.TField("action", org.apache.thrift.protocol.TType.I32, (short)4);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new AddOrUpdateCompaction_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new AddOrUpdateCompaction_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable java.lang.String tableId; // required
-    public @org.apache.thrift.annotation.Nullable java.lang.String endRow; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
     public @org.apache.thrift.annotation.Nullable java.lang.String queueName; // required
     public long priority; // required
     /**
@@ -906,15 +900,14 @@ public class CompactionCoordinator {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TABLE_ID((short)1, "tableId"),
-      END_ROW((short)2, "endRow"),
-      QUEUE_NAME((short)3, "queueName"),
-      PRIORITY((short)4, "priority"),
+      EXTENT((short)1, "extent"),
+      QUEUE_NAME((short)2, "queueName"),
+      PRIORITY((short)3, "priority"),
       /**
        * 
        * @see Action
        */
-      ACTION((short)5, "action");
+      ACTION((short)4, "action");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -930,15 +923,13 @@ public class CompactionCoordinator {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 1: // TABLE_ID
-            return TABLE_ID;
-          case 2: // END_ROW
-            return END_ROW;
-          case 3: // QUEUE_NAME
+          case 1: // EXTENT
+            return EXTENT;
+          case 2: // QUEUE_NAME
             return QUEUE_NAME;
-          case 4: // PRIORITY
+          case 3: // PRIORITY
             return PRIORITY;
-          case 5: // ACTION
+          case 4: // ACTION
             return ACTION;
           default:
             return null;
@@ -986,10 +977,8 @@ public class CompactionCoordinator {
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TABLE_ID, new org.apache.thrift.meta_data.FieldMetaData("tableId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-      tmpMap.put(_Fields.END_ROW, new org.apache.thrift.meta_data.FieldMetaData("endRow", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.EXTENT, new org.apache.thrift.meta_data.FieldMetaData("extent", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent.class)));
       tmpMap.put(_Fields.QUEUE_NAME, new org.apache.thrift.meta_data.FieldMetaData("queueName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.PRIORITY, new org.apache.thrift.meta_data.FieldMetaData("priority", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -1004,15 +993,13 @@ public class CompactionCoordinator {
     }
 
     public AddOrUpdateCompaction_args(
-      java.lang.String tableId,
-      java.lang.String endRow,
+      org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent,
       java.lang.String queueName,
       long priority,
       Action action)
     {
       this();
-      this.tableId = tableId;
-      this.endRow = endRow;
+      this.extent = extent;
       this.queueName = queueName;
       this.priority = priority;
       setPriorityIsSet(true);
@@ -1024,11 +1011,8 @@ public class CompactionCoordinator {
      */
     public AddOrUpdateCompaction_args(AddOrUpdateCompaction_args other) {
       __isset_bitfield = other.__isset_bitfield;
-      if (other.isSetTableId()) {
-        this.tableId = other.tableId;
-      }
-      if (other.isSetEndRow()) {
-        this.endRow = other.endRow;
+      if (other.isSetExtent()) {
+        this.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent(other.extent);
       }
       if (other.isSetQueueName()) {
         this.queueName = other.queueName;
@@ -1045,8 +1029,7 @@ public class CompactionCoordinator {
 
     @Override
     public void clear() {
-      this.tableId = null;
-      this.endRow = null;
+      this.extent = null;
       this.queueName = null;
       setPriorityIsSet(false);
       this.priority = 0;
@@ -1054,52 +1037,27 @@ public class CompactionCoordinator {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public java.lang.String getTableId() {
-      return this.tableId;
+    public org.apache.accumulo.core.dataImpl.thrift.TKeyExtent getExtent() {
+      return this.extent;
     }
 
-    public AddOrUpdateCompaction_args setTableId(@org.apache.thrift.annotation.Nullable java.lang.String tableId) {
-      this.tableId = tableId;
+    public AddOrUpdateCompaction_args setExtent(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) {
+      this.extent = extent;
       return this;
     }
 
-    public void unsetTableId() {
-      this.tableId = null;
+    public void unsetExtent() {
+      this.extent = null;
     }
 
-    /** Returns true if field tableId is set (has been assigned a value) and false otherwise */
-    public boolean isSetTableId() {
-      return this.tableId != null;
+    /** Returns true if field extent is set (has been assigned a value) and false otherwise */
+    public boolean isSetExtent() {
+      return this.extent != null;
     }
 
-    public void setTableIdIsSet(boolean value) {
+    public void setExtentIsSet(boolean value) {
       if (!value) {
-        this.tableId = null;
-      }
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public java.lang.String getEndRow() {
-      return this.endRow;
-    }
-
-    public AddOrUpdateCompaction_args setEndRow(@org.apache.thrift.annotation.Nullable java.lang.String endRow) {
-      this.endRow = endRow;
-      return this;
-    }
-
-    public void unsetEndRow() {
-      this.endRow = null;
-    }
-
-    /** Returns true if field endRow is set (has been assigned a value) and false otherwise */
-    public boolean isSetEndRow() {
-      return this.endRow != null;
-    }
-
-    public void setEndRowIsSet(boolean value) {
-      if (!value) {
-        this.endRow = null;
+        this.extent = null;
       }
     }
 
@@ -1186,19 +1144,11 @@ public class CompactionCoordinator {
 
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
-      case TABLE_ID:
+      case EXTENT:
         if (value == null) {
-          unsetTableId();
+          unsetExtent();
         } else {
-          setTableId((java.lang.String)value);
-        }
-        break;
-
-      case END_ROW:
-        if (value == null) {
-          unsetEndRow();
-        } else {
-          setEndRow((java.lang.String)value);
+          setExtent((org.apache.accumulo.core.dataImpl.thrift.TKeyExtent)value);
         }
         break;
 
@@ -1232,11 +1182,8 @@ public class CompactionCoordinator {
     @org.apache.thrift.annotation.Nullable
     public java.lang.Object getFieldValue(_Fields field) {
       switch (field) {
-      case TABLE_ID:
-        return getTableId();
-
-      case END_ROW:
-        return getEndRow();
+      case EXTENT:
+        return getExtent();
 
       case QUEUE_NAME:
         return getQueueName();
@@ -1258,10 +1205,8 @@ public class CompactionCoordinator {
       }
 
       switch (field) {
-      case TABLE_ID:
-        return isSetTableId();
-      case END_ROW:
-        return isSetEndRow();
+      case EXTENT:
+        return isSetExtent();
       case QUEUE_NAME:
         return isSetQueueName();
       case PRIORITY:
@@ -1287,21 +1232,12 @@ public class CompactionCoordinator {
       if (this == that)
         return true;
 
-      boolean this_present_tableId = true && this.isSetTableId();
-      boolean that_present_tableId = true && that.isSetTableId();
-      if (this_present_tableId || that_present_tableId) {
-        if (!(this_present_tableId && that_present_tableId))
+      boolean this_present_extent = true && this.isSetExtent();
+      boolean that_present_extent = true && that.isSetExtent();
+      if (this_present_extent || that_present_extent) {
+        if (!(this_present_extent && that_present_extent))
           return false;
-        if (!this.tableId.equals(that.tableId))
-          return false;
-      }
-
-      boolean this_present_endRow = true && this.isSetEndRow();
-      boolean that_present_endRow = true && that.isSetEndRow();
-      if (this_present_endRow || that_present_endRow) {
-        if (!(this_present_endRow && that_present_endRow))
-          return false;
-        if (!this.endRow.equals(that.endRow))
+        if (!this.extent.equals(that.extent))
           return false;
       }
 
@@ -1339,13 +1275,9 @@ public class CompactionCoordinator {
     public int hashCode() {
       int hashCode = 1;
 
-      hashCode = hashCode * 8191 + ((isSetTableId()) ? 131071 : 524287);
-      if (isSetTableId())
-        hashCode = hashCode * 8191 + tableId.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetEndRow()) ? 131071 : 524287);
-      if (isSetEndRow())
-        hashCode = hashCode * 8191 + endRow.hashCode();
+      hashCode = hashCode * 8191 + ((isSetExtent()) ? 131071 : 524287);
+      if (isSetExtent())
+        hashCode = hashCode * 8191 + extent.hashCode();
 
       hashCode = hashCode * 8191 + ((isSetQueueName()) ? 131071 : 524287);
       if (isSetQueueName())
@@ -1368,22 +1300,12 @@ public class CompactionCoordinator {
 
       int lastComparison = 0;
 
-      lastComparison = java.lang.Boolean.valueOf(isSetTableId()).compareTo(other.isSetTableId());
+      lastComparison = java.lang.Boolean.valueOf(isSetExtent()).compareTo(other.isSetExtent());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTableId()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tableId, other.tableId);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.valueOf(isSetEndRow()).compareTo(other.isSetEndRow());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetEndRow()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.endRow, other.endRow);
+      if (isSetExtent()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.extent, other.extent);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -1439,19 +1361,11 @@ public class CompactionCoordinator {
       java.lang.StringBuilder sb = new java.lang.StringBuilder("AddOrUpdateCompaction_args(");
       boolean first = true;
 
-      sb.append("tableId:");
-      if (this.tableId == null) {
+      sb.append("extent:");
+      if (this.extent == null) {
         sb.append("null");
       } else {
-        sb.append(this.tableId);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("endRow:");
-      if (this.endRow == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.endRow);
+        sb.append(this.extent);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -1481,6 +1395,9 @@ public class CompactionCoordinator {
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
+      if (extent != null) {
+        extent.validate();
+      }
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
@@ -1519,23 +1436,16 @@ public class CompactionCoordinator {
             break;
           }
           switch (schemeField.id) {
-            case 1: // TABLE_ID
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.tableId = iprot.readString();
-                struct.setTableIdIsSet(true);
+            case 1: // EXTENT
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
+                struct.extent.read(iprot);
+                struct.setExtentIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // END_ROW
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.endRow = iprot.readString();
-                struct.setEndRowIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 3: // QUEUE_NAME
+            case 2: // QUEUE_NAME
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.queueName = iprot.readString();
                 struct.setQueueNameIsSet(true);
@@ -1543,7 +1453,7 @@ public class CompactionCoordinator {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 4: // PRIORITY
+            case 3: // PRIORITY
               if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
                 struct.priority = iprot.readI64();
                 struct.setPriorityIsSet(true);
@@ -1551,7 +1461,7 @@ public class CompactionCoordinator {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 5: // ACTION
+            case 4: // ACTION
               if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
                 struct.action = org.apache.accumulo.core.compaction.thrift.Action.findByValue(iprot.readI32());
                 struct.setActionIsSet(true);
@@ -1574,14 +1484,9 @@ public class CompactionCoordinator {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.tableId != null) {
-          oprot.writeFieldBegin(TABLE_ID_FIELD_DESC);
-          oprot.writeString(struct.tableId);
-          oprot.writeFieldEnd();
-        }
-        if (struct.endRow != null) {
-          oprot.writeFieldBegin(END_ROW_FIELD_DESC);
-          oprot.writeString(struct.endRow);
+        if (struct.extent != null) {
+          oprot.writeFieldBegin(EXTENT_FIELD_DESC);
+          struct.extent.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.queueName != null) {
@@ -1615,27 +1520,21 @@ public class CompactionCoordinator {
       public void write(org.apache.thrift.protocol.TProtocol prot, AddOrUpdateCompaction_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet optionals = new java.util.BitSet();
-        if (struct.isSetTableId()) {
+        if (struct.isSetExtent()) {
           optionals.set(0);
         }
-        if (struct.isSetEndRow()) {
+        if (struct.isSetQueueName()) {
           optionals.set(1);
         }
-        if (struct.isSetQueueName()) {
+        if (struct.isSetPriority()) {
           optionals.set(2);
         }
-        if (struct.isSetPriority()) {
+        if (struct.isSetAction()) {
           optionals.set(3);
         }
-        if (struct.isSetAction()) {
-          optionals.set(4);
-        }
-        oprot.writeBitSet(optionals, 5);
-        if (struct.isSetTableId()) {
-          oprot.writeString(struct.tableId);
-        }
-        if (struct.isSetEndRow()) {
-          oprot.writeString(struct.endRow);
+        oprot.writeBitSet(optionals, 4);
+        if (struct.isSetExtent()) {
+          struct.extent.write(oprot);
         }
         if (struct.isSetQueueName()) {
           oprot.writeString(struct.queueName);
@@ -1651,24 +1550,21 @@ public class CompactionCoordinator {
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, AddOrUpdateCompaction_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(5);
+        java.util.BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
-          struct.tableId = iprot.readString();
-          struct.setTableIdIsSet(true);
+          struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
+          struct.extent.read(iprot);
+          struct.setExtentIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.endRow = iprot.readString();
-          struct.setEndRowIsSet(true);
-        }
-        if (incoming.get(2)) {
           struct.queueName = iprot.readString();
           struct.setQueueNameIsSet(true);
         }
-        if (incoming.get(3)) {
+        if (incoming.get(2)) {
           struct.priority = iprot.readI64();
           struct.setPriorityIsSet(true);
         }
-        if (incoming.get(4)) {
+        if (incoming.get(3)) {
           struct.action = org.apache.accumulo.core.compaction.thrift.Action.findByValue(iprot.readI32());
           struct.setActionIsSet(true);
         }
