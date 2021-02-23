@@ -546,7 +546,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
     var tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
 
     try (var tabletsMeta =
-        TabletsMetadata.builder().forTable(tableId).fetch(ColumnType.FILES).build(client)) {
+        TabletsMetadata.builder(client).forTable(tableId).fetch(ColumnType.FILES).build()) {
       return tabletsMeta.stream().flatMap(tm -> tm.getFiles().stream()).mapToLong(stf -> {
         try {
           return FileSystem.getLocal(new Configuration()).getFileStatus(stf.getPath()).getLen();
@@ -614,7 +614,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
     var tableId = TableId.of(client.tableOperations().tableIdMap().get(name));
 
     try (var tabletsMeta =
-        TabletsMetadata.builder().forTable(tableId).fetch(ColumnType.FILES).build(client)) {
+        TabletsMetadata.builder(client).forTable(tableId).fetch(ColumnType.FILES).build()) {
       return tabletsMeta.stream().flatMap(tm -> tm.getFiles().stream())
           .map(StoredTabletFile::getFileName).collect(Collectors.toSet());
     }
