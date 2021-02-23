@@ -48,8 +48,7 @@ public class AmpleImpl implements Ample {
 
   @Override
   public TabletsMetadata.TableOptions readTablets() {
-    TabletsMetadata.TableOptions builder = TabletsMetadata.builder(this.client);
-    return builder;
+    return TabletsMetadata.builder(this.client);
   }
 
 }
