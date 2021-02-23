@@ -46,14 +46,10 @@ import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.After;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
 public class AccumuloClientIT extends AccumuloClusterHarness {
-
-  Logger log = LoggerFactory.getLogger(AccumuloClientIT.class);
 
   @After
   public void deleteUsers() throws Exception {
