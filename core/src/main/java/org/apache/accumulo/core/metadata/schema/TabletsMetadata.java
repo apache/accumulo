@@ -93,7 +93,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     @Override
     public TabletsMetadata build() {
-      Preconditions.checkState((level == null) != (table == null));
+      Preconditions.checkState((level == null) != (table == null),
+          "scanTable() cannot be used in conjunction with forLevel(), forTable() or forTablet()");
       if (level == DataLevel.ROOT) {
         ClientContext ctx = ((ClientContext) _client);
         return new TabletsMetadata(getRootMetadata(ctx, readConsistency));
