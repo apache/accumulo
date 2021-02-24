@@ -72,8 +72,8 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
   @Override
   public Map<TabletId,TabletServerId> listTabletLocations(TableId tableId) {
     Map<TabletId,TabletServerId> tablets = new LinkedHashMap<>();
-    for (var tm : TabletsMetadata.builder().forTable(tableId).fetch(LOCATION, PREV_ROW)
-        .build(getContext())) {
+    for (var tm : TabletsMetadata.builder(getContext()).forTable(tableId).fetch(LOCATION, PREV_ROW)
+        .build()) {
       tablets.put(new TabletIdImpl(tm.getExtent()),
           TabletServerIdImpl.fromThrift(tm.getLocation()));
     }
