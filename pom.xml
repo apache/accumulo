@@ -937,7 +937,10 @@
                 <unusedDeclaredDependency>org.apache.hadoop:hadoop-client:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.hadoop:hadoop-client-runtime:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.hadoop:hadoop-minicluster:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>org.glassfish.jersey.ext:jersey-bean-validation:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.glassfish.jersey.inject:jersey-hk2:jar:*</unusedDeclaredDependency>
+                -
+                <unusedDeclaredDependency>org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-grizzly2:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.powermock:powermock-api-easymock:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>junit:junit:jar:*</unusedDeclaredDependency>
                 <!-- spotbugs annotations may or may not be used in each module -->
