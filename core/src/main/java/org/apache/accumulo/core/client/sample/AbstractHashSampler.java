@@ -18,9 +18,6 @@
  */
 package org.apache.accumulo.core.client.sample;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static java.util.Objects.requireNonNull;
-
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Set;
@@ -76,13 +73,6 @@ public abstract class AbstractHashSampler implements Sampler {
   public void init(SamplerConfiguration config) {
     String hasherOpt = config.getOptions().get("hasher");
     String modulusOpt = config.getOptions().get("modulus");
-
-    requireNonNull(hasherOpt, "Hasher not specified");
-    requireNonNull(modulusOpt, "Modulus not specified");
-
-    for (String option : config.getOptions().keySet()) {
-      checkArgument(isValidOption(option), "Unknown option : %s", option);
-    }
 
     switch (hasherOpt) {
       case "murmur3_32":

@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.sample.impl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 
@@ -32,7 +33,7 @@ public class SamplerFactory {
   private static final Logger log = LoggerFactory.getLogger(SamplerFactory.class);
 
   public static Sampler newSampler(SamplerConfigurationImpl config, AccumuloConfiguration acuconf,
-      boolean useAccumuloStart) throws IllegalArgumentException {
+      boolean useAccumuloStart) {
     String context = ClassLoaderUtil.tableContext(acuconf);
 
     Class<? extends Sampler> clazz;
@@ -45,6 +46,7 @@ public class SamplerFactory {
 
       Sampler sampler = clazz.getDeclaredConstructor().newInstance();
       for (String option : config.getOptions().keySet()) {
+        requireNonNull(option, option + " not specified");
         checkArgument(sampler.isValidOption(option), "Unknown option : %s", option);
       }
       sampler.init(config.toSamplerConfiguration());
@@ -53,14 +55,14 @@ public class SamplerFactory {
 
     } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
-    } catch (IllegalArgumentException e) {
+    } catch (IllegalArgumentException | NullPointerException e) {
       log.error("Cannot init sampler {}", e.getMessage());
       return null;
     }
   }
 
   public static Sampler newSampler(SamplerConfigurationImpl config, AccumuloConfiguration acuconf)
-      throws IOException, IllegalArgumentException {
+      throws IOException {
     return newSampler(config, acuconf, true);
   }
 }
