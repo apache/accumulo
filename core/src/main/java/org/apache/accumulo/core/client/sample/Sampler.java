@@ -61,4 +61,6 @@ public interface Sampler {
    *         Return false if it should not be included.
    */
   boolean accept(Key k);
+
+  boolean isValidOption(String option);
 }

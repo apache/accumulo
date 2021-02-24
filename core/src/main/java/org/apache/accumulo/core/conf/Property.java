@@ -1353,17 +1353,6 @@ public enum Property {
   }
 
   /**
-   * Checks if the given sampler option is valid
-   *
-   * @param option
-   *          property option
-   * @return true if option is a valid sampler option
-   */
-  public static boolean isValidSamplerOption(String option) {
-    return option.endsWith("hasher") || option.endsWith("modules");
-  }
-
-  /**
    * Gets a {@link Property} instance with the given key.
    *
    * @param key

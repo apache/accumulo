@@ -80,7 +80,7 @@ public class RowColumnSampler extends AbstractHashSampler {
   }
 
   @Override
-  protected boolean isValidOption(String option) {
+  public boolean isValidOption(String option) {
     return super.isValidOption(option) || VALID_OPTIONS.contains(option);
   }
 

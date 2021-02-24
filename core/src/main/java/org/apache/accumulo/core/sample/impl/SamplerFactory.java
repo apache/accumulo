@@ -18,15 +18,21 @@
  */
 package org.apache.accumulo.core.sample.impl;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.IOException;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SamplerFactory {
+  private static final Logger log = LoggerFactory.getLogger(SamplerFactory.class);
+
   public static Sampler newSampler(SamplerConfigurationImpl config, AccumuloConfiguration acuconf,
-      boolean useAccumuloStart) throws IOException {
+      boolean useAccumuloStart) throws IOException, IllegalArgumentException {
     String context = ClassLoaderUtil.tableContext(acuconf);
 
     Class<? extends Sampler> clazz;
@@ -38,18 +44,23 @@ public class SamplerFactory {
         clazz = ClassLoaderUtil.loadClass(context, config.getClassName(), Sampler.class);
 
       Sampler sampler = clazz.getDeclaredConstructor().newInstance();
-
+      for (String option : config.getOptions().keySet()) {
+        checkArgument(sampler.isValidOption(option), "Unknown option : %s", option);
+      }
       sampler.init(config.toSamplerConfiguration());
 
       return sampler;
 
     } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
+    } catch (IllegalArgumentException e) {
+      log.error("Cannot init sampler {}", e.getMessage());
+      return null;
     }
   }
 
   public static Sampler newSampler(SamplerConfigurationImpl config, AccumuloConfiguration acuconf)
-      throws IOException {
+      throws IOException, IllegalArgumentException {
     return newSampler(config, acuconf, true);
   }
 }

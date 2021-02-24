@@ -62,8 +62,8 @@ public abstract class AbstractHashSampler implements Sampler {
    * Subclasses with options should override this method and return true if the option is valid for
    * the subclass or if {@code super.isValidOption(opt)} returns true.
    */
-
-  protected boolean isValidOption(String option) {
+  @Override
+  public boolean isValidOption(String option) {
     return VALID_OPTIONS.contains(option);
   }
 
