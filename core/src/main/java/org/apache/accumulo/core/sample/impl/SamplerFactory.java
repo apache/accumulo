@@ -55,7 +55,6 @@ public class SamplerFactory {
       throw new RuntimeException(e);
     } catch (IllegalArgumentException e) {
       log.error("Cannot init sampler {}", e.getMessage());
-      e.printStackTrace();
       return null;
     }
   }
