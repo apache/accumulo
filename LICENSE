@@ -203,19 +203,16 @@
 
 **********
 
-APACHE ACCUMULO SUBCOMPONENTS:
+# APACHE ACCUMULO SUBCOMPONENTS
 
-The Apache Accumulo project contains subcomponents with separate copyright
-notices and license terms. Your use of the source code for the these
-subcomponents is subject to the terms and conditions of the following licenses.
+The Apache Accumulo project contains subcomponents with separate
+copyright notices and license terms. Your use of these is subject
+to the terms and conditions of the following licenses.
 
-**********
+## Software from the European Commission project OneLab
 
-This product includes software from the European Commission project OneLab:
-
-* BloomFilter.java
-* DynamicBloomFilter.java
-* Filter.java
+Files:
+* core/src/main/java/org/apache/accumulo/core/bloomfilter/*
 
     Copyright (c) 2005, European Commission project OneLab under contract 034819
     (http://www.one-lab.org)
@@ -247,20 +244,24 @@ This product includes software from the European Commission project OneLab:
     ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
 
-**********
+## JQuery 3.2.1 (https://jquery.com/)
 
-This product includes JQuery:
+Files:
+* server/monitor/src/main/resources/org/apache/accumulo/monitor/resources/external/jquery/*
 
-    Copyright 2011, John Resig
-    Dual licensed under the MIT or GPL Version 2 licenses.
-    http://jquery.org/license
+    jQuery JavaScript Library v3.2.1
+    https://jquery.com/
 
     Includes Sizzle.js
-    http://sizzlejs.com/
-    Copyright 2011, The Dojo Foundation
-    Released under the MIT, BSD, and GPL Licenses.
+    https://sizzlejs.com/
 
-    Distributed under the MIT License:
+    Copyright JS Foundation and other contributors
+    Released under the MIT license
+    https://jquery.org/license
+
+    Date: 2017-03-20T18:59Z
+
+    Text of the MIT License:
 
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation
@@ -283,9 +284,10 @@ This product includes JQuery:
     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
     OTHER DEALINGS IN THE SOFTWARE.
 
-**********
+## Flot 4.2.1 (https://github.com/flot/flot)
 
-This product includes Flot (https://github.com/flot/flot):
+Files:
+* server/monitor/src/main/resources/org/apache/accumulo/monitor/resources/external/flot/*
 
     Copyright (c) 2007-2014 IOLA and Ole Laursen
 
@@ -306,6 +308,20 @@ This product includes Flot (https://github.com/flot/flot):
      * Dual licensed under the MIT and GPL licenses.
      * http://benalman.com/about/license/
 
-    distributed under the MIT license (see above)
+## Bootstrap v3.3.7 (http://getbootstrap.com)
+
+Files:
+* server/monitor/src/main/resources/org/apache/accumulo/monitor/resources/external/bootstrap/**/*
+
+    Copyright 2011-2016 Twitter, Inc.
+    Licensed under the MIT license (see above)
+
+## DataTables 1.10.16 (https://datatables.net)
+
+Files:
+* server/monitor/src/main/resources/org/apache/accumulo/monitor/resources/external/datatables/**/*
+
+    Copyright (c) 2010-2015 SpryMedia Limited
+    Licensed under the MIT license (see above)
 
 **********

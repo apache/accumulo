@@ -21,7 +21,7 @@ package org.apache.accumulo.monitor.rest;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
 
 import org.apache.accumulo.monitor.rest.logs.DeadLoggerList;
 import org.apache.accumulo.monitor.rest.manager.ManagerInformation;
