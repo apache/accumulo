@@ -72,7 +72,7 @@ import com.google.common.base.Preconditions;
  */
 public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable {
 
-  private static class Builder implements TableRangeOptions, TableOptions, RangeOptions, Options {
+  public static class Builder implements TableRangeOptions, TableOptions, RangeOptions, Options {
 
     private List<Text> families = new ArrayList<>();
     private List<ColumnFQ> qualifiers = new ArrayList<>();
@@ -85,15 +85,21 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private boolean saveKeyValues;
     private TableId tableId;
     private ReadConsistency readConsistency = ReadConsistency.IMMEDIATE;
+    private AccumuloClient _client;
+
+    Builder(AccumuloClient client) {
+      this._client = client;
+    }
 
     @Override
-    public TabletsMetadata build(AccumuloClient client) {
-      Preconditions.checkState(level == null ^ table == null);
+    public TabletsMetadata build() {
+      Preconditions.checkState((level == null) != (table == null),
+          "scanTable() cannot be used in conjunction with forLevel(), forTable() or forTablet()");
       if (level == DataLevel.ROOT) {
-        ClientContext ctx = ((ClientContext) client);
+        ClientContext ctx = ((ClientContext) _client);
         return new TabletsMetadata(getRootMetadata(ctx, readConsistency));
       } else {
-        return buildNonRoot(client);
+        return buildNonRoot(_client);
       }
     }
 
@@ -257,7 +263,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
   }
 
   public interface Options {
-    TabletsMetadata build(AccumuloClient client);
+
+    TabletsMetadata build();
 
     /**
      * Checks that the metadata table forms a linked list and automatically backs up until it does.
@@ -367,8 +374,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     }
   }
 
-  public static TableOptions builder() {
-    return new Builder();
+  public static TableOptions builder(AccumuloClient client) {
+    return new Builder(client);
   }
 
   private static TabletMetadata getRootMetadata(ClientContext ctx,
