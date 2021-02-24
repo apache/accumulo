@@ -18,9 +18,6 @@
  */
 package org.apache.accumulo.core.sample.impl;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static java.util.Objects.requireNonNull;
-
 import java.io.IOException;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -45,10 +42,7 @@ public class SamplerFactory {
         clazz = ClassLoaderUtil.loadClass(context, config.getClassName(), Sampler.class);
 
       Sampler sampler = clazz.getDeclaredConstructor().newInstance();
-      for (String option : config.getOptions().keySet()) {
-        requireNonNull(option, option + " not specified");
-        checkArgument(sampler.isValidOption(option), "Unknown option : %s", option);
-      }
+      sampler.validateOptions(config.getOptions());
       sampler.init(config.toSamplerConfiguration());
 
       return sampler;
@@ -56,7 +50,7 @@ public class SamplerFactory {
     } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
     } catch (IllegalArgumentException | NullPointerException e) {
-      log.error("Cannot init sampler {}", e.getMessage());
+      log.error("Cannot init sampler, invalid configuration: {}", e.getMessage());
       return null;
     }
   }

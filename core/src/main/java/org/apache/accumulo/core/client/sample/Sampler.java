@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.client.sample;
 
+import java.util.Map;
+
 import org.apache.accumulo.core.data.Key;
 
 /**
@@ -63,9 +65,8 @@ public interface Sampler {
   boolean accept(Key k);
 
   /**
-   * @param option
-   *          Option to validate.
-   * @return True if option is a valid sampler option. False otherwise.
+   * @param config
+   *          Sampler configuration to validate.
    */
-  boolean isValidOption(String option);
+  default void validateOptions(Map<String,String> config) {}
 }

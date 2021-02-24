@@ -18,8 +18,12 @@
  */
 package org.apache.accumulo.core.client.sample;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
+
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.Key;
@@ -54,14 +58,24 @@ public abstract class AbstractHashSampler implements Sampler {
   private int modulus;
 
   private static final Set<String> VALID_OPTIONS = Set.of("hasher", "modulus");
+  private static final Set<String> VALID_VALUES_HASHER = Set.of("murmur3_32", "md5", "sha1");
 
   /**
    * Subclasses with options should override this method and return true if the option is valid for
    * the subclass or if {@code super.isValidOption(opt)} returns true.
    */
   @Override
-  public boolean isValidOption(String option) {
-    return VALID_OPTIONS.contains(option);
+  public void validateOptions(Map<String,String> config) {
+    for (Map.Entry<String,String> entry : config.entrySet()) {
+      checkArgument(isValid(entry.getKey()), "Unknown option: %s", entry.getKey());
+      if (entry.getKey().equals("hasher"))
+        checkArgument(isValid(entry.getValue()), "Unknown value for option %s: %s", entry.getKey(),
+            entry.getValue());
+    }
+  }
+
+  protected boolean isValid(String entry) {
+    return VALID_OPTIONS.contains(entry) || VALID_VALUES_HASHER.contains(entry);
   }
 
   /**
@@ -73,6 +87,9 @@ public abstract class AbstractHashSampler implements Sampler {
   public void init(SamplerConfiguration config) {
     String hasherOpt = config.getOptions().get("hasher");
     String modulusOpt = config.getOptions().get("modulus");
+
+    requireNonNull(hasherOpt, "Hasher not specified");
+    requireNonNull(modulusOpt, "Modulus not specified");
 
     switch (hasherOpt) {
       case "murmur3_32":
