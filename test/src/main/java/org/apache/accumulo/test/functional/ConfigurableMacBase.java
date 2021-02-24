@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.util.Map;
 import java.util.Properties;
 
@@ -97,11 +98,11 @@ public class ConfigurableMacBase extends AccumuloITBase {
     final String rootKeystorePassword = "root_keystore_password",
         truststorePassword = "truststore_password";
     try {
+      String hostname = InetAddress.getLocalHost().getHostName();
       new CertUtils(Property.RPC_SSL_KEYSTORE_TYPE.getDefaultValue(),
-          "o=Apache Accumulo,cn=MiniAccumuloCluster", "RSA", 2048, "sha1WithRSAEncryption")
-              .createAll(rootKeystoreFile, localKeystoreFile, publicTruststoreFile,
-                  cfg.getInstanceName(), rootKeystorePassword, cfg.getRootPassword(),
-                  truststorePassword);
+          "o=Apache Accumulo,cn=" + hostname, "RSA", 2048, "sha1WithRSAEncryption").createAll(
+              rootKeystoreFile, localKeystoreFile, publicTruststoreFile, cfg.getInstanceName(),
+              rootKeystorePassword, cfg.getRootPassword(), truststorePassword);
     } catch (Exception e) {
       throw new RuntimeException("error creating MAC keystore", e);
     }
