@@ -62,5 +62,10 @@ public interface Sampler {
    */
   boolean accept(Key k);
 
+  /**
+   * @param option
+   *          Option to validate.
+   * @return True if option is a valid sampler option. False otherwise.
+   */
   boolean isValidOption(String option);
 }

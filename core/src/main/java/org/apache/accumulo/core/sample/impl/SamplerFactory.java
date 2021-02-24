@@ -32,7 +32,7 @@ public class SamplerFactory {
   private static final Logger log = LoggerFactory.getLogger(SamplerFactory.class);
 
   public static Sampler newSampler(SamplerConfigurationImpl config, AccumuloConfiguration acuconf,
-      boolean useAccumuloStart) throws IOException, IllegalArgumentException {
+      boolean useAccumuloStart) throws IllegalArgumentException {
     String context = ClassLoaderUtil.tableContext(acuconf);
 
     Class<? extends Sampler> clazz;
