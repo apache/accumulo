@@ -141,8 +141,7 @@
             <thead>
               <tr>
                 <th>Table&nbsp;</th>
-                <th title="Run 'getsplits -v' in the Accumulo Shell to associate the encoded tablets with their actual splits.">Tablet&nbsp;
-                  <img height="10em" width="10em" alt="information" src="/resources/images/circled-information-icon.png"></th>
+                <th title="Run 'getsplits -v' in the Accumulo Shell to associate the encoded tablets with their actual splits.">Tablet&nbsp;<img height="20em" width="20em" alt="information" src="/resources/images/circled-information-icon.png"/></th>
                 <th class="big-num">Entries&nbsp;</th>
                 <th class="big-num">Ingest&nbsp;</th>
                 <th class="big-num">Query&nbsp;</th>
