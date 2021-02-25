@@ -112,7 +112,7 @@ public class RecoveryManager {
           initiateSort(sortId, source, destination);
         }
       } catch (FileNotFoundException e) {
-        log.debug("Unable to initate log sort for " + source + ": " + e);
+        log.debug("Unable to initiate log sort for " + source + ": " + e);
       } catch (Exception e) {
         log.warn("Failed to initiate log sort " + source, e);
       } finally {
