@@ -170,13 +170,11 @@ public class MetadataIT extends AccumuloClusterHarness {
   @Test
   public void testAmpleReadTablets() throws Exception {
 
-    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
-      accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),
-          MetadataTable.NAME, TablePermission.WRITE);
+    try (ClientContext cc = (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
+      cc.securityOperations().grantTablePermission(cc.whoami(), MetadataTable.NAME,
+          TablePermission.WRITE);
 
-      ClientContext cc = (ClientContext) accumuloClient;
-
-      SortedSet<Text> partitionKeys = new TreeSet<Text>();
+      SortedSet<Text> partitionKeys = new TreeSet<>();
       partitionKeys.add(new Text("a"));
       partitionKeys.add(new Text("e"));
       partitionKeys.add(new Text("j"));
