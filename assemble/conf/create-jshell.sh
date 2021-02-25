@@ -16,6 +16,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+#
 
 function addLicenseHeader(){
   export header="$1"
@@ -23,7 +24,6 @@ function addLicenseHeader(){
   
   # Does an auto-generated JShell config file exists?
   if [[ -e "$jPath" ]]; then
-  
     printf "%s\n" "/*" >> "$jPath"
     
     # Load in license header
@@ -33,31 +33,48 @@ function addLicenseHeader(){
     
     printf "%s\n" "*/" >> "$jPath" 
     echo " " >> "$jPath"
+  else
+    echo "Cannot add license header in $jPath"
+    echo "Please ensure jshell-init.jsh exists"
+    exit 1
   fi
 }
 
 function addAccumuloAPI(){
   export srcDir="$1"
   export jPath="$2"
-  
-  # Does an auto-generated JShell config file exists?
-  if [[ -e "$jPath" ]]; then
-  
-    # Add API category designator in jshell-init.jsh
-    if [[ "$srcDir" =~ "accumulo/core/client" ]]; then
-      echo "// Accumulo Client API" >> "$jPath"
-    elif [[ "$srcDir" =~ "accumulo/core/data" ]]; then
-      echo "// Accumulo Data API" >> "$jPath"
-    elif [[ "$srcDir" =~ "accumulo/core/security" ]]; then
-      echo "// Accumulo Security API" >> "$jPath"
-    elif [[ "$srcDir" =~ "accumulo/minicluster" ]]; then
-      echo "// Accumulo Minicluster API" >> "$jPath"
-    elif [[ "$srcDir" =~ "accumulo/hadoop" ]]; then
-      echo "// Accumulo Hadoop API" >> "$jPath"
-    else
-      echo "// Other API" >> "$jPath"
-    fi
+  export client="accumulo/core/client"
+  export data="accumulo/core/data"
+  export security="accumulo/core/security"
+  export mini="accumulo/minicluster"
+  export hadoop="accumulo/hadoop"
     
+  # Does an auto-generated JShell config file exists?
+  if [[ ! -e "$jPath" ]]; then
+    echo "Cannot add APIs in $jPath"
+    echo "Please ensure jshell-init.jsh exists"
+    exit 1
+  fi
+  
+  # Is the source directory valid?
+  if [[ ! -d "$srcDir" ]]; then
+    echo "$srcDir is not a valid directory. Please make sure it exists."
+    rm "$jPath"
+    exit 1
+  fi
+  
+  # Does a valid JShell path and source directory exists?
+  if [[ -e "$jPath" ]] && [[ -d "$srcDir" ]]; then
+    # Add API category designator in jshell-init.jsh 
+    case "$srcDir" in
+        *"$client"*) echo "// Accumulo Client API" >> "$jPath";;
+        *"$data"*) echo "// Accumulo Data API" >> "$jPath";;
+        *"$security"*) echo "// Accumulo Security API" >> "$jPath";;
+        *"$mini"*) echo "// Accumulo Minicluster API" >> "$jPath";;
+        *"$hadoop"*) echo "// Accumulo Hadoop API" >> "$jPath";;
+        *) echo "// Other API" >> "$jPath";;
+    esac
+   
     # Extract API info from provided source directory
     mapfile -t api < <(find "$srcDir" -type f -name '*.java'| 
                        xargs -n1 dirname| sort -u)
@@ -66,13 +83,8 @@ function addAccumuloAPI(){
     for apiPath in "${api[@]}"; do
        printf "%s\n" "import ${apiPath##*/java/}.*" >> "$jPath"
     done
-    
     sed -i '/^ *import / s#/#.#g' "$jPath"
     echo " " >> "$jPath"
-    
-  else
-    echo "An Accumulo Import Error occurred in $jPath"
-    exit 1
   fi
 }
 
@@ -103,15 +115,13 @@ function main(){
    
   # Does an auto-generated JShell config file exists?
   if [[ -e "$jPath" ]]; then
-     find "$conf" -type f -name "jshell-init.jsh" -delete
-     echo "Deleted Old JShell File"
+     rm "$jPath"
   fi
     
-  # Create jshell-init file and load in license header   
+  # Create new jshell-init file and load in license header   
   touch "$jPath"
   addLicenseHeader "$header" "$jPath"
-  echo "Created New JShell File"
-  
+
   # Create and add Accumulo APIs into API storage 
   apiStorage=("$CLIENT" "$DATA" "$SECURITY" "$MINI" "$HADOOP")
    
@@ -119,31 +129,6 @@ function main(){
   for srcDir in "${apiStorage[@]}"; do
     addAccumuloAPI "$srcDir" "$jPath"
   done
-    
   exit 0
 }
 main "$@"
-  
-
- 
-
- 
-
-  
-  
-  
-
-  
-  
-  
-  
-  
-  
- 
-  
-  
-  
-
-
-
-
