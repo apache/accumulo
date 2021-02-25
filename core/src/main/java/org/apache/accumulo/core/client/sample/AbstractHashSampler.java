@@ -61,16 +61,17 @@ public abstract class AbstractHashSampler implements Sampler {
   private static final Set<String> VALID_VALUES_HASHER = Set.of("murmur3_32", "md5", "sha1");
 
   /**
-   * Subclasses with options should override this method and return true if the option is valid for
-   * the subclass or if {@code super.isValidOption(opt)} returns true.
+   * Subclasses with options should override this method to validate subclass options while also
+   * calling {@code super.validateOptions(config)} to validate base class options.
    */
   @Override
   public void validateOptions(Map<String,String> config) {
     for (Map.Entry<String,String> entry : config.entrySet()) {
-      checkArgument(isValid(entry.getKey()), "Unknown option: %s", entry.getKey());
+      checkArgument(VALID_OPTIONS.contains(entry.getKey()), "Unknown option: %s", entry.getKey());
 
       if (entry.getKey().equals("hasher"))
-        checkArgument(isValid(entry.getValue()), "Unknown value for hasher: %s", entry.getValue());
+        checkArgument(VALID_VALUES_HASHER.contains(entry.getValue()),
+            "Unknown value for hasher: %s", entry.getValue());
 
       if (entry.getKey().equals("modulus"))
         checkArgument(Integer.parseInt(entry.getValue()) > 0,
@@ -78,8 +79,9 @@ public abstract class AbstractHashSampler implements Sampler {
     }
   }
 
-  protected boolean isValid(String entry) {
-    return VALID_OPTIONS.contains(entry) || VALID_VALUES_HASHER.contains(entry);
+  @Deprecated(since = "2.1.0")
+  protected boolean isValidOption(String option) {
+    return VALID_OPTIONS.contains(option);
   }
 
   /**

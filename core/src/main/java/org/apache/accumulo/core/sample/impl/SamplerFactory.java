@@ -47,10 +47,8 @@ public class SamplerFactory {
 
       return sampler;
 
-    } catch (ReflectiveOperationException e) {
-      throw new RuntimeException(e);
-    } catch (IllegalArgumentException | NullPointerException e) {
-      log.error("Cannot init sampler, invalid configuration: {}", e.getMessage(), e);
+    } catch (ReflectiveOperationException | RuntimeException e) {
+      log.error("Cannot initialize sampler {}: {}", config.getClassName(), e.getMessage(), e);
       return null;
     }
   }

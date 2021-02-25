@@ -85,8 +85,8 @@ public class RowColumnSampler extends AbstractHashSampler {
   @Override
   public void validateOptions(Map<String,String> config) {
     super.validateOptions(config);
-    for (Map.Entry<String,String> entry : config.entrySet()) {
-      checkArgument(VALID_OPTIONS.contains(entry.getKey()), "Unknown option : %s", entry.getKey());
+    for (String option : config.keySet()) {
+      checkArgument(VALID_OPTIONS.contains(option), "Unknown option : %s", option);
     }
   }
 
