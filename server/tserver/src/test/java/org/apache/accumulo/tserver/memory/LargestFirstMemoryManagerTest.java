@@ -42,9 +42,10 @@ public class LargestFirstMemoryManagerTest {
   @Rule
   public Timeout timeout = Timeout.seconds(60);
 
-  private static final long ZERO = System.currentTimeMillis();
+  private static final long ZERO = LargestFirstMemoryManager.ZERO_TIME;
   private static final long LATER = ZERO + 20 * 60 * 1000;
   private static final long ONE_GIG = 1024 * 1024 * 1024;
+  private static final long ONE_MEG = 1024 * 1024;
   private static final long HALF_GIG = ONE_GIG / 2;
   private static final long QGIG = ONE_GIG / 4;
   private static final long ONE_MINUTE = 60 * 1000;
@@ -90,45 +91,47 @@ public class LargestFirstMemoryManagerTest {
     mgr = new LargestFirstMemoryManagerUnderTest();
     mgr.init(context);
     tabletsToMinorCompact = mgr.tabletsToMinorCompact(tablets(t(k("a"), ZERO, HALF_GIG, 0),
-        t(k("b"), ZERO, HALF_GIG + 1, 0), t(k("c"), ZERO, HALF_GIG + 2, 0),
-        t(k("d"), ZERO, HALF_GIG + 3, 0), t(k("e"), ZERO, HALF_GIG + 4, 0),
-        t(k("f"), ZERO, HALF_GIG + 5, 0), t(k("g"), ZERO, HALF_GIG + 6, 0),
-        t(k("h"), ZERO, HALF_GIG + 7, 0), t(k("i"), ZERO, HALF_GIG + 8, 0)));
+        t(k("b"), ZERO, HALF_GIG + ONE_MEG, 0), t(k("c"), ZERO, HALF_GIG + (2 * ONE_MEG), 0),
+        t(k("d"), ZERO, HALF_GIG + (3 * ONE_MEG), 0), t(k("e"), ZERO, HALF_GIG + (4 * ONE_MEG), 0),
+        t(k("f"), ZERO, HALF_GIG + (5 * ONE_MEG), 0), t(k("g"), ZERO, HALF_GIG + (6 * ONE_MEG), 0),
+        t(k("h"), ZERO, HALF_GIG + (7 * ONE_MEG), 0),
+        t(k("i"), ZERO, HALF_GIG + (8 * ONE_MEG), 0)));
     assertEquals(2, tabletsToMinorCompact.size());
     assertEquals(k("i"), tabletsToMinorCompact.get(0));
     assertEquals(k("h"), tabletsToMinorCompact.get(1));
     // one finished, one in progress, one filled up
     mgr = new LargestFirstMemoryManagerUnderTest();
     mgr.init(context);
-    tabletsToMinorCompact = mgr.tabletsToMinorCompact(
-        tablets(t(k("a"), ZERO, HALF_GIG, 0), t(k("b"), ZERO, HALF_GIG + 1, 0),
-            t(k("c"), ZERO, HALF_GIG + 2, 0), t(k("d"), ZERO, HALF_GIG + 3, 0),
-            t(k("e"), ZERO, HALF_GIG + 4, 0), t(k("f"), ZERO, HALF_GIG + 5, 0),
-            t(k("g"), ZERO, ONE_GIG, 0), t(k("h"), ZERO, 0, HALF_GIG + 7), t(k("i"), ZERO, 0, 0)));
+    tabletsToMinorCompact = mgr.tabletsToMinorCompact(tablets(t(k("a"), ZERO, HALF_GIG, 0),
+        t(k("b"), ZERO, HALF_GIG + ONE_MEG, 0), t(k("c"), ZERO, HALF_GIG + (2 * ONE_MEG), 0),
+        t(k("d"), ZERO, HALF_GIG + (3 * ONE_MEG), 0), t(k("e"), ZERO, HALF_GIG + (4 * ONE_MEG), 0),
+        t(k("f"), ZERO, HALF_GIG + (5 * ONE_MEG), 0), t(k("g"), ZERO, ONE_GIG, 0),
+        t(k("h"), ZERO, 0, HALF_GIG + (7 * ONE_MEG)), t(k("i"), ZERO, 0, 0)));
     assertEquals(1, tabletsToMinorCompact.size());
     assertEquals(k("g"), tabletsToMinorCompact.get(0));
     // memory is very full, lots of candidates
-    tabletsToMinorCompact = mgr.tabletsToMinorCompact(
-        tablets(t(k("a"), ZERO, HALF_GIG, 0), t(k("b"), ZERO, ONE_GIG + 1, 0),
-            t(k("c"), ZERO, ONE_GIG + 2, 0), t(k("d"), ZERO, ONE_GIG + 3, 0),
-            t(k("e"), ZERO, ONE_GIG + 4, 0), t(k("f"), ZERO, ONE_GIG + 5, 0),
-            t(k("g"), ZERO, ONE_GIG + 6, 0), t(k("h"), ZERO, 0, 0), t(k("i"), ZERO, 0, 0)));
+    tabletsToMinorCompact = mgr.tabletsToMinorCompact(tablets(t(k("a"), ZERO, HALF_GIG, 0),
+        t(k("b"), ZERO, ONE_GIG + ONE_MEG, 0), t(k("c"), ZERO, ONE_GIG + (2 * ONE_MEG), 0),
+        t(k("d"), ZERO, ONE_GIG + (3 * ONE_MEG), 0), t(k("e"), ZERO, ONE_GIG + (4 * ONE_MEG), 0),
+        t(k("f"), ZERO, ONE_GIG + (5 * ONE_MEG), 0), t(k("g"), ZERO, ONE_GIG + (6 * ONE_MEG), 0),
+        t(k("h"), ZERO, 0, 0), t(k("i"), ZERO, 0, 0)));
     assertEquals(2, tabletsToMinorCompact.size());
     assertEquals(k("g"), tabletsToMinorCompact.get(0));
     assertEquals(k("f"), tabletsToMinorCompact.get(1));
     // only have two compactors, still busy
-    tabletsToMinorCompact = mgr.tabletsToMinorCompact(
-        tablets(t(k("a"), ZERO, HALF_GIG, 0), t(k("b"), ZERO, ONE_GIG + 1, 0),
-            t(k("c"), ZERO, ONE_GIG + 2, 0), t(k("d"), ZERO, ONE_GIG + 3, 0),
-            t(k("e"), ZERO, ONE_GIG + 4, 0), t(k("f"), ZERO, ONE_GIG, ONE_GIG + 5),
-            t(k("g"), ZERO, ONE_GIG, ONE_GIG + 6), t(k("h"), ZERO, 0, 0), t(k("i"), ZERO, 0, 0)));
+    tabletsToMinorCompact = mgr.tabletsToMinorCompact(tablets(t(k("a"), ZERO, HALF_GIG, 0),
+        t(k("b"), ZERO, ONE_GIG + ONE_MEG, 0), t(k("c"), ZERO, ONE_GIG + (2 * ONE_MEG), 0),
+        t(k("d"), ZERO, ONE_GIG + (3 * ONE_MEG), 0), t(k("e"), ZERO, ONE_GIG + (4 * ONE_MEG), 0),
+        t(k("f"), ZERO, ONE_GIG, ONE_GIG + (5 * ONE_MEG)),
+        t(k("g"), ZERO, ONE_GIG, ONE_GIG + (6 * ONE_MEG)), t(k("h"), ZERO, 0, 0),
+        t(k("i"), ZERO, 0, 0)));
     assertEquals(0, tabletsToMinorCompact.size());
     // finished one
-    tabletsToMinorCompact = mgr.tabletsToMinorCompact(
-        tablets(t(k("a"), ZERO, HALF_GIG, 0), t(k("b"), ZERO, ONE_GIG + 1, 0),
-            t(k("c"), ZERO, ONE_GIG + 2, 0), t(k("d"), ZERO, ONE_GIG + 3, 0),
-            t(k("e"), ZERO, ONE_GIG + 4, 0), t(k("f"), ZERO, ONE_GIG, ONE_GIG + 5),
-            t(k("g"), ZERO, ONE_GIG, 0), t(k("h"), ZERO, 0, 0), t(k("i"), ZERO, 0, 0)));
+    tabletsToMinorCompact = mgr.tabletsToMinorCompact(tablets(t(k("a"), ZERO, HALF_GIG, 0),
+        t(k("b"), ZERO, ONE_GIG + ONE_MEG, 0), t(k("c"), ZERO, ONE_GIG + (2 * ONE_MEG), 0),
+        t(k("d"), ZERO, ONE_GIG + (3 * ONE_MEG), 0), t(k("e"), ZERO, ONE_GIG + (4 * ONE_MEG), 0),
+        t(k("f"), ZERO, ONE_GIG, ONE_GIG + (5 * ONE_MEG)), t(k("g"), ZERO, ONE_GIG, 0),
+        t(k("h"), ZERO, 0, 0), t(k("i"), ZERO, 0, 0)));
     assertEquals(1, tabletsToMinorCompact.size());
     assertEquals(k("e"), tabletsToMinorCompact.get(0));
 
@@ -136,7 +139,7 @@ public class LargestFirstMemoryManagerTest {
     mgr = new LargestFirstMemoryManagerUnderTest();
     mgr.init(context);
     tabletsToMinorCompact = mgr.tabletsToMinorCompact(tablets(t(k("a"), ZERO, HALF_GIG, 0),
-        t(k("b"), ZERO, HALF_GIG + 1, 0), t(k("c"), ZERO, HALF_GIG + 2, 0),
+        t(k("b"), ZERO, HALF_GIG + ONE_MEG, 0), t(k("c"), ZERO, HALF_GIG + (2 * ONE_MEG), 0),
         t(k("d"), ZERO, 0, HALF_GIG), t(k("e"), ZERO, 0, HALF_GIG), t(k("f"), ZERO, 0, HALF_GIG),
         t(k("g"), ZERO, 0, HALF_GIG), t(k("i"), ZERO, 0, HALF_GIG), t(k("j"), ZERO, 0, HALF_GIG),
         t(k("k"), ZERO, 0, HALF_GIG), t(k("l"), ZERO, 0, HALF_GIG), t(k("m"), ZERO, 0, HALF_GIG)));

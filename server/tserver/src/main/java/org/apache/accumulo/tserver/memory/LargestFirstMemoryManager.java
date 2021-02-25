@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 public class LargestFirstMemoryManager {
 
   private static final Logger log = LoggerFactory.getLogger(LargestFirstMemoryManager.class);
-  private static final long ZERO_TIME = System.currentTimeMillis();
+  static final long ZERO_TIME = System.currentTimeMillis();
   private static final int TSERV_MINC_MAXCONCURRENT_NUMWAITING_MULTIPLIER = 2;
   private static final double MAX_FLUSH_AT_ONCE_PERCENT = 0.20;
 
