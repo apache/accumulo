@@ -18,8 +18,11 @@
  */
 package org.apache.accumulo.core.client.sample;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.ByteSequence;
@@ -80,8 +83,11 @@ public class RowColumnSampler extends AbstractHashSampler {
   }
 
   @Override
-  protected boolean isValidOption(String option) {
-    return super.isValidOption(option) || VALID_OPTIONS.contains(option);
+  public void validateOptions(Map<String,String> config) {
+    super.validateOptions(config);
+    for (String option : config.keySet()) {
+      checkArgument(VALID_OPTIONS.contains(option), "Unknown option : %s", option);
+    }
   }
 
   @Override

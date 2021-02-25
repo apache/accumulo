@@ -23,10 +23,14 @@ import java.io.IOException;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SamplerFactory {
+  private static final Logger log = LoggerFactory.getLogger(SamplerFactory.class);
+
   public static Sampler newSampler(SamplerConfigurationImpl config, AccumuloConfiguration acuconf,
-      boolean useAccumuloStart) throws IOException {
+      boolean useAccumuloStart) {
     String context = ClassLoaderUtil.tableContext(acuconf);
 
     Class<? extends Sampler> clazz;
@@ -38,13 +42,14 @@ public class SamplerFactory {
         clazz = ClassLoaderUtil.loadClass(context, config.getClassName(), Sampler.class);
 
       Sampler sampler = clazz.getDeclaredConstructor().newInstance();
-
+      sampler.validateOptions(config.getOptions());
       sampler.init(config.toSamplerConfiguration());
 
       return sampler;
 
-    } catch (ReflectiveOperationException e) {
-      throw new RuntimeException(e);
+    } catch (ReflectiveOperationException | RuntimeException e) {
+      log.error("Cannot initialize sampler {}: {}", config.getClassName(), e.getMessage(), e);
+      return null;
     }
   }
 
