@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.monitor.rest.tservers;
 
-import javax.xml.bind.annotation.XmlAttribute;
+import jakarta.xml.bind.annotation.XmlAttribute;
 
 /**
  * Generates a tserver shutting down

@@ -6,25 +6,42 @@ The Apache Software Foundation (http://www.apache.org/).
 
 **********
 
-This product includes JCommander (https://github.com/cbeust/jcommander),
-Copyright 2010 Cedric Beust cedric@beust.com.
+# BUNDLED DEPENDENCIES
 
-**********
+This product additionally includes the following
+dependencies, with accompanying notices.
 
-From Apache Commons Math3:
+## com.fasterxml:classmate
+
+    Java ClassMate library was originally written by Tatu Saloranta (tatu.saloranta@iki.fi)
+
+    Other developers who have contributed code are:
+
+    * Brian Langel
+
+## commons-codec:commons-codec
+
+    src/test/org/apache/commons/codec/language/DoubleMetaphoneTest.java
+    contains test data from http://aspell.net/test/orig/batch0.tab.
+    Copyright (C) 2002 Kevin Atkinson (kevina@gnu.org)
+
+    ===============================================================================
+
+    The content of package org.apache.commons.codec.language.bm has been translated
+    from the original php source code available at http://stevemorse.org/phoneticinfo.htm
+    with permission from the original authors.
+    Original source copyright:
+    Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
+
+## org.apache.commons:commons-math3
 
     This product includes software developed for Orekit by
     CS Systèmes d'Information (http://www.c-s.fr/)
     Copyright 2010-2012 CS Systèmes d'Information
 
+## org.apache.logging.log4j:log4j-core
+
+    ResolverUtil.java
+    Copyright 2005-2006 Tim Fennell
+
 **********
-
-This product includes Jetty (http://eclipse.org/jetty)
-Copyright 1996-2009 Mort Bay Consulting Pty. Ltd.
-
-**********
-
-From log4j-core:
-
-  ResolverUtil.java
-  Copyright 2005-2006 Tim Fennell

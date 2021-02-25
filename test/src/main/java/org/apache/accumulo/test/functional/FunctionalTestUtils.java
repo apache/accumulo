@@ -24,6 +24,12 @@ import static org.junit.Assert.assertFalse;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map.Entry;
@@ -147,6 +153,12 @@ public class FunctionalTestUtils {
     threadPool.shutdown();
     threadPool.awaitTermination(1, TimeUnit.HOURS);
     assertFalse(fail.get());
+  }
+
+  public static HttpResponse<String> readWebPage(URL url)
+      throws IOException, InterruptedException, URISyntaxException {
+    return HttpClient.newHttpClient().send(HttpRequest.newBuilder(url.toURI()).build(),
+        BodyHandlers.ofString());
   }
 
   public static String readAll(InputStream is) throws IOException {

@@ -77,7 +77,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
     String uri = getCluster().getMiniDfs().getHttpUri(0);
     URL url = new URL(uri + "/jmx");
     log.debug("Fetching web page " + url);
-    String jsonString = FunctionalTestUtils.readAll(url.openStream());
+    String jsonString = FunctionalTestUtils.readWebPage(url).body();
     Gson gson = new Gson();
     Map<?,?> jsonObject = gson.fromJson(jsonString, Map.class);
     List<?> beans = (List<?>) jsonObject.get("beans");
