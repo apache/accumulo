@@ -19,10 +19,8 @@
 package org.apache.accumulo.test.manager;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.security.SecureRandom;
@@ -45,8 +43,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ManagerClient;
+import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
@@ -54,6 +54,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.spi.balancer.HostRegexTableLoadBalancer;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -77,7 +78,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   private static ExecutorService THREAD_POOL;
 
   public static final int TSERVERS = 3;
-  public static final long SUSPEND_DURATION = 20;
+  public static final long SUSPEND_DURATION = 80;
   public static final int TABLETS = 30;
 
   @Override
@@ -91,6 +92,11 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "5s");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     cfg.setNumTservers(TSERVERS);
+    // config custom balancer to keep all metadata on one server
+    cfg.setProperty(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + MetadataTable.NAME, "*");
+    cfg.setProperty(HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK_KEY, "7s");
+    cfg.setProperty(Property.TABLE_LOAD_BALANCER.getKey(),
+        HostRegexTableLoadBalancer.class.getName());
   }
 
   @Test
@@ -115,13 +121,30 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     // Run the test body. When we get to the point where we need tservers to go away, stop them via
     // a clean shutdown.
     suspensionTestBody((ctx, locs, count) -> {
-      Set<TServerInstance> tserversSet = new HashSet<>();
+      Set<TServerInstance> tserverSet = new HashSet<>();
+      Set<TServerInstance> metadataServerSet = new HashSet<>();
+
+      TabletLocator tl = TabletLocator.getLocator(ctx, MetadataTable.ID);
       for (TabletLocationState tls : locs.locationStates.values()) {
         if (tls.current != null) {
-          tserversSet.add(tls.current);
+          // add to set of all servers
+          tserverSet.add(tls.current);
+
+          // get server that the current tablets metadata is on
+          TabletLocator.TabletLocation tab =
+              tl.locateTablet(ctx, tls.extent.toMetaRow(), false, false);
+          // add it to the set of servers with metadata
+          metadataServerSet
+              .add(new TServerInstance(tab.tablet_location, Long.valueOf(tab.tablet_session, 16)));
         }
       }
-      List<TServerInstance> tserversList = new ArrayList<>(tserversSet);
+
+      // remove servers with metadata on them from the list of servers to be shutdown
+      tserverSet.removeAll(metadataServerSet);
+
+      assertEquals("Expecting two tServers in shutdown-list", 2, tserverSet.size());
+
+      List<TServerInstance> tserversList = new ArrayList<>(tserverSet);
       Collections.shuffle(tserversList, RANDOM);
 
       for (int i1 = 0; i1 < count; ++i1) {
@@ -168,14 +191,13 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
       String tableName = getUniqueNames(1)[0];
 
-      // Create a table with a bunch of splits
-      log.info("Creating table " + tableName);
-      ctx.tableOperations().create(tableName);
       SortedSet<Text> splitPoints = new TreeSet<>();
       for (int i = 1; i < TABLETS; ++i) {
         splitPoints.add(new Text("" + i));
       }
-      ctx.tableOperations().addSplits(tableName, splitPoints);
+      log.info("Creating table " + tableName);
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitPoints);
+      ctx.tableOperations().create(tableName, ntc);
 
       // Wait for all of the tablets to hosted ...
       log.info("Waiting on hosting and balance");
@@ -188,8 +210,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       // ... and balanced.
       ctx.instanceOperations().waitForBalance();
       do {
-        // Give at least another 5 seconds for migrations to finish up
-        Thread.sleep(5000);
+        // Give at least another 15 seconds for migrations to finish up
+        Thread.sleep(15000);
         ds = TabletLocations.retrieve(ctx, tableName);
       } while (ds.hostedCount != TABLETS);
 
@@ -203,29 +225,23 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       log.info("Eliminating tablet servers");
       serverStopper.eliminateTabletServers(ctx, beforeDeathState, 2);
 
-      // Eventually some tablets will be suspended.
+      // All tablets should be either hosted or suspended.
       log.info("Waiting on suspended tablets");
-      ds = TabletLocations.retrieve(ctx, tableName);
-      // Until we can scan the metadata table, the manager probably can't either, so won't have been
-      // able to suspend the tablets.
-      // So we note the time that we were first able to successfully scan the metadata table.
-      long killTime = System.nanoTime();
-      while (ds.suspended.keySet().size() != 2) {
+      do {
         Thread.sleep(1000);
         ds = TabletLocations.retrieve(ctx, tableName);
-      }
+      } while (ds.suspended.keySet().size() != 2
+          && (ds.suspendedCount + ds.hostedCount) != TABLETS);
 
       SetMultimap<HostAndPort,KeyExtent> deadTabletsByServer = ds.suspended;
 
-      // By this point, all tablets should be either hosted or suspended. All suspended tablets
-      // should
-      // "belong" to the dead tablet servers, and should be in exactly the same place as before any
-      // tserver death.
+      // All suspended tablets should "belong" to the dead tablet servers, and should be in exactly
+      // the same place as before any tserver death.
       for (HostAndPort server : deadTabletsByServer.keySet()) {
-        assertEquals(deadTabletsByServer.get(server), beforeDeathState.hosted.get(server));
+        // Comparing pre-death, hosted tablets to suspended tablets on a server
+        assertEquals(beforeDeathState.hosted.get(server), deadTabletsByServer.get(server));
       }
       assertEquals(TABLETS, ds.hostedCount + ds.suspendedCount);
-
       // Restart the first tablet server, making sure it ends up on the same port
       HostAndPort restartedServer = deadTabletsByServer.keySet().iterator().next();
       log.info("Restarting " + restartedServer);
@@ -248,9 +264,6 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         Thread.sleep(1000);
         ds = TabletLocations.retrieve(ctx, tableName);
       }
-
-      long recoverTime = System.nanoTime();
-      assertTrue(recoverTime - killTime >= NANOSECONDS.convert(SUSPEND_DURATION, SECONDS));
     }
   }
 
