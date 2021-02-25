@@ -71,6 +71,9 @@ public abstract class AbstractHashSampler implements Sampler {
       if (entry.getKey().equals("hasher"))
         checkArgument(isValid(entry.getValue()), "Unknown value for option %s: %s", entry.getKey(),
             entry.getValue());
+      if (entry.getKey().equals("modulus"))
+        checkArgument(Integer.parseInt(entry.getValue()) > 0,
+            "Improper Integer value value for option %s: %s", entry.getKey(), entry.getValue());
     }
   }
 
