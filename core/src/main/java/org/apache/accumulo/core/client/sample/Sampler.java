@@ -66,7 +66,7 @@ public interface Sampler {
 
   /**
    * @param config
-   *          Sampler configuration to validate.
+   *          Sampler options configuration to validate. Validates option and value.
    */
   default void validateOptions(Map<String,String> config) {}
 }

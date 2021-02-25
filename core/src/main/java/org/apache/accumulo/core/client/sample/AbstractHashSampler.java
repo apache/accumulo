@@ -68,12 +68,13 @@ public abstract class AbstractHashSampler implements Sampler {
   public void validateOptions(Map<String,String> config) {
     for (Map.Entry<String,String> entry : config.entrySet()) {
       checkArgument(isValid(entry.getKey()), "Unknown option: %s", entry.getKey());
+
       if (entry.getKey().equals("hasher"))
-        checkArgument(isValid(entry.getValue()), "Unknown value for option %s: %s", entry.getKey(),
-            entry.getValue());
+        checkArgument(isValid(entry.getValue()), "Unknown value for hasher: %s", entry.getValue());
+
       if (entry.getKey().equals("modulus"))
         checkArgument(Integer.parseInt(entry.getValue()) > 0,
-            "Improper Integer value value for option %s: %s", entry.getKey(), entry.getValue());
+            "Improper Integer value for modulus: %s", entry.getValue());
     }
   }
 
