@@ -54,6 +54,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.spi.balancer.HostRegexTableLoadBalancer;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -91,6 +92,11 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "5s");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     cfg.setNumTservers(TSERVERS);
+    // config custom balancer to keep all metadata on one server
+    cfg.setProperty(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + MetadataTable.NAME, "*");
+    cfg.setProperty(HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK_KEY, "7s");
+    cfg.setProperty(Property.TABLE_LOAD_BALANCER.getKey(),
+        HostRegexTableLoadBalancer.class.getName());
   }
 
   @Test
@@ -115,18 +121,30 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     // Run the test body. When we get to the point where we need tservers to go away, stop them via
     // a clean shutdown.
     suspensionTestBody((ctx, locs, count) -> {
-      Set<TServerInstance> tserversSet = new HashSet<>();
-      for (TabletLocationState tls : locs.locationStates.values()) {
+      Set<TServerInstance> tserverSet = new HashSet<>();
+      Set<TServerInstance> metadataServerSet = new HashSet<>();
 
-        TabletLocator tl = TabletLocator.getLocator(ctx, MetadataTable.ID);
-        String metadataTserver =
-            tl.locateTablet(ctx, tls.extent.toMetaRow(), false, false).tablet_location;
-        // if the server does not hold the metadata, add it to the list to be shutdown
-        if (tls.current != null && !tls.current.toString().startsWith(metadataTserver)) {
-          tserversSet.add(tls.current);
+      TabletLocator tl = TabletLocator.getLocator(ctx, MetadataTable.ID);
+      for (TabletLocationState tls : locs.locationStates.values()) {
+        if (tls.current != null) {
+          // add to set of all servers
+          tserverSet.add(tls.current);
+
+          // get server that the current tablets metadata is on
+          TabletLocator.TabletLocation tab =
+              tl.locateTablet(ctx, tls.extent.toMetaRow(), false, false);
+          // add it to the set of servers with metadata
+          metadataServerSet
+              .add(new TServerInstance(tab.tablet_location, Long.valueOf(tab.tablet_session, 16)));
         }
       }
-      List<TServerInstance> tserversList = new ArrayList<>(tserversSet);
+
+      // remove servers with metadata on them from the list of servers to be shutdown
+      tserverSet.removeAll(metadataServerSet);
+
+      assertEquals("Expecting two tServers in shutdown-list", 2, tserverSet.size());
+
+      List<TServerInstance> tserversList = new ArrayList<>(tserverSet);
       Collections.shuffle(tserversList, RANDOM);
 
       for (int i1 = 0; i1 < count; ++i1) {
@@ -173,7 +191,6 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
       String tableName = getUniqueNames(1)[0];
 
-      // Create a table with a bunch of splits
       SortedSet<Text> splitPoints = new TreeSet<>();
       for (int i = 1; i < TABLETS; ++i) {
         splitPoints.add(new Text("" + i));
@@ -221,7 +238,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       // All suspended tablets should "belong" to the dead tablet servers, and should be in exactly
       // the same place as before any tserver death.
       for (HostAndPort server : deadTabletsByServer.keySet()) {
-        // comparing pre-death, hosted tablets to suspended tablets on a server
+        // Comparing pre-death, hosted tablets to suspended tablets on a server
         assertEquals(beforeDeathState.hosted.get(server), deadTabletsByServer.get(server));
       }
       assertEquals(TABLETS, ds.hostedCount + ds.suspendedCount);
