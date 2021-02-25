@@ -235,9 +235,9 @@ public class Merge {
     try {
       ClientContext context = (ClientContext) client;
       tableId = Tables.getTableId(context, tablename);
-      tablets = TabletsMetadata.builder().scanMetadataTable()
+      tablets = TabletsMetadata.builder(context).scanMetadataTable()
           .overRange(new KeyExtent(tableId, end, start).toMetaRange()).fetch(FILES, PREV_ROW)
-          .build(context);
+          .build();
     } catch (Exception e) {
       throw new MergeException(e);
     }

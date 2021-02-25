@@ -234,7 +234,7 @@ public class ListTabletsCommand extends Command {
     final ClientContext context = shellState.getContext();
     Set<TServerInstance> liveTserverSet = TabletMetadata.getLiveTServers(context);
 
-    try (var tabletsMetadata = TabletsMetadata.builder().forTable(tableInfo.id).build(context)) {
+    try (var tabletsMetadata = TabletsMetadata.builder(context).forTable(tableInfo.id).build()) {
       for (var md : tabletsMetadata) {
         TabletRowInfo.Factory factory = new TabletRowInfo.Factory(tableInfo.name, md.getExtent());
         var fileMap = md.getFilesMap();

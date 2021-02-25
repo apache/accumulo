@@ -465,8 +465,8 @@ public class MetadataTableUtil {
       range = TabletsSection.getRange(tableId);
     }
 
-    return TabletsMetadata.builder().scanTable(tableName).overRange(range).checkConsistency()
-        .saveKeyValues().fetch(FILES, LOCATION, LAST, CLONED, PREV_ROW, TIME).build(client);
+    return TabletsMetadata.builder(client).scanTable(tableName).overRange(range).checkConsistency()
+        .saveKeyValues().fetch(FILES, LOCATION, LAST, CLONED, PREV_ROW, TIME).build();
   }
 
   @VisibleForTesting

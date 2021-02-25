@@ -30,7 +30,7 @@
         ${val}
       </#list>
     <#else>
-      <script src="/resources/external/jquery-3.2.1.js"></script>
+      <script src="/resources/external/jquery/jquery-3.2.1.js"></script>
       <script src="/resources/external/bootstrap/js/bootstrap.js"></script>
       <script src="/resources/external/datatables/js/jquery.dataTables.js"></script>
       <script src="/resources/external/datatables/js/dataTables.bootstrap.js"></script>
@@ -44,7 +44,7 @@
       <script src="/resources/external/flot/jquery.flot.legend.js"></script>
       <script src="/resources/external/flot/jquery.flot.time.js"></script>
       <script src="/resources/external/flot/jquery.flot.resize.js"></script>
-      <script src="/resources/external/ellipsis.js"></script>
+      <script src="/resources/external/datatables/plugins/ellipsis.js"></script>
       <link rel="stylesheet" href="/resources/external/bootstrap/css/bootstrap.css" />
       <link rel="stylesheet" href="/resources/external/bootstrap/css/bootstrap-theme.css" />
       <link rel="stylesheet" href="/resources/external/datatables/css/dataTables.bootstrap.css" />

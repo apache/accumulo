@@ -162,7 +162,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       }
       URL url = new URL(monitorLocation);
       log.debug("Fetching web page {}", url);
-      String result = FunctionalTestUtils.readAll(url.openStream());
+      String result = FunctionalTestUtils.readWebPage(url).body();
       assertTrue(result.length() > 100);
       log.debug("Stopping accumulo cluster");
       ClusterControl control = cluster.getClusterControl();

@@ -29,37 +29,34 @@
       <useProjectArtifact>false</useProjectArtifact>
       <useTransitiveDependencies>false</useTransitiveDependencies>
       <includes>
-        <!-- if you update this list, you should also update the assembly
-        pom.xml section which executes the maven-dependency-plugin to generate a
-        version listing for packaged artifacts -->
         <include>${groupId}:${artifactId}-*</include>
         <include>com.beust:jcommander</include>
+        <include>com.fasterxml:classmate</include>
         <include>com.fasterxml.jackson.core:jackson-annotations</include>
         <include>com.fasterxml.jackson.core:jackson-core</include>
         <include>com.fasterxml.jackson.core:jackson-databind</include>
-        <include>com.fasterxml.jackson.jaxrs:jackson-jaxrs-base</include>
-        <include>com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider</include>
-        <include>com.fasterxml.jackson.module:jackson-module-jaxb-annotations</include>
-        <include>com.fasterxml:classmate</include>
+        <include>com.fasterxml.jackson.jaxrs:jackson-jaxrs-base:jar:jakarta</include>
+        <include>com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider:jar:jakarta</include>
+        <include>com.fasterxml.jackson.module:jackson-module-jaxb-annotations:jar:jakarta</include>
         <include>com.github.ben-manes.caffeine:caffeine</include>
         <include>com.google.code.gson:gson</include>
         <include>com.google.guava:failureaccess</include>
         <include>com.google.guava:guava</include>
         <include>com.google.protobuf:protobuf-java</include>
         <include>com.lmax:disruptor</include>
-        <include>com.sun.xml.bind</include>
         <include>commons-cli:commons-cli</include>
         <include>commons-codec:commons-codec</include>
         <include>commons-io:commons-io</include>
         <include>commons-logging:commons-logging</include>
-        <include>javax.activation:javax.activation-api</include>
-        <include>javax.annotation:javax.annotation-api</include>
-        <include>javax.el:javax.el-api</include>
-        <include>javax.servlet:javax.servlet-api</include>
-        <include>javax.validation:validation-api</include>
-        <include>javax.ws.rs:javax.ws.rs-api</include>
-        <include>javax.xml.bind:jaxb-api</include>
-        <include>org.jline:jline</include>
+        <include>com.sun.istack:istack-commons-runtime</include>
+        <include>jakarta.activation:jakarta.activation-api</include>
+        <include>jakarta.annotation:jakarta.annotation-api</include>
+        <include>jakarta.el:jakarta.el-api</include>
+        <include>jakarta.inject:jakarta.inject-api</include>
+        <include>jakarta.servlet:jakarta.servlet-api</include>
+        <include>jakarta.validation:jakarta.validation-api</include>
+        <include>jakarta.ws.rs:jakarta.ws.rs-api</include>
+        <include>jakarta.xml.bind:jakarta.xml.bind-api</include>
         <include>org.apache.commons:commons-collections4</include>
         <include>org.apache.commons:commons-configuration2</include>
         <include>org.apache.commons:commons-lang3</include>
@@ -76,7 +73,6 @@
         <include>org.apache.logging.log4j:log4j-slf4j-impl</include>
         <include>org.apache.logging.log4j:log4j-web</include>
         <include>org.apache.thrift:libthrift</include>
-        <include>org.eclipse.jetty:jetty-continuation</include>
         <include>org.eclipse.jetty:jetty-http</include>
         <include>org.eclipse.jetty:jetty-io</include>
         <include>org.eclipse.jetty:jetty-security</include>
@@ -84,12 +80,10 @@
         <include>org.eclipse.jetty:jetty-servlet</include>
         <include>org.eclipse.jetty:jetty-util</include>
         <include>org.freemarker:freemarker</include>
-        <include>org.glassfish.hk2.external:aopalliance-repackaged</include>
-        <include>org.glassfish.hk2.external:jakarta.inject</include>
         <include>org.glassfish.hk2:hk2-api</include>
         <include>org.glassfish.hk2:hk2-locator</include>
         <include>org.glassfish.hk2:hk2-utils</include>
-        <include>org.glassfish.hk2:osgi-resource-locator</include>
+        <include>org.glassfish:jakarta.el</include>
         <include>org.glassfish.jaxb:jaxb-core</include>
         <include>org.glassfish.jaxb:jaxb-runtime</include>
         <include>org.glassfish.jersey.containers:jersey-container-jetty-http</include>
@@ -105,11 +99,10 @@
         <include>org.glassfish.jersey.inject:jersey-hk2</include>
         <include>org.glassfish.jersey.media:jersey-media-jaxb</include>
         <include>org.glassfish.jersey.media:jersey-media-json-jackson</include>
-        <include>org.glassfish.web:el-impl</include>
-        <include>org.glassfish.web:javax.el</include>
         <include>org.hibernate.validator:hibernate-validator</include>
         <include>org.javassist:javassist</include>
         <include>org.jboss.logging:jboss-logging</include>
+        <include>org.jline:jline</include>
         <include>org.slf4j:slf4j-api</include>
       </includes>
     </dependencySet>

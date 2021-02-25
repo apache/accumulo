@@ -30,12 +30,12 @@ import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Application;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.MessageBodyWriter;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Application;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MultivaluedMap;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.ext.MessageBodyWriter;
 
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.DefaultConfiguration;

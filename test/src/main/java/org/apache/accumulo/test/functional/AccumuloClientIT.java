@@ -242,6 +242,5 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     expectClosed(() -> tops.create("expectFail"));
     expectClosed(() -> tops.cancelCompaction(tableName));
     expectClosed(() -> tops.listSplits(tableName));
-
   }
 }

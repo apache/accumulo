@@ -154,6 +154,14 @@ public interface Ample {
       ColumnType... colsToFetch);
 
   /**
+   * Entry point for reading multiple tablets' metadata. Generates a TabletsMetadata builder object
+   * and assigns the AmpleImpl client to that builder object. This allows readTablets() to be called
+   * from a ClientContext. Associated methods of the TabletsMetadata Builder class are used to
+   * generate the metadata.
+   */
+  TabletsMetadata.TableOptions readTablets();
+
+  /**
    * Initiates mutating a single tablets persistent metadata. No data is persisted until the
    * {@code mutate()} method is called on the returned object. If updating multiple tablets,
    * consider using {@link #mutateTablets()}

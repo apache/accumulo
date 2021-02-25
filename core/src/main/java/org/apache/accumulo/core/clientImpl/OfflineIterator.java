@@ -269,8 +269,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   }
 
   private TabletMetadata getTabletFiles(Range nextRange) {
-    try (TabletsMetadata tablets = TabletsMetadata.builder().scanMetadataTable()
-        .overRange(nextRange).fetch(FILES, LOCATION, PREV_ROW).build(context)) {
+    try (TabletsMetadata tablets = TabletsMetadata.builder(context).scanMetadataTable()
+        .overRange(nextRange).fetch(FILES, LOCATION, PREV_ROW).build()) {
       return tablets.iterator().next();
     }
   }

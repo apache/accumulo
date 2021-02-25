@@ -62,8 +62,8 @@ public class ListVolumesUsed {
     System.out.println("Listing volumes referenced in " + level + " tablets section");
 
     TreeSet<String> volumes = new TreeSet<>();
-    try (TabletsMetadata tablets = TabletsMetadata.builder().forLevel(level)
-        .fetch(TabletMetadata.ColumnType.FILES, TabletMetadata.ColumnType.LOGS).build(context)) {
+    try (TabletsMetadata tablets = TabletsMetadata.builder(context).forLevel(level)
+        .fetch(TabletMetadata.ColumnType.FILES, TabletMetadata.ColumnType.LOGS).build()) {
       for (TabletMetadata tabletMetadata : tablets) {
         tabletMetadata.getFiles().forEach(file -> volumes.add(getTableURI(file.getPathStr())));
         tabletMetadata.getLogs().forEach(le -> getLogURIs(volumes, le));

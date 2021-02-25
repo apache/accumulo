@@ -92,8 +92,8 @@ public abstract class GroupBalancer extends TabletBalancer {
 
   protected Map<KeyExtent,TServerInstance> getLocationProvider() {
     Map<KeyExtent,TServerInstance> tablets = new LinkedHashMap<>();
-    for (var tm : TabletsMetadata.builder().forTable(tableId).fetch(LOCATION, PREV_ROW)
-        .build(context)) {
+    for (var tm : TabletsMetadata.builder(context).forTable(tableId).fetch(LOCATION, PREV_ROW)
+        .build()) {
       tablets.put(tm.getExtent(), tm.getLocation());
     }
     return tablets;

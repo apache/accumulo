@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.monitor.util;
 
-import javax.xml.bind.annotation.adapters.XmlAdapter;
+import jakarta.xml.bind.annotation.adapters.XmlAdapter;
 
 import org.apache.accumulo.core.data.AbstractId;
 
