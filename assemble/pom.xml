@@ -527,7 +527,7 @@
             </goals>
             <phase>compile</phase>
             <configuration>
-              <executable>${basedir}/conf/create-jshell.sh</executable>
+              <executable>src/main/scripts/create-jshell.sh</executable>
             </configuration>
           </execution>
         </executions>
