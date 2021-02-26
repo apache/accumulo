@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.crypto;
 
+import static org.apache.accumulo.core.crypto.CryptoUtils.getFileDecrypter;
 import static org.apache.accumulo.core.file.rfile.RFileTest.getAccumuloConfig;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -108,10 +109,10 @@ public class CryptoTest {
   public void simpleGCMTest() throws Exception {
     AccumuloConfiguration conf = getAccumuloConfig(CRYPTO_ON_CONF);
 
-    CryptoService cryptoService = new AESCryptoService();
-    cryptoService.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
+    CryptoService cs = new AESCryptoService();
+    cs.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
     CryptoEnvironment encEnv = new CryptoEnvironmentImpl(Scope.RFILE, null);
-    FileEncrypter encrypter = cryptoService.getFileEncrypter(encEnv);
+    FileEncrypter encrypter = cs.getFileEncrypter(encEnv);
     byte[] params = encrypter.getDecryptionParameters();
     assertNotNull(params);
 
@@ -134,9 +135,7 @@ public class CryptoTest {
 
     // decrypt
     ByteArrayInputStream in = new ByteArrayInputStream(cipherText);
-    params = CryptoUtils.readParams(new DataInputStream(in));
-    CryptoEnvironment decEnv = new CryptoEnvironmentImpl(Scope.RFILE, params);
-    FileDecrypter decrypter = cryptoService.getFileDecrypter(decEnv);
+    FileDecrypter decrypter = getFileDecrypter(cs, Scope.RFILE, new DataInputStream(in));
     DataInputStream decrypted = new DataInputStream(decrypter.decryptStream(in));
     String plainText = decrypted.readUTF();
     decrypted.close();
@@ -385,13 +384,9 @@ public class CryptoTest {
 
   private void decrypt(byte[] resultingBytes, Scope scope, String configFile) throws Exception {
     try (DataInputStream dataIn = new DataInputStream(new ByteArrayInputStream(resultingBytes))) {
-      byte[] params = CryptoUtils.readParams(dataIn);
-
       AccumuloConfiguration conf = getAccumuloConfig(configFile);
-      CryptoService cryptoService = CryptoServiceFactory.newInstance(conf, ClassloaderType.JAVA);
-      CryptoEnvironment env = new CryptoEnvironmentImpl(scope, params);
-
-      FileDecrypter decrypter = cryptoService.getFileDecrypter(env);
+      CryptoService cs = CryptoServiceFactory.newInstance(conf, ClassloaderType.JAVA);
+      FileDecrypter decrypter = getFileDecrypter(cs, scope, dataIn);
 
       try (DataInputStream decrypted = new DataInputStream(decrypter.decryptStream(dataIn))) {
         String markerString = decrypted.readUTF();

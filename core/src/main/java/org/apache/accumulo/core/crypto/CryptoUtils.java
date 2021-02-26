@@ -26,7 +26,11 @@ import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.util.Objects;
 
+import org.apache.accumulo.core.cryptoImpl.CryptoEnvironmentImpl;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
+import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.commons.io.IOUtils;
 
 public class CryptoUtils {
@@ -58,6 +62,17 @@ public class CryptoUtils {
     byte[] decryptionParams = new byte[len];
     IOUtils.readFully(in, decryptionParams);
     return decryptionParams;
+  }
+
+  /**
+   * Read the decryption parameters from the DataInputStream and get the FileDecrypter associated
+   * with the provided CryptoService and CryptoEnvironment.Scope.
+   */
+  public static FileDecrypter getFileDecrypter(CryptoService cs, CryptoEnvironment.Scope scope,
+      DataInputStream in) throws IOException {
+    byte[] decryptionParams = readParams(in);
+    CryptoEnvironment decEnv = new CryptoEnvironmentImpl(scope, decryptionParams);
+    return cs.getFileDecrypter(decEnv);
   }
 
   /**
