@@ -30,19 +30,4 @@ public interface CompactionDirectives {
    * @return The service where a compaction should run.
    */
   CompactionServiceId getService();
-
-  /**
-   * @since 2.1.0
-   */
-  public static interface Builder {
-    Builder setService(CompactionServiceId service);
-
-    Builder setService(String compactionServiceId);
-
-    CompactionDirectives build();
-  }
-
-  public static Builder builder() {
-    return CompactionsDirectiveImpl.DEFAULT_BUILDER;
-  }
 }

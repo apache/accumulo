@@ -18,64 +18,28 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
-import java.util.Objects;
-
-import org.apache.accumulo.core.spi.compaction.CompactionDirectives.Builder;
-
-import com.google.common.base.Preconditions;
-
 /**
- * This class intentionally package private. This implementation is odd because it supports zero
- * object allocations for {@code CompactionDirectives.builder().build()}.
+ * This class intentionally package private. It supports one object allocation for
+ * {@code CompactionDirectives}.
  */
-class CompactionsDirectiveImpl implements Builder, CompactionDirectives {
+class CompactionsDirectiveImpl implements CompactionDirectives {
 
-  private static final CompactionDirectives DEFAULT =
-      new CompactionsDirectiveImpl().setService(CompactionServiceId.of("default")).build();
+  static final CompactionsDirectiveImpl DEFAULT =
+      new CompactionsDirectiveImpl(CompactionServiceId.of("default"));
 
-  static final Builder DEFAULT_BUILDER = new Builder() {
-    @Override
-    public Builder setService(CompactionServiceId service) {
-      return new CompactionsDirectiveImpl().setService(service);
-    }
-
-    @Override
-    public Builder setService(String compactionServiceId) {
-      return new CompactionsDirectiveImpl().setService(compactionServiceId);
-    }
-
-    @Override
-    public CompactionDirectives build() {
-      return DEFAULT;
-    }
-  };
-
-  boolean built = false;
   private CompactionServiceId service;
 
-  @Override
-  public Builder setService(CompactionServiceId service) {
-    Objects.requireNonNull(service);
-    Preconditions.checkState(!built);
+  private CompactionsDirectiveImpl(CompactionServiceId service) {
     this.service = service;
-    return this;
-  }
-
-  @Override
-  public Builder setService(String compactionServiceId) {
-    return setService(CompactionServiceId.of(compactionServiceId));
   }
 
   @Override
   public CompactionServiceId getService() {
-    Preconditions.checkState(built);
     return service;
   }
 
-  @Override
-  public CompactionDirectives build() {
-    built = true;
-    return this;
+  public void setService(String serviceStr) {
+    this.service = CompactionServiceId.of(serviceStr);
   }
 
   @Override

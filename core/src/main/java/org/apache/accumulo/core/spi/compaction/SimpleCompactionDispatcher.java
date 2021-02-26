@@ -72,19 +72,17 @@ public class SimpleCompactionDispatcher implements CompactionDispatcher {
   public void init(InitParameters params) {
     services = new EnumMap<>(CompactionKind.class);
 
-    var defaultService = CompactionDirectives.builder().build();
+    CompactionsDirectiveImpl defaultService = CompactionsDirectiveImpl.DEFAULT;
 
     if (params.getOptions().containsKey("service")) {
-      defaultService =
-          CompactionDirectives.builder().setService(params.getOptions().get("service")).build();
+      defaultService.setService(params.getOptions().get("service"));
     }
 
     for (CompactionKind ctype : CompactionKind.values()) {
       String service = params.getOptions().get("service." + ctype.name().toLowerCase());
-      if (service == null)
-        services.put(ctype, defaultService);
-      else
-        services.put(ctype, CompactionDirectives.builder().setService(service).build());
+      if (service != null)
+        defaultService.setService(service);
+      services.put(ctype, defaultService);
     }
 
     if (params.getOptions().isEmpty()) {
@@ -94,7 +92,8 @@ public class SimpleCompactionDispatcher implements CompactionDispatcher {
       params.getOptions().forEach((k, v) -> {
         if (k.startsWith("service.user.")) {
           String type = k.substring("service.user.".length());
-          tmpUS.put(type, CompactionDirectives.builder().setService(v).build());
+          defaultService.setService(v);
+          tmpUS.put(type, defaultService);
         }
       });
 
