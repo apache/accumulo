@@ -65,7 +65,7 @@ function main() {
   if [[ $cmd == "jshell" ]]; then
     shift
     if [[ -f "$jShellPath" ]]; then
-      exec "$cmd" --startup DEFAULT "$jShellPath" "$@"
+      exec "$cmd" --startup DEFAULT --startup "$jShellPath" "$@"
     else
       exec "$cmd" "$@"
     fi
