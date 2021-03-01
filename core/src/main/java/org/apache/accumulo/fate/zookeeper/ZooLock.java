@@ -348,7 +348,7 @@ public class ZooLock implements Watcher {
             renew = false;
           }
           if (renew) {
-            LOG.debug("[{}] Renewing watch on prior node  {}", vmLockPrefix, nodeToWatch);
+            LOG.trace("[{}] Renewing watch on prior node  {}", vmLockPrefix, nodeToWatch);
             try {
               Stat restat = zooKeeper.exists(nodeToWatch, this);
               if (restat == null) {
