@@ -23,8 +23,6 @@ package org.apache.accumulo.core.spi.compaction;
  * {@code CompactionDirectives}.
  */
 class CompactionDirectivesImpl implements CompactionDirectives {
-  public static final CompactionDirectives DEFAULT =
-      new CompactionDirectivesImpl(CompactionServiceId.of("default"));
 
   private final CompactionServiceId service;
 

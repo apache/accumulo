@@ -72,7 +72,7 @@ public class SimpleCompactionDispatcher implements CompactionDispatcher {
   public void init(InitParameters params) {
     services = new EnumMap<>(CompactionKind.class);
 
-    var defaultService = CompactionDirectives.builder().build();
+    var defaultService = CompactionDirectives.builder().setService("default").build();
 
     if (params.getOptions().containsKey("service")) {
       defaultService =

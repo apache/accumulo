@@ -20,7 +20,6 @@ package org.apache.accumulo.core.spi.compaction;
 
 class CompactionDirectivesBuilder implements CompactionDirectives.Builder {
 
-
   private CompactionServiceId service;
 
   @Override
