@@ -19,7 +19,7 @@
 package org.apache.accumulo.core.spi.compaction;
 
 /**
- * This class intentionally package private. It supports one object allocation for
+ * This class intentionally package private. It is immutable and provides default allocation for
  * {@code CompactionDirectives}.
  */
 class CompactionDirectivesImpl implements CompactionDirectives {
