@@ -20,7 +20,6 @@ package org.apache.accumulo.core.spi.compaction;
 
 class CompactionDirectivesBuilder implements CompactionDirectives.Builder {
 
-  static final CompactionDirectives.Builder DEFAULT_BUILDER = new CompactionDirectivesBuilder();
 
   private CompactionServiceId service;
 
