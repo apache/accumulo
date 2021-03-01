@@ -18,32 +18,27 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
-/**
- * This class intentionally package private. It supports one object allocation for
- * {@code CompactionDirectives}.
- */
-class CompactionsDirectiveImpl implements CompactionDirectives {
+class CompactionDirectivesBuilder implements CompactionDirectives.Builder {
 
-  static final CompactionsDirectiveImpl DEFAULT =
-      new CompactionsDirectiveImpl(CompactionServiceId.of("default"));
+  static final CompactionDirectives.Builder DEFAULT_BUILDER = new CompactionDirectivesBuilder();
 
   private CompactionServiceId service;
 
-  private CompactionsDirectiveImpl(CompactionServiceId service) {
+  @Override
+  public CompactionDirectives.Builder setService(CompactionServiceId service) {
     this.service = service;
+    return this;
   }
 
   @Override
-  public CompactionServiceId getService() {
-    return service;
-  }
-
-  public void setService(String serviceStr) {
-    this.service = CompactionServiceId.of(serviceStr);
+  public CompactionDirectives.Builder setService(String compactionServiceId) {
+    this.service = CompactionServiceId.of(compactionServiceId);
+    return this;
   }
 
   @Override
-  public String toString() {
-    return "service=" + service;
+  public CompactionDirectives build() {
+    return new CompactionDirectivesImpl(service);
   }
+
 }
