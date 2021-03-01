@@ -43,6 +43,6 @@ public interface CompactionDirectives {
   }
 
   public static Builder builder() {
-    return CompactionDirectivesBuilder.DEFAULT_BUILDER;
+    return new CompactionDirectivesBuilder();
   }
 }
