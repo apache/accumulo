@@ -64,7 +64,7 @@ public class ZooLockTest {
   @BeforeClass
   public static void setup() throws Exception {
     szk = new ZooKeeperTestingServer();
-    szk.initPaths("/accumulo/1234");
+    szk.initPaths("/accumulo/" + UUID.randomUUID().toString());
   }
 
   @AfterClass
