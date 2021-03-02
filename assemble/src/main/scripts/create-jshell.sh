@@ -19,51 +19,16 @@
 #
 
 function addAccumuloAPI(){
-  export srcDir="$1"
-  export jPath="$2"
-  export client="accumulo/core/client"
-  export data="accumulo/core/data"
-  export security="accumulo/core/security"
-  export mini="accumulo/minicluster"
-  export hadoop="accumulo/hadoop"
-    
-  # Does an auto-generated JShell config file exists?
-  if [[ ! -e "$jPath" ]]; then
-    echo "Cannot add APIs in $jPath"
-    echo "Please ensure jshell-init.jsh exists"
-    exit 1
-  fi
-  
-  # Is the source directory valid?
-  if [[ ! -d "$srcDir" ]]; then
-    echo "$srcDir is not a valid directory. Please make sure it exists."
-    rm "$jPath"
-    exit 1
-  fi
-  
-  # Does a valid JShell path and source directory exists?
-  if [[ -e "$jPath" ]] && [[ -d "$srcDir" ]]; then
-    # Add API category designator in jshell-init.jsh 
-    case "$srcDir" in
-        *"$client"*) echo "// Accumulo Client API" >> "$jPath";;
-        *"$data"*) echo "// Accumulo Data API" >> "$jPath";;
-        *"$security"*) echo "// Accumulo Security API" >> "$jPath";;
-        *"$mini"*) echo "// Accumulo Minicluster API" >> "$jPath";;
-        *"$hadoop"*) echo "// Accumulo Hadoop API" >> "$jPath";;
-        *) echo "// Other API" >> "$jPath";;
-    esac
-   
-    # Extract API info from provided source directory
-    mapfile -t api < <(find "$srcDir" -type f -name '*.java'| 
-                       xargs -n1 dirname| sort -u)
-   
-    # Load in API and format source directory into Java import statements
-    for apiPath in "${api[@]}"; do
-       printf "%s\n" "import ${apiPath##*/java/}.*" >> "$jPath"
-    done
-    sed -i '/^ *import / s#/#.#g' "$jPath"
-    echo " " >> "$jPath"
-  fi
+  local srcDir="$1"
+  # Extract API info from provided source directory
+  mapfile -t api < <(find "$srcDir" -type f -name '*.java' -print0|
+                     xargs -0 -n1 dirname| sort -u)
+
+  # Load in API and format source directory into Java import statements
+  for apiPath in "${api[@]}"; do
+     echo "import ${apiPath##*/java/}.*" | tr / .
+  done
+  echo
 }
 
 function main(){
@@ -74,37 +39,54 @@ function main(){
     SOURCE="$(readlink "${SOURCE}")"
     [[ "${SOURCE}" != /* ]] && SOURCE="${bin}/${SOURCE}"
   done
-    
+
   # Establish file and folder paths for JShell config
-  export scriptPath="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"; 
-  export mainBase=$( cd -P "${scriptPath}"/../../../.. && pwd );
-  export jPath="$mainBase/assemble/target/jshell-init.jsh"
-  export corePath="core/src/main/java/org/apache/accumulo/core"
-  export miniPath="minicluster/src/main/java/org/apache/accumulo"
-  export hadoopPath="hadoop-mapreduce/src/main/java/org/apache/accumulo"
-    
+  local scriptPath
+  scriptPath="$( cd -P "$( dirname "${SOURCE}" )" && pwd )"
+  local mainBase
+  mainBase="$( cd -P "${scriptPath}"/../../../.. && pwd )"
+  local jPath="$mainBase/assemble/target/jshell-init.jsh"
+  local corePath="core/src/main/java/org/apache/accumulo/core"
+  local miniPath="minicluster/src/main/java/org/apache/accumulo"
+  local hadoopPath="hadoop-mapreduce/src/main/java/org/apache/accumulo"
+
   # Create path to Accumulo Public API Source Directories
-  export CLIENT="$mainBase/$corePath/client"
-  export DATA="$mainBase/$corePath/data"
-  export SECURITY="$mainBase/$corePath/security"
-  export MINI="$mainBase/$miniPath/minicluster"
-  export HADOOP="$mainBase/$hadoopPath/hadoop/mapreduce" 
-   
-  # Does an auto-generated JShell config file exists?
-  if [[ -e "$jPath" ]]; then
-     rm "$jPath"
-  fi
-    
-  # Create new jshell-init file and load in license header   
-  touch "$jPath"
- 
-  # Create and add Accumulo APIs into API storage 
-  apiStorage=("$CLIENT" "$DATA" "$SECURITY" "$MINI" "$HADOOP")
-   
-  # Traverse through each source directory and load in Accumulo APIs
+  local CLIENT="$mainBase/$corePath/client"
+  local DATA="$mainBase/$corePath/data"
+  local SECURITY="$mainBase/$corePath/security"
+  local MINI="$mainBase/$miniPath/minicluster"
+  local HADOOP="$mainBase/$hadoopPath/hadoop/mapreduce"
+
+  # Create new jshell-init file
+  mkdir -p "$mainBase/assemble/target"
+  :> "$jPath"
+
+  # Create and add Accumulo APIs into API storage
+  local apiStorage=("$CLIENT" "$DATA" "$SECURITY" "$MINI" "$HADOOP")
+  local srcDir
+
+  # Validate each source directory before populating JShell-Init file
   for srcDir in "${apiStorage[@]}"; do
-    addAccumuloAPI "$srcDir" "$jPath"
+    if [[ ! -d "$srcDir" ]]; then
+      echo "Could not auto-generate jshell-init.jsh"
+      echo "$srcDir is not a valid directory. Please make sure it exists."
+      rm "$jPath"
+      exit 1
+    fi
   done
-  exit 0
+  echo "Generating JShell-Init file"
+  {
+    echo "System.out.println(\"Preparing JShell for Apache Accumulo\")"
+    echo "// Accumulo Client API"
+    addAccumuloAPI "${apiStorage[0]}"
+    echo "// Accumulo Data API"
+    addAccumuloAPI "${apiStorage[1]}"
+    echo "// Accumulo Security API"
+    addAccumuloAPI "${apiStorage[2]}"
+    echo "// Accumulo MiniCluster API"
+    addAccumuloAPI "${apiStorage[3]}"
+    echo "// Accumulo Hadoop API"
+    addAccumuloAPI "${apiStorage[4]}"
+  } > "$jPath"
 }
 main "$@"

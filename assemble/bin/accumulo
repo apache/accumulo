@@ -58,10 +58,9 @@ function main() {
     echo "$CLASSPATH"
     exit 0
   fi
-  
-  # Set up path variable for default import config file
-  export jShellPath="$conf/jshell-init.jsh"
-  
+
+  # Start up JShell with Accumulo
+  local jShellPath="$conf/jshell-init.jsh"
   if [[ $cmd == "jshell" ]]; then
     shift
     if [[ -f "$jShellPath" ]]; then
