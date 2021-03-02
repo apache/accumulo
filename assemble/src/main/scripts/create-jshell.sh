@@ -31,7 +31,7 @@ function addAccumuloAPI() {
 
   # Load in API and format source directory into Java import statements
   for apiPath in "${api[@]}"; do
-    echo "import ${apiPath##*/java/}.*" | tr / .
+    echo "import ${apiPath##*/java/}.*;" | tr / .
   done
   echo
 }
@@ -65,8 +65,11 @@ function main() {
     addAccumuloAPI "$mainBase/minicluster/src/main/java/org/apache/accumulo/minicluster"
     echo '// Accumulo Hadoop API'
     addAccumuloAPI "$mainBase/hadoop-mapreduce/src/main/java/org/apache/accumulo/hadoop/mapreduce"
+    echo '// Essential Hadoop API
+    echo 'import org.apache.hadoop.io.Text;'
     echo
-    echo 'System.out.println("Preparing JShell for Apache Accumulo")'
+    echo '// Initialization code'
+    echo 'System.out.println("Preparing JShell for Apache Accumulo");'
     echo
   } > "$mainBase/assemble/target/jshell-init.jsh"
 }
