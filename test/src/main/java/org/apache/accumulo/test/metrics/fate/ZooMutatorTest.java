@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.functional;
+package org.apache.accumulo.test.metrics.fate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
@@ -24,23 +24,18 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
+import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 
 import com.google.common.hash.Hashing;
 
-@Category(MiniClusterOnlyTests.class)
-public class ZooMutatorIT extends AccumuloClusterHarness {
+public class ZooMutatorTest {
   /**
    * This test uses multiple threads to update the data in a single zookeeper node using
    * {@link ZooReaderWriter#mutateOrCreate(String, byte[], org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator)}
@@ -75,66 +70,65 @@ public class ZooMutatorIT extends AccumuloClusterHarness {
    */
   @Test
   public void concurrentMutatorTest() throws Exception {
-    try (var client = Accumulo.newClient().from(getClientProps()).build();
-        var context = (ClientContext) client) {
-      String secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
 
-      ZooReaderWriter zk = new ZooReaderWriter(context.getZooKeepers(),
-          context.getZooKeepersSessionTimeOut(), secret);
+    ZooKeeperTestingServer szk = new ZooKeeperTestingServer();
+    szk.initPaths("/accumulo/" + UUID.randomUUID().toString());
+    ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 10_0000, "aPasswd");
 
-      var executor = Executors.newFixedThreadPool(16);
+    var executor = Executors.newFixedThreadPool(16);
 
-      String initialData = hash("Accumulo Zookeeper Mutator test data") + " 0";
+    String initialData = hash("Accumulo Zookeeper Mutator test data") + " 0";
 
-      List<Future<?>> futures = new ArrayList<>();
+    List<Future<?>> futures = new ArrayList<>();
 
-      // This map is used to ensure multiple threads do not successfully write the same value and no
-      // values are skipped. The hash in the value also verifies similar things in a different way.
-      ConcurrentHashMap<Integer,Integer> countCounts = new ConcurrentHashMap<>();
+    // This map is used to ensure multiple threads do not successfully write the same value and no
+    // values are skipped. The hash in the value also verifies similar things in a different way.
+    ConcurrentHashMap<Integer,Integer> countCounts = new ConcurrentHashMap<>();
 
-      for (int i = 0; i < 16; i++) {
-        futures.add(executor.submit(() -> {
-          try {
+    for (int i = 0; i < 16; i++) {
+      futures.add(executor.submit(() -> {
+        try {
 
-            int count = -1;
-            while (count < 200) {
-              byte[] val =
-                  zk.mutateOrCreate("/test-zm", initialData.getBytes(UTF_8), this::nextValue);
-              int nextCount = getCount(val);
-              assertTrue("nextCount <= count " + nextCount + " " + count, nextCount > count);
-              count = nextCount;
-              countCounts.merge(count, 1, Integer::sum);
-            }
-
-          } catch (Exception e) {
-            throw new RuntimeException(e);
+          int count = -1;
+          while (count < 200) {
+            byte[] val =
+                zk.mutateOrCreate("/test-zm", initialData.getBytes(UTF_8), this::nextValue);
+            int nextCount = getCount(val);
+            assertTrue("nextCount <= count " + nextCount + " " + count, nextCount > count);
+            count = nextCount;
+            countCounts.merge(count, 1, Integer::sum);
           }
-        }));
-      }
 
-      // wait and check for errors in background threads
-      for (Future<?> future : futures) {
-        future.get();
-      }
-      executor.shutdown();
-
-      byte[] actual = zk.getData("/test-zm");
-      int settledCount = getCount(actual);
-
-      assertTrue(settledCount >= 200);
-
-      String expected = initialData;
-
-      assertEquals(1, (int) countCounts.get(0));
-
-      for (int i = 1; i <= settledCount; i++) {
-        assertEquals(1, (int) countCounts.get(i));
-        expected = nextValue(expected);
-      }
-
-      assertEquals(settledCount + 1, countCounts.size());
-      assertEquals(expected, new String(actual, UTF_8));
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      }));
     }
+
+    // wait and check for errors in background threads
+    for (Future<?> future : futures) {
+      future.get();
+    }
+    executor.shutdown();
+
+    byte[] actual = zk.getData("/test-zm");
+    int settledCount = getCount(actual);
+
+    assertTrue(settledCount >= 200);
+
+    String expected = initialData;
+
+    assertEquals(1, (int) countCounts.get(0));
+
+    for (int i = 1; i <= settledCount; i++) {
+      assertEquals(1, (int) countCounts.get(i));
+      expected = nextValue(expected);
+    }
+
+    assertEquals(settledCount + 1, countCounts.size());
+    assertEquals(expected, new String(actual, UTF_8));
+
+    szk.close();
   }
 
   private String hash(String data) {
