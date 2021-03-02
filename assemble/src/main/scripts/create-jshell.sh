@@ -65,7 +65,7 @@ function main() {
     addAccumuloAPI "$mainBase/minicluster/src/main/java/org/apache/accumulo/minicluster"
     echo '// Accumulo Hadoop API'
     addAccumuloAPI "$mainBase/hadoop-mapreduce/src/main/java/org/apache/accumulo/hadoop/mapreduce"
-    echo '// Essential Hadoop API
+    echo '// Essential Hadoop API'
     echo 'import org.apache.hadoop.io.Text;'
     echo
     echo '// Initialization code'
