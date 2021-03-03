@@ -71,64 +71,63 @@ public class ZooMutatorTest {
   @Test
   public void concurrentMutatorTest() throws Exception {
 
-    ZooKeeperTestingServer szk = new ZooKeeperTestingServer();
-    szk.initPaths("/accumulo/" + UUID.randomUUID().toString());
-    ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 10_0000, "aPasswd");
+    try (ZooKeeperTestingServer szk = new ZooKeeperTestingServer();) {
+      szk.initPaths("/accumulo/" + UUID.randomUUID().toString());
+      ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 10_0000, "aPasswd");
 
-    var executor = Executors.newFixedThreadPool(16);
+      var executor = Executors.newFixedThreadPool(16);
 
-    String initialData = hash("Accumulo Zookeeper Mutator test data") + " 0";
+      String initialData = hash("Accumulo Zookeeper Mutator test data") + " 0";
 
-    List<Future<?>> futures = new ArrayList<>();
+      List<Future<?>> futures = new ArrayList<>();
 
-    // This map is used to ensure multiple threads do not successfully write the same value and no
-    // values are skipped. The hash in the value also verifies similar things in a different way.
-    ConcurrentHashMap<Integer,Integer> countCounts = new ConcurrentHashMap<>();
+      // This map is used to ensure multiple threads do not successfully write the same value and no
+      // values are skipped. The hash in the value also verifies similar things in a different way.
+      ConcurrentHashMap<Integer,Integer> countCounts = new ConcurrentHashMap<>();
 
-    for (int i = 0; i < 16; i++) {
-      futures.add(executor.submit(() -> {
-        try {
+      for (int i = 0; i < 16; i++) {
+        futures.add(executor.submit(() -> {
+          try {
 
-          int count = -1;
-          while (count < 200) {
-            byte[] val =
-                zk.mutateOrCreate("/test-zm", initialData.getBytes(UTF_8), this::nextValue);
-            int nextCount = getCount(val);
-            assertTrue("nextCount <= count " + nextCount + " " + count, nextCount > count);
-            count = nextCount;
-            countCounts.merge(count, 1, Integer::sum);
+            int count = -1;
+            while (count < 200) {
+              byte[] val =
+                  zk.mutateOrCreate("/test-zm", initialData.getBytes(UTF_8), this::nextValue);
+              int nextCount = getCount(val);
+              assertTrue("nextCount <= count " + nextCount + " " + count, nextCount > count);
+              count = nextCount;
+              countCounts.merge(count, 1, Integer::sum);
+            }
+
+          } catch (Exception e) {
+            throw new RuntimeException(e);
           }
+        }));
+      }
 
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-      }));
+      // wait and check for errors in background threads
+      for (Future<?> future : futures) {
+        future.get();
+      }
+      executor.shutdown();
+
+      byte[] actual = zk.getData("/test-zm");
+      int settledCount = getCount(actual);
+
+      assertTrue(settledCount >= 200);
+
+      String expected = initialData;
+
+      assertEquals(1, (int) countCounts.get(0));
+
+      for (int i = 1; i <= settledCount; i++) {
+        assertEquals(1, (int) countCounts.get(i));
+        expected = nextValue(expected);
+      }
+
+      assertEquals(settledCount + 1, countCounts.size());
+      assertEquals(expected, new String(actual, UTF_8));
     }
-
-    // wait and check for errors in background threads
-    for (Future<?> future : futures) {
-      future.get();
-    }
-    executor.shutdown();
-
-    byte[] actual = zk.getData("/test-zm");
-    int settledCount = getCount(actual);
-
-    assertTrue(settledCount >= 200);
-
-    String expected = initialData;
-
-    assertEquals(1, (int) countCounts.get(0));
-
-    for (int i = 1; i <= settledCount; i++) {
-      assertEquals(1, (int) countCounts.get(i));
-      expected = nextValue(expected);
-    }
-
-    assertEquals(settledCount + 1, countCounts.size());
-    assertEquals(expected, new String(actual, UTF_8));
-
-    szk.close();
   }
 
   private String hash(String data) {
