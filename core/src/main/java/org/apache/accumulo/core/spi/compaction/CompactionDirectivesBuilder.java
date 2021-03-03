@@ -25,7 +25,7 @@ class CompactionDirectivesBuilder
 
   @Override
   public CompactionDirectives.Builder setService(CompactionServiceId service) {
-    this.service = service;
+    this.service = Objects.requireNonNull(service);
     return this;
   }
 
