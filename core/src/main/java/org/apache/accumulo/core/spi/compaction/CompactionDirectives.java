@@ -37,9 +37,9 @@ public interface CompactionDirectives {
    * @since 2.1.0
    */
   interface ServiceBuilder {
-    Builder setService(CompactionServiceId service);
+    Builder toService(CompactionServiceId service);
 
-    Builder setService(String compactionServiceId);
+    Builder toService(String compactionServiceId);
   }
 
   /**

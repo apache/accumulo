@@ -18,19 +18,24 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
+import java.util.Objects;
+
+/**
+ * This class intentionally package private.
+ */
 class CompactionDirectivesBuilder
     implements CompactionDirectives.Builder, CompactionDirectives.ServiceBuilder {
 
   private CompactionServiceId service;
 
   @Override
-  public CompactionDirectives.Builder setService(CompactionServiceId service) {
-    this.service = Objects.requireNonNull(service);
+  public CompactionDirectives.Builder toService(CompactionServiceId service) {
+    this.service = Objects.requireNonNull(service, "CompactionServiceId cannot be null");
     return this;
   }
 
   @Override
-  public CompactionDirectives.Builder setService(String compactionServiceId) {
+  public CompactionDirectives.Builder toService(String compactionServiceId) {
     this.service = CompactionServiceId.of(compactionServiceId);
     return this;
   }
