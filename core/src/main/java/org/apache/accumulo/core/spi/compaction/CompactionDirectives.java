@@ -32,17 +32,24 @@ public interface CompactionDirectives {
   CompactionServiceId getService();
 
   /**
+   * Required for CompactionDirectives
+   *
    * @since 2.1.0
    */
-  public static interface Builder {
+  interface ServiceBuilder {
     Builder setService(CompactionServiceId service);
 
     Builder setService(String compactionServiceId);
+  }
 
+  /**
+   * @since 2.1.0
+   */
+  interface Builder {
     CompactionDirectives build();
   }
 
-  public static Builder builder() {
+  static ServiceBuilder builder() {
     return new CompactionDirectivesBuilder();
   }
 }

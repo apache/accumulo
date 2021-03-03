@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
-class CompactionDirectivesBuilder implements CompactionDirectives.Builder {
+class CompactionDirectivesBuilder
+    implements CompactionDirectives.Builder, CompactionDirectives.ServiceBuilder {
 
   private CompactionServiceId service;
 
