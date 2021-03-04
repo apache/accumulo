@@ -34,6 +34,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
@@ -43,6 +44,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,12 +53,13 @@ import org.slf4j.LoggerFactory;
  * zookeeper server is used an the FATE repos are stubs, but this should represent the metrics
  * collection execution without needed to stand up a mini cluster to exercise these execution paths.
  */
-public class FateMetricsTest {
+@Category({ZooKeeperTestingServerTests.class})
+public class FateMetricsIT {
 
   public static final String INSTANCE_ID = "1234";
   public static final String MOCK_ZK_ROOT = "/accumulo/" + INSTANCE_ID;
   public static final String A_FAKE_SECRET = "aPasswd";
-  private static final Logger log = LoggerFactory.getLogger(FateMetricsTest.class);
+  private static final Logger log = LoggerFactory.getLogger(FateMetricsIT.class);
   private static ZooKeeperTestingServer szk = null;
   private static ZooReaderWriter zooReaderWriter;
   private ZooStore<Manager> zooStore = null;
