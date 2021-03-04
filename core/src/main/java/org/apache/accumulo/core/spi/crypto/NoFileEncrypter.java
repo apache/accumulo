@@ -16,33 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.cryptoImpl;
+package org.apache.accumulo.core.spi.crypto;
 
-import java.util.Map;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
-import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
-import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.spi.crypto.FileDecrypter;
-import org.apache.accumulo.core.spi.crypto.FileEncrypter;
+import java.io.OutputStream;
 
-/**
- * The default encryption strategy which does nothing.
- */
-public class NoCryptoService implements CryptoService {
-  public static final String VERSION = "U+1F47B"; // unicode ghost emoji
+public class NoFileEncrypter implements FileEncrypter {
 
   @Override
-  public void init(Map<String,String> conf) throws CryptoException {
-    // do nothing
+  public OutputStream encryptStream(OutputStream outputStream)
+      throws CryptoService.CryptoException {
+    return outputStream;
   }
 
   @Override
-  public FileEncrypter getFileEncrypter(CryptoEnvironment environment) {
-    return new NoFileEncrypter();
-  }
-
-  @Override
-  public FileDecrypter getFileDecrypter(CryptoEnvironment environment) {
-    return new NoFileDecrypter();
+  public byte[] getDecryptionParameters() {
+    return NoCryptoService.VERSION.getBytes(UTF_8);
   }
 }
