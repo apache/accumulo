@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
  * Uses Apache Curator to create a running zookeeper server for internal tests. The zookeeper port
  * is randomly assigned in case multiple instances are created by concurrent tests.
  */
-public class ZooKeeperTestingServer {
+public class ZooKeeperTestingServer implements AutoCloseable {
 
   private static final Logger log = LoggerFactory.getLogger(ZooKeeperTestingServer.class);
 
@@ -137,6 +137,7 @@ public class ZooKeeperTestingServer {
     }
   }
 
+  @Override
   public void close() throws IOException {
     if (zkServer != null) {
       zkServer.stop();

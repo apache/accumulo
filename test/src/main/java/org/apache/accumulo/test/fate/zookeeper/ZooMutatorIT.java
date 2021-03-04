@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.functional;
+package org.apache.accumulo.test.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
@@ -24,33 +24,31 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
+import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
+import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
 import com.google.common.hash.Hashing;
 
-@Category(MiniClusterOnlyTests.class)
-public class ZooMutatorIT extends AccumuloClusterHarness {
+@Category({ZooKeeperTestingServerTests.class})
+public class ZooMutatorIT {
   /**
    * This test uses multiple threads to update the data in a single zookeeper node using
-   * {@link ZooReaderWriter#mutateOrCreate(String, byte[], org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator)}
-   * and tries to detect errors and race conditions in that code. Each thread uses
-   * {@link #nextValue(String)} to compute a new value for the ZK node based on the current value,
-   * producing a new unique value. Its expected that multiple threads calling
-   * {@link #nextValue(String)} as previously described should yield the same final value as a
-   * single thread repeatedly calling {@link #nextValue(String)} the same number of times. There are
-   * many things that can go wrong in the multithreaded case. This test tries to ensure the
-   * following are true for the multithreaded case.
+   * {@link ZooReaderWriter#mutateOrCreate(String, byte[], ZooReaderWriter.Mutator)} and tries to
+   * detect errors and race conditions in that code. Each thread uses {@link #nextValue(String)} to
+   * compute a new value for the ZK node based on the current value, producing a new unique value.
+   * Its expected that multiple threads calling {@link #nextValue(String)} as previously described
+   * should yield the same final value as a single thread repeatedly calling
+   * {@link #nextValue(String)} the same number of times. There are many things that can go wrong in
+   * the multithreaded case. This test tries to ensure the following are true for the multithreaded
+   * case.
    *
    * <ul>
    * <li>All expected updates are made, none were skipped.
@@ -75,12 +73,10 @@ public class ZooMutatorIT extends AccumuloClusterHarness {
    */
   @Test
   public void concurrentMutatorTest() throws Exception {
-    try (var client = Accumulo.newClient().from(getClientProps()).build();
-        var context = (ClientContext) client) {
-      String secret = cluster.getSiteConfiguration().get(Property.INSTANCE_SECRET);
 
-      ZooReaderWriter zk = new ZooReaderWriter(context.getZooKeepers(),
-          context.getZooKeepersSessionTimeOut(), secret);
+    try (ZooKeeperTestingServer szk = new ZooKeeperTestingServer()) {
+      szk.initPaths("/accumulo/" + UUID.randomUUID().toString());
+      ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 10_0000, "aPasswd");
 
       var executor = Executors.newFixedThreadPool(16);
 
