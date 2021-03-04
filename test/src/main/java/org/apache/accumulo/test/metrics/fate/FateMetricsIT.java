@@ -61,7 +61,6 @@ public class FateMetricsIT {
   public static final String A_FAKE_SECRET = "aPasswd";
   private static final Logger log = LoggerFactory.getLogger(FateMetricsIT.class);
   private static ZooKeeperTestingServer szk = null;
-  private static ZooReaderWriter zooReaderWriter;
   private ZooStore<Manager> zooStore = null;
   private ZooKeeper zookeeper = null;
   private ServerContext context = null;
@@ -90,7 +89,7 @@ public class FateMetricsIT {
   @Before
   public void init() throws Exception {
 
-    zooReaderWriter = new ZooReaderWriter(szk.getConn(), 10_0000, "aPasswd");
+    ZooReaderWriter zooReaderWriter = new ZooReaderWriter(szk.getConn(), 10_0000, A_FAKE_SECRET);
     zookeeper = zooReaderWriter.getZooKeeper();
 
     clear(MOCK_ZK_ROOT);
@@ -182,7 +181,7 @@ public class FateMetricsIT {
   /**
    * Seeds the zoo store with a "fake" repo operation with a step, and sets the prop_debug field.
    * This emulates the actions performed with {@link org.apache.accumulo.fate.Fate} for what is
-   * expected in zookeeeper / the zoo store for an IN_PROGRESS transaction.
+   * expected in zookeeper / the zoo store for an IN_PROGRESS transaction.
    *
    * @throws Exception
    *           any exception is a test failure.
