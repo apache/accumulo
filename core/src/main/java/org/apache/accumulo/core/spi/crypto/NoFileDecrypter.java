@@ -16,12 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.cryptoImpl;
+package org.apache.accumulo.core.spi.crypto;
 
 import java.io.InputStream;
-
-import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 
 public class NoFileDecrypter implements FileDecrypter {
   @Override

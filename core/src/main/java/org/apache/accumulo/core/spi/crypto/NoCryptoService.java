@@ -16,31 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.cryptoImpl;
+package org.apache.accumulo.core.spi.crypto;
 
-import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+import java.util.Map;
 
 /**
- * @since 2.0
+ * The default encryption strategy which does nothing.
  */
-public class CryptoEnvironmentImpl implements CryptoEnvironment {
+public class NoCryptoService implements CryptoService {
+  public static final String VERSION = "U+1F47B"; // unicode ghost emoji
 
-  private Scope scope;
-  private byte[] decryptionParams;
-
-  public CryptoEnvironmentImpl(Scope scope, byte[] decryptionParams) {
-    this.scope = scope;
-    this.decryptionParams = decryptionParams;
+  @Override
+  public void init(Map<String,String> conf) throws CryptoException {
+    // do nothing
   }
 
   @Override
-  public Scope getScope() {
-    return this.scope;
+  public FileEncrypter getFileEncrypter(CryptoEnvironment environment) {
+    return new NoFileEncrypter();
   }
 
   @Override
-  public byte[] getDecryptionParams() {
-    return decryptionParams;
+  public FileDecrypter getFileDecrypter(CryptoEnvironment environment) {
+    return new NoFileDecrypter();
   }
-
 }

@@ -16,25 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.cryptoImpl;
+package org.apache.accumulo.core.crypto;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 
-import java.io.OutputStream;
+/**
+ * @since 2.0
+ */
+public class CryptoEnvironmentImpl implements CryptoEnvironment {
 
-import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.spi.crypto.FileEncrypter;
+  private Scope scope;
+  private byte[] decryptionParams;
 
-public class NoFileEncrypter implements FileEncrypter {
-
-  @Override
-  public OutputStream encryptStream(OutputStream outputStream)
-      throws CryptoService.CryptoException {
-    return outputStream;
+  public CryptoEnvironmentImpl(Scope scope, byte[] decryptionParams) {
+    this.scope = scope;
+    this.decryptionParams = decryptionParams;
   }
 
   @Override
-  public byte[] getDecryptionParameters() {
-    return NoCryptoService.VERSION.getBytes(UTF_8);
+  public Scope getScope() {
+    return this.scope;
   }
+
+  @Override
+  public byte[] getDecryptionParams() {
+    return decryptionParams;
+  }
+
 }
