@@ -42,7 +42,7 @@ import com.google.common.base.Preconditions;
  *
  * @since 1.5.0
  */
-public class MiniAccumuloCluster {
+public class MiniAccumuloCluster implements AutoCloseable {
 
   private MiniAccumuloClusterImpl impl;
 
@@ -107,6 +107,14 @@ public class MiniAccumuloCluster {
    */
   public void stop() throws IOException, InterruptedException {
     impl.stop();
+  }
+
+  /**
+   * @since 2.0.1
+   */
+  @Override
+  public void close() throws IOException, InterruptedException {
+    this.stop();
   }
 
   /**
