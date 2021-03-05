@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 
 import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock.QueueLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -32,7 +33,7 @@ import org.apache.zookeeper.KeeperException.NotEmptyException;
 
 public class ZooQueueLock implements QueueLock {
 
-  private static final String PREFIX = "lock-";
+  private static final String PREFIX = "zlock#" + UUID.randomUUID() + "#";
 
   private ZooReaderWriter zoo;
   private String path;
