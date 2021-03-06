@@ -41,7 +41,7 @@ public class CertUtilsTest {
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   private CertUtils getUtils() {
-    return new CertUtils(KEYSTORE_TYPE, RDN_STRING, "RSA", 2048, "sha1WithRSAEncryption");
+    return new CertUtils(KEYSTORE_TYPE, RDN_STRING, "RSA", 4096, "SHA512WITHRSA");
   }
 
   @Test
