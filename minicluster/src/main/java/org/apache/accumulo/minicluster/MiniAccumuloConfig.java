@@ -99,6 +99,21 @@ public class MiniAccumuloConfig {
   }
 
   /**
+   * Configure an existing ZooKeeper instance to use. Calling this method is optional. If not set, a
+   * new ZooKeeper instance is created.
+   *
+   * @param existingZooKeepers
+   *          Connection string for a already-running ZooKeeper instance. A null value will turn off
+   *          this feature.
+   *
+   * @since 2.1.0
+   */
+  public MiniAccumuloConfig setExistingZooKeepers(String existingZooKeepers) {
+    impl.setExistingZooKeepers(existingZooKeepers);
+    return this;
+  }
+
+  /**
    * Configure the time to wait for ZooKeeper to startup. Calling this method is optional. The
    * default is 20000 milliseconds
    *
