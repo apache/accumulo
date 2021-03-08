@@ -113,8 +113,13 @@ public class MiniAccumuloCluster implements AutoCloseable {
    * @since 2.0.1
    */
   @Override
-  public void close() throws IOException, InterruptedException {
-    this.stop();
+  public void close() throws IOException {
+    try {
+      this.stop();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
+    }
   }
 
   /**
