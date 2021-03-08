@@ -106,7 +106,7 @@ public class MiniAccumuloConfig {
    *          Connection string for a already-running ZooKeeper instance. A null value will turn off
    *          this feature.
    *
-   * @since 2.0.1
+   * @since 2.1.0
    */
   public MiniAccumuloConfig setExistingZooKeepers(String existingZooKeepers) {
     impl.setExistingZooKeepers(existingZooKeepers);
