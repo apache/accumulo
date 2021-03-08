@@ -87,5 +87,5 @@ public interface CompactionDispatcher {
   /**
    * Accumulo calls this method for compactions to determine what service to use.
    */
-  CompactionDirectives dispatch(DispatchParameters params);
+  CompactionDispatch dispatch(DispatchParameters params);
 }

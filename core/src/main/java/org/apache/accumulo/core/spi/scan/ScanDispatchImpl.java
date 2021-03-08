@@ -20,17 +20,17 @@ package org.apache.accumulo.core.spi.scan;
 
 import java.util.Objects;
 
-import org.apache.accumulo.core.spi.scan.ScanDirectives.Builder;
+import org.apache.accumulo.core.spi.scan.ScanDispatch.Builder;
 
 import com.google.common.base.Preconditions;
 
 /**
  * This class is intentionally package private. Do not make public!
  */
-class ScanDirectivesImpl implements ScanDirectives, Builder {
+class ScanDispatchImpl implements ScanDispatch, Builder {
 
-  // The purpose of this is to allow building an immutable ScanDirectives object without creating
-  // separate Builder and ScanDirectives objects. This is done to reduce object creation and
+  // The purpose of this is to allow building an immutable ScanDispatch object without creating
+  // separate Builder and ScanDispatch objects. This is done to reduce object creation and
   // copying. This could easily be changed to two objects without changing the interfaces.
   private boolean built = false;
 
@@ -38,7 +38,7 @@ class ScanDirectivesImpl implements ScanDirectives, Builder {
   private CacheUsage indexCacheUsage;
   private CacheUsage dataCacheUsage;
 
-  ScanDirectivesImpl() {
+  ScanDispatchImpl() {
     executorName = SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME;
     indexCacheUsage = CacheUsage.TABLE;
     dataCacheUsage = CacheUsage.TABLE;
@@ -58,7 +58,7 @@ class ScanDirectivesImpl implements ScanDirectives, Builder {
   }
 
   @Override
-  public ScanDirectives build() {
+  public ScanDispatch build() {
     Preconditions.checkState(!built);
     built = true;
     return this;

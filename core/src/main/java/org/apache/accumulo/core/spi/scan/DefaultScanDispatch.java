@@ -23,34 +23,33 @@ package org.apache.accumulo.core.spi.scan;
  *
  * <p>
  * The purpose of this class is to avoid any object creation in the case where
- * {@code ScanDirectives.builder().build()} is called.
+ * {@code ScanDispatch.builder().build()} is called.
  */
-class DefaultScanDirectives extends ScanDirectivesImpl {
+class DefaultScanDispatch extends ScanDispatchImpl {
 
-  static DefaultScanDirectives DEFAULT_SCAN_DIRECTIVES = new DefaultScanDirectives();
+  static DefaultScanDispatch DEFAULT_SCAN_DISPATCH = new DefaultScanDispatch();
 
-  private DefaultScanDirectives() {
-    super();
+  private DefaultScanDispatch() {
     super.build();
   }
 
   @Override
   public Builder setExecutorName(String name) {
-    return new ScanDirectivesImpl().setExecutorName(name);
+    return new ScanDispatchImpl().setExecutorName(name);
   }
 
   @Override
   public Builder setIndexCacheUsage(CacheUsage usage) {
-    return new ScanDirectivesImpl().setIndexCacheUsage(usage);
+    return new ScanDispatchImpl().setIndexCacheUsage(usage);
   }
 
   @Override
   public Builder setDataCacheUsage(CacheUsage usage) {
-    return new ScanDirectivesImpl().setDataCacheUsage(usage);
+    return new ScanDispatchImpl().setDataCacheUsage(usage);
   }
 
   @Override
-  public ScanDirectives build() {
+  public ScanDispatch build() {
     return this;
   }
 }

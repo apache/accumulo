@@ -65,18 +65,18 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 
 public class SimpleCompactionDispatcher implements CompactionDispatcher {
 
-  private Map<CompactionKind,CompactionDirectives> services;
-  private Map<String,CompactionDirectives> userServices;
+  private Map<CompactionKind,CompactionDispatch> services;
+  private Map<String,CompactionDispatch> userServices;
 
   @Override
   public void init(InitParameters params) {
     services = new EnumMap<>(CompactionKind.class);
 
-    var defaultService = CompactionDirectives.builder().toService("default").build();
+    var defaultService = CompactionDispatch.builder().toService("default").build();
 
     if (params.getOptions().containsKey("service")) {
       defaultService =
-          CompactionDirectives.builder().toService(params.getOptions().get("service")).build();
+          CompactionDispatch.builder().toService(params.getOptions().get("service")).build();
     }
 
     for (CompactionKind ctype : CompactionKind.values()) {
@@ -84,17 +84,17 @@ public class SimpleCompactionDispatcher implements CompactionDispatcher {
       if (service == null)
         services.put(ctype, defaultService);
       else
-        services.put(ctype, CompactionDirectives.builder().toService(service).build());
+        services.put(ctype, CompactionDispatch.builder().toService(service).build());
     }
 
     if (params.getOptions().isEmpty()) {
       userServices = Map.of();
     } else {
-      Map<String,CompactionDirectives> tmpUS = new HashMap<>();
+      Map<String,CompactionDispatch> tmpUS = new HashMap<>();
       params.getOptions().forEach((k, v) -> {
         if (k.startsWith("service.user.")) {
           String type = k.substring("service.user.".length());
-          tmpUS.put(type, CompactionDirectives.builder().toService(v).build());
+          tmpUS.put(type, CompactionDispatch.builder().toService(v).build());
         }
       });
 
@@ -103,14 +103,14 @@ public class SimpleCompactionDispatcher implements CompactionDispatcher {
   }
 
   @Override
-  public CompactionDirectives dispatch(DispatchParameters params) {
+  public CompactionDispatch dispatch(DispatchParameters params) {
 
     if (params.getCompactionKind() == CompactionKind.USER) {
       String hintType = params.getExecutionHints().get("compaction_type");
       if (hintType != null) {
-        var userDirectives = userServices.get(hintType);
-        if (userDirectives != null) {
-          return userDirectives;
+        var userDispatch = userServices.get(hintType);
+        if (userDispatch != null) {
+          return userDispatch;
         }
       }
     }

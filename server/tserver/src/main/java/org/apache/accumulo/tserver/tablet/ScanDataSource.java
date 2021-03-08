@@ -141,8 +141,7 @@ class ScanDataSource implements DataSource {
 
       // only acquire the file manager when we know the tablet is open
       if (fileManager == null) {
-        fileManager =
-            tablet.getTabletResources().newScanFileManager(scanParams.getScanDirectives());
+        fileManager = tablet.getTabletResources().newScanFileManager(scanParams.getScanDispatch());
         tablet.addActiveScans(this);
       }
 
