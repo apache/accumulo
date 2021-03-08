@@ -21,8 +21,8 @@ package org.apache.accumulo.core.crypto;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.cryptoImpl.NoCryptoService;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.NoCryptoService;
 
 public class CryptoServiceFactory {
 

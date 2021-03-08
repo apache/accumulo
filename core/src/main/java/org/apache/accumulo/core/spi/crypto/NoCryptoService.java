@@ -16,14 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.cryptoImpl;
+package org.apache.accumulo.core.spi.crypto;
 
 import java.util.Map;
-
-import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
-import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.spi.crypto.FileDecrypter;
-import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 
 /**
  * The default encryption strategy which does nothing.

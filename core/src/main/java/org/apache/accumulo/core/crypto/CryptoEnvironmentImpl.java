@@ -16,16 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.cryptoImpl;
+package org.apache.accumulo.core.crypto;
 
-import java.io.InputStream;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 
-import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.spi.crypto.FileDecrypter;
+/**
+ * @since 2.0
+ */
+public class CryptoEnvironmentImpl implements CryptoEnvironment {
 
-public class NoFileDecrypter implements FileDecrypter {
-  @Override
-  public InputStream decryptStream(InputStream inputStream) throws CryptoService.CryptoException {
-    return inputStream;
+  private Scope scope;
+  private byte[] decryptionParams;
+
+  public CryptoEnvironmentImpl(Scope scope, byte[] decryptionParams) {
+    this.scope = scope;
+    this.decryptionParams = decryptionParams;
   }
+
+  @Override
+  public Scope getScope() {
+    return this.scope;
+  }
+
+  @Override
+  public byte[] getDecryptionParams() {
+    return decryptionParams;
+  }
+
 }

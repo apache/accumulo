@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.cryptoImpl;
+package org.apache.accumulo.core.spi.crypto;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -27,6 +27,10 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -40,19 +44,17 @@ import java.util.Objects;
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.crypto.streams.BlockedInputStream;
 import org.apache.accumulo.core.crypto.streams.BlockedOutputStream;
 import org.apache.accumulo.core.crypto.streams.DiscardCloseOutputStream;
 import org.apache.accumulo.core.crypto.streams.RFileCipherOutputStream;
-import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
-import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.spi.crypto.FileDecrypter;
-import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 import org.apache.commons.io.IOUtils;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -65,6 +67,8 @@ public class AESCryptoService implements CryptoService {
   // Hard coded NoCryptoService.VERSION - this permits the removal of NoCryptoService from the
   // core jar, allowing use of only one crypto service
   private static final String NO_CRYPTO_VERSION = "U+1F47B";
+  public static final String URI = "uri";
+  public static final String KEY_WRAP_TRANSFORM = "AESWrap";
 
   private Key encryptingKek = null;
   private String keyLocation = null;
@@ -83,10 +87,10 @@ public class AESCryptoService implements CryptoService {
     this.sr = CryptoUtils.newSha1SecureRandom();
     this.decryptingKeys = new HashMap<>();
     switch (keyMgr) {
-      case AESKeyUtils.URI:
+      case URI:
         this.keyManager = keyMgr;
         this.keyLocation = keyLocation;
-        this.encryptingKek = AESKeyUtils.loadKekFromUri(keyLocation);
+        this.encryptingKek = loadKekFromUri(keyLocation);
         break;
       default:
         throw new CryptoException("Unrecognized key manager");
@@ -121,7 +125,7 @@ public class AESCryptoService implements CryptoService {
 
     ParsedCryptoParameters parsed = parseCryptoParameters(decryptionParams);
     Key kek = loadDecryptionKek(parsed);
-    Key fek = AESKeyUtils.unwrapKey(parsed.getEncFek(), kek);
+    Key fek = unwrapKey(parsed.getEncFek(), kek);
     switch (parsed.getCryptoServiceVersion()) {
       case AESCBCCryptoModule.VERSION:
         cm = new AESCBCCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
@@ -195,7 +199,7 @@ public class AESCryptoService implements CryptoService {
       params.writeUTF(version);
       params.writeUTF(encryptingKeyManager);
       params.writeUTF(encryptingKekId);
-      byte[] wrappedFek = AESKeyUtils.wrapKey(fek, encryptingKek);
+      byte[] wrappedFek = wrapKey(fek, encryptingKek);
       params.writeInt(wrappedFek.length);
       params.write(wrappedFek);
 
@@ -234,8 +238,8 @@ public class AESCryptoService implements CryptoService {
     }
 
     switch (params.keyManagerVersion) {
-      case AESKeyUtils.URI:
-        ret = AESKeyUtils.loadKekFromUri(params.kekId);
+      case URI:
+        ret = loadKekFromUri(params.kekId);
         break;
       default:
         throw new CryptoException("Unable to load kek: " + params.kekId);
@@ -296,7 +300,7 @@ public class AESCryptoService implements CryptoService {
       private final byte[] initVector = new byte[GCM_IV_LENGTH_IN_BYTES];
 
       AESGCMFileEncrypter() {
-        this.fek = AESKeyUtils.generateKey(sr, KEY_LENGTH_IN_BYTES);
+        this.fek = generateKey(sr, KEY_LENGTH_IN_BYTES);
         sr.nextBytes(this.initVector);
         this.firstInitVector = Arrays.copyOf(this.initVector, this.initVector.length);
       }
@@ -429,7 +433,7 @@ public class AESCryptoService implements CryptoService {
     @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is provided for WALs")
     public class AESCBCFileEncrypter implements FileEncrypter {
 
-      private Key fek = AESKeyUtils.generateKey(sr, KEY_LENGTH_IN_BYTES);
+      private Key fek = generateKey(sr, KEY_LENGTH_IN_BYTES);
       private byte[] initVector = new byte[IV_LENGTH_IN_BYTES];
 
       @Override
@@ -491,5 +495,56 @@ public class AESCryptoService implements CryptoService {
         return new BlockedInputStream(cis, cipher.getBlockSize(), 1024);
       }
     }
+  }
+
+  public static Key generateKey(SecureRandom sr, int size) {
+    byte[] bytes = new byte[size];
+    sr.nextBytes(bytes);
+    return new SecretKeySpec(bytes, "AES");
+  }
+
+  @SuppressFBWarnings(value = "CIPHER_INTEGRITY",
+      justification = "integrity not needed for key wrap")
+  public static Key unwrapKey(byte[] fek, Key kek) {
+    Key result = null;
+    try {
+      Cipher c = Cipher.getInstance(KEY_WRAP_TRANSFORM);
+      c.init(Cipher.UNWRAP_MODE, kek);
+      result = c.unwrap(fek, "AES", Cipher.SECRET_KEY);
+    } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException e) {
+      throw new CryptoException("Unable to unwrap file encryption key", e);
+    }
+    return result;
+  }
+
+  @SuppressFBWarnings(value = "CIPHER_INTEGRITY",
+      justification = "integrity not needed for key wrap")
+  public static byte[] wrapKey(Key fek, Key kek) {
+    byte[] result = null;
+    try {
+      Cipher c = Cipher.getInstance(KEY_WRAP_TRANSFORM);
+      c.init(Cipher.WRAP_MODE, kek);
+      result = c.wrap(fek);
+    } catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException
+        | IllegalBlockSizeException e) {
+      throw new CryptoException("Unable to wrap file encryption key", e);
+    }
+
+    return result;
+  }
+
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "keyId specified by admin")
+  public static Key loadKekFromUri(String keyId) {
+    java.net.URI uri;
+    SecretKeySpec key = null;
+    try {
+      uri = new URI(keyId);
+      key = new SecretKeySpec(Files.readAllBytes(Paths.get(uri.getPath())), "AES");
+    } catch (URISyntaxException | IOException | IllegalArgumentException e) {
+      throw new CryptoException("Unable to load key encryption key.", e);
+    }
+
+    return key;
+
   }
 }

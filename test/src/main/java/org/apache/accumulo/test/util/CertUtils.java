@@ -117,14 +117,14 @@ public class CertUtils {
     public String accumuloPropsFile = null;
 
     @Parameter(names = "--signing-algorithm", description = "Algorithm used to sign certificates")
-    public String signingAlg = "SHA256WITHRSA";
+    public String signingAlg = "SHA512WITHRSA";
 
     @Parameter(names = "--encryption-algorithm",
         description = "Algorithm used to encrypt private keys")
     public String encryptionAlg = "RSA";
 
     @Parameter(names = "--keysize", description = "Key size used by encryption algorithm")
-    public int keysize = 2048;
+    public int keysize = 4096;
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
     public SiteConfiguration getSiteConfiguration() {

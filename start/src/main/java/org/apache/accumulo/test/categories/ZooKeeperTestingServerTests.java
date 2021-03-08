@@ -16,31 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.cryptoImpl;
-
-import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+package org.apache.accumulo.test.categories;
 
 /**
- * @since 2.0
+ * Interface to be used with JUnit Category annotation to denote that the IntegrationTest requires
+ * the use of a ZooKeeperTestingServer.
  */
-public class CryptoEnvironmentImpl implements CryptoEnvironment {
-
-  private Scope scope;
-  private byte[] decryptionParams;
-
-  public CryptoEnvironmentImpl(Scope scope, byte[] decryptionParams) {
-    this.scope = scope;
-    this.decryptionParams = decryptionParams;
-  }
-
-  @Override
-  public Scope getScope() {
-    return this.scope;
-  }
-
-  @Override
-  public byte[] getDecryptionParams() {
-    return decryptionParams;
-  }
-
-}
+public interface ZooKeeperTestingServerTests {}

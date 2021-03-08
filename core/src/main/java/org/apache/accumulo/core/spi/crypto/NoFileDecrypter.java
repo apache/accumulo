@@ -16,40 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.spi.compaction;
+package org.apache.accumulo.core.spi.crypto;
 
-/**
- * The directions of a {@link CompactionDispatcher}
- *
- * @since 2.1.0
- * @see org.apache.accumulo.core.spi.compaction
- */
-public interface CompactionDirectives {
+import java.io.InputStream;
 
-  /**
-   * @return The service where a compaction should run.
-   */
-  CompactionServiceId getService();
-
-  /**
-   * Required for CompactionDirectives
-   *
-   * @since 2.1.0
-   */
-  interface ServiceBuilder {
-    Builder toService(CompactionServiceId service);
-
-    Builder toService(String compactionServiceId);
-  }
-
-  /**
-   * @since 2.1.0
-   */
-  interface Builder {
-    CompactionDirectives build();
-  }
-
-  static ServiceBuilder builder() {
-    return new CompactionDirectivesBuilder();
+public class NoFileDecrypter implements FileDecrypter {
+  @Override
+  public InputStream decryptStream(InputStream inputStream) throws CryptoService.CryptoException {
+    return inputStream;
   }
 }

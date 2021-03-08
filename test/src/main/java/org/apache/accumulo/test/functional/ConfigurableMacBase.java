@@ -100,7 +100,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
     try {
       String hostname = InetAddress.getLocalHost().getHostName();
       new CertUtils(Property.RPC_SSL_KEYSTORE_TYPE.getDefaultValue(),
-          "o=Apache Accumulo,cn=" + hostname, "RSA", 2048, "sha1WithRSAEncryption").createAll(
+          "o=Apache Accumulo,cn=" + hostname, "RSA", 4096, "SHA512WITHRSA").createAll(
               rootKeystoreFile, localKeystoreFile, publicTruststoreFile, cfg.getInstanceName(),
               rootKeystorePassword, cfg.getRootPassword(), truststorePassword);
     } catch (Exception e) {

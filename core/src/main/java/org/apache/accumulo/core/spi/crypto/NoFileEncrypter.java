@@ -16,14 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.cryptoImpl;
+package org.apache.accumulo.core.spi.crypto;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.OutputStream;
-
-import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 
 public class NoFileEncrypter implements FileEncrypter {
 
