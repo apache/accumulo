@@ -18,25 +18,31 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
+import java.util.Objects;
+
 /**
- * This class intentionally package private. It is immutable and provides default allocation for
- * {@code CompactionDirectives}.
+ * This class intentionally package private.
  */
-class CompactionDirectivesImpl implements CompactionDirectives {
+class CompactionDispatchBuilder
+    implements CompactionDispatch.Builder, CompactionDispatch.ServiceBuilder {
 
-  private final CompactionServiceId service;
+  private CompactionServiceId service;
 
-  public CompactionDirectivesImpl(CompactionServiceId service) {
-    this.service = service;
+  @Override
+  public CompactionDispatch.Builder toService(CompactionServiceId service) {
+    this.service = Objects.requireNonNull(service, "CompactionServiceId cannot be null");
+    return this;
   }
 
   @Override
-  public CompactionServiceId getService() {
-    return service;
+  public CompactionDispatch.Builder toService(String compactionServiceId) {
+    this.service = CompactionServiceId.of(compactionServiceId);
+    return this;
   }
 
   @Override
-  public String toString() {
-    return "service=" + service;
+  public CompactionDispatch build() {
+    return new CompactionDispatchImpl(service);
   }
+
 }

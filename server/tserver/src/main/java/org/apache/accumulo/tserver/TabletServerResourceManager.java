@@ -56,7 +56,7 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-import org.apache.accumulo.core.spi.scan.ScanDirectives;
+import org.apache.accumulo.core.spi.scan.ScanDispatch;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParameters;
 import org.apache.accumulo.core.spi.scan.ScanExecutor;
@@ -686,13 +686,13 @@ public class TabletServerResourceManager {
       lastReportedCommitTime = System.currentTimeMillis();
     }
 
-    public synchronized ScanFileManager newScanFileManager(ScanDirectives scanDirectives) {
+    public synchronized ScanFileManager newScanFileManager(ScanDispatch scanDispatch) {
       if (closed) {
         throw new IllegalStateException("closed");
       }
 
       return fileManager.newScanFileManager(extent,
-          new ScanCacheProvider(tableConf, scanDirectives, _iCache, _dCache));
+          new ScanCacheProvider(tableConf, scanDispatch, _iCache, _dCache));
     }
 
     // END methods that Tablets call to manage their set of open map files
@@ -795,11 +795,11 @@ public class TabletServerResourceManager {
 
     if (tablet.isRootTablet()) {
       // TODO make meta dispatch??
-      scanInfo.scanParams.setScanDirectives(ScanDirectives.builder().build());
+      scanInfo.scanParams.setScanDispatch(ScanDispatch.builder().build());
       task.run();
     } else if (tablet.isMeta()) {
       // TODO make meta dispatch??
-      scanInfo.scanParams.setScanDirectives(ScanDirectives.builder().build());
+      scanInfo.scanParams.setScanDispatch(ScanDispatch.builder().build());
       scanExecutors.get("meta").execute(task);
     } else {
       DispatchParameters params = new DispatchParamsImpl() {
@@ -819,8 +819,8 @@ public class TabletServerResourceManager {
         }
       };
 
-      ScanDirectives prefs = dispatcher.dispatch(params);
-      scanInfo.scanParams.setScanDirectives(prefs);
+      ScanDispatch prefs = dispatcher.dispatch(params);
+      scanInfo.scanParams.setScanDispatch(prefs);
 
       ExecutorService executor = scanExecutors.get(prefs.getExecutorName());
       if (executor == null) {

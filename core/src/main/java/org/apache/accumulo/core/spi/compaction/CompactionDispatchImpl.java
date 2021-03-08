@@ -19,37 +19,24 @@
 package org.apache.accumulo.core.spi.compaction;
 
 /**
- * The directions of a {@link CompactionDispatcher}
- *
- * @since 2.1.0
- * @see org.apache.accumulo.core.spi.compaction
+ * This class intentionally package private. It is immutable and provides default allocation for
+ * {@link CompactionDispatch}.
  */
-public interface CompactionDirectives {
+class CompactionDispatchImpl implements CompactionDispatch {
 
-  /**
-   * @return The service where a compaction should run.
-   */
-  CompactionServiceId getService();
+  private final CompactionServiceId service;
 
-  /**
-   * Required for CompactionDirectives
-   *
-   * @since 2.1.0
-   */
-  interface ServiceBuilder {
-    Builder toService(CompactionServiceId service);
-
-    Builder toService(String compactionServiceId);
+  public CompactionDispatchImpl(CompactionServiceId service) {
+    this.service = service;
   }
 
-  /**
-   * @since 2.1.0
-   */
-  interface Builder {
-    CompactionDirectives build();
+  @Override
+  public CompactionServiceId getService() {
+    return service;
   }
 
-  static ServiceBuilder builder() {
-    return new CompactionDirectivesBuilder();
+  @Override
+  public String toString() {
+    return "service=" + service;
   }
 }

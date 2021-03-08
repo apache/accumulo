@@ -82,7 +82,7 @@ import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
-import org.apache.accumulo.core.spi.scan.ScanDirectives;
+import org.apache.accumulo.core.spi.scan.ScanDispatch;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -603,7 +603,7 @@ public class Tablet {
 
     ScanParameters scanParams = new ScanParameters(-1, authorizations, Collections.emptySet(), null,
         null, false, null, -1, null);
-    scanParams.setScanDirectives(ScanDirectives.builder().build());
+    scanParams.setScanDispatch(ScanDispatch.builder().build());
 
     ScanDataSource dataSource = new ScanDataSource(this, scanParams, false, iFlag);
 

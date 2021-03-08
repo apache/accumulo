@@ -21,16 +21,16 @@ package org.apache.accumulo.core.file.blockfile.impl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.cache.BlockCache;
-import org.apache.accumulo.core.spi.scan.ScanDirectives;
+import org.apache.accumulo.core.spi.scan.ScanDispatch;
 
 public class ScanCacheProvider implements CacheProvider {
 
   private final BlockCache indexCache;
   private final BlockCache dataCache;
 
-  public ScanCacheProvider(AccumuloConfiguration tableConfig, ScanDirectives directives,
+  public ScanCacheProvider(AccumuloConfiguration tableConfig, ScanDispatch dispatch,
       BlockCache indexCache, BlockCache dataCache) {
-    switch (directives.getIndexCacheUsage()) {
+    switch (dispatch.getIndexCacheUsage()) {
       case ENABLED:
         this.indexCache = indexCache;
         break;
@@ -48,7 +48,7 @@ public class ScanCacheProvider implements CacheProvider {
         throw new IllegalStateException();
     }
 
-    switch (directives.getDataCacheUsage()) {
+    switch (dispatch.getDataCacheUsage()) {
       case ENABLED:
         this.dataCache = dataCache;
         break;

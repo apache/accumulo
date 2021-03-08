@@ -23,11 +23,11 @@ import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParameters;
 /**
  * Encapsulates information about how a scan should be executed. This is the return type for
  * {@link ScanDispatcher#dispatch(DispatchParameters)}. To create an instance of this use
- * {@link ScanDirectives#builder()}
+ * {@link ScanDispatch#builder()}
  *
  * @since 2.1.0
  */
-public interface ScanDirectives {
+public interface ScanDispatch {
 
   /**
    * Communicates how a scan should use cache.
@@ -95,15 +95,15 @@ public interface ScanDirectives {
     public Builder setDataCacheUsage(CacheUsage usage);
 
     /**
-     * @return an immutable {@link ScanDirectives} object.
+     * @return an immutable {@link ScanDispatch} object.
      */
-    public ScanDirectives build();
+    public ScanDispatch build();
   }
 
   /**
-   * @return a {@link ScanDirectives} builder
+   * @return a {@link ScanDispatch} builder
    */
   public static Builder builder() {
-    return DefaultScanDirectives.DEFAULT_SCAN_DIRECTIVES;
+    return DefaultScanDispatch.DEFAULT_SCAN_DISPATCH;
   }
 }
