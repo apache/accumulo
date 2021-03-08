@@ -348,7 +348,6 @@ public class ZooLock implements Watcher {
             renew = false;
           }
           if (renew) {
-            LOG.debug("[{}] Renewing watch on prior node  {}", vmLockPrefix, nodeToWatch);
             try {
               Stat restat = zooKeeper.exists(nodeToWatch, this);
               if (restat == null) {
@@ -357,6 +356,8 @@ public class ZooLock implements Watcher {
                 // created.
                 zooKeeper.removeWatches(nodeToWatch, this, WatcherType.Any, true);
                 determineLockOwnership(createdEphemeralNode, lw);
+              } else {
+                LOG.debug("[{}] Renewed watch on prior node  {}", vmLockPrefix, nodeToWatch);
               }
             } catch (KeeperException | InterruptedException e) {
               lw.failedToAcquireLock(new Exception("Failed to renew watch on other manager node"));
