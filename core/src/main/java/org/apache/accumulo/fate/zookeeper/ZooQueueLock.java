@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 public class ZooQueueLock implements QueueLock {
   private static final Logger log = LoggerFactory.getLogger(ZooQueueLock.class);
 
-  private static final String PREFIX = "lock-";
+  private static final String PREFIX = "flock#";
 
   private ZooReaderWriter zoo;
   private String path;
@@ -126,7 +126,7 @@ public class ZooQueueLock implements QueueLock {
     children.forEach(c -> {
       log.trace("Validating {}", c);
       if (c.startsWith(PREFIX)) {
-        int idx = c.indexOf('-');
+        int idx = c.indexOf('#');
         String sequenceNum = c.substring(idx + 1);
         if (sequenceNum.length() == 10) {
           try {
@@ -149,8 +149,11 @@ public class ZooQueueLock implements QueueLock {
         // Lock should be of the form:
         // lock-sequenceNumber
         // Example:
-        // lock-0000000000
-        int secondHashIdx = 5;
+        // flock#0000000000
+
+        // Lock length - sequenceNumber length
+        // 16 - 10
+        int secondHashIdx = 6;
         return Integer.valueOf(o1.substring(secondHashIdx))
             .compareTo(Integer.valueOf(o2.substring(secondHashIdx)));
       });
