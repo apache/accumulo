@@ -16,12 +16,18 @@
  */
 package org.apache.accumulo.master.tableOps;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -44,6 +50,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.MapFile;
@@ -74,6 +81,8 @@ import com.google.common.annotations.VisibleForTesting;
 
 public class BulkImport extends MasterRepo {
   public static final String FAILURES_TXT = "failures.txt";
+
+  public static final String MAPPINGS_TXT = "mappings.txt";
 
   private static final long serialVersionUID = 1L;
 
@@ -198,6 +207,7 @@ public class BulkImport extends MasterRepo {
     SimpleThreadPool workers = new SimpleThreadPool(workerCount, "bulk move");
     List<Future<Exception>> results = new ArrayList<>();
 
+    final Map<Path,Path> fileRenames = Collections.synchronizedMap(new HashMap<>());
     for (FileStatus file : mapFiles) {
       final FileStatus fileStatus = file;
       results.add(workers.submit(new Callable<Exception>() {
@@ -246,6 +256,7 @@ public class BulkImport extends MasterRepo {
             Path newPath = new Path(bulkDir, newName);
             try {
               fs.rename(fileStatus.getPath(), newPath);
+              fileRenames.put(fileStatus.getPath(), newPath);
               log.debug("Moved " + fileStatus.getPath() + " to " + newPath);
             } catch (IOException E1) {
               log.error("Could not move: {} {}", fileStatus.getPath().toString(), E1.getMessage());
@@ -266,6 +277,26 @@ public class BulkImport extends MasterRepo {
         throw ex.get();
       }
     }
+
+    // now create the mappings file
+    FSDataOutputStream mappingFile = fs.create(new Path(dirPath, MAPPINGS_TXT), true);
+    try (BufferedWriter out = new BufferedWriter(new OutputStreamWriter(mappingFile, UTF_8))) {
+      out.write("{\n");
+      out.write("  \"directory\": \"" + dirPath.toString() + "\"\n");
+      out.write("  \"tableId\": \"" + tableId + "\"\n");
+      out.write("  \"files\": {\n");
+      boolean first = true;
+      for (Map.Entry<Path,Path> mapping : fileRenames.entrySet()) {
+        if (!first) {
+          out.write(",\n");
+        } else {
+          first = false;
+        }
+        out.write("    \"" + mapping.getKey().toString() + "\": \"" + mapping.getValue() + "\"");
+      }
+      out.write("\n  }\n}\n");
+    }
+
     return bulkDir.toString();
   }
 
