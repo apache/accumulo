@@ -128,17 +128,17 @@ public class ZooQueueLock implements QueueLock {
       if (c.startsWith(PREFIX)) {
         int idx = c.indexOf('-');
         String sequenceNum = c.substring(idx + 1);
-          if (sequenceNum.length() == 10) {
-            try {
-              log.trace("Testing number format of {}", sequenceNum);
-              Integer.parseInt(sequenceNum);
-              validChildren.add(c);
-            } catch (NumberFormatException e) {
-              log.warn("Child found with invalid sequence format: {} (not a number)", c);
-            }
-          } else {
-            log.warn("Child found with invalid sequence format: {} (not 10 characters)", c);
+        if (sequenceNum.length() == 10) {
+          try {
+            log.trace("Testing number format of {}", sequenceNum);
+            Integer.parseInt(sequenceNum);
+            validChildren.add(c);
+          } catch (NumberFormatException e) {
+            log.warn("Child found with invalid sequence format: {} (not a number)", c);
           }
+        } else {
+          log.warn("Child found with invalid sequence format: {} (not 10 characters)", c);
+        }
       } else {
         log.warn("Child found with invalid format: {} (does not start with {})", c, PREFIX);
       }
