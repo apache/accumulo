@@ -261,6 +261,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       for (int i = 0; i < 5; i++) {
         List<String> locks;
         try {
+          // ZooLock style lock.
           locks = ZooLock.validateAndSortChildrenByLockPrefix(path, zk.getChildren(path));
         } catch (NoNodeException e) {
           Thread.sleep(5000);
