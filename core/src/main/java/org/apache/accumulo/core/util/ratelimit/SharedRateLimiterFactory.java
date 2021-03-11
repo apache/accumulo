@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.core.util.ratelimit;
 
+import java.lang.ref.WeakReference;
 import java.util.Map;
+import java.util.Objects;
 import java.util.WeakHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -38,7 +40,8 @@ public class SharedRateLimiterFactory {
   private static final long UPDATE_RATE = 1000;
   private static SharedRateLimiterFactory instance = null;
   private final Logger log = LoggerFactory.getLogger(SharedRateLimiterFactory.class);
-  private final WeakHashMap<String,SharedRateLimiter> activeLimiters = new WeakHashMap<>();
+  private final WeakHashMap<String,WeakReference<SharedRateLimiter>> activeLimiters =
+      new WeakHashMap<>();
 
   private SharedRateLimiterFactory() {}
 
@@ -87,12 +90,12 @@ public class SharedRateLimiterFactory {
   public RateLimiter create(String name, RateProvider rateProvider) {
     synchronized (activeLimiters) {
       if (activeLimiters.containsKey(name)) {
-        return activeLimiters.get(name);
+        return activeLimiters.get(name).get();
       } else {
         long initialRate;
         initialRate = rateProvider.getDesiredRate();
         SharedRateLimiter limiter = new SharedRateLimiter(name, rateProvider, initialRate);
-        activeLimiters.put(name, limiter);
+        activeLimiters.put(name, new WeakReference<>(limiter));
         return limiter;
       }
     }
@@ -103,13 +106,13 @@ public class SharedRateLimiterFactory {
    * This is called periodically so that we can dynamically update as configuration changes.
    */
   protected void update() {
-    Map<String,SharedRateLimiter> limitersCopy;
+    Map<String,WeakReference<SharedRateLimiter>> limitersCopy;
     synchronized (activeLimiters) {
       limitersCopy = Map.copyOf(activeLimiters);
     }
-    for (Map.Entry<String,SharedRateLimiter> entry : limitersCopy.entrySet()) {
+    for (Map.Entry<String,WeakReference<SharedRateLimiter>> entry : limitersCopy.entrySet()) {
       try {
-        entry.getValue().update();
+        Objects.requireNonNull(entry.getValue().get()).update();
       } catch (Exception ex) {
         log.error(String.format("Failed to update limiter %s", entry.getKey()), ex);
       }
@@ -121,13 +124,13 @@ public class SharedRateLimiterFactory {
    * debug log.
    */
   protected void report() {
-    Map<String,SharedRateLimiter> limitersCopy;
+    Map<String,WeakReference<SharedRateLimiter>> limitersCopy;
     synchronized (activeLimiters) {
       limitersCopy = Map.copyOf(activeLimiters);
     }
-    for (Map.Entry<String,SharedRateLimiter> entry : limitersCopy.entrySet()) {
+    for (Map.Entry<String,WeakReference<SharedRateLimiter>> entry : limitersCopy.entrySet()) {
       try {
-        entry.getValue().report();
+        Objects.requireNonNull(entry.getValue().get()).report();
       } catch (Exception ex) {
         log.error(String.format("Failed to report limiter %s", entry.getKey()), ex);
       }
@@ -149,7 +152,7 @@ public class SharedRateLimiterFactory {
     }
 
     @Override
-    public void acquire(long permits) {
+    public synchronized void acquire(long permits) {
       super.acquire(permits);
       permitsAcquired += permits;
     }
