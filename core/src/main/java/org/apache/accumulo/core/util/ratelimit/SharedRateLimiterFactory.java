@@ -112,7 +112,9 @@ public class SharedRateLimiterFactory {
     }
     for (Map.Entry<String,WeakReference<SharedRateLimiter>> entry : limitersCopy.entrySet()) {
       try {
-        Objects.requireNonNull(entry.getValue().get()).update();
+        if (Objects.nonNull(entry.getValue().get())) {
+          entry.getValue().get().update();
+        }
       } catch (Exception ex) {
         log.error(String.format("Failed to update limiter %s", entry.getKey()), ex);
       }
@@ -130,7 +132,9 @@ public class SharedRateLimiterFactory {
     }
     for (Map.Entry<String,WeakReference<SharedRateLimiter>> entry : limitersCopy.entrySet()) {
       try {
-        Objects.requireNonNull(entry.getValue().get()).report();
+        if (Objects.nonNull(entry.getValue().get())) {
+          entry.getValue().get().report();
+        }
       } catch (Exception ex) {
         log.error(String.format("Failed to report limiter %s", entry.getKey()), ex);
       }
