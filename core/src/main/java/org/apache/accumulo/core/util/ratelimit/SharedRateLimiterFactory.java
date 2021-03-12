@@ -112,9 +112,9 @@ public class SharedRateLimiterFactory {
     }
     for (Map.Entry<String,WeakReference<SharedRateLimiter>> entry : limitersCopy.entrySet()) {
       try {
-        if (Objects.nonNull(entry.getValue().get())) {
-          entry.getValue().get().update();
-        }
+        Objects.requireNonNull(entry.getValue().get()).update();
+      } catch (NullPointerException npex) {
+        log.error(String.format("NullPointerException while reporting %s", entry.getKey()), npex);
       } catch (Exception ex) {
         log.error(String.format("Failed to update limiter %s", entry.getKey()), ex);
       }
@@ -132,9 +132,9 @@ public class SharedRateLimiterFactory {
     }
     for (Map.Entry<String,WeakReference<SharedRateLimiter>> entry : limitersCopy.entrySet()) {
       try {
-        if (Objects.nonNull(entry.getValue().get())) {
-          entry.getValue().get().report();
-        }
+        Objects.requireNonNull(entry.getValue().get()).report();
+      } catch (NullPointerException npex) {
+        log.error(String.format("NullPointerException while reporting %s", entry.getKey()), npex);
       } catch (Exception ex) {
         log.error(String.format("Failed to report limiter %s", entry.getKey()), ex);
       }
