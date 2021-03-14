@@ -45,7 +45,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *             script command is likely able to be replaced by Java 11's JShell feature
  */
 
-@Deprecated(since = "2.0.0")
+@Deprecated(since = "2.1.0")
 public class ScriptCommand extends Command {
 
   // Command to allow user to run scripts, see JSR-223
@@ -55,14 +55,14 @@ public class ScriptCommand extends Command {
   private static final String DEFAULT_ENGINE = "rhino";
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
-          justification = "app is run in same security context as user providing the filename")
+      justification = "app is run in same security context as user providing the filename")
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
 
     boolean invoke = false;
 
     Shell.log.warn(
-            "Deprecated -- much of the use case for having this script command is likely able to be replaced by Java 11's JShell feature");
+        "Deprecated -- much of the use case for having this script command is likely able to be replaced by Java 11's JShell feature");
     ScriptEngineManager mgr = new ScriptEngineManager();
 
     if (cl.hasOption(list.getOpt())) {
@@ -81,7 +81,7 @@ public class ScriptCommand extends Command {
       if (cl.hasOption(object.getOpt()) || cl.hasOption(function.getOpt())) {
         if (!(engine instanceof Invocable)) {
           shellState.printException(
-                  new Exception(engineName + " does not support invoking functions or methods"));
+              new Exception(engineName + " does not support invoking functions or methods"));
           return 1;
         }
         invoke = true;
@@ -285,7 +285,7 @@ public class ScriptCommand extends Command {
   }
 
   private void invokeFunctionOrMethod(Shell shellState, ScriptEngine engine, CommandLine cl,
-                                      Object[] args) {
+      Object[] args) {
     try {
       Invocable inv = (Invocable) engine;
       if (cl.hasOption(function.getOpt())) {
