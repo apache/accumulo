@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.util.ratelimit;
 
 import java.lang.ref.WeakReference;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.WeakHashMap;
@@ -89,7 +90,7 @@ public class SharedRateLimiterFactory {
    */
   public RateLimiter create(String name, RateProvider rateProvider) {
     synchronized (activeLimiters) {
-      if (activeLimiters.containsKey(name)) {
+      if (activeLimiters.containsKey(name) && Objects.nonNull(activeLimiters.get(name).get())) {
         return activeLimiters.get(name).get();
       } else {
         long initialRate;
@@ -106,15 +107,17 @@ public class SharedRateLimiterFactory {
    * This is called periodically so that we can dynamically update as configuration changes.
    */
   protected void update() {
-    Map<String,WeakReference<SharedRateLimiter>> limitersCopy;
+    Map<String,SharedRateLimiter> limitersCopy = new HashMap<>();
     synchronized (activeLimiters) {
-      limitersCopy = Map.copyOf(activeLimiters);
+      for (Map.Entry<String,WeakReference<SharedRateLimiter>> entry : activeLimiters.entrySet()) {
+        limitersCopy.put(entry.getKey(), entry.getValue().get());
+      }
     }
-    for (Map.Entry<String,WeakReference<SharedRateLimiter>> entry : limitersCopy.entrySet()) {
+    for (Map.Entry<String,SharedRateLimiter> entry : limitersCopy.entrySet()) {
       try {
-        Objects.requireNonNull(entry.getValue().get()).update();
-      } catch (NullPointerException npex) {
-        log.error(String.format("NullPointerException while reporting %s", entry.getKey()), npex);
+        if (Objects.nonNull(entry.getValue())) {
+          entry.getValue().update();
+        }
       } catch (Exception ex) {
         log.error(String.format("Failed to update limiter %s", entry.getKey()), ex);
       }
@@ -126,15 +129,17 @@ public class SharedRateLimiterFactory {
    * debug log.
    */
   protected void report() {
-    Map<String,WeakReference<SharedRateLimiter>> limitersCopy;
+    Map<String,SharedRateLimiter> limitersCopy = new HashMap<>();
     synchronized (activeLimiters) {
-      limitersCopy = Map.copyOf(activeLimiters);
+      for (Map.Entry<String,WeakReference<SharedRateLimiter>> entry : activeLimiters.entrySet()) {
+        limitersCopy.put(entry.getKey(), entry.getValue().get());
+      }
     }
-    for (Map.Entry<String,WeakReference<SharedRateLimiter>> entry : limitersCopy.entrySet()) {
+    for (Map.Entry<String,SharedRateLimiter> entry : limitersCopy.entrySet()) {
       try {
-        Objects.requireNonNull(entry.getValue().get()).report();
-      } catch (NullPointerException npex) {
-        log.error(String.format("NullPointerException while reporting %s", entry.getKey()), npex);
+        if (Objects.nonNull(entry.getValue())) {
+          entry.getValue().report();
+        }
       } catch (Exception ex) {
         log.error(String.format("Failed to report limiter %s", entry.getKey()), ex);
       }
