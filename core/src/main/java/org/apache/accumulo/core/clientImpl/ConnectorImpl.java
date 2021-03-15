@@ -54,6 +54,7 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   private static final String SYSTEM_TOKEN_NAME =
       "org.apache.accumulo.server.security.SystemCredentials$SystemToken";
   private final ClientContext context;
+  private static final String VALID_NAME_REGEX = "^(\\w{1,1024}\\.)?(\\w{1,1024})$";
 
   public ConnectorImpl(ClientContext context) throws AccumuloSecurityException, AccumuloException {
     this.context = context;
@@ -94,6 +95,9 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
       throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
+    checkArgument(tableName.matches(VALID_NAME_REGEX),
+        "Table name must only contain word characters (letters, digits, and underscores)");
+
     return new TabletServerBatchDeleter(context, context.getTableId(tableName), authorizations,
         numQueryThreads, new BatchWriterConfig().setMaxMemory(maxMemory)
             .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));
@@ -109,6 +113,9 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency,
       int maxWriteThreads) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
+    checkArgument(tableName.matches(VALID_NAME_REGEX),
+        "Table name must only contain word characters (letters, digits, and underscores)");
+
     return new BatchWriterImpl(context, context.getTableId(tableName),
         new BatchWriterConfig().setMaxMemory(maxMemory)
             .setMaxLatency(maxLatency, TimeUnit.MILLISECONDS).setMaxWriteThreads(maxWriteThreads));

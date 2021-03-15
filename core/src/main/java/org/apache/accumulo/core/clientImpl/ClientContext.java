@@ -97,6 +97,7 @@ public class ClientContext implements AccumuloClient {
   private ClientInfo info;
   private String instanceId;
   private final ZooCache zooCache;
+  private static final String VALID_NAME_REGEX = "^(\\w{1,1024}\\.)?(\\w{1,1024})$";
 
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
@@ -472,6 +473,9 @@ public class ClientContext implements AccumuloClient {
   }
 
   TableId getTableId(String tableName) throws TableNotFoundException {
+    checkArgument(tableName.matches(VALID_NAME_REGEX),
+        "Table name must only contain word characters (letters, digits, and underscores)");
+
     TableId tableId = Tables.getTableId(this, tableName);
     if (Tables.getTableState(this, tableId) == TableState.OFFLINE)
       throw new TableOfflineException(Tables.getTableOfflineMsg(this, tableId));
@@ -483,6 +487,9 @@ public class ClientContext implements AccumuloClient {
       int numQueryThreads) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
+    checkArgument(tableName.matches(VALID_NAME_REGEX),
+        "Table name must only contain word characters (letters, digits, and underscores)");
+
     ensureOpen();
     return new TabletServerBatchReader(this, getTableId(tableName), authorizations,
         numQueryThreads);
@@ -510,6 +517,9 @@ public class ClientContext implements AccumuloClient {
       int numQueryThreads, BatchWriterConfig config) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
+    checkArgument(tableName.matches(VALID_NAME_REGEX),
+        "Table name must only contain word characters (letters, digits, and underscores)");
+
     ensureOpen();
     return new TabletServerBatchDeleter(this, getTableId(tableName), authorizations,
         numQueryThreads, config.merge(getBatchWriterConfig()));
@@ -526,6 +536,9 @@ public class ClientContext implements AccumuloClient {
   public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config)
       throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
+    checkArgument(tableName.matches(VALID_NAME_REGEX),
+        "Table name must only contain word characters (letters, digits, and underscores)");
+
     ensureOpen();
     // we used to allow null inputs for bw config
     if (config == null) {
@@ -553,6 +566,9 @@ public class ClientContext implements AccumuloClient {
   @Override
   public ConditionalWriter createConditionalWriter(String tableName, ConditionalWriterConfig config)
       throws TableNotFoundException {
+    checkArgument(tableName.matches(VALID_NAME_REGEX),
+        "Table name must only contain word characters (letters, digits, and underscores)");
+
     ensureOpen();
     return new ConditionalWriterImpl(this, getTableId(tableName), config);
   }
@@ -562,6 +578,9 @@ public class ClientContext implements AccumuloClient {
       throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
+    checkArgument(tableName.matches(VALID_NAME_REGEX),
+        "Table name must only contain word characters (letters, digits, and underscores)");
+
     ensureOpen();
     Scanner scanner = new ScannerImpl(this, getTableId(tableName), authorizations);
     Integer batchSize = ClientProperty.SCANNER_BATCH_SIZE.getInteger(getProperties());

@@ -49,6 +49,7 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 public class SecurityOperationsImpl implements SecurityOperations {
 
   private final ClientContext context;
+  private static final String VALID_NAMESPACE_REGEX = "^\\w{0,1024}$";
 
   private void executeVoid(ClientExec<ClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException {
@@ -104,6 +105,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     if (context.getSaslParams() == null) {
       checkArgument(password != null, "password is null");
     }
+
     executeVoid(client -> {
       if (context.getSaslParams() == null) {
         client.createLocalUser(TraceUtil.traceInfo(), context.rpcCreds(), principal,
@@ -119,6 +121,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
   public void dropLocalUser(final String principal)
       throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
+
     executeVoid(
         client -> client.dropLocalUser(TraceUtil.traceInfo(), context.rpcCreds(), principal));
   }
@@ -128,6 +131,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
     checkArgument(token != null, "token is null");
+
     final Credentials toAuth = new Credentials(principal, token);
     return execute(client -> client.authenticateUser(TraceUtil.traceInfo(), context.rpcCreds(),
         toAuth.toThrift(context.getInstanceID())));
@@ -138,6 +142,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
     checkArgument(token != null, "token is null");
+
     final Credentials toChange = new Credentials(principal, token);
     executeVoid(client -> client.changeLocalUserPassword(TraceUtil.traceInfo(), context.rpcCreds(),
         principal, ByteBuffer.wrap(token.getPassword())));
@@ -151,6 +156,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
     checkArgument(authorizations != null, "authorizations is null");
+
     executeVoid(client -> client.changeAuthorizations(TraceUtil.traceInfo(), context.rpcCreds(),
         principal, ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations())));
   }
@@ -159,6 +165,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
   public Authorizations getUserAuthorizations(final String principal)
       throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
+
     return execute(client -> new Authorizations(
         client.getUserAuthorizations(TraceUtil.traceInfo(), context.rpcCreds(), principal)));
   }
@@ -168,6 +175,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
     checkArgument(perm != null, "perm is null");
+
     return execute(client -> client.hasSystemPermission(TraceUtil.traceInfo(), context.rpcCreds(),
         principal, perm.getId()));
   }
@@ -178,6 +186,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(principal != null, "principal is null");
     checkArgument(table != null, "table is null");
     checkArgument(perm != null, "perm is null");
+
     try {
       return execute(client -> client.hasTablePermission(TraceUtil.traceInfo(), context.rpcCreds(),
           principal, table, perm.getId()));
@@ -195,6 +204,9 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(principal != null, "principal is null");
     checkArgument(namespace != null, "namespace is null");
     checkArgument(permission != null, "permission is null");
+    checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
+        "Namespace name must only contain word characters (letters, digits, and underscores)");
+
     return execute(client -> client.hasNamespacePermission(TraceUtil.traceInfo(),
         context.rpcCreds(), principal, namespace, permission.getId()));
   }
@@ -204,6 +216,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
     checkArgument(permission != null, "permission is null");
+
     executeVoid(client -> client.grantSystemPermission(TraceUtil.traceInfo(), context.rpcCreds(),
         principal, permission.getId()));
   }
@@ -214,6 +227,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(principal != null, "principal is null");
     checkArgument(table != null, "table is null");
     checkArgument(permission != null, "permission is null");
+
     try {
       executeVoid(client -> client.grantTablePermission(TraceUtil.traceInfo(), context.rpcCreds(),
           principal, table, permission.getId()));
@@ -231,6 +245,9 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(principal != null, "principal is null");
     checkArgument(namespace != null, "namespace is null");
     checkArgument(permission != null, "permission is null");
+    checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
+        "Namespace name must only contain word characters (letters, digits, and underscores)");
+
     executeVoid(client -> client.grantNamespacePermission(TraceUtil.traceInfo(), context.rpcCreds(),
         principal, namespace, permission.getId()));
   }
@@ -240,6 +257,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
     checkArgument(permission != null, "permission is null");
+
     executeVoid(client -> client.revokeSystemPermission(TraceUtil.traceInfo(), context.rpcCreds(),
         principal, permission.getId()));
   }
@@ -250,6 +268,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(principal != null, "principal is null");
     checkArgument(table != null, "table is null");
     checkArgument(permission != null, "permission is null");
+
     try {
       executeVoid(client -> client.revokeTablePermission(TraceUtil.traceInfo(), context.rpcCreds(),
           principal, table, permission.getId()));
@@ -267,6 +286,9 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(principal != null, "principal is null");
     checkArgument(namespace != null, "namespace is null");
     checkArgument(permission != null, "permission is null");
+    checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
+        "Namespace name must only contain word characters (letters, digits, and underscores)");
+
     executeVoid(client -> client.revokeNamespacePermission(TraceUtil.traceInfo(),
         context.rpcCreds(), principal, namespace, permission.getId()));
   }
@@ -280,6 +302,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
   public DelegationToken getDelegationToken(DelegationTokenConfig cfg)
       throws AccumuloException, AccumuloSecurityException {
     final TDelegationTokenConfig tConfig;
+
     if (cfg != null) {
       tConfig = DelegationTokenConfigSerializer.serialize(cfg);
     } else {
