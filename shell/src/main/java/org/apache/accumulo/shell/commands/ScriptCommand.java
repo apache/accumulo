@@ -55,8 +55,8 @@ import org.apache.commons.cli.Options;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
- * @deprecated since 2.0; this command shouldn't be used; umuch of the use case for having this
- *             script command is likely able to be replaced by Java 11's JShell feature
+ * @deprecated since 2.0; this command shouldn't be used; The script command is deprecated; use
+ *             jshell for scripting instead
  */
 
 @Deprecated(since = "2.1.0")
@@ -75,8 +75,7 @@ public class ScriptCommand extends Command {
 
     boolean invoke = false;
 
-    Shell.log.warn(
-        "Deprecated -- much of the use case for having this script command is likely able to be replaced by Java 11's JShell feature");
+    Shell.log.warn("The script command is deprecated; use jshell for scripting instead");
     ScriptEngineManager mgr = new ScriptEngineManager();
 
     if (cl.hasOption(list.getOpt())) {
@@ -206,7 +205,7 @@ public class ScriptCommand extends Command {
 
   @Override
   public String description() {
-    return "This is will be deprecated and will be replaced by Java 11's JShell Feature - execute JSR-223 scripts";
+    return "execute JSR-223 scripts";
   }
 
   @Override
