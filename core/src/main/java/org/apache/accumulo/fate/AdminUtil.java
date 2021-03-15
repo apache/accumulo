@@ -275,7 +275,6 @@ public class AdminUtil<T> {
       try {
 
         String path = lockPath + "/" + id;
-        // Fate Operation lock. ZooQueueLock style lock.
         List<String> lockNodes =
             ZooQueueLock.validateAndSortChildrenByLockPrefix(path, zk.getChildren(path));
 

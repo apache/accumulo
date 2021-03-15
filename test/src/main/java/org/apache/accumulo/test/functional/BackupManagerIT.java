@@ -53,7 +53,6 @@ public class BackupManagerIT extends ConfigurableMacBase {
       do {
         UtilWaitThread.sleep(100);
         String path = root + Constants.ZMANAGER_LOCK;
-        // ZooLock style lock.
         children = ZooLock.validateAndSortChildrenByLockPrefix(path, writer.getChildren(path));
       } while (children.size() != 2);
       // wait for the backup manager to learn to be the backup
