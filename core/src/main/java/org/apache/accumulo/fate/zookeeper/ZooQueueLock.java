@@ -134,13 +134,15 @@ public class ZooQueueLock implements QueueLock {
             Integer.parseInt(sequenceNum);
             validChildren.add(c);
           } catch (NumberFormatException e) {
-            log.warn("Child found with invalid sequence format: {} (not a number)", c);
+            log.warn("Fate lock found with invalid sequence number format: {} (not a number)", c);
           }
         } else {
-          log.warn("Child found with invalid sequence format: {} (not 10 characters)", c);
+          log.warn("Fate lock found with invalid sequence number format: {} (not 10 characters)",
+              c);
         }
       } else {
-        log.warn("Child found with invalid format: {} (does not start with {})", c, PREFIX);
+        log.warn("Fate lock found with invalid lock format: {} (does not start with {})", c,
+            PREFIX);
       }
     });
 
