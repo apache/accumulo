@@ -21,10 +21,10 @@ package org.apache.accumulo.core.util.ratelimit;
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.WeakHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -52,15 +52,13 @@ public class SharedRateLimiterFactory {
       instance = new SharedRateLimiterFactory();
 
       ScheduledThreadPoolExecutor svc = ThreadPools.createGeneralScheduledExecutorService(conf);
-      svc.scheduleWithFixedDelay(
-          Threads.createNamedRunnable("SharedRateLimiterFactory update polling", () -> {
-            instance.update();
-          }), UPDATE_RATE, UPDATE_RATE, TimeUnit.MILLISECONDS);
+      svc.scheduleWithFixedDelay(Threads
+          .createNamedRunnable("SharedRateLimiterFactory update polling", instance::updateAll),
+          UPDATE_RATE, UPDATE_RATE, TimeUnit.MILLISECONDS);
 
-      svc.scheduleWithFixedDelay(
-          Threads.createNamedRunnable("SharedRateLimiterFactory report polling", () -> {
-            instance.report();
-          }), REPORT_RATE, REPORT_RATE, TimeUnit.MILLISECONDS);
+      svc.scheduleWithFixedDelay(Threads
+          .createNamedRunnable("SharedRateLimiterFactory report polling", instance::reportAll),
+          REPORT_RATE, REPORT_RATE, TimeUnit.MILLISECONDS);
 
     }
     return instance;
@@ -90,60 +88,50 @@ public class SharedRateLimiterFactory {
    */
   public RateLimiter create(String name, RateProvider rateProvider) {
     synchronized (activeLimiters) {
-      if (activeLimiters.containsKey(name) && Objects.nonNull(activeLimiters.get(name).get())) {
-        return activeLimiters.get(name).get();
-      } else {
-        long initialRate;
-        initialRate = rateProvider.getDesiredRate();
-        SharedRateLimiter limiter = new SharedRateLimiter(name, rateProvider, initialRate);
+      var limiterRef = activeLimiters.get(name);
+      var limiter = limiterRef == null ? null : limiterRef.get();
+      if (limiter == null) {
+        limiter = new SharedRateLimiter(name, rateProvider, rateProvider.getDesiredRate());
         activeLimiters.put(name, new WeakReference<>(limiter));
-        return limiter;
       }
+      return limiter;
     }
+  }
+
+  private void copyAndThen(String actionName, Consumer<SharedRateLimiter> action) {
+    Map<String,SharedRateLimiter> limitersCopy = new HashMap<>();
+    // synchronize only for copy
+    synchronized (activeLimiters) {
+      activeLimiters.forEach((name, limiterRef) -> {
+        var limiter = limiterRef.get();
+        if (limiter != null) {
+          limitersCopy.put(name, limiter);
+        }
+      });
+    }
+    limitersCopy.forEach((name, limiter) -> {
+      try {
+        action.accept(limiter);
+      } catch (RuntimeException e) {
+        log.error("Failed to {} limiter {}", actionName, name, e);
+      }
+    });
   }
 
   /**
    * Walk through all of the currently active RateLimiters, having each update its current rate.
    * This is called periodically so that we can dynamically update as configuration changes.
    */
-  protected void update() {
-    Map<String,SharedRateLimiter> limitersCopy = new HashMap<>();
-    synchronized (activeLimiters) {
-      for (Map.Entry<String,WeakReference<SharedRateLimiter>> entry : activeLimiters.entrySet()) {
-        limitersCopy.put(entry.getKey(), entry.getValue().get());
-      }
-    }
-    for (Map.Entry<String,SharedRateLimiter> entry : limitersCopy.entrySet()) {
-      try {
-        if (Objects.nonNull(entry.getValue())) {
-          entry.getValue().update();
-        }
-      } catch (Exception ex) {
-        log.error(String.format("Failed to update limiter %s", entry.getKey()), ex);
-      }
-    }
+  private void updateAll() {
+    copyAndThen("update", SharedRateLimiter::update);
   }
 
   /**
    * Walk through all of the currently active RateLimiters, having each report its activity to the
    * debug log.
    */
-  protected void report() {
-    Map<String,SharedRateLimiter> limitersCopy = new HashMap<>();
-    synchronized (activeLimiters) {
-      for (Map.Entry<String,WeakReference<SharedRateLimiter>> entry : activeLimiters.entrySet()) {
-        limitersCopy.put(entry.getKey(), entry.getValue().get());
-      }
-    }
-    for (Map.Entry<String,SharedRateLimiter> entry : limitersCopy.entrySet()) {
-      try {
-        if (Objects.nonNull(entry.getValue())) {
-          entry.getValue().report();
-        }
-      } catch (Exception ex) {
-        log.error(String.format("Failed to report limiter %s", entry.getKey()), ex);
-      }
-    }
+  private void reportAll() {
+    copyAndThen("report", SharedRateLimiter::report);
   }
 
   protected class SharedRateLimiter extends GuavaRateLimiter {
@@ -161,7 +149,7 @@ public class SharedRateLimiterFactory {
     }
 
     @Override
-    public synchronized void acquire(long permits) {
+    public void acquire(long permits) {
       super.acquire(permits);
       permitsAcquired += permits;
     }
