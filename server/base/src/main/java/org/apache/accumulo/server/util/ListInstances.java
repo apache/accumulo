@@ -34,7 +34,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -168,8 +167,7 @@ public class ListInstances {
     }
 
     try {
-      ZooLockPath zLockManagerPath =
-          new ZooLockPath(Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK);
+      var zLockManagerPath = ZooLock.path(Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK);
       byte[] manager = ZooLock.getLockData(cache, zLockManagerPath, null);
       if (manager == null) {
         return null;

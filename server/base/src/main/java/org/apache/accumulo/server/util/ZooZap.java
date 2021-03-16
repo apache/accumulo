@@ -28,7 +28,6 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -110,7 +109,7 @@ public class ZooZap {
             if (opts.zapManager || opts.zapMaster) {
               zoo.recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
             } else {
-              ZooLockPath zLockPath = new ZooLockPath(tserversPath + "/" + child);
+              var zLockPath = ZooLock.path(tserversPath + "/" + child);
               if (!zoo.getChildren(zLockPath.toString()).isEmpty()) {
                 if (!ZooLock.deleteLock(zoo, zLockPath, "tserver")) {
                   message("Did not delete " + tserversPath + "/" + child, opts);

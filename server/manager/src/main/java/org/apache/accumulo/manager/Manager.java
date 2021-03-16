@@ -1043,7 +1043,7 @@ public class Manager extends AbstractServer
 
     // block until we can obtain the ZK lock for the manager
     try {
-      getManagerLock(new ZooLockPath(zroot + Constants.ZMANAGER_LOCK));
+      getManagerLock(ZooLock.path(zroot + Constants.ZMANAGER_LOCK));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }

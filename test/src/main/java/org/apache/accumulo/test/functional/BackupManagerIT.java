@@ -26,7 +26,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.manager.Manager;
@@ -53,9 +52,8 @@ public class BackupManagerIT extends ConfigurableMacBase {
       // wait for 2 lock entries
       do {
         UtilWaitThread.sleep(100);
-        ZooLockPath path = new ZooLockPath(root + Constants.ZMANAGER_LOCK);
-        children =
-            ZooLock.validateAndSortChildrenByLockPrefix(path, writer.getChildren(path.toString()));
+        var path = ZooLock.path(root + Constants.ZMANAGER_LOCK);
+        children = ZooLock.validateAndSort(path, writer.getChildren(path.toString()));
       } while (children.size() != 2);
       // wait for the backup manager to learn to be the backup
       UtilWaitThread.sleep(1000);

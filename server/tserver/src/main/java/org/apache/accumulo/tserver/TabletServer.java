@@ -97,7 +97,6 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
-import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.AbstractServer;
@@ -628,7 +627,7 @@ public class TabletServer extends AbstractServer {
   private void announceExistence() {
     ZooReaderWriter zoo = getContext().getZooReaderWriter();
     try {
-      ZooLockPath zLockPath = new ZooLockPath(
+      var zLockPath = ZooLock.path(
           getContext().getZooKeeperRoot() + Constants.ZTSERVERS + "/" + getClientAddressString());
 
       try {

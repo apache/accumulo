@@ -24,7 +24,6 @@ import static org.junit.Assert.assertThrows;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
 import org.junit.Test;
 
 public class ZooLockTest {
@@ -43,8 +42,7 @@ public class ZooLockTest {
     children.add("zlock#987654321");
     children.add("zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001");
 
-    final List<String> validChildren =
-        ZooLock.validateAndSortChildrenByLockPrefix(new ZooLockPath(""), children);
+    final List<String> validChildren = ZooLock.validateAndSort(ZooLock.path(""), children);
 
     assertEquals(8, validChildren.size());
     assertEquals("zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001", validChildren.get(0));

@@ -27,7 +27,6 @@ import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 
@@ -57,7 +56,7 @@ public class TabletServerLocks {
         List<String> tabletServers = zoo.getChildren(tserverPath);
 
         for (String tabletServer : tabletServers) {
-          ZooLockPath zLockPath = new ZooLockPath(tserverPath + "/" + tabletServer);
+          var zLockPath = ZooLock.path(tserverPath + "/" + tabletServer);
           byte[] lockData = ZooLock.getLockData(cache, zLockPath, null);
           String holder = null;
           if (lockData != null) {
@@ -67,7 +66,7 @@ public class TabletServerLocks {
           System.out.printf("%32s %16s%n", tabletServer, holder);
         }
       } else if (opts.delete != null) {
-        ZooLock.deleteLock(zoo, new ZooLockPath(tserverPath + "/" + args[1]));
+        ZooLock.deleteLock(zoo, ZooLock.path(tserverPath + "/" + args[1]));
       } else {
         System.out.println(
             "Usage : " + TabletServerLocks.class.getName() + " -list|-delete <tserver lock>");

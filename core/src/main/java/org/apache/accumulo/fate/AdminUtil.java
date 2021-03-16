@@ -31,10 +31,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
+import org.apache.accumulo.fate.zookeeper.FateLock;
+import org.apache.accumulo.fate.zookeeper.FateLock.FateLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
-import org.apache.accumulo.fate.zookeeper.ZooQueueLock;
-import org.apache.accumulo.fate.zookeeper.ZooQueueLock.FateLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -276,9 +276,9 @@ public class AdminUtil<T> {
 
       try {
 
-        FateLockPath fLockPath = new FateLockPath(lockPath + "/" + id);
-        List<String> lockNodes = ZooQueueLock.validateAndSortChildrenByLockPrefix(fLockPath,
-            zk.getChildren(fLockPath.toString()));
+        FateLockPath fLockPath = FateLock.path(lockPath + "/" + id);
+        List<String> lockNodes =
+            FateLock.validateAndSort(fLockPath, zk.getChildren(fLockPath.toString()));
 
         int pos = 0;
         boolean sawWriteLock = false;

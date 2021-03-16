@@ -39,8 +39,7 @@ import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock;
-import org.apache.accumulo.fate.zookeeper.ZooQueueLock;
-import org.apache.accumulo.fate.zookeeper.ZooQueueLock.FateLockPath;
+import org.apache.accumulo.fate.zookeeper.FateLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReservation;
 import org.apache.accumulo.manager.Manager;
@@ -157,9 +156,9 @@ public class Utils {
   private static Lock getLock(ServerContext context, AbstractId<?> id, long tid,
       boolean writeLock) {
     byte[] lockData = String.format("%016x", tid).getBytes(UTF_8);
-    FateLockPath fLockPath = new FateLockPath(
-        context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
-    ZooQueueLock qlock = new ZooQueueLock(context.getZooReaderWriter(), fLockPath, false);
+    var fLockPath =
+        FateLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
+    FateLock qlock = new FateLock(context.getZooReaderWriter(), fLockPath);
     Lock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
     if (lock == null) {
       DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, lockData);

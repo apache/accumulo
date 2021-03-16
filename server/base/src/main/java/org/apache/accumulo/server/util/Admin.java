@@ -60,7 +60,6 @@ import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -415,7 +414,7 @@ public class Admin implements KeywordExecutable {
    */
   static String qualifyWithZooKeeperSessionId(String zTServerRoot, ZooCache zooCache,
       String hostAndPort) {
-    ZooLockPath zLockPath = new ZooLockPath(zTServerRoot + "/" + hostAndPort);
+    var zLockPath = ZooLock.path(zTServerRoot + "/" + hostAndPort);
     long sessionId = ZooLock.getSessionId(zooCache, zLockPath);
     if (sessionId == 0) {
       return hostAndPort;
