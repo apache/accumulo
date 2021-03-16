@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -135,8 +136,8 @@ public class SharedRateLimiterFactory {
   }
 
   protected class SharedRateLimiter extends GuavaRateLimiter {
-    private volatile long permitsAcquired = 0;
-    private volatile long lastUpdate;
+    private AtomicLong permitsAcquired = new AtomicLong();
+    private AtomicLong lastUpdate = new AtomicLong();
 
     private final RateProvider rateProvider;
     private final String name;
@@ -145,13 +146,13 @@ public class SharedRateLimiterFactory {
       super(initialRate);
       this.name = name;
       this.rateProvider = rateProvider;
-      this.lastUpdate = System.currentTimeMillis();
+      this.lastUpdate.set(System.currentTimeMillis());
     }
 
     @Override
     public void acquire(long permits) {
       super.acquire(permits);
-      permitsAcquired += permits;
+      permitsAcquired.addAndGet(permits);
     }
 
     /** Poll the callback, updating the current rate if necessary. */
@@ -166,14 +167,14 @@ public class SharedRateLimiterFactory {
     /** Report the current throughput and usage of this rate limiter to the debug log. */
     public void report() {
       if (log.isDebugEnabled()) {
-        long duration = System.currentTimeMillis() - lastUpdate;
+        long duration = System.currentTimeMillis() - lastUpdate.get();
         if (duration == 0) {
           return;
         }
-        lastUpdate = System.currentTimeMillis();
+        lastUpdate.set(System.currentTimeMillis());
 
-        long sum = permitsAcquired;
-        permitsAcquired = 0;
+        long sum = permitsAcquired.get();
+        permitsAcquired.set(0);
 
         if (sum > 0) {
           log.debug(String.format("RateLimiter '%s': %,d of %,d permits/second", name,
