@@ -57,7 +57,7 @@ public class TabletServerLocks {
         List<String> tabletServers = zoo.getChildren(tserverPath);
 
         for (String tabletServer : tabletServers) {
-          ZooLockPath zLockPath = ZooLock.path(tserverPath + "/" + tabletServer);
+          ZooLockPath zLockPath = new ZooLockPath(tserverPath + "/" + tabletServer);
           byte[] lockData = ZooLock.getLockData(cache, zLockPath, null);
           String holder = null;
           if (lockData != null) {
@@ -67,7 +67,7 @@ public class TabletServerLocks {
           System.out.printf("%32s %16s%n", tabletServer, holder);
         }
       } else if (opts.delete != null) {
-        ZooLock.deleteLock(zoo, ZooLock.path(tserverPath + "/" + args[1]));
+        ZooLock.deleteLock(zoo, new ZooLockPath(tserverPath + "/" + args[1]));
       } else {
         System.out.println(
             "Usage : " + TabletServerLocks.class.getName() + " -list|-delete <tserver lock>");

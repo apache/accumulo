@@ -169,7 +169,7 @@ public class ListInstances {
 
     try {
       ZooLockPath zLockManagerPath =
-          ZooLock.path(Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK);
+          new ZooLockPath(Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK);
       byte[] manager = ZooLock.getLockData(cache, zLockManagerPath, null);
       if (manager == null) {
         return null;

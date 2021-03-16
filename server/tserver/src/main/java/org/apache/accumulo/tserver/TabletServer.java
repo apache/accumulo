@@ -628,7 +628,7 @@ public class TabletServer extends AbstractServer {
   private void announceExistence() {
     ZooReaderWriter zoo = getContext().getZooReaderWriter();
     try {
-      ZooLockPath zLockPath = ZooLock.path(
+      ZooLockPath zLockPath = new ZooLockPath(
           getContext().getZooKeeperRoot() + Constants.ZTSERVERS + "/" + getClientAddressString());
 
       try {

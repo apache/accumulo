@@ -294,7 +294,7 @@ public class LiveTServerSet implements Watcher {
 
     TServerInfo info = current.get(zPath);
 
-    final ZooLockPath zLockPath = ZooLock.path(path + "/" + zPath);
+    final ZooLockPath zLockPath = new ZooLockPath(path + "/" + zPath);
     ZcStat stat = new ZcStat();
     byte[] lockData = ZooLock.getLockData(getZooCache(), zLockPath, stat);
 

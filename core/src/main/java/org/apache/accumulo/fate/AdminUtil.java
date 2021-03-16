@@ -275,7 +275,7 @@ public class AdminUtil<T> {
     for (String id : lockedIds) {
 
       try {
-        FateLockPath fLockPath = ZooQueueLock.path(lockPath + "/" + id);
+        FateLockPath fLockPath = new FateLockPath(lockPath + "/" + id);
         // Fate Operation lock.
         List<String> lockNodes = ZooQueueLock.validateAndSortChildrenByLockPrefix(fLockPath,
             zk.getChildren(fLockPath.toString()));

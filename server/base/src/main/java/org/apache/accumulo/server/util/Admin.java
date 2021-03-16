@@ -415,7 +415,7 @@ public class Admin implements KeywordExecutable {
    */
   static String qualifyWithZooKeeperSessionId(String zTServerRoot, ZooCache zooCache,
       String hostAndPort) {
-    ZooLockPath zLockPath = ZooLock.path(zTServerRoot + "/" + hostAndPort);
+    ZooLockPath zLockPath = new ZooLockPath(zTServerRoot + "/" + hostAndPort);
     long sessionId = ZooLock.getSessionId(zooCache, zLockPath);
     if (sessionId == 0) {
       return hostAndPort;

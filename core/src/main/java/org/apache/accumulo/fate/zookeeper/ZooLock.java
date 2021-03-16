@@ -73,10 +73,6 @@ public class ZooLock implements Watcher {
     }
   }
 
-  public static ZooLockPath path(String zooLockPath) {
-    return new ZooLockPath(zooLockPath);
-  }
-
   public enum LockLossReason {
     LOCK_DELETED, SESSION_EXPIRED
   }

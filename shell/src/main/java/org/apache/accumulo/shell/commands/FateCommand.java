@@ -41,7 +41,6 @@ import org.apache.accumulo.fate.ReadOnlyRepo;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
@@ -133,7 +132,7 @@ public class FateCommand extends Command {
 
     String path = context.getZooKeeperRoot() + Constants.ZFATE;
     ZooLockPath managerLockPath =
-        ZooLock.path(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
+        new ZooLockPath(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
     ZooReaderWriter zk =
         getZooReaderWriter(context, siteConfig, cl.getOptionValue(secretOption.getOpt()));
     ZooStore<FateCommand> zs = new ZooStore<>(path, zk);
