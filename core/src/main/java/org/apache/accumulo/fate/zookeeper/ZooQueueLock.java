@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.SortedMap;
@@ -29,10 +30,13 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NotEmptyException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ZooQueueLock implements QueueLock {
+  private static final Logger log = LoggerFactory.getLogger(ZooQueueLock.class);
 
-  private static final String PREFIX = "lock-";
+  private static final String PREFIX = "flock#";
 
   private ZooReaderWriter zoo;
   private String path;
@@ -110,5 +114,53 @@ public class ZooQueueLock implements QueueLock {
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
+  }
+
+  public static List<String> validateAndSortChildrenByLockPrefix(String path,
+      List<String> children) {
+    log.trace("validating and sorting children at path {}", path);
+    List<String> validChildren = new ArrayList<>();
+    if (children == null || children.isEmpty()) {
+      return validChildren;
+    }
+    children.forEach(c -> {
+      log.trace("Validating {}", c);
+      if (c.startsWith(PREFIX)) {
+        int idx = c.indexOf('#');
+        String sequenceNum = c.substring(idx + 1);
+        if (sequenceNum.length() == 10) {
+          try {
+            log.trace("Testing number format of {}", sequenceNum);
+            Integer.parseInt(sequenceNum);
+            validChildren.add(c);
+          } catch (NumberFormatException e) {
+            log.warn("Fate lock found with invalid sequence number format: {} (not a number)", c);
+          }
+        } else {
+          log.warn("Fate lock found with invalid sequence number format: {} (not 10 characters)",
+              c);
+        }
+      } else {
+        log.warn("Fate lock found with invalid lock format: {} (does not start with {})", c,
+            PREFIX);
+      }
+    });
+
+    if (validChildren.size() > 1) {
+      validChildren.sort((o1, o2) -> {
+        // Lock should be of the form:
+        // lock-sequenceNumber
+        // Example:
+        // flock#0000000000
+
+        // Lock length - sequenceNumber length
+        // 16 - 10
+        int secondHashIdx = 6;
+        return Integer.valueOf(o1.substring(secondHashIdx))
+            .compareTo(Integer.valueOf(o2.substring(secondHashIdx)));
+      });
+    }
+    log.trace("Children nodes (size: {}): {}", validChildren.size(), validChildren);
+    return validChildren;
   }
 }

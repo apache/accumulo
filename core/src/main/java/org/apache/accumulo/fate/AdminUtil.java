@@ -32,6 +32,7 @@ import java.util.Set;
 
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.fate.zookeeper.ZooQueueLock;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -275,7 +276,7 @@ public class AdminUtil<T> {
 
         String path = lockPath + "/" + id;
         List<String> lockNodes =
-            ZooLock.validateAndSortChildrenByLockPrefix(path, zk.getChildren(path));
+            ZooQueueLock.validateAndSortChildrenByLockPrefix(path, zk.getChildren(path));
 
         int pos = 0;
         boolean sawWriteLock = false;
