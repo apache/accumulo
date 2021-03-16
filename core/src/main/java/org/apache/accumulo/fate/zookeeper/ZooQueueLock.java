@@ -39,7 +39,7 @@ public class ZooQueueLock implements QueueLock {
   private static final String PREFIX = "flock#";
 
   private ZooReaderWriter zoo;
-  private String path;
+  private FateLockPath path;
   private boolean ephemeral;
 
   public static class FateLockPath {
@@ -55,7 +55,7 @@ public class ZooQueueLock implements QueueLock {
     }
   }
 
-  public ZooQueueLock(ZooReaderWriter zrw, String path, boolean ephemeral) {
+  public ZooQueueLock(ZooReaderWriter zrw, FateLockPath path, boolean ephemeral) {
     this.zoo = zrw;
     this.path = path;
     this.ephemeral = ephemeral;
@@ -77,7 +77,7 @@ public class ZooQueueLock implements QueueLock {
           return Long.parseLong(last.substring(PREFIX.length()));
         } catch (NoNodeException nne) {
           // the parent does not exist so try to create it
-          zoo.putPersistentData(path, new byte[] {}, NodeExistsPolicy.SKIP);
+          zoo.putPersistentData(path.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
         }
       }
     } catch (Exception ex) {
@@ -91,7 +91,7 @@ public class ZooQueueLock implements QueueLock {
     try {
       List<String> children = Collections.emptyList();
       try {
-        children = zoo.getChildren(path);
+        children = zoo.getChildren(path.toString());
       } catch (KeeperException.NoNodeException ex) {
         // the path does not exist (it was deleted or not created yet), that is ok there are no
         // earlier entries then
@@ -120,7 +120,7 @@ public class ZooQueueLock implements QueueLock {
       zoo.recursiveDelete(path + String.format("/%s%010d", PREFIX, entry), NodeMissingPolicy.SKIP);
       try {
         // try to delete the parent if it has no children
-        zoo.delete(path);
+        zoo.delete(path.toString());
       } catch (NotEmptyException nee) {
         // the path had other lock nodes, no big deal
       }
