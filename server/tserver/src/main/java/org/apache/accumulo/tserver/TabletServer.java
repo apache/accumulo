@@ -97,6 +97,7 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.AbstractServer;
@@ -627,11 +628,11 @@ public class TabletServer extends AbstractServer {
   private void announceExistence() {
     ZooReaderWriter zoo = getContext().getZooReaderWriter();
     try {
-      String zPath =
-          getContext().getZooKeeperRoot() + Constants.ZTSERVERS + "/" + getClientAddressString();
+      ZooLockPath zLockPath = ZooLock.path(
+          getContext().getZooKeeperRoot() + Constants.ZTSERVERS + "/" + getClientAddressString());
 
       try {
-        zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
+        zoo.putPersistentData(zLockPath.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
       } catch (KeeperException e) {
         if (e.code() == KeeperException.Code.NOAUTH) {
           log.error("Failed to write to ZooKeeper. Ensure that"
@@ -640,7 +641,8 @@ public class TabletServer extends AbstractServer {
         throw e;
       }
 
-      tabletServerLock = new ZooLock(getContext().getSiteConfiguration(), zPath, UUID.randomUUID());
+      tabletServerLock =
+          new ZooLock(getContext().getSiteConfiguration(), zLockPath, UUID.randomUUID());
 
       LockWatcher lw = new LockWatcher() {
 
@@ -664,7 +666,7 @@ public class TabletServer extends AbstractServer {
       byte[] lockContent = new ServerServices(getClientAddressString(), Service.TSERV_CLIENT)
           .toString().getBytes(UTF_8);
       for (int i = 0; i < 120 / 5; i++) {
-        zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.SKIP);
+        zoo.putPersistentData(zLockPath.toString(), new byte[0], NodeExistsPolicy.SKIP);
 
         if (tabletServerLock.tryLock(lw, lockContent)) {
           log.debug("Obtained tablet server lock {}", tabletServerLock.getLockPath());

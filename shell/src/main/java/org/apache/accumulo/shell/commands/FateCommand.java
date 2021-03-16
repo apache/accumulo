@@ -41,6 +41,8 @@ import org.apache.accumulo.fate.ReadOnlyRepo;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -130,7 +132,8 @@ public class FateCommand extends Command {
     AdminUtil<FateCommand> admin = new AdminUtil<>(false);
 
     String path = context.getZooKeeperRoot() + Constants.ZFATE;
-    String managerPath = context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK;
+    ZooLockPath managerLockPath =
+        ZooLock.path(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
     ZooReaderWriter zk =
         getZooReaderWriter(context, siteConfig, cl.getOptionValue(secretOption.getOpt()));
     ZooStore<FateCommand> zs = new ZooStore<>(path, zk);
@@ -140,7 +143,7 @@ public class FateCommand extends Command {
         throw new ParseException("Must provide transaction ID");
       }
       for (int i = 1; i < args.length; i++) {
-        if (!admin.prepFail(zs, zk, managerPath, args[i])) {
+        if (!admin.prepFail(zs, zk, managerLockPath, args[i])) {
           System.out.printf("Could not fail transaction: %s%n", args[i]);
           failedCommand = true;
         }
@@ -150,7 +153,7 @@ public class FateCommand extends Command {
         throw new ParseException("Must provide transaction ID");
       }
       for (int i = 1; i < args.length; i++) {
-        if (admin.prepDelete(zs, zk, managerPath, args[i])) {
+        if (admin.prepDelete(zs, zk, managerLockPath, args[i])) {
           admin.deleteLocks(zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, args[i]);
         } else {
           System.out.printf("Could not delete transaction: %s%n", args[i]);

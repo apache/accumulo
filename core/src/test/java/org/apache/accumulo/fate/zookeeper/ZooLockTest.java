@@ -42,7 +42,8 @@ public class ZooLockTest {
     children.add("zlock#987654321");
     children.add("zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001");
 
-    final List<String> validChildren = ZooLock.validateAndSortChildrenByLockPrefix("", children);
+    final List<String> validChildren =
+        ZooLock.validateAndSortChildrenByLockPrefix(ZooLock.path(""), children);
 
     assertEquals(8, validChildren.size());
     assertEquals("zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001", validChildren.get(0));

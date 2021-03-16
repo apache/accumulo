@@ -99,6 +99,7 @@ import org.apache.accumulo.fate.Fate;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
+import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -1042,7 +1043,7 @@ public class Manager extends AbstractServer
 
     // block until we can obtain the ZK lock for the manager
     try {
-      getManagerLock(zroot + Constants.ZMANAGER_LOCK);
+      getManagerLock(ZooLock.path(zroot + Constants.ZMANAGER_LOCK));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }
@@ -1439,7 +1440,7 @@ public class Manager extends AbstractServer
     }
   }
 
-  private void getManagerLock(final String zManagerLoc)
+  private void getManagerLock(final ZooLockPath zManagerLoc)
       throws KeeperException, InterruptedException {
     ServerContext context = getContext();
     log.info("trying to get manager lock");

@@ -38,6 +38,23 @@ public class ZooQueueLock implements QueueLock {
   private String path;
   private boolean ephemeral;
 
+  public static class FateLockPath {
+    private final String path;
+
+    public FateLockPath(String path) {
+      this.path = path;
+    }
+
+    @Override
+    public String toString() {
+      return this.path;
+    }
+  }
+
+  public static FateLockPath path(String fateLockPath) {
+    return new FateLockPath(fateLockPath);
+  }
+
   public ZooQueueLock(ZooReaderWriter zrw, String path, boolean ephemeral) {
     this.zoo = zrw;
     this.path = path;
@@ -110,5 +127,50 @@ public class ZooQueueLock implements QueueLock {
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
+  }
+  public static List<String> validateAndSortChildrenByLockPrefix(FateLockPath path,
+      List<String> children) {
+    log.trace("validating and sorting children at path {}", path);
+    List<String> validChildren = new ArrayList<>();
+    if (children == null || children.isEmpty()) {
+      return validChildren;
+    }
+    children.forEach(c -> {
+      log.trace("Validating {}", c);
+      if (c.startsWith(PREFIX)) {
+        int idx = c.indexOf('#');
+        String sequenceNum = c.substring(idx + 1);
+        if (sequenceNum.length() == 10) {
+          try {
+            log.trace("Testing number format of {}", sequenceNum);
+            Integer.parseInt(sequenceNum);
+            validChildren.add(c);
+          } catch (NumberFormatException e) {
+            log.warn("Child found with invalid sequence format: {} (not a number)", c);
+          }
+        } else {
+          log.warn("Child found with invalid sequence format: {} (not 10 characters)", c);
+        }
+      } else {
+        log.warn("Child found with invalid format: {} (does not start with {})", c, PREFIX);
+      }
+    });
+
+    if (validChildren.size() > 1) {
+      validChildren.sort((o1, o2) -> {
+        // Lock should be of the form:
+        // lock-sequenceNumber
+        // Example:
+        // flock#0000000000
+
+        // Lock length - sequenceNumber length
+        // 16 - 10
+        int secondHashIdx = 6;
+        return Integer.valueOf(o1.substring(secondHashIdx))
+            .compareTo(Integer.valueOf(o2.substring(secondHashIdx)));
+      });
+    }
+    log.trace("Children nodes (size: {}): {}", validChildren.size(), validChildren);
+    return validChildren;
   }
 }

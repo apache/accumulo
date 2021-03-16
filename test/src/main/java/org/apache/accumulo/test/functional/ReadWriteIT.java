@@ -75,6 +75,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -170,12 +171,12 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       ClientInfo info = ClientInfo.from(accumuloClient.properties());
       ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       ZooCache zcache = new ZooCache(zreader, null);
+      ZooLockPath zLockPath =
+          ZooLock.path(ZooUtil.getRoot(accumuloClient.instanceOperations().getInstanceID())
+              + Constants.ZMANAGER_LOCK);
       byte[] managerLockData;
       do {
-        managerLockData = ZooLock.getLockData(zcache,
-            ZooUtil.getRoot(accumuloClient.instanceOperations().getInstanceID())
-                + Constants.ZMANAGER_LOCK,
-            null);
+        managerLockData = ZooLock.getLockData(zcache, zLockPath, null);
         if (managerLockData != null) {
           log.info("Manager lock is still held");
           Thread.sleep(1000);
