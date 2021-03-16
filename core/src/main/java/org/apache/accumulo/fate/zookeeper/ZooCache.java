@@ -567,7 +567,6 @@ public class ZooCache {
   }
 
   public byte[] getLockData(ZooLockPath path) {
-    // ZooLock style lock.
     List<String> children =
         ZooLock.validateAndSortChildrenByLockPrefix(path, getChildren(path.toString()));
     if (children == null || children.isEmpty()) {

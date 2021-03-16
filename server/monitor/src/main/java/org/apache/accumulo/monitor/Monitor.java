@@ -393,7 +393,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       // Read the gc location from its lock
       ZooReaderWriter zk = context.getZooReaderWriter();
       ZooLockPath path = new ZooLockPath(context.getZooKeeperRoot() + Constants.ZGC_LOCK);
-      // ZooLock style lock.
       List<String> locks =
           ZooLock.validateAndSortChildrenByLockPrefix(path, zk.getChildren(path.toString()));
       if (locks != null && !locks.isEmpty()) {
