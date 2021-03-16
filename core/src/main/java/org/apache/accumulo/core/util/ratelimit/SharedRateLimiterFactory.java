@@ -146,7 +146,7 @@ public class SharedRateLimiterFactory {
       super(initialRate);
       this.name = name;
       this.rateProvider = rateProvider;
-      this.lastUpdate.set(System.currentTimeMillis());
+      this.lastUpdate.set(System.nanoTime());
     }
 
     @Override
@@ -167,11 +167,11 @@ public class SharedRateLimiterFactory {
     /** Report the current throughput and usage of this rate limiter to the debug log. */
     public void report() {
       if (log.isDebugEnabled()) {
-        long duration = System.currentTimeMillis() - lastUpdate.get();
+        long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastUpdate.get());
         if (duration == 0) {
           return;
         }
-        lastUpdate.set(System.currentTimeMillis());
+        lastUpdate.set(System.nanoTime());
 
         long sum = permitsAcquired.get();
         permitsAcquired.set(0);
