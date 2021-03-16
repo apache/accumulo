@@ -93,7 +93,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   }
 
   private void run(ServerContext c) throws Exception {
-    ZooLockPath zPath = ZooLock.path(c.getZooKeeperRoot() + "/testLock");
+    ZooLockPath zPath = new ZooLockPath(c.getZooKeeperRoot() + "/testLock");
     ZooReaderWriter zoo = c.getZooReaderWriter();
     zoo.putPersistentData(zPath.toString(), new byte[0], NodeExistsPolicy.OVERWRITE);
     ZooLock zl = new ZooLock(c.getSiteConfiguration(), zPath, UUID.randomUUID());

@@ -110,7 +110,7 @@ public class ZooZap {
             if (opts.zapManager || opts.zapMaster) {
               zoo.recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
             } else {
-              ZooLockPath zLockPath = ZooLock.path(tserversPath + "/" + child);
+              ZooLockPath zLockPath = new ZooLockPath(tserversPath + "/" + child);
               if (!zoo.getChildren(zLockPath.toString()).isEmpty()) {
                 if (!ZooLock.deleteLock(zoo, zLockPath, "tserver")) {
                   message("Did not delete " + tserversPath + "/" + child, opts);

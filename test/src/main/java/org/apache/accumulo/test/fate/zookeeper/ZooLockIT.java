@@ -204,8 +204,8 @@ public class ZooLockIT {
 
   @Test(timeout = 10000)
   public void testDeleteParent() throws Exception {
-    ZooLockPath parent =
-        ZooLock.path("/zltestDeleteParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+    ZooLockPath parent = new ZooLockPath(
+        "/zltestDeleteParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ZooLock zl = getZooLock(parent, UUID.randomUUID());
 
@@ -237,7 +237,7 @@ public class ZooLockIT {
   @Test(timeout = 10000)
   public void testNoParent() throws Exception {
     ZooLockPath parent =
-        ZooLock.path("/zltestNoParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+        new ZooLockPath("/zltestNoParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ZooLock zl = getZooLock(parent, UUID.randomUUID());
 
@@ -258,7 +258,7 @@ public class ZooLockIT {
   @Test(timeout = 10000)
   public void testDeleteLock() throws Exception {
     ZooLockPath parent =
-        ZooLock.path("/zltestDeleteLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+        new ZooLockPath("/zltestDeleteLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
     zk.mkdirs(parent.toString());
@@ -289,8 +289,8 @@ public class ZooLockIT {
 
   @Test(timeout = 15000)
   public void testDeleteWaiting() throws Exception {
-    ZooLockPath parent =
-        ZooLock.path("/zltestDeleteWaiting-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+    ZooLockPath parent = new ZooLockPath(
+        "/zltestDeleteWaiting-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
     zk.mkdirs(parent.toString());
@@ -356,8 +356,8 @@ public class ZooLockIT {
 
   @Test(timeout = 10000)
   public void testUnexpectedEvent() throws Exception {
-    ZooLockPath parent = ZooLock
-        .path("/zltestUnexpectedEvent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+    ZooLockPath parent = new ZooLockPath(
+        "/zltestUnexpectedEvent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ConnectedWatcher watcher = new ConnectedWatcher();
     try (ZooKeeper zk = new ZooKeeper(szk.getConn(), 30000, watcher)) {
@@ -402,7 +402,7 @@ public class ZooLockIT {
 
   @Test(timeout = 60000)
   public void testLockSerial() throws Exception {
-    ZooLockPath parent = ZooLock.path("/zlretryLockSerial");
+    ZooLockPath parent = new ZooLockPath("/zlretryLockSerial");
 
     ConnectedWatcher watcher1 = new ConnectedWatcher();
     ConnectedWatcher watcher2 = new ConnectedWatcher();
@@ -566,7 +566,7 @@ public class ZooLockIT {
 
   @Test(timeout = 60000)
   public void testLockParallel() throws Exception {
-    ZooLockPath parent = ZooLock.path("/zlParallel");
+    ZooLockPath parent = new ZooLockPath("/zlParallel");
 
     ConnectedWatcher watcher = new ConnectedWatcher();
     try (ZooKeeperWrapper zk = new ZooKeeperWrapper(szk.getConn(), 30000, watcher)) {
@@ -639,7 +639,7 @@ public class ZooLockIT {
   @Test(timeout = 10000)
   public void testTryLock() throws Exception {
     ZooLockPath parent =
-        ZooLock.path("/zltestTryLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+        new ZooLockPath("/zltestTryLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ZooLock zl = getZooLock(parent, UUID.randomUUID());
 
@@ -679,7 +679,7 @@ public class ZooLockIT {
   @Test(timeout = 10000)
   public void testChangeData() throws Exception {
     ZooLockPath parent =
-        ZooLock.path("/zltestChangeData-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+        new ZooLockPath("/zltestChangeData-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
     ConnectedWatcher watcher = new ConnectedWatcher();
     try (ZooKeeper zk = new ZooKeeper(szk.getConn(), 30000, watcher)) {
       zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));

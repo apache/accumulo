@@ -84,7 +84,7 @@ public class GCUpgrade9to10TestIT extends ConfigurableMacBase {
     getCluster().killProcess(ServerType.GARBAGE_COLLECTOR,
         getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR).iterator().next());
     // delete lock in zookeeper if there, this will allow next GC to start quickly
-    ZooLockPath path = ZooLock.path(getServerContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
+    ZooLockPath path = new ZooLockPath(getServerContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
     ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
     try {
       ZooLock.deleteLock(zk, path);

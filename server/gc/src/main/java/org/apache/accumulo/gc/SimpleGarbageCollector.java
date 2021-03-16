@@ -618,7 +618,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {
-    ZooLockPath path = ZooLock.path(getContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
+    ZooLockPath path = new ZooLockPath(getContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
 
     LockWatcher lockWatcher = new LockWatcher() {
       @Override

@@ -36,7 +36,7 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
 
   @Override
   public boolean isLockHeld(String tserver, String session) {
-    ZooLockPath zLockPath = ZooLock.path(root + "/" + tserver);
+    ZooLockPath zLockPath = new ZooLockPath(root + "/" + tserver);
     return ZooLock.getSessionId(zc, zLockPath) == Long.parseLong(session, 16);
   }
 

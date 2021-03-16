@@ -53,7 +53,7 @@ public class BackupManagerIT extends ConfigurableMacBase {
       // wait for 2 lock entries
       do {
         UtilWaitThread.sleep(100);
-        ZooLockPath path = ZooLock.path(root + Constants.ZMANAGER_LOCK);
+        ZooLockPath path = new ZooLockPath(root + Constants.ZMANAGER_LOCK);
         children =
             ZooLock.validateAndSortChildrenByLockPrefix(path, writer.getChildren(path.toString()));
       } while (children.size() != 2);

@@ -472,7 +472,7 @@ public class TabletMetadata {
   private static Optional<TServerInstance> checkServer(ClientContext context, String path,
       String zPath) {
     Optional<TServerInstance> server = Optional.empty();
-    final ZooLockPath lockPath = ZooLock.path(path + "/" + zPath);
+    final ZooLockPath lockPath = new ZooLockPath(path + "/" + zPath);
     ZooCache.ZcStat stat = new ZooCache.ZcStat();
     byte[] lockData = ZooLock.getLockData(context.getZooCache(), lockPath, stat);
 

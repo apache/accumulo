@@ -55,10 +55,6 @@ public class ZooQueueLock implements QueueLock {
     }
   }
 
-  public static FateLockPath path(String fateLockPath) {
-    return new FateLockPath(fateLockPath);
-  }
-
   public ZooQueueLock(ZooReaderWriter zrw, String path, boolean ephemeral) {
     this.zoo = zrw;
     this.path = path;

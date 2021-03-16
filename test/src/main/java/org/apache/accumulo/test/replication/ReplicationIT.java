@@ -208,8 +208,8 @@ public class ReplicationIT extends ConfigurableMacBase {
     ZooCacheFactory zcf = new ZooCacheFactory();
     ClientInfo info = ClientInfo.from(client.properties());
     ZooCache zcache = zcf.getZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
-    ZooLockPath zkPath = ZooLock
-        .path(ZooUtil.getRoot(client.instanceOperations().getInstanceID()) + Constants.ZGC_LOCK);
+    ZooLockPath zkPath = new ZooLockPath(
+        ZooUtil.getRoot(client.instanceOperations().getInstanceID()) + Constants.ZGC_LOCK);
     log.info("Looking for GC lock at {}", zkPath);
     byte[] data = ZooLock.getLockData(zcache, zkPath, null);
     while (data == null) {

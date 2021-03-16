@@ -104,8 +104,8 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
       ClientInfo info = ClientInfo.from(client.properties());
       ZooCache zcache = new ZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       zcache.clear();
-      ZooLockPath path = ZooLock
-          .path(ZooUtil.getRoot(client.instanceOperations().getInstanceID()) + Constants.ZGC_LOCK);
+      ZooLockPath path = new ZooLockPath(
+          ZooUtil.getRoot(client.instanceOperations().getInstanceID()) + Constants.ZGC_LOCK);
       byte[] gcLockData;
       do {
         gcLockData = ZooLock.getLockData(zcache, path, null);

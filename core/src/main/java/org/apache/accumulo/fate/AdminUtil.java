@@ -32,13 +32,9 @@ import java.util.Set;
 
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
-<<<<<<< HEAD
-import org.apache.accumulo.fate.zookeeper.ZooQueueLock;
-=======
 import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooQueueLock;
 import org.apache.accumulo.fate.zookeeper.ZooQueueLock.FateLockPath;
->>>>>>> da759df19098824925fd8792aea881116f059e1d
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -279,7 +275,8 @@ public class AdminUtil<T> {
     for (String id : lockedIds) {
 
       try {
-        FateLockPath fLockPath = ZooQueueLock.path(lockPath + "/" + id);
+
+        FateLockPath fLockPath = new FateLockPath(lockPath + "/" + id);
         List<String> lockNodes = ZooQueueLock.validateAndSortChildrenByLockPrefix(fLockPath,
             zk.getChildren(fLockPath.toString()));
 
