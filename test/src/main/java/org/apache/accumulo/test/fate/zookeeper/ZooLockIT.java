@@ -41,6 +41,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.AccumuloLockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
+import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
@@ -100,7 +101,7 @@ public class ZooLockIT {
 
   private static class ZooLockWrapper extends ZooLock {
 
-    protected ZooLockWrapper(ZooKeeper zookeeper, String path, UUID uuid) {
+    protected ZooLockWrapper(ZooKeeper zookeeper, ZooLockPath path, UUID uuid) {
       super(zookeeper, path, uuid);
     }
 
@@ -189,7 +190,7 @@ public class ZooLockIT {
 
   private static final AtomicInteger pdCount = new AtomicInteger(0);
 
-  private static ZooLock getZooLock(String parent, UUID uuid) {
+  private static ZooLock getZooLock(ZooLockPath parent, UUID uuid) {
     Map<String,String> props = new HashMap<>();
     props.put(Property.INSTANCE_ZK_HOST.toString(), szk.getConn());
     props.put(Property.INSTANCE_ZK_TIMEOUT.toString(), "30000");
@@ -197,13 +198,14 @@ public class ZooLockIT {
     return new ZooLock(new ConfigurationCopy(props), parent, uuid);
   }
 
-  private static ZooLock getZooLock(ZooKeeperWrapper zkw, String parent, UUID uuid) {
+  private static ZooLock getZooLock(ZooKeeperWrapper zkw, ZooLockPath parent, UUID uuid) {
     return new ZooLockWrapper(zkw, parent, uuid);
   }
 
   @Test(timeout = 10000)
   public void testDeleteParent() throws Exception {
-    String parent = "/zltestDeleteParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
+    ZooLockPath parent =
+        ZooLock.path("/zltestDeleteParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ZooLock zl = getZooLock(parent, UUID.randomUUID());
 
@@ -212,11 +214,11 @@ public class ZooLockIT {
     ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
 
     // intentionally created parent after lock
-    zk.mkdirs(parent);
+    zk.mkdirs(parent.toString());
 
-    zk.delete(parent);
+    zk.delete(parent.toString());
 
-    zk.mkdirs(parent);
+    zk.mkdirs(parent.toString());
 
     TestALW lw = new TestALW();
 
@@ -234,7 +236,8 @@ public class ZooLockIT {
 
   @Test(timeout = 10000)
   public void testNoParent() throws Exception {
-    String parent = "/zltestNoParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
+    ZooLockPath parent =
+        ZooLock.path("/zltestNoParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ZooLock zl = getZooLock(parent, UUID.randomUUID());
 
@@ -254,10 +257,11 @@ public class ZooLockIT {
 
   @Test(timeout = 10000)
   public void testDeleteLock() throws Exception {
-    String parent = "/zltestDeleteLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
+    ZooLockPath parent =
+        ZooLock.path("/zltestDeleteLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
-    zk.mkdirs(parent);
+    zk.mkdirs(parent.toString());
 
     ZooLock zl = getZooLock(parent, UUID.randomUUID());
 
@@ -285,10 +289,11 @@ public class ZooLockIT {
 
   @Test(timeout = 15000)
   public void testDeleteWaiting() throws Exception {
-    String parent = "/zltestDeleteWaiting-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
+    ZooLockPath parent =
+        ZooLock.path("/zltestDeleteWaiting-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
-    zk.mkdirs(parent);
+    zk.mkdirs(parent.toString());
 
     ZooLock zl = getZooLock(parent, UUID.randomUUID());
 
@@ -321,7 +326,7 @@ public class ZooLockIT {
     zl3.lock(lw3, "test3".getBytes(UTF_8));
 
     List<String> children =
-        ZooLock.validateAndSortChildrenByLockPrefix(parent, zk.getChildren(parent));
+        ZooLock.validateAndSortChildrenByLockPrefix(parent, zk.getChildren(parent.toString()));
 
     zk.delete(parent + "/" + children.get(1));
 
@@ -351,7 +356,8 @@ public class ZooLockIT {
 
   @Test(timeout = 10000)
   public void testUnexpectedEvent() throws Exception {
-    String parent = "/zltestUnexpectedEvent-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
+    ZooLockPath parent = ZooLock
+        .path("/zltestUnexpectedEvent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ConnectedWatcher watcher = new ConnectedWatcher();
     try (ZooKeeper zk = new ZooKeeper(szk.getConn(), 30000, watcher)) {
@@ -361,14 +367,14 @@ public class ZooLockIT {
         Thread.sleep(200);
       }
 
-      zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+      zk.create(parent.toString(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
       ZooLock zl = getZooLock(parent, UUID.randomUUID());
 
       assertFalse(zl.isLocked());
 
       // would not expect data to be set on this node, but it should not cause problems.....
-      zk.setData(parent, "foo".getBytes(UTF_8), -1);
+      zk.setData(parent.toString(), "foo".getBytes(UTF_8), -1);
 
       TestALW lw = new TestALW();
 
@@ -396,7 +402,7 @@ public class ZooLockIT {
 
   @Test(timeout = 60000)
   public void testLockSerial() throws Exception {
-    String parent = "/zlretryLockSerial";
+    ZooLockPath parent = ZooLock.path("/zlretryLockSerial");
 
     ConnectedWatcher watcher1 = new ConnectedWatcher();
     ConnectedWatcher watcher2 = new ConnectedWatcher();
@@ -415,7 +421,8 @@ public class ZooLockIT {
       }
 
       // Create the parent node
-      zk1.createOnce(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+      zk1.createOnce(parent.toString(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+          CreateMode.PERSISTENT);
 
       final RetryLockWatcher zlw1 = new RetryLockWatcher();
       ZooLock zl1 =
@@ -453,7 +460,7 @@ public class ZooLockIT {
       assertTrue(zlw1.isLockHeld());
       assertFalse(zlw2.isLockHeld());
 
-      List<String> children = zk1.getChildren(parent, false);
+      List<String> children = zk1.getChildren(parent.toString(), false);
       assertTrue(children.contains("zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000000"));
       assertFalse("this node should have been deleted",
           children.contains("zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001"));
@@ -485,7 +492,7 @@ public class ZooLockIT {
 
     private static final Logger LOG = LoggerFactory.getLogger(LockWorker.class);
 
-    private final String parent;
+    private final ZooLockPath parent;
     private final UUID uuid;
     private final CountDownLatch getLockLatch;
     private final CountDownLatch lockCompletedLatch;
@@ -493,7 +500,7 @@ public class ZooLockIT {
     private final RetryLockWatcher lockWatcher = new RetryLockWatcher();
     private volatile Exception ex = null;
 
-    public LockWorker(final String parent, final UUID uuid, final CountDownLatch lockLatch,
+    public LockWorker(final ZooLockPath parent, final UUID uuid, final CountDownLatch lockLatch,
         final CountDownLatch lockCompletedLatch) {
       this.parent = parent;
       this.uuid = uuid;
@@ -559,7 +566,7 @@ public class ZooLockIT {
 
   @Test(timeout = 60000)
   public void testLockParallel() throws Exception {
-    String parent = "/zlParallel";
+    ZooLockPath parent = ZooLock.path("/zlParallel");
 
     ConnectedWatcher watcher = new ConnectedWatcher();
     try (ZooKeeperWrapper zk = new ZooKeeperWrapper(szk.getConn(), 30000, watcher)) {
@@ -569,7 +576,8 @@ public class ZooLockIT {
         Thread.sleep(50);
       }
       // Create the parent node
-      zk.createOnce(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+      zk.createOnce(parent.toString(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+          CreateMode.PERSISTENT);
 
       int numWorkers = 4;
       final CountDownLatch getLockLatch = new CountDownLatch(numWorkers);
@@ -593,11 +601,11 @@ public class ZooLockIT {
       workers.forEach(w -> assertNull(w.getException()));
 
       for (int i = 4; i > 0; i--) {
-        List<String> children =
-            ZooLock.validateAndSortChildrenByLockPrefix(parent, zk.getChildren(parent, false));
+        List<String> children = ZooLock.validateAndSortChildrenByLockPrefix(parent,
+            zk.getChildren(parent.toString(), false));
         while (children.size() != i) {
           Thread.sleep(100);
-          children = zk.getChildren(parent, false);
+          children = zk.getChildren(parent.toString(), false);
         }
         assertEquals(i, children.size());
         String first = children.get(0);
@@ -615,7 +623,7 @@ public class ZooLockIT {
 
       workers.forEach(w -> assertFalse(w.holdsLock()));
       workers.forEach(w -> assertNull(w.getException()));
-      assertEquals(0, zk.getChildren(parent, false).size());
+      assertEquals(0, zk.getChildren(parent.toString(), false).size());
 
       threads.forEach(t -> {
         try {
@@ -630,7 +638,8 @@ public class ZooLockIT {
 
   @Test(timeout = 10000)
   public void testTryLock() throws Exception {
-    String parent = "/zltestTryLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
+    ZooLockPath parent =
+        ZooLock.path("/zltestTryLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ZooLock zl = getZooLock(parent, UUID.randomUUID());
 
@@ -643,11 +652,12 @@ public class ZooLockIT {
       }
 
       for (int i = 0; i < 10; i++) {
-        zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-        zk.delete(parent, -1);
+        zk.create(parent.toString(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+            CreateMode.PERSISTENT);
+        zk.delete(parent.toString(), -1);
       }
 
-      zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+      zk.create(parent.toString(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
       TestALW lw = new TestALW();
 
@@ -668,7 +678,8 @@ public class ZooLockIT {
 
   @Test(timeout = 10000)
   public void testChangeData() throws Exception {
-    String parent = "/zltestChangeData-" + this.hashCode() + "-l" + pdCount.incrementAndGet();
+    ZooLockPath parent =
+        ZooLock.path("/zltestChangeData-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
     ConnectedWatcher watcher = new ConnectedWatcher();
     try (ZooKeeper zk = new ZooKeeper(szk.getConn(), 30000, watcher)) {
       zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
@@ -677,7 +688,7 @@ public class ZooLockIT {
         Thread.sleep(200);
       }
 
-      zk.create(parent, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+      zk.create(parent.toString(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
       ZooLock zl = getZooLock(parent, UUID.randomUUID());
 

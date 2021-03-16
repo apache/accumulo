@@ -48,6 +48,7 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
@@ -293,9 +294,9 @@ public class LiveTServerSet implements Watcher {
 
     TServerInfo info = current.get(zPath);
 
-    final String lockPath = path + "/" + zPath;
+    final ZooLockPath zLockPath = ZooLock.path(path + "/" + zPath);
     ZcStat stat = new ZcStat();
-    byte[] lockData = ZooLock.getLockData(getZooCache(), lockPath, stat);
+    byte[] lockData = ZooLock.getLockData(getZooCache(), zLockPath, stat);
 
     if (lockData == null) {
       if (info != null) {

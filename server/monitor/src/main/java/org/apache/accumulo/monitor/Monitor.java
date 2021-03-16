@@ -64,6 +64,7 @@ import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
+import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -391,8 +392,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     try {
       // Read the gc location from its lock
       ZooReaderWriter zk = context.getZooReaderWriter();
-      String path = context.getZooKeeperRoot() + Constants.ZGC_LOCK;
-      List<String> locks = ZooLock.validateAndSortChildrenByLockPrefix(path, zk.getChildren(path));
+      ZooLockPath path = ZooLock.path(context.getZooKeeperRoot() + Constants.ZGC_LOCK);
+      // ZooLock style lock.
+      List<String> locks =
+          ZooLock.validateAndSortChildrenByLockPrefix(path, zk.getChildren(path.toString()));
       if (locks != null && !locks.isEmpty()) {
         address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0)), UTF_8))
             .getAddress(Service.GC_CLIENT);
@@ -598,7 +601,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     ServerContext context = getContext();
     final String zRoot = context.getZooKeeperRoot();
     final String monitorPath = zRoot + Constants.ZMONITOR;
-    final String monitorLockPath = zRoot + Constants.ZMONITOR_LOCK;
+    final ZooLockPath monitorLockPath = ZooLock.path(zRoot + Constants.ZMONITOR_LOCK);
 
     // Ensure that everything is kosher with ZK as this has changed.
     ZooReaderWriter zoo = context.getZooReaderWriter();
@@ -611,18 +614,18 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
         // And then make the nodes that we expect for the incoming ephemeral nodes
         zoo.putPersistentData(monitorPath, new byte[0], NodeExistsPolicy.FAIL);
-        zoo.putPersistentData(monitorLockPath, new byte[0], NodeExistsPolicy.FAIL);
-      } else if (!zoo.exists(monitorLockPath)) {
+        zoo.putPersistentData(monitorLockPath.toString(), new byte[0], NodeExistsPolicy.FAIL);
+      } else if (!zoo.exists(monitorLockPath.toString())) {
         // monitor node in ZK exists and is empty as we expect
         // but the monitor/lock node does not
-        zoo.putPersistentData(monitorLockPath, new byte[0], NodeExistsPolicy.FAIL);
+        zoo.putPersistentData(monitorLockPath.toString(), new byte[0], NodeExistsPolicy.FAIL);
       }
     } else {
       // 1.5.0 and earlier
       zoo.putPersistentData(zRoot + Constants.ZMONITOR, new byte[0], NodeExistsPolicy.FAIL);
-      if (!zoo.exists(monitorLockPath)) {
+      if (!zoo.exists(monitorLockPath.toString())) {
         // Somehow the monitor node exists but not monitor/lock
-        zoo.putPersistentData(monitorLockPath, new byte[0], NodeExistsPolicy.FAIL);
+        zoo.putPersistentData(monitorLockPath.toString(), new byte[0], NodeExistsPolicy.FAIL);
       }
     }
 

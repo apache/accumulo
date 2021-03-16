@@ -60,6 +60,23 @@ public class ZooLock implements Watcher {
 
   }
 
+  public static class ZooLockPath {
+    private final String path;
+
+    public ZooLockPath(String path) {
+      this.path = path;
+    }
+
+    @Override
+    public String toString() {
+      return this.path;
+    }
+  }
+
+  public static ZooLockPath path(String zooLockPath) {
+    return new ZooLockPath(zooLockPath);
+  }
+
   public enum LockLossReason {
     LOCK_DELETED, SESSION_EXPIRED
   }
@@ -79,7 +96,7 @@ public class ZooLock implements Watcher {
     void failedToAcquireLock(Exception e);
   }
 
-  private final String path;
+  private final ZooLockPath path;
   protected final ZooKeeper zooKeeper;
   private final Prefix vmLockPrefix;
 
@@ -91,13 +108,13 @@ public class ZooLock implements Watcher {
   private String createdNodeName;
   private String watchingNodeName;
 
-  public ZooLock(AccumuloConfiguration conf, String path, UUID uuid) {
+  public ZooLock(AccumuloConfiguration conf, ZooLockPath path, UUID uuid) {
     this.zooKeeper = ZooSession.getAuthenticatedSession(conf.get(Property.INSTANCE_ZK_HOST),
         (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), "digest",
         ("accumulo" + ":" + conf.get(Property.INSTANCE_SECRET)).getBytes(UTF_8));
     this.path = path;
     try {
-      zooKeeper.exists(path, this);
+      zooKeeper.exists(path.toString(), this);
       watchingParent = true;
       this.vmLockPrefix = new Prefix(ZLOCK_PREFIX + uuid.toString() + "#");
     } catch (Exception ex) {
@@ -106,11 +123,11 @@ public class ZooLock implements Watcher {
     }
   }
 
-  protected ZooLock(ZooKeeper zookeeper, String path, UUID uuid) {
+  protected ZooLock(ZooKeeper zookeeper, ZooLockPath path, UUID uuid) {
     this.zooKeeper = zookeeper;
     this.path = path;
     try {
-      zooKeeper.exists(path, this);
+      zooKeeper.exists(path.toString(), this);
       watchingParent = true;
       this.vmLockPrefix = new Prefix(ZLOCK_PREFIX + uuid.toString() + "#");
     } catch (Exception ex) {
@@ -179,7 +196,7 @@ public class ZooLock implements Watcher {
    *          list of ephemeral nodes
    * @return list of ephemeral nodes that have valid formats, sorted by sequence number
    */
-  public static List<String> validateAndSortChildrenByLockPrefix(String path,
+  public static List<String> validateAndSortChildrenByLockPrefix(ZooLockPath path,
       List<String> children) {
     LOG.trace("validating and sorting children at path {}", path);
     List<String> validChildren = new ArrayList<>();
@@ -277,7 +294,7 @@ public class ZooLock implements Watcher {
     }
 
     List<String> children =
-        validateAndSortChildrenByLockPrefix(path, zooKeeper.getChildren(path, null));
+        validateAndSortChildrenByLockPrefix(path, zooKeeper.getChildren(path.toString(), null));
 
     if (null == children || !children.contains(createdEphemeralNode)) {
       LOG.error("Expected ephemeral node {} to be in the list of children {}", createdEphemeralNode,
@@ -408,8 +425,9 @@ public class ZooLock implements Watcher {
       // were created but the client missed the response for some reason. Find the ephemeral nodes
       // with this ZLOCK_UUID and lowest sequential number.
       List<String> children =
-          validateAndSortChildrenByLockPrefix(path, zooKeeper.getChildren(path, null));
-      if (null == children || !children.contains(createPath.substring(path.length() + 1))) {
+          validateAndSortChildrenByLockPrefix(path, zooKeeper.getChildren(path.toString(), null));
+      if (null == children
+          || !children.contains(createPath.substring(path.toString().length() + 1))) {
         LOG.error("Expected ephemeral node {} to be in the list of children {}", createPath,
             children);
         throw new RuntimeException("Lock attempt ephemeral node no longer exist " + createPath);
@@ -507,7 +525,7 @@ public class ZooLock implements Watcher {
         return;
       }
 
-      createdNodeName = pathForWatcher.substring(path.length() + 1);
+      createdNodeName = pathForWatcher.substring(path.toString().length() + 1);
 
       // We have created a node, do we own the lock?
       determineLockOwnership(createdNodeName, lw);
@@ -577,7 +595,7 @@ public class ZooLock implements Watcher {
     if (lockNodeName == null) {
       throw new IllegalStateException("Lock not held");
     }
-    return new LockID(path, lockNodeName, zooKeeper.getSessionId());
+    return new LockID(path.toString(), lockNodeName, zooKeeper.getSessionId());
   }
 
   /**
@@ -612,7 +630,7 @@ public class ZooLock implements Watcher {
     } else {
 
       try { // set the watch on the parent node again
-        zooKeeper.exists(path, this);
+        zooKeeper.exists(path.toString(), this);
         watchingParent = true;
       } catch (KeeperException.ConnectionLossException ex) {
         // we can't look at the lock because we aren't connected, but our session is still good
@@ -631,7 +649,9 @@ public class ZooLock implements Watcher {
 
   public static boolean isLockHeld(ZooCache zc, LockID lid) {
 
-    List<String> children = validateAndSortChildrenByLockPrefix(lid.path, zc.getChildren(lid.path));
+    ZooLockPath zLockPath = new ZooLockPath(lid.path);
+    List<String> children =
+        validateAndSortChildrenByLockPrefix(zLockPath, zc.getChildren(zLockPath.toString()));
 
     if (children == null || children.isEmpty()) {
       return false;
@@ -645,10 +665,11 @@ public class ZooLock implements Watcher {
     return zc.get(lid.path + "/" + lid.node, stat) != null && stat.getEphemeralOwner() == lid.eid;
   }
 
-  public static byte[] getLockData(ZooKeeper zk, String path)
+  public static byte[] getLockData(ZooKeeper zk, ZooLockPath path)
       throws KeeperException, InterruptedException {
 
-    List<String> children = validateAndSortChildrenByLockPrefix(path, zk.getChildren(path, false));
+    List<String> children =
+        validateAndSortChildrenByLockPrefix(path, zk.getChildren(path.toString(), false));
 
     if (children == null || children.isEmpty()) {
       return null;
@@ -659,10 +680,11 @@ public class ZooLock implements Watcher {
     return zk.getData(path + "/" + lockNode, false, null);
   }
 
-  public static byte[] getLockData(org.apache.accumulo.fate.zookeeper.ZooCache zc, String path,
+  public static byte[] getLockData(org.apache.accumulo.fate.zookeeper.ZooCache zc, ZooLockPath path,
       ZcStat stat) {
 
-    List<String> children = validateAndSortChildrenByLockPrefix(path, zc.getChildren(path));
+    List<String> children =
+        validateAndSortChildrenByLockPrefix(path, zc.getChildren(path.toString()));
 
     if (children == null || children.isEmpty()) {
       return null;
@@ -677,9 +699,10 @@ public class ZooLock implements Watcher {
     return zc.get(path + "/" + lockNode, stat);
   }
 
-  public static long getSessionId(ZooCache zc, String path) {
+  public static long getSessionId(ZooCache zc, ZooLockPath path) {
 
-    List<String> children = validateAndSortChildrenByLockPrefix(path, zc.getChildren(path));
+    List<String> children =
+        validateAndSortChildrenByLockPrefix(path, zc.getChildren(path.toString()));
 
     if (children == null || children.isEmpty()) {
       return 0;
@@ -696,7 +719,7 @@ public class ZooLock implements Watcher {
   public long getSessionId() throws KeeperException, InterruptedException {
 
     List<String> children =
-        validateAndSortChildrenByLockPrefix(path, zooKeeper.getChildren(path, null));
+        validateAndSortChildrenByLockPrefix(path, zooKeeper.getChildren(path.toString(), null));
 
     String lockNode = children.get(0);
 
@@ -708,10 +731,11 @@ public class ZooLock implements Watcher {
     }
   }
 
-  public static void deleteLock(ZooReaderWriter zk, String path)
+  public static void deleteLock(ZooReaderWriter zk, ZooLockPath path)
       throws InterruptedException, KeeperException {
 
-    List<String> children = validateAndSortChildrenByLockPrefix(path, zk.getChildren(path));
+    List<String> children =
+        validateAndSortChildrenByLockPrefix(path, zk.getChildren(path.toString()));
 
     if (children == null || children.isEmpty()) {
       throw new IllegalStateException("No lock is held at " + path);
@@ -729,10 +753,11 @@ public class ZooLock implements Watcher {
 
   }
 
-  public static boolean deleteLock(ZooReaderWriter zk, String path, String lockData)
+  public static boolean deleteLock(ZooReaderWriter zk, ZooLockPath path, String lockData)
       throws InterruptedException, KeeperException {
 
-    List<String> children = validateAndSortChildrenByLockPrefix(path, zk.getChildren(path));
+    List<String> children =
+        validateAndSortChildrenByLockPrefix(path, zk.getChildren(path.toString()));
 
     if (children == null || children.isEmpty()) {
       throw new IllegalStateException("No lock is held at " + path);

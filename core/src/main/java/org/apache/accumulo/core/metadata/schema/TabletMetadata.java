@@ -73,6 +73,7 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -471,7 +472,7 @@ public class TabletMetadata {
   private static Optional<TServerInstance> checkServer(ClientContext context, String path,
       String zPath) {
     Optional<TServerInstance> server = Optional.empty();
-    final String lockPath = path + "/" + zPath;
+    final ZooLockPath lockPath = ZooLock.path(path + "/" + zPath);
     ZooCache.ZcStat stat = new ZooCache.ZcStat();
     byte[] lockData = ZooLock.getLockData(context.getZooCache(), lockPath, stat);
 

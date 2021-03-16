@@ -42,6 +42,23 @@ public class ZooQueueLock implements QueueLock {
   private String path;
   private boolean ephemeral;
 
+  public static class FateLockPath {
+    private final String path;
+
+    public FateLockPath(String path) {
+      this.path = path;
+    }
+
+    @Override
+    public String toString() {
+      return this.path;
+    }
+  }
+
+  public static FateLockPath path(String fateLockPath) {
+    return new FateLockPath(fateLockPath);
+  }
+
   public ZooQueueLock(ZooReaderWriter zrw, String path, boolean ephemeral) {
     this.zoo = zrw;
     this.path = path;
@@ -116,7 +133,7 @@ public class ZooQueueLock implements QueueLock {
     }
   }
 
-  public static List<String> validateAndSortChildrenByLockPrefix(String path,
+  public static List<String> validateAndSortChildrenByLockPrefix(FateLockPath path,
       List<String> children) {
     log.trace("validating and sorting children at path {}", path);
     List<String> validChildren = new ArrayList<>();
