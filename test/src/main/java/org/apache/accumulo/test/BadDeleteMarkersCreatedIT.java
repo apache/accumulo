@@ -41,8 +41,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
@@ -103,11 +103,11 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
       ClientInfo info = ClientInfo.from(client.properties());
       ZooCache zcache = new ZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       zcache.clear();
-      var path = ZooLock
+      var path = ServiceLock
           .path(ZooUtil.getRoot(client.instanceOperations().getInstanceID()) + Constants.ZGC_LOCK);
       byte[] gcLockData;
       do {
-        gcLockData = ZooLock.getLockData(zcache, path, null);
+        gcLockData = ServiceLock.getLockData(zcache, path, null);
         if (gcLockData != null) {
           log.info("Waiting for GC ZooKeeper lock to expire");
           Thread.sleep(2000);
@@ -121,7 +121,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
 
       gcLockData = null;
       do {
-        gcLockData = ZooLock.getLockData(zcache, path, null);
+        gcLockData = ServiceLock.getLockData(zcache, path, null);
         if (gcLockData == null) {
           log.info("Waiting for GC ZooKeeper lock to be acquired");
           Thread.sleep(2000);

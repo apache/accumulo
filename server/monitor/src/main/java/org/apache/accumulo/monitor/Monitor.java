@@ -62,8 +62,8 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -165,7 +165,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   private EmbeddedWebServer server;
 
-  private ZooLock monitorLock;
+  private ServiceLock monitorLock;
 
   private class EventCounter {
 
@@ -391,8 +391,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     try {
       // Read the gc location from its lock
       ZooReaderWriter zk = context.getZooReaderWriter();
-      var path = ZooLock.path(context.getZooKeeperRoot() + Constants.ZGC_LOCK);
-      List<String> locks = ZooLock.validateAndSort(path, zk.getChildren(path.toString()));
+      var path = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZGC_LOCK);
+      List<String> locks = ServiceLock.validateAndSort(path, zk.getChildren(path.toString()));
       if (locks != null && !locks.isEmpty()) {
         address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0)), UTF_8))
             .getAddress(Service.GC_CLIENT);
@@ -598,7 +598,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     ServerContext context = getContext();
     final String zRoot = context.getZooKeeperRoot();
     final String monitorPath = zRoot + Constants.ZMONITOR;
-    final var monitorLockPath = ZooLock.path(zRoot + Constants.ZMONITOR_LOCK);
+    final var monitorLockPath = ServiceLock.path(zRoot + Constants.ZMONITOR_LOCK);
 
     // Ensure that everything is kosher with ZK as this has changed.
     ZooReaderWriter zoo = context.getZooReaderWriter();
@@ -630,7 +630,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     UUID zooLockUUID = UUID.randomUUID();
     while (true) {
       MoniterLockWatcher monitorLockWatcher = new MoniterLockWatcher();
-      monitorLock = new ZooLock(context.getSiteConfiguration(), monitorLockPath, zooLockUUID);
+      monitorLock = new ServiceLock(context.getSiteConfiguration(), monitorLockPath, zooLockUUID);
       monitorLock.lock(monitorLockWatcher, new byte[0]);
 
       monitorLockWatcher.waitForChange();
@@ -656,7 +656,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   /**
    * Async Watcher for monitor lock
    */
-  private static class MoniterLockWatcher implements ZooLock.AccumuloLockWatcher {
+  private static class MoniterLockWatcher implements ServiceLock.AccumuloLockWatcher {
 
     boolean acquiredLock = false;
     boolean failedToAcquireLock = false;

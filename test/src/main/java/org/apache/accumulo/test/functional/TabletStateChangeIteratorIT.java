@@ -61,8 +61,8 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.manager.state.CurrentState;
@@ -308,10 +308,10 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       HashSet<TServerInstance> tservers = new HashSet<>();
       for (String tserver : client.instanceOperations().getTabletServers()) {
         try {
-          var zPath = ZooLock.path(ZooUtil.getRoot(client.instanceOperations().getInstanceID())
+          var zPath = ServiceLock.path(ZooUtil.getRoot(client.instanceOperations().getInstanceID())
               + Constants.ZTSERVERS + "/" + tserver);
           ClientInfo info = getClientInfo();
-          long sessionId = ZooLock.getSessionId(
+          long sessionId = ServiceLock.getSessionId(
               new ZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut()), zPath);
           tservers.add(new TServerInstance(tserver, sessionId));
         } catch (Exception e) {

@@ -42,8 +42,8 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ZooLock implements Watcher {
-  private static final Logger LOG = LoggerFactory.getLogger(ZooLock.class);
+public class ServiceLock implements Watcher {
+  private static final Logger LOG = LoggerFactory.getLogger(ServiceLock.class);
 
   private static final String ZLOCK_PREFIX = "zlock#";
 
@@ -61,10 +61,10 @@ public class ZooLock implements Watcher {
 
   }
 
-  public static class ZooLockPath {
+  public static class ServiceLockPath {
     private final String path;
 
-    private ZooLockPath(String path) {
+    private ServiceLockPath(String path) {
       this.path = requireNonNull(path);
     }
 
@@ -74,8 +74,8 @@ public class ZooLock implements Watcher {
     }
   }
 
-  public static ZooLockPath path(String path) {
-    return new ZooLockPath(path);
+  public static ServiceLockPath path(String path) {
+    return new ServiceLockPath(path);
   }
 
   public enum LockLossReason {
@@ -97,7 +97,7 @@ public class ZooLock implements Watcher {
     void failedToAcquireLock(Exception e);
   }
 
-  private final ZooLockPath path;
+  private final ServiceLockPath path;
   protected final ZooKeeper zooKeeper;
   private final Prefix vmLockPrefix;
 
@@ -109,7 +109,7 @@ public class ZooLock implements Watcher {
   private String createdNodeName;
   private String watchingNodeName;
 
-  public ZooLock(AccumuloConfiguration conf, ZooLockPath path, UUID uuid) {
+  public ServiceLock(AccumuloConfiguration conf, ServiceLockPath path, UUID uuid) {
     this.zooKeeper = ZooSession.getAuthenticatedSession(conf.get(Property.INSTANCE_ZK_HOST),
         (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), "digest",
         ("accumulo" + ":" + conf.get(Property.INSTANCE_SECRET)).getBytes(UTF_8));
@@ -124,7 +124,7 @@ public class ZooLock implements Watcher {
     }
   }
 
-  protected ZooLock(ZooKeeper zookeeper, ZooLockPath path, UUID uuid) {
+  protected ServiceLock(ZooKeeper zookeeper, ServiceLockPath path, UUID uuid) {
     this.zooKeeper = requireNonNull(zookeeper);
     this.path = requireNonNull(path);
     try {
@@ -197,7 +197,7 @@ public class ZooLock implements Watcher {
    *          list of ephemeral nodes
    * @return list of ephemeral nodes that have valid formats, sorted by sequence number
    */
-  public static List<String> validateAndSort(ZooLockPath path, List<String> children) {
+  public static List<String> validateAndSort(ServiceLockPath path, List<String> children) {
     LOG.trace("validating and sorting children at path {}", path);
     List<String> validChildren = new ArrayList<>();
     if (children == null || children.isEmpty()) {
@@ -335,7 +335,7 @@ public class ZooLock implements Watcher {
           if (event.getType() == EventType.NodeDeleted && event.getPath().equals(nodeToWatch)) {
             LOG.debug("[{}] Detected deletion of prior node {}, attempting to acquire lock",
                 vmLockPrefix, nodeToWatch);
-            synchronized (ZooLock.this) {
+            synchronized (ServiceLock.this) {
               try {
                 if (createdNodeName != null) {
                   determineLockOwnership(createdEphemeralNode, lw);
@@ -355,7 +355,7 @@ public class ZooLock implements Watcher {
 
           if (event.getState() == KeeperState.Expired
               || event.getState() == KeeperState.Disconnected) {
-            synchronized (ZooLock.this) {
+            synchronized (ServiceLock.this) {
               if (lockNodeName == null) {
                 LOG.info("Zookeeper Session expired / disconnected");
                 lw.failedToAcquireLock(new Exception("Zookeeper Session expired / disconnected"));
@@ -478,7 +478,7 @@ public class ZooLock implements Watcher {
 
         @Override
         public void process(WatchedEvent event) {
-          synchronized (ZooLock.this) {
+          synchronized (ServiceLock.this) {
             if (lockNodeName != null && event.getType() == EventType.NodeDeleted
                 && event.getPath().equals(path + "/" + lockNodeName)) {
               LOG.debug("[{}] {} was deleted", vmLockPrefix, lockNodeName);
@@ -662,7 +662,7 @@ public class ZooLock implements Watcher {
     return zc.get(lid.path + "/" + lid.node, stat) != null && stat.getEphemeralOwner() == lid.eid;
   }
 
-  public static byte[] getLockData(ZooKeeper zk, ZooLockPath path)
+  public static byte[] getLockData(ZooKeeper zk, ServiceLockPath path)
       throws KeeperException, InterruptedException {
 
     List<String> children = validateAndSort(path, zk.getChildren(path.toString(), null));
@@ -676,8 +676,8 @@ public class ZooLock implements Watcher {
     return zk.getData(path + "/" + lockNode, false, null);
   }
 
-  public static byte[] getLockData(org.apache.accumulo.fate.zookeeper.ZooCache zc, ZooLockPath path,
-      ZcStat stat) {
+  public static byte[] getLockData(org.apache.accumulo.fate.zookeeper.ZooCache zc,
+      ServiceLockPath path, ZcStat stat) {
 
     List<String> children = validateAndSort(path, zc.getChildren(path.toString()));
 
@@ -694,7 +694,7 @@ public class ZooLock implements Watcher {
     return zc.get(path + "/" + lockNode, stat);
   }
 
-  public static long getSessionId(ZooCache zc, ZooLockPath path) {
+  public static long getSessionId(ZooCache zc, ServiceLockPath path) {
 
     List<String> children = validateAndSort(path, zc.getChildren(path.toString()));
 
@@ -724,7 +724,7 @@ public class ZooLock implements Watcher {
     }
   }
 
-  public static void deleteLock(ZooReaderWriter zk, ZooLockPath path)
+  public static void deleteLock(ZooReaderWriter zk, ServiceLockPath path)
       throws InterruptedException, KeeperException {
 
     List<String> children = validateAndSort(path, zk.getChildren(path.toString()));
@@ -745,7 +745,7 @@ public class ZooLock implements Watcher {
 
   }
 
-  public static boolean deleteLock(ZooReaderWriter zk, ZooLockPath path, String lockData)
+  public static boolean deleteLock(ZooReaderWriter zk, ServiceLockPath path, String lockData)
       throws InterruptedException, KeeperException {
 
     List<String> children = validateAndSort(path, zk.getChildren(path.toString()));

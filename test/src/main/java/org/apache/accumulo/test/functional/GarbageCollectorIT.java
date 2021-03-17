@@ -50,7 +50,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
@@ -100,10 +100,10 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     getCluster().killProcess(ServerType.GARBAGE_COLLECTOR,
         getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR).iterator().next());
     // delete lock in zookeeper if there, this will allow next GC to start quickly
-    var path = ZooLock.path(getServerContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
+    var path = ServiceLock.path(getServerContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
     ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
     try {
-      ZooLock.deleteLock(zk, path);
+      ServiceLock.deleteLock(zk, path);
     } catch (IllegalStateException e) {
       log.error("Unable to delete ZooLock for mini accumulo-gc", e);
     }
@@ -256,12 +256,12 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
       ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
-      var path = ZooLock
+      var path = ServiceLock
           .path(ZooUtil.getRoot(client.instanceOperations().getInstanceID()) + Constants.ZGC_LOCK);
       for (int i = 0; i < 5; i++) {
         List<String> locks;
         try {
-          locks = ZooLock.validateAndSort(path, zk.getChildren(path.toString()));
+          locks = ServiceLock.validateAndSort(path, zk.getChildren(path.toString()));
         } catch (NoNodeException e) {
           Thread.sleep(5000);
           continue;

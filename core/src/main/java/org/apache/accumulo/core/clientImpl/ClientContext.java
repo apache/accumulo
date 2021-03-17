@@ -71,9 +71,9 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
@@ -367,7 +367,7 @@ public class ClientContext implements AccumuloClient {
 
   // available only for sharing code with old ZooKeeperInstance
   public static List<String> getManagerLocations(ZooCache zooCache, String instanceId) {
-    var zLockManagerPath = ZooLock.path(ZooUtil.getRoot(instanceId) + Constants.ZMANAGER_LOCK);
+    var zLockManagerPath = ServiceLock.path(ZooUtil.getRoot(instanceId) + Constants.ZMANAGER_LOCK);
 
     OpTimer timer = null;
 

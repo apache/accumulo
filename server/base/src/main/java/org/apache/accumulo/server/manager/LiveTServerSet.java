@@ -45,9 +45,9 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
@@ -78,17 +78,17 @@ public class LiveTServerSet implements Watcher {
       address = addr;
     }
 
-    private String lockString(ZooLock mlock) {
+    private String lockString(ServiceLock mlock) {
       return mlock.getLockID().serialize(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
     }
 
-    private void loadTablet(TabletClientService.Client client, ZooLock lock, KeyExtent extent)
+    private void loadTablet(TabletClientService.Client client, ServiceLock lock, KeyExtent extent)
         throws TException {
       client.loadTablet(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock),
           extent.toThrift());
     }
 
-    public void assignTablet(ZooLock lock, KeyExtent extent) throws TException {
+    public void assignTablet(ServiceLock lock, KeyExtent extent) throws TException {
       if (extent.isMeta()) {
         // see ACCUMULO-3597
         try (TTransport transport = ThriftUtil.createTransport(address, context)) {
@@ -107,7 +107,7 @@ public class LiveTServerSet implements Watcher {
       }
     }
 
-    public void unloadTablet(ZooLock lock, KeyExtent extent, TUnloadTabletGoal goal,
+    public void unloadTablet(ServiceLock lock, KeyExtent extent, TUnloadTabletGoal goal,
         long requestTime) throws TException {
       TabletClientService.Client client =
           ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
@@ -139,7 +139,7 @@ public class LiveTServerSet implements Watcher {
       }
     }
 
-    public void halt(ZooLock lock) throws TException, ThriftSecurityException {
+    public void halt(ServiceLock lock) throws TException, ThriftSecurityException {
       TabletClientService.Client client =
           ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
       try {
@@ -149,7 +149,7 @@ public class LiveTServerSet implements Watcher {
       }
     }
 
-    public void fastHalt(ZooLock lock) throws TException {
+    public void fastHalt(ServiceLock lock) throws TException {
       TabletClientService.Client client =
           ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
       try {
@@ -159,7 +159,7 @@ public class LiveTServerSet implements Watcher {
       }
     }
 
-    public void flush(ZooLock lock, TableId tableId, byte[] startRow, byte[] endRow)
+    public void flush(ServiceLock lock, TableId tableId, byte[] startRow, byte[] endRow)
         throws TException {
       TabletClientService.Client client =
           ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
@@ -172,7 +172,7 @@ public class LiveTServerSet implements Watcher {
       }
     }
 
-    public void chop(ZooLock lock, KeyExtent extent) throws TException {
+    public void chop(ServiceLock lock, KeyExtent extent) throws TException {
       TabletClientService.Client client =
           ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
       try {
@@ -194,7 +194,7 @@ public class LiveTServerSet implements Watcher {
       }
     }
 
-    public void compact(ZooLock lock, String tableId, byte[] startRow, byte[] endRow)
+    public void compact(ServiceLock lock, String tableId, byte[] startRow, byte[] endRow)
         throws TException {
       TabletClientService.Client client =
           ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, context);
@@ -293,9 +293,9 @@ public class LiveTServerSet implements Watcher {
 
     TServerInfo info = current.get(zPath);
 
-    final var zLockPath = ZooLock.path(path + "/" + zPath);
+    final var zLockPath = ServiceLock.path(path + "/" + zPath);
     ZcStat stat = new ZcStat();
-    byte[] lockData = ZooLock.getLockData(getZooCache(), zLockPath, stat);
+    byte[] lockData = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
 
     if (lockData == null) {
       if (info != null) {

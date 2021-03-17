@@ -38,10 +38,10 @@ import java.util.concurrent.locks.LockSupport;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.fate.zookeeper.ZooLock.AccumuloLockWatcher;
-import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
-import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.AccumuloLockWatcher;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
@@ -61,7 +61,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Category({ZooKeeperTestingServerTests.class})
-public class ZooLockIT {
+public class ServiceLockIT {
 
   private static ZooKeeperTestingServer szk = null;
 
@@ -99,9 +99,9 @@ public class ZooLockIT {
 
   }
 
-  private static class ZooLockWrapper extends ZooLock {
+  private static class ServiceLockWrapper extends ServiceLock {
 
-    protected ZooLockWrapper(ZooKeeper zookeeper, ZooLockPath path, UUID uuid) {
+    protected ServiceLockWrapper(ZooKeeper zookeeper, ServiceLockPath path, UUID uuid) {
       super(zookeeper, path, uuid);
     }
 
@@ -190,24 +190,24 @@ public class ZooLockIT {
 
   private static final AtomicInteger pdCount = new AtomicInteger(0);
 
-  private static ZooLock getZooLock(ZooLockPath parent, UUID uuid) {
+  private static ServiceLock getZooLock(ServiceLockPath parent, UUID uuid) {
     Map<String,String> props = new HashMap<>();
     props.put(Property.INSTANCE_ZK_HOST.toString(), szk.getConn());
     props.put(Property.INSTANCE_ZK_TIMEOUT.toString(), "30000");
     props.put(Property.INSTANCE_SECRET.toString(), "secret");
-    return new ZooLock(new ConfigurationCopy(props), parent, uuid);
+    return new ServiceLock(new ConfigurationCopy(props), parent, uuid);
   }
 
-  private static ZooLock getZooLock(ZooKeeperWrapper zkw, ZooLockPath parent, UUID uuid) {
-    return new ZooLockWrapper(zkw, parent, uuid);
+  private static ServiceLock getZooLock(ZooKeeperWrapper zkw, ServiceLockPath parent, UUID uuid) {
+    return new ServiceLockWrapper(zkw, parent, uuid);
   }
 
   @Test(timeout = 10000)
   public void testDeleteParent() throws Exception {
-    var parent =
-        ZooLock.path("/zltestDeleteParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+    var parent = ServiceLock
+        .path("/zltestDeleteParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
-    ZooLock zl = getZooLock(parent, UUID.randomUUID());
+    ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
     assertFalse(zl.isLocked());
 
@@ -237,9 +237,9 @@ public class ZooLockIT {
   @Test(timeout = 10000)
   public void testNoParent() throws Exception {
     var parent =
-        ZooLock.path("/zltestNoParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+        ServiceLock.path("/zltestNoParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
-    ZooLock zl = getZooLock(parent, UUID.randomUUID());
+    ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
     assertFalse(zl.isLocked());
 
@@ -258,12 +258,12 @@ public class ZooLockIT {
   @Test(timeout = 10000)
   public void testDeleteLock() throws Exception {
     var parent =
-        ZooLock.path("/zltestDeleteLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+        ServiceLock.path("/zltestDeleteLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
     zk.mkdirs(parent.toString());
 
-    ZooLock zl = getZooLock(parent, UUID.randomUUID());
+    ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
     assertFalse(zl.isLocked());
 
@@ -289,13 +289,13 @@ public class ZooLockIT {
 
   @Test(timeout = 15000)
   public void testDeleteWaiting() throws Exception {
-    var parent =
-        ZooLock.path("/zltestDeleteWaiting-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+    var parent = ServiceLock
+        .path("/zltestDeleteWaiting-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
     zk.mkdirs(parent.toString());
 
-    ZooLock zl = getZooLock(parent, UUID.randomUUID());
+    ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
     assertFalse(zl.isLocked());
 
@@ -310,7 +310,7 @@ public class ZooLockIT {
     assertNull(lw.exception);
     assertNull(lw.reason);
 
-    ZooLock zl2 = getZooLock(parent, UUID.randomUUID());
+    ServiceLock zl2 = getZooLock(parent, UUID.randomUUID());
 
     TestALW lw2 = new TestALW();
 
@@ -319,13 +319,13 @@ public class ZooLockIT {
     assertFalse(lw2.locked);
     assertFalse(zl2.isLocked());
 
-    ZooLock zl3 = getZooLock(parent, UUID.randomUUID());
+    ServiceLock zl3 = getZooLock(parent, UUID.randomUUID());
 
     TestALW lw3 = new TestALW();
 
     zl3.lock(lw3, "test3".getBytes(UTF_8));
 
-    List<String> children = ZooLock.validateAndSort(parent, zk.getChildren(parent.toString()));
+    List<String> children = ServiceLock.validateAndSort(parent, zk.getChildren(parent.toString()));
 
     zk.delete(parent + "/" + children.get(1));
 
@@ -355,7 +355,7 @@ public class ZooLockIT {
 
   @Test(timeout = 10000)
   public void testUnexpectedEvent() throws Exception {
-    var parent = ZooLock
+    var parent = ServiceLock
         .path("/zltestUnexpectedEvent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ConnectedWatcher watcher = new ConnectedWatcher();
@@ -368,7 +368,7 @@ public class ZooLockIT {
 
       zk.create(parent.toString(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-      ZooLock zl = getZooLock(parent, UUID.randomUUID());
+      ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
       assertFalse(zl.isLocked());
 
@@ -401,7 +401,7 @@ public class ZooLockIT {
 
   @Test(timeout = 60000)
   public void testLockSerial() throws Exception {
-    var parent = ZooLock.path("/zlretryLockSerial");
+    var parent = ServiceLock.path("/zlretryLockSerial");
 
     ConnectedWatcher watcher1 = new ConnectedWatcher();
     ConnectedWatcher watcher2 = new ConnectedWatcher();
@@ -424,7 +424,7 @@ public class ZooLockIT {
           CreateMode.PERSISTENT);
 
       final RetryLockWatcher zlw1 = new RetryLockWatcher();
-      ZooLock zl1 =
+      ServiceLock zl1 =
           getZooLock(zk1, parent, UUID.fromString("00000000-0000-0000-0000-aaaaaaaaaaaa"));
       zl1.lock(zlw1, "test1".getBytes(UTF_8));
       // The call above creates two nodes in ZK because of the overridden create method in
@@ -439,7 +439,7 @@ public class ZooLockIT {
       // zl1 assumes that it has the lock.
 
       final RetryLockWatcher zlw2 = new RetryLockWatcher();
-      ZooLock zl2 =
+      ServiceLock zl2 =
           getZooLock(zk2, parent, UUID.fromString("00000000-0000-0000-0000-bbbbbbbbbbbb"));
       zl2.lock(zlw2, "test1".getBytes(UTF_8));
       // The call above creates two nodes in ZK because of the overridden create method in
@@ -491,7 +491,7 @@ public class ZooLockIT {
 
     private static final Logger LOG = LoggerFactory.getLogger(LockWorker.class);
 
-    private final ZooLockPath parent;
+    private final ServiceLockPath parent;
     private final UUID uuid;
     private final CountDownLatch getLockLatch;
     private final CountDownLatch lockCompletedLatch;
@@ -499,7 +499,7 @@ public class ZooLockIT {
     private final RetryLockWatcher lockWatcher = new RetryLockWatcher();
     private volatile Exception ex = null;
 
-    public LockWorker(final ZooLockPath parent, final UUID uuid, final CountDownLatch lockLatch,
+    public LockWorker(final ServiceLockPath parent, final UUID uuid, final CountDownLatch lockLatch,
         final CountDownLatch lockCompletedLatch) {
       this.parent = parent;
       this.uuid = uuid;
@@ -524,7 +524,7 @@ public class ZooLockIT {
           while (!watcher.isConnected()) {
             Thread.sleep(50);
           }
-          ZooLock zl = getZooLock(zk, parent, uuid);
+          ServiceLock zl = getZooLock(zk, parent, uuid);
           getLockLatch.countDown(); // signal we are done
           getLockLatch.await(); // wait for others to finish
           zl.lock(lockWatcher, "test1".getBytes(UTF_8)); // race to the lock
@@ -565,7 +565,7 @@ public class ZooLockIT {
 
   @Test(timeout = 60000)
   public void testLockParallel() throws Exception {
-    var parent = ZooLock.path("/zlParallel");
+    var parent = ServiceLock.path("/zlParallel");
 
     ConnectedWatcher watcher = new ConnectedWatcher();
     try (ZooKeeperWrapper zk = new ZooKeeperWrapper(szk.getConn(), 30000, watcher)) {
@@ -601,7 +601,7 @@ public class ZooLockIT {
 
       for (int i = 4; i > 0; i--) {
         List<String> children =
-            ZooLock.validateAndSort(parent, zk.getChildren(parent.toString(), null));
+            ServiceLock.validateAndSort(parent, zk.getChildren(parent.toString(), null));
         while (children.size() != i) {
           Thread.sleep(100);
           children = zk.getChildren(parent.toString(), false);
@@ -638,9 +638,9 @@ public class ZooLockIT {
   @Test(timeout = 10000)
   public void testTryLock() throws Exception {
     var parent =
-        ZooLock.path("/zltestTryLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+        ServiceLock.path("/zltestTryLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
-    ZooLock zl = getZooLock(parent, UUID.randomUUID());
+    ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
     ConnectedWatcher watcher = new ConnectedWatcher();
     try (ZooKeeper zk = new ZooKeeper(szk.getConn(), 30000, watcher)) {
@@ -678,7 +678,7 @@ public class ZooLockIT {
   @Test(timeout = 10000)
   public void testChangeData() throws Exception {
     var parent =
-        ZooLock.path("/zltestChangeData-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+        ServiceLock.path("/zltestChangeData-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
     ConnectedWatcher watcher = new ConnectedWatcher();
     try (ZooKeeper zk = new ZooKeeper(szk.getConn(), 30000, watcher)) {
       zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
@@ -689,7 +689,7 @@ public class ZooLockIT {
 
       zk.create(parent.toString(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-      ZooLock zl = getZooLock(parent, UUID.randomUUID());
+      ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
       TestALW lw = new TestALW();
 

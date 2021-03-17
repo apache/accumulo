@@ -33,8 +33,8 @@ import java.util.Set;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.zookeeper.FateLock;
 import org.apache.accumulo.fate.zookeeper.FateLock.FateLockPath;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.fate.zookeeper.ZooLock.ZooLockPath;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -415,7 +415,8 @@ public class AdminUtil<T> {
     }
   }
 
-  public boolean prepDelete(TStore<T> zs, ZooReaderWriter zk, ZooLockPath path, String txidStr) {
+  public boolean prepDelete(TStore<T> zs, ZooReaderWriter zk, ServiceLockPath path,
+      String txidStr) {
     if (!checkGlobalLock(zk, path)) {
       return false;
     }
@@ -450,7 +451,7 @@ public class AdminUtil<T> {
     return state;
   }
 
-  public boolean prepFail(TStore<T> zs, ZooReaderWriter zk, ZooLockPath path, String txidStr) {
+  public boolean prepFail(TStore<T> zs, ZooReaderWriter zk, ServiceLockPath path, String txidStr) {
     if (!checkGlobalLock(zk, path)) {
       return false;
     }
@@ -512,9 +513,9 @@ public class AdminUtil<T> {
   @SuppressFBWarnings(value = "DM_EXIT",
       justification = "TODO - should probably avoid System.exit here; "
           + "this code is used by the fate admin shell command")
-  public boolean checkGlobalLock(ZooReaderWriter zk, ZooLockPath path) {
+  public boolean checkGlobalLock(ZooReaderWriter zk, ServiceLockPath path) {
     try {
-      if (ZooLock.getLockData(zk.getZooKeeper(), path) != null) {
+      if (ServiceLock.getLockData(zk.getZooKeeper(), path) != null) {
         System.err.println("ERROR: Manager lock is held, not running");
         if (this.exitOnError)
           System.exit(1);

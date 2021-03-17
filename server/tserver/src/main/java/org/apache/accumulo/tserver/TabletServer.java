@@ -93,10 +93,10 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
-import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.AbstractServer;
@@ -213,7 +213,7 @@ public class TabletServer extends AbstractServer {
   private volatile boolean serverStopRequested = false;
   private volatile boolean shutdownComplete = false;
 
-  private ZooLock tabletServerLock;
+  private ServiceLock tabletServerLock;
 
   private TServer server;
   private volatile TServer replServer;
@@ -620,14 +620,14 @@ public class TabletServer extends AbstractServer {
     }
   }
 
-  public ZooLock getLock() {
+  public ServiceLock getLock() {
     return tabletServerLock;
   }
 
   private void announceExistence() {
     ZooReaderWriter zoo = getContext().getZooReaderWriter();
     try {
-      var zLockPath = ZooLock.path(
+      var zLockPath = ServiceLock.path(
           getContext().getZooKeeperRoot() + Constants.ZTSERVERS + "/" + getClientAddressString());
 
       try {
@@ -641,7 +641,7 @@ public class TabletServer extends AbstractServer {
       }
 
       tabletServerLock =
-          new ZooLock(getContext().getSiteConfiguration(), zLockPath, UUID.randomUUID());
+          new ServiceLock(getContext().getSiteConfiguration(), zLockPath, UUID.randomUUID());
 
       LockWatcher lw = new LockWatcher() {
 

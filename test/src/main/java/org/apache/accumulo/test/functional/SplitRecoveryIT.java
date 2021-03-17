@@ -62,9 +62,9 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
-import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerConstants;
@@ -92,10 +92,10 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   }
 
   private void run(ServerContext c) throws Exception {
-    var zPath = ZooLock.path(c.getZooKeeperRoot() + "/testLock");
+    var zPath = ServiceLock.path(c.getZooKeeperRoot() + "/testLock");
     ZooReaderWriter zoo = c.getZooReaderWriter();
     zoo.putPersistentData(zPath.toString(), new byte[0], NodeExistsPolicy.OVERWRITE);
-    ZooLock zl = new ZooLock(c.getSiteConfiguration(), zPath, UUID.randomUUID());
+    ServiceLock zl = new ServiceLock(c.getSiteConfiguration(), zPath, UUID.randomUUID());
     boolean gotLock = zl.tryLock(new LockWatcher() {
 
       @SuppressFBWarnings(value = "DM_EXIT",
@@ -148,7 +148,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
   }
 
   private void runSplitRecoveryTest(ServerContext context, int failPoint, String mr,
-      int extentToSplit, ZooLock zl, KeyExtent... extents) throws Exception {
+      int extentToSplit, ServiceLock zl, KeyExtent... extents) throws Exception {
 
     Text midRow = new Text(mr);
 
@@ -196,7 +196,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
   private void splitPartiallyAndRecover(ServerContext context, KeyExtent extent, KeyExtent high,
       KeyExtent low, double splitRatio, SortedMap<StoredTabletFile,DataFileValue> mapFiles,
-      Text midRow, String location, int steps, ZooLock zl) throws Exception {
+      Text midRow, String location, int steps, ServiceLock zl) throws Exception {
 
     SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
     SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes = new TreeMap<>();

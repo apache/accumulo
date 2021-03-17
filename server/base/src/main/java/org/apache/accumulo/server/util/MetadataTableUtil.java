@@ -91,7 +91,7 @@ import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.FateTxId;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
 import org.apache.hadoop.io.Text;
@@ -132,7 +132,7 @@ public class MetadataTableUtil {
     return rootTable;
   }
 
-  public static void putLockID(ServerContext context, ZooLock zooLock, Mutation m) {
+  public static void putLockID(ServerContext context, ServiceLock zooLock, Mutation m) {
     ServerColumnFamily.LOCK_COLUMN.put(m,
         new Value(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/")));
   }
@@ -141,12 +141,13 @@ public class MetadataTableUtil {
     update(context, null, m, extent);
   }
 
-  public static void update(ServerContext context, ZooLock zooLock, Mutation m, KeyExtent extent) {
+  public static void update(ServerContext context, ServiceLock zooLock, Mutation m,
+      KeyExtent extent) {
     Writer t = extent.isMeta() ? getRootTable(context) : getMetadataTable(context);
     update(context, t, zooLock, m);
   }
 
-  public static void update(ServerContext context, Writer t, ZooLock zooLock, Mutation m) {
+  public static void update(ServerContext context, Writer t, ServiceLock zooLock, Mutation m) {
     if (zooLock != null)
       putLockID(context, zooLock, m);
     while (true) {
@@ -165,7 +166,7 @@ public class MetadataTableUtil {
   }
 
   public static void updateTabletFlushID(KeyExtent extent, long flushID, ServerContext context,
-      ZooLock zooLock) {
+      ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putFlushId(flushID);
     tablet.putZooLock(zooLock);
@@ -173,7 +174,7 @@ public class MetadataTableUtil {
   }
 
   public static void updateTabletCompactID(KeyExtent extent, long compactID, ServerContext context,
-      ZooLock zooLock) {
+      ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putCompactionId(compactID);
     tablet.putZooLock(zooLock);
@@ -182,7 +183,7 @@ public class MetadataTableUtil {
 
   public static Map<StoredTabletFile,DataFileValue> updateTabletDataFile(long tid, KeyExtent extent,
       Map<TabletFile,DataFileValue> estSizes, MetadataTime time, ServerContext context,
-      ZooLock zooLock) {
+      ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putTime(time);
 
@@ -198,7 +199,7 @@ public class MetadataTableUtil {
   }
 
   public static void updateTabletDir(KeyExtent extent, String newDir, ServerContext context,
-      ZooLock zooLock) {
+      ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putDirName(newDir);
     tablet.putZooLock(zooLock);
@@ -206,7 +207,7 @@ public class MetadataTableUtil {
   }
 
   public static void addTablet(KeyExtent extent, String path, ServerContext context,
-      TimeType timeType, ZooLock zooLock) {
+      TimeType timeType, ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putPrevEndRow(extent.prevEndRow());
     tablet.putDirName(path);
@@ -218,7 +219,7 @@ public class MetadataTableUtil {
 
   public static void updateTabletVolumes(KeyExtent extent, List<LogEntry> logsToRemove,
       List<LogEntry> logsToAdd, List<StoredTabletFile> filesToRemove,
-      SortedMap<TabletFile,DataFileValue> filesToAdd, ZooLock zooLock, ServerContext context) {
+      SortedMap<TabletFile,DataFileValue> filesToAdd, ServiceLock zooLock, ServerContext context) {
 
     TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);
     logsToRemove.forEach(tabletMutator::deleteWal);
@@ -233,7 +234,7 @@ public class MetadataTableUtil {
   }
 
   public static void rollBackSplit(Text metadataEntry, Text oldPrevEndRow, ServerContext context,
-      ZooLock zooLock) {
+      ServiceLock zooLock) {
     KeyExtent ke = KeyExtent.fromMetaRow(metadataEntry, oldPrevEndRow);
     Mutation m = TabletColumnFamily.createPrevRowMutation(ke);
     TabletColumnFamily.SPLIT_RATIO_COLUMN.putDelete(m);
@@ -242,7 +243,7 @@ public class MetadataTableUtil {
   }
 
   public static void splitTablet(KeyExtent extent, Text oldPrevEndRow, double splitRatio,
-      ServerContext context, ZooLock zooLock) {
+      ServerContext context, ServiceLock zooLock) {
     Mutation m = TabletColumnFamily.createPrevRowMutation(extent);
 
     TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value(Double.toString(splitRatio)));
@@ -255,7 +256,8 @@ public class MetadataTableUtil {
 
   public static void finishSplit(Text metadataEntry,
       Map<StoredTabletFile,DataFileValue> datafileSizes,
-      List<StoredTabletFile> highDatafilesToRemove, final ServerContext context, ZooLock zooLock) {
+      List<StoredTabletFile> highDatafilesToRemove, final ServerContext context,
+      ServiceLock zooLock) {
     Mutation m = new Mutation(metadataEntry);
     TabletColumnFamily.SPLIT_RATIO_COLUMN.putDelete(m);
     TabletColumnFamily.OLD_PREV_ROW_COLUMN.putDelete(m);
@@ -275,12 +277,12 @@ public class MetadataTableUtil {
 
   public static void finishSplit(KeyExtent extent,
       Map<StoredTabletFile,DataFileValue> datafileSizes,
-      List<StoredTabletFile> highDatafilesToRemove, ServerContext context, ZooLock zooLock) {
+      List<StoredTabletFile> highDatafilesToRemove, ServerContext context, ServiceLock zooLock) {
     finishSplit(extent.toMetaRow(), datafileSizes, highDatafilesToRemove, context, zooLock);
   }
 
   public static void removeScanFiles(KeyExtent extent, Set<StoredTabletFile> scanFiles,
-      ServerContext context, ZooLock zooLock) {
+      ServerContext context, ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     scanFiles.forEach(tablet::deleteScan);
     tablet.putZooLock(zooLock);
@@ -339,7 +341,7 @@ public class MetadataTableUtil {
   }
 
   public static void deleteTable(TableId tableId, boolean insertDeletes, ServerContext context,
-      ZooLock lock) throws AccumuloException {
+      ServiceLock lock) throws AccumuloException {
     try (Scanner ms = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY);
         BatchWriter bw = new BatchWriterImpl(context, MetadataTable.ID,
             new BatchWriterConfig().setMaxMemory(1000000)
@@ -417,7 +419,7 @@ public class MetadataTableUtil {
   }
 
   public static void removeUnusedWALEntries(ServerContext context, KeyExtent extent,
-      final List<LogEntry> entries, ZooLock zooLock) {
+      final List<LogEntry> entries, ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     entries.forEach(tablet::deleteWal);
     tablet.putZooLock(zooLock);
@@ -630,7 +632,7 @@ public class MetadataTableUtil {
     }
   }
 
-  public static void chopped(ServerContext context, KeyExtent extent, ZooLock zooLock) {
+  public static void chopped(ServerContext context, KeyExtent extent, ServiceLock zooLock) {
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putChopped();
     tablet.putZooLock(zooLock);

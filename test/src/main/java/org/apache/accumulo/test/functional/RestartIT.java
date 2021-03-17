@@ -37,8 +37,8 @@ import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -141,11 +141,11 @@ public class RestartIT extends AccumuloClusterHarness {
       ClientInfo info = ClientInfo.from(c.properties());
       ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       ZooCache zcache = new ZooCache(zreader, null);
-      var zLockPath = ZooLock
+      var zLockPath = ServiceLock
           .path(ZooUtil.getRoot(c.instanceOperations().getInstanceID()) + Constants.ZMANAGER_LOCK);
       byte[] managerLockData;
       do {
-        managerLockData = ZooLock.getLockData(zcache, zLockPath, null);
+        managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
         if (managerLockData != null) {
           log.info("Manager lock is still held");
           Thread.sleep(1000);
@@ -158,7 +158,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
       managerLockData = new byte[0];
       do {
-        managerLockData = ZooLock.getLockData(zcache, zLockPath, null);
+        managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
         if (managerLockData != null) {
           log.info("Manager lock is still held");
           Thread.sleep(1000);
@@ -194,11 +194,11 @@ public class RestartIT extends AccumuloClusterHarness {
       ClientInfo info = ClientInfo.from(c.properties());
       ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       ZooCache zcache = new ZooCache(zreader, null);
-      var zLockPath = ZooLock
+      var zLockPath = ServiceLock
           .path(ZooUtil.getRoot(c.instanceOperations().getInstanceID()) + Constants.ZMANAGER_LOCK);
       byte[] managerLockData;
       do {
-        managerLockData = ZooLock.getLockData(zcache, zLockPath, null);
+        managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
         if (managerLockData != null) {
           log.info("Manager lock is still held");
           Thread.sleep(1000);
