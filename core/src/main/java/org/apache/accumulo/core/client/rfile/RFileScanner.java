@@ -42,7 +42,6 @@ import org.apache.accumulo.core.conf.IterConfigUtil;
 import org.apache.accumulo.core.conf.IterLoad;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
@@ -87,7 +86,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
   private int batchSize = 1000;
   private long readaheadThreshold = 3;
   private AccumuloConfiguration tableConf;
-  private CryptoService cryptoService;
+  private final List<CryptoService> decrypters;
 
   static class Opts {
     InputArgs in;
@@ -223,7 +222,8 @@ class RFileScanner extends ScannerOptions implements Scanner {
     if (this.dataCache == null) {
       this.dataCache = new NoopCache();
     }
-    this.cryptoService = CryptoServiceFactory.newInstance(tableConf, ClassloaderType.JAVA);
+    this.decrypters = CryptoServiceFactory.getDecrypters(this.tableConf,
+        CryptoServiceFactory.ClassloaderType.JAVA);
   }
 
   @Override
@@ -349,7 +349,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
         FSDataInputStream inputStream = (FSDataInputStream) sources[i].getInputStream();
         CachableBuilder cb = new CachableBuilder().cacheId("source-" + i).input(inputStream)
             .length(sources[i].getLength()).conf(opts.in.getConf()).cacheProvider(cacheProvider)
-            .cryptoService(cryptoService);
+            .decrypt(decrypters);
         readers.add(new RFile.Reader(cb));
       }
 

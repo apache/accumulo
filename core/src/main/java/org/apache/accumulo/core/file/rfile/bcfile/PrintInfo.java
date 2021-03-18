@@ -40,7 +40,7 @@ public class PrintInfo {
       FileSystem fs, Path path) throws IOException {
     FSDataInputStream fsin = fs.open(path);
     try (BCFile.Reader bcfr = new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf,
-        CryptoServiceFactory.newInstance(siteConfig, ClassloaderType.ACCUMULO))) {
+        CryptoServiceFactory.getDecrypters(siteConfig, ClassloaderType.ACCUMULO))) {
 
       Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
 

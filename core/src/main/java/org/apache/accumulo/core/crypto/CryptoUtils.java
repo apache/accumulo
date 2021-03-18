@@ -18,18 +18,29 @@
  */
 package org.apache.accumulo.core.crypto;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_ENCRYPT_SERVICE;
+import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
+import static org.apache.accumulo.core.conf.Property.TSERV_WALOG_CRYPTO_ENCRYPT_SERVICE;
+import static org.apache.accumulo.core.conf.Property.TSERV_WALOG_CRYPTO_PREFIX;
+import static org.apache.accumulo.core.spi.crypto.CryptoService.Scope.RFILE;
+
+import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
-import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.spi.crypto.CryptoException;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
+import org.apache.accumulo.core.spi.crypto.NoCryptoService;
 import org.apache.commons.io.IOUtils;
 
 public class CryptoUtils {
@@ -64,17 +75,6 @@ public class CryptoUtils {
   }
 
   /**
-   * Read the decryption parameters from the DataInputStream and get the FileDecrypter associated
-   * with the provided CryptoService and CryptoEnvironment.Scope.
-   */
-  public static FileDecrypter getFileDecrypter(CryptoService cs, CryptoEnvironment.Scope scope,
-      DataInputStream in) throws IOException {
-    byte[] decryptionParams = readParams(in);
-    CryptoEnvironment decEnv = new CryptoEnvironmentImpl(scope, decryptionParams);
-    return cs.getFileDecrypter(decEnv);
-  }
-
-  /**
    * Write the decryption parameters to the DataOutputStream
    */
   public static void writeParams(byte[] decryptionParams, DataOutputStream out) throws IOException {
@@ -84,4 +84,65 @@ public class CryptoUtils {
     out.write(decryptionParams);
   }
 
+  public static Property getPropPerScope(CryptoService.Scope scope) {
+    return (scope == RFILE ? TABLE_CRYPTO_ENCRYPT_SERVICE : TSERV_WALOG_CRYPTO_ENCRYPT_SERVICE);
+  }
+
+  public static Property getPrefixPerScope(CryptoService.Scope scope) {
+    return (scope == RFILE ? TABLE_CRYPTO_PREFIX : TSERV_WALOG_CRYPTO_PREFIX);
+  }
+
+  /**
+   * Read the crypto service name from decryptionParams and if it matches one of the provided
+   * decrypters, call the init method and return the FileDecrypter. The crypto service name is
+   * required to be the first bytes written to the decryptionParams.
+   */
+  public static FileDecrypter getDecrypterInitialized(CryptoService.Scope scope,
+      List<CryptoService> decrypters, byte[] decryptionParams) {
+    if (decryptionParams == null || checkNoCrypto(decryptionParams))
+      return NoCryptoService.NO_DECRYPT;
+
+    String nameInFile = getCryptoServiceName(decryptionParams);
+    CryptoService cs = null;
+    // check if service in file matches what was loaded from config
+    for (CryptoService d : decrypters) {
+      if (d.getClass().getName().equals(nameInFile)) {
+        cs = d;
+        break;
+      }
+    }
+    if (cs == null)
+      throw new CryptoException("Unknown crypto class found in " + scope + " file: " + nameInFile);
+
+    // init decrypter and return
+    var initParams = new FileDecrypter.InitParams() {
+      @Override
+      public byte[] getDecryptionParameters() {
+        return decryptionParams;
+      }
+    };
+    var decrypter = cs.getDecrypter();
+    decrypter.init(initParams);
+    return decrypter;
+  }
+
+  /**
+   * The crypto service name is required to be the first bytes written to the decryption params.
+   */
+  private static String getCryptoServiceName(byte[] decryptionParams) {
+    // the name is required to be first
+    String name;
+    try (ByteArrayInputStream bais = new ByteArrayInputStream(decryptionParams);
+        DataInputStream params = new DataInputStream(bais)) {
+      name = params.readUTF();
+    } catch (IOException e) {
+      throw new CryptoException("Error reading crypto params", e);
+    }
+    return name;
+  }
+
+  private static boolean checkNoCrypto(byte[] params) {
+    byte[] noCryptoBytes = NoCryptoService.VERSION.getBytes(UTF_8);
+    return Arrays.equals(params, noCryptoBytes);
+  }
 }

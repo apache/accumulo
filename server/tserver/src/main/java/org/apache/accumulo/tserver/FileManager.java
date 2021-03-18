@@ -302,11 +302,12 @@ public class FileManager {
           throw new IllegalArgumentException("Expected uri, got : " + file);
         Path path = new Path(file);
         FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
+        var tableConf = context.getTableConfiguration(tablet.tableId());
         // log.debug("Opening "+file + " path " + path);
         FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
-            .withTableConfiguration(context.getTableConfiguration(tablet.tableId()))
-            .withCacheProvider(cacheProvider).withFileLenCache(fileLenCache).build();
+            .forFile(path.toString(), ns, ns.getConf()).withTableConfiguration(tableConf)
+            .decrypt(tableConf.getDecrypters()).withCacheProvider(cacheProvider)
+            .withFileLenCache(fileLenCache).build();
         readersReserved.put(reader, file);
       } catch (Exception e) {
 

@@ -25,7 +25,6 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -52,8 +51,7 @@ public class FileOperationsTest {
       Configuration conf = new Configuration();
       FileSystem fs = FileSystem.getLocal(conf);
       AccumuloConfiguration acuconf = DefaultConfiguration.getInstance();
-      writer = fileOperations.newWriterBuilder()
-          .forFile(filename, fs, conf, CryptoServiceFactory.newDefaultInstance())
+      writer = fileOperations.newWriterBuilder().forFile(filename, fs, conf)
           .withTableConfiguration(acuconf).build();
       writer.close();
     } catch (Exception ex) {

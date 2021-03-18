@@ -24,7 +24,6 @@ import java.util.List;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression;
 import org.apache.hadoop.conf.Configuration;
@@ -84,10 +83,10 @@ public class CreateEmpty {
     for (String arg : opts.files) {
       Path path = new Path(arg);
       log.info("Writing to file '{}'", path);
-      FileSKVWriter writer = (new RFileOperations()).newWriterBuilder()
-          .forFile(arg, path.getFileSystem(conf), conf, CryptoServiceFactory.newDefaultInstance())
-          .withTableConfiguration(DefaultConfiguration.getInstance()).withCompression(opts.codec)
-          .build();
+      FileSKVWriter writer =
+          (new RFileOperations()).newWriterBuilder().forFile(arg, path.getFileSystem(conf), conf)
+              .withTableConfiguration(DefaultConfiguration.getInstance())
+              .withCompression(opts.codec).build();
       writer.close();
     }
   }

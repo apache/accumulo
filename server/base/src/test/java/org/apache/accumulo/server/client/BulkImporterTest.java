@@ -21,6 +21,7 @@ package org.apache.accumulo.server.client;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -34,7 +35,6 @@ import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -44,6 +44,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -115,16 +116,17 @@ public class BulkImporterTest {
     FileSystem fs = FileSystem.getLocal(new Configuration());
     ServerContext context = EasyMock.createMock(ServerContext.class);
     ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    TableConfiguration tableConf = EasyMock.createMock(TableConfiguration.class);
     conf.set(Property.INSTANCE_VOLUMES, "file:///");
     EasyMock.expect(context.getConfiguration()).andReturn(conf).anyTimes();
-    EasyMock.expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
-        .anyTimes();
-    EasyMock.replay(context);
+    EasyMock.expect(context.getTableConfiguration(tableId)).andReturn(tableConf).anyTimes();
+    EasyMock.expect(tableConf.getDecrypters()).andReturn(new ArrayList<>()).anyTimes();
+    EasyMock.expect(tableConf.getBoolean(Property.TABLE_BLOOM_ENABLED)).andReturn(false).anyTimes();
+    EasyMock.replay(context, tableConf);
     String file = "target/testFile.rf";
     fs.delete(new Path(file), true);
     FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-        .forFile(file, fs, fs.getConf(), CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(context.getConfiguration()).build();
+        .forFile(file, fs, fs.getConf()).withTableConfiguration(context.getConfiguration()).build();
     writer.startDefaultLocalityGroup();
     Value empty = new Value(new byte[] {});
     writer.append(new Key("a", "cf", "cq"), empty);
@@ -149,8 +151,8 @@ public class BulkImporterTest {
     writer.append(new Key("xyzzy", "cf", "cq"), empty);
     writer.close();
     try (var vm = VolumeManagerImpl.get(context.getConfiguration(), new Configuration())) {
-      List<TabletLocation> overlaps =
-          BulkImporter.findOverlappingTablets(context, vm, locator, new Path(file));
+      List<TabletLocation> overlaps = BulkImporter.findOverlappingTablets(context,
+          context.getTableConfiguration(tableId), vm, locator, new Path(file), null, null);
       assertEquals(5, overlaps.size());
       Collections.sort(overlaps);
       assertEquals(new KeyExtent(tableId, new Text("a"), null), overlaps.get(0).tablet_extent);
@@ -162,8 +164,9 @@ public class BulkImporterTest {
           overlaps.get(3).tablet_extent);
       assertEquals(new KeyExtent(tableId, null, new Text("l")), overlaps.get(4).tablet_extent);
 
-      List<TabletLocation> overlaps2 = BulkImporter.findOverlappingTablets(context, vm, locator,
-          new Path(file), new KeyExtent(tableId, new Text("h"), new Text("b")));
+      List<TabletLocation> overlaps2 =
+          BulkImporter.findOverlappingTablets(context, context.getTableConfiguration(tableId), vm,
+              locator, new Path(file), new KeyExtent(tableId, new Text("h"), new Text("b")));
       assertEquals(3, overlaps2.size());
       assertEquals(new KeyExtent(tableId, new Text("d"), new Text("cm")),
           overlaps2.get(0).tablet_extent);

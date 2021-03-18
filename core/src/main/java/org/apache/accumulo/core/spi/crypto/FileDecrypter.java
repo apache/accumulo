@@ -21,13 +21,34 @@ package org.apache.accumulo.core.spi.crypto;
 import java.io.InputStream;
 
 /**
- * Class implementation that will decrypt a file. Make sure implementation is thread safe.
+ * Class implementation that will decrypt a file. Make sure implementation is thread safe. All
+ * initialization of the class should be done in {@link #init(InitParams)}. Any classes configured
+ * for decryption will be loaded ahead of time. Then when an encrypted file is read, the class name
+ * in the file will be matched against the configuration. Only if there is a match with what is in
+ * the file and what is configured will {@link #init(InitParams)} be called. If the matching class
+ * is initialized without exception, then {@link #decryptStream(InputStream)} will be called to
+ * perform decryption.
  *
- * @since 2.0
+ * @since 2.1
  */
 public interface FileDecrypter {
+
+  /**
+   * Initialize the class. This is done after the class name is matched against the first bytes of
+   * the decryptionParameters read from the file. If the class name matches what is configured, then
+   * this method is called.
+   *
+   * @param initParams
+   *          Objects needed for decryption
+   */
+  void init(InitParams initParams);
+
+  interface InitParams {
+    byte[] getDecryptionParameters();
+  }
+
   /**
    * Decrypt the InputStream
    */
-  InputStream decryptStream(InputStream inputStream) throws CryptoService.CryptoException;
+  InputStream decryptStream(InputStream inputStream) throws CryptoException;
 }

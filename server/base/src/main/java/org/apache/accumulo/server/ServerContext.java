@@ -21,6 +21,7 @@ package org.apache.accumulo.server;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -34,7 +35,9 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.singletons.SingletonReservation;
+import org.apache.accumulo.core.spi.crypto.CryptoException;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
@@ -65,7 +68,7 @@ public class ServerContext extends ClientContext {
   private DefaultConfiguration defaultConfig = null;
   private AccumuloConfiguration systemConfig = null;
   private AuthenticationTokenSecretManager secretManager;
-  private CryptoService cryptoService = null;
+  private FileEncrypter walEncrypter = null;
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(new ServerInfo(siteConfig));
@@ -102,14 +105,26 @@ public class ServerContext extends ClientContext {
   /**
    * Should only be called by the Tablet server
    */
-  public synchronized void setupCrypto() throws CryptoService.CryptoException {
-    if (cryptoService != null) {
-      throw new CryptoService.CryptoException("Crypto Service " + cryptoService.getClass().getName()
+  public synchronized void setupWALCrypto() throws CryptoException {
+    if (walEncrypter != null) {
+      throw new CryptoException("Crypto Service " + walEncrypter.getClass().getName()
           + " already exists and cannot be setup again");
     }
 
-    AccumuloConfiguration acuConf = getConfiguration();
-    cryptoService = CryptoServiceFactory.newInstance(acuConf, ClassloaderType.ACCUMULO);
+    AccumuloConfiguration conf = getConfiguration();
+    FileEncrypter.InitParams initParams = new FileEncrypter.InitParams() {
+      @Override
+      public Map<String,String> getOptions() {
+        return conf.getAllPropertiesWithPrefixStripped(Property.TSERV_WALOG_CRYPTO_PREFIX);
+      }
+
+      @Override
+      public CryptoService.Scope getScope() {
+        return CryptoService.Scope.WAL;
+      }
+    };
+    walEncrypter = CryptoServiceFactory.newInstance(CryptoService.Scope.WAL, initParams, conf,
+        ClassloaderType.ACCUMULO);
   }
 
   public SiteConfiguration getSiteConfiguration() {
@@ -245,11 +260,11 @@ public class ServerContext extends ClientContext {
     return nameAllocator;
   }
 
-  public CryptoService getCryptoService() {
-    if (cryptoService == null) {
-      throw new CryptoService.CryptoException("Crypto service not initialized.");
+  public FileEncrypter getWALEncrypter() {
+    if (walEncrypter == null) {
+      throw new CryptoException("Crypto service not initialized.");
     }
-    return cryptoService;
+    return walEncrypter;
   }
 
   @Override

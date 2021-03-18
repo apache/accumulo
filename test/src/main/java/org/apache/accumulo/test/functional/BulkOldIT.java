@@ -29,7 +29,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
@@ -107,11 +106,9 @@ public class BulkOldIT extends AccumuloClusterHarness {
 
   private void writeData(Configuration conf, AccumuloConfiguration aconf, FileSystem fs, String dir,
       String file, int start, int end) throws IOException, Exception {
-    FileSKVWriter writer1 =
-        FileOperations
-            .getInstance().newWriterBuilder().forFile(dir + "/" + file + "." + RFile.EXTENSION, fs,
-                conf, CryptoServiceFactory.newDefaultInstance())
-            .withTableConfiguration(aconf).build();
+    FileSKVWriter writer1 = FileOperations.getInstance().newWriterBuilder()
+        .forFile(dir + "/" + file + "." + RFile.EXTENSION, fs, conf).withTableConfiguration(aconf)
+        .build();
     writer1.startDefaultLocalityGroup();
     for (int i = start; i <= end; i++) {
       writer1.append(new Key(new Text(String.format("%04d", i))), new Value(Integer.toString(i)));

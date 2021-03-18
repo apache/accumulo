@@ -19,19 +19,17 @@
 package org.apache.accumulo.core.spi.crypto;
 
 /**
- * Useful information provided to the crypto implementation
- *
- * @since 2.0
+ * Runtime Crypto exception
  */
-public interface CryptoEnvironment {
-  /**
-   * Where in Accumulo the on-disk file encryption takes place.
-   */
-  enum Scope {
-    WAL, RFILE
+public class CryptoException extends RuntimeException {
+
+  private static final long serialVersionUID = -7588781060677839664L;
+
+  public CryptoException(String message) {
+    super(message);
   }
 
-  Scope getScope();
-
-  byte[] getDecryptionParams();
+  public CryptoException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

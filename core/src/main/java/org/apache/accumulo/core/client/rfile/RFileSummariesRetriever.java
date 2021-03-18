@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -92,10 +93,11 @@ class RFileSummariesRetriever implements SummaryInputArguments, SummaryFSOptions
     RFileSource[] sources = in.getSources();
     try {
       SummaryCollection all = new SummaryCollection();
-      CryptoService cservice = CryptoServiceFactory.newInstance(acuconf, ClassloaderType.JAVA);
+      List<CryptoService> decrypters =
+          CryptoServiceFactory.getDecrypters(acuconf, ClassloaderType.JAVA);
       for (RFileSource source : sources) {
         SummaryReader fileSummary = SummaryReader.load(in.getFileSystem().getConf(),
-            source.getInputStream(), source.getLength(), summarySelector, factory, cservice);
+            source.getInputStream(), source.getLength(), summarySelector, factory, decrypters);
         SummaryCollection sc = fileSummary
             .getSummaries(Collections.singletonList(new Gatherer.RowRange(startRow, endRow)));
         all.merge(sc, factory);

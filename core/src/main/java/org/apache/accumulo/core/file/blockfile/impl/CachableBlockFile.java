@@ -23,7 +23,9 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
@@ -75,7 +77,7 @@ public class CachableBlockFile {
     volatile CacheProvider cacheProvider = CacheProvider.NULL_PROVIDER;
     RateLimiter readLimiter = null;
     Configuration hadoopConf = null;
-    CryptoService cryptoService = null;
+    List<CryptoService> decrypters = new ArrayList<>();
 
     public CachableBuilder cacheId(String id) {
       this.cacheId = id;
@@ -119,8 +121,8 @@ public class CachableBlockFile {
       return this;
     }
 
-    public CachableBuilder cryptoService(CryptoService cryptoService) {
-      this.cryptoService = cryptoService;
+    public CachableBuilder decrypt(List<CryptoService> decrypters) {
+      this.decrypters = decrypters;
       return this;
     }
   }
@@ -137,7 +139,7 @@ public class CachableBlockFile {
     private volatile InputStream fin = null;
     private boolean closed = false;
     private final Configuration conf;
-    private final CryptoService cryptoService;
+    private final List<CryptoService> decrypters;
 
     private final IoeSupplier<InputStream> inputSupplier;
     private final IoeSupplier<Long> lengthSupplier;
@@ -168,11 +170,11 @@ public class CachableBlockFile {
         BCFile.Reader tmpReader = null;
         if (serializedMetadata == null) {
           if (fileLenCache == null) {
-            tmpReader = new BCFile.Reader(fsIn, lengthSupplier.get(), conf, cryptoService);
+            tmpReader = new BCFile.Reader(fsIn, lengthSupplier.get(), conf, decrypters);
           } else {
             long len = getCachedFileLen();
             try {
-              tmpReader = new BCFile.Reader(fsIn, len, conf, cryptoService);
+              tmpReader = new BCFile.Reader(fsIn, len, conf, decrypters);
             } catch (Exception e) {
               log.debug("Failed to open {}, clearing file length cache and retrying", cacheId, e);
               fileLenCache.invalidate(cacheId);
@@ -180,11 +182,11 @@ public class CachableBlockFile {
 
             if (tmpReader == null) {
               len = getCachedFileLen();
-              tmpReader = new BCFile.Reader(fsIn, len, conf, cryptoService);
+              tmpReader = new BCFile.Reader(fsIn, len, conf, decrypters);
             }
           }
         } else {
-          tmpReader = new BCFile.Reader(serializedMetadata, fsIn, conf, cryptoService);
+          tmpReader = new BCFile.Reader(serializedMetadata, fsIn, conf, decrypters);
         }
 
         if (bcfr.compareAndSet(null, tmpReader)) {
@@ -366,7 +368,7 @@ public class CachableBlockFile {
       this.cacheProvider = b.cacheProvider;
       this.readLimiter = b.readLimiter;
       this.conf = b.hadoopConf;
-      this.cryptoService = Objects.requireNonNull(b.cryptoService);
+      this.decrypters = Objects.requireNonNull(b.decrypters);
     }
 
     /**

@@ -27,7 +27,6 @@ import java.util.function.BiFunction;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -37,7 +36,7 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
-import org.apache.accumulo.core.spi.crypto.NoFileEncrypter;
+import org.apache.accumulo.core.spi.crypto.NoCryptoService;
 import org.apache.accumulo.core.summary.SummaryReader;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -203,8 +202,9 @@ public class PrintInfo implements KeywordExecutable {
 
       printCryptoParams(path, fs);
 
-      CachableBuilder cb = new CachableBuilder().fsPath(fs, path).conf(conf)
-          .cryptoService(CryptoServiceFactory.newInstance(siteConfig, ClassloaderType.JAVA));
+      CachableBuilder cb =
+          new CachableBuilder().fsPath(fs, path).conf(conf).decrypt(CryptoServiceFactory
+              .getDecrypters(siteConfig, CryptoServiceFactory.ClassloaderType.ACCUMULO));
       Reader iter = new RFile.Reader(cb);
       MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> vmg = new VisMetricsGatherer();
 
@@ -316,7 +316,7 @@ public class PrintInfo implements KeywordExecutable {
    * information is useful for debugging if and how a file was encrypted.
    */
   private void printCryptoParams(Path path, FileSystem fs) {
-    byte[] noCryptoBytes = new NoFileEncrypter().getDecryptionParameters();
+    byte[] noCryptoBytes = NoCryptoService.decryptParams();
     try (FSDataInputStream fsDis = fs.open(path)) {
       long fileLength = fs.getFileStatus(path).getLen();
       fsDis.seek(fileLength - 16 - Utils.Version.size() - (Long.BYTES));

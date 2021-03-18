@@ -34,11 +34,14 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.IterConfigUtil;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionDispatcher;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -64,6 +67,8 @@ public class TableConfiguration extends AccumuloConfiguration {
 
   private final Deriver<ScanDispatcher> scanDispatchDeriver;
   private final Deriver<CompactionDispatcher> compactionDispatchDeriver;
+  private final Deriver<FileEncrypter> encrypterDeriver;
+  private final Deriver<List<CryptoService>> decryptersDeriver;
 
   public TableConfiguration(ServerContext context, TableId tableId, NamespaceConfiguration parent) {
     this.context = requireNonNull(context);
@@ -83,6 +88,8 @@ public class TableConfiguration extends AccumuloConfiguration {
     scanDispatchDeriver = newDeriver(conf -> createScanDispatcher(conf, context, tableId));
     compactionDispatchDeriver =
         newDeriver(conf -> createCompactionDispatcher(conf, context, tableId));
+    encrypterDeriver = newDeriver(TableConfiguration::createCryptoServiceDeriver);
+    decryptersDeriver = newDeriver(TableConfiguration::createDecryptersDeriver);
   }
 
   void setZooCacheFactory(ZooCacheFactory zcf) {
@@ -264,11 +271,40 @@ public class TableConfiguration extends AccumuloConfiguration {
     return newDispatcher;
   }
 
+  private static FileEncrypter createCryptoServiceDeriver(AccumuloConfiguration conf) {
+    var initParams = new FileEncrypter.InitParams() {
+      @Override
+      public Map<String,String> getOptions() {
+        return conf.getAllPropertiesWithPrefixStripped(Property.TABLE_CRYPTO_PREFIX);
+      }
+
+      @Override
+      public CryptoService.Scope getScope() {
+        return CryptoService.Scope.RFILE;
+      }
+    };
+
+    return CryptoServiceFactory.newInstance(CryptoService.Scope.RFILE, initParams, conf,
+        CryptoServiceFactory.ClassloaderType.ACCUMULO);
+  }
+
+  private static List<CryptoService> createDecryptersDeriver(AccumuloConfiguration conf) {
+    return CryptoServiceFactory.getDecrypters(conf, CryptoServiceFactory.ClassloaderType.ACCUMULO);
+  }
+
   public ScanDispatcher getScanDispatcher() {
     return scanDispatchDeriver.derive();
   }
 
   public CompactionDispatcher getCompactionDispatcher() {
     return compactionDispatchDeriver.derive();
+  }
+
+  public FileEncrypter getEncrypter() {
+    return encrypterDeriver.derive();
+  }
+
+  public List<CryptoService> getDecrypters() {
+    return decryptersDeriver.derive();
   }
 }

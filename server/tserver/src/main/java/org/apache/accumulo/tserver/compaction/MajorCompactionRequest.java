@@ -19,6 +19,7 @@
 package org.apache.accumulo.tserver.compaction;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -44,11 +45,13 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.spi.cache.BlockCache;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.SummarizerFactory;
 import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.summary.SummaryReader;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.tserver.compaction.strategies.TooManyDeletesCompactionStrategy;
 import org.apache.hadoop.conf.Configuration;
@@ -161,12 +164,17 @@ public class MajorCompactionRequest implements Cloneable {
             + "CompactionStrategy.gatherInformation() is called.");
     SummaryCollection sc = new SummaryCollection();
     SummarizerFactory factory = new SummarizerFactory(tableConfig);
+    // backwards compatibility for new table crypto
+    List<CryptoService> decrypters = new ArrayList<>();
+    if (tableConfig instanceof TableConfiguration)
+      decrypters.addAll(((TableConfiguration) tableConfig).getDecrypters());
+
     for (TabletFile file : files) {
       FileSystem fs = volumeManager.getFileSystemByPath(file.getPath());
       Configuration conf = context.getHadoopConf();
       SummaryCollection fsc = SummaryReader
           .load(fs, conf, factory, file.getPath(), summarySelector, summaryCache, indexCache,
-              fileLenCache, context.getCryptoService())
+              fileLenCache, decrypters)
           .getSummaries(Collections.singletonList(new Gatherer.RowRange(extent)));
       sc.merge(fsc, factory);
     }
@@ -185,10 +193,13 @@ public class MajorCompactionRequest implements Cloneable {
     // @TODO verify the file isn't some random file in HDFS
     // @TODO ensure these files are always closed?
     FileOperations fileFactory = FileOperations.getInstance();
+    // backwards compatibility for new table crypto
+    List<CryptoService> decrypters = new ArrayList<>();
+    if (tableConfig instanceof TableConfiguration)
+      decrypters.addAll(((TableConfiguration) tableConfig).getDecrypters());
     FileSystem ns = volumeManager.getFileSystemByPath(tabletFile.getPath());
-    return fileFactory.newReaderBuilder()
-        .forFile(tabletFile.getPathStr(), ns, ns.getConf(), context.getCryptoService())
-        .withTableConfiguration(tableConfig).seekToBeginning().build();
+    return fileFactory.newReaderBuilder().forFile(tabletFile.getPathStr(), ns, ns.getConf())
+        .withTableConfiguration(tableConfig).decrypt(decrypters).seekToBeginning().build();
   }
 
   public Map<String,String> getTableProperties() {

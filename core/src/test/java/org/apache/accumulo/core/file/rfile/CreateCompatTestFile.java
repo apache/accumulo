@@ -63,7 +63,7 @@ public class CreateCompatTestFile {
     FileSystem fs = FileSystem.get(conf);
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     BCFile.Writer _cbw = new BCFile.Writer(fs.create(new Path(args[0])), null, "gz", conf,
-        CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA));
+        CryptoServiceFactory.newRFileInstance(aconf, ClassloaderType.JAVA));
     RFile.Writer writer = new RFile.Writer(_cbw, 1000);
 
     writer.startNewLocalityGroup("lg1",

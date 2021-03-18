@@ -584,9 +584,10 @@ public class InMemoryMap {
         Configuration conf = context.getHadoopConf();
         FileSystem fs = FileSystem.getLocal(conf);
 
-        reader = new RFileOperations().newReaderBuilder()
-            .forFile(memDumpFile, fs, conf, context.getCryptoService())
-            .withTableConfiguration(context.getConfiguration()).seekToBeginning().build();
+        // TODO figure out a way to get tableId or tableConfig
+        reader = new RFileOperations().newReaderBuilder().forFile(memDumpFile, fs, conf)
+            .withTableConfiguration(context.getConfiguration()).decrypt(new ArrayList<>())
+            .seekToBeginning().build();
         if (iflag != null)
           reader.setInterruptFlag(iflag);
 
@@ -754,9 +755,8 @@ public class InMemoryMap {
           aconf = createSampleConfig(aconf);
         }
 
-        FileSKVWriter out = new RFileOperations().newWriterBuilder()
-            .forFile(tmpFile, fs, newConf, context.getCryptoService()).withTableConfiguration(aconf)
-            .build();
+        FileSKVWriter out = new RFileOperations().newWriterBuilder().forFile(tmpFile, fs, newConf)
+            .withTableConfiguration(aconf).build();
 
         InterruptibleIterator iter = map.skvIterator(null);
 

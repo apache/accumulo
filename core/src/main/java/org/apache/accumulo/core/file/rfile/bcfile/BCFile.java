@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.file.rfile.bcfile;
 
+import static org.apache.accumulo.core.spi.crypto.CryptoService.Scope.RFILE;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -31,23 +33,20 @@ import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils.Version;
 import org.apache.accumulo.core.file.streams.BoundedRangeFileInputStream;
 import org.apache.accumulo.core.file.streams.RateLimitedOutputStream;
 import org.apache.accumulo.core.file.streams.SeekableDataInputStream;
-import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
-import org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
-import org.apache.accumulo.core.spi.crypto.NoFileDecrypter;
-import org.apache.accumulo.core.spi.crypto.NoFileEncrypter;
+import org.apache.accumulo.core.spi.crypto.NoCryptoService;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -108,7 +107,6 @@ public final class BCFile {
     private final RateLimitedOutputStream out;
     private final Configuration conf;
     private FileEncrypter encrypter;
-    private CryptoEnvironmentImpl cryptoEnvironment;
     // the single meta block containing index of compressed data blocks
     final DataIndex dataIndex;
     // index for meta blocks
@@ -315,7 +313,7 @@ public final class BCFile {
      * @see Compression#getSupportedAlgorithms
      */
     public Writer(FSDataOutputStream fout, RateLimiter writeLimiter, String compressionName,
-        Configuration conf, CryptoService cryptoService) throws IOException {
+        Configuration conf, FileEncrypter encrypter) throws IOException {
       if (fout.getPos() != 0) {
         throw new IOException("Output file not at zero offset.");
       }
@@ -326,8 +324,7 @@ public final class BCFile {
       metaIndex = new MetaIndex();
       fsOutputBuffer = new BytesWritable();
       Magic.write(this.out);
-      this.cryptoEnvironment = new CryptoEnvironmentImpl(Scope.RFILE, null);
-      this.encrypter = cryptoService.getFileEncrypter(this.cryptoEnvironment);
+      this.encrypter = encrypter;
     }
 
     /**
@@ -598,7 +595,7 @@ public final class BCFile {
     }
 
     public <InputStreamType extends InputStream & Seekable> Reader(InputStreamType fin,
-        long fileLength, Configuration conf, CryptoService cryptoService) throws IOException {
+        long fileLength, Configuration conf, List<CryptoService> decrypters) throws IOException {
       this.in = new SeekableDataInputStream(fin);
       this.conf = conf;
 
@@ -631,19 +628,16 @@ public final class BCFile {
       this.in.seek(offsetIndexMeta);
       metaIndex = new MetaIndex(this.in);
 
-      CryptoEnvironment cryptoEnvironment = null;
-
       // backwards compatibility
       if (version.equals(API_VERSION_1)) {
         LOG.trace("Found a version 1 file to read.");
-        decryptionParams = new NoFileEncrypter().getDecryptionParameters();
-        this.decrypter = new NoFileDecrypter();
+        decryptionParams = NoCryptoService.decryptParams();
+        this.decrypter = NoCryptoService.NO_DECRYPT;
       } else {
         // read crypto parameters and get decrypter
         this.in.seek(offsetCryptoParameters);
         decryptionParams = CryptoUtils.readParams(this.in);
-        cryptoEnvironment = new CryptoEnvironmentImpl(Scope.RFILE, decryptionParams);
-        this.decrypter = cryptoService.getFileDecrypter(cryptoEnvironment);
+        this.decrypter = CryptoUtils.getDecrypterInitialized(RFILE, decrypters, decryptionParams);
       }
 
       // read data:BCFile.index, the data block index
@@ -653,7 +647,8 @@ public final class BCFile {
     }
 
     public <InputStreamType extends InputStream & Seekable> Reader(byte[] serializedMetadata,
-        InputStreamType fin, Configuration conf, CryptoService cryptoService) throws IOException {
+        InputStreamType fin, Configuration conf, List<CryptoService> decrypters)
+        throws IOException {
       this.in = new SeekableDataInputStream(fin);
       this.conf = conf;
 
@@ -666,8 +661,7 @@ public final class BCFile {
       dataIndex = new DataIndex(dis);
 
       decryptionParams = CryptoUtils.readParams(dis);
-      CryptoEnvironmentImpl env = new CryptoEnvironmentImpl(Scope.RFILE, decryptionParams);
-      this.decrypter = cryptoService.getFileDecrypter(env);
+      this.decrypter = CryptoUtils.getDecrypterInitialized(RFILE, decrypters, decryptionParams);
     }
 
     /**

@@ -1725,8 +1725,9 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
     }
 
     ExecutorService es = server.resourceManager.getSummaryPartitionExecutor();
-    Future<SummaryCollection> future = new Gatherer(server.getContext(), request,
-        context.getTableConfiguration(tableId), context.getCryptoService()).gather(es);
+    var tableConf = context.getTableConfiguration(tableId);
+    Future<SummaryCollection> future =
+        new Gatherer(server.getContext(), request, tableConf, tableConf.getDecrypters()).gather(es);
 
     return startSummaryOperation(credentials, future);
   }
@@ -1745,7 +1746,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
     TableConfiguration tableConfig =
         context.getTableConfiguration(TableId.of(request.getTableId()));
     Future<SummaryCollection> future =
-        new Gatherer(server.getContext(), request, tableConfig, context.getCryptoService())
+        new Gatherer(server.getContext(), request, tableConfig, tableConfig.getDecrypters())
             .processPartition(spe, modulus, remainder);
 
     return startSummaryOperation(credentials, future);
@@ -1769,7 +1770,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
     VolumeManager fs = context.getVolumeManager();
     FileSystemResolver volMgr = fs::getFileSystemByPath;
     Future<SummaryCollection> future =
-        new Gatherer(server.getContext(), request, tableCfg, context.getCryptoService())
+        new Gatherer(server.getContext(), request, tableCfg, tableCfg.getDecrypters())
             .processFiles(volMgr, files, summaryCache, indexCache, fileLenCache, srp);
 
     return startSummaryOperation(credentials, future);

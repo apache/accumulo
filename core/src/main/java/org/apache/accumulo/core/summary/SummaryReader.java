@@ -176,15 +176,15 @@ public class SummaryReader {
 
   public static SummaryReader load(Configuration conf, InputStream inputStream, long length,
       Predicate<SummarizerConfiguration> summarySelector, SummarizerFactory factory,
-      CryptoService cryptoService) throws IOException {
-    CachableBuilder cb = new CachableBuilder().input(inputStream).length(length).conf(conf)
-        .cryptoService(cryptoService);
+      List<CryptoService> decrypters) throws IOException {
+    CachableBuilder cb =
+        new CachableBuilder().input(inputStream).length(length).conf(conf).decrypt(decrypters);
     return load(new CachableBlockFile.Reader(cb), summarySelector, factory);
   }
 
   public static SummaryReader load(FileSystem fs, Configuration conf, SummarizerFactory factory,
       Path file, Predicate<SummarizerConfiguration> summarySelector, BlockCache summaryCache,
-      BlockCache indexCache, Cache<String,Long> fileLenCache, CryptoService cryptoService) {
+      BlockCache indexCache, Cache<String,Long> fileLenCache, List<CryptoService> decrypters) {
     CachableBlockFile.Reader bcReader = null;
 
     try {
@@ -192,7 +192,7 @@ public class SummaryReader {
       // only summary data is wanted.
       CompositeCache compositeCache = new CompositeCache(summaryCache, indexCache);
       CachableBuilder cb = new CachableBuilder().fsPath(fs, file).conf(conf).fileLen(fileLenCache)
-          .cacheProvider(new BasicCacheProvider(compositeCache, null)).cryptoService(cryptoService);
+          .cacheProvider(new BasicCacheProvider(compositeCache, null)).decrypt(decrypters);
       bcReader = new CachableBlockFile.Reader(cb);
       return load(bcReader, summarySelector, factory);
     } catch (FileNotFoundException fne) {

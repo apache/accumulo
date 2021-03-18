@@ -20,6 +20,9 @@ package org.apache.accumulo.tserver.log;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonList;
+import static org.apache.accumulo.core.crypto.CryptoUtils.getDecrypterInitialized;
+import static org.apache.accumulo.core.crypto.CryptoUtils.readParams;
+import static org.apache.accumulo.core.spi.crypto.CryptoService.Scope.WAL;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_FINISH;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
@@ -46,16 +49,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.crypto.streams.NoFlushOutputStream;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
-import org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 import org.apache.accumulo.core.spi.crypto.NoCryptoService;
 import org.apache.accumulo.core.util.Pair;
@@ -358,11 +356,10 @@ public class DfsLogger implements Comparable<DfsLogger> {
     try {
       input.readFully(magicBuffer);
       if (Arrays.equals(magicBuffer, magic4)) {
-        CryptoService cryptoService =
-            CryptoServiceFactory.newInstance(conf, ClassloaderType.ACCUMULO);
-        FileDecrypter decrypter = CryptoUtils.getFileDecrypter(cryptoService, Scope.WAL, input);
-        log.debug("Using {} for decrypting WAL", cryptoService.getClass().getSimpleName());
-        decryptingInput = cryptoService instanceof NoCryptoService ? input
+        CryptoService cs = CryptoServiceFactory.getWALDecrypter(conf);
+        var decrypter = getDecrypterInitialized(WAL, List.of(cs), readParams(input));
+        log.debug("Using {} for decrypting WAL", decrypter.getClass().getSimpleName());
+        decryptingInput = decrypter instanceof NoCryptoService.NoFileDecrypter ? input
             : new DataInputStream(decrypter.decryptStream(input));
       } else if (Arrays.equals(magicBuffer, magic3)) {
         // Read logs files from Accumulo 1.9
@@ -428,13 +425,10 @@ public class DfsLogger implements Comparable<DfsLogger> {
       }
 
       // Initialize the log file with a header and its encryption
-      CryptoService cryptoService = context.getCryptoService();
+      FileEncrypter encrypter = context.getWALEncrypter();
       logFile.write(LOG_FILE_HEADER_V4.getBytes(UTF_8));
 
-      log.debug("Using {} for encrypting WAL {}", cryptoService.getClass().getSimpleName(),
-          filename);
-      CryptoEnvironment env = new CryptoEnvironmentImpl(Scope.WAL, null);
-      FileEncrypter encrypter = cryptoService.getFileEncrypter(env);
+      log.debug("Using {} for encrypting WAL {}", encrypter.getClass().getSimpleName(), filename);
       byte[] cryptoParams = encrypter.getDecryptionParameters();
       CryptoUtils.writeParams(cryptoParams, logFile);
 

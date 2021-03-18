@@ -116,7 +116,7 @@ public class Gatherer {
   private Text endRow = null;
   private Range clipRange;
   private Predicate<SummarizerConfiguration> summarySelector;
-  private CryptoService cryptoService;
+  private List<CryptoService> decrypters;
 
   private TSummaryRequest request;
 
@@ -125,7 +125,7 @@ public class Gatherer {
   private Set<SummarizerConfiguration> summaries;
 
   public Gatherer(ClientContext context, TSummaryRequest request, AccumuloConfiguration tableConfig,
-      CryptoService cryptoService) {
+      List<CryptoService> decrypters) {
     this.ctx = context;
     this.tableId = TableId.of(request.tableId);
     this.startRow = ByteBufferUtil.toText(request.bounds.startRow);
@@ -134,7 +134,7 @@ public class Gatherer {
     this.summaries = request.getSummarizers().stream().map(SummarizerConfigurationUtil::fromThrift)
         .collect(Collectors.toSet());
     this.request = request;
-    this.cryptoService = cryptoService;
+    this.decrypters = decrypters;
 
     this.summarizerPattern = request.getSummarizerPattern();
 
@@ -673,6 +673,6 @@ public class Gatherer {
     Path path = new Path(file);
     Configuration conf = ctx.getHadoopConf();
     return SummaryReader.load(volMgr.get(path), conf, factory, path, summarySelector, summaryCache,
-        indexCache, fileLenCache, cryptoService).getSummaries(ranges);
+        indexCache, fileLenCache, decrypters).getSummaries(ranges);
   }
 }

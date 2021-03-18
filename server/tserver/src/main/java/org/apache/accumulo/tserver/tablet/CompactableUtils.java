@@ -110,11 +110,12 @@ public class CompactableUtils {
     final Map<StoredTabletFile,Pair<Key,Key>> result = new HashMap<>();
     final FileOperations fileFactory = FileOperations.getInstance();
     final VolumeManager fs = tablet.getTabletServer().getVolumeManager();
+    var tableConf = tablet.getTableConfiguration();
     for (StoredTabletFile file : allFiles) {
       FileSystem ns = fs.getFileSystemByPath(file.getPath());
       try (FileSKVIterator openReader = fileFactory.newReaderBuilder()
-          .forFile(file.getPathStr(), ns, ns.getConf(), tablet.getContext().getCryptoService())
-          .withTableConfiguration(tablet.getTableConfiguration()).seekToBeginning().build()) {
+          .forFile(file.getPathStr(), ns, ns.getConf()).withTableConfiguration(tableConf)
+          .decrypt(tableConf.getDecrypters()).seekToBeginning().build()) {
         Key first = openReader.getFirstKey();
         Key last = openReader.getLastKey();
         result.put(file, new Pair<>(first, last));
@@ -320,16 +321,17 @@ public class CompactableUtils {
 
         var context = tablet.getContext();
         var tsrm = tablet.getTabletResources().getTabletServerResourceManager();
+        var tableConf = tablet.getTableConfiguration();
 
         SummaryCollection sc = new SummaryCollection();
-        SummarizerFactory factory = new SummarizerFactory(tablet.getTableConfiguration());
+        SummarizerFactory factory = new SummarizerFactory(tableConf);
         for (CompactableFile cf : files) {
           var file = CompactableFileImpl.toStoredTabletFile(cf);
           FileSystem fs = context.getVolumeManager().getFileSystemByPath(file.getPath());
           Configuration conf = context.getHadoopConf();
           SummaryCollection fsc = SummaryReader
               .load(fs, conf, factory, file.getPath(), summarySelector, tsrm.getSummaryCache(),
-                  tsrm.getIndexCache(), tsrm.getFileLenCache(), context.getCryptoService())
+                  tsrm.getIndexCache(), tsrm.getFileLenCache(), tableConf.getDecrypters())
               .getSummaries(Collections.singletonList(new Gatherer.RowRange(tablet.getExtent())));
           sc.merge(fsc, factory);
         }
@@ -349,9 +351,10 @@ public class CompactableUtils {
           FileOperations fileFactory = FileOperations.getInstance();
           Path path = new Path(file.getUri());
           FileSystem ns = tablet.getTabletServer().getVolumeManager().getFileSystemByPath(path);
-          var fiter = fileFactory.newReaderBuilder()
-              .forFile(path.toString(), ns, ns.getConf(), tablet.getContext().getCryptoService())
-              .withTableConfiguration(tablet.getTableConfiguration()).seekToBeginning().build();
+          var tableConf = tablet.getTableConfiguration();
+          var fiter = fileFactory.newReaderBuilder().forFile(path.toString(), ns, ns.getConf())
+              .withTableConfiguration(tableConf).decrypt(tableConf.getDecrypters())
+              .seekToBeginning().build();
           return Optional.ofNullable(fiter.getSample(new SamplerConfigurationImpl(sc)));
         } catch (IOException e) {
           throw new UncheckedIOException(e);

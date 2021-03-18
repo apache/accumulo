@@ -60,6 +60,7 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.StopWatch;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.FileUtil;
 import org.apache.hadoop.fs.FileSystem;
@@ -90,15 +91,17 @@ public class BulkImporter {
   }
 
   private final ServerContext context;
-  private String tableId;
+  private TableId tableId;
   private long tid;
   private boolean setTime;
+  private TableConfiguration tableConf;
 
   public BulkImporter(ServerContext context, long tid, String tableId, boolean setTime) {
     this.context = context;
     this.tid = tid;
-    this.tableId = tableId;
+    this.tableId = TableId.of(tableId);
     this.setTime = setTime;
+    this.tableConf = context.getTableConfiguration(this.tableId);
   }
 
   public AssignmentStats importFiles(List<String> files) {
@@ -122,7 +125,7 @@ public class BulkImporter {
         Collections.synchronizedSortedMap(new TreeMap<>());
 
     ClientService.Client client = null;
-    final TabletLocator locator = TabletLocator.getLocator(context, TableId.of(tableId));
+    final TabletLocator locator = TabletLocator.getLocator(context, tableId);
 
     try {
       final Map<Path,List<TabletLocation>> assignments =
@@ -139,7 +142,8 @@ public class BulkImporter {
           public void run() {
             List<TabletLocation> tabletsToAssignMapFileTo = Collections.emptyList();
             try {
-              tabletsToAssignMapFileTo = findOverlappingTablets(context, fs, locator, mapFile);
+              tabletsToAssignMapFileTo =
+                  findOverlappingTablets(context, tableConf, fs, locator, mapFile, null, null);
             } catch (Exception ex) {
               log.warn("Unable to find tablets that overlap file " + mapFile, ex);
             }
@@ -204,8 +208,8 @@ public class BulkImporter {
 
             timer.start(Timers.QUERY_METADATA);
             try {
-              tabletsToAssignMapFileTo
-                  .addAll(findOverlappingTablets(context, fs, locator, entry.getKey(), ke));
+              tabletsToAssignMapFileTo.addAll(
+                  findOverlappingTablets(context, tableConf, fs, locator, entry.getKey(), ke));
               keListIter.remove();
             } catch (Exception ex) {
               log.warn("Exception finding overlapping tablets, will retry tablet " + ke, ex);
@@ -599,16 +603,12 @@ public class BulkImporter {
     }
   }
 
-  public static List<TabletLocation> findOverlappingTablets(ServerContext context, VolumeManager fs,
-      TabletLocator locator, Path file) throws Exception {
-    return findOverlappingTablets(context, fs, locator, file, null, null);
-  }
-
-  public static List<TabletLocation> findOverlappingTablets(ServerContext context, VolumeManager fs,
-      TabletLocator locator, Path file, KeyExtent failed) throws Exception {
+  public static List<TabletLocation> findOverlappingTablets(ServerContext context,
+      TableConfiguration tableConf, VolumeManager fs, TabletLocator locator, Path file,
+      KeyExtent failed) throws Exception {
     locator.invalidateCache(failed);
     Text start = getStartRowForExtent(failed);
-    return findOverlappingTablets(context, fs, locator, file, start, failed.endRow());
+    return findOverlappingTablets(context, tableConf, fs, locator, file, start, failed.endRow());
   }
 
   protected static Text getStartRowForExtent(KeyExtent extent) {
@@ -624,16 +624,17 @@ public class BulkImporter {
 
   static final byte[] byte0 = {0};
 
-  public static List<TabletLocation> findOverlappingTablets(ServerContext context, VolumeManager vm,
-      TabletLocator locator, Path file, Text startRow, Text endRow) throws Exception {
+  public static List<TabletLocation> findOverlappingTablets(ServerContext context,
+      TableConfiguration tableConf, VolumeManager vm, TabletLocator locator, Path file,
+      Text startRow, Text endRow) throws Exception {
     List<TabletLocation> result = new ArrayList<>();
     Collection<ByteSequence> columnFamilies = Collections.emptyList();
     String filename = file.toString();
     // log.debug(filename + " finding overlapping tablets " + startRow + " -> " + endRow);
     FileSystem fs = vm.getFileSystemByPath(file);
     try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-        .forFile(filename, fs, fs.getConf(), context.getCryptoService())
-        .withTableConfiguration(context.getConfiguration()).seekToBeginning().build()) {
+        .forFile(filename, fs, fs.getConf()).withTableConfiguration(tableConf)
+        .decrypt(tableConf.getDecrypters()).seekToBeginning().build()) {
       Text row = startRow;
       if (row == null)
         row = new Text();
