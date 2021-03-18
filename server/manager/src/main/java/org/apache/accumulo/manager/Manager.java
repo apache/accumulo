@@ -97,8 +97,9 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.AgeOffStore;
 import org.apache.accumulo.fate.Fate;
 import org.apache.accumulo.fate.util.Retry;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -201,7 +202,7 @@ public class Manager extends AbstractServer
   private ZooAuthenticationKeyDistributor keyDistributor;
   private AuthenticationTokenKeyManager authenticationTokenKeyManager;
 
-  ZooLock managerLock = null;
+  ServiceLock managerLock = null;
   private TServer clientService = null;
   private volatile TabletBalancer tabletBalancer;
   private final BalancerEnvironment balancerEnvironment;
@@ -1042,7 +1043,7 @@ public class Manager extends AbstractServer
 
     // block until we can obtain the ZK lock for the manager
     try {
-      getManagerLock(zroot + Constants.ZMANAGER_LOCK);
+      getManagerLock(ServiceLock.path(zroot + Constants.ZMANAGER_LOCK));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }
@@ -1378,11 +1379,11 @@ public class Manager extends AbstractServer
     return Math.max(1, deadline - System.currentTimeMillis());
   }
 
-  public ZooLock getManagerLock() {
+  public ServiceLock getManagerLock() {
     return managerLock;
   }
 
-  private static class ManagerLockWatcher implements ZooLock.AccumuloLockWatcher {
+  private static class ManagerLockWatcher implements ServiceLock.AccumuloLockWatcher {
 
     boolean acquiredLock = false;
     boolean failedToAcquireLock = false;
@@ -1439,7 +1440,7 @@ public class Manager extends AbstractServer
     }
   }
 
-  private void getManagerLock(final String zManagerLoc)
+  private void getManagerLock(final ServiceLockPath zManagerLoc)
       throws KeeperException, InterruptedException {
     ServerContext context = getContext();
     log.info("trying to get manager lock");
@@ -1451,7 +1452,7 @@ public class Manager extends AbstractServer
     while (true) {
 
       ManagerLockWatcher managerLockWatcher = new ManagerLockWatcher();
-      managerLock = new ZooLock(context.getSiteConfiguration(), zManagerLoc, zooLockUUID);
+      managerLock = new ServiceLock(context.getSiteConfiguration(), zManagerLoc, zooLockUUID);
       managerLock.lock(managerLockWatcher, managerClientAddress.getBytes());
 
       managerLockWatcher.waitForChange();

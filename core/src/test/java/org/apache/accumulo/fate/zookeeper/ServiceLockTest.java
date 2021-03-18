@@ -26,7 +26,7 @@ import java.util.List;
 
 import org.junit.Test;
 
-public class ZooLockTest {
+public class ServiceLockTest {
 
   @Test
   public void testSortAndFindLowestPrevPrefix() throws Exception {
@@ -42,7 +42,7 @@ public class ZooLockTest {
     children.add("zlock#987654321");
     children.add("zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001");
 
-    final List<String> validChildren = ZooLock.validateAndSortChildrenByLockPrefix("", children);
+    final List<String> validChildren = ServiceLock.validateAndSort(ServiceLock.path(""), children);
 
     assertEquals(8, validChildren.size());
     assertEquals("zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001", validChildren.get(0));
@@ -55,24 +55,24 @@ public class ZooLockTest {
     assertEquals("zlock#00000000-0000-0000-0000-eeeeeeeeeeee#0000000010", validChildren.get(7));
 
     assertEquals("zlock#00000000-0000-0000-0000-bbbbbbbbbbbb#0000000004",
-        ZooLock.findLowestPrevPrefix(validChildren,
+        ServiceLock.findLowestPrevPrefix(validChildren,
             "zlock#00000000-0000-0000-0000-ffffffffffff#0000000007"));
 
     assertEquals("zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001",
-        ZooLock.findLowestPrevPrefix(validChildren,
+        ServiceLock.findLowestPrevPrefix(validChildren,
             "zlock#00000000-0000-0000-0000-cccccccccccc#0000000003"));
 
     assertEquals("zlock#00000000-0000-0000-0000-dddddddddddd#0000000008",
-        ZooLock.findLowestPrevPrefix(validChildren,
+        ServiceLock.findLowestPrevPrefix(validChildren,
             "zlock#00000000-0000-0000-0000-eeeeeeeeeeee#0000000010"));
 
     assertThrows(IndexOutOfBoundsException.class, () -> {
-      ZooLock.findLowestPrevPrefix(validChildren,
+      ServiceLock.findLowestPrevPrefix(validChildren,
           "zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001");
     });
 
     assertThrows(IndexOutOfBoundsException.class, () -> {
-      ZooLock.findLowestPrevPrefix(validChildren,
+      ServiceLock.findLowestPrevPrefix(validChildren,
           "zlock#00000000-0000-0000-0000-XXXXXXXXXXXX#0000000099");
     });
   }

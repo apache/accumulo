@@ -52,7 +52,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -66,7 +66,7 @@ public class ManagerMetadataUtil {
   public static void addNewTablet(ServerContext context, KeyExtent extent, String dirName,
       TServerInstance location, Map<StoredTabletFile,DataFileValue> datafileSizes,
       Map<Long,? extends Collection<TabletFile>> bulkLoadedFiles, MetadataTime time,
-      long lastFlushID, long lastCompactID, ZooLock zooLock) {
+      long lastFlushID, long lastCompactID, ServiceLock zooLock) {
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
     tablet.putPrevEndRow(extent.prevEndRow());
@@ -96,7 +96,7 @@ public class ManagerMetadataUtil {
     tablet.mutate();
   }
 
-  public static KeyExtent fixSplit(ServerContext context, TabletMetadata meta, ZooLock lock)
+  public static KeyExtent fixSplit(ServerContext context, TabletMetadata meta, ServiceLock lock)
       throws AccumuloException {
     log.info("Incomplete split {} attempting to fix", meta.getExtent());
 
@@ -115,7 +115,7 @@ public class ManagerMetadataUtil {
   }
 
   private static KeyExtent fixSplit(ServerContext context, TableId tableId, Text metadataEntry,
-      Text metadataPrevEndRow, Text oper, double splitRatio, ZooLock lock)
+      Text metadataPrevEndRow, Text oper, double splitRatio, ServiceLock lock)
       throws AccumuloException {
     if (metadataPrevEndRow == null)
       // something is wrong, this should not happen... if a tablet is split, it will always have a
@@ -168,7 +168,7 @@ public class ManagerMetadataUtil {
     }
   }
 
-  private static TServerInstance getTServerInstance(String address, ZooLock zooLock) {
+  private static TServerInstance getTServerInstance(String address, ServiceLock zooLock) {
     while (true) {
       try {
         return new TServerInstance(address, zooLock.getSessionId());
@@ -182,7 +182,7 @@ public class ManagerMetadataUtil {
   public static void replaceDatafiles(ServerContext context, KeyExtent extent,
       Set<StoredTabletFile> datafilesToDelete, Set<StoredTabletFile> scanFiles, TabletFile path,
       Long compactionId, DataFileValue size, String address, TServerInstance lastLocation,
-      ZooLock zooLock) {
+      ServiceLock zooLock) {
 
     context.getAmple().putGcCandidates(extent.tableId(), datafilesToDelete);
 
@@ -217,7 +217,7 @@ public class ManagerMetadataUtil {
    *
    */
   public static StoredTabletFile updateTabletDataFile(ServerContext context, KeyExtent extent,
-      TabletFile path, DataFileValue dfv, MetadataTime time, String address, ZooLock zooLock,
+      TabletFile path, DataFileValue dfv, MetadataTime time, String address, ServiceLock zooLock,
       Set<String> unusedWalLogs, TServerInstance lastLocation, long flushId) {
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);

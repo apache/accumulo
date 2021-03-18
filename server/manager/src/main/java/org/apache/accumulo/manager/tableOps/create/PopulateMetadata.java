@@ -36,7 +36,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
@@ -82,8 +82,8 @@ class PopulateMetadata extends ManagerRepo {
   }
 
   private void writeSplitsToMetadataTable(ServerContext ctx, TableId tableId,
-      SortedSet<Text> splits, Map<Text,Text> data, TimeType timeType, ZooLock lock, BatchWriter bw)
-      throws MutationsRejectedException {
+      SortedSet<Text> splits, Map<Text,Text> data, TimeType timeType, ServiceLock lock,
+      BatchWriter bw) throws MutationsRejectedException {
     Text prevSplit = null;
     Value dirValue;
     for (Text split : Iterables.concat(splits, Collections.singleton(null))) {

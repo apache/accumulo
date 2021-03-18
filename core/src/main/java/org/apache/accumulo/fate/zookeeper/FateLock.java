@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -33,19 +35,37 @@ import org.apache.zookeeper.KeeperException.NotEmptyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ZooQueueLock implements QueueLock {
-  private static final Logger log = LoggerFactory.getLogger(ZooQueueLock.class);
+/**
+ * A persistent lock mechanism in ZooKeeper used for locking tables during FaTE operations.
+ */
+public class FateLock implements QueueLock {
+  private static final Logger log = LoggerFactory.getLogger(FateLock.class);
 
   private static final String PREFIX = "flock#";
 
-  private ZooReaderWriter zoo;
-  private String path;
-  private boolean ephemeral;
+  private final ZooReaderWriter zoo;
+  private final FateLockPath path;
 
-  public ZooQueueLock(ZooReaderWriter zrw, String path, boolean ephemeral) {
-    this.zoo = zrw;
-    this.path = path;
-    this.ephemeral = ephemeral;
+  public static class FateLockPath {
+    private final String path;
+
+    private FateLockPath(String path) {
+      this.path = requireNonNull(path);
+    }
+
+    @Override
+    public String toString() {
+      return this.path;
+    }
+  }
+
+  public static FateLockPath path(String path) {
+    return new FateLockPath(path);
+  }
+
+  public FateLock(ZooReaderWriter zrw, FateLockPath path) {
+    this.zoo = requireNonNull(zrw);
+    this.path = requireNonNull(path);
   }
 
   @Override
@@ -54,17 +74,13 @@ public class ZooQueueLock implements QueueLock {
     try {
       while (true) {
         try {
-          if (ephemeral) {
-            newPath = zoo.putEphemeralSequential(path + "/" + PREFIX, data);
-          } else {
-            newPath = zoo.putPersistentSequential(path + "/" + PREFIX, data);
-          }
+          newPath = zoo.putPersistentSequential(path + "/" + PREFIX, data);
           String[] parts = newPath.split("/");
           String last = parts[parts.length - 1];
           return Long.parseLong(last.substring(PREFIX.length()));
         } catch (NoNodeException nne) {
           // the parent does not exist so try to create it
-          zoo.putPersistentData(path, new byte[] {}, NodeExistsPolicy.SKIP);
+          zoo.putPersistentData(path.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
         }
       }
     } catch (Exception ex) {
@@ -78,7 +94,7 @@ public class ZooQueueLock implements QueueLock {
     try {
       List<String> children = Collections.emptyList();
       try {
-        children = zoo.getChildren(path);
+        children = zoo.getChildren(path.toString());
       } catch (KeeperException.NoNodeException ex) {
         // the path does not exist (it was deleted or not created yet), that is ok there are no
         // earlier entries then
@@ -107,7 +123,7 @@ public class ZooQueueLock implements QueueLock {
       zoo.recursiveDelete(path + String.format("/%s%010d", PREFIX, entry), NodeMissingPolicy.SKIP);
       try {
         // try to delete the parent if it has no children
-        zoo.delete(path);
+        zoo.delete(path.toString());
       } catch (NotEmptyException nee) {
         // the path had other lock nodes, no big deal
       }
@@ -116,8 +132,10 @@ public class ZooQueueLock implements QueueLock {
     }
   }
 
-  public static List<String> validateAndSortChildrenByLockPrefix(String path,
-      List<String> children) {
+  /**
+   * Validate and sort child nodes at this lock path by the lock prefix
+   */
+  public static List<String> validateAndSort(FateLockPath path, List<String> children) {
     log.trace("validating and sorting children at path {}", path);
     List<String> validChildren = new ArrayList<>();
     if (children == null || children.isEmpty()) {

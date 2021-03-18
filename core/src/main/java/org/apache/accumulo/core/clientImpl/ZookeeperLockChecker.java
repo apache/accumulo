@@ -20,8 +20,8 @@ package org.apache.accumulo.core.clientImpl;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletServerLockChecker;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
 
 public class ZookeeperLockChecker implements TabletServerLockChecker {
 
@@ -35,7 +35,8 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
 
   @Override
   public boolean isLockHeld(String tserver, String session) {
-    return ZooLock.getSessionId(zc, root + "/" + tserver) == Long.parseLong(session, 16);
+    var zLockPath = ServiceLock.path(root + "/" + tserver);
+    return ServiceLock.getSessionId(zc, zLockPath) == Long.parseLong(session, 16);
   }
 
   @Override

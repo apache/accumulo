@@ -32,7 +32,7 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -248,7 +248,7 @@ public interface Ample {
 
     TabletMutator deleteLocation(TServerInstance tserver, LocationType type);
 
-    TabletMutator putZooLock(ZooLock zooLock);
+    TabletMutator putZooLock(ServiceLock zooLock);
 
     TabletMutator putDirName(String dirName);
 

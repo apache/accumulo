@@ -115,7 +115,7 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -1365,11 +1365,11 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
           new ZooUtil.LockID(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK, lock);
 
       try {
-        if (!ZooLock.isLockHeld(server.managerLockCache, lid)) {
+        if (!ServiceLock.isLockHeld(server.managerLockCache, lid)) {
           // maybe the cache is out of date and a new manager holds the
           // lock?
           server.managerLockCache.clear();
-          if (!ZooLock.isLockHeld(server.managerLockCache, lid)) {
+          if (!ServiceLock.isLockHeld(server.managerLockCache, lid)) {
             log.warn("Got {} message from a manager that does not hold the current lock {}",
                 request, lock);
             throw new RuntimeException("bad manager lock");

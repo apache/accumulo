@@ -29,6 +29,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ReadOnlyStore;
 import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
@@ -82,19 +83,19 @@ public class FateAdmin {
     try (var context = new ServerContext(SiteConfiguration.auto())) {
       final String zkRoot = context.getZooKeeperRoot();
       String path = zkRoot + Constants.ZFATE;
-      String managerPath = zkRoot + Constants.ZMANAGER_LOCK;
+      var zLockManagerPath = ServiceLock.path(zkRoot + Constants.ZMANAGER_LOCK);
       ZooReaderWriter zk = context.getZooReaderWriter();
       ZooStore<Manager> zs = new ZooStore<>(path, zk);
 
       if (jc.getParsedCommand().equals("fail")) {
         for (String txid : txOpts.get(jc.getParsedCommand()).txids) {
-          if (!admin.prepFail(zs, zk, managerPath, txid)) {
+          if (!admin.prepFail(zs, zk, zLockManagerPath, txid)) {
             System.exit(1);
           }
         }
       } else if (jc.getParsedCommand().equals("delete")) {
         for (String txid : txOpts.get(jc.getParsedCommand()).txids) {
-          if (!admin.prepDelete(zs, zk, managerPath, txid)) {
+          if (!admin.prepDelete(zs, zk, zLockManagerPath, txid)) {
             System.exit(1);
           }
           admin.deleteLocks(zk, zkRoot + Constants.ZTABLE_LOCKS, txid);

@@ -31,6 +31,7 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.WatchedEvent;
@@ -565,8 +566,8 @@ public class ZooCache {
     }
   }
 
-  public byte[] getLockData(String path) {
-    List<String> children = ZooLock.validateAndSortChildrenByLockPrefix(path, getChildren(path));
+  public byte[] getLockData(ServiceLockPath path) {
+    List<String> children = ServiceLock.validateAndSort(path, getChildren(path.toString()));
     if (children == null || children.isEmpty()) {
       return null;
     }
