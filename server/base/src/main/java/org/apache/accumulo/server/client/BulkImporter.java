@@ -42,6 +42,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ServerClient;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
+import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
@@ -62,7 +63,6 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.util.FileUtil;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -375,8 +375,12 @@ public class BulkImporter {
           Map<KeyExtent,Long> estimatedSizes = null;
 
           try {
-            estimatedSizes = FileUtil.estimateSizes(context, entry.getKey(),
-                mapFileSizes.get(entry.getKey()), extentsOf(entry.getValue()));
+            Path mapFile = entry.getKey();
+            FileSystem ns = context.getVolumeManager().getFileSystemByPath(mapFile);
+
+            estimatedSizes = BulkImport.estimateSizes(context.getConfiguration(), mapFile,
+                mapFileSizes.get(entry.getKey()), extentsOf(entry.getValue()), ns, null,
+                tableConf.getDecrypters());
           } catch (IOException e) {
             log.warn("Failed to estimate map file sizes {}", e.getMessage());
           }

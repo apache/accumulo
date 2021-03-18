@@ -30,13 +30,11 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
@@ -548,13 +546,4 @@ public class FileUtil {
     return lastKey;
 
   }
-
-  public static Map<KeyExtent,Long> estimateSizes(ServerContext context, Path mapFile,
-      long fileSize, List<KeyExtent> extents) throws IOException {
-
-    FileSystem ns = context.getVolumeManager().getFileSystemByPath(mapFile);
-    return BulkImport.estimateSizes(context.getConfiguration(), mapFile, fileSize, extents, ns,
-        null, null/* decrypters */);
-  }
-
 }
