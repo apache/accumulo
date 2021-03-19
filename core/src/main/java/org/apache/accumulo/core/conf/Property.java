@@ -378,13 +378,13 @@ public enum Property {
   TSERV_WALOG_CRYPTO_SENSITIVE_PREFIX("tserver.walog.crypto.opts.sensitive.", null,
       PropertyType.PREFIX, "Sensitive properties related to on-disk file encryption."),
   @Experimental
-  TSERV_WALOG_CRYPTO_ENCRYPT_SERVICE("tserver.walog.crypto.service",
+  TSERV_WALOG_CRYPTO_ENCRYPT_SERVICE("tserver.walog.crypto.encrypt.service",
       "org.apache.accumulo.core.spi.crypto.NoCryptoService", PropertyType.CLASSNAME,
       "The class which executes on-disk write ahead log encryption. The default does nothing. To enable "
           + "encryption, replace this classname with an implementation of the"
           + "org.apache.accumulo.core.spi.crypto.CryptoService interface."),
   @Experimental
-  TSERV_WALOG_CRYPTO_DECRYPT_SERVICE("table.crypto.decrypt.service",
+  TSERV_WALOG_CRYPTO_DECRYPT_SERVICE("tserver.walog.crypto.decrypt.service",
       "org.apache.accumulo.core.spi.crypto.NoCryptoService", PropertyType.STRING,
       "The single class to use for decryption of Write ahead logs. It must implement"
           + "org.apache.accumulo.core.spi.crypto.FileDecrypter."),
