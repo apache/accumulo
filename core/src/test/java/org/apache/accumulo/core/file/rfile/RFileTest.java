@@ -1800,10 +1800,10 @@ public class RFileTest {
     switch (cryptoOn) {
       case CryptoTest.CRYPTO_RFILE_ON_CONF:
         cfg.set(Property.TABLE_CRYPTO_ENCRYPT_SERVICE,
-            "org.apache.accumulo.core.spi.crypto.AESTableCryptoService");
+            "org.apache.accumulo.core.spi.crypto.AESCryptoModule$AESTableCryptoService");
         cfg.set(Property.TABLE_CRYPTO_PREFIX.getKey() + "key.uri", CryptoTest.keyPath);
         cfg.set(Property.TABLE_CRYPTO_DECRYPT_SERVICES,
-            "org.apache.accumulo.core.spi.crypto.AESTableCryptoService");
+            "org.apache.accumulo.core.spi.crypto.AESCryptoModule$AESTableCryptoService");
         break;
       case CryptoTest.CRYPTO_WAL_ON_CONF:
         cfg.set(Property.TSERV_WALOG_CRYPTO_ENCRYPT_SERVICE,
