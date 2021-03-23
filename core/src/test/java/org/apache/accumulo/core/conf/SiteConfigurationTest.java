@@ -76,9 +76,9 @@ public class SiteConfigurationTest {
     assertEquals("hdfs://localhost:8020/accumulo123", conf.get(Property.INSTANCE_VOLUMES));
     assertEquals("123s", conf.get(Property.GENERAL_RPC_TIMEOUT));
     assertEquals("256M", conf.get(Property.TSERV_WALOG_MAX_SIZE));
-    assertEquals("org.apache.accumulo.core.spi.crypto.AESTableCryptoService",
+    assertEquals("org.apache.accumulo.core.spi.crypto.AESCryptoService$Table",
         conf.get(Property.TABLE_CRYPTO_ENCRYPT_SERVICE));
-    assertEquals("org.apache.accumulo.core.spi.crypto.AESWALCryptoService",
+    assertEquals("org.apache.accumulo.core.spi.crypto.AESCryptoService$WAL",
         conf.get(Property.TSERV_WALOG_CRYPTO_ENCRYPT_SERVICE));
     assertEquals(System.getenv("USER"), conf.get("general.test.user.name"));
     assertEquals("/tmp/test/dir", conf.get("general.test.user.dir"));

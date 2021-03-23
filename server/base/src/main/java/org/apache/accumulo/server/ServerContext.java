@@ -21,7 +21,6 @@ package org.apache.accumulo.server;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
-import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -29,14 +28,12 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.crypto.CryptoException;
-import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -110,21 +107,8 @@ public class ServerContext extends ClientContext {
       throw new CryptoException("Crypto Service " + walEncrypter.getClass().getName()
           + " already exists and cannot be setup again");
     }
-
-    AccumuloConfiguration conf = getConfiguration();
-    FileEncrypter.InitParams initParams = new FileEncrypter.InitParams() {
-      @Override
-      public Map<String,String> getOptions() {
-        return conf.getAllPropertiesWithPrefixStripped(Property.TSERV_WALOG_CRYPTO_PREFIX);
-      }
-
-      @Override
-      public CryptoService.Scope getScope() {
-        return CryptoService.Scope.WAL;
-      }
-    };
-    walEncrypter = CryptoServiceFactory.newInstance(CryptoService.Scope.WAL, initParams, conf,
-        ClassloaderType.ACCUMULO);
+    walEncrypter = CryptoServiceFactory.newWALInstance(getConfiguration(),
+        CryptoServiceFactory.ClassloaderType.ACCUMULO);
   }
 
   public SiteConfiguration getSiteConfiguration() {

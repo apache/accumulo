@@ -19,8 +19,8 @@
 package org.apache.accumulo.core.crypto;
 
 import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_DECRYPT_SERVICES;
-import static org.apache.accumulo.core.crypto.CryptoServiceFactory.newInstance;
 import static org.apache.accumulo.core.crypto.CryptoServiceFactory.newRFileInstance;
+import static org.apache.accumulo.core.crypto.CryptoServiceFactory.newWALInstance;
 import static org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType.JAVA;
 import static org.apache.accumulo.core.crypto.CryptoUtils.readParams;
 import static org.apache.accumulo.core.file.rfile.RFileTest.getAccumuloConfig;
@@ -381,7 +381,7 @@ public class CryptoTest {
     try (DataInputStream dataIn = new DataInputStream(new ByteArrayInputStream(resultingBytes))) {
       ConfigurationCopy cfg = getAccumuloConfig(CRYPTO_RFILE_ON_CONF);
       cfg.set(TABLE_CRYPTO_DECRYPT_SERVICES,
-          "org.apache.accumulo.core.spi.crypto.AESWALCryptoService,"
+          "org.apache.accumulo.core.spi.crypto.AESCryptoService$WAL,"
               + "org.apache.accumulo.core.spi.crypto.NoCryptoService,"
               + "org.apache.accumulo.core.spi.crypto.AESCryptoService$Table");
       FileDecrypter decrypter = getRFileDecrypter(cfg, dataIn);
@@ -398,8 +398,8 @@ public class CryptoTest {
   public void testDecrypterNotFound() {
     ConfigurationCopy cfg = getAccumuloConfig(CRYPTO_RFILE_ON_CONF);
     cfg.set(TABLE_CRYPTO_DECRYPT_SERVICES,
-        "org.apache.accumulo.core.spi.crypto.AESCBCCryptoModule,"
-            + "org.apache.accumulo.core.spi.crypto.NoFileDecrypter,"
+        "org.apache.accumulo.core.spi.crypto.AESCryptoService$WAL,"
+            + "org.apache.accumulo.core.spi.crypto.NoCryptoService,"
             + "org.apache.accumulo.core.spi.crypto.MyCryptoModule");
     assertThrows(RuntimeException.class, () -> CryptoServiceFactory.getDecrypters(cfg, JAVA));
   }
@@ -415,19 +415,11 @@ public class CryptoTest {
 
   private byte[] encrypt(Scope scope, String configFile) throws Exception {
     AccumuloConfiguration conf = getAccumuloConfig(configFile);
-    Property prop = CryptoUtils.getPrefixPerScope(scope);
-    var initParams = new FileEncrypter.InitParams() {
-      @Override
-      public Map<String,String> getOptions() {
-        return conf.getAllPropertiesWithPrefixStripped(prop);
-      }
-
-      @Override
-      public Scope getScope() {
-        return scope;
-      }
-    };
-    FileEncrypter encrypter = newInstance(scope, initParams, conf, JAVA);
+    FileEncrypter encrypter;
+    if (scope == Scope.RFILE)
+      encrypter = newRFileInstance(conf, JAVA);
+    else
+      encrypter = newWALInstance(conf, JAVA);
     byte[] params = encrypter.getDecryptionParameters();
 
     assertNotNull("CryptoService returned null FileEncrypter", encrypter);

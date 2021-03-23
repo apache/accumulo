@@ -41,7 +41,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionDispatcher;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -67,7 +66,6 @@ public class TableConfiguration extends AccumuloConfiguration {
 
   private final Deriver<ScanDispatcher> scanDispatchDeriver;
   private final Deriver<CompactionDispatcher> compactionDispatchDeriver;
-  private final Deriver<FileEncrypter> encrypterDeriver;
   private final Deriver<List<CryptoService>> decryptersDeriver;
 
   public TableConfiguration(ServerContext context, TableId tableId, NamespaceConfiguration parent) {
@@ -88,7 +86,6 @@ public class TableConfiguration extends AccumuloConfiguration {
     scanDispatchDeriver = newDeriver(conf -> createScanDispatcher(conf, context, tableId));
     compactionDispatchDeriver =
         newDeriver(conf -> createCompactionDispatcher(conf, context, tableId));
-    encrypterDeriver = newDeriver(TableConfiguration::createCryptoServiceDeriver);
     decryptersDeriver = newDeriver(TableConfiguration::createDecryptersDeriver);
   }
 
@@ -271,11 +268,6 @@ public class TableConfiguration extends AccumuloConfiguration {
     return newDispatcher;
   }
 
-  private static FileEncrypter createCryptoServiceDeriver(AccumuloConfiguration conf) {
-    return CryptoServiceFactory.newRFileInstance(conf,
-        CryptoServiceFactory.ClassloaderType.ACCUMULO);
-  }
-
   private static List<CryptoService> createDecryptersDeriver(AccumuloConfiguration conf) {
     return CryptoServiceFactory.getDecrypters(conf, CryptoServiceFactory.ClassloaderType.ACCUMULO);
   }
@@ -286,10 +278,6 @@ public class TableConfiguration extends AccumuloConfiguration {
 
   public CompactionDispatcher getCompactionDispatcher() {
     return compactionDispatchDeriver.derive();
-  }
-
-  public FileEncrypter getEncrypter() {
-    return encrypterDeriver.derive();
   }
 
   public List<CryptoService> getDecrypters() {

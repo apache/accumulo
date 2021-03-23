@@ -133,8 +133,8 @@ public class RFileOperations extends FileOperations {
       outputStream = fs.create(new Path(file), false, bufferSize, (short) rep, block);
     }
 
-    FileEncrypter cs =
-        CryptoServiceFactory.newRFileInstance(acuconf, CryptoServiceFactory.ClassloaderType.JAVA);
+    FileEncrypter cs = CryptoServiceFactory.newRFileInstance(acuconf,
+        CryptoServiceFactory.ClassloaderType.ACCUMULO);
 
     BCFile.Writer _cbw =
         new BCFile.Writer(outputStream, options.getRateLimiter(), compression, conf, cs);

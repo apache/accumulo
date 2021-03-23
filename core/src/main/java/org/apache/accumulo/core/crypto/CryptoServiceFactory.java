@@ -41,10 +41,9 @@ public class CryptoServiceFactory {
 
   /**
    * Create a new CryptoService for RFiles. Pulls from table config, calls init and returns the
-   * loaded CryptoService.
+   * loaded FileEncrypter from newCryptoService.getEncrypter()
    */
   public static FileEncrypter newRFileInstance(AccumuloConfiguration conf, ClassloaderType ct) {
-    CryptoService.Scope scope = CryptoService.Scope.RFILE;
     var initParams = new FileEncrypter.InitParams() {
       @Override
       public Map<String,String> getOptions() {
@@ -53,10 +52,29 @@ public class CryptoServiceFactory {
 
       @Override
       public CryptoService.Scope getScope() {
-        return scope;
+        return CryptoService.Scope.RFILE;
       }
     };
-    return newInstance(scope, initParams, conf, ct);
+    return newInstance(CryptoService.Scope.RFILE, initParams, conf, ct);
+  }
+
+  /**
+   * Create a new CryptoService for WALs. Pulls from tserver config, calls init and returns the
+   * loaded FileEncrypter from newCryptoService.getEncrypter()
+   */
+  public static FileEncrypter newWALInstance(AccumuloConfiguration conf, ClassloaderType ct) {
+    FileEncrypter.InitParams initParams = new FileEncrypter.InitParams() {
+      @Override
+      public Map<String,String> getOptions() {
+        return conf.getAllPropertiesWithPrefixStripped(Property.TSERV_WALOG_CRYPTO_PREFIX);
+      }
+
+      @Override
+      public CryptoService.Scope getScope() {
+        return CryptoService.Scope.WAL;
+      }
+    };
+    return newInstance(CryptoService.Scope.WAL, initParams, conf, ct);
   }
 
   public enum ClassloaderType {
@@ -71,26 +89,24 @@ public class CryptoServiceFactory {
    * determined by the type provided. Calls the init method using the provided initParams and
    * returns the FileEncrypter.
    */
-  public static FileEncrypter newInstance(CryptoService.Scope scope,
+  private static FileEncrypter newInstance(CryptoService.Scope scope,
       FileEncrypter.InitParams initParams, AccumuloConfiguration conf, ClassloaderType ct) {
     CryptoService newCryptoService;
     Objects.requireNonNull(scope, "CryptoService Scope required");
     Property prop = CryptoUtils.getPropPerScope(scope);
+    String clazzName = conf.get(prop);
+    if (clazzName == null || clazzName.trim().isEmpty())
+      return NoCryptoService.NO_ENCRYPT;
 
     if (ct == ClassloaderType.ACCUMULO) {
       newCryptoService = Property.createInstanceFromPropertyName(conf, prop, CryptoService.class,
-          new NoCryptoService());
+          NoCryptoService.NONE);
     } else if (ct == ClassloaderType.JAVA) {
-      String clazzName = conf.get(prop);
-      if (clazzName == null || clazzName.trim().isEmpty()) {
-        newCryptoService = new NoCryptoService();
-      } else {
-        try {
-          newCryptoService = CryptoServiceFactory.class.getClassLoader().loadClass(clazzName)
-              .asSubclass(CryptoService.class).getDeclaredConstructor().newInstance();
-        } catch (ReflectiveOperationException e) {
-          throw new RuntimeException(e);
-        }
+      try {
+        newCryptoService = CryptoServiceFactory.class.getClassLoader().loadClass(clazzName)
+            .asSubclass(CryptoService.class).getDeclaredConstructor().newInstance();
+      } catch (ReflectiveOperationException e) {
+        throw new RuntimeException(e);
       }
     } else {
       throw new IllegalArgumentException();

@@ -177,30 +177,9 @@ public class AESCryptoService {
 
       @Override
       public byte[] getDecryptionParameters() {
-        return createCryptoParameters(VERSION, encryptingKek, keyLocation, keyManager, fek);
+        return createCryptoParameters(Table.class.getName(), VERSION, encryptingKek, keyLocation,
+            keyManager, fek);
       }
-    }
-
-    private static byte[] createCryptoParameters(String version, Key encryptingKek,
-        String encryptingKekId, String encryptingKeyManager, Key fek) {
-
-      byte[] bytes;
-      try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-          DataOutputStream params = new DataOutputStream(baos)) {
-        // the name is required to be first
-        params.writeUTF(Table.class.getName());
-        params.writeUTF(version);
-        params.writeUTF(encryptingKeyManager);
-        params.writeUTF(encryptingKekId);
-        byte[] wrappedFek = wrapKey(fek, encryptingKek, KEY_WRAP_TRANSFORM);
-        params.writeInt(wrappedFek.length);
-        params.write(wrappedFek);
-
-        bytes = baos.toByteArray();
-      } catch (IOException e) {
-        throw new CryptoException("Error creating crypto params", e);
-      }
-      return bytes;
     }
 
     public static class Decrypter implements FileDecrypter {
@@ -324,7 +303,8 @@ public class AESCryptoService {
 
       @Override
       public byte[] getDecryptionParameters() {
-        return createCryptoParameters(encryptingKek, keyLocation, keyManager, fek);
+        return createCryptoParameters(WAL.class.getName(), VERSION, encryptingKek, keyLocation,
+            keyManager, fek);
       }
     }
 
@@ -402,14 +382,14 @@ public class AESCryptoService {
     return parsed;
   }
 
-  private static byte[] createCryptoParameters(Key encryptingKek, String encryptingKekId,
-      String encryptingKeyManager, Key fek) {
+  private static byte[] createCryptoParameters(String className, String version, Key encryptingKek,
+      String encryptingKekId, String encryptingKeyManager, Key fek) {
     byte[] bytes;
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream params = new DataOutputStream(baos)) {
       // the name is required to be first
-      params.writeUTF(Table.class.getName());
-      params.writeUTF(Table.VERSION);
+      params.writeUTF(className);
+      params.writeUTF(version);
       params.writeUTF(encryptingKeyManager);
       params.writeUTF(encryptingKekId);
       byte[] wrappedFek = wrapKey(fek, encryptingKek, Table.KEY_WRAP_TRANSFORM);
