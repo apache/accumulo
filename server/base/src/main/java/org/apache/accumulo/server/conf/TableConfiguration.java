@@ -272,19 +272,7 @@ public class TableConfiguration extends AccumuloConfiguration {
   }
 
   private static FileEncrypter createCryptoServiceDeriver(AccumuloConfiguration conf) {
-    var initParams = new FileEncrypter.InitParams() {
-      @Override
-      public Map<String,String> getOptions() {
-        return conf.getAllPropertiesWithPrefixStripped(Property.TABLE_CRYPTO_PREFIX);
-      }
-
-      @Override
-      public CryptoService.Scope getScope() {
-        return CryptoService.Scope.RFILE;
-      }
-    };
-
-    return CryptoServiceFactory.newInstance(CryptoService.Scope.RFILE, initParams, conf,
+    return CryptoServiceFactory.newRFileInstance(conf,
         CryptoServiceFactory.ClassloaderType.ACCUMULO);
   }
 

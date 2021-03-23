@@ -97,6 +97,8 @@ public class CryptoServiceFactory {
     }
 
     var encrypter = newCryptoService.getEncrypter();
+    log.debug("New {} CryptoService({}) created. Calling init()", scope,
+        encrypter.getClass().getName());
     encrypter.init(initParams);
     return encrypter;
   }
@@ -129,6 +131,7 @@ public class CryptoServiceFactory {
     } catch (ReflectiveOperationException | IOException e) {
       log.warn("Failed to load class from property {}", TABLE_CRYPTO_DECRYPT_SERVICES, e);
     }
+    log.debug("Loaded {} table decrypters from config: {}", decrypters.size(), decrypters);
     return decrypters;
   }
 
@@ -140,6 +143,7 @@ public class CryptoServiceFactory {
     } catch (ReflectiveOperationException | IOException e) {
       log.warn("Failed to load class from property {}", TSERV_WALOG_CRYPTO_DECRYPT_SERVICE, e);
     }
+    log.debug("Loaded WAL decrypt from config: {}", cs);
     return cs;
   }
 }

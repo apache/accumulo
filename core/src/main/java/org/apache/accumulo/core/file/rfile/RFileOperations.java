@@ -25,6 +25,7 @@ import java.util.Collections;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -35,6 +36,7 @@ import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBu
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
+import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -131,8 +133,11 @@ public class RFileOperations extends FileOperations {
       outputStream = fs.create(new Path(file), false, bufferSize, (short) rep, block);
     }
 
-    BCFile.Writer _cbw = new BCFile.Writer(outputStream, options.getRateLimiter(), compression,
-        conf, options.getEncrypter());
+    FileEncrypter cs =
+        CryptoServiceFactory.newRFileInstance(acuconf, CryptoServiceFactory.ClassloaderType.JAVA);
+
+    BCFile.Writer _cbw =
+        new BCFile.Writer(outputStream, options.getRateLimiter(), compression, conf, cs);
 
     return new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize, samplerConfig, sampler);
   }

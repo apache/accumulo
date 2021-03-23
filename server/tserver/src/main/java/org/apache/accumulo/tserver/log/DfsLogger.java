@@ -358,7 +358,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
       if (Arrays.equals(magicBuffer, magic4)) {
         CryptoService cs = CryptoServiceFactory.getWALDecrypter(conf);
         var decrypter = getDecrypterInitialized(WAL, List.of(cs), readParams(input));
-        log.debug("Using {} for decrypting WAL", decrypter.getClass().getSimpleName());
+        log.debug("Using {} for decrypting WAL", decrypter.getClass().getName());
         decryptingInput = decrypter instanceof NoCryptoService.NoFileDecrypter ? input
             : new DataInputStream(decrypter.decryptStream(input));
       } else if (Arrays.equals(magicBuffer, magic3)) {

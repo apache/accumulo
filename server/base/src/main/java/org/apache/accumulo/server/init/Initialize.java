@@ -48,8 +48,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -540,11 +538,8 @@ public class Initialize implements KeywordExecutable {
     }
     FileSystem fs = volmanager.getFileSystemByPath(new Path(fileName));
 
-    var encrypter = CryptoServiceFactory.newRFileInstance(conf, ClassloaderType.ACCUMULO);
-
-    FileSKVWriter tabletWriter =
-        FileOperations.getInstance().newWriterBuilder().forFile(fileName, fs, fs.getConf())
-            .withTableConfiguration(conf).encrypt(encrypter).build();
+    FileSKVWriter tabletWriter = FileOperations.getInstance().newWriterBuilder()
+        .forFile(fileName, fs, fs.getConf()).withTableConfiguration(conf).build();
     tabletWriter.startDefaultLocalityGroup();
 
     for (Entry<Key,Value> entry : sorted.entrySet()) {
