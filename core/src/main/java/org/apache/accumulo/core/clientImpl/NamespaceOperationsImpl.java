@@ -20,8 +20,6 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.Constants.MAX_NAMESPACE_LEN;
-import static org.apache.accumulo.core.Constants.MAX_TABLE_NAME_LEN;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -99,7 +97,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   public boolean exists(String namespace) {
     checkArgument(namespace != null, "namespace is null");
     checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
-        "Namespace name must only contain word characters (letters, digits, and underscores)");
+        "Namespace name must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     OpTimer timer = null;
 
@@ -124,10 +123,9 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   public void create(String namespace)
       throws AccumuloException, AccumuloSecurityException, NamespaceExistsException {
     checkArgument(namespace != null, "namespace is null");
-    checkArgument(namespace.length() <= MAX_NAMESPACE_LEN,
-        "Namespace is longer than " + MAX_NAMESPACE_LEN + " characters");
     checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
-        "Namespace name must only contain word characters (letters, digits, and underscores)");
+        "Namespace name must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     try {
       doNamespaceFateOperation(FateOperation.NAMESPACE_CREATE,
@@ -144,7 +142,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       NamespaceNotFoundException, NamespaceNotEmptyException {
     checkArgument(namespace != null, "namespace is null");
     checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
-        "Namespace name must only contain word characters (letters, digits, and underscores)");
+        "Namespace name must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     NamespaceId namespaceId = Namespaces.getNamespaceId(context, namespace);
     if (namespaceId.equals(Namespace.ACCUMULO.id()) || namespaceId.equals(Namespace.DEFAULT.id())) {
@@ -174,10 +173,13 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   public void rename(String oldNamespaceName, String newNamespaceName)
       throws AccumuloSecurityException, NamespaceNotFoundException, AccumuloException,
       NamespaceExistsException {
-    checkArgument(newNamespaceName.length() <= MAX_TABLE_NAME_LEN,
-        "Namespace is longer than " + MAX_TABLE_NAME_LEN + " characters");
+    checkArgument(oldNamespaceName.matches(VALID_NAMESPACE_REGEX),
+        "Namespace name must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     checkArgument(newNamespaceName.matches(VALID_NAMESPACE_REGEX),
-        "Namespace name must only contain word characters (letters, digits, and underscores)");
+        "Namespace name must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldNamespaceName.getBytes(UTF_8)),
         ByteBuffer.wrap(newNamespaceName.getBytes(UTF_8)));
@@ -192,7 +194,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
     checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
-        "Namespace name must only contain word characters (letters, digits, and underscores)");
+        "Namespace name must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     ManagerClient.executeNamespace(context,
         client -> client.setNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(), namespace,
@@ -206,7 +209,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(namespace != null, "namespace is null");
     checkArgument(property != null, "property is null");
     checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
-        "Namespace name must only contain word characters (letters, digits, and underscores)");
+        "Namespace name must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     ManagerClient.executeNamespace(context, client -> client
         .removeNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(), namespace, property));
@@ -218,7 +222,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       throws AccumuloException, NamespaceNotFoundException {
     checkArgument(namespace != null, "namespace is null");
     checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
-        "Namespace name must only contain word characters (letters, digits, and underscores)");
+        "Namespace name must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     try {
       return ServerClient.executeRaw(context, client -> client
@@ -256,7 +261,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(className != null, "className is null");
     checkArgument(asTypeName != null, "asTypeName is null");
     checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
-        "Namespace name must only contain word characters (letters, digits, and underscores)");
+        "Namespace name must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     try {
       return ServerClient.executeRaw(context,
@@ -283,7 +289,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       EnumSet<IteratorScope> scopes)
       throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
     checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
-        "Namespace name must only contain word characters (letters, digits, and underscores)");
+        "Namespace name must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     testClassLoad(namespace, setting.getIteratorClass(), SortedKeyValueIterator.class.getName());
     super.attachIterator(namespace, setting, scopes);
@@ -293,7 +300,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   public int addConstraint(String namespace, String constraintClassName)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
-        "Namespace name must only contain word characters (letters, digits, and underscores)");
+        "Namespace name must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     testClassLoad(namespace, constraintClassName, Constraint.class.getName());
     return super.addConstraint(namespace, constraintClassName);
@@ -303,7 +311,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       Map<String,String> opts, String namespace) throws AccumuloSecurityException,
       AccumuloException, NamespaceExistsException, NamespaceNotFoundException {
     checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
-        "Namespace name must only contain word characters (letters, digits, and underscores)");
+        "Namespace name must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     try {
       return tableOps.doFateOperation(op, args, opts, namespace);
@@ -316,7 +325,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   private void checkLocalityGroups(String namespace, String propChanged)
       throws AccumuloException, NamespaceNotFoundException {
     checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
-        "Namespace name must only contain word characters (letters, digits, and underscores)");
+        "Namespace name must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
       Iterable<Entry<String,String>> allProps = getProperties(namespace);

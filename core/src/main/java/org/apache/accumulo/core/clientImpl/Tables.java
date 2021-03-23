@@ -45,7 +45,7 @@ import com.google.common.cache.CacheBuilder;
 
 public class Tables {
 
-  public static final String VALID_NAME_REGEX = "^(\\w{1,1024}\\.)?(\\w{1,1024})$";
+  public static final String VALID_NAME_REGEX = "^(\\w{1,1024}[.])?(\\w{1,1024})$";
 
   private static final SecurityPermission TABLES_PERMISSION =
       new SecurityPermission("tablesPermission");

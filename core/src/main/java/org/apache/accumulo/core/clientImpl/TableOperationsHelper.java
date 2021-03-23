@@ -37,7 +37,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 
 public abstract class TableOperationsHelper implements TableOperations {
 
-  public static final String VALID_NAME_REGEX = "^(\\w{1,1024}\\.)?(\\w{1,1024})$";
+  public static final String VALID_NAME_REGEX = "^(\\w{1,1024}[.])?(\\w{1,1024})$";
 
   @Override
   public void attachIterator(String tableName, IteratorSetting setting)
