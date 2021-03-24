@@ -54,6 +54,12 @@ import org.apache.commons.cli.Options;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+/**
+ * @deprecated since 2.0; this command shouldn't be used; The script command is deprecated; use
+ *             jshell for scripting instead
+ */
+
+@Deprecated(since = "2.1.0")
 public class ScriptCommand extends Command {
 
   // Command to allow user to run scripts, see JSR-223
@@ -68,6 +74,8 @@ public class ScriptCommand extends Command {
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
 
     boolean invoke = false;
+
+    Shell.log.warn("The script command is deprecated; use jshell for scripting instead");
     ScriptEngineManager mgr = new ScriptEngineManager();
 
     if (cl.hasOption(list.getOpt())) {
