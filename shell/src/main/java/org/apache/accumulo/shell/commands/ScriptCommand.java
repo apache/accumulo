@@ -145,7 +145,7 @@ public class ScriptCommand extends Command {
           return 1;
         }
         Reader reader = new FileReader(f, UTF_8);
-        try {
+        try (reader) {
           engine.eval(reader, ctx);
           if (invoke) {
             this.invokeFunctionOrMethod(shellState, engine, cl, argArray);
@@ -154,7 +154,6 @@ public class ScriptCommand extends Command {
           shellState.printException(ex);
           return 1;
         } finally {
-          reader.close();
           if (writer != null) {
             writer.close();
           }
@@ -194,7 +193,6 @@ public class ScriptCommand extends Command {
     return 0;
   }
 
-  @SuppressWarnings("deprecation")
   private void putConnector(Bindings b, AccumuloClient client) {
     try {
       b.put("connection", org.apache.accumulo.core.client.Connector.from(client));
@@ -205,17 +203,12 @@ public class ScriptCommand extends Command {
 
   @Override
   public String description() {
-    return "execute JSR-223 scripts";
+    return "(deprecated) execute JSR-223 scripts";
   }
 
   @Override
   public int numArgs() {
     return 0;
-  }
-
-  @Override
-  public String getName() {
-    return "script";
   }
 
   @Override

@@ -29,6 +29,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
+@Deprecated
 public class DeleteScanIterCommand extends Command {
   private Option nameOpt, allOpt;
 
@@ -79,7 +80,7 @@ public class DeleteScanIterCommand extends Command {
 
   @Override
   public String description() {
-    return "deletes a table-specific scan iterator so it is no longer used"
+    return "(deprecated) deletes a table-specific scan iterator so it is no longer used"
         + " during this shell session";
   }
 

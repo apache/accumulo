@@ -97,7 +97,6 @@ import org.apache.accumulo.shell.commands.DeleteIterCommand;
 import org.apache.accumulo.shell.commands.DeleteManyCommand;
 import org.apache.accumulo.shell.commands.DeleteNamespaceCommand;
 import org.apache.accumulo.shell.commands.DeleteRowsCommand;
-import org.apache.accumulo.shell.commands.DeleteScanIterCommand;
 import org.apache.accumulo.shell.commands.DeleteShellIterCommand;
 import org.apache.accumulo.shell.commands.DeleteTableCommand;
 import org.apache.accumulo.shell.commands.DeleteUserCommand;
@@ -147,11 +146,9 @@ import org.apache.accumulo.shell.commands.RenameNamespaceCommand;
 import org.apache.accumulo.shell.commands.RenameTableCommand;
 import org.apache.accumulo.shell.commands.RevokeCommand;
 import org.apache.accumulo.shell.commands.ScanCommand;
-import org.apache.accumulo.shell.commands.ScriptCommand;
 import org.apache.accumulo.shell.commands.SetAuthsCommand;
 import org.apache.accumulo.shell.commands.SetGroupsCommand;
 import org.apache.accumulo.shell.commands.SetIterCommand;
-import org.apache.accumulo.shell.commands.SetScanIterCommand;
 import org.apache.accumulo.shell.commands.SetShellIterCommand;
 import org.apache.accumulo.shell.commands.SleepCommand;
 import org.apache.accumulo.shell.commands.SummariesCommand;
@@ -260,7 +257,6 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   public Shell() {}
 
   public Shell(LineReader reader) {
-    super();
     this.reader = reader;
     this.terminal = reader.getTerminal();
     this.writer = terminal.writer();
@@ -394,13 +390,15 @@ public class Shell extends ShellOptions implements KeywordExecutable {
             new ListScansCommand(), new ListCompactionsCommand(), new TraceCommand(),
             new PingCommand(), new ListBulkCommand(), new ListTabletsCommand()};
     @SuppressWarnings("deprecation")
-    Command[] execCommands =
-        {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand(), new ScriptCommand()};
+    Command[] execCommands = {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand(),
+        new org.apache.accumulo.shell.commands.ScriptCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
     Command[] helpCommands =
         {new AboutCommand(), new HelpCommand(), new InfoCommand(), new QuestionCommand()};
-    Command[] iteratorCommands = {new DeleteIterCommand(), new DeleteScanIterCommand(),
-        new ListIterCommand(), new SetIterCommand(), new SetScanIterCommand(),
+    @SuppressWarnings("deprecation")
+    Command[] iteratorCommands = {new DeleteIterCommand(),
+        new org.apache.accumulo.shell.commands.DeleteScanIterCommand(), new ListIterCommand(),
+        new SetIterCommand(), new org.apache.accumulo.shell.commands.SetScanIterCommand(),
         new SetShellIterCommand(), new ListShellIterCommand(), new DeleteShellIterCommand()};
     Command[] otherCommands = {new HiddenCommand()};
     Command[] permissionsCommands = {new GrantCommand(), new RevokeCommand(),
@@ -844,11 +842,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     Map<Command.CompletionSet,Set<String>> options = new HashMap<>();
 
-    Set<String> commands = new HashSet<>();
-    for (String a : commandFactory.keySet()) {
-      commands.add(a);
-    }
-
+    Set<String> commands = new HashSet<>(commandFactory.keySet());
     Set<String> modifiedUserlist = new HashSet<>();
     Set<String> modifiedTablenames = new HashSet<>();
     Set<String> modifiedNamespaces = new HashSet<>();

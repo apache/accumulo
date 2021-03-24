@@ -38,6 +38,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
+@Deprecated
 public class SetScanIterCommand extends SetIterCommand {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
@@ -81,7 +82,7 @@ public class SetScanIterCommand extends SetIterCommand {
 
   @Override
   public String description() {
-    return "sets a table-specific scan iterator for this shell session";
+    return "(deprecated) sets a table-specific scan iterator for this shell session";
   }
 
   @Override
