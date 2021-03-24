@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.core.Constants.MAX_NAMESPACE_LEN;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -100,6 +99,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
 
   private AccumuloClient c;
   private String namespace;
+  private static final int MAX_NAMESPACE_LEN = 1024;
 
   @BeforeClass
   public static void setup() throws Exception {

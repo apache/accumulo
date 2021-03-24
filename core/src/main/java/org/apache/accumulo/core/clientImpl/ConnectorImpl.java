@@ -86,6 +86,10 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   @Override
   public BatchScanner createBatchScanner(String tableName, Authorizations authorizations,
       int numQueryThreads) throws TableNotFoundException {
+    checkArgument(tableName.matches(VALID_NAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     return context.createBatchScanner(tableName, authorizations, numQueryThreads);
   }
 
@@ -96,7 +100,7 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
     checkArgument(tableName.matches(VALID_NAME_REGEX),
-        "Table name must only contain word characters (letters, digits, and underscores)"
+        "tableName must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
     return new TabletServerBatchDeleter(context, context.getTableId(tableName), authorizations,
@@ -107,6 +111,10 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
       int numQueryThreads, BatchWriterConfig config) throws TableNotFoundException {
+    checkArgument(tableName.matches(VALID_NAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     return context.createBatchDeleter(tableName, authorizations, numQueryThreads, config);
   }
 
@@ -115,7 +123,7 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
       int maxWriteThreads) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(tableName.matches(VALID_NAME_REGEX),
-        "Table name must only contain word characters (letters, digits, and underscores)"
+        "tableName must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
     return new BatchWriterImpl(context, context.getTableId(tableName),
@@ -126,6 +134,10 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   @Override
   public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config)
       throws TableNotFoundException {
+    checkArgument(tableName.matches(VALID_NAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     return context.createBatchWriter(tableName, config);
   }
 
@@ -144,12 +156,20 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   @Override
   public ConditionalWriter createConditionalWriter(String tableName, ConditionalWriterConfig config)
       throws TableNotFoundException {
+    checkArgument(tableName.matches(VALID_NAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     return context.createConditionalWriter(tableName, config);
   }
 
   @Override
   public Scanner createScanner(String tableName, Authorizations authorizations)
       throws TableNotFoundException {
+    checkArgument(tableName.matches(VALID_NAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     return context.createScanner(tableName, authorizations);
   }
 

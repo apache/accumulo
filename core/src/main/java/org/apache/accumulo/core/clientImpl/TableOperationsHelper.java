@@ -43,7 +43,9 @@ public abstract class TableOperationsHelper implements TableOperations {
   public void attachIterator(String tableName, IteratorSetting setting)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     checkArgument(tableName.matches(VALID_NAME_REGEX),
-        "Table name must only contain word characters (letters, digits, and underscores)");
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     attachIterator(tableName, setting, EnumSet.allOf(IteratorScope.class));
   }
 
@@ -55,7 +57,8 @@ public abstract class TableOperationsHelper implements TableOperations {
     checkArgument(setting != null, "setting is null");
     checkArgument(scopes != null, "scopes is null");
     checkArgument(tableName.matches(VALID_NAME_REGEX),
-        "Table name must only contain word characters (letters, digits, and underscores)");
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
     checkIteratorConflicts(tableName, setting, scopes);
 
     for (IteratorScope scope : scopes) {
@@ -72,7 +75,8 @@ public abstract class TableOperationsHelper implements TableOperations {
   public void removeIterator(String tableName, String name, EnumSet<IteratorScope> scopes)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     checkArgument(tableName.matches(VALID_NAME_REGEX),
-        "Table name must only contain word characters (letters, digits, and underscores)");
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     Map<String,String> copy = new TreeMap<>();
     for (Entry<String,String> property : this.getProperties(tableName)) {
@@ -95,7 +99,8 @@ public abstract class TableOperationsHelper implements TableOperations {
     checkArgument(name != null, "name is null");
     checkArgument(scope != null, "scope is null");
     checkArgument(tableName.matches(VALID_NAME_REGEX),
-        "Table name must only contain word characters (letters, digits, and underscores)");
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     int priority = -1;
     String classname = null;
@@ -126,7 +131,8 @@ public abstract class TableOperationsHelper implements TableOperations {
   public Map<String,EnumSet<IteratorScope>> listIterators(String tableName)
       throws AccumuloException, TableNotFoundException {
     checkArgument(tableName.matches(VALID_NAME_REGEX),
-        "Table name must only contain word characters (letters, digits, and underscores)");
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     Map<String,EnumSet<IteratorScope>> result = new TreeMap<>();
     for (Entry<String,String> property : this.getProperties(tableName)) {
@@ -188,7 +194,8 @@ public abstract class TableOperationsHelper implements TableOperations {
       EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(tableName.matches(VALID_NAME_REGEX),
-        "Table name must only contain word characters (letters, digits, and underscores)");
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     Map<String,String> iteratorProps = new HashMap<>();
     for (Entry<String,String> entry : this.getProperties(tableName))
@@ -200,7 +207,8 @@ public abstract class TableOperationsHelper implements TableOperations {
   public int addConstraint(String tableName, String constraintClassName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     checkArgument(tableName.matches(VALID_NAME_REGEX),
-        "Table name must only contain word characters (letters, digits, and underscores)");
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     TreeSet<Integer> constraintNumbers = new TreeSet<>();
     TreeMap<String,Integer> constraintClasses = new TreeMap<>();
@@ -232,7 +240,8 @@ public abstract class TableOperationsHelper implements TableOperations {
   public void removeConstraint(String tableName, int number)
       throws AccumuloException, AccumuloSecurityException {
     checkArgument(tableName.matches(VALID_NAME_REGEX),
-        "Table name must only contain word characters (letters, digits, and underscores)");
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     this.removeProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX.toString() + number);
   }
@@ -241,7 +250,8 @@ public abstract class TableOperationsHelper implements TableOperations {
   public Map<String,Integer> listConstraints(String tableName)
       throws AccumuloException, TableNotFoundException {
     checkArgument(tableName.matches(VALID_NAME_REGEX),
-        "Table name must only contain word characters (letters, digits, and underscores)");
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     Map<String,Integer> constraints = new TreeMap<>();
     for (Entry<String,String> property : this.getProperties(tableName)) {

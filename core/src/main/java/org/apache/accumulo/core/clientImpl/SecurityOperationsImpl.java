@@ -205,7 +205,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(namespace != null, "namespace is null");
     checkArgument(permission != null, "permission is null");
     checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
-        "Namespace name must only contain word characters (letters, digits, and underscores)"
+        "namespace must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
     return execute(client -> client.hasNamespacePermission(TraceUtil.traceInfo(),
@@ -247,7 +247,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(namespace != null, "namespace is null");
     checkArgument(permission != null, "permission is null");
     checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
-        "Namespace name must only contain word characters (letters, digits, and underscores)"
+        "namespace must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
     executeVoid(client -> client.grantNamespacePermission(TraceUtil.traceInfo(), context.rpcCreds(),
@@ -289,7 +289,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     checkArgument(namespace != null, "namespace is null");
     checkArgument(permission != null, "permission is null");
     checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
-        "Namespace name must only contain word characters (letters, digits, and underscores)"
+        "namespace must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
     executeVoid(client -> client.revokeNamespacePermission(TraceUtil.traceInfo(),

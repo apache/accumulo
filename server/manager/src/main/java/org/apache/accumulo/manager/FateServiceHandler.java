@@ -19,8 +19,6 @@
 package org.apache.accumulo.manager;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.Constants.MAX_NAMESPACE_LEN;
-import static org.apache.accumulo.core.Constants.MAX_TABLE_NAME_LEN;
 import static org.apache.accumulo.manager.util.TableValidators.CAN_CLONE;
 import static org.apache.accumulo.manager.util.TableValidators.NOT_METADATA;
 import static org.apache.accumulo.manager.util.TableValidators.NOT_ROOT_ID;
@@ -93,6 +91,8 @@ class FateServiceHandler implements FateService.Iface {
 
   protected final Manager manager;
   protected static final Logger log = Manager.log;
+  protected static final int MAX_TABLE_NAME_LEN = 1024;
+  protected static final int MAX_NAMESPACE_LEN = 1024;
 
   public FateServiceHandler(Manager manager) {
     this.manager = manager;
