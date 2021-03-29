@@ -484,7 +484,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       // look for either the old property or the new one, but
       // if the new one is set, stop looking and let it take precedence
       if (entry.getKey().equals(Property.TABLE_CLASSLOADER_CONTEXT.getKey())
-          && entry.getValue() != null && !entry.getKey().isEmpty()) {
+          && entry.getValue() != null && !entry.getValue().isEmpty()) {
         return entry.getValue();
       }
       @SuppressWarnings("removal")

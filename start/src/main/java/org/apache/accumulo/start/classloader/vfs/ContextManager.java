@@ -189,13 +189,12 @@ class ContextManager {
     if (loader == null) {
       // oops, context was closed by another thread, try again
       ClassLoader loader2 = getClassLoader(contextName);
-      log.debug("Returning new classloader {} for context {}", loader2.getClass().getSimpleName(),
+      log.debug("Returning new classloader {} for context {}", loader2.getClass().getName(),
           contextName);
       return loader2;
     }
 
-    log.debug("Returning classloader {} for context {}", loader.getClass().getSimpleName(),
-        contextName);
+    log.debug("Returning classloader {} for context {}", loader.getClass().getName(), contextName);
     return loader;
 
   }
