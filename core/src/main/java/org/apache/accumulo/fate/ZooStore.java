@@ -30,6 +30,7 @@ import java.io.Serializable;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,6 +45,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -473,6 +475,18 @@ public class ZooStore<T> implements TStore<T> {
         l.add(parseTid(txid));
       }
       return l;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override
+  public String getTimestamp(long tid) {
+    verifyReserved(tid);
+
+    try {
+      Stat stat = zk.getZooKeeper().exists(getTXPath(tid), false);
+      return new Date(stat.getCtime()).toString();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

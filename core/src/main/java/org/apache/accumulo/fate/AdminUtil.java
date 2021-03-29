@@ -80,9 +80,10 @@ public class AdminUtil<T> {
     private final List<String> hlocks;
     private final List<String> wlocks;
     private final String top;
+    private final String timestamp;
 
     private TransactionStatus(Long tid, TStatus status, String debug, List<String> hlocks,
-        List<String> wlocks, String top) {
+        List<String> wlocks, String top, String timestamp) {
 
       this.txid = tid;
       this.status = status;
@@ -90,6 +91,7 @@ public class AdminUtil<T> {
       this.hlocks = Collections.unmodifiableList(hlocks);
       this.wlocks = Collections.unmodifiableList(wlocks);
       this.top = top;
+      this.timestamp = timestamp;
 
     }
 
@@ -131,6 +133,13 @@ public class AdminUtil<T> {
      */
     public String getTop() {
       return top;
+    }
+
+    /**
+     * @return The timestamp of when the operation was created.
+     */
+    public String getTimestamp() {
+      return timestamp;
     }
   }
 
@@ -373,13 +382,15 @@ public class AdminUtil<T> {
 
       TStatus status = zs.getStatus(tid);
 
+      String timestamp = zs.getTimestamp(tid);
+
       zs.unreserve(tid, 0);
 
       if ((filterTxid != null && !filterTxid.contains(tid))
           || (filterStatus != null && !filterStatus.contains(status)))
         continue;
 
-      statuses.add(new TransactionStatus(tid, status, debug, hlocks, wlocks, top));
+      statuses.add(new TransactionStatus(tid, status, debug, hlocks, wlocks, top, timestamp));
     }
 
     return new FateStatus(statuses, heldLocks, waitingLocks);
@@ -398,9 +409,10 @@ public class AdminUtil<T> {
     FateStatus fateStatus = getStatus(zs, zk, lockPath, filterTxid, filterStatus);
 
     for (TransactionStatus txStatus : fateStatus.getTransactions()) {
-      fmt.format("txid: %s  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %s%n",
+      fmt.format(
+          "txid: %s  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %-15s created: %s%n",
           txStatus.getTxid(), txStatus.getStatus(), txStatus.getDebug(), txStatus.getHeldLocks(),
-          txStatus.getWaitingLocks(), txStatus.getTop());
+          txStatus.getWaitingLocks(), txStatus.getTop(), txStatus.getTimestamp());
     }
     fmt.format(" %s transactions", fateStatus.getTransactions().size());
 

@@ -116,4 +116,9 @@ public class ReadOnlyStore<T> implements ReadOnlyTStore<T> {
   public List<ReadOnlyRepo<T>> getStack(long tid) {
     return store.getStack(tid);
   }
+
+  @Override
+  public String getTimestamp(long tid) {
+    return store.getTimestamp(tid);
+  }
 }

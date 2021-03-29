@@ -139,4 +139,12 @@ public interface ReadOnlyTStore<T> {
    */
   List<Long> list();
 
+  /**
+   * Retrieve timestamp of a transaction.
+   *
+   * @param tid
+   *          Transaction id, previously reserved.
+   * @return timestamp of transaction.
+   */
+  String getTimestamp(long tid);
 }
