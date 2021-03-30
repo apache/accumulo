@@ -22,8 +22,6 @@ import java.lang.annotation.Annotation;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -1416,28 +1414,6 @@ public enum Property {
       Class<T> base, T defaultInstance) {
     String clazzName = conf.get(property);
     return ConfigurationTypeHelper.getClassInstance(null, clazzName, base, defaultInstance);
-  }
-
-  /**
-   * Collects together properties from the given configuration pertaining to compaction strategies.
-   * The relevant properties all begin with the prefix in {@link #TABLE_COMPACTION_STRATEGY_PREFIX}.
-   * In the returned map, the prefix is removed from each property's key.
-   *
-   * @param tableConf
-   *          configuration
-   * @return map of compaction strategy property keys and values, with the detection prefix removed
-   *         from each key
-   */
-  public static Map<String,String> getCompactionStrategyOptions(AccumuloConfiguration tableConf) {
-    Map<String,String> longNames =
-        tableConf.getAllPropertiesWithPrefix(Property.TABLE_COMPACTION_STRATEGY_PREFIX);
-    Map<String,String> result = new HashMap<>();
-    for (Entry<String,String> entry : longNames.entrySet()) {
-      result.put(
-          entry.getKey().substring(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey().length()),
-          entry.getValue());
-    }
-    return result;
   }
 
   static {
