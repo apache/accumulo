@@ -49,12 +49,10 @@ public class IntersectingIteratorTest {
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
   private static IteratorEnvironment env = new DefaultIteratorEnvironment();
 
-  TreeMap<Key,Value> map;
   HashSet<Text> docs = new HashSet<>();
   Text[] columnFamilies;
   Text[] negatedColumns;
   Text[] otherColumnFamilies;
-  Text[] searchFamilies;
   boolean[] notFlags;
 
   int docid = 0;

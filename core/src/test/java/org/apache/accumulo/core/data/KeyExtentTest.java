@@ -30,11 +30,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
 import org.junit.Test;
 
 public class KeyExtentTest {
@@ -44,12 +42,6 @@ public class KeyExtentTest {
   }
 
   KeyExtent ke;
-  TreeSet<KeyExtent> set0;
-
-  @Before
-  public void setup() {
-    set0 = new TreeSet<>();
-  }
 
   @Test
   public void testDecodingMetadataRow() {

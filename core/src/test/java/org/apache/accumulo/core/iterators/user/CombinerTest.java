@@ -776,11 +776,6 @@ public class CombinerTest {
     public List<Long> decode(byte[] b) {
       return new ArrayList<>();
     }
-
-    public List<Long> decode() {
-      return new ArrayList<>();
-    }
-
   }
 
   @Test
