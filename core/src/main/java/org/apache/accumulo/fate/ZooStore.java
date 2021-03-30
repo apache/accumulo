@@ -488,8 +488,8 @@ public class ZooStore<T> implements TStore<T> {
 
     try {
       Stat stat = zk.getZooKeeper().exists(getTXPath(tid), false);
-      DateTimeFormatter dtf = DateTimeFormatter.ofPattern("E yyyy MMM dd z hh:mm:ss");
-      return new Date(stat.getCtime()).toInstant().atZone(ZoneOffset.UTC).format(dtf);
+      return new Date(stat.getCtime()).toInstant().atZone(ZoneOffset.UTC)
+          .format(DateTimeFormatter.ISO_DATE_TIME);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
