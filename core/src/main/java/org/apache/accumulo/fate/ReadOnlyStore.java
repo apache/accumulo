@@ -118,7 +118,7 @@ public class ReadOnlyStore<T> implements ReadOnlyTStore<T> {
   }
 
   @Override
-  public String getTimestamp(long tid) {
-    return store.getTimestamp(tid);
+  public String timeTopCreated(long tid) {
+    return store.timeTopCreated(tid);
   }
 }

@@ -481,7 +481,7 @@ public class ZooStore<T> implements TStore<T> {
   }
 
   @Override
-  public String getTimestamp(long tid) {
+  public String timeTopCreated(long tid) {
     verifyReserved(tid);
 
     try {

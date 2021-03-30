@@ -146,5 +146,5 @@ public interface ReadOnlyTStore<T> {
    *          Transaction id, previously reserved.
    * @return timestamp of transaction.
    */
-  String getTimestamp(long tid);
+  String timeTopCreated(long tid);
 }
