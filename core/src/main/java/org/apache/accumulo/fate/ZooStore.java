@@ -491,7 +491,7 @@ public class ZooStore<T> implements TStore<T> {
       return new Date(stat.getCtime()).toInstant().atZone(ZoneOffset.UTC)
           .format(DateTimeFormatter.ISO_DATE_TIME);
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      return "ERROR";
     }
   }
 
