@@ -52,7 +52,6 @@ public class IndexedDocIteratorTest {
 
   private static IteratorEnvironment env = new DefaultIteratorEnvironment();
 
-  TreeMap<Key,Value> map;
   Text[] columnFamilies;
   Text[] otherColumnFamilies;
 

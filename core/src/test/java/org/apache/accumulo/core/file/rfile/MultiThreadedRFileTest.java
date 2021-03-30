@@ -175,10 +175,6 @@ public class MultiThreadedRFileTest {
       }
     }
 
-    public void openWriter() throws IOException {
-      openWriter(true);
-    }
-
     public void closeWriter() throws IOException {
       if (deepCopy) {
         throw new IOException("Cannot open writer on a deepcopy");
@@ -205,10 +201,6 @@ public class MultiThreadedRFileTest {
 
     public void closeReader() throws IOException {
       reader.close();
-    }
-
-    public void seek(Key nk) throws IOException {
-      iter.seek(new Range(nk, null), EMPTY_COL_FAMS, false);
     }
   }
 

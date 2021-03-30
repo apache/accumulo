@@ -53,11 +53,13 @@ public class MutationTest {
    * Test constructing a Mutation using a byte buffer. The byte array returned as the row is
    * converted to a hexadecimal string for easy comparision.
    */
+  @Test
   public void testByteConstructor() {
     Mutation m = new Mutation("0123456789".getBytes());
     assertEquals("30313233343536373839", toHexString(m.getRow()));
   }
 
+  @Test
   public void testLimitedByteConstructor() {
     Mutation m = new Mutation("0123456789".getBytes(), 2, 5);
     assertEquals("3233343536", toHexString(m.getRow()));
@@ -500,6 +502,7 @@ public class MutationTest {
     verifyColumnUpdate(updates.get(7), "cf8", "cq8", "cv8", 8L, true, true, "");
   }
 
+  @Test
   public void testByteArrays() {
     Mutation m = new Mutation("r1".getBytes());
 

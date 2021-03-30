@@ -54,31 +54,20 @@ import org.apache.thrift.transport.TTransport;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.primitives.Longs;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class TracerTest {
   static class SpanStruct {
-    public SpanStruct(long traceId, long spanId, List<Long> parentIds, long start, long stop,
-        String description, Map<String,String> data) {
+    public SpanStruct(long start, long stop, String description) {
       super();
-      this.traceId = traceId;
-      this.spanId = spanId;
-      this.parentIds = parentIds;
       this.start = start;
       this.stop = stop;
       this.description = description;
-      this.data = data;
     }
 
-    public long traceId;
-    public long spanId;
-    public List<Long> parentIds;
     public long start;
     public long stop;
     public String description;
-    public Map<String,String> data;
 
     public long millis() {
       return stop - start;
@@ -93,8 +82,8 @@ public class TracerTest {
     @Override
     public void receiveSpan(Span s) {
       long traceId = s.getTraceId();
-      SpanStruct span = new SpanStruct(traceId, s.getSpanId(), Longs.asList(s.getParents()),
-          s.getStartTimeMillis(), s.getStopTimeMillis(), s.getDescription(), s.getKVAnnotations());
+      SpanStruct span =
+          new SpanStruct(s.getStartTimeMillis(), s.getStopTimeMillis(), s.getDescription());
       if (!traces.containsKey(traceId))
         traces.put(traceId, new ArrayList<>());
       traces.get(traceId).add(span);

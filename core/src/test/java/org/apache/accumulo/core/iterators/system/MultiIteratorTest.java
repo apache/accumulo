@@ -120,15 +120,6 @@ public class MultiIteratorTest {
     verify(start, -1, seekKey, null, null, true, false, maps);
   }
 
-  void verify(int start, int end, Key seekKey, Text endRow, Text prevEndRow,
-      List<TreeMap<Key,Value>> maps) throws IOException {
-    if (seekKey != null) {
-      verify(start, end, seekKey, endRow, prevEndRow, false, false, maps);
-    }
-
-    verify(start, end, seekKey, endRow, prevEndRow, true, false, maps);
-  }
-
   @Test
   public void test1() throws IOException {
     // TEST non overlapping inputs

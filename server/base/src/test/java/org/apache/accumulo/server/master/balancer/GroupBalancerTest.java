@@ -185,10 +185,6 @@ public class GroupBalancerTest {
         assertTrue(tserverExtra <= maxExtraGroups);
       }
     }
-
-    Map<KeyExtent,TServerInstance> getLocations() {
-      return tabletLocs;
-    }
   }
 
   @Test

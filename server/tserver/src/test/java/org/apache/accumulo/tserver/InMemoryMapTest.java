@@ -112,14 +112,6 @@ public class InMemoryMapTest {
   public TemporaryFolder tempFolder =
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
-  public void mutate(InMemoryMap imm, String row, String column, long ts) {
-    Mutation m = new Mutation(new Text(row));
-    String[] sa = column.split(":");
-    m.putDelete(new Text(sa[0]), new Text(sa[1]), ts);
-
-    imm.mutate(Collections.singletonList(m), 1);
-  }
-
   public void mutate(InMemoryMap imm, String row, String column, long ts, String value) {
     Mutation m = new Mutation(new Text(row));
     String[] sa = column.split(":");
@@ -495,14 +487,6 @@ public class InMemoryMapTest {
     skvi1.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
     testAndCallNext(skvi1, "r1", "foo:cq", 3, "v2");
     testAndCallNext(skvi1, "r1", "foo:cq", 3, "v1");
-  }
-
-  static long sum(long[] counts) {
-    long result = 0;
-    for (long count : counts) {
-      result += count;
-    }
-    return result;
   }
 
   @Test
