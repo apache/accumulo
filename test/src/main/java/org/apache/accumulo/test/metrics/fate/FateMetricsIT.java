@@ -18,8 +18,7 @@
  */
 package org.apache.accumulo.test.metrics.fate;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -47,6 +46,9 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 
 /**
  * Test FATE metrics using stubs and in-memory version of supporting infrastructure - a test
@@ -118,30 +120,49 @@ public class FateMetricsIT {
 
     FateMetrics metrics = new FateMetrics(context, 10);
     metrics.overrideRefresh(0);
+    /*
+     * InMemTestCollector collector = new InMemTestCollector(); metrics.getMetrics(collector, true);
+     */
+    MeterRegistry registry = metrics.getRegistry1();
 
-    InMemTestCollector collector = new InMemTestCollector();
+    // might be better to make a helper function somewhere such as '.containsMeter(String name)'
+    // instead of doing it like this.
+    // MetricsRegistry.find() return null if non-existent where .get() errors out
 
-    metrics.getMetrics(collector, true);
-
-    log.debug("Collector: {}", collector);
-
-    assertTrue(collector.contains("currentFateOps"));
-    assertTrue(collector.contains("totalFateOps"));
-    assertTrue(collector.contains("totalZkConnErrors"));
+    /*
+     * assertTrue(collector.contains("currentFateOps"));
+     * assertTrue(collector.contains("totalFateOps"));
+     * assertTrue(collector.contains("totalZkConnErrors"));
+     */
+    assertNotNull(registry.find("current.fate.ops").gauge());
+    assertNotNull(registry.find("total.fate.ops").gauge());
+    assertNotNull(registry.find("total.zk.conn.errors").gauge());
 
     // Transaction STATES - defined by TStatus.
-    assertTrue(collector.contains("FateTxState_NEW"));
-    assertTrue(collector.contains("FateTxState_IN_PROGRESS"));
-    assertTrue(collector.contains("FateTxState_FAILED_IN_PROGRESS"));
-    assertTrue(collector.contains("FateTxState_FAILED"));
-    assertTrue(collector.contains("FateTxState_SUCCESSFUL"));
-    assertTrue(collector.contains("FateTxState_UNKNOWN"));
+    /*
+     * assertTrue(collector.contains("FateTxState_NEW"));
+     * assertTrue(collector.contains("FateTxState_IN_PROGRESS"));
+     * assertTrue(collector.contains("FateTxState_FAILED_IN_PROGRESS"));
+     * assertTrue(collector.contains("FateTxState_FAILED"));
+     * assertTrue(collector.contains("FateTxState_SUCCESSFUL"));
+     * assertTrue(collector.contains("FateTxState_UNKNOWN"));
+     */
+    assertNotNull(registry.find("fate.tx.state.NEW").gauge());
+    assertNotNull(registry.find("fate.tx.state.IN_PROGRESS").gauge());
+    assertNotNull(registry.find("fate.tx.state.FAILED_IN_PROGRESS").gauge());
+    assertNotNull(registry.find("fate.tx.state.FAILED").gauge());
+    assertNotNull(registry.find("fate.tx.state.SUCCESSFUL").gauge());
+    assertNotNull(registry.find("fate.tx.state.UNKNOWN").gauge());
 
     // metrics derived from operation types when see - none should have been seen.
-    assertFalse(collector.contains("FateTxOpType_FakeOp"));
-
-    assertEquals(0L, collector.getValue("FateTxState_IN_PROGRESS"));
-    assertEquals(0L, collector.getValue("currentFateOps"));
+    // assertFalse(collector.contains("FateTxOpType_FakeOp"));
+    assertNull(registry.find("fate.tx.op.type.FakeOp").gauge());
+    /*
+     * assertEquals(0L, collector.getValue("FateTxState_IN_PROGRESS")); assertEquals(0L,
+     * collector.getValue("currentFateOps"));
+     */
+    assertTrue(0L == registry.get("fate.tx.state.IN_PROGRESS").gauge().value());
+    assertTrue(0L == registry.get("current.fate.ops").gauge().value());
 
     EasyMock.verify(manager);
 
@@ -161,22 +182,52 @@ public class FateMetricsIT {
     FateMetrics metrics = new FateMetrics(context, 10);
     metrics.overrideRefresh(0);
 
-    InMemTestCollector collector = new InMemTestCollector();
+    // InMemTestCollector collector = new InMemTestCollector();
+    MeterRegistry registry = metrics.getRegistry1();
 
-    metrics.getMetrics(collector, true);
+    // metrics.getMetrics(collector, true);
 
-    log.debug("Collector: {}", collector);
+    // log.debug("Collector: {}", collector);
+    log.debug("Registry: {}", registry.toString());
+    /*
+     * assertTrue(collector.contains("FateTxState_NEW")); assertEquals(1L,
+     * collector.getValue("FateTxState_NEW")); assertEquals(1L,
+     * collector.getValue("currentFateOps"));
+     */
+    Gauge fateTxStateNewGauge = registry.find("fate.tx.state.NEW").gauge();
+    assertNotNull(fateTxStateNewGauge);
+    assertTrue(1L == fateTxStateNewGauge.value());
 
-    assertTrue(collector.contains("FateTxState_NEW"));
-    assertEquals(1L, collector.getValue("FateTxState_NEW"));
-    assertEquals(1L, collector.getValue("currentFateOps"));
+    Gauge currentFateOpsGauge = registry.find("fate.tx.state.NEW").gauge();
+    assertNotNull(currentFateOpsGauge);
+    assertTrue(1L == currentFateOpsGauge.value());
 
-    assertTrue(collector.contains("FateTxState_IN_PROGRESS"));
-    assertEquals(0L, collector.getValue("FateTxState_IN_PROGRESS"));
+    /*
+     * assertTrue(collector.contains("FateTxState_IN_PROGRESS")); assertEquals(0L,
+     * collector.getValue("FateTxState_IN_PROGRESS"));
+     */
+    Gauge fateStateInProgressGauge = registry.find("fate.tx.state.IN_PROGRESS").gauge();
+    assertNotNull(fateStateInProgressGauge);
+    assertTrue(0L == fateStateInProgressGauge.value());
 
     EasyMock.verify(manager);
-
   }
+  /*
+   * @Test public void testingChamber() { //Set<MeterRegistry> registries1 =null; FateMetrics fate =
+   * new FateMetrics(context, 10); Set<MeterRegistry> registries =
+   * Metrics.globalRegistry.getRegistries();
+   * 
+   * for(MeterRegistry m : registries) { Gauge g = m.find("current.fate.ops").gauge();
+   * log.debug("GAUGE: {}", g.getId()); log.debug("Registry: {}", m.toString()); for(Meter n :
+   * m.getMeters()) { Meter.Id temp = n.getId();
+   * log.debug("Name: {} Tags: {} Description: {} ID: {}",temp.getName(),
+   * temp.getTags(),temp.getDescription(),temp); for(Measurement o : n.measure()) {
+   * log.debug(o.toString()); } } } }
+   * 
+   * @Test public void testingChamber2() { FateMetrics fate = new FateMetrics(context, 10);
+   * MeterRegistry registry = fate.getRegistry1(); log.debug("Cirrent: {}",
+   * registry.get("current.fate.ops").gauge().getId().getName()); }
+   */
 
   /**
    * Seeds the zoo store with a "fake" repo operation with a step, and sets the prop_debug field.
@@ -197,37 +248,26 @@ public class FateMetricsIT {
     FateMetrics metrics = new FateMetrics(context, 10);
     metrics.overrideRefresh(0);
 
-    InMemTestCollector collector = new InMemTestCollector();
+    // InMemTestCollector collector = new InMemTestCollector();
+    // metrics.getMetrics(collector, true);
+    // log.debug("Collector: {}", collector);
 
-    metrics.getMetrics(collector, true);
+    MeterRegistry registry = metrics.getRegistry1();
+    /*
+     * assertTrue(collector.contains("FateTxState_IN_PROGRESS")); assertEquals(1L,
+     * collector.getValue("FateTxState_IN_PROGRESS")); assertEquals(1L,
+     * collector.getValue("FateTxOpType_FakeOp"));
+     */
 
-    log.debug("Collector: {}", collector);
+    Gauge inProgressGauge = registry.get("fate.tx.state.IN_PROGRESS").gauge();
+    assertNotNull(inProgressGauge);
+    assertTrue(1L == inProgressGauge.value());
 
-    assertTrue(collector.contains("FateTxState_IN_PROGRESS"));
-    assertEquals(1L, collector.getValue("FateTxState_IN_PROGRESS"));
-    assertEquals(1L, collector.getValue("FateTxOpType_FakeOp"));
+    Gauge fakeOpGauge = registry.get("fate.tx.op.type.FAKEOP").gauge();
+    assertNotNull(fakeOpGauge);
+    assertTrue(1L == fakeOpGauge.value());
 
     EasyMock.verify(manager);
-  }
-
-  private long seedTransaction() throws Exception {
-
-    long txId = zooStore.create();
-    zooStore.reserve(txId);
-
-    zooStore.setStatus(txId, ReadOnlyTStore.TStatus.IN_PROGRESS);
-
-    Repo<Manager> repo = new FakeOp();
-    zooStore.push(txId, repo);
-
-    Repo<Manager> step = new FakeOpStep1();
-    zooStore.push(txId, step);
-
-    zooStore.setProperty(txId, "debug", repo.getDescription());
-
-    zooStore.unreserve(txId, 50);
-
-    return txId;
   }
 
   /**
@@ -248,14 +288,40 @@ public class FateMetricsIT {
     FateMetrics metrics = new FateMetrics(context, 10);
     metrics.overrideRefresh(0);
 
-    InMemTestCollector collector = new InMemTestCollector();
+    // InMemTestCollector collector = new InMemTestCollector();
+    // metrics.getMetrics(collector, true);
 
-    metrics.getMetrics(collector, true);
+    MeterRegistry registry = metrics.getRegistry1();
+    /*
+     * assertEquals(0L, collector.getValue("FateTxState_IN_PROGRESS")); assertEquals(1L,
+     * collector.getValue("FateTxState_SUCCESSFUL"));
+     * assertNull(collector.getValue("FateTxOpType_FakeOp"));
+     */
 
-    assertEquals(0L, collector.getValue("FateTxState_IN_PROGRESS"));
-    assertEquals(1L, collector.getValue("FateTxState_SUCCESSFUL"));
-    assertNull(collector.getValue("FateTxOpType_FakeOp"));
+    assertTrue(0L == registry.find("fate.tx.state.IN_PROGRESS").gauge().value());
+    assertTrue(1L == registry.find("fate.tx.state.SUCCESSFUL").gauge().value());
+    assertNull(registry.find("fate.tx.op.type.FAKEOP").gauge());
 
+  }
+
+  private long seedTransaction() throws Exception {
+
+    long txId = zooStore.create();
+    zooStore.reserve(txId);
+
+    zooStore.setStatus(txId, ReadOnlyTStore.TStatus.IN_PROGRESS);
+
+    Repo<Manager> repo = new FakeOp();
+    zooStore.push(txId, repo);
+
+    Repo<Manager> step = new FakeOpStep1();
+    zooStore.push(txId, step);
+
+    zooStore.setProperty(txId, "debug", repo.getDescription());
+
+    zooStore.unreserve(txId, 50);
+
+    return txId;
   }
 
   String prettyStat(final Stat stat) {
