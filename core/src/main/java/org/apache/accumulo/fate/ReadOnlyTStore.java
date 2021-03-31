@@ -140,11 +140,11 @@ public interface ReadOnlyTStore<T> {
   List<Long> list();
 
   /**
-   * Retrieve timestamp of a transaction.
+   * Retrieve the creation time of a FaTE transaction.
    *
    * @param tid
    *          Transaction id, previously reserved.
-   * @return timestamp of transaction.
+   * @return creation time of transaction.
    */
-  String timeTopCreated(long tid);
+  String timeCreated(long tid);
 }

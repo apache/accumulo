@@ -86,8 +86,8 @@ public class FateLogger {
       }
 
       @Override
-      public String timeTopCreated(long tid) {
-        return store.timeTopCreated(tid);
+      public String timeCreated(long tid) {
+        return store.timeCreated(tid);
       }
 
       @Override
