@@ -146,5 +146,5 @@ public interface ReadOnlyTStore<T> {
    *          Transaction id, previously reserved.
    * @return creation time of transaction.
    */
-  String timeCreated(long tid);
+  long timeCreated(long tid);
 }

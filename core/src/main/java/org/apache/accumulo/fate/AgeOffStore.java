@@ -231,7 +231,7 @@ public class AgeOffStore<T> implements TStore<T> {
   }
 
   @Override
-  public String timeCreated(long tid) {
+  public long timeCreated(long tid) {
     return store.timeCreated(tid);
   }
 

@@ -20,8 +20,11 @@ package org.apache.accumulo.fate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.Formatter;
 import java.util.HashMap;
@@ -80,10 +83,10 @@ public class AdminUtil<T> {
     private final List<String> hlocks;
     private final List<String> wlocks;
     private final String top;
-    private final String timeCreated;
+    private final long timeCreated;
 
     private TransactionStatus(Long tid, TStatus status, String debug, List<String> hlocks,
-        List<String> wlocks, String top, String timeCreated) {
+        List<String> wlocks, String top, Long timeCreated) {
 
       this.txid = tid;
       this.status = status;
@@ -136,9 +139,17 @@ public class AdminUtil<T> {
     }
 
     /**
-     * @return The timestamp of when the operation was created.
+     * @return The timestamp of when the operation was created in ISO format wiht UTC timezone.
      */
-    public String getTimeCreated() {
+    public String getTimeCreatedFormatted() {
+      return timeCreated > 0 ? new Date(timeCreated).toInstant().atZone(ZoneOffset.UTC)
+          .format(DateTimeFormatter.ISO_DATE_TIME) : "ERROR";
+    }
+
+    /**
+     * @return The unformatted form of the timestamp.
+     */
+    public long getTimeCreated() {
       return timeCreated;
     }
   }
@@ -382,7 +393,7 @@ public class AdminUtil<T> {
 
       TStatus status = zs.getStatus(tid);
 
-      String timeCreated = zs.timeCreated(tid);
+      long timeCreated = zs.timeCreated(tid);
 
       zs.unreserve(tid, 0);
 
@@ -412,7 +423,7 @@ public class AdminUtil<T> {
       fmt.format(
           "txid: %s  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %-15s created: %s%n",
           txStatus.getTxid(), txStatus.getStatus(), txStatus.getDebug(), txStatus.getHeldLocks(),
-          txStatus.getWaitingLocks(), txStatus.getTop(), txStatus.getTimeCreated());
+          txStatus.getWaitingLocks(), txStatus.getTop(), txStatus.getTimeCreatedFormatted());
     }
     fmt.format(" %s transactions", fateStatus.getTransactions().size());
 

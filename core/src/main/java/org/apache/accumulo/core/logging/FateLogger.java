@@ -86,7 +86,7 @@ public class FateLogger {
       }
 
       @Override
-      public String timeCreated(long tid) {
+      public long timeCreated(long tid) {
         return store.timeCreated(tid);
       }
 

@@ -28,11 +28,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.security.SecureRandom;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -483,15 +480,14 @@ public class ZooStore<T> implements TStore<T> {
   }
 
   @Override
-  public String timeCreated(long tid) {
+  public long timeCreated(long tid) {
     verifyReserved(tid);
 
     try {
       Stat stat = zk.getZooKeeper().exists(getTXPath(tid), false);
-      return new Date(stat.getCtime()).toInstant().atZone(ZoneOffset.UTC)
-          .format(DateTimeFormatter.ISO_DATE_TIME);
+      return stat.getCtime();
     } catch (Exception e) {
-      return "ERROR";
+      return 0;
     }
   }
 

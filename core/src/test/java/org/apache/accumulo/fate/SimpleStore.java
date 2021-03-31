@@ -126,7 +126,7 @@ public class SimpleStore<T> implements TStore<T> {
   }
 
   @Override
-  public String timeCreated(long tid) {
+  public long timeCreated(long tid) {
     throw new UnsupportedOperationException();
   }
 
