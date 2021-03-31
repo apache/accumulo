@@ -231,6 +231,11 @@ public class AgeOffStore<T> implements TStore<T> {
   }
 
   @Override
+  public long timeCreated(long tid) {
+    return store.timeCreated(tid);
+  }
+
+  @Override
   public List<ReadOnlyRepo<T>> getStack(long tid) {
     return store.getStack(tid);
   }

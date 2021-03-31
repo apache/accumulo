@@ -44,6 +44,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -475,6 +476,18 @@ public class ZooStore<T> implements TStore<T> {
       return l;
     } catch (Exception e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  @Override
+  public long timeCreated(long tid) {
+    verifyReserved(tid);
+
+    try {
+      Stat stat = zk.getZooKeeper().exists(getTXPath(tid), false);
+      return stat.getCtime();
+    } catch (Exception e) {
+      return 0;
     }
   }
 

@@ -126,6 +126,11 @@ public class SimpleStore<T> implements TStore<T> {
   }
 
   @Override
+  public long timeCreated(long tid) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public List<ReadOnlyRepo<T>> getStack(long tid) {
     throw new UnsupportedOperationException();
   }

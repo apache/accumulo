@@ -86,6 +86,11 @@ public class FateLogger {
       }
 
       @Override
+      public long timeCreated(long tid) {
+        return store.timeCreated(tid);
+      }
+
+      @Override
       public long create() {
         long tid = store.create();
         if (storeLog.isTraceEnabled())

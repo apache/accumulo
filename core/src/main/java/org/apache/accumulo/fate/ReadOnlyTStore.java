@@ -139,4 +139,12 @@ public interface ReadOnlyTStore<T> {
    */
   List<Long> list();
 
+  /**
+   * Retrieve the creation time of a FaTE transaction.
+   *
+   * @param tid
+   *          Transaction id, previously reserved.
+   * @return creation time of transaction.
+   */
+  long timeCreated(long tid);
 }
