@@ -123,6 +123,7 @@ public class FateMetricsIT {
     /*
      * InMemTestCollector collector = new InMemTestCollector(); metrics.getMetrics(collector, true);
      */
+    metrics.prepareMetrics();
     MeterRegistry registry = metrics.getRegistry1();
 
     // might be better to make a helper function somewhere such as '.containsMeter(String name)'
@@ -183,6 +184,7 @@ public class FateMetricsIT {
     metrics.overrideRefresh(0);
 
     // InMemTestCollector collector = new InMemTestCollector();
+    metrics.prepareMetrics();
     MeterRegistry registry = metrics.getRegistry1();
 
     // metrics.getMetrics(collector, true);
@@ -251,19 +253,21 @@ public class FateMetricsIT {
     // InMemTestCollector collector = new InMemTestCollector();
     // metrics.getMetrics(collector, true);
     // log.debug("Collector: {}", collector);
+    metrics.prepareMetrics();
 
     MeterRegistry registry = metrics.getRegistry1();
+
     /*
      * assertTrue(collector.contains("FateTxState_IN_PROGRESS")); assertEquals(1L,
      * collector.getValue("FateTxState_IN_PROGRESS")); assertEquals(1L,
      * collector.getValue("FateTxOpType_FakeOp"));
      */
 
-    Gauge inProgressGauge = registry.get("fate.tx.state.IN_PROGRESS").gauge();
+    Gauge inProgressGauge = registry.find("fate.tx.state.IN_PROGRESS").gauge();
     assertNotNull(inProgressGauge);
     assertTrue(1L == inProgressGauge.value());
 
-    Gauge fakeOpGauge = registry.get("fate.tx.op.type.FAKEOP").gauge();
+    Gauge fakeOpGauge = registry.find("fate.tx.op.type.FakeOp").gauge();
     assertNotNull(fakeOpGauge);
     assertTrue(1L == fakeOpGauge.value());
 
@@ -290,6 +294,7 @@ public class FateMetricsIT {
 
     // InMemTestCollector collector = new InMemTestCollector();
     // metrics.getMetrics(collector, true);
+    metrics.prepareMetrics();
 
     MeterRegistry registry = metrics.getRegistry1();
     /*
@@ -297,9 +302,14 @@ public class FateMetricsIT {
      * collector.getValue("FateTxState_SUCCESSFUL"));
      * assertNull(collector.getValue("FateTxOpType_FakeOp"));
      */
+    Gauge inProgressGauge = registry.find("fate.tx.state.IN_PROGRESS").gauge();
+    assertNotNull(inProgressGauge);
+    assertTrue(0L == inProgressGauge.value());
 
-    assertTrue(0L == registry.find("fate.tx.state.IN_PROGRESS").gauge().value());
-    assertTrue(1L == registry.find("fate.tx.state.SUCCESSFUL").gauge().value());
+    Gauge successfulGauge = registry.find("fate.tx.state.IN_PROGRESS").gauge();
+    assertNotNull(successfulGauge);
+    assertTrue(1L == successfulGauge.value());
+
     assertNull(registry.find("fate.tx.op.type.FAKEOP").gauge());
 
   }

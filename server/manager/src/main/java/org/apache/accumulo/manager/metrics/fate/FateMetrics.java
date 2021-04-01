@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.metrics.fate;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -65,7 +66,7 @@ public class FateMetrics extends ManagerMetrics {
   // private final Map<String,MutableGaugeLong> fateOpCounts = new TreeMap<>();
 
   private final Map<String,Gauge> fateTypeCounts1 = new TreeMap<>();
-  private final Map<String,Gauge> fateOpCounts1 = new TreeMap<>();
+  private final Map<String,AtomicLong> fateOpCounts1 = new TreeMap<>();
 
   /*
    * lock should be used to guard read and write access to metricValues and the lastUpdate
@@ -132,6 +133,12 @@ public class FateMetrics extends ManagerMetrics {
 
     // creating the gauges for transaction state counters here since we dont need to set them i.e.
     // they auto-update based on the defined value function, we dont need to manually set them
+    /*
+     * for (ReadOnlyTStore.TStatus t : ReadOnlyTStore.TStatus.values()) { log.debug("Fate Type: {}",
+     * t.name().toUpperCase()); AtomicLong l = registry1.gauge(FATE_TX_STATE_METRIC_PREFIX1 +
+     * t.name().toUpperCase(), new AtomicLong(0)); fateTypeCounts1.put(t.name(), l); }
+     * log.debug("HERE: {}",fateTypeCounts1);
+     */
     for (String key : metricValues.getTxStateCounters().keySet()) {
       log.debug("TX Key: {}", key);
       Gauge g = Gauge
@@ -143,19 +150,20 @@ public class FateMetrics extends ManagerMetrics {
       // may be able to replace this with composite registry
       fateTypeCounts1.put(key, g);
     }
-
-    for (String key : metricValues.getOpTypeCounters().keySet()) {
-      Gauge g = Gauge
-          .builder(FATE_OP_TYPE_METRIC_PREFIX1 + key.toUpperCase(), metricValues,
-              v -> FateMetricValues.getFromZooKeeper(context, fateRootPath, zooStore)
-                  .getOpTypeCounters().get(key))
-          .description("By transaction op type count for " + key).register(registry1);
-      // adding to the map like before
-      // may be able to replace this with composite registry
-      fateOpCounts1.put(key, g);
-    }
-
-    // log.trace("OP Counts After: prev {}, updates {}", fateOpCounts, opTypes);
+    /*
+     * log.debug("HERE: {}",metricValues.getOpTypeCounters().keySet()); for (String key :
+     * metricValues.getOpTypeCounters().keySet()) { log.debug("OP Type COunter: {}", key);
+     * AtomicLong l = registry1.gauge(FATE_OP_TYPE_METRIC_PREFIX1 + key.toUpperCase(), new
+     * AtomicLong(0)); fateOpCounts1.put(key,l); }
+     */
+    /*
+     * for (String key : metricValues.getOpTypeCounters().keySet()) { Gauge g = Gauge
+     * .builder(FATE_OP_TYPE_METRIC_PREFIX1 + key.toUpperCase(), metricValues, v ->
+     * FateMetricValues.getFromZooKeeper(context, fateRootPath, zooStore)
+     * .getOpTypeCounters().get(key)) .description("By transaction op type count for " +
+     * key).register(registry1); // adding to the map like before // may be able to replace this
+     * with composite registry fateOpCounts1.put(key, g); }
+     */
 
   }
 
@@ -171,7 +179,7 @@ public class FateMetrics extends ManagerMetrics {
   }
 
   @Override
-  protected void prepareMetrics() {
+  public void prepareMetrics() {
     long now = System.currentTimeMillis();
 
     if ((lastUpdate + minimumRefreshDelay) < now) {
@@ -219,20 +227,21 @@ public class FateMetrics extends ManagerMetrics {
 
     // DONT NEED THIS SINCE MICROMETER GAUGE DOESNT NEED TO BE SET
     // clear current values.
-    // fateOpCounts.forEach((key, value) -> value.set(0));
+    fateOpCounts1.forEach((key, value) -> value.set(0));
 
     // update new counts, create new gauge if first time seen.
-    // Map<String,Long> opTypes = metricValues.getOpTypeCounters();
+    Map<String,Long> opTypes = metricValues.getOpTypeCounters();
 
-    // log.trace("OP Counts Before: prev {}, updates {}", fateOpCounts, opTypes);
+    log.debug("OP Counts Before: prev {}, updates {}", fateOpCounts1, opTypes);
 
-    /*
-     * opTypes.forEach((key, value) -> fateOpCounts.computeIfAbsent(key, gauge ->
-     * super.getRegistry().newGauge(metricNameHelper(FATE_OP_TYPE_METRIC_PREFIX1, key),
-     * "By transaction op type count for " + key, value)) .set(value));
-     * 
-     * log.trace("OP Counts After: prev {}, updates {}", fateOpCounts, opTypes);
-     */
+    opTypes
+        .forEach((key, value) -> fateOpCounts1
+            .computeIfAbsent(key,
+                v -> registry1.gauge(FATE_OP_TYPE_METRIC_PREFIX1 + key, new AtomicLong(0)))
+            .set(value));
+
+    log.debug("OP Counts After: prev {}, updates {}", fateOpCounts1, opTypes);
+
   }
 
   public MeterRegistry getRegistry1() {
