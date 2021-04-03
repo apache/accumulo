@@ -55,8 +55,8 @@ public class TableMap {
 
     List<String> tableIds = zooCache.getChildren(context.getZooKeeperRoot() + Constants.ZTABLES);
     Map<NamespaceId,String> namespaceIdToNameMap = new HashMap<>();
-    var tableNameToIdBuilder = ImmutableMap.<String,TableId>builder();
-    var tableIdToNameBuilder = ImmutableMap.<TableId,String>builder();
+    final var tableNameToIdBuilder = ImmutableMap.<String,TableId>builder();
+    final var tableIdToNameBuilder = ImmutableMap.<TableId,String>builder();
 
     // use StringBuilder to construct zPath string efficiently across many tables
     StringBuilder zPathBuilder = new StringBuilder();

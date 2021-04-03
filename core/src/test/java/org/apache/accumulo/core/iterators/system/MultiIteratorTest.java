@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.ByteSequence;
@@ -37,7 +38,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
-import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -79,11 +79,11 @@ public class MultiIteratorTest {
       Range range = new Range(prevEndRow, false, endRow, true);
       if (init)
         for (SortedKeyValueIterator<Key,Value> iter : iters)
-          iter.seek(range, LocalityGroupUtil.EMPTY_CF_SET, false);
+          iter.seek(range, Set.of(), false);
       mi = new MultiIterator(iters, range);
 
       if (init)
-        mi.seek(range, LocalityGroupUtil.EMPTY_CF_SET, false);
+        mi.seek(range, Set.of(), false);
     }
 
     if (seekKey != null)
