@@ -36,6 +36,16 @@ function addAccumuloAPI() {
   echo
 }
 
+function addClientBuild(){
+  local clientCode="$1"
+      
+  # Load in client build code
+  while IFS= read -r line; do
+    echo "$line" | grep -v "[#*]" 
+  done < $clientCode
+  echo
+}
+
 function main() {
   local SOURCE bin scriptPath mainBase corePath
   # Establish Accumulo's main base directory
@@ -68,9 +78,11 @@ function main() {
     echo '// Essential Hadoop API'
     echo 'import org.apache.hadoop.io.Text;'
     echo
-    echo '// Initialization code'
-    echo 'System.out.println("Preparing JShell for Apache Accumulo");'
+    echo '// Initialization Code'
+    echo 'System.out.println("Preparing JShell for Apache Accumulo \n");'
     echo
+    echo '// Accumulo Client Build'
+    addClientBuild "$scriptPath/accumulo-client-build.jsh"
   } > "$mainBase/assemble/target/jshell-init.jsh"
 }
 
