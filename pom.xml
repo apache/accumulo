@@ -142,8 +142,6 @@
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
     <project.build.outputTimestamp>2020-12-17T22:06:50Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
-    <!-- surefire/failsafe plugin option -->
-    <reuseForks>false</reuseForks>
     <slf4j.version>1.7.30</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
@@ -814,7 +812,17 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
             <forkCount>${surefire.forkCount}</forkCount>
+            <reuseForks>true</reuseForks>
             <excludedGroups>${surefire.excludedGroups}</excludedGroups>
+            <!-- Tests to exclude due to not working with reuseForks being True -->
+            <excludes>
+              <exclude>**/TableIdTest.java</exclude>
+              <exclude>**/HadoopCredentialProviderTest.java</exclude>
+              <exclude>**/IdleRatioScanPrioritizerTest.java</exclude>
+              <exclude>**/AssignmentWatcherTest.java</exclude>
+              <exclude>**/TestCfCqSlice.java</exclude>
+              <exclude>**/TestCfCqSliceSeekingFilter.java</exclude>
+            </excludes>
             <groups>${surefire.groups}</groups>
             <systemPropertyVariables>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
@@ -827,8 +835,18 @@
           <artifactId>maven-failsafe-plugin</artifactId>
           <configuration>
             <forkCount>${failsafe.forkCount}</forkCount>
+            <reuseForks>false</reuseForks>
             <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
             <groups>${failsafe.groups}</groups>
+            <!-- Tests that work excluded above to be included here -->
+            <includes>
+              <include>**/TableIdTest.java</include>
+              <include>**/HadoopCredentialProviderTest.java</include>
+              <include>**/IdleRatioScanPrioritizerTest.java</include>
+              <include>**/AssignmentWatcherTest.java</include>
+              <include>**/TestCfCqSlice.java</include>
+              <include>**/TestCfCqSliceSeekingFilter.java</include>
+            </includes>
             <systemPropertyVariables>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
