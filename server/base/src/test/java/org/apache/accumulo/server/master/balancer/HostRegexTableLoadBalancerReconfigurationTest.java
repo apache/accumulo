@@ -96,25 +96,6 @@ public class HostRegexTableLoadBalancerReconfigurationTest
           || migration.newServer.host().startsWith("192.168.0.4")
           || migration.newServer.host().startsWith("192.168.0.5"));
     }
-
-    // checking that system properties are reread when balance is called
-    assertEquals(7000, this.getOobCheckMillis());
-    assertEquals(10, this.getMaxOutstandingMigrations());
-    assertEquals(4, this.getMaxMigrations());
-
-    DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK_KEY, "1m");
-    DEFAULT_TABLE_PROPERTIES
-        .put(HostRegexTableLoadBalancer.HOST_BALANCER_OUTSTANDING_MIGRATIONS_KEY, "50");
-    DEFAULT_TABLE_PROPERTIES.put(HostRegexTableLoadBalancer.HOST_BALANCER_REGEX_MAX_MIGRATIONS_KEY,
-        "1000");
-    migrations.clear();
-    migrationsOut.clear();
-    this.balance(Collections.unmodifiableSortedMap(allTabletServers), migrations, migrationsOut);
-
-    // now we should see the new values
-    assertEquals(60000, this.getOobCheckMillis());
-    assertEquals(50, this.getMaxOutstandingMigrations());
-    assertEquals(1000, this.getMaxMigrations());
   }
 
   @Override

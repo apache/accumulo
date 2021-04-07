@@ -220,7 +220,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
    * @param conf
    *          server configuration
    */
-  protected void parseTableConfiguration(ServerConfiguration conf) {
+  protected void parseConfiguration(ServerConfiguration conf) {
     TableOperations t = getTableOperations();
     if (null == t) {
       throw new RuntimeException("Table Operations cannot be null");
@@ -251,14 +251,6 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
 
     tableIdToTableName = ImmutableMap.copyOf(tableIdToTableNameBuilder);
     poolNameToRegexPattern = ImmutableMap.copyOf(poolNameToRegexPatternBuilder);
-
-    LOG.info("{}", this);
-  }
-
-  public void parseSystemConfiguration(ServerConfiguration conf) {
-    // reparse the table configuration properties in case a table property is being
-    // changed at the system level.
-    parseTableConfiguration(conf);
 
     String oobProperty = conf.getConfiguration().get(HOST_BALANCER_OOB_CHECK_KEY);
     if (null != oobProperty) {
@@ -325,14 +317,12 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
   @Override
   public void init(ServerConfigurationFactory conf) {
     super.init(conf);
-    parseSystemConfiguration(conf);
+    parseConfiguration(conf);
   }
 
   @Override
   public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current,
       Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignments) {
-
-    parseSystemConfiguration(this.configuration);
 
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = splitCurrentByRegex(current);
     // group the unassigned into tables
@@ -377,8 +367,6 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     TableOperations t = getTableOperations();
     if (t == null)
       return minBalanceTime;
-
-    parseSystemConfiguration(this.configuration);
 
     Map<String,String> tableIdMap = t.tableIdMap();
     long now = System.currentTimeMillis();
@@ -555,12 +543,12 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
 
   @Override
   public void propertyChanged(String key) {
-    parseTableConfiguration(this.configuration);
+    parseConfiguration(this.configuration);
   }
 
   @Override
   public void propertiesChanged() {
-    parseTableConfiguration(this.configuration);
+    parseConfiguration(this.configuration);
   }
 
   @Override
