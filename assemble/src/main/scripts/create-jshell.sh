@@ -37,13 +37,22 @@ function addAccumuloAPI() {
 }
 
 function addClientBuild(){
-  local clientCode="$1"
-      
-  # Load in client build code
-  while IFS= read -r line; do
-    echo "$line" | grep -v "[#*]" 
-  done < $clientCode
-  echo
+  echo "URL clientPropUrl = 
+    AccumuloClient.class.getClassLoader().getResource(\"accumulo-client.properties\");
+  String accumuloProp; AccumuloClient client = null;
+
+  // Does Accumulo properties exists?
+  if (clientPropUrl != null) {
+    // Build Accumulo Client
+    accumuloProp = clientPropUrl.getFile();
+    System.out.println(\"Building Accumulo client using properties file below: \\n\"
+        +accumuloProp);
+    client = Accumulo.newClient().from(accumuloProp).build();
+    System.out.println(\"Use \"+'\"'+\"client\"+'\"'+\" to interact with Accumulo \\n\");
+  } 
+  if (clientPropUrl == null)
+    System.out.println(\"Client Build Error: accumulo-client.properties was not found \\n\");
+  "
 }
 
 function main() {
@@ -82,7 +91,7 @@ function main() {
     echo 'System.out.println("Preparing JShell for Apache Accumulo \n");'
     echo
     echo '// Accumulo Client Build'
-    addClientBuild "$scriptPath/accumulo-client-build.jsh"
+    addClientBuild
   } > "$mainBase/assemble/target/jshell-init.jsh"
 }
 
