@@ -36,17 +36,17 @@ function addAccumuloAPI() {
   echo
 }
 
-function addClientBuild(){
+function addClientBuild() {
   echo "URL clientPropUrl = 
     AccumuloClient.class.getClassLoader().getResource(\"accumulo-client.properties\");
   String accumuloProp; AccumuloClient client = null;
-
+  
   // Does Accumulo properties exists?
   if (clientPropUrl != null) {
+  
     // Build Accumulo Client
     accumuloProp = clientPropUrl.getFile();
-    System.out.println(\"Building Accumulo client using properties file below: \\n\"
-        +accumuloProp);
+    System.out.println(\"Building Accumulo client using properties file below: \\n\"+accumuloProp);
     client = Accumulo.newClient().from(accumuloProp).build();
     System.out.println(\"Use \"+'\"'+\"client\"+'\"'+\" to interact with Accumulo \\n\");
   } 
