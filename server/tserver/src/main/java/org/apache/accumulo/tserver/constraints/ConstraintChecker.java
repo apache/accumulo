@@ -31,6 +31,7 @@ import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.ComparableBytes;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,7 +85,7 @@ public class ConstraintChecker {
   }
 
   public Violations check(Environment env, Mutation m) {
-    if (!env.getExtent().contains(new ComparableBytes(m.getRow()))) {
+    if (!KeyExtent.fromTabletId(env.getTablet()).contains(new ComparableBytes(m.getRow()))) {
       Violations violations = new Violations();
 
       ConstraintViolationSummary cvs = new ConstraintViolationSummary(

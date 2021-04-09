@@ -35,6 +35,7 @@ import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.constraints.Constraint.Environment;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.BinaryComparable;
 import org.junit.Before;
@@ -48,6 +49,7 @@ public class ConstraintCheckerTest {
   private ArrayList<Constraint> constraints;
   private Environment env;
   private KeyExtent extent;
+  private TabletId tabletId;
   private Mutation m;
 
   @Before
@@ -57,8 +59,9 @@ public class ConstraintCheckerTest {
     expect(cc.getConstraints()).andReturn(constraints);
 
     env = createMock(Environment.class);
-    extent = createMock(KeyExtent.class);
-    expect(env.getExtent()).andReturn(extent);
+    // extent = createMock(KeyExtent.class);
+    tabletId = createMock(TabletId.class);
+    expect(env.getTablet()).andReturn(tabletId);
 
     m = createMock(Mutation.class);
   }

@@ -23,7 +23,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.List;
 
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
@@ -48,8 +50,14 @@ public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.Ta
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public KeyExtent getExtent() {
       return RootTable.EXTENT;
+    }
+
+    @Override
+    public TabletId getTablet() {
+      return new TabletIdImpl(RootTable.EXTENT);
     }
 
     @Override

@@ -21,6 +21,7 @@ package org.apache.accumulo.core.constraints;
 import java.util.List;
 
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.security.AuthorizationContainer;
 
@@ -52,8 +53,19 @@ public interface Constraint {
      * Gets the key extent of the environment.
      *
      * @return key extent
+     * @deprecated since 2.1 use {@link #getTablet()}
      */
+    @Deprecated(since = "2.1.0")
     KeyExtent getExtent();
+
+    /**
+     * Gets the tablet Id of the environment.
+     *
+     * @return TabletId
+     */
+    default TabletId getTablet() {
+      throw new UnsupportedOperationException("Not implemented");
+    }
 
     /**
      * Gets the user within the environment.
