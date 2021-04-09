@@ -84,7 +84,6 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     // Change property, simulate call by TableConfWatcher
     DEFAULT_TABLE_PROPERTIES
         .put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r01.*");
-    this.propertiesChanged();
     // Wait to trigger the out of bounds check and the repool check
     UtilWaitThread.sleep(10000);
     this.balance(Collections.unmodifiableSortedMap(allTabletServers), migrations, migrationsOut);
