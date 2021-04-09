@@ -121,8 +121,7 @@ public class ZombieTServer {
     ZooReaderWriter zoo = context.getZooReaderWriter();
     zoo.putPersistentData(zLockPath.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
 
-    ServiceLock zlock =
-        new ServiceLock(context.getSiteConfiguration(), zLockPath, UUID.randomUUID());
+    ServiceLock zlock = new ServiceLock(zoo.getZooKeeper(), zLockPath, UUID.randomUUID());
 
     LockWatcher lw = new LockWatcher() {
 

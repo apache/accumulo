@@ -28,21 +28,18 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
-import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooSession;
 import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
@@ -191,11 +188,9 @@ public class ServiceLockIT {
   private static final AtomicInteger pdCount = new AtomicInteger(0);
 
   private static ServiceLock getZooLock(ServiceLockPath parent, UUID uuid) {
-    Map<String,String> props = new HashMap<>();
-    props.put(Property.INSTANCE_ZK_HOST.toString(), szk.getConn());
-    props.put(Property.INSTANCE_ZK_TIMEOUT.toString(), "30000");
-    props.put(Property.INSTANCE_SECRET.toString(), "secret");
-    return new ServiceLock(new ConfigurationCopy(props), parent, uuid);
+    var zooKeeper = ZooSession.getAuthenticatedSession(szk.getConn(), 30000, "digest",
+        ("accumulo:secret").getBytes(UTF_8));
+    return new ServiceLock(zooKeeper, parent, uuid);
   }
 
   private static ServiceLock getZooLock(ZooKeeperWrapper zkw, ServiceLockPath parent, UUID uuid) {
