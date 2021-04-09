@@ -126,6 +126,7 @@
     <failsafe.excludedGroups />
     <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
+    <failsafe.reuseForks>false</failsafe.reuseForks>
     <hadoop.version>3.3.0</hadoop.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <htrace.version>3.2.0-incubating</htrace.version>
@@ -148,6 +149,7 @@
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
     <surefire.forkCount>1C</surefire.forkCount>
     <surefire.groups />
+    <surefire.reuseForks>true</surefire.reuseForks>
     <!-- 3.0.0-M5 causes RowHashIT.test and ShellServerIT.scansWithClassLoaderContext to fail -->
     <surefire.version>3.0.0-M4</surefire.version>
     <!-- Thrift version -->
@@ -812,7 +814,7 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
             <forkCount>${surefire.forkCount}</forkCount>
-            <reuseForks>true</reuseForks>
+            <reuseForks>${surefire.reuseForks}</reuseForks>
             <excludedGroups>${surefire.excludedGroups}</excludedGroups>
             <!-- Tests to exclude due to not working with reuseForks being True -->
             <excludes>
@@ -835,7 +837,7 @@
           <artifactId>maven-failsafe-plugin</artifactId>
           <configuration>
             <forkCount>${failsafe.forkCount}</forkCount>
-            <reuseForks>false</reuseForks>
+            <reuseForks>${failsafe.reuseForks}</reuseForks>
             <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
             <groups>${failsafe.groups}</groups>
             <!-- Tests that work excluded above to be included here -->
@@ -1570,6 +1572,18 @@
       <properties>
         <failsafe.forkCount>${forkCount}</failsafe.forkCount>
         <surefire.forkCount>${forkCount}</surefire.forkCount>
+      </properties>
+    </profile>
+    <profile>
+      <id>reuseForks</id>
+      <activation>
+        <property>
+          <name>reuseForks</name>
+        </property>
+      </activation>
+      <properties>
+        <failsafe.reuseForks>${reuseForks}</failsafe.reuseForks>
+        <surefire.reuseForks>${reuseForks}</surefire.reuseForks>
       </properties>
     </profile>
   </profiles>
