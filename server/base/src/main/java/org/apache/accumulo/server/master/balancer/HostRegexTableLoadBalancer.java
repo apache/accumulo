@@ -255,7 +255,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     LOG.info("{}", this);
   }
 
-  public void parseSystemConfiguration(ServerConfiguration conf) {
+  protected void parseSystemConfiguration(ServerConfiguration conf) {
     // reparse the table configuration properties in case a table property is being
     // changed at the system level.
     parseTableConfiguration(conf);
