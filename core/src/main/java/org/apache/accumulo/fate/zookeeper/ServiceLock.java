@@ -25,8 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -109,22 +107,7 @@ public class ServiceLock implements Watcher {
   private String createdNodeName;
   private String watchingNodeName;
 
-  public ServiceLock(AccumuloConfiguration conf, ServiceLockPath path, UUID uuid) {
-    this.zooKeeper = ZooSession.getAuthenticatedSession(conf.get(Property.INSTANCE_ZK_HOST),
-        (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), "digest",
-        ("accumulo" + ":" + conf.get(Property.INSTANCE_SECRET)).getBytes(UTF_8));
-    this.path = requireNonNull(path);
-    try {
-      zooKeeper.exists(path.toString(), this);
-      watchingParent = true;
-      this.vmLockPrefix = new Prefix(ZLOCK_PREFIX + uuid.toString() + "#");
-    } catch (Exception ex) {
-      LOG.error("Error setting initial watch", ex);
-      throw new RuntimeException(ex);
-    }
-  }
-
-  protected ServiceLock(ZooKeeper zookeeper, ServiceLockPath path, UUID uuid) {
+  public ServiceLock(ZooKeeper zookeeper, ServiceLockPath path, UUID uuid) {
     this.zooKeeper = requireNonNull(zookeeper);
     this.path = requireNonNull(path);
     try {

@@ -1442,7 +1442,7 @@ public class Manager extends AbstractServer
 
   private void getManagerLock(final ServiceLockPath zManagerLoc)
       throws KeeperException, InterruptedException {
-    ServerContext context = getContext();
+    var zooKeeper = getContext().getZooReaderWriter().getZooKeeper();
     log.info("trying to get manager lock");
 
     final String managerClientAddress =
@@ -1452,7 +1452,7 @@ public class Manager extends AbstractServer
     while (true) {
 
       ManagerLockWatcher managerLockWatcher = new ManagerLockWatcher();
-      managerLock = new ServiceLock(context.getSiteConfiguration(), zManagerLoc, zooLockUUID);
+      managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
       managerLock.lock(managerLockWatcher, managerClientAddress.getBytes());
 
       managerLockWatcher.waitForChange();
