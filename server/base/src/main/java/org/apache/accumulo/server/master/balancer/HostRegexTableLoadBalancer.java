@@ -85,7 +85,7 @@ import com.google.common.collect.Multimap;
  * <b>table.custom.balancer.host.regex.max.outstanding.migrations</b>
  *
  */
-public class HostRegexTableLoadBalancer extends TableLoadBalancer implements ConfigurationObserver {
+public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
   private static final String PROP_PREFIX = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
 
@@ -220,7 +220,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
    * @param conf
    *          server configuration
    */
-  protected void parseTableConfiguration(ServerConfiguration conf) {
+  protected void parseConfiguration(ServerConfiguration conf) {
     TableOperations t = getTableOperations();
     if (null == t) {
       throw new RuntimeException("Table Operations cannot be null");
@@ -229,7 +229,6 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     Map<String,Pattern> poolNameToRegexPatternBuilder = new HashMap<>();
     for (Entry<String,String> table : t.tableIdMap().entrySet()) {
       tableIdToTableNameBuilder.put(table.getValue(), table.getKey());
-      conf.getTableConfiguration(table.getValue()).addObserver(this);
       Map<String,String> customProps = conf.getTableConfiguration(table.getValue())
           .getAllPropertiesWithPrefix(Property.TABLE_ARBITRARY_PROP_PREFIX);
       if (null != customProps && customProps.size() > 0) {
@@ -251,14 +250,6 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
 
     tableIdToTableName = ImmutableMap.copyOf(tableIdToTableNameBuilder);
     poolNameToRegexPattern = ImmutableMap.copyOf(poolNameToRegexPatternBuilder);
-
-    LOG.info("{}", this);
-  }
-
-  protected void parseSystemConfiguration(ServerConfiguration conf) {
-    // reparse the table configuration properties in case a table property is being
-    // changed at the system level.
-    parseTableConfiguration(conf);
 
     String oobProperty = conf.getConfiguration().get(HOST_BALANCER_OOB_CHECK_KEY);
     if (null != oobProperty) {
@@ -325,14 +316,14 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
   @Override
   public void init(ServerConfigurationFactory conf) {
     super.init(conf);
-    parseSystemConfiguration(conf);
+    parseConfiguration(conf);
   }
 
   @Override
   public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current,
       Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignments) {
 
-    parseSystemConfiguration(this.configuration);
+    parseConfiguration(this.configuration);
 
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = splitCurrentByRegex(current);
     // group the unassigned into tables
@@ -378,7 +369,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     if (t == null)
       return minBalanceTime;
 
-    parseSystemConfiguration(this.configuration);
+    parseConfiguration(this.configuration);
 
     Map<String,String> tableIdMap = t.tableIdMap();
     long now = System.currentTimeMillis();
@@ -552,18 +543,4 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer implements Con
     }
     return newInfo;
   }
-
-  @Override
-  public void propertyChanged(String key) {
-    parseTableConfiguration(this.configuration);
-  }
-
-  @Override
-  public void propertiesChanged() {
-    parseTableConfiguration(this.configuration);
-  }
-
-  @Override
-  public void sessionExpired() {}
-
 }
