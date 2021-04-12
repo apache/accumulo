@@ -52,11 +52,14 @@ public class GcMetricsIT extends ConfigurableMacBase {
   private static final int NUM_TAIL_ATTEMPTS = 20;
   private static final long TAIL_DELAY = 5_000;
   private static final Pattern metricLinePattern = Pattern.compile("^(?<timestamp>\\d+).*");
-  private static final String[] EXPECTED_METRIC_KEYS =
-      new String[] {"acc.gc.candidates", "acc.gc.deleted", "acc.gc.errors", "acc.gc.finished",
-          "acc.gc.in.use", "acc.gc.post.op.duration", "acc.gc.run.cycle.count", "acc.gc.started",
-          "acc.gc.wal.candidates", "acc.gc.wal.deleted", "acc.gc.wal.errors", "acc.gc.wal.finished",
-          "acc.gc.wal.in.use", "acc.gc.wal.started"};
+  private static final String[] EXPECTED_METRIC_KEYS = new String[] {
+      GcMetrics.GC_METRIC_PREFIX + ".candidates", GcMetrics.GC_METRIC_PREFIX + ".deleted",
+      GcMetrics.GC_METRIC_PREFIX + ".errors", GcMetrics.GC_METRIC_PREFIX + ".finished",
+      GcMetrics.GC_METRIC_PREFIX + ".in.use", GcMetrics.GC_METRIC_PREFIX + ".post.op.duration",
+      GcMetrics.GC_METRIC_PREFIX + ".run.cycle.count", GcMetrics.GC_METRIC_PREFIX + ".started",
+      GcMetrics.GC_METRIC_PREFIX + ".wal.candidates", GcMetrics.GC_METRIC_PREFIX + ".wal.deleted",
+      GcMetrics.GC_METRIC_PREFIX + ".wal.errors", GcMetrics.GC_METRIC_PREFIX + ".wal.finished",
+      GcMetrics.GC_METRIC_PREFIX + ".wal.in.use", GcMetrics.GC_METRIC_PREFIX + ".wal.started"};
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -112,11 +115,11 @@ public class GcMetricsIT extends ConfigurableMacBase {
 
     LineUpdate(String line) {
       values = parseLine(line);
-      gcStarted = values.get("acc.gc.started");
-      gcFinished = values.get("acc.gc.finished");
-      gcWalStarted = values.get("acc.gc.wal.started");
-      gcWalFinished = values.get("acc.gc.wal.finished");
-      gcRunCycleCount = values.get("acc.gc.run.cycle.count");
+      gcStarted = values.get(GcMetrics.GC_METRIC_PREFIX + ".started");
+      gcFinished = values.get(GcMetrics.GC_METRIC_PREFIX + ".finished");
+      gcWalStarted = values.get(GcMetrics.GC_METRIC_PREFIX + ".wal.started");
+      gcWalFinished = values.get(GcMetrics.GC_METRIC_PREFIX + ".wal.finished");
+      gcRunCycleCount = values.get(GcMetrics.GC_METRIC_PREFIX + ".run.cycle.count");
 
       // ensure internal consistency
       assertTrue(Stream.of(EXPECTED_METRIC_KEYS).allMatch(values::containsKey));

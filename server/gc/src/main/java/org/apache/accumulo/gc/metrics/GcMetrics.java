@@ -44,7 +44,7 @@ import io.micrometer.core.instrument.logging.LoggingRegistryConfig;
 public class GcMetrics extends Metrics {
 
   // use common prefix, different that just gc, to prevent confusion with jvm gc metrics.
-  public static final String GC_METRIC_PREFIX = "acc.gc.";
+  public static final String GC_METRIC_PREFIX = "AccGc";
 
   private static final String jmxName = "GarbageCollector";
   private static final String description = "Accumulo garbage collection metrics";
@@ -106,52 +106,52 @@ public class GcMetrics extends Metrics {
     io.micrometer.core.instrument.Metrics.globalRegistry.add(registry);
 
     Gauge gcStarted =
-        Gauge.builder(GC_METRIC_PREFIX + "started", values, v -> v.getLastCollect().getStarted())
+        Gauge.builder(GC_METRIC_PREFIX + ".started", values, v -> v.getLastCollect().getStarted())
             .description("Timestamp GC file collection cycle started").register(registry);
     Gauge gcFinished =
-        Gauge.builder(GC_METRIC_PREFIX + "finished", values, v -> v.getLastCollect().getFinished())
+        Gauge.builder(GC_METRIC_PREFIX + ".finished", values, v -> v.getLastCollect().getFinished())
             .description("Timestamp GC file collect cycle finished").register(registry);
     Gauge gcCandidates = Gauge
-        .builder(GC_METRIC_PREFIX + "candidates", values, v -> v.getLastCollect().getCandidates())
+        .builder(GC_METRIC_PREFIX + ".candidates", values, v -> v.getLastCollect().getCandidates())
         .description("Number of files that are candidates for deletion").register(registry);
     Gauge gcInUse =
-        Gauge.builder(GC_METRIC_PREFIX + "in.use", values, v -> v.getLastCollect().getInUse())
+        Gauge.builder(GC_METRIC_PREFIX + ".in.use", values, v -> v.getLastCollect().getInUse())
             .description("Number of candidate files still in use").register(registry);
     Gauge gcDeleted =
-        Gauge.builder(GC_METRIC_PREFIX + "deleted", values, v -> v.getLastCollect().getDeleted())
+        Gauge.builder(GC_METRIC_PREFIX + ".deleted", values, v -> v.getLastCollect().getDeleted())
             .description("Number of candidate files deleted").register(registry);
     Gauge gcErrors =
-        Gauge.builder(GC_METRIC_PREFIX + "errors", values, v -> v.getLastCollect().getErrors())
+        Gauge.builder(GC_METRIC_PREFIX + ".errors", values, v -> v.getLastCollect().getErrors())
             .description("Number of candidate deletion errors").register(registry);
 
     Gauge walStarted = Gauge
-        .builder(GC_METRIC_PREFIX + "wal.started", values, v -> v.getLastWalCollect().getStarted())
+        .builder(GC_METRIC_PREFIX + ".wal.started", values, v -> v.getLastWalCollect().getStarted())
         .description("Timestamp GC WAL collection cycle started").register(registry);
     Gauge walFinished = Gauge
-        .builder(GC_METRIC_PREFIX + "wal.finished", values,
+        .builder(GC_METRIC_PREFIX + ".wal.finished", values,
             v -> v.getLastWalCollect().getFinished())
         .description("Timestamp GC WAL collect cycle finished").register(registry);
     Gauge walCandidates = Gauge
-        .builder(GC_METRIC_PREFIX + "wal.candidates", values,
+        .builder(GC_METRIC_PREFIX + ".wal.candidates", values,
             v -> v.getLastWalCollect().getCandidates())
         .description("Number of files that are candidates for deletion").register(registry);
     Gauge walInUse = Gauge
-        .builder(GC_METRIC_PREFIX + "wal.in.use", values, v -> v.getLastWalCollect().getInUse())
+        .builder(GC_METRIC_PREFIX + ".wal.in.use", values, v -> v.getLastWalCollect().getInUse())
         .description("Number of wal file candidates that are still in use").register(registry);
     Gauge walDeleted = Gauge
-        .builder(GC_METRIC_PREFIX + "wal.deleted", values, v -> v.getLastWalCollect().getDeleted())
+        .builder(GC_METRIC_PREFIX + ".wal.deleted", values, v -> v.getLastWalCollect().getDeleted())
         .description("Number of candidate wal files deleted").register(registry);
     Gauge walErrors = Gauge
-        .builder(GC_METRIC_PREFIX + "wal.errors", values, v -> v.getLastWalCollect().getErrors())
+        .builder(GC_METRIC_PREFIX + ".wal.errors", values, v -> v.getLastWalCollect().getErrors())
         .description("Number candidate wal file deletion errors").register(registry);
 
     Gauge postOpDuration = Gauge
-        .builder(GC_METRIC_PREFIX + "post.op.duration", values,
+        .builder(GC_METRIC_PREFIX + ".post.op.duration", values,
             v -> TimeUnit.NANOSECONDS.toMillis(v.getPostOpDurationNanos()))
         .description("GC metadata table post operation duration in milliseconds")
         .register(registry);
     Gauge runCycleCount = Gauge
-        .builder(GC_METRIC_PREFIX + "run.cycle.count", values, GcCycleMetrics::getRunCycleCount)
+        .builder(GC_METRIC_PREFIX + ".run.cycle.count", values, GcCycleMetrics::getRunCycleCount)
         .description("gauge incremented each gc cycle run, rest on process start")
         .register(registry);
 
