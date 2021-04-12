@@ -24,8 +24,8 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.constraints.Violations;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.util.MapCounter;

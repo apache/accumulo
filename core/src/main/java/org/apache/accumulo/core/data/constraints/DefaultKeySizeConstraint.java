@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.constraints;
+package org.apache.accumulo.core.data.constraints;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +26,8 @@ import org.apache.accumulo.core.data.Mutation;
 
 /**
  * A constraints that limits the size of keys to 1mb.
+ *
+ * @since 2.1.0 moved from org.apache.accumulo.core.constraints package
  */
 public class DefaultKeySizeConstraint implements Constraint {
 

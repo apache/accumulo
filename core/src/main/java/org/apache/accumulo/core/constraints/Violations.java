@@ -18,60 +18,36 @@
  */
 package org.apache.accumulo.core.constraints;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
- * A class for accumulating constraint violations across a number of mutations.
+ * This class is replaced by {@link org.apache.accumulo.core.data.constraints.Violations}
+ *
+ * @deprecated since 2.1.0 Use {@link org.apache.accumulo.core.data.constraints.Violations}
  */
-public class Violations {
+@Deprecated(since = "2.1.0")
+@SuppressFBWarnings(value = {"NM_SAME_SIMPLE_NAME_AS_SUPERCLASS"},
+    justification = "Same name used for compatibility during deprecation cycle")
+public class Violations extends org.apache.accumulo.core.data.constraints.Violations {
 
-  private static class CVSKey {
-    private String className;
-    private short vcode;
-
-    CVSKey(ConstraintViolationSummary cvs) {
-      this.className = cvs.constrainClass;
-      this.vcode = cvs.violationCode;
-    }
-
-    @Override
-    public int hashCode() {
-      return className.hashCode() + vcode;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (o instanceof CVSKey)
-        return equals((CVSKey) o);
-      return false;
-    }
-
-    public boolean equals(CVSKey ocvsk) {
-      return className.equals(ocvsk.className) && vcode == ocvsk.vcode;
-    }
-  }
-
-  public static final Violations EMPTY = new Violations(Collections.emptyMap());
-
-  private Map<CVSKey,ConstraintViolationSummary> cvsmap;
+  public static final org.apache.accumulo.core.constraints.Violations EMPTY =
+      new org.apache.accumulo.core.constraints.Violations(Collections.emptyMap());
 
   /**
    * Creates a new empty object.
    */
   public Violations() {
-    cvsmap = new HashMap<>();
+    super();
   }
 
   private Violations(Map<CVSKey,ConstraintViolationSummary> cvsmap) {
-    this.cvsmap = cvsmap;
+    super(cvsmap);
   }
 
   /**
@@ -80,17 +56,7 @@ public class Violations {
    * @return true if empty
    */
   public boolean isEmpty() {
-    return cvsmap.isEmpty();
-  }
-
-  private void add(CVSKey cvsk, ConstraintViolationSummary cvs) {
-    ConstraintViolationSummary existingCvs = cvsmap.get(cvsk);
-
-    if (existingCvs == null) {
-      cvsmap.put(cvsk, cvs);
-    } else {
-      existingCvs.numberOfViolatingMutations += cvs.numberOfViolatingMutations;
-    }
+    return super.isEmpty();
   }
 
   /**
@@ -100,8 +66,7 @@ public class Violations {
    *          summary of violation
    */
   public void add(ConstraintViolationSummary cvs) {
-    CVSKey cvsk = new CVSKey(cvs);
-    add(cvsk, cvs);
+    super.add(cvs);
   }
 
   /**
@@ -110,13 +75,10 @@ public class Violations {
    * @param violations
    *          violations to add
    */
-  public void add(Violations violations) {
-    Set<Entry<CVSKey,ConstraintViolationSummary>> es = violations.cvsmap.entrySet();
-
-    for (Entry<CVSKey,ConstraintViolationSummary> entry : es) {
-      add(entry.getKey(), entry.getValue());
-    }
-
+  @SuppressFBWarnings(value = "NM_WRONG_PACKAGE",
+      justification = "Same name used for compatibility during deprecation cycle")
+  public void add(org.apache.accumulo.core.constraints.Violations violations) {
+    super.add(violations);
   }
 
   /**
@@ -126,10 +88,7 @@ public class Violations {
    *          list of violation summaries
    */
   public void add(List<ConstraintViolationSummary> cvsList) {
-    for (ConstraintViolationSummary constraintViolationSummary : cvsList) {
-      add(constraintViolationSummary);
-    }
-
+    super.add(cvsList);
   }
 
   /**
@@ -138,7 +97,7 @@ public class Violations {
    * @return list of violation summaries
    */
   public List<ConstraintViolationSummary> asList() {
-    return new ArrayList<>(cvsmap.values());
+    return super.asList();
   }
 
 }

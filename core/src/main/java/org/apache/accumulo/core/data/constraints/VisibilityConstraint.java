@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.constraints;
+package org.apache.accumulo.core.data.constraints;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -38,6 +38,8 @@ import org.apache.accumulo.core.util.BadArgumentException;
  * <li>1 = failure to parse visibility expression</li>
  * <li>2 = insufficient authorization</li>
  * </ul>
+ *
+ * @since 2.1.0 moved from org.apache.accumulo.core.constraints package
  */
 public class VisibilityConstraint implements Constraint {
 

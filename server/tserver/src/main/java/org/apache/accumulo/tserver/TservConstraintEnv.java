@@ -48,12 +48,6 @@ public class TservConstraintEnv implements SystemEnvironment {
     this.ke = ke;
   }
 
-  @SuppressWarnings("deprecation")
-  @Override
-  public KeyExtent getExtent() {
-    return ke;
-  }
-
   @Override
   public TabletId getTablet() {
     return new TabletIdImpl(ke);

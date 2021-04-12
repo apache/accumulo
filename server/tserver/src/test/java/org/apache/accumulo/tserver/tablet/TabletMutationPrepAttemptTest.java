@@ -28,8 +28,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.constraints.Violations;
 import org.junit.Test;
 
 public class TabletMutationPrepAttemptTest {

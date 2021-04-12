@@ -16,34 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.constraints;
+package org.apache.accumulo.core.data.constraints;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-
+import java.util.Collections;
 import java.util.List;
 
+import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
-import org.junit.Test;
 
-public class NoDeleteConstraintTest {
+/**
+ * This constraint ensures mutations do not have deletes.
+ *
+ * @since 2.1.0 moved from org.apache.accumulo.core.constraints package
+ */
+public class NoDeleteConstraint implements Constraint {
 
-  @Test
-  public void testConstraint() {
-    Mutation m1 = new Mutation("r1");
-    m1.putDelete("f1", "q1");
-
-    NoDeleteConstraint ndc = new NoDeleteConstraint();
-
-    List<Short> results = ndc.check(null, m1);
-    assertEquals(1, results.size());
-    assertEquals(1, results.get(0).intValue());
-
-    Mutation m2 = new Mutation("r1");
-    m2.put("f1", "q1", new Value("v1"));
-
-    results = ndc.check(null, m2);
-    assertNull(results);
+  @Override
+  public String getViolationDescription(short violationCode) {
+    if (violationCode == 1) {
+      return "Deletes are not allowed";
+    }
+    return null;
   }
+
+  @Override
+  public List<Short> check(Environment env, Mutation mutation) {
+    List<ColumnUpdate> updates = mutation.getUpdates();
+    for (ColumnUpdate update : updates) {
+      if (update.isDeleted()) {
+        return Collections.singletonList((short) 1);
+      }
+    }
+
+    return null;
+  }
+
 }
