@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.test.metrics.fate;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
@@ -162,8 +162,8 @@ public class FateMetricsIT {
      * assertEquals(0L, collector.getValue("FateTxState_IN_PROGRESS")); assertEquals(0L,
      * collector.getValue("currentFateOps"));
      */
-    assertTrue(0L == registry.get("fate.tx.state.IN_PROGRESS").gauge().value());
-    assertTrue(0L == registry.get("current.fate.ops").gauge().value());
+    assertEquals(0, registry.get("fate.tx.state.IN_PROGRESS").gauge().value(), 0.0);
+    assertEquals(0, registry.get("current.fate.ops").gauge().value(), 0.0);
 
     EasyMock.verify(manager);
 
@@ -198,11 +198,11 @@ public class FateMetricsIT {
      */
     Gauge fateTxStateNewGauge = registry.find("fate.tx.state.NEW").gauge();
     assertNotNull(fateTxStateNewGauge);
-    assertTrue(1L == fateTxStateNewGauge.value());
+    assertEquals(1, fateTxStateNewGauge.value(), 0.0);
 
     Gauge currentFateOpsGauge = registry.find("fate.tx.state.NEW").gauge();
     assertNotNull(currentFateOpsGauge);
-    assertTrue(1L == currentFateOpsGauge.value());
+    assertEquals(1, currentFateOpsGauge.value(), 0.0);
 
     /*
      * assertTrue(collector.contains("FateTxState_IN_PROGRESS")); assertEquals(0L,
@@ -210,26 +210,10 @@ public class FateMetricsIT {
      */
     Gauge fateStateInProgressGauge = registry.find("fate.tx.state.IN_PROGRESS").gauge();
     assertNotNull(fateStateInProgressGauge);
-    assertTrue(0L == fateStateInProgressGauge.value());
+    assertEquals(0, fateStateInProgressGauge.value(), 0.0);
 
     EasyMock.verify(manager);
   }
-  /*
-   * @Test public void testingChamber() { //Set<MeterRegistry> registries1 =null; FateMetrics fate =
-   * new FateMetrics(context, 10); Set<MeterRegistry> registries =
-   * Metrics.globalRegistry.getRegistries();
-   * 
-   * for(MeterRegistry m : registries) { Gauge g = m.find("current.fate.ops").gauge();
-   * log.debug("GAUGE: {}", g.getId()); log.debug("Registry: {}", m.toString()); for(Meter n :
-   * m.getMeters()) { Meter.Id temp = n.getId();
-   * log.debug("Name: {} Tags: {} Description: {} ID: {}",temp.getName(),
-   * temp.getTags(),temp.getDescription(),temp); for(Measurement o : n.measure()) {
-   * log.debug(o.toString()); } } } }
-   * 
-   * @Test public void testingChamber2() { FateMetrics fate = new FateMetrics(context, 10);
-   * MeterRegistry registry = fate.getRegistry1(); log.debug("Cirrent: {}",
-   * registry.get("current.fate.ops").gauge().getId().getName()); }
-   */
 
   /**
    * Seeds the zoo store with a "fake" repo operation with a step, and sets the prop_debug field.
@@ -265,11 +249,11 @@ public class FateMetricsIT {
 
     Gauge inProgressGauge = registry.find("fate.tx.state.IN_PROGRESS").gauge();
     assertNotNull(inProgressGauge);
-    assertTrue(1L == inProgressGauge.value());
+    assertEquals(1, inProgressGauge.value(), 0.0);
 
     Gauge fakeOpGauge = registry.find("fate.tx.op.type.FakeOp").gauge();
     assertNotNull(fakeOpGauge);
-    assertTrue(1L == fakeOpGauge.value());
+    assertEquals(1, fakeOpGauge.value(), 0.0);
 
     EasyMock.verify(manager);
   }
@@ -304,11 +288,11 @@ public class FateMetricsIT {
      */
     Gauge inProgressGauge = registry.find("fate.tx.state.IN_PROGRESS").gauge();
     assertNotNull(inProgressGauge);
-    assertTrue(0L == inProgressGauge.value());
+    assertEquals(0, inProgressGauge.value(), 0.0);
 
-    Gauge successfulGauge = registry.find("fate.tx.state.IN_PROGRESS").gauge();
+    Gauge successfulGauge = registry.find("fate.tx.state.SUCCESSFUL").gauge();
     assertNotNull(successfulGauge);
-    assertTrue(1L == successfulGauge.value());
+    assertEquals(1, successfulGauge.value(), 0.0);
 
     assertNull(registry.find("fate.tx.op.type.FAKEOP").gauge());
 
