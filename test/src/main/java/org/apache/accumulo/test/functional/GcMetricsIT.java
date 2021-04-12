@@ -52,10 +52,11 @@ public class GcMetricsIT extends ConfigurableMacBase {
   private static final int NUM_TAIL_ATTEMPTS = 20;
   private static final long TAIL_DELAY = 5_000;
   private static final Pattern metricLinePattern = Pattern.compile("^(?<timestamp>\\d+).*");
-  private static final String[] EXPECTED_METRIC_KEYS = new String[] {"AccGcCandidates",
-      "AccGcDeleted", "AccGcErrors", "AccGcFinished", "AccGcInUse", "AccGcPostOpDuration",
-      "AccGcRunCycleCount", "AccGcStarted", "AccGcWalCandidates", "AccGcWalDeleted",
-      "AccGcWalErrors", "AccGcWalFinished", "AccGcWalInUse", "AccGcWalStarted"};
+  private static final String[] EXPECTED_METRIC_KEYS =
+      new String[] {"acc.gc.candidates", "acc.gc.deleted", "acc.gc.errors", "acc.gc.finished",
+          "acc.gc.in.use", "acc.gc.post.op.duration", "acc.gc.run.cycle.count", "acc.gc.started",
+          "acc.gc.wal.candidates", "acc.gc.wal.deleted", "acc.gc.wal.errors", "acc.gc.wal.finished",
+          "acc.gc.wal.in.use", "acc.gc.wal.started"};
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -111,11 +112,11 @@ public class GcMetricsIT extends ConfigurableMacBase {
 
     LineUpdate(String line) {
       values = parseLine(line);
-      gcStarted = values.get("AccGcStarted");
-      gcFinished = values.get("AccGcFinished");
-      gcWalStarted = values.get("AccGcWalStarted");
-      gcWalFinished = values.get("AccGcWalFinished");
-      gcRunCycleCount = values.get("AccGcRunCycleCount");
+      gcStarted = values.get("acc.gc.started");
+      gcFinished = values.get("acc.gc.finished");
+      gcWalStarted = values.get("acc.gc.wal.started");
+      gcWalFinished = values.get("acc.gc.wal.finished");
+      gcRunCycleCount = values.get("acc.gc.run.cycle.count");
 
       // ensure internal consistency
       assertTrue(Stream.of(EXPECTED_METRIC_KEYS).allMatch(values::containsKey));
