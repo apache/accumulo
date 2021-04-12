@@ -941,6 +941,8 @@
                 <usedUndeclaredDependency>org.apache.httpcomponents:httpcore:jar:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-core:jar:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-reflect:jar:*</usedUndeclaredDependency>
+                <!-- incorrectly throws used undeclared error -->
+                <usedUndeclaredDependency>io.micrometer:micrometer-core:jar:*</usedUndeclaredDependency>
               </ignoredUsedUndeclaredDependencies>
               <ignoredUnusedDeclaredDependencies>
                 <!-- auto-service isn't used in every module -->
@@ -963,6 +965,8 @@
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-1.2-api:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-slf4j-impl:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-web:jar:*</unusedDeclaredDependency>
+                <!-- incorrectly throws unused error -->
+                <unusedDeclaredDependency>io.micrometer:micrometer-core:jar:*</unusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
