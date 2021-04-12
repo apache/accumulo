@@ -37,22 +37,33 @@ function addAccumuloAPI() {
 }
 
 function addClientBuild() {
-  echo "URL clientPropUrl = 
-    AccumuloClient.class.getClassLoader().getResource(\"accumulo-client.properties\");
-  String accumuloProp; AccumuloClient client = null;
-  
+cat <<EOF
+  URL clientPropUrl = 
+    AccumuloClient.class.getClassLoader().getResource("accumulo-client.properties");
+  AccumuloClient client = null;
+  String name; String zk; String principal; String token;
+      
   // Does Accumulo properties exists?
   if (clientPropUrl != null) {
-  
-    // Build Accumulo Client
-    accumuloProp = clientPropUrl.getFile();
-    System.out.println(\"Building Accumulo client using properties file below: \\n\"+accumuloProp);
-    client = Accumulo.newClient().from(accumuloProp).build();
-    System.out.println(\"Use \"+'\"'+\"client\"+'\"'+\" to interact with Accumulo \\n\");
-  } 
-  if (clientPropUrl == null)
-    System.out.println(\"Client Build Error: accumulo-client.properties was not found \\n\");
-  "
+    var prop = new Properties(); 
+    
+    // Load in Accumulo properties
+    try (var in = clientPropUrl.openStream()) {
+      prop.load(in);
+    }
+    // Build Accumulo Client after try-with-resources is closed
+    System.out.println("Building Accumulo client using '" + clientPropUrl + "'\n");
+    name = prop.getProperty("instance.name");
+    zk = prop.getProperty("instance.zookeepers");
+    principal = prop.getProperty("auth.principal");
+    token = prop.getProperty("auth.token");
+      
+    client = Accumulo.newClient().to(name, zk).as(principal,token).build();
+    System.out.println("Use 'client' to interact with Accumulo\n");
+    
+  } else 
+      System.out.println("'accumulo-client.properties' was not found on the classpath\n");
+EOF
 }
 
 function main() {
@@ -88,7 +99,7 @@ function main() {
     echo 'import org.apache.hadoop.io.Text;'
     echo
     echo '// Initialization Code'
-    echo 'System.out.println("Preparing JShell for Apache Accumulo \n");'
+    echo 'System.out.println("Preparing JShell for Apache Accumulo\n");'
     echo
     echo '// Accumulo Client Build'
     addClientBuild
