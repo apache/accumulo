@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.server.metrics;
 
+import java.util.ServiceLoader;
+
+import org.apache.accumulo.server.metrics.service.MetricsServiceLoader;
 import org.apache.hadoop.metrics2.MetricsCollector;
 import org.apache.hadoop.metrics2.MetricsRecordBuilder;
 import org.apache.hadoop.metrics2.MetricsSource;
@@ -56,12 +59,19 @@ public abstract class Metrics implements MetricsSource {
       processName += serviceInstance;
     }
 
+    // alternate metrics system development
+    loadMetricsService();
+
     // create a new one if needed
     MetricsSystem ms = DefaultMetricsSystem.initialize("Accumulo");
     if (ms.getSource(JvmMetricsInfo.JvmMetrics.name()) == null) {
       JvmMetrics.create(processName, "", ms);
     }
     return ms;
+  }
+
+  private static void loadMetricsService() {
+    ServiceLoader<MetricsServiceLoader> loader = ServiceLoader.load(MetricsServiceLoader.class);
   }
 
   private final String name;
