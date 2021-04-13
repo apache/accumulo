@@ -19,50 +19,35 @@
 package org.apache.accumulo.server.metrics.service;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Map;
-import java.util.Properties;
-import java.util.ServiceLoader;
 
-import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.ConfigurationImpl;
+import org.easymock.EasyMock;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
-public class MetricsServiceLoaderTest {
+public class MetricsServiceFactoryTest {
 
-  private static Logger log = LoggerFactory.getLogger(MetricsServiceLoaderTest.class);
+  private static final Logger log = LoggerFactory.getLogger(MetricsServiceFactoryTest.class);
 
   @Test
   public void loadingTest() throws IOException {
-    ConfigurationCopy cc = new ConfigurationCopy(
 
-        Map.of(Property.GENERAL_METRICS_CONFIGURATION_PROPERTIES_FILE.getKey(),
-            "accumulo.metrics.configuration.properties"));
+    AccumuloConfiguration conf = EasyMock.mock(AccumuloConfiguration.class);
+    EasyMock.expect(conf.get("general.metrics.configuration.properties"))
+        .andReturn(Property.GENERAL_METRICS_CONFIGURATION_PROPERTIES_FILE.getDefaultValue())
+        .anyTimes();
 
-    ConfigurationImpl conf = new ConfigurationImpl(cc);
+    EasyMock.replay(conf);
 
     SimpleMeterRegistry registry = new SimpleMeterRegistry();
 
-    var propFile = Property.GENERAL_METRICS_CONFIGURATION_PROPERTIES_FILE;
+    MetricsServiceFactory factory = new MetricsServiceFactory(conf, registry);
 
-    log.info("Start search {}", conf.get(propFile.getKey()));
+    log.info("Factory: {}", factory);
 
-    ClassLoader clazz = this.getClass().getClassLoader();
-    InputStream in = clazz.getResourceAsStream(conf.get(propFile.getKey()));
-    Properties p = new Properties();
-    p.load(in);
-
-    // log.info("Props: {}", p.entrySet());
-
-    ServiceLoader<MetricsServiceLoader> loader = ServiceLoader.load(MetricsServiceLoader.class);
-    for (MetricsServiceLoader metrics : loader) {
-      log.info("register: {}", metrics.getClass().getName());
-      metrics.register(registry);
-    }
   }
 }

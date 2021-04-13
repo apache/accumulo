@@ -18,20 +18,11 @@
  */
 package org.apache.accumulo.server.metrics.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.auto.service.AutoService;
+import java.util.Map;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
-@AutoService(MetricsServiceLoader.class)
-public class LoggingLoader implements MetricsServiceLoader {
-
-  private static Logger log = LoggerFactory.getLogger(LoggingLoader.class);
-
-  @Override
-  public void register(final MeterRegistry registry) {
-    log.info("Loading metrics service {} to {}", LoggingLoader.class.getName(), registry);
-  }
+public interface MetricsRegistrationService {
+  void register(final String name, final Map<String,String> properties,
+      final MeterRegistry registry);
 }

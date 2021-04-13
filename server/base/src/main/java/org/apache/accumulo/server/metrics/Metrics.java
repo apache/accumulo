@@ -20,7 +20,7 @@ package org.apache.accumulo.server.metrics;
 
 import java.util.ServiceLoader;
 
-import org.apache.accumulo.server.metrics.service.MetricsServiceLoader;
+import org.apache.accumulo.server.metrics.service.MetricsRegistrationService;
 import org.apache.hadoop.metrics2.MetricsCollector;
 import org.apache.hadoop.metrics2.MetricsRecordBuilder;
 import org.apache.hadoop.metrics2.MetricsSource;
@@ -71,7 +71,8 @@ public abstract class Metrics implements MetricsSource {
   }
 
   private static void loadMetricsService() {
-    ServiceLoader<MetricsServiceLoader> loader = ServiceLoader.load(MetricsServiceLoader.class);
+    ServiceLoader<MetricsRegistrationService> loader =
+        ServiceLoader.load(MetricsRegistrationService.class);
   }
 
   private final String name;
