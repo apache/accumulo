@@ -195,6 +195,21 @@
             </excludes>
           </configuration>
         </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <configuration>
+            <!-- Tests that cannot run with reuseForks=true -->
+            <reuseForks>false</reuseForks>
+            <includes>
+              <include>**/TableIdTest.java</include>
+              <include>**/HadoopCredentialProviderTest.java</include>
+              <include>**/IdleRatioScanPrioritizerTest.java</include>
+              <include>**/TestCfCqSlice.java</include>
+              <include>**/TestCfCqSliceSeekingFilter.java</include>
+            </includes>
+          </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
