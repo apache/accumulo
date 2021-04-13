@@ -126,6 +126,7 @@
     <failsafe.excludedGroups />
     <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
+    <failsafe.reuseForks>false</failsafe.reuseForks>
     <hadoop.version>3.3.0</hadoop.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
     <htrace.version>3.2.0-incubating</htrace.version>
@@ -138,19 +139,17 @@
     <maven.compiler.target>11</maven.compiler.target>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-    <micrometer.version>1.6.5</micrometer.version>
     <powermock.version>2.0.9</powermock.version>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
     <project.build.outputTimestamp>2020-12-17T22:06:50Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
-    <!-- surefire/failsafe plugin option -->
-    <reuseForks>false</reuseForks>
     <slf4j.version>1.7.30</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
     <surefire.forkCount>1C</surefire.forkCount>
     <surefire.groups />
+    <surefire.reuseForks>false</surefire.reuseForks>
     <!-- 3.0.0-M5 causes RowHashIT.test and ShellServerIT.scansWithClassLoaderContext to fail -->
     <surefire.version>3.0.0-M4</surefire.version>
     <!-- Thrift version -->
@@ -260,11 +259,6 @@
         <groupId>commons-logging</groupId>
         <artifactId>commons-logging</artifactId>
         <version>1.2</version>
-      </dependency>
-      <dependency>
-        <groupId>io.micrometer</groupId>
-        <artifactId>micrometer-core</artifactId>
-        <version>${micrometer.version}</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>
@@ -820,6 +814,7 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
             <forkCount>${surefire.forkCount}</forkCount>
+            <reuseForks>${surefire.reuseForks}</reuseForks>
             <excludedGroups>${surefire.excludedGroups}</excludedGroups>
             <groups>${surefire.groups}</groups>
             <systemPropertyVariables>
@@ -833,6 +828,7 @@
           <artifactId>maven-failsafe-plugin</artifactId>
           <configuration>
             <forkCount>${failsafe.forkCount}</forkCount>
+            <reuseForks>${failsafe.reuseForks}</reuseForks>
             <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
             <groups>${failsafe.groups}</groups>
             <systemPropertyVariables>
@@ -1558,6 +1554,18 @@
       <properties>
         <failsafe.forkCount>${forkCount}</failsafe.forkCount>
         <surefire.forkCount>${forkCount}</surefire.forkCount>
+      </properties>
+    </profile>
+    <profile>
+      <id>reuseForks</id>
+      <activation>
+        <property>
+          <name>reuseForks</name>
+        </property>
+      </activation>
+      <properties>
+        <failsafe.reuseForks>${reuseForks}</failsafe.reuseForks>
+        <surefire.reuseForks>${reuseForks}</surefire.reuseForks>
       </properties>
     </profile>
   </profiles>
