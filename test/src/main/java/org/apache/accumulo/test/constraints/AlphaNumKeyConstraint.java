@@ -62,7 +62,7 @@ public class AlphaNumKeyConstraint implements Constraint {
   }
 
   @Override
-  public List<Short> check(Environment env, Mutation mutation) {
+  public List<Short> checkMutation(Environment env, Mutation mutation) {
     Set<Short> violations = null;
 
     if (!isAlphaNum(mutation.getRow()))

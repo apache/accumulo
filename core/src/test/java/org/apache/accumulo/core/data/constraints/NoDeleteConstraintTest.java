@@ -36,14 +36,14 @@ public class NoDeleteConstraintTest {
 
     NoDeleteConstraint ndc = new NoDeleteConstraint();
 
-    List<Short> results = ndc.check(null, m1);
+    List<Short> results = ndc.checkMutation(null, m1);
     assertEquals(1, results.size());
     assertEquals(1, results.get(0).intValue());
 
     Mutation m2 = new Mutation("r1");
     m2.put("f1", "q1", new Value("v1"));
 
-    results = ndc.check(null, m2);
+    results = ndc.checkMutation(null, m2);
     assertNull(results);
   }
 }

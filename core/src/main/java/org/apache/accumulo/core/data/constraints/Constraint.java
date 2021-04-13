@@ -48,6 +48,8 @@ public interface Constraint {
 
   /**
    * The environment within which a constraint exists.
+   *
+   * @since 2.1.0
    */
   interface Environment {
 
@@ -55,6 +57,7 @@ public interface Constraint {
      * Gets the tablet Id of the environment.
      *
      * @return TabletId
+     * @since 2.1.0
      */
     TabletId getTablet();
 
@@ -62,6 +65,7 @@ public interface Constraint {
      * Gets the user within the environment.
      *
      * @return user
+     * @since 2.1.0
      */
     String getUser();
 
@@ -69,6 +73,7 @@ public interface Constraint {
      * Gets the authorizations in the environment.
      *
      * @return authorizations
+     * @since 2.1.0
      */
     AuthorizationContainer getAuthorizationsContainer();
   }
@@ -79,6 +84,7 @@ public interface Constraint {
    * @param violationCode
    *          numeric violation code
    * @return matching violation description
+   * @since 2.1.0
    */
   String getViolationDescription(short violationCode);
 
@@ -88,11 +94,16 @@ public interface Constraint {
    *
    * Violation codes must be non-negative. Negative violation codes are reserved for system use.
    *
+   * New API equivalent of
+   * {@link org.apache.accumulo.core.constraints.Constraint#check(org.apache.accumulo.core.constraints.Constraint.Environment, Mutation)}
+   * but renamed to prevent ambiguous method call errors.
+   *
    * @param env
    *          constraint environment
    * @param mutation
    *          mutation to check
    * @return list of violation codes, or null if none
+   * @since 2.1.0
    */
-  List<Short> check(Environment env, Mutation mutation);
+  List<Short> checkMutation(Environment env, Mutation mutation);
 }

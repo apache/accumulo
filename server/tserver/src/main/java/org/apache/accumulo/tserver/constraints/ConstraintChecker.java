@@ -101,7 +101,7 @@ public class ConstraintChecker {
     Violations violations = null;
     for (Constraint constraint : getConstraints()) {
       try {
-        List<Short> violationCodes = constraint.check(env, m);
+        List<Short> violationCodes = constraint.checkMutation(env, m);
         if (violationCodes != null) {
           String className = constraint.getClass().getName();
           for (Short vcode : violationCodes) {

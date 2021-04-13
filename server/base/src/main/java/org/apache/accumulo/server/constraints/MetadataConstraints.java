@@ -123,7 +123,7 @@ public class MetadataConstraints implements Constraint {
   }
 
   @Override
-  public List<Short> check(Environment env, Mutation mutation) {
+  public List<Short> checkMutation(Environment env, Mutation mutation) {
     final ServerContext context = ((SystemEnvironment) env).getServerContext();
 
     ArrayList<Short> violations = null;

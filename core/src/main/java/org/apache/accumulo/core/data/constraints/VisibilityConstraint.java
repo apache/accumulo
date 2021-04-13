@@ -56,7 +56,7 @@ public class VisibilityConstraint implements Constraint {
   }
 
   @Override
-  public List<Short> check(Environment env, Mutation mutation) {
+  public List<Short> checkMutation(Environment env, Mutation mutation) {
     List<ColumnUpdate> updates = mutation.getUpdates();
 
     HashSet<String> ok = null;

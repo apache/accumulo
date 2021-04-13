@@ -84,4 +84,16 @@ public interface Constraint extends org.apache.accumulo.core.data.constraints.Co
    * @return list of violation codes, or null if none
    */
   List<Short> check(Environment env, Mutation mutation);
+
+  /**
+   * For backwards compatibility. New API equivalent of {@link #check(Environment, Mutation)} but
+   * renamed to prevent ambiguous method call errors.
+   *
+   * @since 2.1.0
+   */
+  @Override
+  default List<Short> checkMutation(
+      org.apache.accumulo.core.data.constraints.Constraint.Environment env, Mutation mutation) {
+    throw new UnsupportedOperationException();
+  }
 }

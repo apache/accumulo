@@ -35,14 +35,14 @@ public class NumericValueConstraintTest {
   public void testCheck() {
     Mutation goodMutation = new Mutation(new Text("r"));
     goodMutation.put("cf", "cq", "1234");
-    assertNull(nvc.check(null, goodMutation));
+    assertNull(nvc.checkMutation(null, goodMutation));
 
     // Check that multiple bad mutations result in one violation only
     Mutation badMutation = new Mutation(new Text("r"));
     badMutation.put("cf", "cq", "foo1234");
     badMutation.put("cf2", "cq2", "foo1234");
     assertEquals(NumericValueConstraint.NON_NUMERIC_VALUE,
-        Iterables.getOnlyElement(nvc.check(null, badMutation)).shortValue());
+        Iterables.getOnlyElement(nvc.checkMutation(null, badMutation)).shortValue());
   }
 
   @Test

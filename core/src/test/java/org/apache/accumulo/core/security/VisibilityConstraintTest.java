@@ -68,33 +68,33 @@ public class VisibilityConstraintTest {
   @Test
   public void testNoVisibility() {
     mutation.put(D, D, D);
-    assertNull("authorized", vc.check(env, mutation));
+    assertNull("authorized", vc.checkMutation(env, mutation));
   }
 
   @Test
   public void testVisibilityNoAuth() {
     mutation.put(D, D, bad, D);
-    assertEquals("unauthorized", ENOAUTH, vc.check(env, mutation));
+    assertEquals("unauthorized", ENOAUTH, vc.checkMutation(env, mutation));
   }
 
   @Test
   public void testGoodVisibilityAuth() {
     mutation.put(D, D, good, D);
-    assertNull("authorized", vc.check(env, mutation));
+    assertNull("authorized", vc.checkMutation(env, mutation));
   }
 
   @Test
   public void testCachedVisibilities() {
     mutation.put(D, D, good, "v");
     mutation.put(D, D, good, "v2");
-    assertNull("authorized", vc.check(env, mutation));
+    assertNull("authorized", vc.checkMutation(env, mutation));
   }
 
   @Test
   public void testMixedVisibilities() {
     mutation.put(D, D, bad, D);
     mutation.put(D, D, good, D);
-    assertEquals("unauthorized", ENOAUTH, vc.check(env, mutation));
+    assertEquals("unauthorized", ENOAUTH, vc.checkMutation(env, mutation));
   }
 
 }

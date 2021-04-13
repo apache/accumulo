@@ -71,7 +71,7 @@ public class ConstraintCheckerTest {
 
   private Constraint makeSuccessConstraint() {
     Constraint c = createMock(Constraint.class);
-    expect(c.check(env, m)).andReturn(null); // no violations
+    expect(c.checkMutation(env, m)).andReturn(null); // no violations
     replay(c);
     return c;
   }
@@ -83,7 +83,7 @@ public class ConstraintCheckerTest {
     List<Short> vCodes = List.of(code1, code2);
     expect(c.getViolationDescription(code1)).andReturn("ViolationCode1");
     expect(c.getViolationDescription(code2)).andReturn("ViolationCode2");
-    expect(c.check(env, m)).andReturn(vCodes);
+    expect(c.checkMutation(env, m)).andReturn(vCodes);
     replay(c);
     return c;
   }
@@ -97,7 +97,7 @@ public class ConstraintCheckerTest {
 
   private Constraint makeExceptionConstraint() {
     Constraint c = createMock(Constraint.class);
-    expect(c.check(env, m)).andThrow(new RuntimeException("some exception"));
+    expect(c.checkMutation(env, m)).andThrow(new RuntimeException("some exception"));
     replay(c);
     return c;
   }
