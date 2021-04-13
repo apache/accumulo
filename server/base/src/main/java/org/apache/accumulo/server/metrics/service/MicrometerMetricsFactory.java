@@ -22,19 +22,21 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.ServiceLoader;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 
-public class MetricsServiceFactory {
+public class MicrometerMetricsFactory {
 
   private static final Pattern MATCH_ON_NAME =
       Pattern.compile("metrics.service.(?<index>\\d+).name");
@@ -42,17 +44,21 @@ public class MetricsServiceFactory {
   private static final Property METRICS_CONFIG_PROPERTIES =
       Property.GENERAL_METRICS_CONFIGURATION_PROPERTIES_FILE;
 
-  private static final Logger log = LoggerFactory.getLogger(MetricsServiceFactory.class);
+  private static final Logger log = LoggerFactory.getLogger(MicrometerMetricsFactory.class);
 
-  public MetricsServiceFactory(final AccumuloConfiguration conf, final MeterRegistry registry) {
+  private final CompositeMeterRegistry registry;
+
+  private MicrometerMetricsFactory(final ServerContext context, final String appName) {
+
+    registry = new CompositeMeterRegistry();
 
     var propKey = METRICS_CONFIG_PROPERTIES.getKey();
 
-    log.debug("Load metrics configuration properties  {}", conf.get(propKey));
+    var filename = context.getConfiguration().get(propKey);
+
+    log.debug("Load metrics configuration properties  {}", filename);
 
     try {
-
-      var filename = conf.get(propKey);
 
       Map<String,Map<String,String>> serviceProperties = loadFromClasspath(filename);
 
@@ -73,6 +79,20 @@ public class MetricsServiceFactory {
           ex);
     }
 
+  }
+
+  public MeterRegistry getRegistry() {
+    return registry;
+  }
+
+  private static MicrometerMetricsFactory _instance = null;
+
+  public static synchronized MicrometerMetricsFactory create(final ServerContext context,
+      final String appName) {
+    if (Objects.isNull(_instance)) {
+      _instance = new MicrometerMetricsFactory(context, appName);
+    }
+    return _instance;
   }
 
   /**

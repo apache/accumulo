@@ -26,6 +26,8 @@ import static org.junit.Assert.assertTrue;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.ZooStore;
@@ -34,6 +36,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.metrics.service.MicrometerMetricsFactory;
 import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.ZooKeeper;
@@ -47,6 +50,8 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 /**
  * Test FATE metrics using stubs and in-memory version of supporting infrastructure - a test
@@ -65,6 +70,7 @@ public class FateMetricsIT {
   private ZooKeeper zookeeper = null;
   private ServerContext context = null;
   private Manager manager;
+  private SimpleMeterRegistry testRegistry = new SimpleMeterRegistry();
 
   @BeforeClass
   public static void setupZk() {
@@ -99,10 +105,22 @@ public class FateMetricsIT {
     manager = EasyMock.createMock(Manager.class);
     context = EasyMock.createMock(ServerContext.class);
 
+    MicrometerMetricsFactory mmFactory = EasyMock.createMock(MicrometerMetricsFactory.class);
+    EasyMock.expect(manager.getMicrometerMetrics()).andReturn(mmFactory).anyTimes();
+
+    EasyMock.expect(mmFactory.getRegistry()).andReturn(testRegistry);
+
     EasyMock.expect(context.getZooReaderWriter()).andReturn(zooReaderWriter).anyTimes();
     EasyMock.expect(context.getZooKeeperRoot()).andReturn(MOCK_ZK_ROOT).anyTimes();
 
-    EasyMock.replay(manager, context);
+    AccumuloConfiguration conf = EasyMock.mock(AccumuloConfiguration.class);
+
+    EasyMock.expect(context.getConfiguration()).andReturn(conf);
+    EasyMock.expect(conf.get("general.metrics.configuration.properties"))
+        .andReturn(Property.GENERAL_METRICS_CONFIGURATION_PROPERTIES_FILE.getDefaultValue())
+        .anyTimes();
+
+    EasyMock.replay(manager, context, mmFactory);
   }
 
   @After
@@ -116,7 +134,9 @@ public class FateMetricsIT {
   @Test
   public void noFates() {
 
-    FateMetrics metrics = new FateMetrics(context, 10);
+    log.warn("MMF: {}", manager.getMicrometerMetrics());
+
+    FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
     metrics.overrideRefresh(0);
 
     InMemTestCollector collector = new InMemTestCollector();
@@ -158,7 +178,7 @@ public class FateMetricsIT {
     long tx1Id = zooStore.create();
     log.debug("ZooStore tx1 id {}", tx1Id);
 
-    FateMetrics metrics = new FateMetrics(context, 10);
+    FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
     metrics.overrideRefresh(0);
 
     InMemTestCollector collector = new InMemTestCollector();
@@ -194,7 +214,7 @@ public class FateMetricsIT {
     log.debug("FATE tx: {}", prettyStat(
         zookeeper.exists(MOCK_ZK_ROOT + "/fate/" + String.format("tx_%016x", tx1Id), false)));
 
-    FateMetrics metrics = new FateMetrics(context, 10);
+    FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
     metrics.overrideRefresh(0);
 
     InMemTestCollector collector = new InMemTestCollector();
@@ -206,6 +226,8 @@ public class FateMetricsIT {
     assertTrue(collector.contains("FateTxState_IN_PROGRESS"));
     assertEquals(1L, collector.getValue("FateTxState_IN_PROGRESS"));
     assertEquals(1L, collector.getValue("FateTxOpType_FakeOp"));
+
+    assertEquals(1.0, testRegistry.get("current.fateOps").gauge().value(), 0.1);
 
     EasyMock.verify(manager);
   }
@@ -245,7 +267,7 @@ public class FateMetricsIT {
     zooStore.setStatus(txId, ReadOnlyTStore.TStatus.SUCCESSFUL);
     zooStore.unreserve(txId, 50);
 
-    FateMetrics metrics = new FateMetrics(context, 10);
+    FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
     metrics.overrideRefresh(0);
 
     InMemTestCollector collector = new InMemTestCollector();

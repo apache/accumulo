@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.metrics.fate;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -29,6 +30,7 @@ import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.metrics.service.MicrometerMetricsFactory;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 import org.apache.hadoop.metrics2.lib.MutableGaugeLong;
 import org.apache.zookeeper.KeeperException;
@@ -41,35 +43,34 @@ public class FateMetrics extends ManagerMetrics {
 
   // limit calls to update fate counters to guard against hammering zookeeper.
   private static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(10);
-  private long minimumRefreshDelay;
-
   private static final String FATE_TX_STATE_METRIC_PREFIX = "FateTxState_";
   private static final String FATE_OP_TYPE_METRIC_PREFIX = "FateTxOpType_";
-
   private final MutableGaugeLong currentFateOps;
   private final MutableGaugeLong zkChildFateOpsTotal;
   private final MutableGaugeLong zkConnectionErrorsTotal;
-
   private final Map<String,MutableGaugeLong> fateTypeCounts = new TreeMap<>();
   private final Map<String,MutableGaugeLong> fateOpCounts = new TreeMap<>();
-
+  private final AtomicLong mmCurrentFateOps;
   /*
    * lock should be used to guard read and write access to metricValues and the lastUpdate
    * timestamp.
    */
   private final Lock metricsValuesLock = new ReentrantLock();
-  private FateMetricValues metricValues;
-  private volatile long lastUpdate = 0;
-
   private final ServerContext context;
   private final ReadOnlyTStore<FateMetrics> zooStore;
   private final String fateRootPath;
+  private long minimumRefreshDelay;
+  private FateMetricValues metricValues;
+  private volatile long lastUpdate = 0;
 
-  public FateMetrics(final ServerContext context, final long minimumRefreshDelay) {
+  public FateMetrics(final ServerContext context, final long minimumRefreshDelay,
+      MicrometerMetricsFactory micrometerMetrics) {
     super("Fate", "Fate Metrics", "fate");
 
     this.context = context;
     fateRootPath = context.getZooKeeperRoot() + Constants.ZFATE;
+
+    mmCurrentFateOps = micrometerMetrics.getRegistry().gauge("current.fateOps", new AtomicLong(0));
 
     try {
 
@@ -142,6 +143,7 @@ public class FateMetrics extends ManagerMetrics {
 
     // update individual gauges that are reported.
     currentFateOps.set(metricValues.getCurrentFateOps());
+    mmCurrentFateOps.set(metricValues.getCurrentFateOps());
     zkChildFateOpsTotal.set(metricValues.getZkFateChildOpsTotal());
     zkConnectionErrorsTotal.set(metricValues.getZkConnectionErrors());
 

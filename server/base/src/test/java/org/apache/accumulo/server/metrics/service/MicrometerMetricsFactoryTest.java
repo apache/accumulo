@@ -22,32 +22,45 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.server.ServerContext;
 import org.easymock.EasyMock;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.micrometer.core.instrument.Counter;
 
-public class MetricsServiceFactoryTest {
+public class MicrometerMetricsFactoryTest {
 
-  private static final Logger log = LoggerFactory.getLogger(MetricsServiceFactoryTest.class);
+  private static final Logger log = LoggerFactory.getLogger(MicrometerMetricsFactoryTest.class);
 
   @Test
   public void loadingTest() throws IOException {
 
+    ServerContext context = EasyMock.mock(ServerContext.class);
     AccumuloConfiguration conf = EasyMock.mock(AccumuloConfiguration.class);
+
+    EasyMock.expect(context.getConfiguration()).andReturn(conf);
     EasyMock.expect(conf.get("general.metrics.configuration.properties"))
         .andReturn(Property.GENERAL_METRICS_CONFIGURATION_PROPERTIES_FILE.getDefaultValue())
         .anyTimes();
 
-    EasyMock.replay(conf);
+    EasyMock.replay(context, conf);
 
-    SimpleMeterRegistry registry = new SimpleMeterRegistry();
-
-    MetricsServiceFactory factory = new MetricsServiceFactory(conf, registry);
-
+    MicrometerMetricsFactory factory = MicrometerMetricsFactory.create(context, "test");
     log.info("Factory: {}", factory);
+
+    Counter counter = Counter.builder("test.counter").register(factory.getRegistry());
+
+    int count = 20;
+    while (count-- > 0) {
+      try {
+        counter.increment(1.0);
+        Thread.sleep(1_000);
+      } catch (InterruptedException ex) {
+        // ignore
+      }
+    }
 
   }
 }

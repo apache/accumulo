@@ -20,9 +20,9 @@ package org.apache.accumulo.server.metrics.service;
 
 import java.util.Map;
 
-import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 
 public interface MetricsRegistrationService {
   void register(final String name, final Map<String,String> properties,
-      final MeterRegistry registry);
+      final CompositeMeterRegistry registry);
 }
