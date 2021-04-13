@@ -149,7 +149,7 @@
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
     <surefire.forkCount>1C</surefire.forkCount>
     <surefire.groups />
-    <surefire.reuseForks>true</surefire.reuseForks>
+    <surefire.reuseForks>false</surefire.reuseForks>
     <!-- 3.0.0-M5 causes RowHashIT.test and ShellServerIT.scansWithClassLoaderContext to fail -->
     <surefire.version>3.0.0-M4</surefire.version>
     <!-- Thrift version -->
@@ -816,15 +816,6 @@
             <forkCount>${surefire.forkCount}</forkCount>
             <reuseForks>${surefire.reuseForks}</reuseForks>
             <excludedGroups>${surefire.excludedGroups}</excludedGroups>
-            <!-- Tests to exclude due to not working with reuseForks being True -->
-            <excludes>
-              <exclude>**/TableIdTest.java</exclude>
-              <exclude>**/HadoopCredentialProviderTest.java</exclude>
-              <exclude>**/IdleRatioScanPrioritizerTest.java</exclude>
-              <exclude>**/AssignmentWatcherTest.java</exclude>
-              <exclude>**/TestCfCqSlice.java</exclude>
-              <exclude>**/TestCfCqSliceSeekingFilter.java</exclude>
-            </excludes>
             <groups>${surefire.groups}</groups>
             <systemPropertyVariables>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
