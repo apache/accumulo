@@ -103,7 +103,8 @@ public class BulkSerializeTest {
     Input input = p -> {
       if (p.getName().equals(Constants.BULK_LOAD_MAPPING)) {
         return new ByteArrayInputStream(mappingBaos.toByteArray());
-      } else if (p.getName().equals(Constants.BULK_RENAME_FILE)) {
+      }
+      if (p.getName().equals(Constants.BULK_RENAME_FILE)) {
         return new ByteArrayInputStream(nameBaos.toByteArray());
       } else {
         throw new IllegalArgumentException("bad path " + p);

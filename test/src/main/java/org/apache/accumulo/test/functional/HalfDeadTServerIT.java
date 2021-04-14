@@ -145,11 +145,8 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
   @Test
   public void testTimeout() throws Exception {
     String results = test(20, true);
-    if (results != null) {
-      if (!results.contains("Session expired")) {
-        log.info(
-            "Failed to find 'Session expired' in output, but TServer did die which is expected");
-      }
+    if ((results != null) && !results.contains("Session expired")) {
+      log.info("Failed to find 'Session expired' in output, but TServer did die which is expected");
     }
   }
 
@@ -169,8 +166,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
       String classpath = System.getProperty("java.class.path");
       classpath = new File(cluster.getConfig().getDir(), "conf") + File.pathSeparator + classpath;
       String className = TabletServer.class.getName();
-      ArrayList<String> argList = new ArrayList<>();
-      argList.addAll(Arrays.asList(javaBin, "-cp", classpath));
+      ArrayList<String> argList = new ArrayList<>(Arrays.asList(javaBin, "-cp", classpath));
       argList.addAll(Arrays.asList(Main.class.getName(), className));
       ProcessBuilder builder = new ProcessBuilder(argList);
       Map<String,String> env = builder.environment();

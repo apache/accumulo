@@ -76,9 +76,8 @@ public class LoadMappingIterator
     if (renameMap != null) {
       return new AbstractMap.SimpleEntry<>(bm.getKeyExtent(tableId),
           bm.getFiles().mapNames(renameMap));
-    } else {
-      return new AbstractMap.SimpleEntry<>(bm.getKeyExtent(tableId), bm.getFiles());
     }
+    return new AbstractMap.SimpleEntry<>(bm.getKeyExtent(tableId), bm.getFiles());
   }
 
 }

@@ -659,7 +659,7 @@ class FateServiceHandler implements FateService.Iface {
       Exception e = manager.fate.getException(opid);
       if (e instanceof ThriftTableOperationException)
         throw (ThriftTableOperationException) e;
-      else if (e instanceof ThriftSecurityException)
+      if (e instanceof ThriftSecurityException)
         throw (ThriftSecurityException) e;
       else if (e instanceof RuntimeException)
         throw (RuntimeException) e;

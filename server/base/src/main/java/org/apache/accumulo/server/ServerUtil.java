@@ -124,14 +124,12 @@ public class ServerUtil {
       String key = entry.getKey();
       log.info("{} = {}", key, (Property.isSensitive(key) ? "<hidden>" : entry.getValue()));
       Property prop = Property.getPropertyByKey(key);
-      if (prop != null && conf.isPropertySet(prop, false)) {
-        if (prop.isDeprecated()) {
-          Property replacedBy = prop.replacedBy();
-          if (replacedBy != null) {
-            log.warn("{} is deprecated, use {} instead.", prop.getKey(), replacedBy.getKey());
-          } else {
-            log.warn("{} is deprecated", prop.getKey());
-          }
+      if ((prop != null && conf.isPropertySet(prop, false)) && prop.isDeprecated()) {
+        Property replacedBy = prop.replacedBy();
+        if (replacedBy != null) {
+          log.warn("{} is deprecated, use {} instead.", prop.getKey(), replacedBy.getKey());
+        } else {
+          log.warn("{} is deprecated", prop.getKey());
         }
       }
     }
@@ -217,23 +215,22 @@ public class ServerUtil {
         log.warn("Unable to connect to HDFS", ex);
       } catch (IllegalArgumentException e) {
         /* Unwrap the UnknownHostException so we can deal with it directly */
-        if (e.getCause() instanceof UnknownHostException) {
-          if (unknownHostTries > 0) {
-            log.warn("Unable to connect to HDFS, will retry. cause: {}", e.getCause());
-            /*
-             * We need to make sure our sleep period is long enough to avoid getting a cached
-             * failure of the host lookup.
-             */
-            int ttl = AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) e.getCause());
-            sleep = Math.max(sleep, (ttl + 1) * 1000L);
-          } else {
-            log.error("Unable to connect to HDFS and exceeded the maximum number of retries.", e);
-            throw e;
-          }
-          unknownHostTries--;
-        } else {
+        if (!(e.getCause() instanceof UnknownHostException)) {
           throw e;
         }
+        if (unknownHostTries > 0) {
+          log.warn("Unable to connect to HDFS, will retry. cause: {}", e.getCause());
+          /*
+           * We need to make sure our sleep period is long enough to avoid getting a cached failure
+           * of the host lookup.
+           */
+          int ttl = AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) e.getCause());
+          sleep = Math.max(sleep, (ttl + 1) * 1000L);
+        } else {
+          log.error("Unable to connect to HDFS and exceeded the maximum number of retries.", e);
+          throw e;
+        }
+        unknownHostTries--;
       }
       log.info("Backing off due to failure; current sleep period is {} seconds", sleep / 1000.);
       sleepUninterruptibly(sleep, TimeUnit.MILLISECONDS);

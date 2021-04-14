@@ -42,11 +42,9 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloITBase;
-import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.MiniClusterHarness;
 import org.apache.accumulo.harness.TestingKdc;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
@@ -113,19 +111,14 @@ public class KerberosRenewalIT extends AccumuloITBase {
   @Before
   public void startMac() throws Exception {
     MiniClusterHarness harness = new MiniClusterHarness();
-    mac = harness.create(this, new PasswordToken("unused"), kdc,
-        new MiniClusterConfigurationCallback() {
-
-          @Override
-          public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-            Map<String,String> site = cfg.getSiteConfig();
-            site.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
-            // Reduce the period just to make sure we trigger renewal fast
-            site.put(Property.GENERAL_KERBEROS_RENEWAL_PERIOD.getKey(), "5s");
-            cfg.setSiteConfig(site);
-            cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
-          }
-        });
+    mac = harness.create(this, new PasswordToken("unused"), kdc, (cfg, coreSite) -> {
+      Map<String,String> site = cfg.getSiteConfig();
+      site.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
+      // Reduce the period just to make sure we trigger renewal fast
+      site.put(Property.GENERAL_KERBEROS_RENEWAL_PERIOD.getKey(), "5s");
+      cfg.setSiteConfig(site);
+      cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
+    });
 
     mac.getConfig().setNumTservers(1);
     mac.start();

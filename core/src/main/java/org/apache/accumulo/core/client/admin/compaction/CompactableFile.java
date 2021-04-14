@@ -27,13 +27,13 @@ import org.apache.accumulo.core.metadata.CompactableFileImpl;
  */
 public interface CompactableFile {
 
-  public String getFileName();
+  String getFileName();
 
-  public URI getUri();
+  URI getUri();
 
-  public long getEstimatedSize();
+  long getEstimatedSize();
 
-  public long getEstimatedEntries();
+  long getEstimatedEntries();
 
   static CompactableFile create(URI uri, long estimatedSize, long estimatedEntries) {
     return new CompactableFileImpl(uri, estimatedSize, estimatedEntries);

@@ -110,16 +110,13 @@ public class CompactionService {
 
     @Override
     public ExecutorManager getExecutorManager() {
-      return new ExecutorManager() {
-        @Override
-        public CompactionExecutorId createExecutor(String executorName, int threads) {
-          Preconditions.checkArgument(threads > 0, "Positive number of threads required : %s",
-              threads);
-          var ceid = CompactionExecutorId.of(myId + "." + executorName);
-          Preconditions.checkState(!requestedExecutors.containsKey(ceid));
-          requestedExecutors.put(ceid, threads);
-          return ceid;
-        }
+      return (executorName, threads) -> {
+        Preconditions.checkArgument(threads > 0, "Positive number of threads required : %s",
+            threads);
+        var ceid = CompactionExecutorId.of(myId + "." + executorName);
+        Preconditions.checkState(!requestedExecutors.containsKey(ceid));
+        requestedExecutors.put(ceid, threads);
+        return ceid;
       };
     }
 
@@ -181,10 +178,8 @@ public class CompactionService {
       // only read status once to avoid race conditions since multiple compares are done
       var status = submittedJob.getStatus();
       if (status == Status.QUEUED) {
-        if (!jobs.remove(submittedJob.getJob())) {
-          if (!submittedJob.cancel(Status.QUEUED)) {
-            return false;
-          }
+        if (!jobs.remove(submittedJob.getJob()) && !submittedJob.cancel(Status.QUEUED)) {
+          return false;
         }
       } else if (status == Status.RUNNING) {
         for (CompactionJob job : jobs) {
@@ -268,8 +263,7 @@ public class CompactionService {
       public Map<String,String> getExecutionHints() {
         if (kind == CompactionKind.USER)
           return files.get().executionHints;
-        else
-          return Map.of();
+        return Map.of();
       }
 
       @Override

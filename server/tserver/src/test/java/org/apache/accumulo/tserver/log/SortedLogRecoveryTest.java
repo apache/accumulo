@@ -90,8 +90,7 @@ public class SortedLogRecoveryTest {
 
     @Override
     public boolean equals(Object obj) {
-      return this == obj
-          || (obj != null && obj instanceof KeyValue && 0 == compareTo((KeyValue) obj));
+      return this == obj || (obj instanceof KeyValue && 0 == compareTo((KeyValue) obj));
     }
 
     @Override
@@ -783,8 +782,7 @@ public class SortedLogRecoveryTest {
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
 
-    HashSet<String> filesSet = new HashSet<>();
-    filesSet.addAll(Arrays.asList(tabletFiles));
+    HashSet<String> filesSet = new HashSet<>(Arrays.asList(tabletFiles));
     List<Mutation> mutations = recover(logs, filesSet, extent);
 
     if (startMatches) {

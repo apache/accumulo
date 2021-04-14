@@ -158,11 +158,9 @@ public class MetadataConstraints implements Constraint {
       if (row.length == 0) {
         violations = addIfNotPresent(violations, 4);
       }
-    } else {
-      // see if last row char is <
-      if (row.length == 0 || row[row.length - 1] != '<') {
-        violations = addIfNotPresent(violations, 4);
-      }
+    } else // see if last row char is <
+    if (row.length == 0 || row[row.length - 1] != '<') {
+      violations = addIfNotPresent(violations, 4);
     }
 
     if (row.length > 0 && row[0] == '!') {
@@ -257,44 +255,42 @@ public class MetadataConstraints implements Constraint {
 
           checkedBulk = true;
         }
-      } else {
-        if (!isValidColumn(columnUpdate)) {
-          violations = addViolation(violations, 2);
-        } else if (new ColumnFQ(columnUpdate).equals(TabletColumnFamily.PREV_ROW_COLUMN)
-            && columnUpdate.getValue().length > 0
-            && (violations == null || !violations.contains((short) 4))) {
-          KeyExtent ke = KeyExtent.fromMetaRow(new Text(mutation.getRow()));
+      } else if (!isValidColumn(columnUpdate)) {
+        violations = addViolation(violations, 2);
+      } else if (new ColumnFQ(columnUpdate).equals(TabletColumnFamily.PREV_ROW_COLUMN)
+          && columnUpdate.getValue().length > 0
+          && (violations == null || !violations.contains((short) 4))) {
+        KeyExtent ke = KeyExtent.fromMetaRow(new Text(mutation.getRow()));
 
-          Text per = TabletColumnFamily.decodePrevEndRow(new Value(columnUpdate.getValue()));
+        Text per = TabletColumnFamily.decodePrevEndRow(new Value(columnUpdate.getValue()));
 
-          boolean prevEndRowLessThanEndRow =
-              per == null || ke.endRow() == null || per.compareTo(ke.endRow()) < 0;
+        boolean prevEndRowLessThanEndRow =
+            per == null || ke.endRow() == null || per.compareTo(ke.endRow()) < 0;
 
-          if (!prevEndRowLessThanEndRow) {
-            violations = addViolation(violations, 3);
-          }
-        } else if (new ColumnFQ(columnUpdate).equals(ServerColumnFamily.LOCK_COLUMN)) {
-          if (zooCache == null) {
-            zooCache = new ZooCache(context.getZooReaderWriter(), null);
-            CleanerUtil.zooCacheClearer(this, zooCache);
-          }
+        if (!prevEndRowLessThanEndRow) {
+          violations = addViolation(violations, 3);
+        }
+      } else if (new ColumnFQ(columnUpdate).equals(ServerColumnFamily.LOCK_COLUMN)) {
+        if (zooCache == null) {
+          zooCache = new ZooCache(context.getZooReaderWriter(), null);
+          CleanerUtil.zooCacheClearer(this, zooCache);
+        }
 
-          if (zooRoot == null) {
-            zooRoot = context.getZooKeeperRoot();
-          }
+        if (zooRoot == null) {
+          zooRoot = context.getZooKeeperRoot();
+        }
 
-          boolean lockHeld = false;
-          String lockId = new String(columnUpdate.getValue(), UTF_8);
+        boolean lockHeld = false;
+        String lockId = new String(columnUpdate.getValue(), UTF_8);
 
-          try {
-            lockHeld = ServiceLock.isLockHeld(zooCache, new ZooUtil.LockID(zooRoot, lockId));
-          } catch (Exception e) {
-            log.debug("Failed to verify lock was held {} {}", lockId, e.getMessage());
-          }
+        try {
+          lockHeld = ServiceLock.isLockHeld(zooCache, new ZooUtil.LockID(zooRoot, lockId));
+        } catch (Exception e) {
+          log.debug("Failed to verify lock was held {} {}", lockId, e.getMessage());
+        }
 
-          if (!lockHeld) {
-            violations = addViolation(violations, 7);
-          }
+        if (!lockHeld) {
+          violations = addViolation(violations, 7);
         }
       }
     }

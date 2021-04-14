@@ -176,7 +176,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       }
 
       return candidates.iterator();
-    } else if (level == DataLevel.METADATA || level == DataLevel.USER) {
+    }
+    if (level == DataLevel.METADATA || level == DataLevel.USER) {
       Range range = DeletesSection.getRange();
       if (continuePoint != null && !continuePoint.isEmpty()) {
         String continueRow = DeletesSection.encodeRow(continuePoint);
@@ -206,9 +207,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     try {
       if (MetadataTable.ID.equals(tableId)) {
         return context.createBatchWriter(RootTable.NAME);
-      } else {
-        return context.createBatchWriter(MetadataTable.NAME);
       }
+      return context.createBatchWriter(MetadataTable.NAME);
     } catch (TableNotFoundException e) {
       throw new RuntimeException(e);
     }

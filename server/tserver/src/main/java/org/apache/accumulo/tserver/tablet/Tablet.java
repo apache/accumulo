@@ -392,11 +392,10 @@ public class Tablet {
 
       } catch (Exception t) {
         String msg = "Error recovering tablet " + extent + " from log files";
-        if (tableConfiguration.getBoolean(Property.TABLE_FAILURES_IGNORE)) {
-          log.warn(msg, t);
-        } else {
+        if (!tableConfiguration.getBoolean(Property.TABLE_FAILURES_IGNORE)) {
           throw new RuntimeException(msg, t);
         }
+        log.warn(msg, t);
       }
       // make some closed references that represent the recovered logs
       currentLogs = new HashSet<>();
@@ -548,23 +547,21 @@ public class Tablet {
             entriesAdded);
         tabletClosed = true;
       } catch (IOException ioe) {
-        if (ShutdownUtil.isShutdownInProgress()) {
-          // assume HDFS shutdown hook caused this exception
-          log.debug("IOException while shutdown in progress", ioe);
-          handleTabletClosedDuringScan(results, lookupResult, exceededMemoryUsage, range,
-              entriesAdded);
-          tabletClosed = true;
-        } else {
+        if (!ShutdownUtil.isShutdownInProgress()) {
           throw ioe;
         }
+        // assume HDFS shutdown hook caused this exception
+        log.debug("IOException while shutdown in progress", ioe);
+        handleTabletClosedDuringScan(results, lookupResult, exceededMemoryUsage, range,
+            entriesAdded);
+        tabletClosed = true;
       } catch (IterationInterruptedException iie) {
-        if (isClosed()) {
-          handleTabletClosedDuringScan(results, lookupResult, exceededMemoryUsage, range,
-              entriesAdded);
-          tabletClosed = true;
-        } else {
+        if (!isClosed()) {
           throw iie;
         }
+        handleTabletClosedDuringScan(results, lookupResult, exceededMemoryUsage, range,
+            entriesAdded);
+        tabletClosed = true;
       } catch (TabletClosedException tce) {
         handleTabletClosedDuringScan(results, lookupResult, exceededMemoryUsage, range,
             entriesAdded);
@@ -982,9 +979,8 @@ public class Tablet {
     } catch (KeeperException ke) {
       if (ke instanceof NoNodeException) {
         throw (NoNodeException) ke;
-      } else {
-        throw new RuntimeException("Exception on " + extent + " getting flush ID", ke);
       }
+      throw new RuntimeException("Exception on " + extent + " getting flush ID", ke);
     }
   }
 
@@ -1031,9 +1027,8 @@ public class Tablet {
     } catch (KeeperException ke) {
       if (ke instanceof NoNodeException) {
         throw (NoNodeException) ke;
-      } else {
-        throw new RuntimeException("Exception on " + extent + " getting compaction ID", ke);
       }
+      throw new RuntimeException("Exception on " + extent + " getting compaction ID", ke);
     }
   }
 
@@ -1505,14 +1500,13 @@ public class Tablet {
    */
   private boolean isFindSplitsSuppressed() {
     if (supressFindSplits) {
-      if (timeOfLastMinCWhenFindSplitsWasSupressed != lastMinorCompactionFinishTime
-          || timeOfLastImportWhenFindSplitsWasSupressed != lastMapFileImportTime) {
-        // a minor compaction or map file import has occurred... check again
-        supressFindSplits = false;
-      } else {
+      if ((timeOfLastMinCWhenFindSplitsWasSupressed == lastMinorCompactionFinishTime)
+          && (timeOfLastImportWhenFindSplitsWasSupressed == lastMapFileImportTime)) {
         // nothing changed, do not split
         return true;
       }
+      // a minor compaction or map file import has occurred... check again
+      supressFindSplits = false;
     }
 
     return false;
@@ -2069,13 +2063,12 @@ public class Tablet {
 
       if (isMinorCompactionRunning()) {
         // want to wait for running minc to finish before starting majc, see ACCUMULO-3041
-        if (compactionWaitInfo.compactionID == compactionId) {
-          if (lastFlushID == compactionWaitInfo.flushID) {
-            return;
-          }
-        } else {
+        if (compactionWaitInfo.compactionID != compactionId) {
           compactionWaitInfo.compactionID = compactionId;
           compactionWaitInfo.flushID = lastFlushID;
+          return;
+        }
+        if (lastFlushID == compactionWaitInfo.flushID) {
           return;
         }
       }
@@ -2228,10 +2221,9 @@ public class Tablet {
   private static String createTabletDirectoryName(ServerContext context, Text endRow) {
     if (endRow == null) {
       return ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
-    } else {
-      UniqueNameAllocator namer = context.getUniqueNameAllocator();
-      return Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
     }
+    UniqueNameAllocator namer = context.getUniqueNameAllocator();
+    return Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
   }
 
   public Set<Long> getBulkIngestedTxIds() {

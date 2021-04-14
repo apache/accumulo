@@ -31,7 +31,7 @@ public enum MemoryUnit {
   private final long multiplier;
   private final String suffix;
 
-  private MemoryUnit(long multiplier, String suffix) {
+  MemoryUnit(long multiplier, String suffix) {
     this.multiplier = multiplier;
     this.suffix = suffix;
   }

@@ -90,7 +90,7 @@ public class Mutation implements Writable {
    * Formats available for serializing Mutations. The formats are described in a
    * <a href="doc-files/mutation-serialization.html">separate document</a>.
    */
-  public static enum SERIALIZED_FORMAT {
+  public enum SERIALIZED_FORMAT {
     VERSION1, VERSION2
   }
 
@@ -129,9 +129,8 @@ public class Mutation implements Writable {
   private ByteBuffer serializedSnapshot() {
     if (buffer != null) {
       return this.buffer.toByteBuffer();
-    } else {
-      return ByteBuffer.wrap(this.data);
     }
+    return ByteBuffer.wrap(this.data);
   }
 
   /**

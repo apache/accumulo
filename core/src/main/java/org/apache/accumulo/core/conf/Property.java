@@ -443,7 +443,7 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS(
       "tserver.compaction.major.service.root.planner.opts.executors",
       "[{'name':'small','maxSize':'32M','numThreads':1},"
-          + "{'name':'huge','numThreads':1}]".replaceAll("'", "\""),
+          + "{'name':'huge','numThreads':1}]".replace("'", "\""),
       PropertyType.STRING,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} "),
   TSERV_COMPACTION_SERVICE_META_PLANNER("tserver.compaction.major.service.meta.planner",
@@ -459,7 +459,7 @@ public enum Property {
   TSERV_COMPACTION_SERVICE_META_EXECUTORS(
       "tserver.compaction.major.service.meta.planner.opts.executors",
       "[{'name':'small','maxSize':'32M','numThreads':2},"
-          + "{'name':'huge','numThreads':2}]".replaceAll("'", "\""),
+          + "{'name':'huge','numThreads':2}]".replace("'", "\""),
       PropertyType.STRING,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} "),
   TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER("tserver.compaction.major.service.default.planner",
@@ -476,7 +476,7 @@ public enum Property {
       "tserver.compaction.major.service.default.planner.opts.executors",
       "[{'name':'small','maxSize':'32M','numThreads':2},"
           + "{'name':'medium','maxSize':'128M','numThreads':2},"
-          + "{'name':'large','numThreads':2}]".replaceAll("'", "\""),
+          + "{'name':'large','numThreads':2}]".replace("'", "\""),
       PropertyType.STRING,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} "),
   @Deprecated(since = "2.1.0", forRemoval = true)
@@ -1196,13 +1196,10 @@ public enum Property {
     Property prop = propertiesByKey.get(key);
     if (prop != null) {
       return prop.isSensitive();
-    } else {
-      for (String prefix : validPrefixes) {
-        if (key.startsWith(prefix)) {
-          if (propertiesByKey.get(prefix).isSensitive()) {
-            return true;
-          }
-        }
+    }
+    for (String prefix : validPrefixes) {
+      if (key.startsWith(prefix) && propertiesByKey.get(prefix).isSensitive()) {
+        return true;
       }
     }
     return false;
@@ -1241,10 +1238,8 @@ public enum Property {
   private static <T extends Annotation> boolean hasPrefixWithAnnotation(String key,
       Class<T> annotationType) {
     for (String prefix : validPrefixes) {
-      if (key.startsWith(prefix)) {
-        if (propertiesByKey.get(prefix).hasAnnotation(annotationType)) {
-          return true;
-        }
+      if (key.startsWith(prefix) && propertiesByKey.get(prefix).hasAnnotation(annotationType)) {
+        return true;
       }
     }
 

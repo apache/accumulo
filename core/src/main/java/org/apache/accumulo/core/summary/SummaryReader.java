@@ -90,18 +90,16 @@ public class SummaryReader {
           idxCacheEntry = indexCache.getBlock(blockName);
           if (idxCacheEntry == null) {
             return loader.getDependencies();
-          } else {
-            return Collections.emptyMap();
           }
+          return Collections.emptyMap();
         }
 
         @Override
         public byte[] load(int maxSize, Map<String,byte[]> dependencies) {
           if (idxCacheEntry == null) {
             return loader.load(maxSize, dependencies);
-          } else {
-            return idxCacheEntry.getBuffer();
           }
+          return idxCacheEntry.getBuffer();
         }
       };
       return summaryCache.getBlock(blockName, idxLoader);

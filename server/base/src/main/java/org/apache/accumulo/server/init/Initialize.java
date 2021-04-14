@@ -870,8 +870,7 @@ public class Initialize implements KeywordExecutable {
     Set<String> initializedDirs =
         ServerConstants.checkBaseUris(siteConfig, hadoopConf, volumeURIs, true);
 
-    HashSet<String> uinitializedDirs = new HashSet<>();
-    uinitializedDirs.addAll(volumeURIs);
+    HashSet<String> uinitializedDirs = new HashSet<>(volumeURIs);
     uinitializedDirs.removeAll(initializedDirs);
 
     Path aBasePath = new Path(initializedDirs.iterator().next());
@@ -984,10 +983,9 @@ public class Initialize implements KeywordExecutable {
           addVolumes(fs, siteConfig, hadoopConfig);
         }
 
-        if (!opts.resetSecurity && !opts.addVolumes) {
-          if (!doInit(siteConfig, opts, hadoopConfig, fs)) {
-            System.exit(-1);
-          }
+        if ((!opts.resetSecurity && !opts.addVolumes)
+            && !doInit(siteConfig, opts, hadoopConfig, fs)) {
+          System.exit(-1);
         }
       }
     } catch (Exception e) {

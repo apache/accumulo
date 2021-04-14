@@ -56,7 +56,7 @@ public enum TabletServerState {
     }
   }
 
-  private TabletServerState(byte id) {
+  TabletServerState(byte id) {
     this.id = id;
   }
 

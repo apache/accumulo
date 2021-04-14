@@ -67,7 +67,7 @@ public class ConfiguratorBase {
 
     private String prefix;
 
-    private TokenSource() {
+    TokenSource() {
       prefix = name().toLowerCase() + ":";
     }
 
@@ -348,7 +348,8 @@ public class ConfiguratorBase {
     if ("ZooKeeperInstance".equals(instanceType)) {
       return new org.apache.accumulo.core.client.ZooKeeperInstance(
           getClientConfiguration(implementingClass, conf));
-    } else if (instanceType.isEmpty()) {
+    }
+    if (instanceType.isEmpty()) {
       throw new IllegalStateException(
           "Instance has not been configured for " + implementingClass.getSimpleName());
     } else {

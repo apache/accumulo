@@ -50,7 +50,7 @@ public class TabletServerSyncCheckTest {
     }
   }
 
-  private class TestFileSystem extends DistributedFileSystem {
+  private static class TestFileSystem extends DistributedFileSystem {
     protected final Configuration conf;
 
     public TestFileSystem(Configuration conf) {

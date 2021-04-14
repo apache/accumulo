@@ -44,7 +44,7 @@ public abstract class MetadataServicer {
     checkArgument(tableId != null, "tableId is null");
     if (RootTable.ID.equals(tableId))
       return new ServicerForRootTable(context);
-    else if (MetadataTable.ID.equals(tableId))
+    if (MetadataTable.ID.equals(tableId))
       return new ServicerForMetadataTable(context);
     else
       return new ServicerForUserTables(context, tableId);

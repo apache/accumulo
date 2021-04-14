@@ -256,7 +256,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
     try (AccumuloClient client1 = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      String user = null;
+      String user;
 
       ClusterUser user1 = getUser(0);
       user = user1.getPrincipal();
@@ -1123,9 +1123,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
     public Stats(ByteSequence row) {
       this.row = row;
-      for (int i = 0; i < data.length; i++) {
-        this.data[i] = 0;
-      }
+      Arrays.fill(this.data, 0);
       this.seq = -1;
       this.sum = 0;
     }
@@ -1305,7 +1303,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
   public void testSecurity() throws Exception {
     // test against table user does not have read and/or write permissions for
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String user = null;
+      String user;
 
       // Create a new user
       ClusterUser user1 = getUser(0);
@@ -1600,10 +1598,9 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
               lastPos = pos;
             }
             break;
-          } else {
-            log.info("Ignoring trace output as traceCount not greater than zero: " + traceCount);
-            Thread.sleep(1000);
           }
+          log.info("Ignoring trace output as traceCount not greater than zero: " + traceCount);
+          Thread.sleep(1000);
         }
         if (tracer != null) {
           tracer.destroy();

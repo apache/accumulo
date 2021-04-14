@@ -255,10 +255,9 @@ public class VolumeManagerImpl implements VolumeManager {
     if (candidateVolumes != null) {
       return candidateVolumes.stream().filter(volume -> volume.containsPath(path))
           .map(Volume::getFileSystem).findFirst().orElse(desiredFs);
-    } else {
-      log.debug("Could not determine volume for Path: {}", path);
-      return desiredFs;
     }
+    log.debug("Could not determine volume for Path: {}", path);
+    return desiredFs;
   }
 
   @Override
@@ -315,7 +314,8 @@ public class VolumeManagerImpl implements VolumeManager {
       if (!success && (!exists(newPath) || exists(oldPath))) {
         throw new IOException("Rename operation " + transactionId + " returned false. orig: "
             + oldPath + " new: " + newPath);
-      } else if (log.isTraceEnabled()) {
+      }
+      if (log.isTraceEnabled()) {
         log.trace("{} moved {} to {}", transactionId, oldPath, newPath);
       }
       return null;
@@ -358,12 +358,11 @@ public class VolumeManagerImpl implements VolumeManager {
         throw new IllegalArgumentException("Cannot use viewfs as a volume");
 
       // We require a URI here, fail if it doesn't look like one
-      if (volumeUriOrDir.contains(":")) {
-        volumes.put(volumeUriOrDir, new VolumeImpl(new Path(volumeUriOrDir), hadoopConf));
-      } else {
+      if (!volumeUriOrDir.contains(":")) {
         throw new IllegalArgumentException("Expected fully qualified URI for "
             + Property.INSTANCE_VOLUMES.getKey() + " got " + volumeUriOrDir);
       }
+      volumes.put(volumeUriOrDir, new VolumeImpl(new Path(volumeUriOrDir), hadoopConf));
     }
 
     return new VolumeManagerImpl(volumes, conf, hadoopConf);

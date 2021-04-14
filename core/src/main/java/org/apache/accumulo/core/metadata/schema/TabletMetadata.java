@@ -429,9 +429,8 @@ public class TabletMetadata {
 
     if (checkConsistency) {
       return () -> new LinkingIterator(iterFactory, range);
-    } else {
-      return () -> iterFactory.apply(range);
     }
+    return () -> iterFactory.apply(range);
   }
 
   @VisibleForTesting

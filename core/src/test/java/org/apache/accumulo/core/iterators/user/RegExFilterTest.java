@@ -223,8 +223,8 @@ public class RegExFilterTest {
     rei.deepCopy(new DefaultIteratorEnvironment());
 
     // -----------------------------------------------------
-    String multiByteText = new String("\u6d67" + "\u6F68" + "\u7067");
-    String multiByteRegex = new String(".*" + "\u6F68" + ".*");
+    String multiByteText = ("\u6d67" + "\u6F68" + "\u7067");
+    String multiByteRegex = (".*" + "\u6F68" + ".*");
 
     Key k4 = new Key("boo4".getBytes(), "hoo".getBytes(), "20080203".getBytes(), "".getBytes(), 1L);
     Value inVal = new Value(multiByteText);

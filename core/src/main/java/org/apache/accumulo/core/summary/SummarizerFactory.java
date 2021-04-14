@@ -46,10 +46,9 @@ public class SummarizerFactory {
     if (classloader != null) {
       return classloader.loadClass(classname).asSubclass(Summarizer.class).getDeclaredConstructor()
           .newInstance();
-    } else {
-      return ClassLoaderUtil.loadClass(context, classname, Summarizer.class)
-          .getDeclaredConstructor().newInstance();
     }
+    return ClassLoaderUtil.loadClass(context, classname, Summarizer.class).getDeclaredConstructor()
+        .newInstance();
   }
 
   public Summarizer getSummarizer(SummarizerConfiguration conf) {

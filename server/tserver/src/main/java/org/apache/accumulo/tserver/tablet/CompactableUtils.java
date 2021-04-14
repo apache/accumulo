@@ -382,13 +382,11 @@ public class CompactableUtils {
       if (cselCfg2 != null) {
         filesToDrop = Set.of();
         return CompactableUtils.selectFiles(tablet, allFiles, cselCfg2);
-      } else {
-        var plan =
-            CompactableUtils.selectFiles(CompactionKind.SELECTOR, tablet, allFiles, stratCfg2);
-        this.wp = plan.writeParameters;
-        filesToDrop = Set.copyOf(plan.deleteFiles);
-        return Set.copyOf(plan.inputFiles);
       }
+      var plan = CompactableUtils.selectFiles(CompactionKind.SELECTOR, tablet, allFiles, stratCfg2);
+      this.wp = plan.writeParameters;
+      filesToDrop = Set.copyOf(plan.deleteFiles);
+      return Set.copyOf(plan.inputFiles);
     }
 
     @Override
@@ -455,7 +453,8 @@ public class CompactableUtils {
     public AccumuloConfiguration override(AccumuloConfiguration conf, Set<CompactableFile> files) {
       if (!UserCompactionUtils.isDefault(compactionConfig.getConfigurer())) {
         return createCompactionConfiguration(tablet, files, compactionConfig.getConfigurer());
-      } else if (!CompactionStrategyConfigUtil.isDefault(compactionConfig.getCompactionStrategy())
+      }
+      if (!CompactionStrategyConfigUtil.isDefault(compactionConfig.getCompactionStrategy())
           && wp != null) {
         return createCompactionConfiguration(conf, wp);
       }
@@ -474,7 +473,8 @@ public class CompactableUtils {
       CompactionConfig compactionConfig) {
     if (kind == CompactionKind.USER) {
       return new UserCompactionHelper(compactionConfig, tablet, compactionId);
-    } else if (kind == CompactionKind.SELECTOR) {
+    }
+    if (kind == CompactionKind.SELECTOR) {
       var tconf = tablet.getTableConfiguration();
       var selectorClassName = tconf.get(Property.TABLE_COMPACTION_SELECTOR);
 

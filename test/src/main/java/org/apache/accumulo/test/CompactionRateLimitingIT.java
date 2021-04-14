@@ -54,7 +54,7 @@ public class CompactionRateLimitingIT extends ConfigurableMacBase {
     cfg.setProperty("tserver.compaction.major.service.test.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.test.planner.opts.executors",
-        "[{'name':'all','numThreads':2}]".replaceAll("'", "\""));
+        "[{'name':'all','numThreads':2}]".replace("'", "\""));
 
   }
 

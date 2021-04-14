@@ -448,7 +448,7 @@ public class FileUtil {
           Key key = reader.getTopKey();
           if (endRow != null && key.compareRow(endRow) > 0)
             break;
-          else if (prevEndRow == null || key.compareRow(prevEndRow) > 0)
+          if (prevEndRow == null || key.compareRow(prevEndRow) > 0)
             numKeys++;
 
           reader.next();

@@ -139,20 +139,18 @@ public class ChangeSecret {
       List<ACL> acls = orig.getZooKeeper().getACL(path, new Stat());
       if (acls.containsAll(Ids.READ_ACL_UNSAFE)) {
         new_.putPersistentData(newPath, data, NodeExistsPolicy.FAIL);
-      } else {
-        // upgrade
-        if (acls.containsAll(Ids.OPEN_ACL_UNSAFE)) {
-          // make user nodes private, they contain the user's password
-          String[] parts = path.split("/");
-          if (parts[parts.length - 2].equals("users")) {
-            new_.putPrivatePersistentData(newPath, data, NodeExistsPolicy.FAIL);
-          } else {
-            // everything else can have the readable acl
-            new_.putPersistentData(newPath, data, NodeExistsPolicy.FAIL);
-          }
-        } else {
+      } else // upgrade
+      if (acls.containsAll(Ids.OPEN_ACL_UNSAFE)) {
+        // make user nodes private, they contain the user's password
+        String[] parts = path.split("/");
+        if (parts[parts.length - 2].equals("users")) {
           new_.putPrivatePersistentData(newPath, data, NodeExistsPolicy.FAIL);
+        } else {
+          // everything else can have the readable acl
+          new_.putPersistentData(newPath, data, NodeExistsPolicy.FAIL);
         }
+      } else {
+        new_.putPrivatePersistentData(newPath, data, NodeExistsPolicy.FAIL);
       }
     });
     String path = "/accumulo/instances/" + context.getInstanceName();
@@ -197,10 +195,8 @@ public class ChangeSecret {
       if (perm.getGroupAction().implies(mode)) {
         return;
       }
-    } else {
-      if (perm.getOtherAction().implies(mode)) {
-        return;
-      }
+    } else if (perm.getOtherAction().implies(mode)) {
+      return;
     }
     throw new Exception(String.format("Permission denied: user=%s, path=\"%s\":%s:%s:%s%s", user,
         stat.getPath(), stat.getOwner(), stat.getGroup(), stat.isDirectory() ? "d" : "-", perm));

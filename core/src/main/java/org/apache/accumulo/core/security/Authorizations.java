@@ -164,11 +164,9 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
         }
         checkAuths();
       }
-    } else {
-      // it's the old format
-      if (authorizations.length > 0)
-        setAuthorizations(authsString.split(","));
-    }
+    } else // it's the old format
+    if (authorizations.length > 0)
+      setAuthorizations(authsString.split(","));
   }
 
   /**

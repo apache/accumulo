@@ -123,9 +123,8 @@ public class ZooCachePropertyAccessor {
     byte[] v = propCache.get(path);
     if (v != null) {
       return new String(v, UTF_8);
-    } else {
-      return null;
     }
+    return null;
   }
 
   /**

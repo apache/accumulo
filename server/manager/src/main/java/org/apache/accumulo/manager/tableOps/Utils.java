@@ -88,18 +88,17 @@ public class Utils {
 
   public static long reserveTable(Manager env, TableId tableId, long tid, boolean writeLock,
       boolean tableMustExist, TableOperation op) throws Exception {
-    if (getLock(env.getContext(), tableId, tid, writeLock).tryLock()) {
-      if (tableMustExist) {
-        ZooReaderWriter zk = env.getContext().getZooReaderWriter();
-        if (!zk.exists(env.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId))
-          throw new AcceptableThriftTableOperationException(tableId.canonical(), "", op,
-              TableOperationExceptionType.NOTFOUND, "Table does not exist");
-      }
-      log.info("table {} ({}) locked for {} operation: {}", tableId, Long.toHexString(tid),
-          (writeLock ? "write" : "read"), op);
-      return 0;
-    } else
+    if (!getLock(env.getContext(), tableId, tid, writeLock).tryLock())
       return 100;
+    if (tableMustExist) {
+      ZooReaderWriter zk = env.getContext().getZooReaderWriter();
+      if (!zk.exists(env.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId))
+        throw new AcceptableThriftTableOperationException(tableId.canonical(), "", op,
+            TableOperationExceptionType.NOTFOUND, "Table does not exist");
+    }
+    log.info("table {} ({}) locked for {} operation: {}", tableId, Long.toHexString(tid),
+        (writeLock ? "write" : "read"), op);
+    return 0;
   }
 
   public static void unreserveTable(Manager env, TableId tableId, long tid, boolean writeLock) {
@@ -117,19 +116,18 @@ public class Utils {
 
   public static long reserveNamespace(Manager env, NamespaceId namespaceId, long id,
       boolean writeLock, boolean mustExist, TableOperation op) throws Exception {
-    if (getLock(env.getContext(), namespaceId, id, writeLock).tryLock()) {
-      if (mustExist) {
-        ZooReaderWriter zk = env.getContext().getZooReaderWriter();
-        if (!zk.exists(
-            env.getContext().getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId))
-          throw new AcceptableThriftTableOperationException(namespaceId.canonical(), "", op,
-              TableOperationExceptionType.NAMESPACE_NOTFOUND, "Namespace does not exist");
-      }
-      log.info("namespace {} ({}) locked for {} operation: {}", namespaceId, Long.toHexString(id),
-          (writeLock ? "write" : "read"), op);
-      return 0;
-    } else
+    if (!getLock(env.getContext(), namespaceId, id, writeLock).tryLock())
       return 100;
+    if (mustExist) {
+      ZooReaderWriter zk = env.getContext().getZooReaderWriter();
+      if (!zk
+          .exists(env.getContext().getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId))
+        throw new AcceptableThriftTableOperationException(namespaceId.canonical(), "", op,
+            TableOperationExceptionType.NAMESPACE_NOTFOUND, "Namespace does not exist");
+    }
+    log.info("namespace {} ({}) locked for {} operation: {}", namespaceId, Long.toHexString(id),
+        (writeLock ? "write" : "read"), op);
+    return 0;
   }
 
   public static long reserveHdfsDirectory(Manager env, String directory, long tid)
@@ -141,8 +139,8 @@ public class Utils {
 
     if (ZooReservation.attempt(zk, resvPath, String.format("%016x", tid), "")) {
       return 0;
-    } else
-      return 50;
+    }
+    return 50;
   }
 
   public static void unreserveHdfsDirectory(Manager env, String directory, long tid)

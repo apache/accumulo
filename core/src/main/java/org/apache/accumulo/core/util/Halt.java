@@ -31,21 +31,11 @@ public class Halt {
 
   public static void halt(final String msg) {
     // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
-    halt(0, new Runnable() {
-      @Override
-      public void run() {
-        log.error("FATAL {}", msg);
-      }
-    });
+    halt(0, () -> log.error("FATAL {}", msg));
   }
 
   public static void halt(final String msg, int status) {
-    halt(status, new Runnable() {
-      @Override
-      public void run() {
-        log.error("FATAL {}", msg);
-      }
-    });
+    halt(status, () -> log.error("FATAL {}", msg));
   }
 
   public static void halt(final int status, Runnable runnable) {

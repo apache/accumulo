@@ -48,7 +48,6 @@ public class AuthsIterator extends WrappingIterator {
   public Key getTopKey() {
     if (env.getAuthorizations().equals(AUTHS))
       return new Key(new Text(SUCCESS));
-    else
-      return new Key(new Text(FAIL));
+    return new Key(new Text(FAIL));
   }
 }

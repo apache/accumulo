@@ -58,7 +58,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       // recast missing table
       if (ttoe.getType() == TableOperationExceptionType.NOTFOUND)
         throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
-      else if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND)
+      if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND)
         throw new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
       else
         throw new AccumuloException(ttoe);
@@ -79,7 +79,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
       // recast missing table
       if (ttoe.getType() == TableOperationExceptionType.NOTFOUND)
         throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
-      else if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND)
+      if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND)
         throw new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
       else
         throw new AccumuloException(ttoe);
@@ -184,8 +184,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     } catch (AccumuloSecurityException e) {
       if (e.getSecurityErrorCode() == NAMESPACE_DOESNT_EXIST)
         throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST, e);
-      else
-        throw e;
+      throw e;
     }
   }
 
@@ -220,8 +219,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     } catch (AccumuloSecurityException e) {
       if (e.getSecurityErrorCode() == NAMESPACE_DOESNT_EXIST)
         throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST, e);
-      else
-        throw e;
+      throw e;
     }
   }
 
@@ -256,8 +254,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     } catch (AccumuloSecurityException e) {
       if (e.getSecurityErrorCode() == NAMESPACE_DOESNT_EXIST)
         throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST, e);
-      else
-        throw e;
+      throw e;
     }
   }
 

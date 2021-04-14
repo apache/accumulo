@@ -112,7 +112,8 @@ public class BlockedInputStream extends InputStream {
     if (size < 0 || size > array.length) {
       finished = true;
       return false;
-    } else if (size == 0)
+    }
+    if (size == 0)
       throw new RuntimeException(
           "Empty block written, this shouldn't happen with this BlockedOutputStream.");
 

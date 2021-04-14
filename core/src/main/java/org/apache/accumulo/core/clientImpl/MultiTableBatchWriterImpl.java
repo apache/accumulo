@@ -120,7 +120,8 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
 
       if (cause == null) {
         throw new RuntimeException(e);
-      } else if (cause instanceof TableNotFoundException) {
+      }
+      if (cause instanceof TableNotFoundException) {
         throw (TableNotFoundException) cause;
       } else if (cause instanceof TableOfflineException) {
         throw (TableOfflineException) cause;
@@ -142,9 +143,8 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
       BatchWriter current = tableWriters.putIfAbsent(tableId, tbw);
       // return the current one if another thread created one first
       return current != null ? current : tbw;
-    } else {
-      return tbw;
     }
+    return tbw;
   }
 
   @Override

@@ -113,7 +113,7 @@ public class ThriftTransportPool {
     }
 
     void closeTransports(final Iterable<CachedConnection> stream) {
-      stream.forEach((connection) -> {
+      stream.forEach(connection -> {
         try {
           connection.transport.close();
         } catch (Exception e) {
@@ -348,7 +348,7 @@ public class ThriftTransportPool {
       ArrayList<CachedConnection> expired = new ArrayList<>();
       for (Entry<ThriftTransportKey,CachedConnections> entry : connections.entrySet()) {
         CachedConnections connections = entry.getValue();
-        executeWithinLock(entry.getKey(), (key) -> {
+        executeWithinLock(entry.getKey(), key -> {
           connections.removeExpiredConnections(expired, killTime);
           connections.checkReservedForStuckIO();
         });
@@ -492,14 +492,12 @@ public class ThriftTransportPool {
             stuckThreadName = null;
           }
         }
-      } else {
-        // I/O is not currently happening
-        if (stuckThreadName != null) {
-          // no longer stuck, and was stuck in the past
-          log.info("Thread \"{}\" no longer stuck on IO to {} sawError = {}", stuckThreadName,
-              cacheKey, sawError);
-          stuckThreadName = null;
-        }
+      } else // I/O is not currently happening
+      if (stuckThreadName != null) {
+        // no longer stuck, and was stuck in the past
+        log.info("Thread \"{}\" no longer stuck on IO to {} sawError = {}", stuckThreadName,
+            cacheKey, sawError);
+        stuckThreadName = null;
       }
     }
 
@@ -674,9 +672,8 @@ public class ThriftTransportPool {
     if (connection != null) {
       log.trace("Using existing connection to {}", cacheKey.getServer());
       return connection.transport;
-    } else {
-      return createNewTransport(cacheKey);
     }
+    return createNewTransport(cacheKey);
   }
 
   @VisibleForTesting
@@ -768,7 +765,7 @@ public class ThriftTransportPool {
     boolean existInCache = pool.returnTransport(cachedTransport, closeList);
 
     // close outside of sync block
-    closeList.forEach((connection) -> {
+    closeList.forEach(connection -> {
       try {
         connection.transport.close();
       } catch (Exception e) {
@@ -892,7 +889,7 @@ public class ThriftTransportPool {
     }
 
     // Close connections outside of sync block
-    expiredConnections.forEach((c) -> c.transport.close());
+    expiredConnections.forEach(c -> c.transport.close());
   }
 
   private void shutdown() {

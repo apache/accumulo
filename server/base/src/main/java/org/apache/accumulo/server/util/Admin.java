@@ -250,11 +250,9 @@ public class Admin implements KeywordExecutable {
           if (RemoveEntriesForMissingFiles.checkAllTables(context, checkTabletsCommand.fixFiles)
               != 0)
             rc = 6;
-        } else {
-          if (RemoveEntriesForMissingFiles.checkTable(context, checkTabletsCommand.tableName,
-              checkTabletsCommand.fixFiles) != 0)
-            rc = 6;
-        }
+        } else if (RemoveEntriesForMissingFiles.checkTable(context, checkTabletsCommand.tableName,
+            checkTabletsCommand.fixFiles) != 0)
+          rc = 6;
 
       } else if (cl.getParsedCommand().equals("stop")) {
         stopTabletServer(context, stopOpts.args, opts.force);
@@ -534,12 +532,11 @@ public class Admin implements KeywordExecutable {
       }
       for (Entry<String,String> entry : props.entrySet()) {
         String defaultValue = getDefaultConfigValue(entry.getKey());
-        if (defaultValue == null || !defaultValue.equals(entry.getValue())) {
-          if (!entry.getValue().equals(siteConfig.get(entry.getKey()))
-              && !entry.getValue().equals(systemConfig.get(entry.getKey()))) {
-            nsWriter.write(nsConfigFormat
-                .format(new String[] {namespace, entry.getKey() + "=" + entry.getValue()}));
-          }
+        if ((defaultValue == null || !defaultValue.equals(entry.getValue()))
+            && (!entry.getValue().equals(siteConfig.get(entry.getKey()))
+                && !entry.getValue().equals(systemConfig.get(entry.getKey())))) {
+          nsWriter.write(nsConfigFormat
+              .format(new String[] {namespace, entry.getKey() + "=" + entry.getValue()}));
         }
       }
     }
@@ -614,12 +611,11 @@ public class Admin implements KeywordExecutable {
       for (Entry<String,String> prop : props.entrySet()) {
         if (prop.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
           String defaultValue = getDefaultConfigValue(prop.getKey());
-          if (defaultValue == null || !defaultValue.equals(prop.getValue())) {
-            if (!prop.getValue().equals(siteConfig.get(prop.getKey()))
-                && !prop.getValue().equals(systemConfig.get(prop.getKey()))) {
-              writer.write(configFormat
-                  .format(new String[] {tableName, prop.getKey() + "=" + prop.getValue()}));
-            }
+          if ((defaultValue == null || !defaultValue.equals(prop.getValue()))
+              && (!prop.getValue().equals(siteConfig.get(prop.getKey()))
+                  && !prop.getValue().equals(systemConfig.get(prop.getKey())))) {
+            writer.write(configFormat
+                .format(new String[] {tableName, prop.getKey() + "=" + prop.getValue()}));
           }
         }
       }

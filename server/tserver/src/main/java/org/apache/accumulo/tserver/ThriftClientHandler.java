@@ -383,7 +383,8 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       server.sessionManager.removeSession(scanID);
       if (e.getCause() instanceof NotServingTabletException) {
         throw (NotServingTabletException) e.getCause();
-      } else if (e.getCause() instanceof TooManyFilesException) {
+      }
+      if (e.getCause() instanceof TooManyFilesException) {
         throw new org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException(
             scanSession.extent.toThrift());
       } else if (e.getCause() instanceof SampleNotPresentException) {
@@ -401,9 +402,8 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       Tablet tablet = server.getOnlineTablet(scanSession.extent);
       if (tablet == null || tablet.isClosed()) {
         throw new NotServingTabletException(scanSession.extent.toThrift());
-      } else {
-        throw new NoSuchScanIDException();
       }
+      throw new NoSuchScanIDException();
     } catch (TimeoutException e) {
       List<TKeyValue> param = Collections.emptyList();
       long timeout = server.getConfiguration().getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
@@ -566,10 +566,9 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       server.sessionManager.removeSession(scanID);
       if (e.getCause() instanceof SampleNotPresentException) {
         throw new TSampleNotPresentException();
-      } else {
-        log.warn("Failed to get multiscan result", e);
-        throw new RuntimeException(e);
       }
+      log.warn("Failed to get multiscan result", e);
+      throw new RuntimeException(e);
     } catch (TimeoutException e1) {
       long timeout = server.getConfiguration().getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
       server.sessionManager.removeIfNotAccessed(scanID, timeout);
@@ -634,20 +633,8 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       boolean sameTable = us.currentTablet != null
           && (us.currentTablet.getExtent().tableId().equals(keyExtent.tableId()));
       tableId = keyExtent.tableId();
-      if (sameTable || security.canWrite(us.getCredentials(), tableId,
+      if (!sameTable && !security.canWrite(us.getCredentials(), tableId,
           Tables.getNamespaceId(server.getContext(), tableId))) {
-        long t2 = System.currentTimeMillis();
-        us.authTimes.addStat(t2 - t1);
-        us.currentTablet = server.getOnlineTablet(keyExtent);
-        if (us.currentTablet != null) {
-          us.queuedMutations.put(us.currentTablet, new ArrayList<>());
-        } else {
-          // not serving tablet, so report all mutations as
-          // failures
-          us.failures.put(keyExtent, 0L);
-          server.updateMetrics.addUnknownTabletErrors(0);
-        }
-      } else {
         log.warn("Denying access to table {} for user {}", keyExtent.tableId(), us.getUser());
         long t2 = System.currentTimeMillis();
         us.authTimes.addStat(t2 - t1);
@@ -655,6 +642,17 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
         us.authFailures.put(keyExtent, SecurityErrorCode.PERMISSION_DENIED);
         server.updateMetrics.addPermissionErrors(0);
         return;
+      }
+      long t2 = System.currentTimeMillis();
+      us.authTimes.addStat(t2 - t1);
+      us.currentTablet = server.getOnlineTablet(keyExtent);
+      if (us.currentTablet != null) {
+        us.queuedMutations.put(us.currentTablet, new ArrayList<>());
+      } else {
+        // not serving tablet, so report all mutations as
+        // failures
+        us.failures.put(keyExtent, 0L);
+        server.updateMetrics.addUnknownTabletErrors(0);
       }
     } catch (TableNotFoundException tnfe) {
       log.error("Table " + tableId + " not found ", tnfe);
@@ -961,7 +959,8 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
 
       if (prepared.tabletClosed()) {
         throw new NotServingTabletException(tkeyExtent);
-      } else if (!prepared.getViolators().isEmpty()) {
+      }
+      if (!prepared.getViolators().isEmpty()) {
         throw new ConstraintViolationException(prepared.getViolations().asList().stream()
             .map(ConstraintViolationSummary::toThrift).collect(Collectors.toList()));
       } else {
@@ -1170,7 +1169,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       String classLoaderContext) throws ThriftSecurityException, TException {
 
     TableId tableId = TableId.of(tableIdStr);
-    Authorizations userauths = null;
+    Authorizations userauths;
     NamespaceId namespaceId = getNamespaceId(credentials, tableId);
     if (!security.canConditionallyUpdate(credentials, tableId, namespaceId)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
@@ -1409,8 +1408,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
           Set<KeyExtent> onlineOverlapping =
               KeyExtent.findOverlapping(extent, server.getOnlineTablets());
 
-          Set<KeyExtent> all = new HashSet<>();
-          all.addAll(unopenedOverlapping);
+          Set<KeyExtent> all = new HashSet<>(unopenedOverlapping);
           all.addAll(openingOverlapping);
           all.addAll(onlineOverlapping);
 
@@ -1455,12 +1453,10 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
           log.info("Root tablet failed to load");
         }
       }).start();
+    } else if (extent.isMeta()) {
+      server.resourceManager.addMetaDataAssignment(extent, log, ah);
     } else {
-      if (extent.isMeta()) {
-        server.resourceManager.addMetaDataAssignment(extent, log, ah);
-      } else {
-        server.resourceManager.addAssignment(extent, log, ah);
-      }
+      server.resourceManager.addAssignment(extent, log, ah);
     }
   }
 

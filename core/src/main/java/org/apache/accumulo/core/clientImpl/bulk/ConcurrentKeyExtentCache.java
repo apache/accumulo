@@ -49,9 +49,8 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
 
   List<Text> lookupRows = new ArrayList<>();
 
-  private ConcurrentSkipListMap<Text,KeyExtent> extents = new ConcurrentSkipListMap<>((t1, t2) -> {
-    return (t1 == t2) ? 0 : (t1 == MAX ? 1 : (t2 == MAX ? -1 : t1.compareTo(t2)));
-  });
+  private ConcurrentSkipListMap<Text,KeyExtent> extents = new ConcurrentSkipListMap<>(
+      (t1, t2) -> ((t1 == t2) ? 0 : (t1 == MAX ? 1 : (t2 == MAX ? -1 : t1.compareTo(t2)))));
   private TableId tableId;
   private ClientContext ctx;
 

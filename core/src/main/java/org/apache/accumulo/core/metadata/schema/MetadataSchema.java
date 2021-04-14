@@ -97,20 +97,19 @@ public class MetadataSchema {
         throw new IllegalArgumentException("Metadata row does not contain ; or <  " + metadataRow);
       }
 
-      if (semiPos < 0) {
-        // default tablet ending in '<'
-        if (ltPos != metadataRow.getLength() - 1) {
-          throw new IllegalArgumentException("< must come at end of Metadata row  " + metadataRow);
-        }
-        TableId tableId = TableId.of(new String(metadataRow.getBytes(), 0, ltPos, UTF_8));
-        return new Pair<>(tableId, null);
-      } else {
+      if (semiPos >= 0) {
         // other tablets containing ';'
         TableId tableId = TableId.of(new String(metadataRow.getBytes(), 0, semiPos, UTF_8));
         Text endRow = new Text();
         endRow.set(metadataRow.getBytes(), semiPos + 1, metadataRow.getLength() - (semiPos + 1));
         return new Pair<>(tableId, endRow);
       }
+      // default tablet ending in '<'
+      if (ltPos != metadataRow.getLength() - 1) {
+        throw new IllegalArgumentException("< must come at end of Metadata row  " + metadataRow);
+      }
+      TableId tableId = TableId.of(new String(metadataRow.getBytes(), 0, ltPos, UTF_8));
+      return new Pair<>(tableId, null);
     }
 
     /**
@@ -278,11 +277,10 @@ public class MetadataSchema {
       public static long getBulkLoadTid(String vs) {
         if (FateTxId.isFormatedTid(vs)) {
           return FateTxId.fromString(vs);
-        } else {
-          // a new serialization format was introduce in 2.0. This code support deserializing the
-          // old format.
-          return Long.parseLong(vs);
         }
+        // a new serialization format was introduce in 2.0. This code support deserializing the
+        // old format.
+        return Long.parseLong(vs);
       }
     }
 

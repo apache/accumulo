@@ -85,9 +85,8 @@ public class ZooAuthenticationKeyDistributor {
       log.error("Expected {} to have ACLs {} but was {}", baseNode, ZooUtil.PRIVATE, acls);
       throw new IllegalStateException(
           "Delegation token secret key node in ZooKeeper is not protected.");
-    } else {
-      zk.putPrivatePersistentData(baseNode, new byte[0], NodeExistsPolicy.FAIL);
     }
+    zk.putPrivatePersistentData(baseNode, new byte[0], NodeExistsPolicy.FAIL);
 
     initialized.set(true);
   }

@@ -149,10 +149,8 @@ public class HadoopCredentialProviderTest {
   public void createKeystoreProvider() throws Exception {
     File targetDir = new File(System.getProperty("user.dir") + "/target");
     File keystoreFile = new File(targetDir, "create.jks");
-    if (keystoreFile.exists()) {
-      if (!keystoreFile.delete()) {
-        log.error("Unable to delete {}", keystoreFile);
-      }
+    if (keystoreFile.exists() && !keystoreFile.delete()) {
+      log.error("Unable to delete {}", keystoreFile);
     }
 
     String providerUrl = "jceks://file" + keystoreFile.getAbsolutePath();

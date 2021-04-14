@@ -540,23 +540,20 @@ public class AdminUtil<T> {
     try {
       if (ServiceLock.getLockData(zk.getZooKeeper(), path) != null) {
         System.err.println("ERROR: Manager lock is held, not running");
-        if (this.exitOnError)
-          System.exit(1);
-        else
+        if (!this.exitOnError)
           return false;
+        System.exit(1);
       }
     } catch (KeeperException e) {
       System.err.println("ERROR: Could not read manager lock, not running " + e.getMessage());
-      if (this.exitOnError)
-        System.exit(1);
-      else
+      if (!this.exitOnError)
         return false;
+      System.exit(1);
     } catch (InterruptedException e) {
       System.err.println("ERROR: Could not read manager lock, not running" + e.getMessage());
-      if (this.exitOnError)
-        System.exit(1);
-      else
+      if (!this.exitOnError)
         return false;
+      System.exit(1);
     }
     return true;
   }

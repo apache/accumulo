@@ -101,22 +101,21 @@ public class RangeInputSplit extends InputSplit implements Writable {
   public float getProgress(Key currentKey) {
     if (currentKey == null)
       return 0f;
-    if (range.contains(currentKey)) {
-      if (range.getStartKey() != null && range.getEndKey() != null) {
-        if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW) != 0) {
-          // just look at the row progress
-          return getProgress(range.getStartKey().getRowData(), range.getEndKey().getRowData(),
-              currentKey.getRowData());
-        } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM) != 0) {
-          // just look at the column family progress
-          return getProgress(range.getStartKey().getColumnFamilyData(),
-              range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
-        } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM_COLQUAL)
-            != 0) {
-          // just look at the column qualifier progress
-          return getProgress(range.getStartKey().getColumnQualifierData(),
-              range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());
-        }
+    if (range.contains(currentKey) && (range.getStartKey() != null && range.getEndKey() != null)) {
+      if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW) != 0) {
+        // just look at the row progress
+        return getProgress(range.getStartKey().getRowData(), range.getEndKey().getRowData(),
+            currentKey.getRowData());
+      }
+      if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM) != 0) {
+        // just look at the column family progress
+        return getProgress(range.getStartKey().getColumnFamilyData(),
+            range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
+      } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM_COLQUAL)
+          != 0) {
+        // just look at the column qualifier progress
+        return getProgress(range.getStartKey().getColumnQualifierData(),
+            range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());
       }
     }
     // if we can't figure it out, then claim no progress
@@ -279,7 +278,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
       if (token != null && tokenFile != null) {
         throw new IOException(
             "Cannot use both inline AuthenticationToken and file-based AuthenticationToken");
-      } else if (token != null) {
+      }
+      if (token != null) {
         out.writeUTF(token.getClass().getName());
         out.writeUTF(
             Base64.getEncoder().encodeToString(AuthenticationTokenSerializer.serialize(token)));
@@ -462,9 +462,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
   public void setFetchedColumns(Collection<Pair<Text,Text>> fetchedColumns) {
     this.fetchedColumns = new HashSet<>();
-    for (Pair<Text,Text> columns : fetchedColumns) {
-      this.fetchedColumns.add(columns);
-    }
+    this.fetchedColumns.addAll(fetchedColumns);
   }
 
   public void setFetchedColumns(Set<Pair<Text,Text>> fetchedColumns) {

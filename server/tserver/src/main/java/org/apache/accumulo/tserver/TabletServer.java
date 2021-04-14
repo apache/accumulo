@@ -128,7 +128,6 @@ import org.apache.accumulo.server.util.time.RelativeTime;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.TabletStatsKeeper.Operation;
-import org.apache.accumulo.tserver.compactions.Compactable;
 import org.apache.accumulo.tserver.compactions.CompactionManager;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.LogSorter;
@@ -286,16 +285,13 @@ public class TabletServer extends AbstractServer {
     }
 
     ThreadPools.createGeneralScheduledExecutorService(aconf)
-        .scheduleWithFixedDelay(Threads.createNamedRunnable("TabletRateUpdater", new Runnable() {
-          @Override
-          public void run() {
-            long now = System.currentTimeMillis();
-            for (Tablet tablet : getOnlineTablets().values()) {
-              try {
-                tablet.updateRates(now);
-              } catch (Exception ex) {
-                log.error("Error updating rates for {}", tablet.getExtent(), ex);
-              }
+        .scheduleWithFixedDelay(Threads.createNamedRunnable("TabletRateUpdater", () -> {
+          long now = System.currentTimeMillis();
+          for (Tablet tablet : getOnlineTablets().values()) {
+            try {
+              tablet.updateRates(now);
+            } catch (Exception ex) {
+              log.error("Error updating rates for {}", tablet.getExtent(), ex);
             }
           }
         }), 5000, 5000, TimeUnit.MILLISECONDS);
@@ -724,13 +720,9 @@ public class TabletServer extends AbstractServer {
       }
     }
 
-    this.compactionManager = new CompactionManager(new Iterable<Compactable>() {
-      @Override
-      public Iterator<Compactable> iterator() {
-        return Iterators.transform(onlineTablets.snapshot().values().iterator(),
-            Tablet::asCompactable);
-      }
-    }, getContext(), ceMetrics);
+    this.compactionManager = new CompactionManager(() -> Iterators
+        .transform(onlineTablets.snapshot().values().iterator(), Tablet::asCompactable),
+        getContext(), ceMetrics);
     compactionManager.start();
 
     try {
@@ -767,11 +759,10 @@ public class TabletServer extends AbstractServer {
     final AccumuloConfiguration aconf = getConfiguration();
     // if the replication name is ever set, then start replication services
     ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
-      if (this.replServer == null) {
-        if (!getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
-          log.info(Property.REPLICATION_NAME.getKey() + " was set, starting repl services.");
-          setupReplication(aconf);
-        }
+      if ((this.replServer == null)
+          && !getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
+        log.info(Property.REPLICATION_NAME.getKey() + " was set, starting repl services.");
+        setupReplication(aconf);
       }
     }, 0, 5000, TimeUnit.MILLISECONDS);
 
@@ -1243,11 +1234,10 @@ public class TabletServer extends AbstractServer {
       DfsLogger closed = closedIter.next();
       DfsLogger unref = unrefIter.next();
 
-      if (closed.equals(unref)) {
-        eligible.add(unref);
-      } else {
+      if (!closed.equals(unref)) {
         break;
       }
+      eligible.add(unref);
     }
 
     return eligible;
@@ -1256,10 +1246,7 @@ public class TabletServer extends AbstractServer {
   @VisibleForTesting
   static List<DfsLogger> copyClosedLogs(LinkedHashSet<DfsLogger> closedLogs) {
     List<DfsLogger> closedCopy = new ArrayList<>(closedLogs.size());
-    for (DfsLogger dfsLogger : closedLogs) {
-      // very important this copy maintains same order ..
-      closedCopy.add(dfsLogger);
-    }
+    closedCopy.addAll(closedLogs);
     return Collections.unmodifiableList(closedCopy);
   }
 

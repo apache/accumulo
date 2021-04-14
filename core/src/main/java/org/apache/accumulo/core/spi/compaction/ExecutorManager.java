@@ -30,5 +30,5 @@ public interface ExecutorManager {
   /**
    * Create a thread pool executor within a compaction service.
    */
-  public CompactionExecutorId createExecutor(String name, int threads);
+  CompactionExecutorId createExecutor(String name, int threads);
 }

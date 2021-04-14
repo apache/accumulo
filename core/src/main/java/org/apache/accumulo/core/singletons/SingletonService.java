@@ -25,9 +25,9 @@ package org.apache.accumulo.core.singletons;
  */
 public interface SingletonService {
 
-  public boolean isEnabled();
+  boolean isEnabled();
 
-  public void enable();
+  void enable();
 
-  public void disable();
+  void disable();
 }

@@ -36,7 +36,7 @@ public interface VolumeChooserEnvironment
    *
    * @since 2.0.0
    */
-  public static enum ChooserScope {
+  public enum ChooserScope {
     DEFAULT, TABLE, INIT, LOGGER
   }
 
@@ -47,16 +47,16 @@ public interface VolumeChooserEnvironment
    * @since 2.0.0
    */
   @Override
-  public Text getEndRow();
+  Text getEndRow();
 
-  public boolean hasTableId();
+  boolean hasTableId();
 
-  public TableId getTableId();
+  TableId getTableId();
 
   /**
    * @since 2.0.0
    */
-  public default ChooserScope getScope() {
+  default ChooserScope getScope() {
 
     var scope = getChooserScope();
     switch (scope) {
@@ -77,10 +77,10 @@ public interface VolumeChooserEnvironment
    * @since 2.0.0
    */
   @Override
-  public ServiceEnvironment getServiceEnv();
+  ServiceEnvironment getServiceEnv();
 
   /**
    * @since 2.0.0
    */
-  public FileSystem getFileSystem(String option);
+  FileSystem getFileSystem(String option);
 }

@@ -83,10 +83,8 @@ public class ShellConfigTest {
     shell.shutdown();
     output.clear();
     System.setOut(out);
-    if (config.exists()) {
-      if (!config.delete()) {
-        log.error("Unable to delete {}", config);
-      }
+    if (config.exists() && !config.delete()) {
+      log.error("Unable to delete {}", config);
     }
   }
 

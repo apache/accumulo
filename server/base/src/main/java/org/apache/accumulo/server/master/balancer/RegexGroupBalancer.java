@@ -86,22 +86,18 @@ public class RegexGroupBalancer extends GroupBalancer {
 
     final Pattern pattern = Pattern.compile(regex);
 
-    return new Function<>() {
-
-      @Override
-      public String apply(KeyExtent input) {
-        Text er = input.endRow();
-        if (er == null) {
-          return defaultGroup;
-        }
-
-        Matcher matcher = pattern.matcher(er.toString());
-        if (matcher.matches() && matcher.groupCount() == 1) {
-          return matcher.group(1);
-        }
-
+    return input -> {
+      Text er = input.endRow();
+      if (er == null) {
         return defaultGroup;
       }
+
+      Matcher matcher = pattern.matcher(er.toString());
+      if (matcher.matches() && matcher.groupCount() == 1) {
+        return matcher.group(1);
+      }
+
+      return defaultGroup;
     };
   }
 }

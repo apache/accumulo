@@ -415,12 +415,10 @@ public class Gatherer {
     }
 
     private synchronized CompletableFuture<ProcessedFiles> updateFuture() {
-      if (future.isDone()) {
-        if (!future.isCancelled() && !future.isCompletedExceptionally()) {
-          ProcessedFiles pf = _get();
-          if (!pf.failedFiles.isEmpty()) {
-            initiateProcessing(pf);
-          }
+      if (future.isDone() && (!future.isCancelled() && !future.isCompletedExceptionally())) {
+        ProcessedFiles pf = _get();
+        if (!pf.failedFiles.isEmpty()) {
+          initiateProcessing(pf);
         }
       }
 
@@ -457,9 +455,8 @@ public class Gatherer {
         ProcessedFiles pf = _get();
         if (pf.failedFiles.isEmpty()) {
           return true;
-        } else {
-          updateFuture();
         }
+        updateFuture();
       }
 
       return false;
@@ -612,9 +609,8 @@ public class Gatherer {
       Preconditions.checkArgument(row.length() >= 1 && row.byteAt(row.length() - 1) == 0);
       t.set(row.getBackingArray(), row.offset(), row.length() - 1);
       return t;
-    } else {
-      return null;
     }
+    return null;
   }
 
   private RowRange toClippedExtent(Range r) {

@@ -30,7 +30,7 @@ public enum SortedLogState {
 
   private String marker;
 
-  private SortedLogState(String marker) {
+  SortedLogState(String marker) {
     this.marker = marker;
   }
 

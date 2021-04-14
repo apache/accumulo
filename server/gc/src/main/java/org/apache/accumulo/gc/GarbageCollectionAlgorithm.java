@@ -152,12 +152,11 @@ public class GarbageCollectionAlgorithm {
           int count = 0;
 
           while (tailIter.hasNext()) {
-            if (tailIter.next().startsWith(blipPath)) {
-              count++;
-              tailIter.remove();
-            } else {
+            if (!tailIter.next().startsWith(blipPath)) {
               break;
             }
+            count++;
+            tailIter.remove();
           }
 
           if (count > 0)
@@ -302,8 +301,7 @@ public class GarbageCollectionAlgorithm {
 
       if (candidates.isEmpty())
         break;
-      else
-        lastCandidate = candidates.get(candidates.size() - 1);
+      lastCandidate = candidates.get(candidates.size() - 1);
 
       long origSize = candidates.size();
       gce.incrementCandidatesStat(origSize);

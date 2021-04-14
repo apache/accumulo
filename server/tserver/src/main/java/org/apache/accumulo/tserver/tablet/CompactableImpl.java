@@ -116,7 +116,7 @@ public class CompactableImpl implements Compactable {
   // This interface exists for two purposes. First it allows abstraction of new and old
   // implementations for user pluggable file selection code. Second it facilitates placing code
   // outside of this class.
-  public static interface CompactionHelper {
+  public interface CompactionHelper {
     Set<StoredTabletFile> selectFiles(SortedMap<StoredTabletFile,DataFileValue> allFiles);
 
     Set<StoredTabletFile> getFilesToDrop();
@@ -143,13 +143,12 @@ public class CompactableImpl implements Compactable {
     Set<StoredTabletFile> filesToExamine = new HashSet<>(allFiles);
 
     synchronized (this) {
-      if (chopStatus == SpecialStatus.NOT_ACTIVE) {
-        chopStatus = SpecialStatus.SELECTING;
-        filesToExamine.removeAll(choppedFiles);
-        filesToExamine.removeAll(allCompactingFiles);
-      } else {
+      if (chopStatus != SpecialStatus.NOT_ACTIVE) {
         return;
       }
+      chopStatus = SpecialStatus.SELECTING;
+      filesToExamine.removeAll(choppedFiles);
+      filesToExamine.removeAll(allCompactingFiles);
     }
 
     Set<StoredTabletFile> unchoppedFiles = selectChopFiles(filesToExamine);
@@ -183,11 +182,9 @@ public class CompactableImpl implements Compactable {
     boolean completed = false;
 
     synchronized (this) {
-      if (chopStatus == SpecialStatus.SELECTED) {
-        if (getFilesToChop(allFiles).isEmpty()) {
-          chopStatus = SpecialStatus.NOT_ACTIVE;
-          completed = true;
-        }
+      if ((chopStatus == SpecialStatus.SELECTED) && getFilesToChop(allFiles).isEmpty()) {
+        chopStatus = SpecialStatus.NOT_ACTIVE;
+        completed = true;
       }
 
       choppedFiles.retainAll(allFiles);
@@ -263,15 +260,14 @@ public class CompactableImpl implements Compactable {
     lastSeenCompactionCancelId.getAndUpdate(prev -> Long.max(prev, cancelId));
 
     synchronized (this) {
-      if (selectStatus == SpecialStatus.SELECTED && selectKind == CompactionKind.USER) {
-        if (cancelId >= compactionId) {
-          if (noneRunning(CompactionKind.USER)) {
-            selectStatus = SpecialStatus.NOT_ACTIVE;
-            log.trace("Selected compaction status changed {} {}", getExtent(), selectStatus);
-          } else {
-            selectStatus = SpecialStatus.CANCELED;
-            log.trace("Selected compaction status changed {} {}", getExtent(), selectStatus);
-          }
+      if ((selectStatus == SpecialStatus.SELECTED && selectKind == CompactionKind.USER)
+          && (cancelId >= compactionId)) {
+        if (noneRunning(CompactionKind.USER)) {
+          selectStatus = SpecialStatus.NOT_ACTIVE;
+          log.trace("Selected compaction status changed {} {}", getExtent(), selectStatus);
+        } else {
+          selectStatus = SpecialStatus.CANCELED;
+          log.trace("Selected compaction status changed {} {}", getExtent(), selectStatus);
         }
       }
     }
@@ -290,20 +286,19 @@ public class CompactableImpl implements Compactable {
       if (closed)
         return;
 
-      if (selectStatus == SpecialStatus.NOT_ACTIVE || (kind == CompactionKind.USER
-          && selectKind == CompactionKind.SELECTOR && noneRunning(CompactionKind.SELECTOR))) {
-        selectStatus = SpecialStatus.NEW;
-        selectKind = kind;
-        selectedFiles.clear();
-        selectedAll = false;
-        this.chelper = localHelper;
-        this.compactionId = compactionId;
-        this.compactionConfig = compactionConfig;
-        log.trace("Selected compaction status changed {} {} {} {}", getExtent(), selectStatus,
-            compactionId, compactionConfig);
-      } else {
+      if ((selectStatus != SpecialStatus.NOT_ACTIVE) && ((kind != CompactionKind.USER)
+          || (selectKind != CompactionKind.SELECTOR) || !noneRunning(CompactionKind.SELECTOR))) {
         return;
       }
+      selectStatus = SpecialStatus.NEW;
+      selectKind = kind;
+      selectedFiles.clear();
+      selectedAll = false;
+      this.chelper = localHelper;
+      this.compactionId = compactionId;
+      this.compactionConfig = compactionConfig;
+      log.trace("Selected compaction status changed {} {} {} {}", getExtent(), selectStatus,
+          compactionId, compactionConfig);
     }
 
     selectFiles();
@@ -315,14 +310,13 @@ public class CompactableImpl implements Compactable {
     CompactionHelper localHelper;
 
     synchronized (this) {
-      if (selectStatus == SpecialStatus.NEW && allCompactingFiles.isEmpty()) {
-        selectedFiles.clear();
-        selectStatus = SpecialStatus.SELECTING;
-        localHelper = this.chelper;
-        log.trace("Selected compaction status changed {} {}", getExtent(), selectStatus);
-      } else {
+      if ((selectStatus != SpecialStatus.NEW) || !allCompactingFiles.isEmpty()) {
         return;
       }
+      selectedFiles.clear();
+      selectStatus = SpecialStatus.SELECTING;
+      localHelper = this.chelper;
+      log.trace("Selected compaction status changed {} {}", getExtent(), selectStatus);
     }
 
     try {
@@ -472,20 +466,19 @@ public class CompactableImpl implements Compactable {
             case CANCELED:
               return Optional.of(new Compactable.Files(files, Set.of(), runningJobsCopy));
             case SELECTED: {
-              if (selectKind == kind) {
-                Set<StoredTabletFile> candidates = new HashSet<>(selectedFiles);
-                candidates.removeAll(allCompactingFiles);
-                candidates = Collections.unmodifiableSet(candidates);
-                Preconditions.checkState(files.keySet().containsAll(candidates),
-                    "selected files not in all files %s %s", candidates, files.keySet());
-                Map<String,String> hints = Map.of();
-                if (kind == CompactionKind.USER)
-                  hints = compactionConfig.getExecutionHints();
-                return Optional.of(new Compactable.Files(files, Set.copyOf(selectedFiles),
-                    runningJobsCopy, hints));
-              } else {
+              if (selectKind != kind) {
                 return Optional.of(new Compactable.Files(files, Set.of(), runningJobsCopy));
               }
+              Set<StoredTabletFile> candidates = new HashSet<>(selectedFiles);
+              candidates.removeAll(allCompactingFiles);
+              candidates = Collections.unmodifiableSet(candidates);
+              Preconditions.checkState(files.keySet().containsAll(candidates),
+                  "selected files not in all files %s %s", candidates, files.keySet());
+              Map<String,String> hints = Map.of();
+              if (kind == CompactionKind.USER)
+                hints = compactionConfig.getExecutionHints();
+              return Optional.of(
+                  new Compactable.Files(files, Set.copyOf(selectedFiles), runningJobsCopy, hints));
             }
             default:
               throw new AssertionError();
@@ -572,15 +565,14 @@ public class CompactableImpl implements Compactable {
           return;
         case SELECTED: {
           if (job.getKind() == CompactionKind.USER || job.getKind() == CompactionKind.SELECTOR) {
-            if (selectKind == job.getKind()) {
-              if (!selectedFiles.containsAll(jobFiles)) {
-                log.error("Ignoring {} compaction that does not contain selected files {} {} {}",
-                    job.getKind(), getExtent(), asFileNames(selectedFiles), asFileNames(jobFiles));
-                return;
-              }
-            } else {
+            if (selectKind != job.getKind()) {
               log.trace("Ingoring {} compaction because not selected kind {}", job.getKind(),
                   getExtent());
+              return;
+            }
+            if (!selectedFiles.containsAll(jobFiles)) {
+              log.error("Ignoring {} compaction that does not contain selected files {} {} {}",
+                  job.getKind(), getExtent(), asFileNames(selectedFiles), asFileNames(jobFiles));
               return;
             }
           } else if (!Collections.disjoint(selectedFiles, jobFiles)) {
@@ -603,12 +595,11 @@ public class CompactableImpl implements Compactable {
           throw new AssertionError();
       }
 
-      if (Collections.disjoint(allCompactingFiles, jobFiles)) {
-        allCompactingFiles.addAll(jobFiles);
-        runnningJobs.add(job);
-      } else {
+      if (!Collections.disjoint(allCompactingFiles, jobFiles)) {
         return;
       }
+      allCompactingFiles.addAll(jobFiles);
+      runnningJobs.add(job);
 
       compactionRunning = !allCompactingFiles.isEmpty();
 

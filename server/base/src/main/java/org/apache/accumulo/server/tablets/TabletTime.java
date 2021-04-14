@@ -50,7 +50,8 @@ public abstract class TabletTime {
 
     if (metadataTime.getType().equals(TimeType.LOGICAL)) {
       return new LogicalTime(metadataTime.getTime());
-    } else if (metadataTime.getType().equals(TimeType.MILLIS)) {
+    }
+    if (metadataTime.getType().equals(TimeType.MILLIS)) {
       return new MillisTime(metadataTime.getTime());
     } else // this should really never happen here
       throw new IllegalArgumentException("Time type unknown : " + metadataTime);

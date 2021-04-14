@@ -140,8 +140,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     init();
     // lets say we already have migrations ongoing for the FOO and BAR table extends (should be 5 of
     // each of them) for a total of 10
-    Set<KeyExtent> migrations = new HashSet<>();
-    migrations.addAll(tableExtents.get(FOO.getTableName()));
+    Set<KeyExtent> migrations = new HashSet<>(tableExtents.get(FOO.getTableName()));
     migrations.addAll(tableExtents.get(BAR.getTableName()));
     long wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations,
         migrationsOut);

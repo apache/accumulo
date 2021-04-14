@@ -133,20 +133,18 @@ public class BlockIndex implements Weighable {
       // found exact key in index
       index = pos;
       while (index > 0) {
-        if (blockIndex[index].getPrevKey().equals(startKey))
-          index--;
-        else
+        if (!blockIndex[index].getPrevKey().equals(startKey))
           break;
+        index--;
       }
     }
 
     // handle case where multiple keys in block are exactly the same, want to find the earliest key
     // in the index
     while (index - 1 > 0) {
-      if (blockIndex[index].getPrevKey().equals(blockIndex[index - 1].getPrevKey()))
-        index--;
-      else
+      if (!blockIndex[index].getPrevKey().equals(blockIndex[index - 1].getPrevKey()))
         break;
+      index--;
 
     }
 

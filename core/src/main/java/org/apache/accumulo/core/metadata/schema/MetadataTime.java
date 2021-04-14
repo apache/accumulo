@@ -46,8 +46,8 @@ public final class MetadataTime implements Comparable<MetadataTime> {
 
     if (timestr != null && timestr.length() > 1) {
       return new MetadataTime(Long.parseLong(timestr.substring(1)), getType(timestr.charAt(0)));
-    } else
-      throw new IllegalArgumentException("Unknown metadata time value " + timestr);
+    }
+    throw new IllegalArgumentException("Unknown metadata time value " + timestr);
   }
 
   /**
@@ -116,9 +116,8 @@ public final class MetadataTime implements Comparable<MetadataTime> {
   public int compareTo(MetadataTime mtime) {
     if (this.type.equals(mtime.getType()))
       return Long.compare(this.time, mtime.getTime());
-    else
-      throw new IllegalArgumentException(
-          "Cannot compare different time types: " + this + " and " + mtime);
+    throw new IllegalArgumentException(
+        "Cannot compare different time types: " + this + " and " + mtime);
   }
 
 }

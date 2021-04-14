@@ -63,14 +63,12 @@ public class DistributedCacheHelper {
       } catch (FileNotFoundException e) {
         throw new AssertionError("FileNotFoundException after verifying file exists", e);
       }
-    } else {
-
-      // try to get token directly from HDFS path, without using the distributed cache
-      try {
-        return FileSystem.get(conf).open(new Path(path));
-      } catch (IOException e) {
-        throw new IllegalArgumentException("Unable to read file at DFS Path " + path, e);
-      }
+    }
+    // try to get token directly from HDFS path, without using the distributed cache
+    try {
+      return FileSystem.get(conf).open(new Path(path));
+    } catch (IOException e) {
+      throw new IllegalArgumentException("Unable to read file at DFS Path " + path, e);
     }
   }
 

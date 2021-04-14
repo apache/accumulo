@@ -53,12 +53,11 @@ public class SaslServerConnectionParams extends SaslConnectionParams {
   @Override
   protected void updateFromToken(AuthenticationToken token) {
     // Servers should never have a delegation token -- only a strong kerberos identity
-    if (token instanceof KerberosToken || token instanceof SystemToken) {
-      mechanism = SaslMechanism.GSSAPI;
-    } else {
+    if (!(token instanceof KerberosToken) && !(token instanceof SystemToken)) {
       throw new IllegalArgumentException(
           "Cannot determine SASL mechanism for token class: " + token.getClass());
     }
+    mechanism = SaslMechanism.GSSAPI;
   }
 
   public AuthenticationTokenSecretManager getSecretManager() {

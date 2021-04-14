@@ -286,8 +286,8 @@ public class RFileTest {
     }
 
     public void openReader(boolean cfsi) throws IOException {
-      int fileLength = 0;
-      byte[] data = null;
+      int fileLength;
+      byte[] data;
       data = baos.toByteArray();
 
       bais = new SeekableByteArrayInputStream(data);
@@ -2219,8 +2219,7 @@ public class RFileTest {
         checkSample(sample, sampleDataLG2, newColFamByteSequence("metaA", "metaB"), false);
         checkSample(sample, sampleDataLG2, newColFamByteSequence("dataA"), true);
 
-        ArrayList<Entry<Key,Value>> allSampleData = new ArrayList<>();
-        allSampleData.addAll(sampleDataLG1);
+        ArrayList<Entry<Key,Value>> allSampleData = new ArrayList<>(sampleDataLG1);
         allSampleData.addAll(sampleDataLG2);
 
         allSampleData.sort(Comparator.comparing(Entry::getKey));

@@ -55,7 +55,7 @@ public class ConfigSanityCheck {
       Property prop = Property.getPropertyByKey(entry.getKey());
       if (prop == null && Property.isValidPropertyKey(key))
         continue; // unknown valid property (i.e. has proper prefix)
-      else if (prop == null)
+      if (prop == null)
         log.warn(PREFIX + "unrecognized property key (" + key + ")");
       else if (prop.getType() == PropertyType.PREFIX)
         fatal(PREFIX + "incomplete property key (" + key + ")");

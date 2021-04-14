@@ -164,15 +164,13 @@ public class ServerClient {
       warnedAboutTServersBeingDown = false;
       return new Pair<>(pair.getFirst(), client);
     } finally {
-      if (!opened) {
-        if (!warnedAboutTServersBeingDown) {
-          if (servers.isEmpty()) {
-            log.warn("There are no tablet servers: check that zookeeper and accumulo are running.");
-          } else {
-            log.warn("Failed to find an available server in the list of servers: {}", servers);
-          }
-          warnedAboutTServersBeingDown = true;
+      if (!opened && !warnedAboutTServersBeingDown) {
+        if (servers.isEmpty()) {
+          log.warn("There are no tablet servers: check that zookeeper and accumulo are running.");
+        } else {
+          log.warn("Failed to find an available server in the list of servers: {}", servers);
         }
+        warnedAboutTServersBeingDown = true;
       }
     }
   }

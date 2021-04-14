@@ -233,6 +233,6 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     if (len > 32)
       desiredLen = 32;
     return new Text(
-        String.valueOf(UUID.randomUUID()).replaceAll("-", "").substring(0, desiredLen - 1));
+        String.valueOf(UUID.randomUUID()).replace("-", "").substring(0, desiredLen - 1));
   }
 }

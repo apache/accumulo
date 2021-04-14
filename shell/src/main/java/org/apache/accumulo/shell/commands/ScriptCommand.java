@@ -114,14 +114,19 @@ public class ScriptCommand extends Command {
         String[] argList = cl.getOptionValue(args.getOpt()).split(",");
         for (String arg : argList) {
           String[] parts = arg.split("=");
-          if (parts.length == 0) {
-            continue;
-          } else if (parts.length == 1) {
-            b.put(parts[0], null);
-            argValues.add(null);
-          } else if (parts.length == 2) {
-            b.put(parts[0], parts[1]);
-            argValues.add(parts[1]);
+          switch (parts.length) {
+            case 0:
+              continue;
+            case 1:
+              b.put(parts[0], null);
+              argValues.add(null);
+              break;
+            case 2:
+              b.put(parts[0], parts[1]);
+              argValues.add(parts[1]);
+              break;
+            default:
+              break;
           }
         }
       }

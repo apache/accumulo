@@ -158,8 +158,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     public int read() {
       if (offset == source.length())
         return '\n';
-      else
-        return source.charAt(offset++);
+      return source.charAt(offset++);
     }
 
     public void set(String other) {
@@ -439,7 +438,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
         if (parameterTypes.length > 0 && parameterTypes[0].equals(Configuration.class)) {
           if (parameterTypes.length == 1) {
             return constructor.newInstance(conf);
-          } else if (parameterTypes.length == 2) {
+          }
+          if (parameterTypes.length == 2) {
             return constructor.newInstance(conf, null);
           }
         }
@@ -2099,9 +2099,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
         Map<String,String> nameToId = client.tableOperations().tableIdMap();
         if (nameToId.containsKey(tableName)) {
           return nameToId.get(tableName);
-        } else {
-          Thread.sleep(1000);
         }
+        Thread.sleep(1000);
       }
 
       fail("Could not find ID for table: " + tableName);
@@ -2853,7 +2852,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     if (len > 32)
       desiredLen = 32;
     return new Text(
-        String.valueOf(UUID.randomUUID()).replaceAll("-", "").substring(0, desiredLen - 1));
+        String.valueOf(UUID.randomUUID()).replace("-", "").substring(0, desiredLen - 1));
   }
 
   private static String encode(final Text text, final boolean encode) {

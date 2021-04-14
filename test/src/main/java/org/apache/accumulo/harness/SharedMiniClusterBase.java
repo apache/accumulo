@@ -217,9 +217,8 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   public ClusterUser getAdminUser() {
     if (krb == null) {
       return new ClusterUser(getPrincipal(), getRootPassword());
-    } else {
-      return krb.getRootUser();
     }
+    return krb.getRootUser();
   }
 
   @Override
@@ -229,9 +228,8 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
           SharedMiniClusterBase.class.getName() + "_" + testName.getMethodName() + "_" + offset;
       // Password is the username
       return new ClusterUser(user, user);
-    } else {
-      return krb.getClientPrincipal(offset);
     }
+    return krb.getClientPrincipal(offset);
   }
 
   public static ClientInfo getClientInfo() {

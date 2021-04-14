@@ -113,16 +113,15 @@ public class SiteConfiguration extends AccumuloConfiguration {
           throw new IllegalArgumentException(
               "Failed to load Accumulo configuration at " + configFile);
         }
+      }
+      URL accumuloConfigUrl = SiteConfiguration.class.getClassLoader().getResource(configFile);
+      if (accumuloConfigUrl == null) {
+        throw new IllegalArgumentException(
+            "Failed to load Accumulo configuration '" + configFile + "' from classpath");
       } else {
-        URL accumuloConfigUrl = SiteConfiguration.class.getClassLoader().getResource(configFile);
-        if (accumuloConfigUrl == null) {
-          throw new IllegalArgumentException(
-              "Failed to load Accumulo configuration '" + configFile + "' from classpath");
-        } else {
-          log.info("Found Accumulo configuration on classpath at {}", accumuloConfigUrl.getFile());
-          url = accumuloConfigUrl;
-          return this;
-        }
+        log.info("Found Accumulo configuration on classpath at {}", accumuloConfigUrl.getFile());
+        url = accumuloConfigUrl;
+        return this;
       }
     }
 

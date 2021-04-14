@@ -218,7 +218,7 @@ public enum ClientProperty {
     if (value.isEmpty()) {
       return false;
     }
-    return Boolean.valueOf(value);
+    return Boolean.parseBoolean(value);
   }
 
   public void setBytes(Properties properties, Long bytes) {

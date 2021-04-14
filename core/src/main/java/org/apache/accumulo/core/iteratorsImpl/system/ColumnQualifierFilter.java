@@ -89,8 +89,7 @@ public class ColumnQualifierFilter extends ServerFilter {
 
     if (sawNonNullQual) {
       return new ColumnQualifierFilter(source, cols);
-    } else {
-      return source;
     }
+    return source;
   }
 }

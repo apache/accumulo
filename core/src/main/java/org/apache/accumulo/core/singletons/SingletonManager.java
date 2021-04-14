@@ -194,15 +194,13 @@ public class SingletonManager {
         services.forEach(SingletonManager::disable);
         enabled = false;
       }
-    } else {
-      // if we're in a disabled state AND
-      // the mode is CONNECTOR or SERVER or if there are active clients,
-      // then enable everything
-      if (mode == Mode.CONNECTOR || mode == Mode.SERVER
-          || (mode == Mode.CLIENT && reservations > 0)) {
-        services.forEach(SingletonManager::enable);
-        enabled = true;
-      }
+    } else // if we're in a disabled state AND
+    // the mode is CONNECTOR or SERVER or if there are active clients,
+    // then enable everything
+    if (mode == Mode.CONNECTOR || mode == Mode.SERVER
+        || (mode == Mode.CLIENT && reservations > 0)) {
+      services.forEach(SingletonManager::enable);
+      enabled = true;
     }
   }
 }

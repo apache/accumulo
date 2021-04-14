@@ -73,8 +73,7 @@ public class RegExFilter extends Filter {
   private Matcher copyMatcher(Matcher m) {
     if (m == null)
       return m;
-    else
-      return m.pattern().matcher("");
+    return m.pattern().matcher("");
   }
 
   private boolean matches(Matcher matcher, ByteSequence bs) {

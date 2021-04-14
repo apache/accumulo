@@ -81,7 +81,7 @@ public class SlowOps {
     try {
       client.instanceOperations().setProperty(
           Property.TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS.getKey(),
-          "[{'name':'any','numThreads':" + target + "}]".replaceAll("'", "\""));
+          "[{'name':'any','numThreads':" + target + "}]".replace("'", "\""));
       UtilWaitThread.sleep(3_000); // give it time to propagate
     } catch (AccumuloException | AccumuloSecurityException | NumberFormatException ex) {
       throw new IllegalStateException("Could not set parallel compaction limit to " + target, ex);

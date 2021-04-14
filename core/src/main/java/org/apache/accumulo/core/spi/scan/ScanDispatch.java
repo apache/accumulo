@@ -53,16 +53,16 @@ public interface ScanDispatch {
     TABLE
   }
 
-  public String getExecutorName();
+  String getExecutorName();
 
-  public CacheUsage getDataCacheUsage();
+  CacheUsage getDataCacheUsage();
 
-  public CacheUsage getIndexCacheUsage();
+  CacheUsage getIndexCacheUsage();
 
   /**
    * @since 2.1.0
    */
-  public static interface Builder {
+  public interface Builder {
 
     /**
      * If this is not called, then {@value SimpleScanDispatcher#DEFAULT_SCAN_EXECUTOR_NAME} should
@@ -73,7 +73,7 @@ public interface ScanDispatch {
      *          of {@link ScanDispatcher.DispatchParameters#getScanExecutors()}
      * @return may return self or a new object
      */
-    public Builder setExecutorName(String name);
+    Builder setExecutorName(String name);
 
     /**
      * If this is not called, then {@link CacheUsage#TABLE} should be used.
@@ -83,7 +83,7 @@ public interface ScanDispatch {
      *          the index tree within a file)
      * @return may return self or a new object
      */
-    public Builder setIndexCacheUsage(CacheUsage usage);
+    Builder setIndexCacheUsage(CacheUsage usage);
 
     /**
      * If this is not called, then {@link CacheUsage#TABLE} should be used.
@@ -92,18 +92,18 @@ public interface ScanDispatch {
      *          a non null usage indicating how the scan should use cache for file data
      * @return may return self or a new object
      */
-    public Builder setDataCacheUsage(CacheUsage usage);
+    Builder setDataCacheUsage(CacheUsage usage);
 
     /**
      * @return an immutable {@link ScanDispatch} object.
      */
-    public ScanDispatch build();
+    ScanDispatch build();
   }
 
   /**
    * @return a {@link ScanDispatch} builder
    */
-  public static Builder builder() {
+  static Builder builder() {
     return DefaultScanDispatch.DEFAULT_SCAN_DISPATCH;
   }
 }

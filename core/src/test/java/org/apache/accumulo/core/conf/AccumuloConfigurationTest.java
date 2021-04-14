@@ -163,7 +163,7 @@ public class AccumuloConfigurationTest {
     @Override
     public String get(Property property) {
       String v = props.get(property.getKey());
-      if (v == null & parent != null) {
+      if (v == null && parent != null) {
         v = parent.get(property);
       }
       return v;

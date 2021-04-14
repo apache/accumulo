@@ -307,8 +307,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
         }
 
         boolean batchScan = InputConfigurator.isBatchScan(callingClass, job);
-        boolean supportBatchScan = !(tableConfig.isOfflineScan()
-            || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
+        boolean supportBatchScan = (!tableConfig.isOfflineScan()
+            && !tableConfig.shouldUseIsolatedScanners() && !tableConfig.shouldUseLocalIterators());
         if (batchScan && !supportBatchScan)
           throw new IllegalArgumentException("BatchScanner optimization not available for offline"
               + " scan, isolated, or local iterators");

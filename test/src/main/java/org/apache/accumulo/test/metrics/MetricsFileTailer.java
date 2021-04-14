@@ -62,7 +62,7 @@ public class MetricsFileTailer implements AutoCloseable {
   private final String metricsPrefix;
 
   private final Lock lock = new ReentrantLock();
-  private final AtomicBoolean running = new AtomicBoolean(Boolean.FALSE);
+  private final AtomicBoolean running = new AtomicBoolean(false);
 
   private AtomicLong lastUpdate = new AtomicLong(0);
   private long startTime = System.nanoTime();
@@ -247,7 +247,7 @@ public class MetricsFileTailer implements AutoCloseable {
       try {
         Thread.sleep(5_000);
       } catch (InterruptedException ex) {
-        running.set(Boolean.FALSE);
+        running.set(false);
         Thread.currentThread().interrupt();
         return;
       }
@@ -297,7 +297,7 @@ public class MetricsFileTailer implements AutoCloseable {
 
   public void startDaemonThread() {
     if (running.compareAndSet(false, true)) {
-      Thread t = new Thread(() -> this.run());
+      Thread t = new Thread(this::run);
       t.setDaemon(true);
       t.start();
     }
@@ -305,7 +305,7 @@ public class MetricsFileTailer implements AutoCloseable {
 
   @Override
   public void close() {
-    running.set(Boolean.FALSE);
+    running.set(false);
   }
 
   // utilities to block, waiting for update - call from process thread

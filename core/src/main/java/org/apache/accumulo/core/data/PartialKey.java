@@ -32,7 +32,7 @@ public enum PartialKey {
 
   int depth;
 
-  private PartialKey(int depth) {
+  PartialKey(int depth) {
     this.depth = depth;
   }
 

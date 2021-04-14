@@ -107,7 +107,7 @@ public class ClientOpts extends Help {
 
       String prefix;
 
-      private KeyType(String prefix) {
+      KeyType(String prefix) {
         this.prefix = prefix;
       }
 

@@ -258,7 +258,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
       if (work.exception != null) {
         if (work.exception instanceof IOException)
           throw (IOException) work.exception;
-        else if (work.exception instanceof RuntimeException)
+        if (work.exception instanceof RuntimeException)
           throw (RuntimeException) work.exception;
         else
           throw new RuntimeException(work.exception);
@@ -273,9 +273,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     }
 
     @Override
-    public void await() {
-      return;
-    }
+    public void await() {}
   }
 
   static final LoggerOperation NO_WAIT_LOGGER_OP = new NoWaitLoggerOperation();
@@ -628,9 +626,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
   static Durability maxDurability(Durability dur1, Durability dur2) {
     if (dur1.ordinal() > dur2.ordinal()) {
       return dur1;
-    } else {
-      return dur2;
     }
+    return dur2;
   }
 
   public LoggerOperation minorCompactionFinished(long seq, int tid, Durability durability)

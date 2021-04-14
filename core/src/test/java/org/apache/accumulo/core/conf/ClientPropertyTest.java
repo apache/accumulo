@@ -62,20 +62,20 @@ public class ClientPropertyTest {
   public void testTypes() {
     Properties props = new Properties();
     props.setProperty(ClientProperty.BATCH_WRITER_LATENCY_MAX.getKey(), "10s");
-    Long value = ClientProperty.BATCH_WRITER_LATENCY_MAX.getTimeInMillis(props);
-    assertEquals(10000L, value.longValue());
+    long value = ClientProperty.BATCH_WRITER_LATENCY_MAX.getTimeInMillis(props);
+    assertEquals(10000L, value);
 
     props.setProperty(ClientProperty.BATCH_WRITER_MEMORY_MAX.getKey(), "555M");
     value = ClientProperty.BATCH_WRITER_MEMORY_MAX.getBytes(props);
-    assertEquals(581959680L, value.longValue());
+    assertEquals(581959680L, value);
 
     ClientProperty.BATCH_WRITER_MEMORY_MAX.setBytes(props, 5819L);
     value = ClientProperty.BATCH_WRITER_MEMORY_MAX.getBytes(props);
-    assertEquals(5819L, value.longValue());
+    assertEquals(5819L, value);
 
     ClientProperty.BATCH_WRITER_LATENCY_MAX.setTimeInMillis(props, 1234L);
     value = ClientProperty.BATCH_WRITER_LATENCY_MAX.getTimeInMillis(props);
-    assertEquals(1234L, value.longValue());
+    assertEquals(1234L, value);
 
     assertThrows(IllegalStateException.class,
         () -> ClientProperty.BATCH_WRITER_LATENCY_MAX.getBytes(props));

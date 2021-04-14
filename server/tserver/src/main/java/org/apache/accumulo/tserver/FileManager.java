@@ -313,13 +313,7 @@ public class FileManager {
         ProblemReports.getInstance(context)
             .report(new ProblemReport(tablet.tableId(), ProblemType.FILE_READ, file, e));
 
-        if (continueOnFailure) {
-          // release the permit for the file that failed to open
-          if (!tablet.isMeta()) {
-            filePermits.release(1);
-          }
-          log.warn("Failed to open file {} {} continuing...", file, e.getMessage(), e);
-        } else {
+        if (!continueOnFailure) {
           // close whatever files were opened
           closeReaders(readersReserved.keySet());
 
@@ -330,6 +324,11 @@ public class FileManager {
           log.error("Failed to open file {} {}", file, e.getMessage());
           throw new IOException("Failed to open " + file, e);
         }
+        // release the permit for the file that failed to open
+        if (!tablet.isMeta()) {
+          filePermits.release(1);
+        }
+        log.warn("Failed to open file {} {} continuing...", file, e.getMessage(), e);
       }
     }
 

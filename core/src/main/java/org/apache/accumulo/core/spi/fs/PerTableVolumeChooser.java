@@ -145,7 +145,8 @@ public class PerTableVolumeChooser implements VolumeChooser {
       if (previousChooser != null && previousChooser.getClass().getName().equals(className)) {
         // no change; return the old one
         return previousChooser;
-      } else if (previousChooser == null) {
+      }
+      if (previousChooser == null) {
         // TODO stricter definition of when the updated property is used, ref ACCUMULO-3412
         // don't log change if this is the first use
         log.trace("Change detected for {} for {}", property, key);
@@ -154,9 +155,8 @@ public class PerTableVolumeChooser implements VolumeChooser {
         if (key instanceof TableId) {
           TableId tableId = (TableId) key;
           return env.getServiceEnv().instantiate(tableId, className, VolumeChooser.class);
-        } else {
-          return env.getServiceEnv().instantiate(className, VolumeChooser.class);
         }
+        return env.getServiceEnv().instantiate(className, VolumeChooser.class);
       } catch (Exception e) {
         String msg = "Failed to create instance for " + key + " configured to use " + className
             + " via " + property;

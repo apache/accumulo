@@ -349,16 +349,14 @@ public class ListTabletsCommand extends Command {
       Text t = tablet.endRow();
       if (t == null)
         return "+INF";
-      else
-        return t.toString();
+      return t.toString();
     }
 
     public String getStartRow() {
       Text t = tablet.prevEndRow();
       if (t == null)
         return "-INF";
-      else
-        return t.toString();
+      return t.toString();
     }
 
     public static final String header = String.format(

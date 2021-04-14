@@ -47,23 +47,21 @@ public class ConfigurationImpl implements Configuration {
     Property prop = Property.getPropertyByKey(key);
     if (prop != null) {
       return acfg.isPropertySet(prop, false);
-    } else {
-      return acfg.get(key) != null;
     }
+    return acfg.get(key) != null;
   }
 
   @Override
   public String get(String key) {
     // Get prop to check if sensitive, also looking up by prop may be more efficient.
     Property prop = Property.getPropertyByKey(key);
-    if (prop != null) {
-      if (prop.isSensitive()) {
-        return null;
-      }
-      return acfg.get(prop);
-    } else {
+    if (prop == null) {
       return acfg.get(key);
     }
+    if (prop.isSensitive()) {
+      return null;
+    }
+    return acfg.get(prop);
   }
 
   @Override
@@ -71,11 +69,10 @@ public class ConfigurationImpl implements Configuration {
     Property propertyPrefix = Property.getPropertyByKey(prefix);
     if (propertyPrefix != null && propertyPrefix.getType() == PropertyType.PREFIX) {
       return acfg.getAllPropertiesWithPrefix(propertyPrefix);
-    } else {
-      return StreamSupport.stream(acfg.spliterator(), false)
-          .filter(prop -> prop.getKey().startsWith(prefix))
-          .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
     }
+    return StreamSupport.stream(acfg.spliterator(), false)
+        .filter(prop -> prop.getKey().startsWith(prefix))
+        .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
   }
 
   @Override

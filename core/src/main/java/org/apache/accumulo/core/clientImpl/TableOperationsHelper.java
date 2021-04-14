@@ -116,13 +116,11 @@ public abstract class TableOperationsHelper implements TableOperations {
     for (Entry<String,String> property : this.getProperties(tableName)) {
       String name = property.getKey();
       String[] parts = name.split("\\.");
-      if (parts.length == 4) {
-        if (parts[0].equals("table") && parts[1].equals("iterator")) {
-          IteratorScope scope = IteratorScope.valueOf(parts[2]);
-          if (!result.containsKey(parts[3]))
-            result.put(parts[3], EnumSet.noneOf(IteratorScope.class));
-          result.get(parts[3]).add(scope);
-        }
+      if ((parts.length == 4) && (parts[0].equals("table") && parts[1].equals("iterator"))) {
+        IteratorScope scope = IteratorScope.valueOf(parts[2]);
+        if (!result.containsKey(parts[3]))
+          result.put(parts[3], EnumSet.noneOf(IteratorScope.class));
+        result.get(parts[3]).add(scope);
       }
     }
     return result;

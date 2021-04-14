@@ -75,7 +75,8 @@ public class AddressUtil {
               + "'networkaddress.cache.negative.ttl', see java.net.InetAddress.",
           originalException);
       throw new IllegalArgumentException(originalException);
-    } else if (negativeTtl < 0) {
+    }
+    if (negativeTtl < 0) {
       log.warn("JVM specified negative DNS response cache TTL was negative (and not 'forever'). "
           + "Falling back to default based on Oracle JVM 1.4+ (10s)");
       negativeTtl = 10;

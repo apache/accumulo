@@ -284,10 +284,9 @@ public class Upgrader9to10 implements Upgrader {
     HostAndPort address = HostAndPort.fromString(parts[0]);
     if (parts.length > 1 && parts[1] != null && !parts[1].isEmpty()) {
       return new TServerInstance(address, parts[1]);
-    } else {
-      // a 1.2 location specification: DO NOT WANT
-      return null;
     }
+    // a 1.2 location specification: DO NOT WANT
+    return null;
   }
 
   static List<LogEntry> getRootLogEntries(ServerContext context) {
@@ -502,9 +501,8 @@ public class Upgrader9to10 implements Upgrader {
     if (pathNoVolume.depth() == 3 && !pathNoVolume.getName().startsWith(Constants.BULK_PREFIX)) {
       return GcVolumeUtil.getDeleteTabletOnAllVolumesUri(
           TableId.of(pathNoVolume.getParent().getName()), pathNoVolume.getName());
-    } else {
-      return olddelete.toString();
     }
+    return olddelete.toString();
   }
 
   /**
@@ -576,13 +574,12 @@ public class Upgrader9to10 implements Upgrader {
 
     // first pass check for relative paths - if any, check existence of the file path
     // constructed from the upgrade property + relative path
-    if (checkForRelativePaths(c, fs, tableName, upgradeProp)) {
-      log.info("Relative Tablet File paths exist in {}, replacing with absolute using {}",
-          tableName, upgradeProp);
-    } else {
+    if (!checkForRelativePaths(c, fs, tableName, upgradeProp)) {
       log.info("No relative paths found in {} during upgrade.", tableName);
       return;
     }
+    log.info("Relative Tablet File paths exist in {}, replacing with absolute using {}", tableName,
+        upgradeProp);
 
     // second pass, create atomic mutations to replace the relative path
     replaceRelativePaths(c, fs, tableName, upgradeProp);
@@ -608,20 +605,19 @@ public class Upgrader9to10 implements Upgrader {
           }
           Path relPath = resolveRelativePath(metaEntry, key);
           Path absPath = new Path(upgradeProperty, relPath);
-          if (fs.exists(absPath)) {
-            log.debug("Changing Tablet File path from {} to {}", metaEntry, absPath);
-            Mutation m = new Mutation(key.getRow());
-            // add the new path
-            m.at().family(key.getColumnFamily()).qualifier(absPath.toString())
-                .visibility(key.getColumnVisibility()).put(entry.getValue());
-            // delete the old path
-            m.at().family(key.getColumnFamily()).qualifier(key.getColumnQualifierData().toArray())
-                .visibility(key.getColumnVisibility()).delete();
-            writer.addMutation(m);
-          } else {
+          if (!fs.exists(absPath)) {
             throw new IllegalArgumentException(
                 "Relative Tablet file " + relPath + " not found at " + absPath);
           }
+          log.debug("Changing Tablet File path from {} to {}", metaEntry, absPath);
+          Mutation m = new Mutation(key.getRow());
+          // add the new path
+          m.at().family(key.getColumnFamily()).qualifier(absPath.toString())
+              .visibility(key.getColumnVisibility()).put(entry.getValue());
+          // delete the old path
+          m.at().family(key.getColumnFamily()).qualifier(key.getColumnQualifierData().toArray())
+              .visibility(key.getColumnVisibility()).delete();
+          writer.addMutation(m);
         }
       }
     } catch (MutationsRejectedException | TableNotFoundException e) {
@@ -677,11 +673,10 @@ public class Upgrader9to10 implements Upgrader {
     if (metadataEntry.startsWith("../")) {
       // resolve style "../2a/t-0003/C0004.rf"
       return new Path(prefix + metadataEntry.substring(3));
-    } else {
-      // resolve style "/t-0003/C0004.rf"
-      TableId tableId = KeyExtent.fromMetaRow(key.getRow()).tableId();
-      return new Path(prefix + tableId.canonical() + metadataEntry);
     }
+    // resolve style "/t-0003/C0004.rf"
+    TableId tableId = KeyExtent.fromMetaRow(key.getRow()).tableId();
+    return new Path(prefix + tableId.canonical() + metadataEntry);
   }
 
   /**

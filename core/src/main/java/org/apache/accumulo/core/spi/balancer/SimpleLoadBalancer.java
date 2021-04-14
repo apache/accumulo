@@ -369,16 +369,14 @@ public class SimpleLoadBalancer implements TabletBalancer {
     // do we have any servers?
     if (params.currentStatus().isEmpty()) {
       problemReporter.reportProblem(noTserversProblem);
+    } else // Don't migrate if we have migrations in progress
+    if (params.currentMigrations().isEmpty()) {
+      problemReporter.clearProblemReportTimes();
+      if (getMigrations(params.currentStatus(), params.migrationsOut()))
+        return TimeUnit.SECONDS.toMillis(1);
     } else {
-      // Don't migrate if we have migrations in progress
-      if (params.currentMigrations().isEmpty()) {
-        problemReporter.clearProblemReportTimes();
-        if (getMigrations(params.currentStatus(), params.migrationsOut()))
-          return TimeUnit.SECONDS.toMillis(1);
-      } else {
-        outstandingMigrationsProblem.setMigrations(params.currentMigrations());
-        problemReporter.reportProblem(outstandingMigrationsProblem);
-      }
+      outstandingMigrationsProblem.setMigrations(params.currentMigrations());
+      problemReporter.reportProblem(outstandingMigrationsProblem);
     }
     return 5 * 1000;
   }

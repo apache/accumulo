@@ -173,11 +173,11 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         while (batch == null && fatalException == null && !queryThreadPool.isShutdown())
           batch = resultsQueue.poll(1, TimeUnit.SECONDS);
 
-        if (fatalException != null)
+        if (fatalException != null) {
           if (fatalException instanceof RuntimeException)
             throw (RuntimeException) fatalException;
-          else
-            throw new RuntimeException(fatalException);
+          throw new RuntimeException(fatalException);
+        }
 
         if (queryThreadPool.isShutdown()) {
           String shortMsg =
@@ -203,8 +203,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     synchronized (nextLock) {
       if (hasNext())
         return batchIterator.next();
-      else
-        throw new NoSuchElementException();
+      throw new NoSuchElementException();
     }
   }
 
@@ -238,31 +237,31 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
       if (failures.isEmpty()) {
         break;
-      } else {
-        // tried to only do table state checks when failures.size() == ranges.size(), however this
-        // did
-        // not work because nothing ever invalidated entries in the tabletLocator cache... so even
-        // though
-        // the table was deleted the tablet locator entries for the deleted table were not
-        // cleared... so
-        // need to always do the check when failures occur
-        if (failures.size() >= lastFailureSize)
-          if (!Tables.exists(context, tableId))
-            throw new TableDeletedException(tableId.canonical());
-          else if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
-            throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
+      }
+      // tried to only do table state checks when failures.size() == ranges.size(), however this
+      // did
+      // not work because nothing ever invalidated entries in the tabletLocator cache... so even
+      // though
+      // the table was deleted the tablet locator entries for the deleted table were not
+      // cleared... so
+      // need to always do the check when failures occur
+      if (failures.size() >= lastFailureSize) {
+        if (!Tables.exists(context, tableId))
+          throw new TableDeletedException(tableId.canonical());
+        if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
+          throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
+      }
 
-        lastFailureSize = failures.size();
+      lastFailureSize = failures.size();
 
-        if (log.isTraceEnabled())
-          log.trace("Failed to bin {} ranges, tablet locations were null, retrying in 100ms",
-              failures.size());
+      if (log.isTraceEnabled())
+        log.trace("Failed to bin {} ranges, tablet locations were null, retrying in 100ms",
+            failures.size());
 
-        try {
-          Thread.sleep(100);
-        } catch (InterruptedException e) {
-          throw new RuntimeException(e);
-        }
+      try {
+        Thread.sleep(100);
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
       }
 
     }
@@ -419,30 +418,26 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
               fatalException = t;
             }
 
-            if (fatalException != null) {
-              // we are finished with this batch query
-              if (!resultsQueue.offer(LAST_BATCH)) {
-                log.debug(
-                    "Could not add to result queue after seeing fatalException in processFailures",
-                    fatalException);
-              }
+            // we are finished with this batch query
+            if ((fatalException != null) && !resultsQueue.offer(LAST_BATCH)) {
+              log.debug(
+                  "Could not add to result queue after seeing fatalException in processFailures",
+                  fatalException);
+            }
+          } else // we are finished with this batch query
+          if (fatalException != null) {
+            if (!resultsQueue.offer(LAST_BATCH)) {
+              log.debug("Could not add to result queue after seeing fatalException",
+                  fatalException);
             }
           } else {
-            // we are finished with this batch query
-            if (fatalException != null) {
+            try {
+              resultsQueue.put(LAST_BATCH);
+            } catch (InterruptedException e) {
+              fatalException = e;
               if (!resultsQueue.offer(LAST_BATCH)) {
                 log.debug("Could not add to result queue after seeing fatalException",
                     fatalException);
-              }
-            } else {
-              try {
-                resultsQueue.put(LAST_BATCH);
-              } catch (InterruptedException e) {
-                fatalException = e;
-                if (!resultsQueue.offer(LAST_BATCH)) {
-                  log.debug("Could not add to result queue after seeing fatalException",
-                      fatalException);
-                }
               }
             }
           }
@@ -539,8 +534,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     // translate returned failures, remove them from unscanned, and add them to failures
     // @formatter:off
     Map<KeyExtent, List<Range>> retFailures = scanResult.failures.entrySet().stream().collect(Collectors.toMap(
-                    (entry) -> KeyExtent.fromThrift(entry.getKey()),
-                    (entry) -> entry.getValue().stream().map(Range::new).collect(Collectors.toList())
+                    entry -> KeyExtent.fromThrift(entry.getKey()),
+                    entry -> entry.getValue().stream().map(Range::new).collect(Collectors.toList())
     ));
     // @formatter:on
     unscanned.keySet().removeAll(retFailures.keySet());
@@ -680,8 +675,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
         // @formatter:off
         Map<TKeyExtent, List<TRange>> thriftTabletRanges = requested.entrySet().stream().collect(Collectors.toMap(
-                        (entry) -> entry.getKey().toThrift(),
-                        (entry) -> entry.getValue().stream().map(Range::toThrift).collect(Collectors.toList())
+                        entry -> entry.getKey().toThrift(),
+                        entry -> entry.getValue().stream().map(Range::toThrift).collect(Collectors.toList())
         ));
         // @formatter:on
 

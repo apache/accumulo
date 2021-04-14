@@ -85,7 +85,6 @@ public class BloomFilterLayer {
 
   public static class Writer implements FileSKVWriter {
     private DynamicBloomFilter bloomFilter;
-    private int numKeys;
     private int vectorSize;
 
     private FileSKVWriter writer;
@@ -101,7 +100,7 @@ public class BloomFilterLayer {
     private synchronized void initBloomFilter(AccumuloConfiguration acuconf,
         boolean useAccumuloStart) {
 
-      numKeys = acuconf.getCount(Property.TABLE_BLOOM_SIZE);
+      int numKeys = acuconf.getCount(Property.TABLE_BLOOM_SIZE);
       // vector size should be <code>-kn / (ln(1 - c^(1/k)))</code> bits for
       // single key, where <code> is the number of hash functions,
       // <code>n</code> is the number of keys and <code>c</code> is the desired
@@ -257,10 +256,9 @@ public class BloomFilterLayer {
           LOG.error("Could not instantiate KeyFunctor: " + sanitize(ClassName), e);
           bloomFilter = null;
         } catch (RuntimeException rte) {
-          if (closed)
-            LOG.debug("Can't open BloomFilter, RTE after closed ", rte);
-          else
+          if (!closed)
             throw rte;
+          LOG.debug("Can't open BloomFilter, RTE after closed ", rte);
         } finally {
           if (in != null) {
             try {

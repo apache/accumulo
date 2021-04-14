@@ -66,8 +66,7 @@ public class TablesCommand extends Command {
         tableName = Tables.qualify(tableName).getSecond();
       if (cl.hasOption(tableIdOption.getOpt()))
         return String.format(NAME_AND_ID_FORMAT, tableName, tableId);
-      else
-        return tableName;
+      return tableName;
     });
 
     shellState.printLines(it, !cl.hasOption(disablePaginationOpt.getOpt()));

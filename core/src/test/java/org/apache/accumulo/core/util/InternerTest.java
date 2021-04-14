@@ -27,7 +27,7 @@ import org.junit.Test;
 
 public class InternerTest {
 
-  private class TestObj {
+  private static class TestObj {
     private final int id;
 
     TestObj(int id) {

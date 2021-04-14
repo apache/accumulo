@@ -132,13 +132,10 @@ public class TraceDump {
     out.print("Time  Start  Service@Location       Name");
 
     final long finalStart = start;
-    Set<Long> visited = tree.visit(new SpanTreeVisitor() {
-      @Override
-      public void visit(int level, RemoteSpan node) {
-        String fmt = "%5d+%-5d %" + (level * 2 + 1) + "s%s@%s %s";
-        out.print(String.format(fmt, node.stop - node.start, node.start - finalStart, "", node.svc,
-            node.sender, node.description));
-      }
+    Set<Long> visited = tree.visit((level, node) -> {
+      String fmt = "%5d+%-5d %" + (level * 2 + 1) + "s%s@%s %s";
+      out.print(String.format(fmt, node.stop - node.start, node.start - finalStart, "", node.svc,
+          node.sender, node.description));
     });
     tree.nodes.keySet().removeAll(visited);
     if (!tree.nodes.isEmpty()) {

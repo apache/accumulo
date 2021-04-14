@@ -159,10 +159,9 @@ public class TokenFileIT extends AccumuloClusterHarness {
 
       if (job.isSuccessful()) {
         return 0;
-      } else {
-        System.out.println(job.getStatus().getFailureInfo());
-        return 1;
       }
+      System.out.println(job.getStatus().getFailureInfo());
+      return 1;
     }
   }
 

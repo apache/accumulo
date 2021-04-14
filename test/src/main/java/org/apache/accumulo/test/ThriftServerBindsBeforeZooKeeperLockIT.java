@@ -101,9 +101,8 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
           // This is our "assertion", but we want to re-check it if it's not what we expect
           if (responseCode == HttpURLConnection.HTTP_OK) {
             return;
-          } else {
-            errorText = FunctionalTestUtils.readAll(cnxn.getErrorStream());
           }
+          errorText = FunctionalTestUtils.readAll(cnxn.getErrorStream());
           LOG.debug("Unexpected responseCode and/or error text, will retry: '{}' '{}'",
               responseCode, errorText);
         } catch (Exception e) {

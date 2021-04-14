@@ -110,10 +110,9 @@ public class ZooZap {
               zoo.recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
             } else {
               var zLockPath = ServiceLock.path(tserversPath + "/" + child);
-              if (!zoo.getChildren(zLockPath.toString()).isEmpty()) {
-                if (!ServiceLock.deleteLock(zoo, zLockPath, "tserver")) {
-                  message("Did not delete " + tserversPath + "/" + child, opts);
-                }
+              if (!zoo.getChildren(zLockPath.toString()).isEmpty()
+                  && !ServiceLock.deleteLock(zoo, zLockPath, "tserver")) {
+                message("Did not delete " + tserversPath + "/" + child, opts);
               }
             }
           }

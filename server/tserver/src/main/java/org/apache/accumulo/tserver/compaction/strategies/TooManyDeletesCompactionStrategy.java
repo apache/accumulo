@@ -133,9 +133,8 @@ public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy 
       // information here as its a blocking operation. Blocking operations are not allowed in
       // shouldCompact.
       return true;
-    } else {
-      return super.shouldCompact(request);
     }
+    return super.shouldCompact(request);
   }
 
   @Override
@@ -161,10 +160,9 @@ public class TooManyDeletesCompactionStrategy extends DefaultCompactionStrategy 
         if (numEntries == 0 && !proceed_bns) {
           shouldCompact = false;
           return;
-        } else {
-          // no summary data so use Accumulo's estimate of total entries in file
-          total += entry.getValue().getNumEntries();
         }
+        // no summary data so use Accumulo's estimate of total entries in file
+        total += entry.getValue().getNumEntries();
       }
     }
 

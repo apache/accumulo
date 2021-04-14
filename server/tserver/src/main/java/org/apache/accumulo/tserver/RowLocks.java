@@ -29,7 +29,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.tserver.ConditionalMutationSet.DeferFilter;
 import org.apache.accumulo.tserver.data.ServerConditionalMutation;
 
 import com.google.common.base.Preconditions;
@@ -116,17 +115,13 @@ class RowLocks {
 
       final HashSet<ByteSequence> rnlf = rowsNotLocked;
       // assume will get locks needed, do something expensive otherwise
-      ConditionalMutationSet.defer(updates, deferred, new DeferFilter() {
-        @Override
-        public void defer(List<ServerConditionalMutation> scml,
-            List<ServerConditionalMutation> okMutations, List<ServerConditionalMutation> deferred) {
-          for (ServerConditionalMutation scm : scml) {
-            if (rnlf.contains(new ArrayByteSequence(scm.getRow())))
-              deferred.add(scm);
-            else
-              okMutations.add(scm);
+      ConditionalMutationSet.defer(updates, deferred, (scml, okMutations, deferred1) -> {
+        for (ServerConditionalMutation scm : scml) {
+          if (rnlf.contains(new ArrayByteSequence(scm.getRow())))
+            deferred1.add(scm);
+          else
+            okMutations.add(scm);
 
-          }
         }
       });
 

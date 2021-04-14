@@ -148,36 +148,35 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       password = getPassword(localConf, target);
     }
 
-    if (keytab != null) {
-      try {
-        final UserGroupInformation accumuloUgi = UserGroupInformation.getCurrentUser();
-        // Get a UGI with the principal + keytab
-        UserGroupInformation ugi = UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal,
-            keytab.getAbsolutePath());
-
-        // Run inside a doAs to avoid nuking the Tserver's user
-        return ugi.doAs((PrivilegedAction<Status>) () -> {
-          KerberosToken token;
-          try {
-            // Do *not* replace the current user
-            token = new KerberosToken(principal, keytab);
-          } catch (IOException e) {
-            log.error("Failed to create KerberosToken", e);
-            return status;
-          }
-          ClientContext peerContext = getContextForPeer(localConf, target, principal, token);
-          return _replicate(p, status, target, helper, localConf, peerContext, accumuloUgi);
-        });
-      } catch (IOException e) {
-        // Can't log in, can't replicate
-        log.error("Failed to perform local login", e);
-        return status;
-      }
-    } else {
+    if (keytab == null) {
       // Simple case: make a password token, context and then replicate
       PasswordToken token = new PasswordToken(password);
       ClientContext peerContext = getContextForPeer(localConf, target, principal, token);
       return _replicate(p, status, target, helper, localConf, peerContext, null);
+    }
+    try {
+      final UserGroupInformation accumuloUgi = UserGroupInformation.getCurrentUser();
+      // Get a UGI with the principal + keytab
+      UserGroupInformation ugi =
+          UserGroupInformation.loginUserFromKeytabAndReturnUGI(principal, keytab.getAbsolutePath());
+
+      // Run inside a doAs to avoid nuking the Tserver's user
+      return ugi.doAs((PrivilegedAction<Status>) () -> {
+        KerberosToken token;
+        try {
+          // Do *not* replace the current user
+          token = new KerberosToken(principal, keytab);
+        } catch (IOException e) {
+          log.error("Failed to create KerberosToken", e);
+          return status;
+        }
+        ClientContext peerContext = getContextForPeer(localConf, target, principal, token);
+        return _replicate(p, status, target, helper, localConf, peerContext, accumuloUgi);
+      });
+    } catch (IOException e) {
+      // Can't log in, can't replicate
+      log.error("Failed to perform local login", e);
+      return status;
     }
   }
 
@@ -301,14 +300,12 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         // data)
         // we can just not record any updates, and it will be picked up again by the work assigner
         return status;
+      }
+      if (StatusUtil.isWorkRequired(currentStatus)) {
+        // Otherwise, let it loop and replicate some more data
+        lastStatus = currentStatus;
       } else {
-        // If we don't have any more work, just quit
-        if (StatusUtil.isWorkRequired(currentStatus)) {
-          // Otherwise, let it loop and replicate some more data
-          lastStatus = currentStatus;
-        } else {
-          return currentStatus;
-        }
+        return currentStatus;
       }
     }
   }
@@ -385,50 +382,47 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           // data)
           // we can just not record any updates, and it will be picked up again by the work assigner
           return status;
-        } else {
-          try (TraceScope span = Trace.startSpan("Update replication table")) {
-            if (accumuloUgi != null) {
-              final Status copy = currentStatus;
-              accumuloUgi.doAs((PrivilegedAction<Void>) () -> {
-                try {
-                  helper.recordNewStatus(p, copy, target);
-                } catch (Exception e) {
-                  exceptionRef.set(e);
-                }
-                return null;
-              });
-              Exception e = exceptionRef.get();
-              if (e != null) {
-                if (e instanceof TableNotFoundException) {
-                  throw (TableNotFoundException) e;
-                } else if (e instanceof AccumuloSecurityException) {
-                  throw (AccumuloSecurityException) e;
-                } else if (e instanceof AccumuloException) {
-                  throw (AccumuloException) e;
-                } else {
-                  throw new RuntimeException("Received unexpected exception", e);
-                }
+        }
+        try (TraceScope span = Trace.startSpan("Update replication table")) {
+          if (accumuloUgi != null) {
+            final Status copy = currentStatus;
+            accumuloUgi.doAs((PrivilegedAction<Void>) () -> {
+              try {
+                helper.recordNewStatus(p, copy, target);
+              } catch (Exception e) {
+                exceptionRef.set(e);
               }
-            } else {
-              helper.recordNewStatus(p, currentStatus, target);
+              return null;
+            });
+            Exception e = exceptionRef.get();
+            if (e != null) {
+              if (e instanceof TableNotFoundException) {
+                throw (TableNotFoundException) e;
+              } else if (e instanceof AccumuloSecurityException) {
+                throw (AccumuloSecurityException) e;
+              } else if (e instanceof AccumuloException) {
+                throw (AccumuloException) e;
+              } else {
+                throw new RuntimeException("Received unexpected exception", e);
+              }
             }
-          } catch (TableNotFoundException e) {
-            log.error(
-                "Tried to update status in replication table for {} as"
-                    + " {}, but the table did not exist",
-                p, ProtobufUtil.toString(currentStatus), e);
-            throw new RuntimeException("Replication table did not exist, will retry", e);
-          }
-
-          log.debug("Recorded updated status for {}: {}", p, ProtobufUtil.toString(currentStatus));
-
-          // If we don't have any more work, just quit
-          if (StatusUtil.isWorkRequired(currentStatus)) {
-            // Otherwise, let it loop and replicate some more data
-            lastStatus = currentStatus;
           } else {
-            return currentStatus;
+            helper.recordNewStatus(p, currentStatus, target);
           }
+        } catch (TableNotFoundException e) {
+          log.error("Tried to update status in replication table for {} as"
+              + " {}, but the table did not exist", p, ProtobufUtil.toString(currentStatus), e);
+          throw new RuntimeException("Replication table did not exist, will retry", e);
+        }
+
+        log.debug("Recorded updated status for {}: {}", p, ProtobufUtil.toString(currentStatus));
+
+        // If we don't have any more work, just quit
+        if (StatusUtil.isWorkRequired(currentStatus)) {
+          // Otherwise, let it loop and replicate some more data
+          lastStatus = currentStatus;
+        } else {
+          return currentStatus;
         }
       }
     } catch (LogHeaderIncompleteException e) {
@@ -506,7 +500,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         // want to track progress in the file relative to all LogEvents (to avoid duplicative
         // processing/replication)
         return edits;
-      } else if (edits.entriesConsumed > 0) {
+      }
+      if (edits.entriesConsumed > 0) {
         // Even if we send no data, we want to record a non-zero new begin value to avoid checking
         // the same
         // log entries multiple times to determine if they should be sent
@@ -518,7 +513,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
   }
 
-  protected class RFileClientExecReturn
+  protected static class RFileClientExecReturn
       implements ClientExecReturn<ReplicationStats,ReplicationServicer.Client> {
 
     @Override
@@ -760,12 +755,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
     @Override
     public boolean equals(Object o) {
-      if (o != null) {
-        if (ReplicationStats.class.isAssignableFrom(o.getClass())) {
-          ReplicationStats other = (ReplicationStats) o;
-          return sizeInBytes == other.sizeInBytes && sizeInRecords == other.sizeInRecords
-              && entriesConsumed == other.entriesConsumed;
-        }
+      if ((o != null) && ReplicationStats.class.isAssignableFrom(o.getClass())) {
+        ReplicationStats other = (ReplicationStats) o;
+        return sizeInBytes == other.sizeInBytes && sizeInRecords == other.sizeInRecords
+            && entriesConsumed == other.entriesConsumed;
       }
       return false;
     }

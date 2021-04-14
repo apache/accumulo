@@ -78,12 +78,11 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
           while (source.hasNext()) {
             Entry<Key,Value> entry = source.next();
 
-            if (entry.getKey().getRowData().equals(row)) {
-              buffer.add(entry);
-            } else {
+            if (!entry.getKey().getRowData().equals(row)) {
               nextRowStart = entry;
               break;
             }
+            buffer.add(entry);
           }
 
           lastRow = row;

@@ -133,17 +133,16 @@ public class RowDeletingIterator implements SortedKeyValueIterator<Key,Value> {
         }
       }
 
-      if (!currentRowDeleted && source.hasTop()
-          && isDeleteMarker(source.getTopKey(), source.getTopValue())) {
-        currentRow = source.getTopKey().getRowData();
-        currentRowDeleted = true;
-        deleteTS = source.getTopKey().getTimestamp();
-
-        if (propogateDeletes)
-          break;
-      } else {
+      if (currentRowDeleted || !source.hasTop()
+          || !isDeleteMarker(source.getTopKey(), source.getTopValue())) {
         break;
       }
+      currentRow = source.getTopKey().getRowData();
+      currentRowDeleted = true;
+      deleteTS = source.getTopKey().getTimestamp();
+
+      if (propogateDeletes)
+        break;
     }
 
   }

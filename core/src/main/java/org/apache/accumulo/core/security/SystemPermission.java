@@ -52,7 +52,7 @@ public enum SystemPermission {
       mapping.put(perm.permID, perm);
   }
 
-  private SystemPermission(byte id) {
+  SystemPermission(byte id) {
     this.permID = id;
   }
 

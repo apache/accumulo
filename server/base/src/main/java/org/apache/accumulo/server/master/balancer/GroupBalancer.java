@@ -567,9 +567,8 @@ public abstract class GroupBalancer extends TabletBalancer {
       // smooth things out
       balanceExtraMultiple(tservers, maxExtraGroups, moves, extraMultiple, true);
       return false;
-    } else {
-      return true;
     }
+    return true;
   }
 
   private void balanceExtraMultiple(Map<TServerInstance,TserverGroupInfo> tservers,
@@ -644,11 +643,10 @@ public abstract class GroupBalancer extends TabletBalancer {
             TserverGroupInfo srcTgi = iter.next();
 
             while (srcTgi.getExtras().size() <= expectedExtra) {
-              if (iter.hasNext()) {
-                srcTgi = iter.next();
-              } else {
+              if (!iter.hasNext()) {
                 continue nextGroup;
               }
+              srcTgi = iter.next();
             }
 
             moves.move(group, 1, srcTgi, destTgi);

@@ -75,11 +75,10 @@ public class Fate<T> {
             try {
               deferTime = op.isReady(tid, environment);
 
-              if (deferTime == 0) {
-                prevOp = op;
-                op = op.call(tid, environment);
-              } else
+              if (deferTime != 0)
                 continue;
+              prevOp = op;
+              op = op.call(tid, environment);
 
             } catch (Exception e) {
               blockIfHadoopShutdown(tid, e);

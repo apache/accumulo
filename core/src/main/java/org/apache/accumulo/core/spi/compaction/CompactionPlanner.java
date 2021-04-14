@@ -69,7 +69,7 @@ public interface CompactionPlanner {
     ExecutorManager getExecutorManager();
   }
 
-  public void init(InitParameters params);
+  void init(InitParameters params);
 
   /**
    * This interface exists so the API can evolve and additional parameters can be passed to the

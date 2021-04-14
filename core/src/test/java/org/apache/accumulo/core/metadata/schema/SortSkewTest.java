@@ -27,7 +27,7 @@ public class SortSkewTest {
   private static final String shortpath = "1";
   private static final String longpath =
       "/verylongpath/12345679xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxiiiiiiiiiiiiiiiiii/zzzzzzzzzzzzzzzzzzzzz"
-          + "aaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbccccccccccccccccccccccccccxxxxxxxxxxxxxxxxxxxxxxxxyyyyyyyyyyyyyyyyzzzzzzzzzzzzzzzz";;
+          + "aaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbccccccccccccccccccccccccccxxxxxxxxxxxxxxxxxxxxxxxxyyyyyyyyyyyyyyyyzzzzzzzzzzzzzzzz";
   // these are values previously generated from SortSkew.getCode() for the above
   private static final String shortcode = "9416ac93";
   private static final String longcode = "b9ddf266";

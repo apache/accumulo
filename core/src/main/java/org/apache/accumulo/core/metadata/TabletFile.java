@@ -132,9 +132,8 @@ public class TabletFile implements Comparable<TabletFile> {
   public int compareTo(TabletFile o) {
     if (equals(o)) {
       return 0;
-    } else {
-      return normalizedPath.compareTo(o.normalizedPath);
     }
+    return normalizedPath.compareTo(o.normalizedPath);
   }
 
   @Override

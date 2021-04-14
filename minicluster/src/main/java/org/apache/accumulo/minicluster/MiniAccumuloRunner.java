@@ -256,15 +256,15 @@ public class MiniAccumuloRunner {
   }
 
   private static boolean validateMemoryString(String memoryString) {
-    String unitsRegex = "[";
+    StringBuilder unitsRegex = new StringBuilder("[");
     MemoryUnit[] units = MemoryUnit.values();
     for (int i = 0; i < units.length; i++) {
-      unitsRegex += units[i].suffix();
+      unitsRegex.append(units[i].suffix());
       if (i < units.length - 1)
-        unitsRegex += "|";
+        unitsRegex.append("|");
     }
-    unitsRegex += "]";
-    Pattern p = Pattern.compile("\\d+" + unitsRegex);
+    unitsRegex.append("]");
+    Pattern p = Pattern.compile("\\d+" + unitsRegex.toString());
     return p.matcher(memoryString).matches();
   }
 

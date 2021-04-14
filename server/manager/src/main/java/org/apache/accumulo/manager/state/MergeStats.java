@@ -92,10 +92,8 @@ public class MergeStats {
       return;
     if (info.needsToBeChopped(ke)) {
       this.needsToBeChopped++;
-      if (chopped) {
-        if (state.equals(TabletState.HOSTED) || !hasWALs) {
-          this.chopped++;
-        }
+      if (chopped && (state.equals(TabletState.HOSTED) || !hasWALs)) {
+        this.chopped++;
       }
     }
     this.total++;

@@ -46,7 +46,7 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    *
    * @since 1.6.0
    */
-  public static enum Opts {
+  public enum Opts {
     ACCUMULO_PROPERTIES
   }
 
@@ -89,18 +89,17 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    */
   private static <T> void setAccumuloProperty(Class<?> implementingClass, Configuration conf,
       Property property, T value) {
-    if (isSupportedAccumuloProperty(property)) {
-      String val = String.valueOf(value);
-      if (property.getType().isValidFormat(val)) {
-        String key =
-            enumToConfKey(implementingClass, Opts.ACCUMULO_PROPERTIES) + "." + property.getKey();
-        log.debug("Setting accumulo property {} = {} ", key, val);
-        conf.set(key, val);
-      } else
-        throw new IllegalArgumentException(
-            "Value is not appropriate for property type '" + property.getType() + "'");
-    } else
+    if (!isSupportedAccumuloProperty(property))
       throw new IllegalArgumentException("Unsupported configuration property " + property.getKey());
+    String val = String.valueOf(value);
+    if (property.getType().isValidFormat(val)) {
+      String key =
+          enumToConfKey(implementingClass, Opts.ACCUMULO_PROPERTIES) + "." + property.getKey();
+      log.debug("Setting accumulo property {} = {} ", key, val);
+      conf.set(key, val);
+    } else
+      throw new IllegalArgumentException(
+          "Value is not appropriate for property type '" + property.getType() + "'");
   }
 
   /**

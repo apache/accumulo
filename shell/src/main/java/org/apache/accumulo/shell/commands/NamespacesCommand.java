@@ -52,8 +52,7 @@ public class NamespacesCommand extends Command {
       String id = entry.getValue();
       if (cl.hasOption(namespaceIdOption.getOpt()))
         return String.format(TablesCommand.NAME_AND_ID_FORMAT, name, id);
-      else
-        return name;
+      return name;
     });
 
     shellState.printLines(it, !cl.hasOption(disablePaginationOpt.getOpt()));

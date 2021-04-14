@@ -55,15 +55,14 @@ public abstract class OptUtil {
 
   public static String getNamespaceOpt(final CommandLine cl, final Shell shellState)
       throws NamespaceNotFoundException, AccumuloException, AccumuloSecurityException {
-    String namespace = null;
-    if (cl.hasOption(ShellOptions.namespaceOption)) {
-      namespace = cl.getOptionValue(ShellOptions.namespaceOption);
-      if (!shellState.getAccumuloClient().namespaceOperations().exists(namespace)) {
-        throw new NamespaceNotFoundException(namespace, namespace,
-            "specified namespace that doesn't exist");
-      }
-    } else {
+    String namespace;
+    if (!cl.hasOption(ShellOptions.namespaceOption)) {
       throw new NamespaceNotFoundException(null, null, "no namespace specified");
+    }
+    namespace = cl.getOptionValue(ShellOptions.namespaceOption);
+    if (!shellState.getAccumuloClient().namespaceOperations().exists(namespace)) {
+      throw new NamespaceNotFoundException(namespace, namespace,
+          "specified namespace that doesn't exist");
     }
     return namespace;
   }
@@ -91,12 +90,12 @@ public abstract class OptUtil {
     return namespaceOpt;
   }
 
-  public static enum AdlOpt {
+  public enum AdlOpt {
     ADD("a"), DELETE("d"), LIST("l");
 
     public final String opt;
 
-    private AdlOpt(String opt) {
+    AdlOpt(String opt) {
       this.opt = opt;
     }
   }
@@ -104,7 +103,8 @@ public abstract class OptUtil {
   public static AdlOpt getAldOpt(final CommandLine cl) {
     if (cl.hasOption(AdlOpt.ADD.opt)) {
       return AdlOpt.ADD;
-    } else if (cl.hasOption(AdlOpt.DELETE.opt)) {
+    }
+    if (cl.hasOption(AdlOpt.DELETE.opt)) {
       return AdlOpt.DELETE;
     } else {
       return AdlOpt.LIST;
@@ -138,16 +138,14 @@ public abstract class OptUtil {
   public static Text getStartRow(final CommandLine cl) throws UnsupportedEncodingException {
     if (cl.hasOption(START_ROW_OPT)) {
       return new Text(cl.getOptionValue(START_ROW_OPT).getBytes(Shell.CHARSET));
-    } else {
-      return null;
     }
+    return null;
   }
 
   public static Text getEndRow(final CommandLine cl) throws UnsupportedEncodingException {
     if (cl.hasOption(END_ROW_OPT)) {
       return new Text(cl.getOptionValue(END_ROW_OPT).getBytes(Shell.CHARSET));
-    } else {
-      return null;
     }
+    return null;
   }
 }

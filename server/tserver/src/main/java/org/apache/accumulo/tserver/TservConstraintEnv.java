@@ -21,7 +21,6 @@ package org.apache.accumulo.tserver;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.security.AuthorizationContainer;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -58,13 +57,8 @@ public class TservConstraintEnv implements SystemEnvironment {
 
   @Override
   public AuthorizationContainer getAuthorizationsContainer() {
-    return new AuthorizationContainer() {
-      @Override
-      public boolean contains(ByteSequence auth) {
-        return security.authenticatedUserHasAuthorizations(credentials, Collections
-            .singletonList(ByteBuffer.wrap(auth.getBackingArray(), auth.offset(), auth.length())));
-      }
-    };
+    return auth -> security.authenticatedUserHasAuthorizations(credentials, Collections
+        .singletonList(ByteBuffer.wrap(auth.getBackingArray(), auth.offset(), auth.length())));
   }
 
   @Override

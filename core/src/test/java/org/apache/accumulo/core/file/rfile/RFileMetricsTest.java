@@ -139,7 +139,7 @@ public class RFileMetricsTest {
 
     assertEquals(1, blocks.get("L1"));
 
-    assertEquals(1, vmg.numEntries.get(vmg.localityGroups.indexOf(null)).longValue());
+    assertEquals(Long.valueOf(1), vmg.numEntries.get(vmg.localityGroups.indexOf(null)));
     assertEquals(1, vmg.numBlocks.get(vmg.localityGroups.indexOf(null)).longValue());
 
     trf.closeReader();
@@ -166,7 +166,7 @@ public class RFileMetricsTest {
     assertEquals(1, blocks.get("L1"));
     assertEquals(1, blocks.get("L2"));
 
-    assertEquals(2, vmg.numEntries.get(vmg.localityGroups.indexOf(null)).longValue());
+    assertEquals(Long.valueOf(2), vmg.numEntries.get(vmg.localityGroups.indexOf(null)));
     assertEquals(1, vmg.numBlocks.get(vmg.localityGroups.indexOf(null)).longValue());
 
     trf.closeReader();
@@ -195,7 +195,7 @@ public class RFileMetricsTest {
 
     assertEquals(1, blocks.get("L1"));
 
-    assertEquals(1, vmg.numEntries.get(vmg.localityGroups.indexOf("lg1")).longValue());
+    assertEquals(Long.valueOf(1), vmg.numEntries.get(vmg.localityGroups.indexOf("lg1")));
     assertEquals(1, vmg.numBlocks.get(vmg.localityGroups.indexOf("lg1")).longValue());
 
     trf.closeReader();
@@ -227,7 +227,7 @@ public class RFileMetricsTest {
     assertEquals(1, blocks.get("L1"));
     assertEquals(1, blocks.get("L2"));
 
-    assertEquals(2, vmg.numEntries.get(vmg.localityGroups.indexOf("lg1")).longValue());
+    assertEquals(Long.valueOf(2), vmg.numEntries.get(vmg.localityGroups.indexOf("lg1")));
     assertEquals(1, vmg.numBlocks.get(vmg.localityGroups.indexOf("lg1")).longValue());
 
     trf.closeReader();
@@ -267,7 +267,7 @@ public class RFileMetricsTest {
     assertEquals(1, blocks.get("L1"));
     assertEquals(1, blocks.get("L2"));
 
-    assertEquals(2, vmg.numEntries.get(vmg.localityGroups.indexOf("lg1")).longValue());
+    assertEquals(Long.valueOf(2), vmg.numEntries.get(vmg.localityGroups.indexOf("lg1")));
     assertEquals(1, vmg.numBlocks.get(vmg.localityGroups.indexOf("lg1")).longValue());
 
     metrics = vmg.metric.get("lg2");
@@ -278,7 +278,7 @@ public class RFileMetricsTest {
     assertEquals(1, blocks.get("L1"));
     assertEquals(1, blocks.get("L2"));
 
-    assertEquals(2, vmg.numEntries.get(vmg.localityGroups.indexOf("lg2")).longValue());
+    assertEquals(Long.valueOf(2), vmg.numEntries.get(vmg.localityGroups.indexOf("lg2")));
     assertEquals(1, vmg.numBlocks.get(vmg.localityGroups.indexOf("lg2")).longValue());
 
     trf.closeReader();
@@ -316,7 +316,7 @@ public class RFileMetricsTest {
     assertEquals(1, blocks.get("L1"));
     assertEquals(1, blocks.get("L2"));
 
-    assertEquals(3, vmg.numEntries.get(vmg.localityGroups.indexOf("lg1")).longValue());
+    assertEquals(Long.valueOf(3), vmg.numEntries.get(vmg.localityGroups.indexOf("lg1")));
     assertEquals(1, vmg.numBlocks.get(vmg.localityGroups.indexOf("lg1")).longValue());
 
     metrics = vmg.metric.get(null);
@@ -327,7 +327,7 @@ public class RFileMetricsTest {
     assertEquals(1, blocks.get("A"));
     assertEquals(1, blocks.get("B"));
 
-    assertEquals(2, vmg.numEntries.get(vmg.localityGroups.indexOf(null)).longValue());
+    assertEquals(Long.valueOf(2), vmg.numEntries.get(vmg.localityGroups.indexOf(null)));
     assertEquals(1, vmg.numBlocks.get(vmg.localityGroups.indexOf(null)).longValue());
 
     trf.closeReader();
@@ -370,7 +370,7 @@ public class RFileMetricsTest {
     assertEquals(1, blocks.get("L1"));
     assertEquals(1, blocks.get("L2"));
 
-    assertEquals(4, vmg.numEntries.get(vmg.localityGroups.indexOf("lg1")).longValue());
+    assertEquals(Long.valueOf(4), vmg.numEntries.get(vmg.localityGroups.indexOf("lg1")));
     assertEquals(1, vmg.numBlocks.get(vmg.localityGroups.indexOf("lg1")).longValue());
 
     metrics = vmg.metric.get(null);
@@ -381,7 +381,7 @@ public class RFileMetricsTest {
     assertEquals(1, blocks.get("A"));
     assertEquals(1, blocks.get("B"));
 
-    assertEquals(4, vmg.numEntries.get(vmg.localityGroups.indexOf(null)).longValue());
+    assertEquals(Long.valueOf(4), vmg.numEntries.get(vmg.localityGroups.indexOf(null)));
     assertEquals(1, vmg.numBlocks.get(vmg.localityGroups.indexOf(null)).longValue());
 
     trf.closeReader();
@@ -411,7 +411,7 @@ public class RFileMetricsTest {
     assertEquals(3, blocks.get("L1"));
     assertEquals(1, blocks.get("L2"));
 
-    assertEquals(4, vmg.numEntries.get(vmg.localityGroups.indexOf(null)).longValue());
+    assertEquals(Long.valueOf(4), vmg.numEntries.get(vmg.localityGroups.indexOf(null)));
     assertEquals(4, vmg.numBlocks.get(vmg.localityGroups.indexOf(null)).longValue());
 
     trf.closeReader();
@@ -446,7 +446,7 @@ public class RFileMetricsTest {
     assertEquals(3, blocks.get("L1"));
     assertEquals(1, blocks.get("L2"));
 
-    assertEquals(4, vmg.numEntries.get(vmg.localityGroups.indexOf("lg1")).longValue());
+    assertEquals(Long.valueOf(4), vmg.numEntries.get(vmg.localityGroups.indexOf("lg1")));
     assertEquals(4, vmg.numBlocks.get(vmg.localityGroups.indexOf("lg1")).longValue());
 
     trf.closeReader();
@@ -489,7 +489,7 @@ public class RFileMetricsTest {
     assertEquals(3, blocks.get("L1"));
     assertEquals(1, blocks.get("L2"));
 
-    assertEquals(4, vmg.numEntries.get(vmg.localityGroups.indexOf("lg1")).longValue());
+    assertEquals(Long.valueOf(4), vmg.numEntries.get(vmg.localityGroups.indexOf("lg1")));
     assertEquals(4, vmg.numBlocks.get(vmg.localityGroups.indexOf("lg1")).longValue());
 
     metrics = vmg.metric.get(null);
@@ -500,7 +500,7 @@ public class RFileMetricsTest {
     assertEquals(2, blocks.get("A"));
     assertEquals(2, blocks.get("B"));
 
-    assertEquals(4, vmg.numEntries.get(vmg.localityGroups.indexOf(null)).longValue());
+    assertEquals(Long.valueOf(4), vmg.numEntries.get(vmg.localityGroups.indexOf(null)));
     assertEquals(4, vmg.numBlocks.get(vmg.localityGroups.indexOf(null)).longValue());
 
     trf.closeReader();
@@ -562,7 +562,7 @@ public class RFileMetricsTest {
     assertEquals(expected, vmg.metric.get("lg1").asMap());
     assertEquals(expectedBlocks, vmg.blocks.get("lg1").asMap());
 
-    assertEquals(2, vmg.metric.keySet().size());
-    assertEquals(2, vmg.blocks.keySet().size());
+    assertEquals(2, vmg.metric.size());
+    assertEquals(2, vmg.blocks.size());
   }
 }

@@ -19,7 +19,6 @@
 package org.apache.accumulo.server.util;
 
 import java.util.Iterator;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -30,7 +29,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -38,7 +36,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.manager.LiveTServerSet;
-import org.apache.accumulo.server.manager.LiveTServerSet.Listener;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.htrace.TraceScope;
@@ -60,15 +57,11 @@ public class FindOfflineTablets {
 
     final AtomicBoolean scanning = new AtomicBoolean(false);
 
-    LiveTServerSet tservers = new LiveTServerSet(context, new Listener() {
-      @Override
-      public void update(LiveTServerSet current, Set<TServerInstance> deleted,
-          Set<TServerInstance> added) {
-        if (!deleted.isEmpty() && scanning.get())
-          log.warn("Tablet servers deleted while scanning: {}", deleted);
-        if (!added.isEmpty() && scanning.get())
-          log.warn("Tablet servers added while scanning: {}", added);
-      }
+    LiveTServerSet tservers = new LiveTServerSet(context, (current, deleted, added) -> {
+      if (!deleted.isEmpty() && scanning.get())
+        log.warn("Tablet servers deleted while scanning: {}", deleted);
+      if (!added.isEmpty() && scanning.get())
+        log.warn("Tablet servers added while scanning: {}", added);
     });
     tservers.startListeningForTabletServerChanges();
     scanning.set(true);

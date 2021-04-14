@@ -56,7 +56,7 @@ public class TimedProcessor implements TProcessor {
 
   @Override
   public boolean process(TProtocol in, TProtocol out) throws TException {
-    long now = 0;
+    long now;
     now = System.currentTimeMillis();
     thriftMetrics.addIdle(now - idleStart);
     try {

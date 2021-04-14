@@ -182,12 +182,11 @@ class CleanUp extends ManagerRepo {
       } catch (IOException e) {
         log.error("Unable to remove deleted table directory", e);
       } catch (IllegalArgumentException exception) {
-        if (exception.getCause() instanceof UnknownHostException) {
-          /* Thrown if HDFS encounters a DNS problem in some edge cases */
-          log.error("Unable to remove deleted table directory", exception);
-        } else {
+        if (!(exception.getCause() instanceof UnknownHostException)) {
           throw exception;
         }
+        /* Thrown if HDFS encounters a DNS problem in some edge cases */
+        log.error("Unable to remove deleted table directory", exception);
       }
     }
 

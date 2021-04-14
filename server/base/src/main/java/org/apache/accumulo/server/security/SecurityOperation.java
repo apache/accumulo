@@ -180,36 +180,31 @@ public class SecurityOperation {
           throw new ThriftSecurityException(creds.getPrincipal(),
               SecurityErrorCode.BAD_CREDENTIALS);
         }
-      } else {
-        if (!(context.getCredentials().equals(creds))) {
-          log.debug("Provided credentials did not match server's expected"
-              + " credentials. Expected {} but got {}", context.getCredentials(), creds);
-          throw new ThriftSecurityException(creds.getPrincipal(),
-              SecurityErrorCode.BAD_CREDENTIALS);
-        }
+      } else if (!(context.getCredentials().equals(creds))) {
+        log.debug("Provided credentials did not match server's expected"
+            + " credentials. Expected {} but got {}", context.getCredentials(), creds);
+        throw new ThriftSecurityException(creds.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
       }
     } else {
       // Not the system user
 
-      if (isKerberos) {
-        // If we have kerberos credentials for a user from the network but no account
-        // in the system, we need to make one before proceeding
-        if (!authenticator.userExists(creds.getPrincipal())) {
-          // If we call the normal createUser method, it will loop back into this method
-          // when it tries to check if the user has permission to create users
-          try {
-            _createUser(credentials, creds);
-          } catch (ThriftSecurityException e) {
-            if (e.getCode() != SecurityErrorCode.USER_EXISTS) {
-              // For Kerberos, a user acct is automatically created because there is no notion of
-              // a password
-              // in the traditional sense of Accumulo users. As such, if a user acct already
-              // exists when we
-              // try to automatically create a user account, we should avoid returning this
-              // exception back to the user.
-              // We want to let USER_EXISTS code pass through and continue
-              throw e;
-            }
+      // If we have kerberos credentials for a user from the network but no account
+      // in the system, we need to make one before proceeding
+      if (isKerberos && !authenticator.userExists(creds.getPrincipal())) {
+        // If we call the normal createUser method, it will loop back into this method
+        // when it tries to check if the user has permission to create users
+        try {
+          _createUser(credentials, creds);
+        } catch (ThriftSecurityException e) {
+          if (e.getCode() != SecurityErrorCode.USER_EXISTS) {
+            // For Kerberos, a user acct is automatically created because there is no notion of
+            // a password
+            // in the traditional sense of Accumulo users. As such, if a user acct already
+            // exists when we
+            // try to automatically create a user account, we should avoid returning this
+            // exception back to the user.
+            // We want to let USER_EXISTS code pass through and continue
+            throw e;
           }
         }
       }
@@ -244,16 +239,14 @@ public class SecurityOperation {
     try {
       Credentials toCreds = Credentials.fromThrift(toAuth);
 
-      if (isKerberos) {
-        // If we have kerberos credentials for a user from the network but no account
-        // in the system, we need to make one before proceeding
-        if (!authenticator.userExists(toCreds.getPrincipal())) {
-          createUser(credentials, toCreds, Authorizations.EMPTY);
-        }
-        // Likely that the KerberosAuthenticator will fail as we don't have the credentials for the
-        // other user,
-        // we only have our own Kerberos credentials.
+      // If we have kerberos credentials for a user from the network but no account
+      // in the system, we need to make one before proceeding
+      if (isKerberos && !authenticator.userExists(toCreds.getPrincipal())) {
+        createUser(credentials, toCreds, Authorizations.EMPTY);
       }
+      // Likely that the KerberosAuthenticator will fail as we don't have the credentials for the
+      // other user,
+      // we only have our own Kerberos credentials.
 
       return authenticator.authenticateUser(toCreds.getPrincipal(), toCreds.getToken());
     } catch (AccumuloSecurityException e) {

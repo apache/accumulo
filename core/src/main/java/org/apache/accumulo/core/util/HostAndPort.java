@@ -191,8 +191,8 @@ public final class HostAndPort implements Serializable {
    *           if parsing the bracketed host-port string fails.
    */
   private static String[] getHostAndPortFromBracketedHost(String hostPortString) {
-    int colonIndex = 0;
-    int closeBracketIndex = 0;
+    int colonIndex;
+    int closeBracketIndex;
     checkArgument(hostPortString.charAt(0) == '[',
         "Bracketed host-port string must start with a bracket: %s", hostPortString);
     colonIndex = hostPortString.indexOf(':');
@@ -203,15 +203,14 @@ public final class HostAndPort implements Serializable {
     String host = hostPortString.substring(1, closeBracketIndex);
     if (closeBracketIndex + 1 == hostPortString.length()) {
       return new String[] {host, ""};
-    } else {
-      checkArgument(hostPortString.charAt(closeBracketIndex + 1) == ':',
-          "Only a colon may follow a close bracket: %s", hostPortString);
-      for (int i = closeBracketIndex + 2; i < hostPortString.length(); ++i) {
-        checkArgument(Character.isDigit(hostPortString.charAt(i)), "Port must be numeric: %s",
-            hostPortString);
-      }
-      return new String[] {host, hostPortString.substring(closeBracketIndex + 2)};
     }
+    checkArgument(hostPortString.charAt(closeBracketIndex + 1) == ':',
+        "Only a colon may follow a close bracket: %s", hostPortString);
+    for (int i = closeBracketIndex + 2; i < hostPortString.length(); ++i) {
+      checkArgument(Character.isDigit(hostPortString.charAt(i)), "Port must be numeric: %s",
+          hostPortString);
+    }
+    return new String[] {host, hostPortString.substring(closeBracketIndex + 2)};
   }
 
   /**

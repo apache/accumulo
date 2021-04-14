@@ -107,10 +107,8 @@ public class IndexedDocIteratorTest {
             if (negateMask[j]) {
               docHits = false;
             }
-          } else {
-            if (!negateMask[j]) {
-              docHits = false;
-            }
+          } else if (!negateMask[j]) {
+            docHits = false;
           }
         }
         if (docHits) {

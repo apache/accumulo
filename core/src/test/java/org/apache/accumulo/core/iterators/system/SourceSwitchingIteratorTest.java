@@ -356,7 +356,7 @@ public class SourceSwitchingIteratorTest {
 
     @Override
     public boolean hasTop() {
-      return (!(yield.isPresent() && yield.get().hasYielded()) && super.hasTop());
+      return ((!yield.isPresent() || !yield.get().hasYielded()) && super.hasTop());
     }
 
     @Override

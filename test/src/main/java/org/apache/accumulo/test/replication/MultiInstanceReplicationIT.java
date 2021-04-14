@@ -774,11 +774,10 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
         log.info("Found {} records in {}", countTable, peerTable1);
 
-        if (countTable == 0L) {
-          Thread.sleep(5000);
-        } else {
+        if (countTable != 0L) {
           break;
         }
+        Thread.sleep(5000);
       }
 
       assertTrue("Found no records in " + peerTable1 + " in the peer cluster", countTable > 0);
@@ -796,11 +795,10 @@ public class MultiInstanceReplicationIT extends ConfigurableMacBase {
 
         log.info("Found {} records in {}", countTable, peerTable2);
 
-        if (countTable == 0L) {
-          Thread.sleep(5000);
-        } else {
+        if (countTable != 0L) {
           break;
         }
+        Thread.sleep(5000);
       }
 
       assertTrue("Found no records in " + peerTable2 + " in the peer cluster", countTable > 0);

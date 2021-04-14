@@ -53,13 +53,12 @@ public class TabletsMutatorImpl implements TabletsMutator {
         }
 
         return rootWriter;
-      } else {
-        if (metaWriter == null) {
-          metaWriter = context.createBatchWriter(MetadataTable.NAME);
-        }
-
-        return metaWriter;
       }
+      if (metaWriter == null) {
+        metaWriter = context.createBatchWriter(MetadataTable.NAME);
+      }
+
+      return metaWriter;
     } catch (TableNotFoundException e) {
       throw new RuntimeException(e);
     }
@@ -69,9 +68,8 @@ public class TabletsMutatorImpl implements TabletsMutator {
   public Ample.TabletMutator mutateTablet(KeyExtent extent) {
     if (extent.isRootTablet()) {
       return new RootTabletMutatorImpl(context);
-    } else {
-      return new TabletMutatorImpl(context, extent, getWriter(extent.tableId()));
     }
+    return new TabletMutatorImpl(context, extent, getWriter(extent.tableId()));
   }
 
   @Override

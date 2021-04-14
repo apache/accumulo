@@ -74,7 +74,8 @@ public class KeyShortener {
           successor = Bytes.concat(prev.subSequence(0, newLen).toArray(), B00);
         }
         return new ArrayByteSequence(successor);
-      } else if (diff > 1) {
+      }
+      if (diff > 1) {
         byte[] copy = new byte[i + 1];
         System.arraycopy(prev.subSequence(0, i + 1).toArray(), 0, copy, 0, i + 1);
         copy[i] = (byte) ((0xff & copy[i]) + 1);
@@ -123,7 +124,8 @@ public class KeyShortener {
         return prev;
       }
       return sanityCheck(prev, current, new Key(shortenedRow.toArray(), EMPTY, EMPTY, EMPTY, 0));
-    } else if (prev.getColumnFamilyData().compareTo(current.getColumnFamilyData()) < 0) {
+    }
+    if (prev.getColumnFamilyData().compareTo(current.getColumnFamilyData()) < 0) {
       ByteSequence shortenedFam =
           shorten(prev.getColumnFamilyData(), current.getColumnFamilyData());
       if (shortenedFam == null) {

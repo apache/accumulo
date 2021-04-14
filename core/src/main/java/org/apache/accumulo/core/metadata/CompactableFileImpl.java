@@ -82,9 +82,8 @@ public class CompactableFileImpl implements CompactableFile {
   public static StoredTabletFile toStoredTabletFile(CompactableFile cf) {
     if (cf instanceof CompactableFileImpl) {
       return ((CompactableFileImpl) cf).storedTabletFile;
-    } else {
-      throw new IllegalArgumentException("Can not convert " + cf.getClass());
     }
+    throw new IllegalArgumentException("Can not convert " + cf.getClass());
   }
 
   @Override

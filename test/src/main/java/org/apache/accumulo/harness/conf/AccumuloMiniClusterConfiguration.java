@@ -65,14 +65,13 @@ public class AccumuloMiniClusterConfiguration extends AccumuloClusterPropertyCon
   public String getAdminPrincipal() {
     if (saslEnabled) {
       return AccumuloClusterHarness.getKdc().getRootUser().getPrincipal();
-    } else {
-      String principal = conf.get(ACCUMULO_MINI_PRINCIPAL_KEY);
-      if (principal == null) {
-        principal = ACCUMULO_MINI_PRINCIPAL_DEFAULT;
-      }
-
-      return principal;
     }
+    String principal = conf.get(ACCUMULO_MINI_PRINCIPAL_KEY);
+    if (principal == null) {
+      principal = ACCUMULO_MINI_PRINCIPAL_DEFAULT;
+    }
+
+    return principal;
   }
 
   @Override
@@ -91,14 +90,13 @@ public class AccumuloMiniClusterConfiguration extends AccumuloClusterPropertyCon
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
-    } else {
-      String password = conf.get(ACCUMULO_MINI_PASSWORD_KEY);
-      if (password == null) {
-        password = ACCUMULO_MINI_PASSWORD_DEFAULT;
-      }
-
-      return new PasswordToken(password);
     }
+    String password = conf.get(ACCUMULO_MINI_PASSWORD_KEY);
+    if (password == null) {
+      password = ACCUMULO_MINI_PASSWORD_DEFAULT;
+    }
+
+    return new PasswordToken(password);
   }
 
   @Override

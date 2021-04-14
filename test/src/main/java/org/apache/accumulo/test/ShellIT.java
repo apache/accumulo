@@ -96,9 +96,8 @@ public class ShellIT extends SharedMiniClusterBase {
     public int read() {
       if (offset == source.length()) {
         return '\n';
-      } else {
-        return source.charAt(offset++);
       }
+      return source.charAt(offset++);
     }
 
     public void set(String other) {
@@ -174,10 +173,8 @@ public class ShellIT extends SharedMiniClusterBase {
 
   @After
   public void teardownShell() {
-    if (config.exists()) {
-      if (!config.delete()) {
-        log.error("Unable to delete {}", config);
-      }
+    if (config.exists() && !config.delete()) {
+      log.error("Unable to delete {}", config);
     }
     shell.shutdown();
   }

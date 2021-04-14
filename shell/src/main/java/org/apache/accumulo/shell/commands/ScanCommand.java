@@ -254,7 +254,8 @@ public class ScanCommand extends Command {
 
         return shellState.getClassLoader(cl, shellState)
             .loadClass(cl.getOptionValue(formatterOpt.getOpt())).asSubclass(Formatter.class);
-      } else if (cl.hasOption(formatterInterpeterOpt.getOpt())) {
+      }
+      if (cl.hasOption(formatterInterpeterOpt.getOpt())) {
         Shell.log.warn("Formatter option is deprecated and will be removed in a future version.");
 
         return shellState.getClassLoader(cl, shellState)
@@ -298,17 +299,16 @@ public class ScanCommand extends Command {
     if (cl.hasOption(scanOptRow.getOpt())) {
       return new Range(formatter
           .interpretRow(new Text(cl.getOptionValue(scanOptRow.getOpt()).getBytes(Shell.CHARSET))));
-    } else {
-      Text startRow = OptUtil.getStartRow(cl);
-      if (startRow != null)
-        startRow = formatter.interpretBeginRow(startRow);
-      Text endRow = OptUtil.getEndRow(cl);
-      if (endRow != null)
-        endRow = formatter.interpretEndRow(endRow);
-      final boolean startInclusive = !cl.hasOption(optStartRowExclusive.getOpt());
-      final boolean endInclusive = !cl.hasOption(optEndRowExclusive.getOpt());
-      return new Range(startRow, startInclusive, endRow, endInclusive);
     }
+    Text startRow = OptUtil.getStartRow(cl);
+    if (startRow != null)
+      startRow = formatter.interpretBeginRow(startRow);
+    Text endRow = OptUtil.getEndRow(cl);
+    if (endRow != null)
+      endRow = formatter.interpretEndRow(endRow);
+    final boolean startInclusive = !cl.hasOption(optStartRowExclusive.getOpt());
+    final boolean endInclusive = !cl.hasOption(optEndRowExclusive.getOpt());
+    return new Range(startRow, startInclusive, endRow, endInclusive);
   }
 
   protected Authorizations getAuths(final CommandLine cl, final Shell shellState)

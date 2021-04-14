@@ -86,7 +86,7 @@ public class ServerMutation extends Mutation {
 
   @Override
   public boolean equals(Object o) {
-    return o == this || (o != null && o instanceof ServerMutation
+    return o == this || (o instanceof ServerMutation
         && systemTime == ((ServerMutation) o).systemTime && super.equals(o));
   }
 

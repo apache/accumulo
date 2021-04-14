@@ -692,8 +692,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
       }
 
       boolean batchScan = InputConfigurator.isBatchScan(CLASS, job.getConfiguration());
-      boolean supportBatchScan = !(tableConfig.isOfflineScan()
-          || tableConfig.shouldUseIsolatedScanners() || tableConfig.shouldUseLocalIterators());
+      boolean supportBatchScan = (!tableConfig.isOfflineScan()
+          && !tableConfig.shouldUseIsolatedScanners() && !tableConfig.shouldUseLocalIterators());
       if (batchScan && !supportBatchScan)
         throw new IllegalArgumentException("BatchScanner optimization not available for offline"
             + " scan, isolated, or local iterators");

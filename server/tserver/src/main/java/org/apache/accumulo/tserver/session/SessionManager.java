@@ -80,12 +80,7 @@ public class SessionManager {
     }
     random = sr;
 
-    Runnable r = new Runnable() {
-      @Override
-      public void run() {
-        sweep(maxIdle, maxUpdateIdle);
-      }
-    };
+    Runnable r = () -> sweep(maxIdle, maxUpdateIdle);
 
     ThreadPools.createGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(r, 0,
         Math.max(maxIdle / 2, 1000), TimeUnit.MILLISECONDS);
@@ -270,25 +265,22 @@ public class SessionManager {
         tmp = session.lastAccessTime;
       }
       final long removeTime = tmp;
-      Runnable r = new Runnable() {
-        @Override
-        public void run() {
-          Session session2 = sessions.get(sessionId);
-          if (session2 != null) {
-            boolean shouldRemove = false;
-            synchronized (session2) {
-              if (session2.lastAccessTime == removeTime && session2.state == State.UNRESERVED) {
-                session2.state = State.REMOVED;
-                shouldRemove = true;
-              }
+      Runnable r = () -> {
+        Session session2 = sessions.get(sessionId);
+        if (session2 != null) {
+          boolean shouldRemove = false;
+          synchronized (session2) {
+            if (session2.lastAccessTime == removeTime && session2.state == State.UNRESERVED) {
+              session2.state = State.REMOVED;
+              shouldRemove = true;
             }
+          }
 
-            if (shouldRemove) {
-              log.info("Closing not accessed session from user=" + session2.getUser() + ", client="
-                  + session2.client + ", duration=" + delay + "ms");
-              sessions.remove(sessionId);
-              session2.cleanup();
-            }
+          if (shouldRemove) {
+            log.info("Closing not accessed session from user=" + session2.getUser() + ", client="
+                + session2.client + ", duration=" + delay + "ms");
+            sessions.remove(sessionId);
+            session2.cleanup();
           }
         }
       };

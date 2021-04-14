@@ -114,7 +114,8 @@ public class SetIterCommand extends Command {
     // Cannot continue if no name is provided
     if (name == null && configuredName == null) {
       throw new IllegalArgumentException("No provided or default name for iterator");
-    } else if (name == null) {
+    }
+    if (name == null) {
       // Fall back to the name from OptionDescriber or user input if none is provided on setiter
       // option
       name = configuredName;
@@ -284,9 +285,8 @@ public class SetIterCommand extends Command {
               if (input == null) {
                 writer.println();
                 throw new IOException("Input stream closed");
-              } else {
-                input = new String(input);
               }
+              input = new String(input);
 
               if (input.isEmpty())
                 break;
@@ -310,7 +310,8 @@ public class SetIterCommand extends Command {
       if (iteratorName == null) {
         writer.println();
         throw new IOException("Input stream closed");
-      } else if (iteratorName.isBlank()) {
+      }
+      if (iteratorName.isBlank()) {
         // Treat whitespace or empty string as no name provided
         iteratorName = null;
       }
@@ -326,7 +327,8 @@ public class SetIterCommand extends Command {
         if (input == null) {
           writer.println();
           throw new IOException("Input stream closed");
-        } else if (input.isBlank()) {
+        }
+        if (input.isBlank()) {
           break;
         }
 

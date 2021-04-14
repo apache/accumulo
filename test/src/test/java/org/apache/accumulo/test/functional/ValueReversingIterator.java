@@ -37,33 +37,40 @@ public class ValueReversingIterator implements SortedKeyValueIterator<Key,Value>
 
   protected SortedKeyValueIterator<Key,Value> source;
 
+  @Override
   public ValueReversingIterator deepCopy(IteratorEnvironment env) {
     throw new UnsupportedOperationException();
   }
 
+  @Override
   public Key getTopKey() {
     return source.getTopKey();
   }
 
+  @Override
   public Value getTopValue() {
     byte[] buf = source.getTopValue().get();
     ArrayUtils.reverse(buf);
     return new Value(buf);
   }
 
+  @Override
   public boolean hasTop() {
     return source.hasTop();
   }
 
+  @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) {
     this.source = source;
   }
 
+  @Override
   public void next() throws IOException {
     source.next();
   }
 
+  @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
       throws IOException {
     source.seek(range, columnFamilies, inclusive);

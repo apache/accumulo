@@ -50,7 +50,7 @@ public interface CompactionConfigurer {
   public interface InputParameters {
     TableId getTableId();
 
-    public Collection<CompactableFile> getInputFiles();
+    Collection<CompactableFile> getInputFiles();
 
     PluginEnvironment getEnvironment();
   }
@@ -60,7 +60,7 @@ public interface CompactionConfigurer {
    *
    * @since 2.1.0
    */
-  public class Overrides {
+  public static class Overrides {
     private final Map<String,String> tablePropertyOverrides;
 
     public Overrides(Map<String,String> tablePropertyOverrides) {

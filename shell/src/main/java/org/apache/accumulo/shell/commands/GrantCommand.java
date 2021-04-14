@@ -51,33 +51,31 @@ public class GrantCommand extends TableOperation {
 
     permission = cl.getArgs()[0].split("\\.", 2);
     if (permission[0].equalsIgnoreCase("System")) {
-      if (cl.hasOption(systemOpt.getOpt())) {
-        try {
-          shellState.getAccumuloClient().securityOperations().grantSystemPermission(user,
-              SystemPermission.valueOf(permission[1]));
-          Shell.log.debug("Granted {} the {} permission", user, permission[1]);
-        } catch (IllegalArgumentException e) {
-          throw new BadArgumentException("No such system permission", fullCommand,
-              fullCommand.indexOf(cl.getArgs()[0]));
-        }
-      } else {
+      if (!cl.hasOption(systemOpt.getOpt())) {
         throw new BadArgumentException(
             "Missing required option for granting System Permission: -s ", fullCommand,
+            fullCommand.indexOf(cl.getArgs()[0]));
+      }
+      try {
+        shellState.getAccumuloClient().securityOperations().grantSystemPermission(user,
+            SystemPermission.valueOf(permission[1]));
+        Shell.log.debug("Granted {} the {} permission", user, permission[1]);
+      } catch (IllegalArgumentException e) {
+        throw new BadArgumentException("No such system permission", fullCommand,
             fullCommand.indexOf(cl.getArgs()[0]));
       }
     } else if (permission[0].equalsIgnoreCase("Table")) {
       super.execute(fullCommand, cl, shellState);
     } else if (permission[0].equalsIgnoreCase("Namespace")) {
-      if (cl.hasOption(optNamespace.getOpt())) {
-        try {
-          shellState.getAccumuloClient().securityOperations().grantNamespacePermission(user,
-              cl.getOptionValue(optNamespace.getOpt()), NamespacePermission.valueOf(permission[1]));
-        } catch (IllegalArgumentException e) {
-          throw new BadArgumentException("No such namespace permission", fullCommand,
-              fullCommand.indexOf(cl.getArgs()[0]));
-        }
-      } else {
+      if (!cl.hasOption(optNamespace.getOpt())) {
         throw new BadArgumentException("No namespace specified to apply permission to", fullCommand,
+            fullCommand.indexOf(cl.getArgs()[0]));
+      }
+      try {
+        shellState.getAccumuloClient().securityOperations().grantNamespacePermission(user,
+            cl.getOptionValue(optNamespace.getOpt()), NamespacePermission.valueOf(permission[1]));
+      } catch (IllegalArgumentException e) {
+        throw new BadArgumentException("No such namespace permission", fullCommand,
             fullCommand.indexOf(cl.getArgs()[0]));
       }
     } else {

@@ -49,7 +49,8 @@ public class HexFormatter implements Formatter, ScanInterpreter {
   private int fromChar(char b) {
     if (b >= '0' && b <= '9') {
       return (b - '0');
-    } else if (b >= 'a' && b <= 'f') {
+    }
+    if (b >= 'a' && b <= 'f') {
       return (b - 'a' + 10);
     }
 

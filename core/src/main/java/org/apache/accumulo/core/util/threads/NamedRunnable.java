@@ -48,6 +48,7 @@ class NamedRunnable implements Runnable {
     return priority;
   }
 
+  @Override
   public void run() {
     r.run();
   }

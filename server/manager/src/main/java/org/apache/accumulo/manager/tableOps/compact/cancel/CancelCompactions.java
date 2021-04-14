@@ -74,11 +74,10 @@ public class CancelCompactions extends ManagerRepo {
         log.debug("{} setting cancel compaction id to {} for {}", FateTxId.formatTid(tid), flushID,
             tableId);
         return Long.toString(flushID).getBytes(UTF_8);
-      } else {
-        log.debug("{} leaving cancel compaction id as {} for {}", FateTxId.formatTid(tid), cid,
-            tableId);
-        return Long.toString(cid).getBytes(UTF_8);
       }
+      log.debug("{} leaving cancel compaction id as {} for {}", FateTxId.formatTid(tid), cid,
+          tableId);
+      return Long.toString(cid).getBytes(UTF_8);
     });
 
     return new FinishCancelCompaction(namespaceId, tableId);

@@ -56,7 +56,7 @@ public class ShellOptionsJCTest {
 
     jc.setProgramName("accumulo shell");
     jc.addObject(options);
-    jc.parse(new String[] {"-zh", zk});
+    jc.parse("-zh", zk);
     Properties properties = options.getClientProperties();
     assertEquals(zk, properties.getProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey()));
   }

@@ -42,6 +42,8 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Provides a way to push work out to tablet servers via zookeeper and wait for that work to be
  * done. Any tablet server can pick up a work item and process it.
@@ -105,46 +107,41 @@ public class DistributedWorkQueue {
 
         log.debug("got lock for {}", child);
 
-        Runnable task = new Runnable() {
-
-          @Override
-          public void run() {
+        Runnable task = () -> {
+          try {
             try {
+              processor.newProcessor().process(child, zoo.getData(childPath));
+
+              // if the task fails, then its entry in the Q is not deleted... so it will be
+              // retried
               try {
-                processor.newProcessor().process(child, zoo.getData(childPath));
-
-                // if the task fails, then its entry in the Q is not deleted... so it will be
-                // retried
-                try {
-                  zoo.recursiveDelete(childPath, NodeMissingPolicy.SKIP);
-                } catch (Exception e) {
-                  log.error("Error received when trying to delete entry in zookeeper " + childPath,
-                      e);
-                }
-
-              } catch (Exception e) {
-                log.warn("Failed to process work " + child, e);
-              }
-
-              try {
-                zoo.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
+                zoo.recursiveDelete(childPath, NodeMissingPolicy.SKIP);
               } catch (Exception e) {
                 log.error("Error received when trying to delete entry in zookeeper " + childPath,
                     e);
               }
 
-            } finally {
-              numTask.decrementAndGet();
+            } catch (Exception e) {
+              log.warn("Failed to process work " + child, e);
             }
 
             try {
-              // its important that this is called after numTask is decremented
-              lookForWork(processor, zoo.getChildren(path));
-            } catch (KeeperException e) {
-              log.error("Failed to look for work", e);
-            } catch (InterruptedException e) {
-              log.info("Interrupted looking for work", e);
+              zoo.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
+            } catch (Exception e) {
+              log.error("Error received when trying to delete entry in zookeeper " + childPath, e);
             }
+
+          } finally {
+            numTask.decrementAndGet();
+          }
+
+          try {
+            // its important that this is called after numTask is decremented
+            lookForWork(processor, zoo.getChildren(path));
+          } catch (KeeperException e) {
+            log.error("Failed to look for work", e);
+          } catch (InterruptedException e) {
+            log.info("Interrupted looking for work", e);
           }
         };
 
@@ -220,20 +217,16 @@ public class DistributedWorkQueue {
     lookForWork(processor, children);
 
     // Add a little jitter to avoid all the tservers slamming zookeeper at once
-    ThreadPools.createGeneralScheduledExecutorService(config)
-        .scheduleWithFixedDelay(new Runnable() {
-          @Override
-          public void run() {
-            log.debug("Looking for work in {}", path);
-            try {
-              lookForWork(processor, zoo.getChildren(path));
-            } catch (KeeperException e) {
-              log.error("Failed to look for work", e);
-            } catch (InterruptedException e) {
-              log.info("Interrupted looking for work", e);
-            }
-          }
-        }, timerInitialDelay, timerPeriod, TimeUnit.MILLISECONDS);
+    ThreadPools.createGeneralScheduledExecutorService(config).scheduleWithFixedDelay(() -> {
+      log.debug("Looking for work in {}", path);
+      try {
+        lookForWork(processor, zoo.getChildren(path));
+      } catch (KeeperException e) {
+        log.error("Failed to look for work", e);
+      } catch (InterruptedException e) {
+        log.info("Interrupted looking for work", e);
+      }
+    }, timerInitialDelay, timerPeriod, TimeUnit.MILLISECONDS);
   }
 
   /**
@@ -257,28 +250,32 @@ public class DistributedWorkQueue {
     return children;
   }
 
+  // this is a separate method, because Spotbugs isn't good at applying suppressions to lambdas
+  @SuppressFBWarnings(value = "NN_NAKED_NOTIFY",
+      justification = "false positive for condVar.notify() called in a thread defined as a lambda")
+  private static void notifyCondition(Object condVar) {
+    synchronized (condVar) {
+      condVar.notify();
+    }
+  }
+
   public void waitUntilDone(Set<String> workIDs) throws KeeperException, InterruptedException {
 
     final Object condVar = new Object();
 
-    Watcher watcher = new Watcher() {
-      @Override
-      public void process(WatchedEvent event) {
-        switch (event.getType()) {
-          case NodeChildrenChanged:
-            synchronized (condVar) {
-              condVar.notify();
-            }
-            break;
-          case NodeCreated:
-          case NodeDataChanged:
-          case NodeDeleted:
-          case ChildWatchRemoved:
-          case DataWatchRemoved:
-          case None:
-            log.info("Got unexpected zookeeper event: {} for {}", event.getType(), path);
-            break;
-        }
+    Watcher watcher = event -> {
+      switch (event.getType()) {
+        case NodeChildrenChanged:
+          notifyCondition(condVar);
+          break;
+        case NodeCreated:
+        case NodeDataChanged:
+        case NodeDeleted:
+        case ChildWatchRemoved:
+        case DataWatchRemoved:
+        case None:
+          log.info("Got unexpected zookeeper event: {} for {}", event.getType(), path);
+          break;
       }
     };
 

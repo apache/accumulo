@@ -240,12 +240,11 @@ public class TabletLocatorImpl extends TabletLocator {
     if (tsm == null) {
       // do lock check once per tserver here to make binning faster
       boolean lockHeld = lcSession.checkLock(tl) != null;
-      if (lockHeld) {
-        tsm = new TabletServerMutations<>(tl.tablet_session);
-        binnedMutations.put(tl.tablet_location, tsm);
-      } else {
+      if (!lockHeld) {
         return false;
       }
+      tsm = new TabletServerMutations<>(tl.tablet_session);
+      binnedMutations.put(tl.tablet_location, tsm);
     }
 
     // its possible the same tserver could be listed with different sessions
@@ -491,17 +490,16 @@ public class TabletLocatorImpl extends TabletLocator {
           && locations.getLocationless().isEmpty()) {
         // try the next tablet, the current tablet does not have any tablets that overlap the row
         Text er = ptl.tablet_extent.endRow();
-        if (er != null && er.compareTo(lastTabletRow) < 0) {
-          // System.out.println("er "+er+" ltr "+lastTabletRow);
-          ptl = parent.locateTablet(context, er, true, retry);
-          if (ptl != null)
-            locations =
-                locationObtainer.lookupTablet(context, ptl, metadataRow, lastTabletRow, parent);
-          else
-            break;
-        } else {
+        if ((er == null) || (er.compareTo(lastTabletRow) >= 0)) {
           break;
         }
+        // System.out.println("er "+er+" ltr "+lastTabletRow);
+        ptl = parent.locateTablet(context, er, true, retry);
+        if (ptl != null)
+          locations =
+              locationObtainer.lookupTablet(context, ptl, metadataRow, lastTabletRow, parent);
+        else
+          break;
       }
 
       if (locations == null)

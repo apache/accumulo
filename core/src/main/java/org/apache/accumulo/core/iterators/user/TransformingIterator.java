@@ -417,15 +417,13 @@ public abstract class TransformingIterator extends WrappingIterator implements O
         parsedVisibilitiesCache.put(visibility, Boolean.FALSE);
         if (scanning) {
           return false;
-        } else {
-          throw e;
         }
+        throw e;
       }
     } else if (!parsed) {
       if (scanning)
         return false;
-      else
-        throw new IllegalStateException();
+      throw new IllegalStateException();
     }
 
     Boolean visible = canSeeColumnFamily(key);

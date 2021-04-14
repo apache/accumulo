@@ -133,7 +133,8 @@ public class VolumeImpl implements Volume {
 
     if (p.isBlank()) {
       return fs.makeQualified(new Path(basePath));
-    } else if (p.startsWith("/")) {
+    }
+    if (p.startsWith("/")) {
       // check for starting with '//'
       reason = "absolute path";
     } else if (pathString.contains(":")) {

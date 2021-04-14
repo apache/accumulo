@@ -195,7 +195,8 @@ public class ClientConfigGenerate {
         if (args[0].equals("--generate-markdown")) {
           clientConfigGenerate.generateMarkdown();
           return;
-        } else if (args[0].equals("--generate-config")) {
+        }
+        if (args[0].equals("--generate-config")) {
           clientConfigGenerate.generateConfigFile();
           return;
         }

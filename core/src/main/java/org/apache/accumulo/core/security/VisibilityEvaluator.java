@@ -58,33 +58,33 @@ public class VisibilityEvaluator {
       }
     }
 
-    if (escapeCharCount > 0) {
-      if (escapeCharCount % 2 == 1) {
+    if (escapeCharCount <= 0) {
+      return auth;
+    }
+
+    if (escapeCharCount % 2 != 0) {
+      throw new IllegalArgumentException("Illegal escape sequence in auth : " + auth);
+    }
+
+    byte[] unescapedCopy = new byte[auth.length() - escapeCharCount / 2];
+    int pos = 0;
+    for (int i = 0; i < auth.length(); i++) {
+      byte b = auth.byteAt(i);
+      if (b == '\\') {
+        i++;
+        b = auth.byteAt(i);
+        if (b != '"' && b != '\\') {
+          throw new IllegalArgumentException("Illegal escape sequence in auth : " + auth);
+        }
+      } else if (b == '"') {
+        // should only see quote after a slash
         throw new IllegalArgumentException("Illegal escape sequence in auth : " + auth);
       }
 
-      byte[] unescapedCopy = new byte[auth.length() - escapeCharCount / 2];
-      int pos = 0;
-      for (int i = 0; i < auth.length(); i++) {
-        byte b = auth.byteAt(i);
-        if (b == '\\') {
-          i++;
-          b = auth.byteAt(i);
-          if (b != '"' && b != '\\') {
-            throw new IllegalArgumentException("Illegal escape sequence in auth : " + auth);
-          }
-        } else if (b == '"') {
-          // should only see quote after a slash
-          throw new IllegalArgumentException("Illegal escape sequence in auth : " + auth);
-        }
-
-        unescapedCopy[pos++] = b;
-      }
-
-      return new ArrayByteSequence(unescapedCopy);
-    } else {
-      return auth;
+      unescapedCopy[pos++] = b;
     }
+
+    return new ArrayByteSequence(unescapedCopy);
   }
 
   /**

@@ -153,10 +153,9 @@ public class SortedLogRecovery {
 
     if (logsThatDefineTablet.isEmpty()) {
       return new AbstractMap.SimpleEntry<>(-1, Collections.<Path>emptyList());
-    } else {
-      return Collections.max(logsThatDefineTablet.entrySet(),
-          (o1, o2) -> Integer.compare(o1.getKey(), o2.getKey()));
     }
+    return Collections.max(logsThatDefineTablet.entrySet(),
+        (o1, o2) -> Integer.compare(o1.getKey(), o2.getKey()));
   }
 
   private String getPathSuffix(String pathString) {
@@ -296,10 +295,9 @@ public class SortedLogRecovery {
     if (tabletId == -1) {
       log.info("Tablet {} is not defined in recovery logs {} ", extent, asNames(recoveryLogs));
       return;
-    } else {
-      log.info("Found {} of {} logs with max id {} for tablet {}", logsThatDefineTablet.size(),
-          recoveryLogs.size(), tabletId, extent);
     }
+    log.info("Found {} of {} logs with max id {} for tablet {}", logsThatDefineTablet.size(),
+        recoveryLogs.size(), tabletId, extent);
 
     // Find the seq # for the last compaction that started and finished
     long recoverySeq = findRecoverySeq(logsThatDefineTablet, tabletFiles, tabletId);

@@ -197,9 +197,8 @@ public class MultiLevelIndex {
     public int size() {
       if (offsets == null) {
         return numOffsets;
-      } else {
-        return offsets.length;
       }
+      return offsets.length;
     }
 
   }
@@ -223,9 +222,8 @@ public class MultiLevelIndex {
     public long sizeInBytes() {
       if (offsets == null) {
         return indexSize + 4L * numOffsets;
-      } else {
-        return data.length + 4L * offsets.length;
       }
+      return data.length + 4L * offsets.length;
     }
 
     @Override
@@ -408,9 +406,8 @@ public class MultiLevelIndex {
       // problems with deep copies.
       if (offsetsArray == null) {
         return new SerializedIndex(data, offsetsOffset, numOffsets, indexOffset, indexSize);
-      } else {
-        return new SerializedIndex(offsetsArray, data, newFormat);
       }
+      return new SerializedIndex(offsetsArray, data, newFormat);
     }
 
     public List<Key> getKeyIndex() {
@@ -419,9 +416,8 @@ public class MultiLevelIndex {
       // deep copies.
       if (offsetsArray == null) {
         return new KeyIndex(data, offsetsOffset, numOffsets, indexOffset, indexSize);
-      } else {
-        return new KeyIndex(offsetsArray, data);
       }
+      return new KeyIndex(offsetsArray, data);
     }
 
     int getLevel() {
@@ -721,9 +717,8 @@ public class MultiLevelIndex {
 
         if (liter.hasNext()) {
           return true;
-        } else {
-          return node.indexBlock.hasNext();
         }
+        return node.indexBlock.hasNext();
 
       }
 
@@ -756,9 +751,8 @@ public class MultiLevelIndex {
 
         if (liter.hasPrevious()) {
           return true;
-        } else {
-          return node.indexBlock.getOffset() > 0;
         }
+        return node.indexBlock.getOffset() > 0;
       }
 
       @Override

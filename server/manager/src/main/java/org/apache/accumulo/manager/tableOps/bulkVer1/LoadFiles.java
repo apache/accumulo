@@ -217,9 +217,8 @@ class LoadFiles extends ManagerRepo {
       if (i >= max) {
         result.append("...");
         break;
-      } else {
-        result.append(", ");
       }
+      result.append(", ");
       i++;
     }
     if (i < max)

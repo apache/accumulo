@@ -88,10 +88,8 @@ public class Token {
           if (s.startsWith(startsWith)) {
             set.add(s);
           }
-        } else {
-          if (s.toLowerCase().startsWith(startsWith.toLowerCase())) {
-            set.add(s);
-          }
+        } else if (s.toLowerCase().startsWith(startsWith.toLowerCase())) {
+          set.add(s);
         }
       }
     }
@@ -103,10 +101,8 @@ public class Token {
       if (caseSensitive) {
         if (t.equals(match))
           return true;
-      } else {
-        if (t.equalsIgnoreCase(match))
-          return true;
-      }
+      } else if (t.equalsIgnoreCase(match))
+        return true;
     }
     return false;
   }

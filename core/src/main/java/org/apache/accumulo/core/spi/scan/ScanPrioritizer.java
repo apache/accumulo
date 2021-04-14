@@ -39,7 +39,7 @@ public interface ScanPrioritizer {
    *
    * @since 2.0.0
    */
-  public static interface CreateParameters {
+  public interface CreateParameters {
     /**
      * @return The options configured for the scan prioritizer with properties of the form
      *         {@code tserver.scan.executors.<name>.prioritizer.opts.<key>=<value>}. Only the

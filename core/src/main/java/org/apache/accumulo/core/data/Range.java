@@ -560,7 +560,7 @@ public class Range implements WritableComparable<Range> {
       }
     } else if (afterEndKey(range.getStartKey())
         || (getEndKey() != null && range.getStartKey().equals(getEndKey())
-            && !(range.isStartKeyInclusive() && isEndKeyInclusive()))) {
+            && (!range.isStartKeyInclusive() || !isEndKeyInclusive()))) {
       if (returnNullIfDisjoint)
         return null;
       throw new IllegalArgumentException("Range " + range + " does not overlap " + this);
@@ -576,7 +576,7 @@ public class Range implements WritableComparable<Range> {
       }
     } else if (beforeStartKey(range.getEndKey())
         || (getStartKey() != null && range.getEndKey().equals(getStartKey())
-            && !(range.isEndKeyInclusive() && isStartKeyInclusive()))) {
+            && (!range.isEndKeyInclusive() || !isStartKeyInclusive()))) {
       if (returnNullIfDisjoint)
         return null;
       throw new IllegalArgumentException("Range " + range + " does not overlap " + this);

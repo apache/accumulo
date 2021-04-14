@@ -116,10 +116,9 @@ public class TracerRecoversAfterOfflineTableIT extends ConfigurableMacBase {
               lastPos = pos;
             }
             break;
-          } else {
-            log.info("Ignoring trace output as traceCount not greater than zero: {}", traceCount);
-            Thread.sleep(1000);
           }
+          log.info("Ignoring trace output as traceCount not greater than zero: {}", traceCount);
+          Thread.sleep(1000);
         }
         if (tracer != null) {
           tracer.destroy();

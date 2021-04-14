@@ -208,7 +208,8 @@ public interface VolumeManager extends AutoCloseable {
         log.error("unable to obtain instance id at {}", instanceDirectory);
         throw new RuntimeException(
             "Accumulo not initialized, there is no instance id at " + instanceDirectory);
-      } else if (files.length != 1) {
+      }
+      if (files.length != 1) {
         log.error("multiple potential instances in {}", instanceDirectory);
         throw new RuntimeException(
             "Accumulo found multiple possible instance ids in " + instanceDirectory);

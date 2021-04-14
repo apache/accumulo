@@ -23,6 +23,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -84,7 +85,8 @@ public class ClusterUser {
   public AuthenticationToken getToken() throws IOException {
     if (password != null) {
       return new PasswordToken(password);
-    } else if (keytab != null) {
+    }
+    if (keytab != null) {
       UserGroupInformation.loginUserFromKeytab(principal, keytab.getAbsolutePath());
       return new KerberosToken();
     }
@@ -120,19 +122,11 @@ public class ClusterUser {
 
     if (obj instanceof ClusterUser) {
       ClusterUser other = (ClusterUser) obj;
-      if (keytab == null) {
-        if (other.keytab != null) {
-          return false;
-        }
-      } else if (!keytab.equals(other.keytab)) {
+      if (!Objects.equals(keytab, other.keytab)) {
         return false;
       }
 
-      if (password == null) {
-        if (other.password != null) {
-          return false;
-        }
-      } else if (!password.equals(other.password)) {
+      if (!Objects.equals(password, other.password)) {
         return false;
       }
 

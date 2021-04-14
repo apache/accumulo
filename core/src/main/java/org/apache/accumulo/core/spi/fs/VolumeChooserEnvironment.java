@@ -33,15 +33,15 @@ public interface VolumeChooserEnvironment {
    *
    * @since 2.1.0
    */
-  public static enum Scope {
+  public enum Scope {
     DEFAULT, TABLE, INIT, LOGGER
   }
 
-  public Text getEndRow();
+  Text getEndRow();
 
-  public Optional<TableId> getTable();
+  Optional<TableId> getTable();
 
-  public Scope getChooserScope();
+  Scope getChooserScope();
 
-  public ServiceEnvironment getServiceEnv();
+  ServiceEnvironment getServiceEnv();
 }

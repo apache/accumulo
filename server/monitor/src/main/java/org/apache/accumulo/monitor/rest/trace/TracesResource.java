@@ -322,22 +322,20 @@ public class TracesResource {
 
     if (saslEnabled) {
       at = null;
+    } else if (loginMap.isEmpty()) {
+      Property p = Property.TRACE_PASSWORD;
+      at = new PasswordToken(conf.get(p).getBytes(UTF_8));
     } else {
-      if (loginMap.isEmpty()) {
-        Property p = Property.TRACE_PASSWORD;
-        at = new PasswordToken(conf.get(p).getBytes(UTF_8));
-      } else {
-        Properties props = new Properties();
-        int prefixLength = Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey().length();
-        for (Entry<String,String> entry : loginMap.entrySet()) {
-          props.put(entry.getKey().substring(prefixLength), entry.getValue());
-        }
-
-        AuthenticationToken token = Property.createInstanceFromPropertyName(conf,
-            Property.TRACE_TOKEN_TYPE, AuthenticationToken.class, new PasswordToken());
-        token.init(props);
-        at = token;
+      Properties props = new Properties();
+      int prefixLength = Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey().length();
+      for (Entry<String,String> entry : loginMap.entrySet()) {
+        props.put(entry.getKey().substring(prefixLength), entry.getValue());
       }
+
+      AuthenticationToken token = Property.createInstanceFromPropertyName(conf,
+          Property.TRACE_TOKEN_TYPE, AuthenticationToken.class, new PasswordToken());
+      token.init(props);
+      at = token;
     }
 
     java.util.Properties props = monitor.getContext().getProperties();

@@ -21,7 +21,7 @@ package org.apache.accumulo.core.conf;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
-import java.util.function.Function;
+import java.util.function.ToLongFunction;
 
 import org.junit.Test;
 
@@ -29,17 +29,17 @@ public class ConfigurationTypeHelperTest {
 
   @Test
   public void testGetMemoryInBytes() {
-    Arrays.<Function<String,Long>>asList(ConfigurationTypeHelper::getFixedMemoryAsBytes,
+    Arrays.<ToLongFunction<String>>asList(ConfigurationTypeHelper::getFixedMemoryAsBytes,
         ConfigurationTypeHelper::getMemoryAsBytes).stream().forEach(memFunc -> {
-          assertEquals(42L, memFunc.apply("42").longValue());
-          assertEquals(42L, memFunc.apply("42b").longValue());
-          assertEquals(42L, memFunc.apply("42B").longValue());
-          assertEquals(42L * 1024L, memFunc.apply("42K").longValue());
-          assertEquals(42L * 1024L, memFunc.apply("42k").longValue());
-          assertEquals(42L * 1024L * 1024L, memFunc.apply("42M").longValue());
-          assertEquals(42L * 1024L * 1024L, memFunc.apply("42m").longValue());
-          assertEquals(42L * 1024L * 1024L * 1024L, memFunc.apply("42G").longValue());
-          assertEquals(42L * 1024L * 1024L * 1024L, memFunc.apply("42g").longValue());
+          assertEquals(42L, memFunc.applyAsLong("42"));
+          assertEquals(42L, memFunc.applyAsLong("42b"));
+          assertEquals(42L, memFunc.applyAsLong("42B"));
+          assertEquals(42L * 1024L, memFunc.applyAsLong("42K"));
+          assertEquals(42L * 1024L, memFunc.applyAsLong("42k"));
+          assertEquals(42L * 1024L * 1024L, memFunc.applyAsLong("42M"));
+          assertEquals(42L * 1024L * 1024L, memFunc.applyAsLong("42m"));
+          assertEquals(42L * 1024L * 1024L * 1024L, memFunc.applyAsLong("42G"));
+          assertEquals(42L * 1024L * 1024L * 1024L, memFunc.applyAsLong("42g"));
         });
     assertEquals(Runtime.getRuntime().maxMemory() / 10,
         ConfigurationTypeHelper.getMemoryAsBytes("10%"));

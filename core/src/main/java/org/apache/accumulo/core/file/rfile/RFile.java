@@ -838,21 +838,19 @@ public class RFile {
         if (metricsGatherer != null)
           metricsGatherer.startBlock();
 
-        if (iiter.hasNext()) {
-          IndexEntry indexEntry = iiter.next();
-          entriesLeft = indexEntry.getNumEntries();
-          currBlock = getDataBlock(indexEntry);
-
-          checkRange = range.afterEndKey(indexEntry.getKey());
-          if (!checkRange)
-            hasTop = true;
-
-        } else {
+        if (!iiter.hasNext()) {
           rk = null;
           val = null;
           hasTop = false;
           return;
         }
+        IndexEntry indexEntry = iiter.next();
+        entriesLeft = indexEntry.getNumEntries();
+        currBlock = getDataBlock(indexEntry);
+
+        checkRange = range.afterEndKey(indexEntry.getKey());
+        if (!checkRange)
+          hasTop = true;
       }
 
       prevKey = rk.getKey();
@@ -874,9 +872,8 @@ public class RFile {
 
       if (version == RINDEX_VER_3 || version == RINDEX_VER_4)
         return reader.getDataBlock(startBlock + iiter.previousIndex());
-      else
-        return reader.getDataBlock(indexEntry.getOffset(), indexEntry.getCompressedSize(),
-            indexEntry.getRawSize());
+      return reader.getDataBlock(indexEntry.getOffset(), indexEntry.getCompressedSize(),
+          indexEntry.getRawSize());
 
     }
 
@@ -1357,26 +1354,25 @@ public class RFile {
 
     @Override
     public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-      if (env != null && env.isSamplingEnabled()) {
-        SamplerConfiguration sc = env.getSamplerConfiguration();
-        if (sc == null) {
-          throw new SampleNotPresentException();
-        }
-
-        if (this.samplerConfig != null
-            && this.samplerConfig.equals(new SamplerConfigurationImpl(sc))) {
-          Reader copy = new Reader(this, true);
-          copy.setInterruptFlagInternal(interruptFlag);
-          deepCopies.add(copy);
-          return copy;
-        } else {
-          throw new SampleNotPresentException();
-        }
-      } else {
+      if ((env == null) || !env.isSamplingEnabled()) {
         Reader copy = new Reader(this, false);
         copy.setInterruptFlagInternal(interruptFlag);
         deepCopies.add(copy);
         return copy;
+      }
+      SamplerConfiguration sc = env.getSamplerConfiguration();
+      if (sc == null) {
+        throw new SampleNotPresentException();
+      }
+
+      if (this.samplerConfig != null
+          && this.samplerConfig.equals(new SamplerConfigurationImpl(sc))) {
+        Reader copy = new Reader(this, true);
+        copy.setInterruptFlagInternal(interruptFlag);
+        deepCopies.add(copy);
+        return copy;
+      } else {
+        throw new SampleNotPresentException();
       }
     }
 

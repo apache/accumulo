@@ -186,14 +186,14 @@ public class RemoveEntriesForMissingFiles {
 
     if (missing == 0)
       return checkTable(context, MetadataTable.NAME, TabletsSection.getRange(), fix);
-    else
-      return missing;
+    return missing;
   }
 
   static int checkTable(ServerContext context, String tableName, boolean fix) throws Exception {
     if (tableName.equals(RootTable.NAME)) {
       throw new IllegalArgumentException("Can not check root table");
-    } else if (tableName.equals(MetadataTable.NAME)) {
+    }
+    if (tableName.equals(MetadataTable.NAME)) {
       return checkTable(context, RootTable.NAME, TabletsSection.getRange(), fix);
     } else {
       TableId tableId = Tables.getTableId(context, tableName);

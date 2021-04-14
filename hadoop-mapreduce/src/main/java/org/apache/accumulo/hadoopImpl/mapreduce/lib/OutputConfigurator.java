@@ -42,7 +42,7 @@ public class OutputConfigurator extends ConfiguratorBase {
    *
    * @since 1.6.0
    */
-  public static enum WriteOpts {
+  public enum WriteOpts {
     DEFAULT_TABLE_NAME, BATCH_WRITER_CONFIG
   }
 
@@ -51,7 +51,7 @@ public class OutputConfigurator extends ConfiguratorBase {
    *
    * @since 1.6.0
    */
-  public static enum Features {
+  public enum Features {
     CAN_CREATE_TABLES, SIMULATION_MODE
   }
 

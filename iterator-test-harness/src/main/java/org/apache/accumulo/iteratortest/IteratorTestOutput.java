@@ -21,6 +21,7 @@ package org.apache.accumulo.iteratortest;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
+import java.util.Objects;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.data.Key;
@@ -128,12 +129,7 @@ public class IteratorTestOutput {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((exception == null) ? 0 : exception.hashCode());
-    result = prime * result + ((outcome == null) ? 0 : outcome.hashCode());
-    result = prime * result + ((output == null) ? 0 : output.hashCode());
-    return result;
+    return Objects.hash(exception, outcome, output);
   }
 
   @Override

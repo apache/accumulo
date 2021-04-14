@@ -349,9 +349,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         if (password == null) {
           // User cancel, e.g. Ctrl-D pressed
           throw new ParameterException("No password or token option supplied");
-        } else {
-          token = new PasswordToken(password);
         }
+        token = new PasswordToken(password);
       }
       try {
         TraceUtil.enableClientTraces(InetAddress.getLocalHost().getHostName(), "shell",
@@ -1234,9 +1233,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     if (formatter == null) {
       logError("Could not load the specified formatter. Using the DefaultFormatter");
       return this.defaultFormatterClass;
-    } else {
-      return formatter;
     }
+    return formatter;
   }
 
   public void setLogErrorsToConsole() {

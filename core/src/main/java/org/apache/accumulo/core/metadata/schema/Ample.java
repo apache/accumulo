@@ -75,7 +75,7 @@ public interface Ample {
     private final String table;
     private final TableId id;
 
-    private DataLevel(String table, TableId id) {
+    DataLevel(String table, TableId id) {
       this.table = table;
       this.id = id;
     }
@@ -101,7 +101,8 @@ public interface Ample {
     public static DataLevel of(TableId tableId) {
       if (tableId.equals(RootTable.ID)) {
         return DataLevel.ROOT;
-      } else if (tableId.equals(MetadataTable.ID)) {
+      }
+      if (tableId.equals(MetadataTable.ID)) {
         return DataLevel.METADATA;
       } else {
         return DataLevel.USER;

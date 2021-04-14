@@ -59,7 +59,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class TracerTest {
   static class SpanStruct {
     public SpanStruct(long start, long stop, String description) {
-      super();
       this.start = start;
       this.stop = stop;
       this.description = description;

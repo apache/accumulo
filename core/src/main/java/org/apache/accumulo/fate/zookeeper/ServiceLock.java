@@ -259,11 +259,10 @@ public class ServiceLock implements Watcher {
     while ((idx - i) >= 0) {
       prev = children.get(idx - i);
       i++;
-      if (prev.startsWith(prevPrefix)) {
-        lowestPrevNode = prev;
-      } else {
+      if (!prev.startsWith(prevPrefix)) {
         break;
       }
+      lowestPrevNode = prev;
     }
     return lowestPrevNode;
   }
@@ -702,9 +701,8 @@ public class ServiceLock implements Watcher {
     Stat stat = zooKeeper.exists(path + "/" + lockNode, null);
     if (null != stat) {
       return stat.getEphemeralOwner();
-    } else {
-      return 0;
     }
+    return 0;
   }
 
   public static void deleteLock(ZooReaderWriter zk, ServiceLockPath path)

@@ -148,9 +148,7 @@ public class RootFilesUpgradeTest {
         }
       }
 
-      HashSet<String> expected = new HashSet<>();
-      expected.addAll(Arrays.asList(files));
-
+      HashSet<String> expected = new HashSet<>(Arrays.asList(files));
       assertEquals(expected, actual);
     }
   }

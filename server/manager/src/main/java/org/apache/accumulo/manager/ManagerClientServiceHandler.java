@@ -572,12 +572,11 @@ public class ManagerClientServiceHandler extends FateServiceHandler
         }
 
         // Skip files that we didn't observe when we started (new files/data)
-        if (relevantLogs.contains(file)) {
-          drainLog.trace("Found file that we *do* care about {}", file);
-        } else {
+        if (!relevantLogs.contains(file)) {
           drainLog.trace("Found file that we didn't care about {}", file);
           continue;
         }
+        drainLog.trace("Found file that we *do* care about {}", file);
 
         try {
           Status stat = Status.parseFrom(entry.getValue().get());

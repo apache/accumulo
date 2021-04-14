@@ -130,13 +130,11 @@ public class AuditMessageIT extends ConfigurableMacBase {
             String pattern = ".* \\["
                 + AuditedSecurityOperation.AUDITLOG.replace("org.apache.", "").replace(".", "[.]")
                 + "\\] .*";
-            if (line.matches(pattern)) {
-              // Only include the message if startTimestamp is null. or the message occurred after
-              // the startTimestamp value
-              if ((lastAuditTimestamp == null)
-                  || (line.substring(0, 23).compareTo(lastAuditTimestamp) > 0))
-                result.add(line);
-            }
+            // Only include the message if startTimestamp is null. or the message occurred after
+            // the startTimestamp value
+            if (line.matches(pattern) && ((lastAuditTimestamp == null)
+                || (line.substring(0, 23).compareTo(lastAuditTimestamp) > 0)))
+              result.add(line);
           }
         }
       }

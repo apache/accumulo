@@ -25,7 +25,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 
 /**
@@ -57,10 +56,7 @@ class ZooConfigurationFactory {
         // The purpose of this watcher is a hack. It forces the creation on a new zoocache instead
         // of using a shared one. This was done so that the zoocache
         // would update less, causing the configuration update count to changes less.
-        Watcher watcher = new Watcher() {
-          @Override
-          public void process(WatchedEvent arg0) {}
-        };
+        Watcher watcher = arg0 -> {};
         propCache = zcf.getZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut(),
             watcher);
         config = new ZooConfiguration(context, propCache, parent);

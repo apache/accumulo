@@ -181,7 +181,8 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
       }
 
       return true;
-    } else if (queuedWork.startsWith(path.getName())) {
+    }
+    if (queuedWork.startsWith(path.getName())) {
       log.debug("Not re-queueing work for {} as it has already been queued for replication to {}",
           path, target);
       return false;
@@ -202,9 +203,8 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
     String queuedWork = queuedWorkForPeer.get(target.getSourceTableId());
     if (queuedWork == null) {
       return Collections.emptySet();
-    } else {
-      return Collections.singleton(queuedWork);
     }
+    return Collections.singleton(queuedWork);
   }
 
   @Override
@@ -216,12 +216,11 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
     }
 
     String queuedWork = queuedWorkForPeer.get(target.getSourceTableId());
-    if (queuedWork.equals(queueKey)) {
-      queuedWorkForPeer.remove(target.getSourceTableId());
-    } else {
+    if (!queuedWork.equals(queueKey)) {
       log.warn("removeQueuedWork called on {} with differing queueKeys, expected {} but was {}",
           target, queueKey, queuedWork);
       return;
     }
+    queuedWorkForPeer.remove(target.getSourceTableId());
   }
 }

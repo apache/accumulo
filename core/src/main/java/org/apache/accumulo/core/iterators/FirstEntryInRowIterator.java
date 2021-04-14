@@ -54,12 +54,9 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   }
 
   // this must be public for OptionsDescriber
-  public FirstEntryInRowIterator() {
-    super();
-  }
+  public FirstEntryInRowIterator() {}
 
   public FirstEntryInRowIterator(FirstEntryInRowIterator other, IteratorEnvironment env) {
-    super();
     setSource(other.getSource().deepCopy(env));
   }
 
@@ -98,10 +95,10 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
         if (latestRange.afterEndKey(nextKey)) {
           finished = true;
           break;
-        } else
-          source.seek(
-              new Range(nextKey, true, latestRange.getEndKey(), latestRange.isEndKeyInclusive()),
-              latestColumnFamilies, latestInclusive);
+        }
+        source.seek(
+            new Range(nextKey, true, latestRange.getEndKey(), latestRange.isEndKeyInclusive()),
+            latestColumnFamilies, latestInclusive);
       }
     }
     lastRowFound = source.hasTop() ? source.getTopKey().getRow(lastRowFound) : null;

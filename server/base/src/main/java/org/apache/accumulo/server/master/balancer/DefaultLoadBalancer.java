@@ -119,8 +119,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
 
     @Override
     public boolean equals(Object obj) {
-      return obj == this
-          || (obj != null && obj instanceof ServerCounts && compareTo((ServerCounts) obj) == 0);
+      return obj == this || (obj instanceof ServerCounts && compareTo((ServerCounts) obj) == 0);
     }
 
     @Override
@@ -347,16 +346,14 @@ public class DefaultLoadBalancer extends TabletBalancer {
     // do we have any servers?
     if (current.isEmpty()) {
       constraintNotMet(NO_SERVERS);
+    } else // Don't migrate if we have migrations in progress
+    if (migrations.isEmpty()) {
+      resetBalancerErrors();
+      if (getMigrations(current, migrationsOut))
+        return 1 * 1000;
     } else {
-      // Don't migrate if we have migrations in progress
-      if (migrations.isEmpty()) {
-        resetBalancerErrors();
-        if (getMigrations(current, migrationsOut))
-          return 1 * 1000;
-      } else {
-        outstandingMigrations.migrations = migrations;
-        constraintNotMet(outstandingMigrations);
-      }
+      outstandingMigrations.migrations = migrations;
+      constraintNotMet(outstandingMigrations);
     }
     return 5 * 1000;
   }

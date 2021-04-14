@@ -45,7 +45,7 @@ public enum NamespacePermission {
       mapping[perm.permID] = perm;
   }
 
-  private NamespacePermission(byte id) {
+  NamespacePermission(byte id) {
     this.permID = id;
   }
 

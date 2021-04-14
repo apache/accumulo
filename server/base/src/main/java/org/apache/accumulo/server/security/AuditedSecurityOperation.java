@@ -152,25 +152,24 @@ public class AuditedSecurityOperation extends SecurityOperation {
       TRange range, List<TColumn> columns, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations)
       throws ThriftSecurityException {
-    if (shouldAudit(credentials, tableId)) {
-      Range convertedRange = new Range(range);
-      List<String> convertedColumns =
-          truncate(columns.stream().map(Column::new).collect(Collectors.toList()));
-      String tableName = getTableName(tableId);
-
-      try {
-        boolean canScan = super.canScan(credentials, tableId, namespaceId);
-        audit(credentials, canScan, CAN_SCAN_AUDIT_TEMPLATE, tableName,
-            getAuthString(authorizations), convertedRange, convertedColumns, ssiList, ssio);
-
-        return canScan;
-      } catch (ThriftSecurityException ex) {
-        audit(credentials, ex, CAN_SCAN_AUDIT_TEMPLATE, getAuthString(authorizations), tableId,
-            convertedRange, convertedColumns, ssiList, ssio);
-        throw ex;
-      }
-    } else {
+    if (!shouldAudit(credentials, tableId)) {
       return super.canScan(credentials, tableId, namespaceId);
+    }
+    Range convertedRange = new Range(range);
+    List<String> convertedColumns =
+        truncate(columns.stream().map(Column::new).collect(Collectors.toList()));
+    String tableName = getTableName(tableId);
+
+    try {
+      boolean canScan = super.canScan(credentials, tableId, namespaceId);
+      audit(credentials, canScan, CAN_SCAN_AUDIT_TEMPLATE, tableName, getAuthString(authorizations),
+          convertedRange, convertedColumns, ssiList, ssio);
+
+      return canScan;
+    } catch (ThriftSecurityException ex) {
+      audit(credentials, ex, CAN_SCAN_AUDIT_TEMPLATE, getAuthString(authorizations), tableId,
+          convertedRange, convertedColumns, ssiList, ssio);
+      throw ex;
     }
   }
 
@@ -183,31 +182,28 @@ public class AuditedSecurityOperation extends SecurityOperation {
       Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations)
       throws ThriftSecurityException {
-    if (shouldAudit(credentials, tableId)) {
-
-      // @formatter:off
-      Map<KeyExtent, List<String>> truncated = tbatch.entrySet().stream().collect(Collectors.toMap(
-                      entry -> KeyExtent.fromThrift(entry.getKey()),
-                      entry -> truncate(entry.getValue().stream().map(Range::new).collect(Collectors.toList()))
-      ));
-      // @formatter:on
-      List<Column> convertedColumns =
-          tcolumns.stream().map(Column::new).collect(Collectors.toList());
-      String tableName = getTableName(tableId);
-
-      try {
-        boolean canScan = super.canScan(credentials, tableId, namespaceId);
-        audit(credentials, canScan, CAN_SCAN_BATCH_AUDIT_TEMPLATE, tableName,
-            getAuthString(authorizations), truncated, convertedColumns, ssiList, ssio);
-
-        return canScan;
-      } catch (ThriftSecurityException ex) {
-        audit(credentials, ex, CAN_SCAN_BATCH_AUDIT_TEMPLATE, getAuthString(authorizations),
-            tableId, truncated, convertedColumns, ssiList, ssio);
-        throw ex;
-      }
-    } else {
+    if (!shouldAudit(credentials, tableId)) {
       return super.canScan(credentials, tableId, namespaceId);
+    }
+    // @formatter:off
+    Map<KeyExtent, List<String>> truncated = tbatch.entrySet().stream().collect(Collectors.toMap(
+                    entry -> KeyExtent.fromThrift(entry.getKey()),
+                    entry -> truncate(entry.getValue().stream().map(Range::new).collect(Collectors.toList()))
+    ));
+    // @formatter:on
+    List<Column> convertedColumns = tcolumns.stream().map(Column::new).collect(Collectors.toList());
+    String tableName = getTableName(tableId);
+
+    try {
+      boolean canScan = super.canScan(credentials, tableId, namespaceId);
+      audit(credentials, canScan, CAN_SCAN_BATCH_AUDIT_TEMPLATE, tableName,
+          getAuthString(authorizations), truncated, convertedColumns, ssiList, ssio);
+
+      return canScan;
+    } catch (ThriftSecurityException ex) {
+      audit(credentials, ex, CAN_SCAN_BATCH_AUDIT_TEMPLATE, getAuthString(authorizations), tableId,
+          truncated, convertedColumns, ssiList, ssio);
+      throw ex;
     }
   }
 

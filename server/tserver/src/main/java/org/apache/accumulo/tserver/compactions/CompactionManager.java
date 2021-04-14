@@ -360,18 +360,13 @@ public class CompactionManager {
 
   public void start() {
     log.debug("Started compaction manager");
-    Threads.createThread("Compaction Manager", () -> mainLoop()).start();
+    Threads.createThread("Compaction Manager", this::mainLoop).start();
   }
 
   public CompactionServices getServices() {
     var serviceIds = services.keySet();
 
-    return new CompactionServices() {
-      @Override
-      public Set<CompactionServiceId> getIds() {
-        return serviceIds;
-      }
-    };
+    return () -> serviceIds;
   }
 
   public boolean isCompactionQueued(KeyExtent extent, Set<CompactionServiceId> servicesUsed) {

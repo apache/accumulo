@@ -151,19 +151,17 @@ public class AccumuloClassLoader {
       final File extDir = new File(classpath);
       if (extDir.isDirectory())
         urls.add(extDir.toURI().toURL());
-      else {
-        if (extDir.getParentFile() != null) {
-          File[] extJars =
-              extDir.getParentFile().listFiles((dir, name) -> name.matches("^" + extDir.getName()));
-          if (extJars != null && extJars.length > 0) {
-            for (File jar : extJars)
-              urls.add(jar.toURI().toURL());
-          } else {
-            log.debug("ignoring classpath entry {}", classpath);
-          }
+      else if (extDir.getParentFile() != null) {
+        File[] extJars =
+            extDir.getParentFile().listFiles((dir, name) -> name.matches("^" + extDir.getName()));
+        if (extJars != null && extJars.length > 0) {
+          for (File jar : extJars)
+            urls.add(jar.toURI().toURL());
         } else {
           log.debug("ignoring classpath entry {}", classpath);
         }
+      } else {
+        log.debug("ignoring classpath entry {}", classpath);
       }
     } else {
       urls.add(uri.toURL());

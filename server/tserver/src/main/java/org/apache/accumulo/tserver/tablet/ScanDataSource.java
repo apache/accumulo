@@ -90,23 +90,21 @@ class ScanDataSource implements DataSource {
   public DataSource getNewDataSource() {
     if (isCurrent())
       return this;
-    else {
-      // log.debug("Switching data sources during a scan");
-      if (memIters != null) {
-        tablet.getTabletMemory().returnIterators(memIters);
-        memIters = null;
-        tablet.getDatafileManager().returnFilesForScan(fileReservationId);
-        fileReservationId = -1;
-      }
-
-      if (fileManager != null)
-        fileManager.releaseOpenFiles(false);
-
-      expectedDeletionCount = tablet.getDataSourceDeletions();
-      iter = null;
-
-      return this;
+    // log.debug("Switching data sources during a scan");
+    if (memIters != null) {
+      tablet.getTabletMemory().returnIterators(memIters);
+      memIters = null;
+      tablet.getDatafileManager().returnFilesForScan(fileReservationId);
+      fileReservationId = -1;
     }
+
+    if (fileManager != null)
+      fileManager.releaseOpenFiles(false);
+
+    expectedDeletionCount = tablet.getDataSourceDeletions();
+    iter = null;
+
+    return this;
   }
 
   @Override
@@ -185,47 +183,46 @@ class ScanDataSource implements DataSource {
         SystemIteratorUtil.setupSystemScanIterators(statsIterator, scanParams.getColumnSet(),
             scanParams.getAuthorizations(), defaultLabels, tablet.getTableConfiguration());
 
-    if (loadIters) {
-      List<IterInfo> iterInfos;
-      Map<String,Map<String,String>> iterOpts;
-
-      ParsedIteratorConfig pic =
-          tablet.getTableConfiguration().getParsedIteratorConfig(IteratorScope.scan);
-      if (scanParams.getSsiList().isEmpty() && scanParams.getSsio().isEmpty()) {
-        // No scan time iterator options were set, so can just use the pre-parsed table iterator
-        // options.
-        iterInfos = pic.getIterInfo();
-        iterOpts = pic.getOpts();
-      } else {
-        // Scan time iterator options were set, so need to merge those with pre-parsed table
-        // iterator options.
-        iterOpts = new HashMap<>(pic.getOpts().size() + scanParams.getSsio().size());
-        iterInfos = new ArrayList<>(pic.getIterInfo().size() + scanParams.getSsiList().size());
-        IterConfigUtil.mergeIteratorConfig(iterInfos, iterOpts, pic.getIterInfo(), pic.getOpts(),
-            scanParams.getSsiList(), scanParams.getSsio());
-      }
-
-      String context;
-      if (scanParams.getClassLoaderContext() != null) {
-        log.trace("Loading iterators for scan with scan context: {}",
-            scanParams.getClassLoaderContext());
-        context = scanParams.getClassLoaderContext();
-      } else {
-        context = pic.getServiceEnv();
-        if (context != null) {
-          log.trace("Loading iterators for scan with table context: {}",
-              scanParams.getClassLoaderContext());
-        } else {
-          log.trace("Loading iterators for scan");
-        }
-      }
-
-      IterLoad il = new IterLoad().iters(iterInfos).iterOpts(iterOpts).iterEnv(iterEnv)
-          .useAccumuloClassLoader(true).context(context);
-      return iterEnv.getTopLevelIterator(IterConfigUtil.loadIterators(visFilter, il));
-    } else {
+    if (!loadIters) {
       return visFilter;
     }
+    List<IterInfo> iterInfos;
+    Map<String,Map<String,String>> iterOpts;
+
+    ParsedIteratorConfig pic =
+        tablet.getTableConfiguration().getParsedIteratorConfig(IteratorScope.scan);
+    if (scanParams.getSsiList().isEmpty() && scanParams.getSsio().isEmpty()) {
+      // No scan time iterator options were set, so can just use the pre-parsed table iterator
+      // options.
+      iterInfos = pic.getIterInfo();
+      iterOpts = pic.getOpts();
+    } else {
+      // Scan time iterator options were set, so need to merge those with pre-parsed table
+      // iterator options.
+      iterOpts = new HashMap<>(pic.getOpts().size() + scanParams.getSsio().size());
+      iterInfos = new ArrayList<>(pic.getIterInfo().size() + scanParams.getSsiList().size());
+      IterConfigUtil.mergeIteratorConfig(iterInfos, iterOpts, pic.getIterInfo(), pic.getOpts(),
+          scanParams.getSsiList(), scanParams.getSsio());
+    }
+
+    String context;
+    if (scanParams.getClassLoaderContext() != null) {
+      log.trace("Loading iterators for scan with scan context: {}",
+          scanParams.getClassLoaderContext());
+      context = scanParams.getClassLoaderContext();
+    } else {
+      context = pic.getServiceEnv();
+      if (context != null) {
+        log.trace("Loading iterators for scan with table context: {}",
+            scanParams.getClassLoaderContext());
+      } else {
+        log.trace("Loading iterators for scan");
+      }
+    }
+
+    IterLoad il = new IterLoad().iters(iterInfos).iterOpts(iterOpts).iterEnv(iterEnv)
+        .useAccumuloClassLoader(true).context(context);
+    return iterEnv.getTopLevelIterator(IterConfigUtil.loadIterators(visFilter, il));
   }
 
   void close(boolean sawErrors) {

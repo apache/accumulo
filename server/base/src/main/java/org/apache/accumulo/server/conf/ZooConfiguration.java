@@ -78,20 +78,19 @@ public class ZooConfiguration extends AccumuloConfiguration {
 
   @Override
   public String get(Property property) {
-    if (Property.isFixedZooPropertyKey(property)) {
-      String val = fixedProps.get(property.getKey());
-      if (val != null) {
-        return val;
-      } else {
-        synchronized (fixedProps) {
-          val = _get(property);
-          fixedProps.put(property.getKey(), val);
-          return val;
-        }
-
-      }
-    } else {
+    if (!Property.isFixedZooPropertyKey(property)) {
       return _get(property);
+    }
+    String val = fixedProps.get(property.getKey());
+    if (val != null) {
+      return val;
+    } else {
+      synchronized (fixedProps) {
+        val = _get(property);
+        fixedProps.put(property.getKey(), val);
+        return val;
+      }
+
     }
   }
 

@@ -72,18 +72,16 @@ public class TableLoadBalancer implements TabletBalancer {
 
     if (clazzName == null)
       clazzName = SimpleLoadBalancer.class.getName();
-    if (balancer != null) {
-      if (!clazzName.equals(balancer.getClass().getName())) {
-        // the balancer class for this table does not match the class specified in the configuration
-        try {
-          balancer = constructNewBalancerForTable(clazzName, tableId);
-          perTableBalancers.put(tableId, balancer);
-          balancer.init(environment);
+    if ((balancer != null) && !clazzName.equals(balancer.getClass().getName())) {
+      // the balancer class for this table does not match the class specified in the configuration
+      try {
+        balancer = constructNewBalancerForTable(clazzName, tableId);
+        perTableBalancers.put(tableId, balancer);
+        balancer.init(environment);
 
-          log.info("Loaded new class {} for table {}", clazzName, tableId);
-        } catch (Exception e) {
-          log.warn("Failed to load table balancer class {} for table {}", clazzName, tableId, e);
-        }
+        log.info("Loaded new class {} for table {}", clazzName, tableId);
+      } catch (Exception e) {
+        log.warn("Failed to load table balancer class {} for table {}", clazzName, tableId, e);
       }
     }
     if (balancer == null) {

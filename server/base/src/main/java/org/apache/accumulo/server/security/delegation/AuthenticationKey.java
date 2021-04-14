@@ -88,7 +88,7 @@ public class AuthenticationKey implements Writable {
 
   @Override
   public boolean equals(Object obj) {
-    return obj != null && obj instanceof AuthenticationKey
+    return obj instanceof AuthenticationKey
         && Objects.equals(authKey, ((AuthenticationKey) obj).authKey);
   }
 

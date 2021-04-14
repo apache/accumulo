@@ -58,7 +58,7 @@ public class SanitizedLogEvent {
           || type == Character.NON_SPACING_MARK || type == Character.PRIVATE_USE;
       text.append(notPrintable ? '?' : c);
     }
-    return text.toString().trim().replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">",
+    return text.toString().trim().replaceAll("&", "&amp;").replaceAll("<", "&lt;").replace(">",
         "&gt;");
   }
 

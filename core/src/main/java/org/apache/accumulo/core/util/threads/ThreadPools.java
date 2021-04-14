@@ -154,9 +154,8 @@ public class ThreadPools {
     if (enableTracing) {
       return new TracingScheduledThreadPoolExecutor(numThreads,
           new NamedThreadFactory(name, priority));
-    } else {
-      return new ScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory(name, priority));
     }
+    return new ScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory(name, priority));
   }
 
 }

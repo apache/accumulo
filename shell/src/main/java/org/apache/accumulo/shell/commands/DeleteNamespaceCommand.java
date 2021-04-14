@@ -63,7 +63,7 @@ public class DeleteNamespaceCommand extends Command {
 
   protected void doTableOp(final Shell shellState, final String namespace, boolean force)
       throws Exception {
-    boolean resetContext = false;
+    boolean resetContext;
     String currentTable = shellState.getTableName();
 
     NamespaceId namespaceId = Namespaces.getNamespaceId(shellState.getContext(), namespace);

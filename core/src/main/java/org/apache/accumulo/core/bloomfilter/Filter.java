@@ -168,7 +168,7 @@ public abstract class Filter implements Writable {
       this.nbHash = ver;
       this.hashType = Hash.JENKINS_HASH;
 
-    } else if (ver == VERSION | ver == VERSION + 1) { // Support for directly serializing the bitset
+    } else if (ver == VERSION || ver == VERSION + 1) { // Support for directly serializing bitset
       this.nbHash = in.readInt();
       this.hashType = in.readByte();
     } else {

@@ -83,10 +83,8 @@ public class IntersectingIteratorTest {
             map.put(k, v);
             if (negateMask[j])
               docHits = false;
-          } else {
-            if (!negateMask[j])
-              docHits = false;
-          }
+          } else if (!negateMask[j])
+            docHits = false;
         }
         if (docHits) {
           docs.add(doc);

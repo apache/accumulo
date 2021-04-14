@@ -245,7 +245,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
         // If we are past the target, this is a valid result
         if (docIDCompare < 0) {
           break;
-        } else if (docIDCompare > 0) {
+        }
+        if (docIDCompare > 0) {
           // if this source is not yet at the currentCQ then advance in this source
 
           // seek forwards

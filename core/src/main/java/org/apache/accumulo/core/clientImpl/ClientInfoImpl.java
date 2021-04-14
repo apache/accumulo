@@ -90,7 +90,7 @@ public class ClientInfoImpl implements ClientInfo {
 
   @Override
   public boolean saslEnabled() {
-    return Boolean.valueOf(getString(ClientProperty.SASL_ENABLED));
+    return Boolean.parseBoolean(getString(ClientProperty.SASL_ENABLED));
   }
 
   private String getString(ClientProperty property) {

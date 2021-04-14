@@ -361,32 +361,30 @@ public class DefaultCompactionStrategyTest {
 
       DefaultCompactionStrategy s = new DefaultCompactionStrategy();
 
-      if (s.shouldCompact(request)) {
-        CompactionPlan plan = s.getCompactionPlan(request);
-
-        long totalSize = 0;
-        long totalEntries = 0;
-
-        for (StoredTabletFile fr : plan.inputFiles) {
-          DataFileValue dfv = files.remove(fr);
-
-          totalSize += dfv.getSize();
-          totalEntries += dfv.getNumEntries();
-
-          totalRead += dfv.getSize();
-        }
-
-        String name =
-            "hdfs://nn1/accumulo/tables/5/t-0001/C" + String.format("%06d", nextFile) + ".rf";
-        nextFile++;
-
-        files.put(new StoredTabletFile(name), new DataFileValue(totalSize, totalEntries));
-
-        return totalSize;
-
-      } else {
+      if (!s.shouldCompact(request)) {
         return 0;
       }
+      CompactionPlan plan = s.getCompactionPlan(request);
+
+      long totalSize = 0;
+      long totalEntries = 0;
+
+      for (StoredTabletFile fr : plan.inputFiles) {
+        DataFileValue dfv = files.remove(fr);
+
+        totalSize += dfv.getSize();
+        totalEntries += dfv.getNumEntries();
+
+        totalRead += dfv.getSize();
+      }
+
+      String name =
+          "hdfs://nn1/accumulo/tables/5/t-0001/C" + String.format("%06d", nextFile) + ".rf";
+      nextFile++;
+
+      files.put(new StoredTabletFile(name), new DataFileValue(totalSize, totalEntries));
+
+      return totalSize;
     }
 
     long getTotalRead() {

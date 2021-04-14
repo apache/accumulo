@@ -75,9 +75,8 @@ public class ClassLoaderUtil {
   public static ClassLoader getClassLoader(String context) {
     if (context != null && !context.isEmpty()) {
       return FACTORY.getClassLoader(context);
-    } else {
-      return org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.getClassLoader();
     }
+    return org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.getClassLoader();
   }
 
   public static <U> Class<? extends U> loadClass(String context, String className,

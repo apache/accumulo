@@ -49,9 +49,8 @@ public class SeekableByteArrayInputStream extends InputStream {
   public int read() {
     if (cur < max) {
       return buffer[cur++] & 0xff;
-    } else {
-      return -1;
     }
+    return -1;
   }
 
   @Override

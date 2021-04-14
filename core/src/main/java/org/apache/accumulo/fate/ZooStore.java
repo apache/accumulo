@@ -158,17 +158,14 @@ public class ZooStore<T> implements TStore<T> {
               continue;
 
             if (defered.containsKey(tid)) {
-              if (defered.get(tid) < System.currentTimeMillis())
-                defered.remove(tid);
-              else
+              if (defered.get(tid) >= System.currentTimeMillis())
                 continue;
+              defered.remove(tid);
             }
             if (reserved.contains(tid))
               continue;
-            else {
-              reserved.add(tid);
-              lastReserved = txdir;
-            }
+            reserved.add(tid);
+            lastReserved = txdir;
           }
 
           // have reserved id, status should not change
@@ -177,9 +174,8 @@ public class ZooStore<T> implements TStore<T> {
             TStatus status = TStatus.valueOf(new String(zk.getData(path + "/" + txdir), UTF_8));
             if (status == TStatus.IN_PROGRESS || status == TStatus.FAILED_IN_PROGRESS) {
               return tid;
-            } else {
-              unreserve(tid);
             }
+            unreserve(tid);
           } catch (NoNodeException nne) {
             // node deleted after we got the list of children, its ok
             unreserve(tid);
@@ -453,7 +449,8 @@ public class ZooStore<T> implements TStore<T> {
         byte[] sera = new byte[data.length - 2];
         System.arraycopy(data, 2, sera, 0, sera.length);
         return (Serializable) deserialize(sera);
-      } else if (data[0] == 'S') {
+      }
+      if (data[0] == 'S') {
         return new String(data, 2, data.length - 2, UTF_8);
       } else {
         throw new IllegalStateException("Bad property data " + prop);

@@ -67,7 +67,8 @@ public class SaslClientDigestCallbackHandler extends SaslDigestCallbackHandler {
     for (Callback callback : callbacks) {
       if (callback instanceof RealmChoiceCallback) {
         continue;
-      } else if (callback instanceof NameCallback) {
+      }
+      if (callback instanceof NameCallback) {
         nc = (NameCallback) callback;
       } else if (callback instanceof PasswordCallback) {
         pc = (PasswordCallback) callback;

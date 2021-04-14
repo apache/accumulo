@@ -98,9 +98,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       if (level == DataLevel.ROOT) {
         ClientContext ctx = ((ClientContext) _client);
         return new TabletsMetadata(getRootMetadata(ctx, readConsistency));
-      } else {
-        return buildNonRoot(_client);
       }
+      return buildNonRoot(_client);
     }
 
     private TabletsMetadata buildNonRoot(AccumuloClient client) {
@@ -135,9 +134,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           // create an iterable that will stop at the tablet which contains the endRow
           return new TabletsMetadata(scanner,
               () -> new TabletMetadataIterator(tmi.iterator(), endRow));
-        } else {
-          return new TabletsMetadata(scanner, tmi);
         }
+        return new TabletsMetadata(scanner, tmi);
       } catch (TableNotFoundException e) {
         throw new RuntimeException(e);
       }

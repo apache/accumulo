@@ -42,6 +42,7 @@ public class MapReduceClientOpts extends ClientOpts {
 
   private static final Logger log = LoggerFactory.getLogger(MapReduceClientOpts.class);
 
+  @Override
   public Properties getClientProps() {
     Properties props = super.getClientProps();
     // For MapReduce, Kerberos credentials don't make it to the Mappers and Reducers,

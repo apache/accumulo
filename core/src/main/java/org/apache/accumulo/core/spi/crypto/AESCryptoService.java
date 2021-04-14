@@ -359,9 +359,7 @@ public class AESCryptoService implements CryptoService {
         if (iv[i] == 0) {
           if (i == 0)
             return;
-          else {
-            incrementIV(iv, i - 1);
-          }
+          incrementIV(iv, i - 1);
         }
 
       }

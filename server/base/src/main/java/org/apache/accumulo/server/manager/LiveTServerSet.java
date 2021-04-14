@@ -403,11 +403,10 @@ public class LiveTServerSet implements Watcher {
       addr = AddressUtil.parseAddress(tabletServer, false);
     }
     for (Entry<String,TServerInfo> entry : servers.entrySet()) {
-      if (entry.getValue().instance.getHostAndPort().equals(addr)) {
-        // Return the instance if we have no desired session ID, or we match the desired session ID
-        if (sessionId == null || sessionId.equals(entry.getValue().instance.getSession()))
-          return entry.getValue().instance;
-      }
+      // Return the instance if we have no desired session ID, or we match the desired session ID
+      if (entry.getValue().instance.getHostAndPort().equals(addr)
+          && (sessionId == null || sessionId.equals(entry.getValue().instance.getSession())))
+        return entry.getValue().instance;
     }
     return null;
   }

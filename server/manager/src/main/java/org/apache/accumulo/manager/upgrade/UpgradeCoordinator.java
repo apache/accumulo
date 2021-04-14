@@ -164,35 +164,34 @@ public class UpgradeCoordinator {
     Preconditions.checkState(status == UpgradeStatus.UPGRADED_ZOOKEEPER,
         "Not currently in a suitable state to do metadata upgrade %s", status);
 
-    if (currentVersion < ServerConstants.DATA_VERSION) {
-      return ThreadPools.createThreadPool(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
-          "UpgradeMetadataThreads", new SynchronousQueue<Runnable>(), OptionalInt.empty(), false)
-          .submit(() -> {
-            try {
-              for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {
-                log.info("Upgrading Root from data version {}", v);
-                upgraders.get(v).upgradeRoot(context);
-              }
-
-              setStatus(UpgradeStatus.UPGRADED_ROOT, eventCoordinator);
-
-              for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {
-                log.info("Upgrading Metadata from data version {}", v);
-                upgraders.get(v).upgradeMetadata(context);
-              }
-
-              log.info("Updating persistent data version.");
-              ServerUtil.updateAccumuloVersion(context.getVolumeManager(), currentVersion);
-              log.info("Upgrade complete");
-              setStatus(UpgradeStatus.COMPLETE, eventCoordinator);
-            } catch (Exception e) {
-              handleFailure(e);
-            }
-            return null;
-          });
-    } else {
+    if (currentVersion >= ServerConstants.DATA_VERSION) {
       return CompletableFuture.completedFuture(null);
     }
+    return ThreadPools.createThreadPool(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
+        "UpgradeMetadataThreads", new SynchronousQueue<Runnable>(), OptionalInt.empty(), false)
+        .submit(() -> {
+          try {
+            for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {
+              log.info("Upgrading Root from data version {}", v);
+              upgraders.get(v).upgradeRoot(context);
+            }
+
+            setStatus(UpgradeStatus.UPGRADED_ROOT, eventCoordinator);
+
+            for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {
+              log.info("Upgrading Metadata from data version {}", v);
+              upgraders.get(v).upgradeMetadata(context);
+            }
+
+            log.info("Updating persistent data version.");
+            ServerUtil.updateAccumuloVersion(context.getVolumeManager(), currentVersion);
+            log.info("Upgrade complete");
+            setStatus(UpgradeStatus.COMPLETE, eventCoordinator);
+          } catch (Exception e) {
+            handleFailure(e);
+          }
+          return null;
+        });
   }
 
   public UpgradeStatus getStatus() {

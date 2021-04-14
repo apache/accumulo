@@ -59,7 +59,8 @@ public class KeyShortenerTest {
   private byte[] toBytes(Object o) {
     if (o instanceof String) {
       return ((String) o).getBytes();
-    } else if (o instanceof byte[]) {
+    }
+    if (o instanceof byte[]) {
       return (byte[]) o;
     }
 

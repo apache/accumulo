@@ -176,16 +176,15 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
   @Override
   public AuthenticationToken getAdminToken() {
     File keytab = getAdminKeytab();
-    if (keytab != null) {
-      try {
-        UserGroupInformation.loginUserFromKeytab(getAdminPrincipal(), keytab.getAbsolutePath());
-        return new KerberosToken();
-      } catch (IOException e) {
-        // The user isn't logged in
-        throw new RuntimeException("Failed to create KerberosToken", e);
-      }
-    } else {
+    if (keytab == null) {
       return new PasswordToken(getPassword());
+    }
+    try {
+      UserGroupInformation.loginUserFromKeytab(getAdminPrincipal(), keytab.getAbsolutePath());
+      return new KerberosToken();
+    } catch (IOException e) {
+      // The user isn't logged in
+      throw new RuntimeException("Failed to create KerberosToken", e);
     }
   }
 

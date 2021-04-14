@@ -112,9 +112,8 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
   private static byte[] copy(ByteSequence bs) {
     if (bs.isBackedByArray()) {
       return Arrays.copyOfRange(bs.getBackingArray(), bs.offset(), bs.offset() + bs.length());
-    } else {
-      return bs.toArray();
     }
+    return bs.toArray();
   }
 
   /**

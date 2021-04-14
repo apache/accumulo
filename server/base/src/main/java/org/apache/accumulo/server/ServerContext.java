@@ -209,7 +209,8 @@ public class ServerContext extends ClientContext {
       }
 
       return ThriftServerType.SSL;
-    } else if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+    }
+    if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       if (conf.getBoolean(Property.INSTANCE_RPC_SSL_ENABLED)) {
         throw new IllegalStateException(
             "Cannot create a Thrift server capable of both SASL and SSL");

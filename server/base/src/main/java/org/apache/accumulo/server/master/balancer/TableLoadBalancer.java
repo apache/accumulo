@@ -60,7 +60,7 @@ public class TableLoadBalancer extends TabletBalancer {
 
   private TabletBalancer constructNewBalancerForTable(String clazzName, TableId tableId)
       throws Exception {
-    String context = null;
+    String context;
     context = ClassLoaderUtil.tableContext(this.context.getTableConfiguration(tableId));
     Class<? extends TabletBalancer> clazz =
         ClassLoaderUtil.loadClass(context, clazzName, TabletBalancer.class);
@@ -84,22 +84,20 @@ public class TableLoadBalancer extends TabletBalancer {
 
     if (clazzName == null)
       clazzName = DefaultLoadBalancer.class.getName();
-    if (balancer != null) {
-      if (!clazzName.equals(balancer.getClass().getName())) {
-        // the balancer class for this table does not match the class specified in the configuration
-        try {
-          // attempt to construct a balancer with the specified class
-          TabletBalancer newBalancer = constructNewBalancerForTable(clazzName, tableId);
-          if (newBalancer != null) {
-            balancer = newBalancer;
-            perTableBalancers.put(tableId, balancer);
-            balancer.init(this.context);
-          }
-
-          log.info("Loaded new class {} for table {}", clazzName, tableId);
-        } catch (Exception e) {
-          log.warn("Failed to load table balancer class {} for table {}", clazzName, tableId, e);
+    if ((balancer != null) && !clazzName.equals(balancer.getClass().getName())) {
+      // the balancer class for this table does not match the class specified in the configuration
+      try {
+        // attempt to construct a balancer with the specified class
+        TabletBalancer newBalancer = constructNewBalancerForTable(clazzName, tableId);
+        if (newBalancer != null) {
+          balancer = newBalancer;
+          perTableBalancers.put(tableId, balancer);
+          balancer.init(this.context);
         }
+
+        log.info("Loaded new class {} for table {}", clazzName, tableId);
+      } catch (Exception e) {
+        log.warn("Failed to load table balancer class {} for table {}", clazzName, tableId, e);
       }
     }
     if (balancer == null) {

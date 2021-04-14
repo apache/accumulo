@@ -128,10 +128,8 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
     this.yield = Optional.of(yield);
 
     // if we require row isolation, then we cannot support yielding in the middle.
-    if (!onlySwitchAfterRow) {
-      if (iter != null) {
-        iter.enableYielding(yield);
-      }
+    if (!onlySwitchAfterRow && (iter != null)) {
+      iter.enableYielding(yield);
     }
   }
 
@@ -239,11 +237,9 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
     if (onlySwitchAfterRow)
       throw new IllegalStateException("Can only switch on row boundries");
 
-    if (switchSource()) {
-      if (key != null) {
-        iter.seek(new Range(key, true, range.getEndKey(), range.isEndKeyInclusive()),
-            columnFamilies, inclusive);
-      }
+    if (switchSource() && (key != null)) {
+      iter.seek(new Range(key, true, range.getEndKey(), range.isEndKeyInclusive()), columnFamilies,
+          inclusive);
     }
   }
 

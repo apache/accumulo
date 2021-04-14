@@ -133,7 +133,6 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   @SuppressFBWarnings(value = "SC_START_IN_CTOR",
       justification = "bad practice to start threads in constructor; probably needs rewrite")
   public LruBlockCache(final LruBlockCacheConfiguration conf) {
-    super();
     this.conf = conf;
 
     int mapInitialSize = (int) Math.ceil(1.2 * conf.getMaxSize() / conf.getBlockSize());

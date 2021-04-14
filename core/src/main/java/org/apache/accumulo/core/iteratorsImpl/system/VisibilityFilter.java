@@ -70,7 +70,7 @@ public class VisibilityFilter extends SynchronizedServerFilter {
 
     if (testVis.length() == 0 && defaultVisibility.length() == 0)
       return true;
-    else if (testVis.length() == 0)
+    if (testVis.length() == 0)
       testVis = defaultVisibility;
 
     Boolean b = cache.get(testVis);
@@ -111,8 +111,7 @@ public class VisibilityFilter extends SynchronizedServerFilter {
       Authorizations authorizations, byte[] defaultVisibility) {
     if (authorizations.isEmpty() && defaultVisibility.length == 0) {
       return new EmptyAuthsVisibilityFilter(source);
-    } else {
-      return new VisibilityFilter(source, authorizations, defaultVisibility);
     }
+    return new VisibilityFilter(source, authorizations, defaultVisibility);
   }
 }

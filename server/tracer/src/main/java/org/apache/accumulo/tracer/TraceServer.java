@@ -313,11 +313,9 @@ public class TraceServer implements Watcher, AutoCloseable {
       final BatchWriter writer = this.writer.get();
       if (writer != null) {
         writer.flush();
-      } else {
-        // We don't have a writer. If the table exists, try to make a new writer.
-        if (accumuloClient.tableOperations().exists(tableName)) {
-          resetWriter();
-        }
+      } else // We don't have a writer. If the table exists, try to make a new writer.
+      if (accumuloClient.tableOperations().exists(tableName)) {
+        resetWriter();
       }
     } catch (MutationsRejectedException | RuntimeException exception) {
       log.warn("Problem flushing traces, resetting writer. Set log level to"

@@ -337,10 +337,12 @@ public class InputConfigurator extends ConfiguratorBase {
       if (column.getFirst() == null)
         throw new IllegalArgumentException("Column family can not be null");
 
-      String col = Base64.getEncoder().encodeToString(TextUtil.getBytes(column.getFirst()));
+      StringBuilder col = new StringBuilder(
+          Base64.getEncoder().encodeToString(TextUtil.getBytes(column.getFirst())));
       if (column.getSecond() != null)
-        col += ":" + Base64.getEncoder().encodeToString(TextUtil.getBytes(column.getSecond()));
-      columnStrings.add(col);
+        col.append(":")
+            .append(Base64.getEncoder().encodeToString(TextUtil.getBytes(column.getSecond())));
+      columnStrings.add(col.toString());
     }
 
     return columnStrings.toArray(new String[0]);
@@ -715,9 +717,8 @@ public class InputConfigurator extends ConfiguratorBase {
     final int delimiterPos = tableName.indexOf('.');
     if (delimiterPos < 1) {
       return ""; // default namespace
-    } else {
-      return tableName.substring(0, delimiterPos);
     }
+    return tableName.substring(0, delimiterPos);
   }
 
   /**
@@ -761,14 +762,12 @@ public class InputConfigurator extends ConfiguratorBase {
               .entrySet()) {
         org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig =
             tableConfigEntry.getValue();
-        if (!tableConfig.shouldUseLocalIterators()) {
-          if (tableConfig.getIterators() != null) {
-            for (IteratorSetting iter : tableConfig.getIterators()) {
-              if (!client.tableOperations().testClassLoad(tableConfigEntry.getKey(),
-                  iter.getIteratorClass(), SortedKeyValueIterator.class.getName()))
-                throw new AccumuloException("Servers are unable to load " + iter.getIteratorClass()
-                    + " as a " + SortedKeyValueIterator.class.getName());
-            }
+        if (!tableConfig.shouldUseLocalIterators() && (tableConfig.getIterators() != null)) {
+          for (IteratorSetting iter : tableConfig.getIterators()) {
+            if (!client.tableOperations().testClassLoad(tableConfigEntry.getKey(),
+                iter.getIteratorClass(), SortedKeyValueIterator.class.getName()))
+              throw new AccumuloException("Servers are unable to load " + iter.getIteratorClass()
+                  + " as a " + SortedKeyValueIterator.class.getName());
           }
         }
       }

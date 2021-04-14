@@ -47,7 +47,7 @@ public enum TablePermission {
       mapping[perm.permID] = perm;
   }
 
-  private TablePermission(byte id) {
+  TablePermission(byte id) {
     this.permID = id;
   }
 

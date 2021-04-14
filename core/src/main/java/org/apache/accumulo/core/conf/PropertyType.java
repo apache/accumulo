@@ -144,7 +144,7 @@ public enum PropertyType {
   // see https://github.com/spotbugs/spotbugs/issues/740
   private transient Predicate<String> predicate;
 
-  private PropertyType(String shortname, Predicate<String> predicate, String formatDescription) {
+  PropertyType(String shortname, Predicate<String> predicate, String formatDescription) {
     this.shortname = shortname;
     this.predicate = Objects.requireNonNull(predicate);
     this.format = formatDescription;
@@ -182,11 +182,10 @@ public enum PropertyType {
     if (caseSensitive) {
       return x -> Arrays.stream(allowedSet)
           .anyMatch(y -> (x == null && y == null) || (x != null && x.equals(y)));
-    } else {
-      Function<String,String> toLower = x -> x == null ? null : x.toLowerCase();
-      return x -> Arrays.stream(allowedSet).map(toLower)
-          .anyMatch(y -> (x == null && y == null) || (x != null && toLower.apply(x).equals(y)));
     }
+    Function<String,String> toLower = x -> x == null ? null : x.toLowerCase();
+    return x -> Arrays.stream(allowedSet).map(toLower)
+        .anyMatch(y -> (x == null && y == null) || (x != null && toLower.apply(x).equals(y)));
   }
 
   private static Predicate<String> boundedUnits(final long lowerBound, final long upperBound,
@@ -212,14 +211,13 @@ public enum PropertyType {
     public boolean test(final String input) {
       requireNonNull(input);
       Matcher m = SUFFIX_REGEX.matcher(input);
-      if (m.find()) {
-        if (m.groupCount() != 0) {
-          throw new AssertionError(m.groupCount());
-        }
-        return p.test(m.group());
-      } else {
+      if (!m.find()) {
         return true;
       }
+      if (m.groupCount() != 0) {
+        throw new AssertionError(m.groupCount());
+      }
+      return p.test(m.group());
     }
   }
 
@@ -318,14 +316,13 @@ public enum PropertyType {
 
     @Override
     public boolean test(final String input) {
-      if (super.test(input)) {
-        try {
-          PortRange.parse(input);
-          return true;
-        } catch (IllegalArgumentException e) {
-          return false;
-        }
-      } else {
+      if (!super.test(input)) {
+        return false;
+      }
+      try {
+        PortRange.parse(input);
+        return true;
+      } catch (IllegalArgumentException e) {
         return false;
       }
     }

@@ -183,10 +183,8 @@ public class TransactionWatcher {
       AtomicInteger count = counts.get(tid);
       if (count == null) {
         log.error("unexpected missing count for transaction {}", tid);
-      } else {
-        if (count.decrementAndGet() == 0)
-          counts.remove(tid);
-      }
+      } else if (count.decrementAndGet() == 0)
+        counts.remove(tid);
     }
   }
 }

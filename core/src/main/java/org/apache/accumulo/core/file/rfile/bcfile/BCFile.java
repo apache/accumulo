@@ -806,11 +806,10 @@ public final class BCFile {
 
     public MetaIndexEntry(DataInput in) throws IOException {
       String fullMetaName = Utils.readString(in);
-      if (fullMetaName.startsWith(defaultPrefix)) {
-        metaName = fullMetaName.substring(defaultPrefix.length(), fullMetaName.length());
-      } else {
+      if (!fullMetaName.startsWith(defaultPrefix)) {
         throw new IOException("Corrupted Meta region Index");
       }
+      metaName = fullMetaName.substring(defaultPrefix.length());
 
       compressionAlgorithm = Compression.getCompressionAlgorithmByName(Utils.readString(in));
       region = new BlockRegion(in);

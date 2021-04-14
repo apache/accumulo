@@ -88,12 +88,11 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
         la.set(i, LongCombiner.safeAdd(la.get(i), lb.get(i)));
       }
       return la;
-    } else {
-      for (int i = 0; i < la.size(); i++) {
-        lb.set(i, LongCombiner.safeAdd(lb.get(i), la.get(i)));
-      }
-      return lb;
     }
+    for (int i = 0; i < la.size(); i++) {
+      lb.set(i, LongCombiner.safeAdd(lb.get(i), la.get(i)));
+    }
+    return lb;
   }
 
   @Override

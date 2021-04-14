@@ -174,19 +174,17 @@ public class TestBinaryRows {
 
           Iterator<Entry<Key,Value>> si = s.iterator();
 
-          if (si.hasNext()) {
-            Entry<Key,Value> e = si.next();
-            Key k = e.getKey();
-            Value v = e.getValue();
-
-            checkKeyValue(row, k, v);
-
-            if (si.hasNext()) {
-              throw new Exception("ERROR : lookup on " + row + " returned more than one result ");
-            }
-
-          } else {
+          if (!si.hasNext()) {
             throw new Exception("ERROR : lookup on " + row + " failed ");
+          }
+          Entry<Key,Value> e = si.next();
+          Key k = e.getKey();
+          Value v = e.getValue();
+
+          checkKeyValue(row, k, v);
+
+          if (si.hasNext()) {
+            throw new Exception("ERROR : lookup on " + row + " returned more than one result ");
           }
         }
       }

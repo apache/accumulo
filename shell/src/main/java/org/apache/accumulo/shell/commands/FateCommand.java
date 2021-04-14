@@ -111,9 +111,8 @@ public class FateCommand extends Command {
   private long parseTxid(String s) {
     if (FateTxId.isFormatedTid(s)) {
       return FateTxId.fromString(s);
-    } else {
-      return Long.parseLong(s, 16);
     }
+    return Long.parseLong(s, 16);
   }
 
   @Override

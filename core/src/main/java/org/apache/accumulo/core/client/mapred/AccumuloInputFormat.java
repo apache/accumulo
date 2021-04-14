@@ -62,15 +62,14 @@ public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
 
     // Override the log level from the configuration as if the RangeInputSplit has one it's the more
     // correct one to use.
-    if (split instanceof org.apache.accumulo.core.client.mapreduce.RangeInputSplit) {
-      org.apache.accumulo.core.client.mapreduce.RangeInputSplit accSplit =
-          (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
-      Level level = accSplit.getLogLevel();
-      if (level != null) {
-        log.setLevel(level);
-      }
-    } else {
+    if (!(split instanceof org.apache.accumulo.core.client.mapreduce.RangeInputSplit)) {
       throw new IllegalArgumentException("No RecordReader for " + split.getClass());
+    }
+    org.apache.accumulo.core.client.mapreduce.RangeInputSplit accSplit =
+        (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) split;
+    Level level = accSplit.getLogLevel();
+    if (level != null) {
+      log.setLevel(level);
     }
 
     RecordReaderBase<Key,Value> recordReader = new RecordReaderBase<>() {

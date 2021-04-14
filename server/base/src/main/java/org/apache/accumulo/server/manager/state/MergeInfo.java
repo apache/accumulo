@@ -88,8 +88,7 @@ public class MergeInfo implements Writable {
       return false;
     if (isDelete())
       return otherExtent.prevEndRow() != null && otherExtent.prevEndRow().equals(extent.endRow());
-    else
-      return this.extent.overlaps(otherExtent);
+    return this.extent.overlaps(otherExtent);
   }
 
   public boolean overlaps(KeyExtent otherExtent) {

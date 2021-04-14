@@ -106,7 +106,7 @@ public class TooManyDeletesSelector implements CompactionSelector {
         SummarizerConfiguration.fromTableProperties(tableConf);
 
     // check if delete summarizer is configured for table
-    if (configuredSummarizers.stream().map(sc -> sc.getClassName())
+    if (configuredSummarizers.stream().map(SummarizerConfiguration::getClassName)
         .noneMatch(cn -> cn.equals(DeletesSummarizer.class.getName()))) {
       return new Selection(List.of());
     }
@@ -129,10 +129,9 @@ public class TooManyDeletesSelector implements CompactionSelector {
         long numEntries = file.getEstimatedEntries();
         if (numEntries == 0 && !proceed_bns) {
           return new Selection(List.of());
-        } else {
-          // no summary data so use Accumulo's estimate of total entries in file
-          total += numEntries;
         }
+        // no summary data so use Accumulo's estimate of total entries in file
+        total += numEntries;
       }
     }
 

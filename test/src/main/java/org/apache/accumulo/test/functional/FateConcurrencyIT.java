@@ -199,9 +199,8 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
         if (found) {
           log.debug("Found fate {}", aTableName);
           return true;
-        } else {
-          Thread.sleep(150);
         }
+        Thread.sleep(150);
       } catch (InterruptedException ex) {
         Thread.currentThread().interrupt();
         return false;
@@ -364,7 +363,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     }
 
     // did not find appropriate fate transaction for compaction.
-    return Boolean.FALSE;
+    return false;
   }
 
   /**

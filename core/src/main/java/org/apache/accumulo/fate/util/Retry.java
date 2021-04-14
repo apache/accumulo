@@ -211,10 +211,8 @@ public class Retry {
     } else if ((now - lastRetryLog) > logIntervalNanoSec) {
       log.warn(getMessage(message), t);
       lastRetryLog = now;
-    } else {
-      if (log.isTraceEnabled()) {
-        log.trace(getMessage(message, t));
-      }
+    } else if (log.isTraceEnabled()) {
+      log.trace(getMessage(message, t));
     }
   }
 
@@ -230,10 +228,8 @@ public class Retry {
     } else if ((now - lastRetryLog) > logIntervalNanoSec) {
       log.warn(getMessage(message));
       lastRetryLog = now;
-    } else {
-      if (log.isTraceEnabled()) {
-        log.trace(getMessage(message));
-      }
+    } else if (log.isTraceEnabled()) {
+      log.trace(getMessage(message));
     }
   }
 

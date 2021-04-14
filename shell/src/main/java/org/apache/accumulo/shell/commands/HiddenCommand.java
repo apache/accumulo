@@ -42,20 +42,19 @@ public class HiddenCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
-    if (rand.nextInt(10) == 0) {
-      shellState.getTerminal().puts(InfoCmp.Capability.bell);
-      shellState.getWriter().println();
-      shellState.getWriter()
-          .println(new String(Base64.getDecoder()
-              .decode("ICAgICAgIC4tLS4KICAgICAgLyAvXCBcCiAgICAgKCAvLS1cICkKICAgICAuPl8g"
-                  + "IF88LgogICAgLyB8ICd8ICcgXAogICAvICB8Xy58Xy4gIFwKICAvIC98ICAgIC"
-                  + "AgfFwgXAogfCB8IHwgfFwvfCB8IHwgfAogfF98IHwgfCAgfCB8IHxffAogICAg"
-                  + "IC8gIF9fICBcCiAgICAvICAvICBcICBcCiAgIC8gIC8gICAgXCAgXF8KIHwvIC"
-                  + "AvICAgICAgXCB8IHwKIHxfXy8gICAgICAgIFx8X3wK"),
-              UTF_8));
-    } else {
+    if (rand.nextInt(10) != 0) {
       throw new ShellCommandException(ErrorCode.UNRECOGNIZED_COMMAND, getName());
     }
+    shellState.getTerminal().puts(InfoCmp.Capability.bell);
+    shellState.getWriter().println();
+    shellState.getWriter()
+        .println(new String(Base64.getDecoder()
+            .decode("ICAgICAgIC4tLS4KICAgICAgLyAvXCBcCiAgICAgKCAvLS1cICkKICAgICAuPl8g"
+                + "IF88LgogICAgLyB8ICd8ICcgXAogICAvICB8Xy58Xy4gIFwKICAvIC98ICAgIC"
+                + "AgfFwgXAogfCB8IHwgfFwvfCB8IHwgfAogfF98IHwgfCAgfCB8IHxffAogICAg"
+                + "IC8gIF9fICBcCiAgICAvICAvICBcICBcCiAgIC8gIC8gICAgXCAgXF8KIHwvIC"
+                + "AvICAgICAgXCB8IHwKIHxfXy8gICAgICAgIFx8X3wK"),
+            UTF_8));
     return 0;
   }
 

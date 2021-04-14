@@ -124,8 +124,7 @@ public class RootTabletLocator extends TabletLocator {
 
     if (lockChecker.isLockHeld(server, loc.getSession()))
       return new TabletLocation(RootTable.EXTENT, server, loc.getSession());
-    else
-      return null;
+    return null;
   }
 
   @Override

@@ -108,9 +108,8 @@ class LoadFiles extends ManagerRepo {
   public Repo<Manager> call(final long tid, final Manager manager) {
     if (bulkInfo.tableState == TableState.ONLINE) {
       return new CompleteBulkImport(bulkInfo);
-    } else {
-      return new CleanUpBulkImport(bulkInfo);
     }
+    return new CleanUpBulkImport(bulkInfo);
   }
 
   private abstract static class Loader {
@@ -208,13 +207,12 @@ class LoadFiles extends ManagerRepo {
         // ideally there should only be one tablet location to send all the files
 
         TabletMetadata.Location location = tablet.getLocation();
-        HostAndPort server = null;
+        HostAndPort server;
         if (location == null) {
           locationLess++;
           continue;
-        } else {
-          server = location.getHostAndPort();
         }
+        server = location.getHostAndPort();
 
         Set<TabletFile> loadedFiles = tablet.getLoaded().keySet();
 

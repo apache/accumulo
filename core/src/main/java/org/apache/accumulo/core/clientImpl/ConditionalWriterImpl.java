@@ -287,11 +287,12 @@ class ConditionalWriterImpl implements ConditionalWriter {
     try {
       locator.binMutations(context, mutations, binnedMutations, failures);
 
-      if (failures.size() == mutations.size())
+      if (failures.size() == mutations.size()) {
         if (!Tables.exists(context, tableId))
           throw new TableDeletedException(tableId.canonical());
-        else if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
+        if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
           throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
+      }
 
     } catch (Exception e) {
       mutations.forEach(qcm -> qcm.queueResult(new Result(e, qcm, null)));
@@ -351,17 +352,16 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
     if (mutations.size() == 1) {
       return mutations.get(0);
-    } else {
-      // merge multiple request to a single tablet server
-      TabletServerMutations<QCMutation> tsm = mutations.get(0);
-
-      for (int i = 1; i < mutations.size(); i++) {
-        mutations.get(i).getMutations().forEach((keyExtent, mutationList) -> tsm.getMutations()
-            .computeIfAbsent(keyExtent, k -> new ArrayList<>()).addAll(mutationList));
-      }
-
-      return tsm;
     }
+    // merge multiple request to a single tablet server
+    TabletServerMutations<QCMutation> tsm = mutations.get(0);
+
+    for (int i = 1; i < mutations.size(); i++) {
+      mutations.get(i).getMutations().forEach((keyExtent, mutationList) -> tsm.getMutations()
+          .computeIfAbsent(keyExtent, k -> new ArrayList<>()).addAll(mutationList));
+    }
+
+    return tsm;
   }
 
   ConditionalWriterImpl(ClientContext context, TableId tableId, ConditionalWriterConfig config) {
@@ -481,9 +481,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
         if (sid.isActive()) {
           sid.reserved = true;
           return sid;
-        } else {
-          cachedSessionIDs.remove(location);
         }
+        cachedSessionIDs.remove(location);
       }
     }
 

@@ -41,8 +41,6 @@ import org.apache.hadoop.io.Text;
 public class ColumnAgeOffFilter extends Filter {
   public static class TTLSet extends ColumnToClassMapping<Long> {
     public TTLSet(Map<String,String> objectStrings) {
-      super();
-
       for (Entry<String,String> entry : objectStrings.entrySet()) {
         String column = entry.getKey();
         String ttl = entry.getValue().trim();

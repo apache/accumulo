@@ -63,45 +63,44 @@ public class EmbeddedWebServer {
   private static AbstractConnectionFactory[] getConnectionFactories(AccumuloConfiguration conf,
       boolean secure) {
     HttpConnectionFactory httpFactory = new HttpConnectionFactory();
-    if (secure) {
-      LOG.debug("Configuring Jetty to use TLS");
-      final SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
-      // If the key password is the same as the keystore password, we don't
-      // have to explicitly set it. Thus, if the user doesn't provide a key
-      // password, don't set anything.
-      final String keyPass = conf.get(Property.MONITOR_SSL_KEYPASS);
-      if (!Property.MONITOR_SSL_KEYPASS.getDefaultValue().equals(keyPass)) {
-        sslContextFactory.setKeyManagerPassword(keyPass);
-      }
-      sslContextFactory.setKeyStorePath(conf.get(Property.MONITOR_SSL_KEYSTORE));
-      sslContextFactory.setKeyStorePassword(conf.get(Property.MONITOR_SSL_KEYSTOREPASS));
-      sslContextFactory.setKeyStoreType(conf.get(Property.MONITOR_SSL_KEYSTORETYPE));
-      sslContextFactory.setTrustStorePath(conf.get(Property.MONITOR_SSL_TRUSTSTORE));
-      sslContextFactory.setTrustStorePassword(conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS));
-      sslContextFactory.setTrustStoreType(conf.get(Property.MONITOR_SSL_TRUSTSTORETYPE));
-
-      final String includedCiphers = conf.get(Property.MONITOR_SSL_INCLUDE_CIPHERS);
-      if (!Property.MONITOR_SSL_INCLUDE_CIPHERS.getDefaultValue().equals(includedCiphers)) {
-        sslContextFactory.setIncludeCipherSuites(includedCiphers.split(","));
-      }
-
-      final String excludedCiphers = conf.get(Property.MONITOR_SSL_EXCLUDE_CIPHERS);
-      if (!Property.MONITOR_SSL_EXCLUDE_CIPHERS.getDefaultValue().equals(excludedCiphers)) {
-        sslContextFactory.setExcludeCipherSuites(excludedCiphers.split(","));
-      }
-
-      final String includeProtocols = conf.get(Property.MONITOR_SSL_INCLUDE_PROTOCOLS);
-      if (includeProtocols != null && !includeProtocols.isEmpty()) {
-        sslContextFactory.setIncludeProtocols(includeProtocols.split(","));
-      }
-
-      SslConnectionFactory sslFactory =
-          new SslConnectionFactory(sslContextFactory, httpFactory.getProtocol());
-      return new AbstractConnectionFactory[] {sslFactory, httpFactory};
-    } else {
+    if (!secure) {
       LOG.debug("Not configuring Jetty to use TLS");
       return new AbstractConnectionFactory[] {httpFactory};
     }
+    LOG.debug("Configuring Jetty to use TLS");
+    final SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
+    // If the key password is the same as the keystore password, we don't
+    // have to explicitly set it. Thus, if the user doesn't provide a key
+    // password, don't set anything.
+    final String keyPass = conf.get(Property.MONITOR_SSL_KEYPASS);
+    if (!Property.MONITOR_SSL_KEYPASS.getDefaultValue().equals(keyPass)) {
+      sslContextFactory.setKeyManagerPassword(keyPass);
+    }
+    sslContextFactory.setKeyStorePath(conf.get(Property.MONITOR_SSL_KEYSTORE));
+    sslContextFactory.setKeyStorePassword(conf.get(Property.MONITOR_SSL_KEYSTOREPASS));
+    sslContextFactory.setKeyStoreType(conf.get(Property.MONITOR_SSL_KEYSTORETYPE));
+    sslContextFactory.setTrustStorePath(conf.get(Property.MONITOR_SSL_TRUSTSTORE));
+    sslContextFactory.setTrustStorePassword(conf.get(Property.MONITOR_SSL_TRUSTSTOREPASS));
+    sslContextFactory.setTrustStoreType(conf.get(Property.MONITOR_SSL_TRUSTSTORETYPE));
+
+    final String includedCiphers = conf.get(Property.MONITOR_SSL_INCLUDE_CIPHERS);
+    if (!Property.MONITOR_SSL_INCLUDE_CIPHERS.getDefaultValue().equals(includedCiphers)) {
+      sslContextFactory.setIncludeCipherSuites(includedCiphers.split(","));
+    }
+
+    final String excludedCiphers = conf.get(Property.MONITOR_SSL_EXCLUDE_CIPHERS);
+    if (!Property.MONITOR_SSL_EXCLUDE_CIPHERS.getDefaultValue().equals(excludedCiphers)) {
+      sslContextFactory.setExcludeCipherSuites(excludedCiphers.split(","));
+    }
+
+    final String includeProtocols = conf.get(Property.MONITOR_SSL_INCLUDE_PROTOCOLS);
+    if (includeProtocols != null && !includeProtocols.isEmpty()) {
+      sslContextFactory.setIncludeProtocols(includeProtocols.split(","));
+    }
+
+    SslConnectionFactory sslFactory =
+        new SslConnectionFactory(sslContextFactory, httpFactory.getProtocol());
+    return new AbstractConnectionFactory[] {sslFactory, httpFactory};
   }
 
   public void addServlet(ServletHolder restServlet, String where) {

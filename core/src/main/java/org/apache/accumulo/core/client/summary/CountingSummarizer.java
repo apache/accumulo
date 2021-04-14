@@ -238,13 +238,11 @@ public abstract class CountingSummarizer<K> implements Summarizer {
           if (counters.size() >= maxCounters) {
             // no need to store this counter in the map and get() it... just use instance variable
             tooMany++;
-          } else {
+          } else if (encoder.apply(counter).length() >= maxCounterKeyLen) {
             // we have never seen this key before, check if its too long
-            if (encoder.apply(counter).length() >= maxCounterKeyLen) {
-              tooLong++;
-            } else {
-              counters.put(copier.apply(counter), new MutableLong(1));
-            }
+            tooLong++;
+          } else {
+            counters.put(copier.apply(counter), new MutableLong(1));
           }
         } else {
           // using mutable long allows calling put() to be avoided

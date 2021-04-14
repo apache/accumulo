@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.Key;
@@ -297,13 +298,7 @@ public class IteratorSetting implements Writable {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((iteratorClass == null) ? 0 : iteratorClass.hashCode());
-    result = prime * result + ((name == null) ? 0 : name.hashCode());
-    result = prime * result + priority;
-    result = prime * result + ((properties == null) ? 0 : properties.hashCode());
-    return result;
+    return Objects.hash(iteratorClass, name, priority, properties);
   }
 
   @Override
@@ -315,23 +310,18 @@ public class IteratorSetting implements Writable {
     if (!(obj instanceof IteratorSetting))
       return false;
     IteratorSetting other = (IteratorSetting) obj;
-    if (iteratorClass == null) {
-      if (other.iteratorClass != null)
-        return false;
-    } else if (!iteratorClass.equals(other.iteratorClass))
+    if (!Objects.equals(iteratorClass, other.iteratorClass)) {
       return false;
-    if (name == null) {
-      if (other.name != null)
-        return false;
-    } else if (!name.equals(other.name))
+    }
+    if (!Objects.equals(name, other.name)) {
       return false;
+    }
     if (priority != other.priority)
       return false;
     if (properties == null) {
       return other.properties == null;
-    } else {
-      return properties.equals(other.properties);
     }
+    return properties.equals(other.properties);
   }
 
   @Override

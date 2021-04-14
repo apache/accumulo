@@ -587,11 +587,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
         // should have these
         if (!root_client.securityOperations().hasSystemPermission(user, p))
           throw new IllegalStateException(user + " SHOULD have system permission " + p);
-      } else {
-        // should not have these
-        if (root_client.securityOperations().hasSystemPermission(user, p))
-          throw new IllegalStateException(user + " SHOULD NOT have system permission " + p);
-      }
+      } else // should not have these
+      if (root_client.securityOperations().hasSystemPermission(user, p))
+        throw new IllegalStateException(user + " SHOULD NOT have system permission " + p);
     }
   }
 
@@ -832,12 +830,10 @@ public class PermissionsIT extends AccumuloClusterHarness {
         if (!root_client.securityOperations().hasTablePermission(user, table, p))
           throw new IllegalStateException(
               user + " SHOULD have table permission " + p + " for table " + table);
-      } else {
-        // should not have these
-        if (root_client.securityOperations().hasTablePermission(user, table, p))
-          throw new IllegalStateException(
-              user + " SHOULD NOT have table permission " + p + " for table " + table);
-      }
+      } else // should not have these
+      if (root_client.securityOperations().hasTablePermission(user, table, p))
+        throw new IllegalStateException(
+            user + " SHOULD NOT have table permission " + p + " for table " + table);
     }
   }
 

@@ -50,7 +50,8 @@ class DispatchingFileFactory extends FileOperations {
     if (extension.equals(Constants.MAPFILE_EXTENSION)
         || extension.equals(Constants.MAPFILE_EXTENSION + "_tmp")) {
       return new MapFileOperations();
-    } else if (extension.equals(RFile.EXTENSION) || extension.equals(RFile.EXTENSION + "_tmp")) {
+    }
+    if (extension.equals(RFile.EXTENSION) || extension.equals(RFile.EXTENSION + "_tmp")) {
       return new RFileOperations();
     } else {
       throw new IllegalArgumentException("File type " + extension + " not supported");
@@ -85,9 +86,8 @@ class DispatchingFileFactory extends FileOperations {
     FileSKVIterator iter = findFileFactory(options).openReader(options);
     if (options.getTableConfiguration().getBoolean(Property.TABLE_BLOOM_ENABLED)) {
       return new BloomFilterLayer.Reader(iter, options.getTableConfiguration());
-    } else {
-      return iter;
     }
+    return iter;
   }
 
   @Override

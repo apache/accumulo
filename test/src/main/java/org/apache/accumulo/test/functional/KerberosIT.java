@@ -63,12 +63,10 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloITBase;
-import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.MiniClusterHarness;
 import org.apache.accumulo.harness.TestingKdc;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
@@ -132,17 +130,11 @@ public class KerberosIT extends AccumuloITBase {
   @Before
   public void startMac() throws Exception {
     MiniClusterHarness harness = new MiniClusterHarness();
-    mac = harness.create(this, new PasswordToken("unused"), kdc,
-        new MiniClusterConfigurationCallback() {
-
-          @Override
-          public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-            Map<String,String> site = cfg.getSiteConfig();
-            site.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
-            cfg.setSiteConfig(site);
-          }
-
-        });
+    mac = harness.create(this, new PasswordToken("unused"), kdc, (cfg, coreSite) -> {
+      Map<String,String> site = cfg.getSiteConfig();
+      site.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
+      cfg.setSiteConfig(site);
+    });
 
     mac.getConfig().setNumTservers(1);
     mac.start();
@@ -601,9 +593,8 @@ public class KerberosIT extends AccumuloITBase {
       Throwable cause = e.getCause();
       if (cause != null) {
         throw cause;
-      } else {
-        throw e;
       }
+      throw e;
     }
   }
 

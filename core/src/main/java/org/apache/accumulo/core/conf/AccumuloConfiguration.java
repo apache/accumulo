@@ -97,9 +97,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   public Property resolve(Property property, Property deprecatedProperty) {
     if (isPropertySet(property, true) || !isPropertySet(deprecatedProperty, true)) {
       return property;
-    } else {
-      return deprecatedProperty;
     }
+    return deprecatedProperty;
   }
 
   /**
@@ -221,7 +220,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     String memString = get(property);
     if (property.getType() == PropertyType.MEMORY) {
       return ConfigurationTypeHelper.getMemoryAsBytes(memString);
-    } else if (property.getType() == PropertyType.BYTES) {
+    }
+    if (property.getType() == PropertyType.BYTES) {
       return ConfigurationTypeHelper.getFixedMemoryAsBytes(memString);
     } else {
       throw new IllegalArgumentException(property.getKey() + " is not of BYTES or MEMORY type");
@@ -302,10 +302,9 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
         int port = Integer.parseInt(portString);
         if (port == 0 || PortRange.VALID_RANGE.contains(port)) {
           return IntStream.of(port);
-        } else {
-          log.error("Invalid port number {}; Using default {}", port, property.getDefaultValue());
-          return IntStream.of(Integer.parseInt(property.getDefaultValue()));
         }
+        log.error("Invalid port number {}; Using default {}", port, property.getDefaultValue());
+        return IntStream.of(Integer.parseInt(property.getDefaultValue()));
       } catch (NumberFormatException e1) {
         throw new IllegalArgumentException("Invalid port syntax. Must be a single positive "
             + "integers or a range (M-N) of positive integers");
@@ -433,7 +432,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
             prop.getKey());
       }
       return Integer.valueOf(get(deprecatedProp));
-    } else if (isPropertySet(prop, true) && isPropertySet(deprecatedProp, true) && !depPropWarned) {
+    }
+    if (isPropertySet(prop, true) && isPropertySet(deprecatedProp, true) && !depPropWarned) {
       depPropWarned = true;
       log.warn("Deprecated property {} ignored because {} is set", deprecatedProp.getKey(),
           prop.getKey());

@@ -38,7 +38,7 @@ public enum ThriftServerType {
 
   private final String name;
 
-  private ThriftServerType(String name) {
+  ThriftServerType(String name) {
     this.name = name;
   }
 

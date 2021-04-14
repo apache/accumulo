@@ -87,8 +87,7 @@ public class TableDiskUsage {
     Integer[] tables = tableFiles.get(file);
     if (tables == null) {
       tables = new Integer[internalIds.size()];
-      for (int i = 0; i < tables.length; i++)
-        tables[i] = 0;
+      Arrays.fill(tables, 0);
       tableFiles.put(file, tables);
     }
 

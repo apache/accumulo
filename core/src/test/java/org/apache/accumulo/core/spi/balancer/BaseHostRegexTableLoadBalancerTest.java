@@ -206,7 +206,8 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
         && (host.equals("192.168.0.1") || host.equals("192.168.0.2") || host.equals("192.168.0.3")
             || host.equals("192.168.0.4") || host.equals("192.168.0.5"))) {
       return true;
-    } else if (tid.equals("2")
+    }
+    if (tid.equals("2")
         && (host.equals("192.168.0.6") || host.equals("192.168.0.7") || host.equals("192.168.0.8")
             || host.equals("192.168.0.9") || host.equals("192.168.0.10"))) {
       return true;
@@ -220,7 +221,8 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
   protected String idToTableName(TableId id) {
     if (id.equals(FOO.getId())) {
       return FOO.getTableName();
-    } else if (id.equals(BAR.getId())) {
+    }
+    if (id.equals(BAR.getId())) {
       return BAR.getTableName();
     } else if (id.equals(BAZ.getId())) {
       return BAZ.getTableName();
@@ -238,9 +240,8 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
   protected String getNameFromIp(String hostIp) throws UnknownHostException {
     if (servers.containsKey(hostIp)) {
       return servers.get(hostIp);
-    } else {
-      throw new UnknownHostException();
     }
+    throw new UnknownHostException();
   }
 
   protected SortedMap<TabletServerId,TServerStatus> createCurrent(int numTservers) {

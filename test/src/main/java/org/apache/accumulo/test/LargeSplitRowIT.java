@@ -23,6 +23,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -91,9 +92,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       SortedSet<Text> partitionKeys = new TreeSet<>();
       byte[] data = new byte[(int) (ConfigurationTypeHelper
           .getFixedMemoryAsBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
-      for (int i = 0; i < data.length; i++) {
-        data[i] = 'm';
-      }
+      Arrays.fill(data, (byte) 'm');
       partitionKeys.add(new Text(data));
 
       // try to add the split point that is too large, if the split point is created the test fails.

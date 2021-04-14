@@ -100,12 +100,10 @@ public class CreateToken implements KeywordExecutable {
         String input;
         if (pass != null && tp.getKey().equals("password")) {
           input = pass;
+        } else if (tp.getMask()) {
+          input = getConsoleReader().readLine(tp.getDescription() + ": ", '*');
         } else {
-          if (tp.getMask()) {
-            input = getConsoleReader().readLine(tp.getDescription() + ": ", '*');
-          } else {
-            input = getConsoleReader().readLine(tp.getDescription() + ": ");
-          }
+          input = getConsoleReader().readLine(tp.getDescription() + ": ");
         }
         props.put(tp.getKey(), input);
         token.init(props);

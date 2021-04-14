@@ -110,7 +110,8 @@ public class Scanner {
       if (results.getResults() == null) {
         range = null;
         return new ScanBatch(new ArrayList<>(), false);
-      } else if (results.getContinueKey() == null) {
+      }
+      if (results.getContinueKey() == null) {
         return new ScanBatch(results.getResults(), false);
       } else {
         range = new Range(results.getContinueKey(), !results.isSkipContinueKey(), range.getEndKey(),
@@ -122,8 +123,7 @@ public class Scanner {
       sawException = true;
       if (tablet.isClosed())
         throw new TabletClosedException(iie);
-      else
-        throw iie;
+      throw iie;
     } catch (IOException ioe) {
       if (ShutdownUtil.isShutdownInProgress()) {
         log.debug("IOException while shutdown in progress ", ioe);

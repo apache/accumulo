@@ -107,22 +107,21 @@ public abstract class RowFilter extends WrappingIterator {
       if (acceptRow(decisionIterator)) {
         currentRow = row;
         break;
-      } else {
-        currentRow = null;
-        int count = 0;
-        while (source.hasTop() && count < 10 && source.getTopKey().getRow().equals(row)) {
-          count++;
-          source.next();
-        }
+      }
+      currentRow = null;
+      int count = 0;
+      while (source.hasTop() && count < 10 && source.getTopKey().getRow().equals(row)) {
+        count++;
+        source.next();
+      }
 
-        if (source.hasTop() && source.getTopKey().getRow().equals(row)) {
-          Range nextRow = new Range(row, false, null, false);
-          nextRow = range.clip(nextRow, true);
-          if (nextRow == null)
-            hasTop = false;
-          else
-            source.seek(nextRow, columnFamilies, inclusive);
-        }
+      if (source.hasTop() && source.getTopKey().getRow().equals(row)) {
+        Range nextRow = new Range(row, false, null, false);
+        nextRow = range.clip(nextRow, true);
+        if (nextRow == null)
+          hasTop = false;
+        else
+          source.seek(nextRow, columnFamilies, inclusive);
       }
     }
   }

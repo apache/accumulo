@@ -50,8 +50,7 @@ public class RelativeKeyTest {
     assertEquals(-1, commonPrefixHelper("aa", "aa"));
     assertEquals(-1, commonPrefixHelper("aaa", "aaa"));
     assertEquals(-1, commonPrefixHelper("abab", "abab"));
-    assertEquals(-1,
-        commonPrefixHelper(new String("aaa"), new ArrayByteSequence("aaa").toString()));
+    assertEquals(-1, commonPrefixHelper("aaa", new ArrayByteSequence("aaa").toString()));
     assertEquals(-1,
         commonPrefixHelper("abababababab".substring(3, 6), "ccababababcc".substring(3, 6)));
 

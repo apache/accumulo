@@ -49,7 +49,6 @@ import org.apache.accumulo.harness.TestingKdc;
 import org.apache.accumulo.manager.replication.SequentialWorkAssigner;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.server.replication.ReplicaSystemFactory;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
@@ -114,24 +113,21 @@ public class KerberosReplicationIT extends AccumuloITBase {
   }
 
   private MiniClusterConfigurationCallback getConfigCallback(final String name) {
-    return new MiniClusterConfigurationCallback() {
-      @Override
-      public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-        cfg.setNumTservers(1);
-        cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
-        cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
-        cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "2M");
-        cfg.setProperty(Property.GC_CYCLE_START, "1s");
-        cfg.setProperty(Property.GC_CYCLE_DELAY, "5s");
-        cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
-        cfg.setProperty(Property.MANAGER_REPLICATION_SCAN_INTERVAL, "1s");
-        cfg.setProperty(Property.REPLICATION_NAME, name);
-        cfg.setProperty(Property.REPLICATION_MAX_UNIT_SIZE, "8M");
-        cfg.setProperty(Property.REPLICATION_WORK_ASSIGNER, SequentialWorkAssigner.class.getName());
-        cfg.setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX, "1M");
-        coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-        coreSite.set("fs.defaultFS", "file:///");
-      }
+    return (cfg, coreSite) -> {
+      cfg.setNumTservers(1);
+      cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
+      cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
+      cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "2M");
+      cfg.setProperty(Property.GC_CYCLE_START, "1s");
+      cfg.setProperty(Property.GC_CYCLE_DELAY, "5s");
+      cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
+      cfg.setProperty(Property.MANAGER_REPLICATION_SCAN_INTERVAL, "1s");
+      cfg.setProperty(Property.REPLICATION_NAME, name);
+      cfg.setProperty(Property.REPLICATION_MAX_UNIT_SIZE, "8M");
+      cfg.setProperty(Property.REPLICATION_WORK_ASSIGNER, SequentialWorkAssigner.class.getName());
+      cfg.setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX, "1M");
+      coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
+      coreSite.set("fs.defaultFS", "file:///");
     };
   }
 

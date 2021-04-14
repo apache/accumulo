@@ -124,18 +124,17 @@ public class ShellOptionsJC {
     if (username == null) {
       username = getClientProperties().getProperty(ClientProperty.AUTH_PRINCIPAL.getKey());
       if (username == null || username.isEmpty()) {
-        if (ClientProperty.SASL_ENABLED.getBoolean(getClientProperties())) {
-          if (!UserGroupInformation.isSecurityEnabled()) {
-            throw new IllegalArgumentException(
-                "Kerberos security is not" + " enabled. Run with --sasl or set 'sasl.enabled' in"
-                    + " accumulo-client.properties");
-          }
-          UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
-          username = ugi.getUserName();
-        } else {
+        if (!ClientProperty.SASL_ENABLED.getBoolean(getClientProperties())) {
           throw new IllegalArgumentException("Username is not set. Run with '-u"
               + " myuser' or set 'auth.principal' in accumulo-client.properties");
         }
+        if (!UserGroupInformation.isSecurityEnabled()) {
+          throw new IllegalArgumentException(
+              "Kerberos security is not" + " enabled. Run with --sasl or set 'sasl.enabled' in"
+                  + " accumulo-client.properties");
+        }
+        UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
+        username = ugi.getUserName();
       }
     }
     return username;

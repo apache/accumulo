@@ -70,16 +70,12 @@ public class MergeTest {
         private Size skip() {
           while (impl.hasNext()) {
             Size candidate = impl.next();
-            if (start != null) {
-              if (candidate.extent.endRow() != null
-                  && candidate.extent.endRow().compareTo(start) < 0)
-                continue;
-            }
-            if (end != null) {
-              if (candidate.extent.prevEndRow() != null
-                  && candidate.extent.prevEndRow().compareTo(end) >= 0)
-                continue;
-            }
+            if ((start != null) && (candidate.extent.endRow() != null
+                && candidate.extent.endRow().compareTo(start) < 0))
+              continue;
+            if ((end != null) && (candidate.extent.prevEndRow() != null
+                && candidate.extent.prevEndRow().compareTo(end) >= 0))
+              continue;
             return candidate;
           }
           return null;

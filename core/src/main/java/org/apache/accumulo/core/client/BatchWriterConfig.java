@@ -29,6 +29,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
@@ -67,8 +68,7 @@ public class BatchWriterConfig implements Writable {
         ConfigurationTypeHelper.getTimeInMillis(BATCH_WRITER_TIMEOUT_MAX.getDefaultValue());
     if (defVal == 0L)
       return Long.MAX_VALUE;
-    else
-      return defVal;
+    return defVal;
   }
 
   /**
@@ -291,44 +291,20 @@ public class BatchWriterConfig implements Writable {
     if (o instanceof BatchWriterConfig) {
       BatchWriterConfig other = (BatchWriterConfig) o;
 
-      if (maxMemory != null) {
-        if (!maxMemory.equals(other.maxMemory)) {
-          return false;
-        }
-      } else {
-        if (other.maxMemory != null) {
-          return false;
-        }
+      if (!Objects.equals(maxMemory, other.maxMemory)) {
+        return false;
       }
 
-      if (maxLatency != null) {
-        if (!maxLatency.equals(other.maxLatency)) {
-          return false;
-        }
-      } else {
-        if (other.maxLatency != null) {
-          return false;
-        }
+      if (!Objects.equals(maxLatency, other.maxLatency)) {
+        return false;
       }
 
-      if (maxWriteThreads != null) {
-        if (!maxWriteThreads.equals(other.maxWriteThreads)) {
-          return false;
-        }
-      } else {
-        if (other.maxWriteThreads != null) {
-          return false;
-        }
+      if (!Objects.equals(maxWriteThreads, other.maxWriteThreads)) {
+        return false;
       }
 
-      if (timeout != null) {
-        if (!timeout.equals(other.timeout)) {
-          return false;
-        }
-      } else {
-        if (other.timeout != null) {
-          return false;
-        }
+      if (!Objects.equals(timeout, other.timeout)) {
+        return false;
       }
       return durability == other.durability;
     }

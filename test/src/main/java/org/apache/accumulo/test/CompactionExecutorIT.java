@@ -117,24 +117,23 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
             .build();
       }
 
-      if (kindsToProcess.contains(params.getKind())) {
-        var planBuilder = params.createPlanBuilder();
-
-        // Group files by first char, like F for flush files or C for compaction produced files.
-        // This prevents F and C files from compacting together, which makes it easy to reason about
-        // the number of expected files produced by compactions from known number of F files.
-        params.getCandidates().stream().collect(Collectors.groupingBy(TestPlanner::getFirstChar))
-            .values().forEach(files -> {
-              for (int i = filesPerCompaction; i <= files.size(); i += filesPerCompaction) {
-                planBuilder.addJob(1, executorIds.get(rand.nextInt(executorIds.size())),
-                    files.subList(i - filesPerCompaction, i));
-              }
-            });
-
-        return planBuilder.build();
-      } else {
+      if (!kindsToProcess.contains(params.getKind())) {
         return params.createPlanBuilder().build();
       }
+      var planBuilder = params.createPlanBuilder();
+
+      // Group files by first char, like F for flush files or C for compaction produced files.
+      // This prevents F and C files from compacting together, which makes it easy to reason about
+      // the number of expected files produced by compactions from known number of F files.
+      params.getCandidates().stream().collect(Collectors.groupingBy(TestPlanner::getFirstChar))
+          .values().forEach(files -> {
+            for (int i = filesPerCompaction; i <= files.size(); i += filesPerCompaction) {
+              planBuilder.addJob(1, executorIds.get(rand.nextInt(executorIds.size())),
+                  files.subList(i - filesPerCompaction, i));
+            }
+          });
+
+      return planBuilder.build();
     }
   }
 

@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 
 import javax.security.auth.callback.CallbackHandler;
@@ -56,7 +57,7 @@ public class SaslConnectionParams {
 
     private final String quality;
 
-    private QualityOfProtection(String quality) {
+    QualityOfProtection(String quality) {
       this.quality = quality;
     }
 
@@ -67,7 +68,8 @@ public class SaslConnectionParams {
     public static QualityOfProtection get(String name) {
       if (AUTH.quality.equals(name)) {
         return AUTH;
-      } else if (AUTH_INT.quality.equals(name)) {
+      }
+      if (AUTH_INT.quality.equals(name)) {
         return AUTH_INT;
       } else if (AUTH_CONF.quality.equals(name)) {
         return AUTH_CONF;
@@ -91,7 +93,7 @@ public class SaslConnectionParams {
 
     private final String mechanismName;
 
-    private SaslMechanism(String mechanismName) {
+    SaslMechanism(String mechanismName) {
       this.mechanismName = mechanismName;
     }
 
@@ -102,7 +104,8 @@ public class SaslConnectionParams {
     public static SaslMechanism get(String mechanismName) {
       if (GSSAPI.mechanismName.equals(mechanismName)) {
         return GSSAPI;
-      } else if (DIGEST_MD5.mechanismName.equals(mechanismName)) {
+      }
+      if (DIGEST_MD5.mechanismName.equals(mechanismName)) {
         return DIGEST_MD5;
       }
 
@@ -260,11 +263,7 @@ public class SaslConnectionParams {
       if (!mechanism.equals(other.mechanism)) {
         return false;
       }
-      if (callbackHandler == null) {
-        if (other.callbackHandler != null) {
-          return false;
-        }
-      } else if (!callbackHandler.equals(other.callbackHandler)) {
+      if (!Objects.equals(callbackHandler, other.callbackHandler)) {
         return false;
       }
 

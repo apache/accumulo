@@ -679,12 +679,13 @@ public class TabletServerBatchWriter implements AutoCloseable {
             if (!tableFailures.isEmpty()) {
               failedMutations.add(tableId, tableFailures);
 
-              if (tableFailures.size() == tableMutations.size())
+              if (tableFailures.size() == tableMutations.size()) {
                 if (!Tables.exists(context, entry.getKey()))
                   throw new TableDeletedException(entry.getKey().canonical());
-                else if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
+                if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
                   throw new TableOfflineException(
                       Tables.getTableOfflineMsg(context, entry.getKey()));
+              }
             }
           }
 
@@ -764,7 +765,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       if (count > 0 && log.isTraceEnabled())
         log.trace(String.format("Started sending %,d mutations to %,d tablet servers", count,
-            binnedMutations.keySet().size()));
+            binnedMutations.size()));
 
       // randomize order of servers
       ArrayList<String> servers = new ArrayList<>(binnedMutations.keySet());
@@ -802,8 +803,6 @@ public class TabletServerBatchWriter implements AutoCloseable {
             send(tsmuts);
             tsmuts = getMutationsToSend(location);
           }
-
-          return;
         } catch (Exception t) {
           updateUnknownErrors(
               "Failed to send tablet server " + location + " its batch : " + t.getMessage(), t);

@@ -187,9 +187,8 @@ public class KeyExtent implements Comparable<KeyExtent> {
   public static KeyExtent fromTabletId(TabletId tabletId) {
     if (tabletId instanceof TabletIdImpl) {
       return ((TabletIdImpl) tabletId).toKeyExtent();
-    } else {
-      return new KeyExtent(tabletId.getTable(), tabletId.getEndRow(), tabletId.getPrevEndRow());
     }
+    return new KeyExtent(tabletId.getTable(), tabletId.getEndRow(), tabletId.getPrevEndRow());
   }
 
   /**

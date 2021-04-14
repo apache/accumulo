@@ -42,9 +42,9 @@ public class PasswdCommand extends Command {
     final String currentUser = shellState.getAccumuloClient().whoami();
     final String user = cl.getOptionValue(userOpt.getOpt(), currentUser);
 
-    String password = null;
-    String passwordConfirm = null;
-    String oldPassword = null;
+    String password;
+    String passwordConfirm;
+    String oldPassword;
 
     oldPassword =
         shellState.readMaskedLine("Enter current password for '" + currentUser + "': ", '*');

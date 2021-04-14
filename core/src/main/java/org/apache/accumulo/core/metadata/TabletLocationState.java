@@ -115,7 +115,7 @@ public class TabletLocationState {
     if (hasFuture())
       return liveServers.contains(future) ? TabletState.ASSIGNED
           : TabletState.ASSIGNED_TO_DEAD_SERVER;
-    else if (hasCurrent())
+    if (hasCurrent())
       return liveServers.contains(current) ? TabletState.HOSTED
           : TabletState.ASSIGNED_TO_DEAD_SERVER;
     else if (hasSuspend())

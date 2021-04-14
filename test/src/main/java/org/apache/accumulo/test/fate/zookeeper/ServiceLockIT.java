@@ -547,7 +547,8 @@ public class ServiceLockIT {
   private int parseLockWorkerName(String child) {
     if (child.startsWith("zlock#00000000-0000-0000-0000-000000000000#")) {
       return 0;
-    } else if (child.startsWith("zlock#00000000-0000-0000-0000-111111111111#")) {
+    }
+    if (child.startsWith("zlock#00000000-0000-0000-0000-111111111111#")) {
       return 1;
     } else if (child.startsWith("zlock#00000000-0000-0000-0000-222222222222#")) {
       return 2;

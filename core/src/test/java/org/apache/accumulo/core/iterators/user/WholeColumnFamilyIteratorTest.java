@@ -157,8 +157,7 @@ public class WholeColumnFamilyIteratorTest {
     pkv(map3, "row3", "cf1", "cq1", "cv1", 5, "foo");
     pkv(map3, "row3", "cf1", "cq2", "cv1", 6, "bar");
 
-    SortedMap<Key,Value> map = new TreeMap<>();
-    map.putAll(map1);
+    SortedMap<Key,Value> map = new TreeMap<>(map1);
     map.putAll(map2);
     map.putAll(map3);
 
@@ -196,8 +195,7 @@ public class WholeColumnFamilyIteratorTest {
     SortedMap<Key,Value> map2 = new TreeMap<>();
     pkv(map2, "row2", "cf1", "cq1", "cv1", 5, "foo");
 
-    SortedMap<Key,Value> map = new TreeMap<>();
-    map.putAll(map1);
+    SortedMap<Key,Value> map = new TreeMap<>(map1);
     map.putAll(map2);
 
     MultiIterator source = new MultiIterator(Collections.singletonList(new SortedMapIterator(map)),

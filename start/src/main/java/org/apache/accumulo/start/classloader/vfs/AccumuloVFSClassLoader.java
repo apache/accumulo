@@ -383,11 +383,9 @@ public class AccumuloVFSClassLoader {
             printJar(out, f.getURL().getFile(), debug, sawFirst);
             sawFirst = true;
           }
-        } else {
-          if (debug) {
-            out.print(
-                classLoaderDescription + ": Unknown classloader: " + classLoader.getClass() + "\n");
-          }
+        } else if (debug) {
+          out.print(
+              classLoaderDescription + ": Unknown classloader: " + classLoader.getClass() + "\n");
         }
       }
       out.print("\n");
@@ -425,9 +423,7 @@ public class AccumuloVFSClassLoader {
   private static synchronized ContextManager getContextManager() throws IOException {
     if (contextManager == null) {
       getClassLoader();
-      contextManager = new ContextManager(generateVfs(), () -> {
-        return getClassLoader();
-      });
+      contextManager = new ContextManager(generateVfs(), AccumuloVFSClassLoader::getClassLoader);
     }
 
     return contextManager;

@@ -171,26 +171,25 @@ public final class ZKAuthenticator implements Authenticator {
     if (!(token instanceof PasswordToken))
       throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
     PasswordToken pt = (PasswordToken) token;
-    if (userExists(principal)) {
-      try {
-        synchronized (zooCache) {
-          zooCache.clear(ZKUserPath + "/" + principal);
-          context.getZooReaderWriter().putPrivatePersistentData(ZKUserPath + "/" + principal,
-              ZKSecurityTool.createPass(pt.getPassword()), NodeExistsPolicy.OVERWRITE);
-        }
-      } catch (KeeperException e) {
-        log.error("{}", e.getMessage(), e);
-        throw new AccumuloSecurityException(principal, SecurityErrorCode.CONNECTION_ERROR, e);
-      } catch (InterruptedException e) {
-        log.error("{}", e.getMessage(), e);
-        throw new RuntimeException(e);
-      } catch (AccumuloException e) {
-        log.error("{}", e.getMessage(), e);
-        throw new AccumuloSecurityException(principal, SecurityErrorCode.DEFAULT_SECURITY_ERROR, e);
-      }
-    } else
+    if (!userExists(principal))
       // user doesn't exist
       throw new AccumuloSecurityException(principal, SecurityErrorCode.USER_DOESNT_EXIST);
+    try {
+      synchronized (zooCache) {
+        zooCache.clear(ZKUserPath + "/" + principal);
+        context.getZooReaderWriter().putPrivatePersistentData(ZKUserPath + "/" + principal,
+            ZKSecurityTool.createPass(pt.getPassword()), NodeExistsPolicy.OVERWRITE);
+      }
+    } catch (KeeperException e) {
+      log.error("{}", e.getMessage(), e);
+      throw new AccumuloSecurityException(principal, SecurityErrorCode.CONNECTION_ERROR, e);
+    } catch (InterruptedException e) {
+      log.error("{}", e.getMessage(), e);
+      throw new RuntimeException(e);
+    } catch (AccumuloException e) {
+      log.error("{}", e.getMessage(), e);
+      throw new AccumuloSecurityException(principal, SecurityErrorCode.DEFAULT_SECURITY_ERROR, e);
+    }
   }
 
   @Override

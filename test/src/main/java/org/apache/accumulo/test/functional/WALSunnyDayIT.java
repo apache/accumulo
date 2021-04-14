@@ -277,11 +277,10 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
         }
         return result;
       } catch (WalMarkerException wme) {
-        if (wme.getCause() instanceof NoNodeException) {
-          log.debug("WALs changed while reading, retrying", wme);
-        } else {
+        if (!(wme.getCause() instanceof NoNodeException)) {
           throw wme;
         }
+        log.debug("WALs changed while reading, retrying", wme);
       }
     }
   }

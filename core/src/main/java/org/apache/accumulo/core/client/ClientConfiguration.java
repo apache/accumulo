@@ -113,11 +113,11 @@ public class ClientConfiguration {
     private PropertyType type;
     private String description;
 
-    private ClientProperty(Property prop) {
+    ClientProperty(Property prop) {
       this(prop.getKey(), prop.getDefaultValue(), prop.getType(), prop.getDescription());
     }
 
-    private ClientProperty(String key, String defaultValue, PropertyType type, String description) {
+    ClientProperty(String key, String defaultValue, PropertyType type, String description) {
       this.key = key;
       this.defaultValue = defaultValue;
       this.type = type;
@@ -320,8 +320,7 @@ public class ClientConfiguration {
   public String get(ClientProperty prop) {
     if (compositeConfig.containsKey(prop.getKey()))
       return compositeConfig.getString(prop.getKey());
-    else
-      return prop.getDefaultValue();
+    return prop.getDefaultValue();
   }
 
   private void checkType(ClientProperty property, PropertyType type) {

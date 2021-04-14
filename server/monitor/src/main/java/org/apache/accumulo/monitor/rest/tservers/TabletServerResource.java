@@ -166,11 +166,11 @@ public class TabletServerResource {
       return null;
     }
 
-    double splitStdDev = 0;
-    double minorStdDev = 0;
-    double minorQueueStdDev = 0;
-    double majorStdDev = 0;
-    double majorQueueStdDev = 0;
+    double splitStdDev;
+    double minorStdDev;
+    double minorQueueStdDev;
+    double majorStdDev;
+    double majorQueueStdDev;
     double currentMinorAvg = 0;
     double currentMajorAvg = 0;
     double currentMinorStdDev = 0;

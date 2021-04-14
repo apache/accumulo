@@ -59,7 +59,7 @@ public class CachableBlockFile {
 
   private static final Logger log = LoggerFactory.getLogger(CachableBlockFile.class);
 
-  private static interface IoeSupplier<T> {
+  private interface IoeSupplier<T> {
     T get() throws IOException;
   }
 
@@ -190,11 +190,10 @@ public class CachableBlockFile {
         if (bcfr.compareAndSet(null, tmpReader)) {
           fin = fsIn;
           return tmpReader;
-        } else {
-          fsIn.close();
-          tmpReader.close();
-          return bcfr.get();
         }
+        fsIn.close();
+        tmpReader.close();
+        return bcfr.get();
       }
 
       return reader;
@@ -308,7 +307,6 @@ public class CachableBlockFile {
       private boolean loadingMetaBlock;
 
       public BaseBlockLoader(boolean loadingMetaBlock) {
-        super();
         this.loadingMetaBlock = loadingMetaBlock;
       }
 

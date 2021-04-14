@@ -75,8 +75,8 @@ public class UserCompactionUtils {
     }
   }
 
-  public static interface Encoder<T> {
-    public void encode(DataOutput dout, T p);
+  public interface Encoder<T> {
+    void encode(DataOutput dout, T p);
   }
 
   public static <T> byte[] encode(T csc, Encoder<T> encoder) {
@@ -146,7 +146,7 @@ public class UserCompactionUtils {
     }
   }
 
-  public static interface Decoder<T> {
+  public interface Decoder<T> {
     T decode(DataInput di);
   }
 

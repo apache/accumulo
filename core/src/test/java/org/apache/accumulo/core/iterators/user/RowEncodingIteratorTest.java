@@ -129,8 +129,7 @@ public class RowEncodingIteratorTest {
     pkv(map3, "row3", "cf1", "cq1", "cv1", 5, kbVal);
     pkv(map3, "row3", "cf1", "cq2", "cv1", 6, kbVal);
 
-    SortedMap<Key,Value> map = new TreeMap<>();
-    map.putAll(map1);
+    SortedMap<Key,Value> map = new TreeMap<>(map1);
     map.putAll(map2);
     map.putAll(map3);
     SortedMapIterator src = new SortedMapIterator(map);
@@ -165,8 +164,7 @@ public class RowEncodingIteratorTest {
     pkv(map1, "row1", "cf1", "cq1", "cv1", 5, kbVal);
     pkv(map1, "row1", "cf1", "cq2", "cv1", 6, kbVal);
 
-    SortedMap<Key,Value> map = new TreeMap<>();
-    map.putAll(map1);
+    SortedMap<Key,Value> map = new TreeMap<>(map1);
     SortedMapIterator src = new SortedMapIterator(map);
     Range range = new Range(new Text("row1"), true, new Text("row2"), true);
     RowEncodingIteratorImpl iter = new RowEncodingIteratorImpl();

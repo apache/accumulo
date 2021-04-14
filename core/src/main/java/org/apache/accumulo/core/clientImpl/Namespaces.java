@@ -187,11 +187,10 @@ public class Namespaces {
     ZooCache zc = context.getZooCache();
     byte[] path = zc.get(context.getZooKeeperRoot() + Constants.ZNAMESPACES + "/"
         + namespaceId.canonical() + Constants.ZNAMESPACE_NAME);
-    if (path != null)
-      name = new String(path, UTF_8);
-    else
+    if (path == null)
       throw new NamespaceNotFoundException(namespaceId.canonical(), null,
           "getNamespaceName() failed to find namespace");
+    name = new String(path, UTF_8);
     return name;
   }
 

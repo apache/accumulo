@@ -353,7 +353,7 @@ public class DefaultCompactionPlannerTest {
       execBldr.append("]");
     }
 
-    String executors = execBldr.toString().replaceAll("'", "\"");
+    String executors = execBldr.toString().replace("'", "\"");
 
     planner.init(new CompactionPlanner.InitParameters() {
 
@@ -375,28 +375,25 @@ public class DefaultCompactionPlannerTest {
 
       @Override
       public ExecutorManager getExecutorManager() {
-        return new ExecutorManager() {
-          @Override
-          public CompactionExecutorId createExecutor(String name, int threads) {
-            switch (name) {
-              case "small":
-                assertEquals(1, threads);
-                break;
-              case "medium":
-                assertEquals(2, threads);
-                break;
-              case "large":
-                assertEquals(3, threads);
-                break;
-              case "huge":
-                assertEquals(4, threads);
-                break;
-              default:
-                fail("Unexpected name " + name);
-                break;
-            }
-            return CompactionExecutorId.of(name);
+        return (name, threads) -> {
+          switch (name) {
+            case "small":
+              assertEquals(1, threads);
+              break;
+            case "medium":
+              assertEquals(2, threads);
+              break;
+            case "large":
+              assertEquals(3, threads);
+              break;
+            case "huge":
+              assertEquals(4, threads);
+              break;
+            default:
+              fail("Unexpected name " + name);
+              break;
           }
+          return CompactionExecutorId.of(name);
         };
       }
     });

@@ -246,13 +246,12 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   }
 
   private static synchronized void deleteNativeMap(long nmPtr) {
-    if (allocatedNativeMaps.contains(nmPtr)) {
-      deleteNM(nmPtr);
-      allocatedNativeMaps.remove(nmPtr);
-    } else {
+    if (!allocatedNativeMaps.contains(nmPtr)) {
       throw new RuntimeException(
           String.format("Attempt to delete native map that is not allocated 0x%016x ", nmPtr));
     }
+    deleteNM(nmPtr);
+    allocatedNativeMaps.remove(nmPtr);
   }
 
   // package private visibility for NativeMapCleanerUtil use,

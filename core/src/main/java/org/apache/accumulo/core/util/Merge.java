@@ -183,15 +183,13 @@ public class Merge {
 
     if (numToMerge > 1) {
       mergeSome(client, table, sizes, numToMerge);
-    } else {
-      if (numToMerge == 1 && sizes.size() > 1) {
-        // here we have the case of a merge candidate that is surrounded by candidates that would
-        // split
-        if (force) {
-          mergeSome(client, table, sizes, 2);
-        } else {
-          sizes.remove(0);
-        }
+    } else if (numToMerge == 1 && sizes.size() > 1) {
+      // here we have the case of a merge candidate that is surrounded by candidates that would
+      // split
+      if (force) {
+        mergeSome(client, table, sizes, 2);
+      } else {
+        sizes.remove(0);
       }
     }
     if (numToMerge == 0 && sizes.size() > 1 && last) {

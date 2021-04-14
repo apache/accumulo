@@ -30,7 +30,7 @@ public class ShellCommandException extends Exception {
 
     private String description;
 
-    private ErrorCode(String description) {
+    ErrorCode(String description) {
       this.description = description;
     }
 

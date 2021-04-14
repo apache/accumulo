@@ -19,6 +19,7 @@
 package org.apache.accumulo.tserver.compactions;
 
 import java.util.Arrays;
+import java.util.stream.IntStream;
 
 public class PrintableTable {
   private String[] columns;
@@ -31,29 +32,17 @@ public class PrintableTable {
     this.data = data;
   }
 
+  @Override
   public String toString() {
     int widestRow = Arrays.asList(rows).stream().mapToInt(String::length).max().getAsInt();
 
     StringBuilder sb = new StringBuilder();
 
-    for (int i = 0; i < widestRow; i++)
-      sb.append(" ");
-
-    for (int i = 0; i < columns.length; i++) {
-      sb.append("  C");
-      sb.append(i + 1);
-      sb.append("  ");
-    }
-
+    IntStream.range(0, widestRow).forEach(i -> sb.append(" "));
+    IntStream.range(0, columns.length).forEach(i -> sb.append("  C").append(i + 1).append("  "));
     sb.append("\n");
-
-    for (int i = 0; i < widestRow; i++)
-      sb.append("-");
-
-    for (int i = 0; i < columns.length; i++) {
-      sb.append(" ---- ");
-    }
-
+    IntStream.range(0, widestRow).forEach(i -> sb.append("-"));
+    IntStream.range(0, columns.length).forEach(i -> sb.append(" ---- "));
     sb.append("\n");
 
     for (int r = 0; r < rows.length; r++) {
@@ -61,25 +50,20 @@ public class PrintableTable {
 
       int[] row = data[r];
 
-      for (int c = 0; c < row.length; c++) {
-        if (row[c] == 0)
+      for (int element : row) {
+        if (element == 0)
           sb.append("      ");
         else
-          sb.append(String.format(" %4d ", row[c]));
+          sb.append(String.format(" %4d ", element));
       }
       sb.append("\n");
     }
 
     sb.append("\n");
 
-    for (int i = 0; i < columns.length; i++) {
-      sb.append(" C");
-      sb.append(i + 1);
-      sb.append("='");
-      sb.append(columns[i]);
-      sb.append("'");
-    }
-
+    IntStream.range(0, columns.length).forEach(i -> {
+      sb.append(" C").append(i + 1).append("='").append(columns[i]).append("'");
+    });
     sb.append("\n");
 
     return sb.toString();

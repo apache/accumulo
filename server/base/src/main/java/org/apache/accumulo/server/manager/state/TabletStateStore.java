@@ -81,20 +81,20 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
    */
   void unsuspend(Collection<TabletLocationState> tablets) throws DistributedStoreException;
 
-  public static void unassign(ServerContext context, TabletLocationState tls,
+  static void unassign(ServerContext context, TabletLocationState tls,
       Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
     getStoreForTablet(tls.extent, context).unassign(Collections.singletonList(tls),
         logsForDeadServers);
   }
 
-  public static void suspend(ServerContext context, TabletLocationState tls,
+  static void suspend(ServerContext context, TabletLocationState tls,
       Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
       throws DistributedStoreException {
     getStoreForTablet(tls.extent, context).suspend(Collections.singletonList(tls),
         logsForDeadServers, suspensionTimestamp);
   }
 
-  public static void setLocation(ServerContext context, Assignment assignment)
+  static void setLocation(ServerContext context, Assignment assignment)
       throws DistributedStoreException {
     getStoreForTablet(assignment.tablet, context)
         .setLocations(Collections.singletonList(assignment));
@@ -104,11 +104,11 @@ public interface TabletStateStore extends Iterable<TabletLocationState> {
     return getStoreForLevel(DataLevel.of(extent.tableId()), context);
   }
 
-  public static TabletStateStore getStoreForLevel(DataLevel level, ClientContext context) {
+  static TabletStateStore getStoreForLevel(DataLevel level, ClientContext context) {
     return getStoreForLevel(level, context, null);
   }
 
-  public static TabletStateStore getStoreForLevel(DataLevel level, ClientContext context,
+  static TabletStateStore getStoreForLevel(DataLevel level, ClientContext context,
       CurrentState state) {
 
     TabletStateStore tss;

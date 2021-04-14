@@ -132,15 +132,13 @@ public class LookupTask extends ScanTask<MultiScanResult> {
 
         if (lookupResult.unfinishedRanges.isEmpty()) {
           fullScans.add(entry.getKey());
+        } else if (lookupResult.closed) {
+          failures.put(entry.getKey(), lookupResult.unfinishedRanges);
         } else {
-          if (lookupResult.closed) {
-            failures.put(entry.getKey(), lookupResult.unfinishedRanges);
-          } else {
-            session.queries.put(entry.getKey(), lookupResult.unfinishedRanges);
-            partScan = entry.getKey();
-            partNextKey = lookupResult.unfinishedRanges.get(0).getStartKey();
-            partNextKeyInclusive = lookupResult.unfinishedRanges.get(0).isStartKeyInclusive();
-          }
+          session.queries.put(entry.getKey(), lookupResult.unfinishedRanges);
+          partScan = entry.getKey();
+          partNextKey = lookupResult.unfinishedRanges.get(0).getStartKey();
+          partNextKeyInclusive = lookupResult.unfinishedRanges.get(0).isStartKeyInclusive();
         }
       }
 

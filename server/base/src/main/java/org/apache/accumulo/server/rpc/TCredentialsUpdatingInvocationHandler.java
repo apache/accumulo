@@ -77,9 +77,9 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
     }
 
     TCredentials tcreds = null;
-    if (args[0] != null && args[0] instanceof TCredentials) {
+    if (args[0] instanceof TCredentials) {
       tcreds = (TCredentials) args[0];
-    } else if (args[1] != null && args[1] instanceof TCredentials) {
+    } else if (args[1] instanceof TCredentials) {
       tcreds = (TCredentials) args[1];
     }
 

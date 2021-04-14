@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
  */
 public class DistributedReadWriteLock implements java.util.concurrent.locks.ReadWriteLock {
 
-  static enum LockType {
+  enum LockType {
     READ, WRITE,
   }
 

@@ -72,37 +72,35 @@ public class ConfigurableCompactionStrategy implements CompactionSelector, Compa
 
       if (configs.isEmpty()) {
         return Set.of();
-      } else {
-        Set<CompactableFile> filesToCompact = new HashSet<>();
-        Set<SummarizerConfiguration> configsSet = configs instanceof Set
-            ? (Set<SummarizerConfiguration>) configs : new HashSet<>(configs);
+      }
+      Set<CompactableFile> filesToCompact = new HashSet<>();
+      Set<SummarizerConfiguration> configsSet =
+          configs instanceof Set ? (Set<SummarizerConfiguration>) configs : new HashSet<>(configs);
 
-        for (CompactableFile tabletFile : params.getAvailableFiles()) {
-          Map<SummarizerConfiguration,Summary> sMap = new HashMap<>();
-          Collection<Summary> summaries;
-          summaries =
-              params.getSummaries(Collections.singletonList(tabletFile), configsSet::contains);
-          for (Summary summary : summaries) {
-            sMap.put(summary.getSummarizerConfiguration(), summary);
+      for (CompactableFile tabletFile : params.getAvailableFiles()) {
+        Map<SummarizerConfiguration,Summary> sMap = new HashMap<>();
+        Collection<Summary> summaries;
+        summaries =
+            params.getSummaries(Collections.singletonList(tabletFile), configsSet::contains);
+        for (Summary summary : summaries) {
+          sMap.put(summary.getSummarizerConfiguration(), summary);
+        }
+
+        for (SummarizerConfiguration sc : configs) {
+          Summary summary = sMap.get(sc);
+
+          if (summary == null && selectNoSummary) {
+            filesToCompact.add(tabletFile);
+            break;
           }
 
-          for (SummarizerConfiguration sc : configs) {
-            Summary summary = sMap.get(sc);
-
-            if (summary == null && selectNoSummary) {
-              filesToCompact.add(tabletFile);
-              break;
-            }
-
-            if (summary != null && summary.getFileStatistics().getExtra() > 0
-                && selectExtraSummary) {
-              filesToCompact.add(tabletFile);
-              break;
-            }
+          if (summary != null && summary.getFileStatistics().getExtra() > 0 && selectExtraSummary) {
+            filesToCompact.add(tabletFile);
+            break;
           }
         }
-        return filesToCompact;
       }
+      return filesToCompact;
     }
   }
 

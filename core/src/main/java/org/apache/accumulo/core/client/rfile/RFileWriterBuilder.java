@@ -91,9 +91,8 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
   public RFileWriter build() throws IOException {
     FileOperations fileops = FileOperations.getInstance();
     AccumuloConfiguration acuconf = DefaultConfiguration.getInstance();
-    HashMap<String,String> userProps = new HashMap<>();
+    HashMap<String,String> userProps = new HashMap<>(tableConfig);
 
-    userProps.putAll(tableConfig);
     userProps.putAll(summarizerProps);
     userProps.putAll(samplerProps);
 
@@ -103,22 +102,21 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
 
     CryptoService cs = CryptoServiceFactory.newInstance(acuconf, ClassloaderType.JAVA);
 
-    if (out.getOutputStream() != null) {
-      FSDataOutputStream fsdo;
-      if (out.getOutputStream() instanceof FSDataOutputStream) {
-        fsdo = (FSDataOutputStream) out.getOutputStream();
-      } else {
-        fsdo = new FSDataOutputStream(out.getOutputStream(), new FileSystem.Statistics("foo"));
-      }
-      return new RFileWriter(
-          fileops.newWriterBuilder().forOutputStream(".rf", fsdo, out.getConf(), cs)
-              .withTableConfiguration(acuconf).withStartDisabled().build(),
-          visCacheSize);
-    } else {
+    if (out.getOutputStream() == null) {
       return new RFileWriter(fileops.newWriterBuilder()
           .forFile(out.path.toString(), out.getFileSystem(), out.getConf(), cs)
           .withTableConfiguration(acuconf).withStartDisabled().build(), visCacheSize);
     }
+    FSDataOutputStream fsdo;
+    if (out.getOutputStream() instanceof FSDataOutputStream) {
+      fsdo = (FSDataOutputStream) out.getOutputStream();
+    } else {
+      fsdo = new FSDataOutputStream(out.getOutputStream(), new FileSystem.Statistics("foo"));
+    }
+    return new RFileWriter(
+        fileops.newWriterBuilder().forOutputStream(".rf", fsdo, out.getConf(), cs)
+            .withTableConfiguration(acuconf).withStartDisabled().build(),
+        visCacheSize);
   }
 
   @Override

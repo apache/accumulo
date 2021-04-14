@@ -210,8 +210,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     String className = clazz.getName();
 
-    ArrayList<String> argList = new ArrayList<>();
-    argList.addAll(Arrays.asList(javaBin, "-Dproc=" + clazz.getSimpleName(), "-cp", classpath));
+    ArrayList<String> argList = new ArrayList<>(
+        Arrays.asList(javaBin, "-Dproc=" + clazz.getSimpleName(), "-cp", classpath));
     argList.addAll(extraJvmOpts);
     for (Entry<String,String> sysProp : config.getSystemProperties().entrySet()) {
       argList.add(String.format("-D%s=%s", sysProp.getKey(), sysProp.getValue()));
@@ -290,8 +290,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     if (configOverrides != null && !configOverrides.isEmpty()) {
       File siteFile =
           Files.createTempFile(config.getConfDir().toPath(), "accumulo", ".properties").toFile();
-      Map<String,String> confMap = new HashMap<>();
-      confMap.putAll(config.getSiteConfig());
+      Map<String,String> confMap = new HashMap<>(config.getSiteConfig());
       confMap.putAll(configOverrides);
       writeConfigProperties(siteFile, confMap);
       jvmOpts.add("-Daccumulo.properties=" + siteFile.getName());

@@ -171,30 +171,26 @@ public class ClientConfConverter {
             if (value != null) {
               log.trace("Loaded sensitive value for {} from CredentialProvider", key);
               return new String(value);
-            } else {
-              log.trace("Tried to load sensitive value for {} from CredentialProvider, "
-                  + "but none was found", key);
             }
+            log.trace("Tried to load sensitive value for {} from CredentialProvider, "
+                + "but none was found", key);
           }
         }
 
         if (config.containsKey(key)) {
           return config.getString(key);
-        } else {
-          // Reconstitute the server kerberos property from the client config
-          if (property == Property.GENERAL_KERBEROS_PRINCIPAL) {
-            if (config.containsKey(
-                org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY
-                    .getKey())) {
-              // Avoid providing a realm since we don't know what it is...
-              return config.getString(
-                  org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY
-                      .getKey())
-                  + "/_HOST@" + SaslConnectionParams.getDefaultRealm();
-            }
-          }
-          return defaults.get(property);
         }
+        // Reconstitute the server kerberos property from the client config
+        if ((property == Property.GENERAL_KERBEROS_PRINCIPAL) && config.containsKey(
+            org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY
+                .getKey())) {
+          // Avoid providing a realm since we don't know what it is...
+          return config.getString(
+              org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.KERBEROS_SERVER_PRIMARY
+                  .getKey())
+              + "/_HOST@" + SaslConnectionParams.getDefaultRealm();
+        }
+        return defaults.get(property);
       }
 
       @Override

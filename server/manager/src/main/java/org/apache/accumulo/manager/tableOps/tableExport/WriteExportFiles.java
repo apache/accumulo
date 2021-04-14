@@ -275,11 +275,10 @@ class WriteExportFiles extends ManagerRepo {
       if (prop.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
         Property key = Property.getPropertyByKey(prop.getKey());
 
-        if (key == null || !defaultConfig.get(key).equals(prop.getValue())) {
-          if (!prop.getValue().equals(siteConfig.get(prop.getKey()))
-              && !prop.getValue().equals(systemConfig.get(prop.getKey()))) {
-            osw.append(prop.getKey() + "=" + prop.getValue() + "\n");
-          }
+        if ((key == null || !defaultConfig.get(key).equals(prop.getValue()))
+            && (!prop.getValue().equals(siteConfig.get(prop.getKey()))
+                && !prop.getValue().equals(systemConfig.get(prop.getKey())))) {
+          osw.append(prop.getKey() + "=" + prop.getValue() + "\n");
         }
       }
     }

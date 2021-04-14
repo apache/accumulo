@@ -319,7 +319,7 @@ public class NewTableConfiguration {
    * Verify the provided properties are valid table properties.
    */
   private void checkTableProperties(Map<String,String> props) {
-    props.keySet().forEach((key) -> {
+    props.keySet().forEach(key -> {
       if (!key.startsWith(Property.TABLE_PREFIX.toString())) {
         throw new IllegalArgumentException("'" + key + "' is not a valid table property");
       }

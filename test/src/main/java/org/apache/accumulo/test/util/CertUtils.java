@@ -130,9 +130,8 @@ public class CertUtils {
     public SiteConfiguration getSiteConfiguration() {
       if (accumuloPropsFile == null) {
         return SiteConfiguration.auto();
-      } else {
-        return SiteConfiguration.fromFile(new File(accumuloPropsFile)).build();
       }
+      return SiteConfiguration.fromFile(new File(accumuloPropsFile)).build();
     }
   }
 
@@ -181,7 +180,6 @@ public class CertUtils {
 
   public CertUtils(String keystoreType, String issuerDirString, String encryptionAlgorithm,
       int keysize, String signingAlgorithm) {
-    super();
     this.keystoreType = keystoreType;
     this.issuerDirString = issuerDirString;
     this.encryptionAlgorithm = encryptionAlgorithm;

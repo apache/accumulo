@@ -123,8 +123,7 @@ public class Tables {
         String namespace = qualify(tableName).getFirst();
         if (Namespaces.getNameToIdMap(context).containsKey(namespace))
           throw new TableNotFoundException(null, tableName, null);
-        else
-          throw new NamespaceNotFoundException(null, namespace, null);
+        throw new NamespaceNotFoundException(null, namespace, null);
       }
     }
     return tableId;
@@ -275,8 +274,7 @@ public class Tables {
     Pair<String,String> qualifiedTableName = qualify(tableName, defaultNamespace);
     if (Namespace.DEFAULT.name().equals(qualifiedTableName.getFirst()))
       return qualifiedTableName.getSecond();
-    else
-      return qualifiedTableName.toString("", ".", "");
+    return qualifiedTableName.toString("", ".", "");
   }
 
   public static Pair<String,String> qualify(String tableName) {

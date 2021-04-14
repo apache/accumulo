@@ -84,19 +84,15 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
         List<Future<?>> futures = new ArrayList<>();
 
         for (int i = 0; i < numDeleteOps; i++) {
-          Future<?> future = es.submit(new Runnable() {
-
-            @Override
-            public void run() {
-              try {
-                cdl.countDown();
-                cdl.await();
-                c.tableOperations().delete(table);
-              } catch (TableNotFoundException e) {
-                // expected
-              } catch (InterruptedException | AccumuloException | AccumuloSecurityException e) {
-                throw new RuntimeException(e);
-              }
+          Future<?> future = es.submit(() -> {
+            try {
+              cdl.countDown();
+              cdl.await();
+              c.tableOperations().delete(table);
+            } catch (TableNotFoundException e) {
+              // expected
+            } catch (InterruptedException | AccumuloException | AccumuloSecurityException e) {
+              throw new RuntimeException(e);
             }
           });
 
@@ -183,18 +179,15 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
         List<Future<?>> futures = new ArrayList<>();
 
-        futures.add(es.submit(new Runnable() {
-          @Override
-          public void run() {
-            try {
-              cdl.countDown();
-              cdl.await();
-              c.tableOperations().delete(table);
-            } catch (TableNotFoundException | TableOfflineException e) {
-              // expected
-            } catch (InterruptedException | AccumuloException | AccumuloSecurityException e) {
-              throw new RuntimeException(e);
-            }
+        futures.add(es.submit(() -> {
+          try {
+            cdl.countDown();
+            cdl.await();
+            c.tableOperations().delete(table);
+          } catch (TableNotFoundException | TableOfflineException e) {
+            // expected
+          } catch (InterruptedException | AccumuloException | AccumuloSecurityException e) {
+            throw new RuntimeException(e);
           }
         }));
 

@@ -39,7 +39,7 @@ public enum CompactionSettings {
   private Type type;
   private boolean selectorOpt;
 
-  private CompactionSettings(Type type, boolean selectorOpt) {
+  CompactionSettings(Type type, boolean selectorOpt) {
     this.type = type;
     this.selectorOpt = selectorOpt;
   }

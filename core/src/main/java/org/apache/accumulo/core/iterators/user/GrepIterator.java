@@ -85,9 +85,7 @@ public class GrepIterator extends Filter {
       IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     term = options.get("term").getBytes(UTF_8);
-    for (int i = 0; i < right.length; i++) {
-      right[i] = -1;
-    }
+    Arrays.fill(right, -1);
     for (int i = 0; i < term.length; i++) {
       right[term[i] & 0xff] = i;
     }

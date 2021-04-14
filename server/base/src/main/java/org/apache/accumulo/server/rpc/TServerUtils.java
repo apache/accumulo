@@ -188,40 +188,39 @@ public class TServerUtils {
           service.getServerSslParams(), service.getSaslParams(), service.getClientTimeoutInMillis(),
           addresses);
     } catch (TTransportException e) {
-      if (portSearch) {
-        // Build a list of reserved ports - as identified by properties of type PropertyType.PORT
-        Map<Integer,Property> reservedPorts = getReservedPorts(config);
-
-        HostAndPort last = addresses[addresses.length - 1];
-        // Attempt to allocate a port outside of the specified port property
-        // Search sequentially over the next 1000 ports
-        for (int port = last.getPort() + 1; port < last.getPort() + 1001; port++) {
-          if (reservedPorts.containsKey(port)) {
-            log.debug("During port search, skipping reserved port {} - property {} ({})", port,
-                reservedPorts.get(port).getKey(), reservedPorts.get(port).getDescription());
-
-            continue;
-          }
-
-          if (PortRange.VALID_RANGE.isBefore(port)) {
-            break;
-          }
-          try {
-            HostAndPort addr = HostAndPort.fromParts(hostname, port);
-            return TServerUtils.startTServer(serverType, timedProcessor, serverName, threadName,
-                minThreads, threadTimeOut, config, timeBetweenThreadChecks, maxMessageSize,
-                service.getServerSslParams(), service.getSaslParams(),
-                service.getClientTimeoutInMillis(), addr);
-          } catch (TTransportException tte) {
-            log.info("Unable to use port {}, retrying. (Thread Name = {})", port, threadName);
-          }
-        }
-        log.error("Unable to start TServer", e);
-        throw new UnknownHostException("Unable to find a listen port");
-      } else {
+      if (!portSearch) {
         log.error("Unable to start TServer", e);
         throw new UnknownHostException("Unable to find a listen port");
       }
+      // Build a list of reserved ports - as identified by properties of type PropertyType.PORT
+      Map<Integer,Property> reservedPorts = getReservedPorts(config);
+
+      HostAndPort last = addresses[addresses.length - 1];
+      // Attempt to allocate a port outside of the specified port property
+      // Search sequentially over the next 1000 ports
+      for (int port = last.getPort() + 1; port < last.getPort() + 1001; port++) {
+        if (reservedPorts.containsKey(port)) {
+          log.debug("During port search, skipping reserved port {} - property {} ({})", port,
+              reservedPorts.get(port).getKey(), reservedPorts.get(port).getDescription());
+
+          continue;
+        }
+
+        if (PortRange.VALID_RANGE.isBefore(port)) {
+          break;
+        }
+        try {
+          HostAndPort addr = HostAndPort.fromParts(hostname, port);
+          return TServerUtils.startTServer(serverType, timedProcessor, serverName, threadName,
+              minThreads, threadTimeOut, config, timeBetweenThreadChecks, maxMessageSize,
+              service.getServerSslParams(), service.getSaslParams(),
+              service.getClientTimeoutInMillis(), addr);
+        } catch (TTransportException tte) {
+          log.info("Unable to use port {}, retrying. (Thread Name = {})", port, threadName);
+        }
+      }
+      log.error("Unable to start TServer", e);
+      throw new UnknownHostException("Unable to find a listen port");
     }
   }
 
@@ -325,13 +324,11 @@ public class TServerUtils {
         log.info("Increasing server thread pool size on {} to {}", serverName, larger);
         pool.setMaximumPoolSize(larger);
         pool.setCorePoolSize(larger);
-      } else {
-        if (pool.getCorePoolSize() > pool.getActiveCount() + 3) {
-          int smaller = Math.max(executorThreads, pool.getCorePoolSize() - 1);
-          if (smaller != pool.getCorePoolSize()) {
-            log.info("Decreasing server thread pool size on {} to {}", serverName, smaller);
-            pool.setCorePoolSize(smaller);
-          }
+      } else if (pool.getCorePoolSize() > pool.getActiveCount() + 3) {
+        int smaller = Math.max(executorThreads, pool.getCorePoolSize() - 1);
+        if (smaller != pool.getCorePoolSize()) {
+          log.info("Decreasing server thread pool size on {} to {}", serverName, smaller);
+          pool.setCorePoolSize(smaller);
         }
       }
     }, timeBetweenThreadChecks, timeBetweenThreadChecks, TimeUnit.MILLISECONDS);

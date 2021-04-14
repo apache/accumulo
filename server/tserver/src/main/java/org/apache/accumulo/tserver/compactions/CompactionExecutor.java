@@ -124,12 +124,11 @@ public class CompactionExecutor {
           if (runnable instanceof TraceRunnable) {
             runnable = ((TraceRunnable) runnable).getRunnable();
           }
-          if (runnable instanceof CompactionTask) {
-            compactionTask = (CompactionTask) runnable;
-          } else {
+          if (!(runnable instanceof CompactionTask)) {
             throw new IllegalArgumentException(
                 "Unknown runnable type " + runnable.getClass().getName());
           }
+          compactionTask = (CompactionTask) runnable;
           return compactionTask.getStatus() == Status.CANCELED;
         });
       }
@@ -156,7 +155,7 @@ public class CompactionExecutor {
     var comparator =
         Comparator.comparing(CompactionExecutor::getJob, CompactionJobPrioritizer.JOB_COMPARATOR);
 
-    queue = new PriorityBlockingQueue<Runnable>(100, comparator);
+    queue = new PriorityBlockingQueue<>(100, comparator);
 
     threadPool = ThreadPools.createThreadPool(threads, threads, 60, TimeUnit.SECONDS,
         "compaction." + ceid, queue, OptionalInt.empty(), true);

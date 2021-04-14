@@ -118,27 +118,26 @@ public class FindMax {
 
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
 
-    if (iter.hasNext()) {
-      Key next = iter.next().getKey();
-
-      int count = 0;
-      while (count < 10 && iter.hasNext()) {
-        next = iter.next().getKey();
-        count++;
-      }
-
-      if (!iter.hasNext())
-        return next.getRow();
-
-      Text ret = _findMax(scanner, next.followingKey(PartialKey.ROW).getRow(), true, end, inclEnd);
-      if (ret == null)
-        return next.getRow();
-      else
-        return ret;
-    } else {
+    if (!iter.hasNext()) {
 
       return _findMax(scanner, start, inclStart, mid, mid.equals(start) ? inclStart : false);
     }
+    Key next = iter.next().getKey();
+
+    int count = 0;
+    while (count < 10 && iter.hasNext()) {
+      next = iter.next().getKey();
+      count++;
+    }
+
+    if (!iter.hasNext())
+      return next.getRow();
+
+    Text ret = _findMax(scanner, next.followingKey(PartialKey.ROW).getRow(), true, end, inclEnd);
+    if (ret == null)
+      return next.getRow();
+    else
+      return ret;
   }
 
   private static Text findInitialEnd(Scanner scanner) {

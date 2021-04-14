@@ -238,10 +238,8 @@ public class Compactor implements Callable<CompactionStats> {
       try {
         mfwTmp.close(); // if the close fails it will cause the compaction to fail
       } catch (IOException ex) {
-        if (!fs.deleteRecursively(outputFile.getPath())) {
-          if (fs.exists(outputFile.getPath())) {
-            log.error("Unable to delete {}", outputFile);
-          }
+        if (!fs.deleteRecursively(outputFile.getPath()) && fs.exists(outputFile.getPath())) {
+          log.error("Unable to delete {}", outputFile);
         }
         throw ex;
       }

@@ -108,28 +108,27 @@ public class QuotedStringTokenizer implements Iterable<String> {
         } else {
           token[tokenLength++] = inputBytes[i];
         }
-      } else {
-        // not in a quote, either enter a quote, end a token, start escape, or continue a token
-        if (ch == '\'' || ch == '"') {
-          if (tokenLength > 0) {
-            tokens.add(new String(token, 0, tokenLength, Shell.CHARSET));
-            tokenLength = 0;
-          }
-          inQuote = true;
-          inQuoteChar = ch;
-        } else if (ch == ' ' && tokenLength > 0) {
+      } else // not in a quote, either enter a quote, end a token, start escape, or continue a token
+      if (ch == '\'' || ch == '"') {
+        if (tokenLength > 0) {
           tokens.add(new String(token, 0, tokenLength, Shell.CHARSET));
           tokenLength = 0;
-        } else if (ch == '\\') {
-          inEscapeSequence = true;
-        } else if (ch != ' ') {
-          token[tokenLength++] = inputBytes[i];
         }
+        inQuote = true;
+        inQuoteChar = ch;
+      } else if (ch == ' ' && tokenLength > 0) {
+        tokens.add(new String(token, 0, tokenLength, Shell.CHARSET));
+        tokenLength = 0;
+      } else if (ch == '\\') {
+        inEscapeSequence = true;
+      } else if (ch != ' ') {
+        token[tokenLength++] = inputBytes[i];
       }
     }
     if (inQuote) {
       throw new BadArgumentException("missing terminating quote", input, input.length());
-    } else if (inEscapeSequence || hexChars != null) {
+    }
+    if (inEscapeSequence || hexChars != null) {
       throw new BadArgumentException("escape sequence not complete", input, input.length());
     }
     if (tokenLength > 0) {

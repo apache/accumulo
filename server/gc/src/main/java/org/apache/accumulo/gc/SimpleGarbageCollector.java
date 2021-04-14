@@ -361,11 +361,10 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
                   String tabletDir = parts[2];
                   getContext().getTableManager().updateTableStateCache(tableId);
                   TableState tableState = getContext().getTableManager().getTableState(tableId);
-                  if (tableState != null && tableState != TableState.DELETING) {
-                    // clone directories don't always exist
-                    if (!tabletDir.startsWith(Constants.CLONE_PREFIX)) {
-                      log.debug("File doesn't exist: {}", pathToDel);
-                    }
+                  // clone directories don't always exist
+                  if ((tableState != null && tableState != TableState.DELETING)
+                      && !tabletDir.startsWith(Constants.CLONE_PREFIX)) {
+                    log.debug("File doesn't exist: {}", pathToDel);
                   }
                 } else {
                   log.warn("Very strange path name: {}", delete);

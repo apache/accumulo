@@ -134,8 +134,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
           TabletLocator.TabletLocation tab =
               tl.locateTablet(ctx, tls.extent.toMetaRow(), false, false);
           // add it to the set of servers with metadata
-          metadataServerSet
-              .add(new TServerInstance(tab.tablet_location, Long.valueOf(tab.tablet_session, 16)));
+          metadataServerSet.add(
+              new TServerInstance(tab.tablet_location, Long.parseLong(tab.tablet_session, 16)));
         }
       }
 
@@ -171,9 +171,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         }
         if (count == 0) {
           return;
-        } else {
-          Thread.sleep(MILLISECONDS.convert(2, SECONDS));
         }
+        Thread.sleep(MILLISECONDS.convert(2, SECONDS));
       }
       throw new IllegalStateException("Tablet servers didn't die!");
     });

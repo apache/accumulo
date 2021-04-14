@@ -43,9 +43,8 @@ public class GcVolumeUtil {
       String relPath = path.toString().substring(ALL_VOLUMES_PREFIX.length());
       return fs.getVolumes().stream().map(vol -> vol.prefixChild(relPath))
           .collect(Collectors.toList());
-    } else {
-      return Collections.singleton(path);
     }
+    return Collections.singleton(path);
   }
 
   public static boolean isAllVolumesUri(Path path) {

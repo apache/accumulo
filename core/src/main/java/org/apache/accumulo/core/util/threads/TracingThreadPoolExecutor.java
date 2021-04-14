@@ -50,7 +50,7 @@ class TracingThreadPoolExecutor extends ThreadPoolExecutor {
 
   @Override
   public <T> Future<T> submit(Callable<T> task) {
-    return super.submit(new TraceCallable<T>(task));
+    return super.submit(new TraceCallable<>(task));
   }
 
   @Override
@@ -65,8 +65,8 @@ class TracingThreadPoolExecutor extends ThreadPoolExecutor {
 
   private <T> Collection<? extends Callable<T>>
       wrapCollection(Collection<? extends Callable<T>> tasks) {
-    List<Callable<T>> result = new ArrayList<Callable<T>>(tasks.size());
-    tasks.forEach(t -> result.add(new TraceCallable<T>(t)));
+    List<Callable<T>> result = new ArrayList<>(tasks.size());
+    tasks.forEach(t -> result.add(new TraceCallable<>(t)));
     return result;
   }
 

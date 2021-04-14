@@ -83,18 +83,17 @@ public class LargestFirstMemoryManager {
     }
 
     public boolean put(Long key, TabletInfo value) {
-      if (map.size() == max) {
-        if (key.compareTo(map.firstKey()) < 0)
-          return false;
-        try {
-          add(key, value);
-          return true;
-        } finally {
-          map.remove(map.firstKey());
-        }
-      } else {
+      if (map.size() != max) {
         add(key, value);
         return true;
+      }
+      if (key.compareTo(map.firstKey()) < 0)
+        return false;
+      try {
+        add(key, value);
+        return true;
+      } finally {
+        map.remove(map.firstKey());
       }
     }
 
@@ -193,7 +192,7 @@ public class LargestFirstMemoryManager {
           }
         } catch (IllegalArgumentException e) {
           Throwable cause = e.getCause();
-          if (cause != null && cause instanceof TableNotFoundException) {
+          if (cause instanceof TableNotFoundException) {
             log.trace("Ignoring extent for deleted table: {}", tablet);
 
             // The table might have been deleted during the iteration of the tablets

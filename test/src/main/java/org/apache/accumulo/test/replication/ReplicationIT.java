@@ -1388,18 +1388,17 @@ public class ReplicationIT extends ConfigurableMacBase {
         } catch (RuntimeException e) {
           // Catch a propagation issue, fail if it's not what we expect
           Throwable cause = e.getCause();
-          if (cause instanceof AccumuloSecurityException) {
-            AccumuloSecurityException sec = (AccumuloSecurityException) cause;
-            switch (sec.getSecurityErrorCode()) {
-              case PERMISSION_DENIED:
-                // retry -- the grant didn't happen yet
-                log.warn("Sleeping because permission was denied");
-                break;
-              default:
-                throw e;
-            }
-          } else {
+          if (!(cause instanceof AccumuloSecurityException)) {
             throw e;
+          }
+          AccumuloSecurityException sec = (AccumuloSecurityException) cause;
+          switch (sec.getSecurityErrorCode()) {
+            case PERMISSION_DENIED:
+              // retry -- the grant didn't happen yet
+              log.warn("Sleeping because permission was denied");
+              break;
+            default:
+              throw e;
           }
         }
         Thread.sleep(2000);
@@ -1503,10 +1502,9 @@ public class ReplicationIT extends ConfigurableMacBase {
 
           if (recordsFound <= 2) {
             break;
-          } else {
-            Thread.sleep(1000);
-            log.info("");
           }
+          Thread.sleep(1000);
+          log.info("");
         }
       }
       assertTrue("Found unexpected replication records in the replication table",

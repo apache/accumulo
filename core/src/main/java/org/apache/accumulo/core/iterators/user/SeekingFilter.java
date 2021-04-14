@@ -180,13 +180,12 @@ public abstract class SeekingFilter extends WrappingIterator {
             f.advance == AdvanceResult.USE_HINT ? getNextKeyHint(src.getTopKey(), src.getTopValue())
                 : " (none)");
       }
-      if (f.accept == negate) {
-        advanceSource(src, f.advance);
-      } else {
+      if (f.accept != negate) {
         // advance will be processed when next is called
         advance = f.advance;
         break;
       }
+      advanceSource(src, f.advance);
     }
   }
 
@@ -210,12 +209,11 @@ public abstract class SeekingFilter extends WrappingIterator {
       case USE_HINT:
         Value topVal = src.getTopValue();
         Key hintKey = getNextKeyHint(topKey, topVal);
-        if (hintKey != null && hintKey.compareTo(topKey) > 0) {
-          advRange = new Range(hintKey, null);
-        } else {
+        if ((hintKey == null) || (hintKey.compareTo(topKey) <= 0)) {
           String msg = "Filter returned USE_HINT for " + topKey + " but invalid hint: " + hintKey;
           throw new IOException(msg);
         }
+        advRange = new Range(hintKey, null);
         break;
     }
     if (advRange == null) {

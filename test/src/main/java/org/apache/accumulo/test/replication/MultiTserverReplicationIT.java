@@ -71,10 +71,8 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
 
       ZooReader zreader =
           new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
-      Set<String> tserverHost = new HashSet<>();
-      tserverHost.addAll(zreader.getChildren(
+      Set<String> tserverHost = new HashSet<>(zreader.getChildren(
           ZooUtil.getRoot(client.instanceOperations().getInstanceID()) + Constants.ZTSERVERS));
-
       Set<HostAndPort> replicationServices = new HashSet<>();
 
       for (String tserver : tserverHost) {

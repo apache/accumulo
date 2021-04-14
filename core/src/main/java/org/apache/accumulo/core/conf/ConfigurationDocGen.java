@@ -98,13 +98,11 @@ public class ConfigurationDocGen {
     } else if (defaultValue.contains("\n")) {
       // deal with multi-line values, skip strikethrough of value
       defaultValue = strike("**default value:** ", depr) + "\n```\n" + defaultValue + "\n```\n";
+    } else if (prop.getType() == PropertyType.CLASSNAME
+        && defaultValue.startsWith("org.apache.accumulo")) {
+      defaultValue = strike("**default value:** " + "{% jlink -f " + defaultValue + " %}", depr);
     } else {
-      if (prop.getType() == PropertyType.CLASSNAME
-          && defaultValue.startsWith("org.apache.accumulo")) {
-        defaultValue = strike("**default value:** " + "{% jlink -f " + defaultValue + " %}", depr);
-      } else {
-        defaultValue = strike("**default value:** " + "`" + defaultValue + "`", depr);
-      }
+      defaultValue = strike("**default value:** " + "`" + defaultValue + "`", depr);
     }
     doc.println(defaultValue + " |");
   }
@@ -154,13 +152,12 @@ public class ConfigurationDocGen {
    *           if args is invalid
    */
   public static void main(String[] args) throws IOException {
-    if (args.length == 2 && args[0].equals("--generate-markdown")) {
-      try (var printStream = new PrintStream(args[1], UTF_8)) {
-        new ConfigurationDocGen(printStream).generate();
-      }
-    } else {
+    if ((args.length != 2) || !args[0].equals("--generate-markdown")) {
       throw new IllegalArgumentException(
           "Usage: " + ConfigurationDocGen.class.getName() + " --generate-markdown <filename>");
+    }
+    try (var printStream = new PrintStream(args[1], UTF_8)) {
+      new ConfigurationDocGen(printStream).generate();
     }
   }
 }

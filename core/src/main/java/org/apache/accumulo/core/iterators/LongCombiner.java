@@ -250,10 +250,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
       if (aSign > 0) {
         if (Long.MAX_VALUE - a < b)
           return Long.MAX_VALUE;
-      } else {
-        if (Long.MIN_VALUE - a > b)
-          return Long.MIN_VALUE;
-      }
+      } else if (Long.MIN_VALUE - a > b)
+        return Long.MIN_VALUE;
     }
     return a + b;
   }

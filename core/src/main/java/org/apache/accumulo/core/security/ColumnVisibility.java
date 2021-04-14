@@ -91,7 +91,7 @@ public class ColumnVisibility {
   /**
    * The node types in a parse tree for a visibility expression.
    */
-  public static enum NodeType {
+  public enum NodeType {
     EMPTY, TERM, OR, AND,
   }
 

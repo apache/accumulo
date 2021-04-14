@@ -498,22 +498,25 @@ public class TableOperationsImpl extends TableOperationsHelper {
             TableNotFoundException tnfe = (TableNotFoundException) excep;
             throw new TableNotFoundException(tableId.canonical(), tableName,
                 "Table not found by background thread", tnfe);
-          } else if (excep instanceof TableOfflineException) {
+          }
+          if (excep instanceof TableOfflineException) {
             log.debug("TableOfflineException occurred in background thread. Throwing new exception",
                 excep);
             throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
-          } else if (excep instanceof AccumuloSecurityException) {
+          }
+          if (excep instanceof AccumuloSecurityException) {
             // base == background accumulo security exception
             AccumuloSecurityException base = (AccumuloSecurityException) excep;
             throw new AccumuloSecurityException(base.getUser(), base.asThriftException().getCode(),
                 base.getTableInfo(), excep);
-          } else if (excep instanceof AccumuloServerException) {
-            throw new AccumuloServerException((AccumuloServerException) excep);
-          } else if (excep instanceof Error) {
-            throw new Error(excep);
-          } else {
-            throw new AccumuloException(excep);
           }
+          if (excep instanceof AccumuloServerException) {
+            throw new AccumuloServerException((AccumuloServerException) excep);
+          }
+          if (excep instanceof Error) {
+            throw new Error(excep);
+          }
+          throw new AccumuloException(excep);
         }
       }
     } catch (InterruptedException e) {
@@ -545,7 +548,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         if (tl == null) {
           if (!Tables.exists(context, tableId))
             throw new TableNotFoundException(tableId.canonical(), tableName, null);
-          else if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
+          if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
             throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
           continue;
         }
@@ -849,22 +852,18 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     ensureStrategyCanLoad(tableName, config);
 
-    if (!UserCompactionUtils.isDefault(config.getConfigurer())) {
-      if (!testClassLoad(tableName, config.getConfigurer().getClassName(),
-          CompactionConfigurer.class.getName())) {
-        throw new AccumuloException(
-            "TabletServer could not load " + CompactionConfigurer.class.getSimpleName() + " class "
-                + config.getConfigurer().getClassName());
-      }
+    if (!UserCompactionUtils.isDefault(config.getConfigurer()) && !testClassLoad(tableName,
+        config.getConfigurer().getClassName(), CompactionConfigurer.class.getName())) {
+      throw new AccumuloException(
+          "TabletServer could not load " + CompactionConfigurer.class.getSimpleName() + " class "
+              + config.getConfigurer().getClassName());
     }
 
-    if (!UserCompactionUtils.isDefault(config.getSelector())) {
-      if (!testClassLoad(tableName, config.getSelector().getClassName(),
-          CompactionSelector.class.getName())) {
-        throw new AccumuloException(
-            "TabletServer could not load " + CompactionSelector.class.getSimpleName() + " class "
-                + config.getSelector().getClassName());
-      }
+    if (!UserCompactionUtils.isDefault(config.getSelector()) && !testClassLoad(tableName,
+        config.getSelector().getClassName(), CompactionSelector.class.getName())) {
+      throw new AccumuloException(
+          "TabletServer could not load " + CompactionSelector.class.getSimpleName() + " class "
+              + config.getSelector().getClassName());
     }
 
     TableId tableId = Tables.getTableId(context, tableName);
@@ -893,12 +892,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private void ensureStrategyCanLoad(String tableName, CompactionConfig config)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     // Make sure the specified compaction strategy exists on a tabletserver
-    if (!CompactionStrategyConfigUtil.isDefault(config.getCompactionStrategy())) {
-      if (!testClassLoad(tableName, config.getCompactionStrategy().getClassName(),
-          "org.apache.accumulo.tserver.compaction.CompactionStrategy")) {
-        throw new AccumuloException("TabletServer could not load CompactionStrategy class "
-            + config.getCompactionStrategy().getClassName());
-      }
+    if (!CompactionStrategyConfigUtil.isDefault(config.getCompactionStrategy())
+        && !testClassLoad(tableName, config.getCompactionStrategy().getClassName(),
+            "org.apache.accumulo.tserver.compaction.CompactionStrategy")) {
+      throw new AccumuloException("TabletServer could not load CompactionStrategy class "
+          + config.getCompactionStrategy().getClassName());
     }
   }
 
@@ -1324,22 +1322,21 @@ public class TableOperationsImpl extends TableOperationsHelper {
         lastRow = null;
       }
 
-      if (waitFor > 0 || holes > 0 || total == 0) {
-        long waitTime;
-        long maxPerServer = 0;
-        if (serverCounts.size() > 0) {
-          maxPerServer = serverCounts.max();
-          waitTime = maxPerServer * 10;
-        } else
-          waitTime = waitFor * 10L;
-        waitTime = Math.max(100, waitTime);
-        waitTime = Math.min(5000, waitTime);
-        log.trace("Waiting for {}({}) tablets, startRow = {} lastRow = {}, holes={} sleeping:{}ms",
-            waitFor, maxPerServer, startRow, lastRow, holes, waitTime);
-        sleepUninterruptibly(waitTime, TimeUnit.MILLISECONDS);
-      } else {
+      if ((waitFor <= 0) && (holes <= 0) && (total != 0)) {
         break;
       }
+      long waitTime;
+      long maxPerServer = 0;
+      if (serverCounts.size() > 0) {
+        maxPerServer = serverCounts.max();
+        waitTime = maxPerServer * 10;
+      } else
+        waitTime = waitFor * 10L;
+      waitTime = Math.max(100, waitTime);
+      waitTime = Math.min(5000, waitTime);
+      log.trace("Waiting for {}({}) tablets, startRow = {} lastRow = {}, holes={} sleeping:{}ms",
+          waitFor, maxPerServer, startRow, lastRow, holes, waitTime);
+      sleepUninterruptibly(waitTime, TimeUnit.MILLISECONDS);
 
     }
   }
@@ -1529,7 +1526,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       String fileList = Arrays.toString(exportFiles.toArray());
       log.warn("Found multiple export metadata files: " + fileList);
       throw new AccumuloException("Found multiple export metadata files: " + fileList);
-    } else if (exportFiles.isEmpty()) {
+    }
+    if (exportFiles.isEmpty()) {
       log.warn("Unable to locate export metadata");
       throw new AccumuloException("Unable to locate export metadata");
     }
@@ -1697,14 +1695,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
       if (namespaceNotFoundExceptionClass == null) {
         // should not happen
         throw new AssertionError(e);
-      } else if (AccumuloException.class.isAssignableFrom(namespaceNotFoundExceptionClass)) {
-        throw new AccumuloException("Cannot create table in non-existent namespace", e);
-      } else if (TableNotFoundException.class.isAssignableFrom(namespaceNotFoundExceptionClass)) {
-        throw new TableNotFoundException(null, tableOrNamespaceName, "Namespace not found", e);
-      } else {
-        // should not happen
-        throw new AssertionError(e);
       }
+      if (AccumuloException.class.isAssignableFrom(namespaceNotFoundExceptionClass)) {
+        throw new AccumuloException("Cannot create table in non-existent namespace", e);
+      }
+      if (TableNotFoundException.class.isAssignableFrom(namespaceNotFoundExceptionClass)) {
+        throw new TableNotFoundException(null, tableOrNamespaceName, "Namespace not found", e);
+      }
+      // should not happen
+      throw new AssertionError(e);
     }
   }
 

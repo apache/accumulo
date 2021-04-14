@@ -53,7 +53,6 @@ public class SingletonReservation implements AutoCloseable {
 
   private static class NoopSingletonReservation extends SingletonReservation {
     NoopSingletonReservation() {
-      super();
       super.closed.set(true);
       // deregister the cleaner
       super.cleanable.clean();

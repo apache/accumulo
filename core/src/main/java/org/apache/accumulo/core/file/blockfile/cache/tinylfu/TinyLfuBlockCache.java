@@ -89,9 +89,7 @@ public final class TinyLfuBlockCache implements BlockCache {
 
   @Override
   public CacheEntry cacheBlock(String blockName, byte[] buffer) {
-    return wrap(blockName, cache.asMap().compute(blockName, (key, block) -> {
-      return new Block(buffer);
-    }));
+    return wrap(blockName, cache.asMap().compute(blockName, (key, block) -> new Block(buffer)));
   }
 
   @Override
@@ -216,17 +214,16 @@ public final class TinyLfuBlockCache implements BlockCache {
         return null;
       }
       return Collections.singletonMap(entry.getKey(), ce.getBuffer());
-    } else {
-      HashMap<String,byte[]> resolvedDeps = new HashMap<>();
-      for (Entry<String,Loader> entry : deps.entrySet()) {
-        CacheEntry ce = getBlock(entry.getKey(), entry.getValue());
-        if (ce == null) {
-          return null;
-        }
-        resolvedDeps.put(entry.getKey(), ce.getBuffer());
-      }
-      return resolvedDeps;
     }
+    HashMap<String,byte[]> resolvedDeps = new HashMap<>();
+    for (Entry<String,Loader> entry : deps.entrySet()) {
+      CacheEntry ce = getBlock(entry.getKey(), entry.getValue());
+      if (ce == null) {
+        return null;
+      }
+      resolvedDeps.put(entry.getKey(), ce.getBuffer());
+    }
+    return resolvedDeps;
   }
 
   @Override

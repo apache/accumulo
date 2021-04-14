@@ -214,8 +214,7 @@ public class UserImpersonation {
         usersWithHosts.setAcceptAllUsers(true);
       } else {
         String[] allowedUsers = allowedImpersonationsForRemoteUser.split(",");
-        Set<String> usersSet = new HashSet<>();
-        usersSet.addAll(Arrays.asList(allowedUsers));
+        Set<String> usersSet = new HashSet<>(Arrays.asList(allowedUsers));
         usersWithHosts.setUsers(usersSet);
       }
 
@@ -223,8 +222,7 @@ public class UserImpersonation {
         usersWithHosts.setAcceptAllHosts(true);
       } else {
         String[] allowedHosts = hostConfig.split(",");
-        Set<String> hostsSet = new HashSet<>();
-        hostsSet.addAll(Arrays.asList(allowedHosts));
+        Set<String> hostsSet = new HashSet<>(Arrays.asList(allowedHosts));
         usersWithHosts.setHosts(hostsSet);
       }
     }

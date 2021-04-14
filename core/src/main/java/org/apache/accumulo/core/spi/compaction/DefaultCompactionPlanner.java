@@ -221,12 +221,11 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
       if (group.isEmpty()) {
         return params.createPlanBuilder().build();
-      } else {
-        // determine which executor to use based on the size of the files
-        var ceid = getExecutor(group);
-
-        return params.createPlanBuilder().addJob(createPriority(params), ceid, group).build();
       }
+      // determine which executor to use based on the size of the files
+      var ceid = getExecutor(group);
+
+      return params.createPlanBuilder().addJob(createPriority(params), ceid, group).build();
     } catch (RuntimeException e) {
       throw e;
     }
@@ -381,12 +380,11 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
         // previous files are candidates. However we must ensure that any candidate set produces a
         // file smaller than the next largest file in the next candidate set to ensure future
         // compactions are not prevented.
-        if (larsmaIndex == -1 || larsmaSum > sortedFiles.get(goodIndex).getEstimatedSize()) {
-          larsmaIndex = goodIndex;
-          larsmaSum = sum - currSize;
-        } else {
+        if ((larsmaIndex != -1) && (larsmaSum <= sortedFiles.get(goodIndex).getEstimatedSize())) {
           break;
         }
+        larsmaIndex = goodIndex;
+        larsmaSum = sum - currSize;
       }
     }
 

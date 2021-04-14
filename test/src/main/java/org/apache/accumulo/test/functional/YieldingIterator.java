@@ -60,7 +60,7 @@ public class YieldingIterator extends WrappingIterator {
 
   @Override
   public boolean hasTop() {
-    return (!(yield.isPresent() && yield.get().hasYielded()) && super.hasTop());
+    return ((!yield.isPresent() || !yield.get().hasYielded()) && super.hasTop());
   }
 
   @Override

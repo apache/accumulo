@@ -86,23 +86,22 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
         cache.put(testVis, false);
         return false;
       }
-    } else {
-      if (testVis.length() == 0) {
-        return true;
-      }
+    }
+    if (testVis.length() == 0) {
+      return true;
+    }
 
-      Boolean b = cache.get(testVis);
-      if (b != null)
-        return b;
+    Boolean b = cache.get(testVis);
+    if (b != null)
+      return b;
 
-      try {
-        boolean bb = ve.evaluate(new ColumnVisibility(testVis.toArray()));
-        cache.put(testVis, bb);
-        return bb;
-      } catch (VisibilityParseException | BadArgumentException e) {
-        log.error("Parse Error", e);
-        return false;
-      }
+    try {
+      boolean bb = ve.evaluate(new ColumnVisibility(testVis.toArray()));
+      cache.put(testVis, bb);
+      return bb;
+    } catch (VisibilityParseException | BadArgumentException e) {
+      log.error("Parse Error", e);
+      return false;
     }
   }
 

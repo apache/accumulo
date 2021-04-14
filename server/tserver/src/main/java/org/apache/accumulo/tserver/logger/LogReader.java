@@ -142,38 +142,36 @@ public class LogReader {
 
     if (ke != null) {
       if (key.event == LogEvents.DEFINE_TABLET) {
-        if (key.tablet.equals(ke)) {
-          tabletIds.add(key.tabletId);
-        } else {
+        if (!key.tablet.equals(ke)) {
           return;
         }
+        tabletIds.add(key.tabletId);
       } else if (!tabletIds.contains(key.tabletId)) {
         return;
       }
     }
 
     if (row != null || rowMatcher != null) {
-      if (key.event == LogEvents.MUTATION || key.event == LogEvents.MANY_MUTATIONS) {
-        boolean found = false;
-        for (Mutation m : value.mutations) {
-          if (row != null && new Text(m.getRow()).equals(row)) {
+      if ((key.event != LogEvents.MUTATION) && (key.event != LogEvents.MANY_MUTATIONS)) {
+        return;
+      }
+      boolean found = false;
+      for (Mutation m : value.mutations) {
+        if (row != null && new Text(m.getRow()).equals(row)) {
+          found = true;
+          break;
+        }
+
+        if (rowMatcher != null) {
+          rowMatcher.reset(new String(m.getRow(), UTF_8));
+          if (rowMatcher.matches()) {
             found = true;
             break;
           }
-
-          if (rowMatcher != null) {
-            rowMatcher.reset(new String(m.getRow(), UTF_8));
-            if (rowMatcher.matches()) {
-              found = true;
-              break;
-            }
-          }
         }
+      }
 
-        if (!found) {
-          return;
-        }
-      } else {
+      if (!found) {
         return;
       }
 

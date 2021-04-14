@@ -68,14 +68,13 @@ public class ShellUtil {
   }
 
   public static Map<String,String> parseMapOpt(CommandLine cl, Option opt) {
-    if (cl.hasOption(opt.getLongOpt())) {
-      return Arrays.stream(cl.getOptionValue(opt.getLongOpt()).split(",")).map(kv -> {
-        String[] sa = kv.split("=");
-        return new Pair<>(sa[0], sa[1]);
-      }).collect(Collectors.toUnmodifiableMap(Pair::getFirst, Pair::getSecond));
-    } else {
+    if (!cl.hasOption(opt.getLongOpt())) {
       return Collections.emptyMap();
     }
+    return Arrays.stream(cl.getOptionValue(opt.getLongOpt()).split(",")).map(kv -> {
+      String[] sa = kv.split("=");
+      return new Pair<>(sa[0], sa[1]);
+    }).collect(Collectors.toUnmodifiableMap(Pair::getFirst, Pair::getSecond));
 
   }
 }

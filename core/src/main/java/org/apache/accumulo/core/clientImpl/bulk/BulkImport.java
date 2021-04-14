@@ -199,10 +199,9 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         throw new AccumuloException("Bulk import directory " + dir + " is not a directory!");
       }
       Path tmpFile = new Path(ret, "isWritable");
-      if (fs.createNewFile(tmpFile))
-        fs.delete(tmpFile, true);
-      else
+      if (!fs.createNewFile(tmpFile))
         throw new AccumuloException("Bulk import directory " + dir + " is not writable.");
+      fs.delete(tmpFile, true);
     } catch (FileNotFoundException fnf) {
       throw new AccumuloException(
           "Bulk import directory " + dir + " does not exist or has bad permissions", fnf);
@@ -320,10 +319,9 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
       KeyExtent extent = extentCache.lookup(row);
       result.add(extent);
       row = extent.endRow();
-      if (row != null) {
-        row = nextRow(row);
-      } else
+      if (row == null)
         break;
+      row = nextRow(row);
     }
 
     return result;

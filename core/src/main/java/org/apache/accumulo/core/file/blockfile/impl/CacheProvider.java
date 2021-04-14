@@ -21,7 +21,7 @@ package org.apache.accumulo.core.file.blockfile.impl;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 
 public interface CacheProvider {
-  static final CacheProvider NULL_PROVIDER = new BasicCacheProvider(null, null);
+  CacheProvider NULL_PROVIDER = new BasicCacheProvider(null, null);
 
   BlockCache getDataCache();
 

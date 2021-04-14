@@ -213,16 +213,14 @@ public class InMemoryMap {
     public InterruptibleIterator skvIterator(SamplerConfigurationImpl samplerConfig) {
       if (samplerConfig == null)
         return map.skvIterator(null);
-      else {
-        Pair<SamplerConfigurationImpl,Sampler> samplerAndConf = samplerRef.get();
-        if (samplerAndConf == null) {
-          return EmptyIterator.EMPTY_ITERATOR;
-        } else if (samplerAndConf.getFirst() != null
-            && samplerAndConf.getFirst().equals(samplerConfig)) {
-          return sample.skvIterator(null);
-        } else {
-          throw new SampleNotPresentException();
-        }
+      Pair<SamplerConfigurationImpl,Sampler> samplerAndConf = samplerRef.get();
+      if (samplerAndConf == null) {
+        return EmptyIterator.EMPTY_ITERATOR;
+      } else if (samplerAndConf.getFirst() != null
+          && samplerAndConf.getFirst().equals(samplerConfig)) {
+        return sample.skvIterator(null);
+      } else {
+        throw new SampleNotPresentException();
       }
     }
 
@@ -528,14 +526,13 @@ public class InMemoryMap {
     private SamplerConfigurationImpl iteratorSamplerConfig;
 
     private SamplerConfigurationImpl getSamplerConfig() {
-      if (env != null) {
-        if (env.isSamplingEnabled()) {
-          return new SamplerConfigurationImpl(env.getSamplerConfiguration());
-        } else {
-          return null;
-        }
-      } else {
+      if (env == null) {
         return iteratorSamplerConfig;
+      }
+      if (env.isSamplingEnabled()) {
+        return new SamplerConfigurationImpl(env.getSamplerConfiguration());
+      } else {
+        return null;
       }
     }
 
@@ -556,8 +553,7 @@ public class InMemoryMap {
     public boolean isCurrent() {
       if (switched)
         return true;
-      else
-        return memDumpFile == null;
+      return memDumpFile == null;
     }
 
     @Override
@@ -605,18 +601,16 @@ public class InMemoryMap {
           iter = map.skvIterator(getSamplerConfig());
           if (iflag != null)
             iter.setInterruptFlag(iflag);
-        } else {
-          if (parent == null)
-            iter = new MemKeyConversionIterator(getReader());
-          else
-            synchronized (parent) {
-              // synchronize deep copy operation on parent, this prevents multiple threads from deep
-              // copying the rfile shared from parent its possible that the
-              // thread deleting an InMemoryMap and scan thread could be switching different deep
-              // copies
-              iter = new MemKeyConversionIterator(parent.getReader().deepCopy(env));
-            }
-        }
+        } else if (parent == null)
+          iter = new MemKeyConversionIterator(getReader());
+        else
+          synchronized (parent) {
+            // synchronize deep copy operation on parent, this prevents multiple threads from deep
+            // copying the rfile shared from parent its possible that the
+            // thread deleting an InMemoryMap and scan thread could be switching different deep
+            // copies
+            iter = new MemKeyConversionIterator(parent.getReader().deepCopy(env));
+          }
 
       return iter;
     }

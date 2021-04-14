@@ -99,16 +99,15 @@ public class BulkImport extends ManagerRepo {
       return 100;
 
     Tables.clearCache(manager.getContext());
-    if (Tables.getTableState(manager.getContext(), tableId) == TableState.ONLINE) {
-      long reserve1, reserve2;
-      reserve1 = reserve2 = Utils.reserveHdfsDirectory(manager, sourceDir, tid);
-      if (reserve1 == 0)
-        reserve2 = Utils.reserveHdfsDirectory(manager, errorDir, tid);
-      return reserve2;
-    } else {
+    if (Tables.getTableState(manager.getContext(), tableId) != TableState.ONLINE) {
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.BULK_IMPORT, TableOperationExceptionType.OFFLINE, null);
     }
+    long reserve1, reserve2;
+    reserve1 = reserve2 = Utils.reserveHdfsDirectory(manager, sourceDir, tid);
+    if (reserve1 == 0)
+      reserve2 = Utils.reserveHdfsDirectory(manager, errorDir, tid);
+    return reserve2;
   }
 
   @Override

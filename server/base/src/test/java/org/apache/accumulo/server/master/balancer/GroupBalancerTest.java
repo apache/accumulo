@@ -46,14 +46,9 @@ import org.junit.Test;
 @Deprecated(since = "2.1.0")
 public class GroupBalancerTest {
 
-  private static Function<KeyExtent,String> partitioner = new Function<>() {
-
-    @Override
-    public String apply(KeyExtent input) {
-      return (input == null || input.endRow() == null) ? null
+  private static Function<KeyExtent,String> partitioner =
+      input -> (input == null || input.endRow() == null) ? null
           : input.endRow().toString().substring(0, 2);
-    }
-  };
 
   public static class TabletServers {
     private final Set<TServerInstance> tservers = new HashSet<>();

@@ -223,15 +223,12 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
 
       for (int k = 0; k < NUM_THREADS; k++) {
         final int idx = k;
-        threads.execute(new Runnable() {
-          @Override
-          public void run() {
-            try {
-              bw.addMutations(allMuts.get(idx));
-              bw.flush();
-            } catch (MutationsRejectedException e) {
-              fail("Error adding mutations to batch writer");
-            }
+        threads.execute(() -> {
+          try {
+            bw.addMutations(allMuts.get(idx));
+            bw.flush();
+          } catch (MutationsRejectedException e) {
+            fail("Error adding mutations to batch writer");
           }
         });
       }

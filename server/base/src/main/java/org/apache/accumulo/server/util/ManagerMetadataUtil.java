@@ -129,42 +129,41 @@ public class ManagerMetadataUtil {
     try (ScannerImpl scanner2 = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
       scanner2.setRange(new Range(prevRowKey, prevRowKey.followingKey(PartialKey.ROW)));
 
-      if (scanner2.iterator().hasNext()) {
-        log.info("Finishing incomplete split {} {}", metadataEntry, metadataPrevEndRow);
-
-        List<StoredTabletFile> highDatafilesToRemove = new ArrayList<>();
-
-        SortedMap<StoredTabletFile,DataFileValue> origDatafileSizes = new TreeMap<>();
-        SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes = new TreeMap<>();
-        SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
-
-        Key rowKey = new Key(metadataEntry);
-        try (Scanner scanner3 = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
-
-          scanner3.fetchColumnFamily(DataFileColumnFamily.NAME);
-          scanner3.setRange(new Range(rowKey, rowKey.followingKey(PartialKey.ROW)));
-
-          for (Entry<Key,Value> entry : scanner3) {
-            if (entry.getKey().compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
-              StoredTabletFile stf =
-                  new StoredTabletFile(entry.getKey().getColumnQualifierData().toString());
-              origDatafileSizes.put(stf, new DataFileValue(entry.getValue().get()));
-            }
-          }
-        }
-
-        MetadataTableUtil.splitDatafiles(metadataPrevEndRow, splitRatio, new HashMap<>(),
-            origDatafileSizes, lowDatafileSizes, highDatafileSizes, highDatafilesToRemove);
-
-        MetadataTableUtil.finishSplit(metadataEntry, highDatafileSizes, highDatafilesToRemove,
-            context, lock);
-
-        return KeyExtent.fromMetaRow(rowKey.getRow(), metadataPrevEndRow);
-      } else {
+      if (!scanner2.iterator().hasNext()) {
         log.info("Rolling back incomplete split {} {}", metadataEntry, metadataPrevEndRow);
         MetadataTableUtil.rollBackSplit(metadataEntry, oper, context, lock);
         return KeyExtent.fromMetaRow(metadataEntry, oper);
       }
+      log.info("Finishing incomplete split {} {}", metadataEntry, metadataPrevEndRow);
+
+      List<StoredTabletFile> highDatafilesToRemove = new ArrayList<>();
+
+      SortedMap<StoredTabletFile,DataFileValue> origDatafileSizes = new TreeMap<>();
+      SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes = new TreeMap<>();
+      SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
+
+      Key rowKey = new Key(metadataEntry);
+      try (Scanner scanner3 = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
+
+        scanner3.fetchColumnFamily(DataFileColumnFamily.NAME);
+        scanner3.setRange(new Range(rowKey, rowKey.followingKey(PartialKey.ROW)));
+
+        for (Entry<Key,Value> entry : scanner3) {
+          if (entry.getKey().compareColumnFamily(DataFileColumnFamily.NAME) == 0) {
+            StoredTabletFile stf =
+                new StoredTabletFile(entry.getKey().getColumnQualifierData().toString());
+            origDatafileSizes.put(stf, new DataFileValue(entry.getValue().get()));
+          }
+        }
+      }
+
+      MetadataTableUtil.splitDatafiles(metadataPrevEndRow, splitRatio, new HashMap<>(),
+          origDatafileSizes, lowDatafileSizes, highDatafileSizes, highDatafilesToRemove);
+
+      MetadataTableUtil.finishSplit(metadataEntry, highDatafileSizes, highDatafilesToRemove,
+          context, lock);
+
+      return KeyExtent.fromMetaRow(rowKey.getRow(), metadataPrevEndRow);
     }
   }
 

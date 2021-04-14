@@ -91,7 +91,7 @@ public class RecoveryLogReader implements CloseableIterator<Entry<LogFileKey,Log
 
     @Override
     public boolean equals(Object obj) {
-      return this == obj || (obj != null && obj instanceof Index && compareTo((Index) obj) == 0);
+      return this == obj || (obj instanceof Index && compareTo((Index) obj) == 0);
     }
 
     @Override
@@ -157,13 +157,12 @@ public class RecoveryLogReader implements CloseableIterator<Entry<LogFileKey,Log
     Index elt = heap.remove();
     try {
       elt.cache();
-      if (elt.cached) {
-        copy(elt.key, key);
-        copy(elt.value, val);
-        elt.cached = false;
-      } else {
+      if (!elt.cached) {
         return false;
       }
+      copy(elt.key, key);
+      copy(elt.value, val);
+      elt.cached = false;
     } finally {
       heap.add(elt);
     }

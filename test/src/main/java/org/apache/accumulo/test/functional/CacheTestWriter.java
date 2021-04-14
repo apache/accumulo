@@ -112,11 +112,9 @@ public class CacheTestWriter {
 
           expectedData.put(rootDir + "/dataS", new String(data, UTF_8));
 
-        } else {
-          if (dataSExists) {
-            zk.recursiveDelete(rootDir + "/dataS", NodeMissingPolicy.FAIL);
-            dataSExists = false;
-          }
+        } else if (dataSExists) {
+          zk.recursiveDelete(rootDir + "/dataS", NodeMissingPolicy.FAIL);
+          dataSExists = false;
         }
       }
 

@@ -43,12 +43,11 @@ public class ByteBufferUtil {
       // did not use buffer.get() because it changes the position
       return Arrays.copyOfRange(buffer.array(), buffer.position() + buffer.arrayOffset(),
           buffer.limit() + buffer.arrayOffset());
-    } else {
-      byte[] data = new byte[buffer.remaining()];
-      // duplicate inorder to avoid changing position
-      buffer.duplicate().get(data);
-      return data;
     }
+    byte[] data = new byte[buffer.remaining()];
+    // duplicate inorder to avoid changing position
+    buffer.duplicate().get(data);
+    return data;
   }
 
   public static List<ByteBuffer> toByteBuffers(Collection<byte[]> bytesList) {
@@ -90,18 +89,16 @@ public class ByteBufferUtil {
       result.set(byteBuffer.array(), byteBuffer.arrayOffset() + byteBuffer.position(),
           byteBuffer.remaining());
       return result;
-    } else {
-      return new Text(toBytes(byteBuffer));
     }
+    return new Text(toBytes(byteBuffer));
   }
 
   public static String toString(ByteBuffer bytes) {
     if (bytes.hasArray()) {
       return new String(bytes.array(), bytes.arrayOffset() + bytes.position(), bytes.remaining(),
           UTF_8);
-    } else {
-      return new String(toBytes(bytes), UTF_8);
     }
+    return new String(toBytes(bytes), UTF_8);
   }
 
   public static TableId toTableId(ByteBuffer bytes) {
@@ -114,9 +111,8 @@ public class ByteBufferUtil {
 
     if (bs.isBackedByArray()) {
       return ByteBuffer.wrap(bs.getBackingArray(), bs.offset(), bs.length());
-    } else {
-      return ByteBuffer.wrap(bs.toArray());
     }
+    return ByteBuffer.wrap(bs.toArray());
   }
 
   public static void write(DataOutput out, ByteBuffer buffer) throws IOException {
@@ -131,8 +127,7 @@ public class ByteBufferUtil {
     if (buffer.hasArray()) {
       return new ByteArrayInputStream(buffer.array(), buffer.arrayOffset() + buffer.position(),
           buffer.remaining());
-    } else {
-      return new ByteArrayInputStream(toBytes(buffer));
     }
+    return new ByteArrayInputStream(toBytes(buffer));
   }
 }

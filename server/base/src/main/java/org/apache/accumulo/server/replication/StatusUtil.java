@@ -214,9 +214,8 @@ public class StatusUtil {
   public static boolean isFullyReplicated(Status status) {
     if (status.getInfiniteEnd()) {
       return status.getBegin() == Long.MAX_VALUE;
-    } else {
-      return status.getBegin() >= status.getEnd();
     }
+    return status.getBegin() >= status.getEnd();
   }
 
   /**
@@ -229,8 +228,7 @@ public class StatusUtil {
   public static boolean isWorkRequired(Status status) {
     if (status.getInfiniteEnd()) {
       return status.getBegin() != Long.MAX_VALUE;
-    } else {
-      return status.getBegin() < status.getEnd();
     }
+    return status.getBegin() < status.getEnd();
   }
 }

@@ -153,10 +153,8 @@ public class ConfigCommand extends Command {
       }
     } else {
       // display properties
-      final TreeMap<String,String> systemConfig = new TreeMap<>();
-      systemConfig
-          .putAll(shellState.getAccumuloClient().instanceOperations().getSystemConfiguration());
-
+      final TreeMap<String,String> systemConfig = new TreeMap<>(
+          shellState.getAccumuloClient().instanceOperations().getSystemConfiguration());
       final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
       final PrintFile printFile = outputFile == null ? null : new PrintFile(outputFile);
 
@@ -246,11 +244,9 @@ public class ConfigCommand extends Command {
           }
 
         }
-        if (nspVal != null) {
-          if (!systemConfig.containsKey(key) || !sysVal.equals(nspVal)) {
-            printConfLine(output, "namespace", printed ? "   @override" : key, nspVal);
-            printed = true;
-          }
+        if ((nspVal != null) && (!systemConfig.containsKey(key) || !sysVal.equals(nspVal))) {
+          printConfLine(output, "namespace", printed ? "   @override" : key, nspVal);
+          printed = true;
         }
 
         // show per-table value only if it is different (overridden)
@@ -275,8 +271,8 @@ public class ConfigCommand extends Command {
       return true;
     }
     return cl.hasOption(filterWithValuesOpt.getOpt())
-        && !(key.contains(cl.getOptionValue(filterWithValuesOpt.getOpt()))
-            || value.contains(cl.getOptionValue(filterWithValuesOpt.getOpt())));
+        && (!key.contains(cl.getOptionValue(filterWithValuesOpt.getOpt()))
+            && !value.contains(cl.getOptionValue(filterWithValuesOpt.getOpt())));
   }
 
   private void printConfHeader(List<String> output) {

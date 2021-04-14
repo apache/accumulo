@@ -78,21 +78,20 @@ public class StatusFormatter implements Formatter {
 
     // If we expected this to be a protobuf, try to parse it, adding a message when it fails to
     // parse
-    if (REPLICATION_COLFAMS.contains(entry.getKey().getColumnFamily())) {
-      Status status;
-      try {
-        status = Status.parseFrom(entry.getValue().get());
-      } catch (InvalidProtocolBufferException e) {
-        log.trace("Could not deserialize protocol buffer for {}", entry.getKey(), e);
-        status = null;
-      }
-
-      return formatEntry(entry.getKey(), status, timestampFormat);
-    } else {
+    if (!REPLICATION_COLFAMS.contains(entry.getKey().getColumnFamily())) {
       // Otherwise, we're set on a table that contains other data too (e.g. accumulo.metadata)
       // Just do the normal thing
       return DefaultFormatter.formatEntry(entry, timestampFormat);
     }
+    Status status;
+    try {
+      status = Status.parseFrom(entry.getValue().get());
+    } catch (InvalidProtocolBufferException e) {
+      log.trace("Could not deserialize protocol buffer for {}", entry.getKey(), e);
+      status = null;
+    }
+
+    return formatEntry(entry.getKey(), status, timestampFormat);
   }
 
   public String formatEntry(Key key, Status status, DateFormat timestampFormat) {

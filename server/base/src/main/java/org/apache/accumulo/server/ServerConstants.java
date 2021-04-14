@@ -123,9 +123,8 @@ public class ServerConstants {
       } catch (Exception e) {
         if (ignore) {
           continue;
-        } else {
-          throw new IllegalArgumentException("Accumulo volume " + path + " not initialized", e);
         }
+        throw new IllegalArgumentException("Accumulo volume " + path + " not initialized", e);
       }
 
       if (firstIid == null) {

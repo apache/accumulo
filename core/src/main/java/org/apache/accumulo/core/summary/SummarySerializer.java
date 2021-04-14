@@ -309,11 +309,10 @@ class SummarySerializer {
           collapsedSome |= lgBuilder.collapse();
         }
 
-        if (collapsedSome) {
-          data = _save();
-        } else {
+        if (!collapsedSome) {
           break;
         }
+        data = _save();
       }
 
       if (data.length > maxSize) {
@@ -400,23 +399,22 @@ class SummarySerializer {
     boolean exceededMaxSize = in.readBoolean();
     if (exceededMaxSize) {
       return new SummarySerializer(sconf);
-    } else {
-      WritableUtils.readVInt(in);
-      // load symbol table
-      int numSymbols = WritableUtils.readVInt(in);
-      String[] symbols = new String[numSymbols];
-      for (int i = 0; i < numSymbols; i++) {
-        symbols[i] = in.readUTF();
-      }
-
-      int numLGroups = WritableUtils.readVInt(in);
-      LgSummaries[] allSummaries = new LgSummaries[numLGroups];
-      for (int i = 0; i < numLGroups; i++) {
-        allSummaries[i] = readLGroup(in, symbols);
-      }
-
-      return new SummarySerializer(sconf, allSummaries);
     }
+    WritableUtils.readVInt(in);
+    // load symbol table
+    int numSymbols = WritableUtils.readVInt(in);
+    String[] symbols = new String[numSymbols];
+    for (int i = 0; i < numSymbols; i++) {
+      symbols[i] = in.readUTF();
+    }
+
+    int numLGroups = WritableUtils.readVInt(in);
+    LgSummaries[] allSummaries = new LgSummaries[numLGroups];
+    for (int i = 0; i < numLGroups; i++) {
+      allSummaries[i] = readLGroup(in, symbols);
+    }
+
+    return new SummarySerializer(sconf, allSummaries);
   }
 
   private static class LgSummaries {

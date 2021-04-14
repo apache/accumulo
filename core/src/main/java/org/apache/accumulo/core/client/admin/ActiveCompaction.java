@@ -29,7 +29,7 @@ import org.apache.accumulo.core.data.TabletId;
  */
 public abstract class ActiveCompaction {
 
-  public static enum CompactionType {
+  public enum CompactionType {
     /**
      * compaction to flush a tablets memory
      */
@@ -49,7 +49,7 @@ public abstract class ActiveCompaction {
     FULL
   }
 
-  public static enum CompactionReason {
+  public enum CompactionReason {
     /**
      * compaction initiated by user
      */
