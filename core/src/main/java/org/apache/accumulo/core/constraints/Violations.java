@@ -18,36 +18,60 @@
  */
 package org.apache.accumulo.core.constraints;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /**
- * This class is replaced by {@link org.apache.accumulo.core.data.constraints.Violations}
- *
- * @deprecated since 2.1.0 Use {@link org.apache.accumulo.core.data.constraints.Violations}
+ * A class for accumulating constraint violations across a number of mutations.
  */
-@Deprecated(since = "2.1.0")
-@SuppressFBWarnings(value = {"NM_SAME_SIMPLE_NAME_AS_SUPERCLASS"},
-    justification = "Same name used for compatibility during deprecation cycle")
-public class Violations extends org.apache.accumulo.core.data.constraints.Violations {
+public class Violations {
 
-  public static final org.apache.accumulo.core.constraints.Violations EMPTY =
-      new org.apache.accumulo.core.constraints.Violations(Collections.emptyMap());
+  private static class CVSKey {
+    private String className;
+    private short vcode;
+
+    CVSKey(ConstraintViolationSummary cvs) {
+      this.className = cvs.constrainClass;
+      this.vcode = cvs.violationCode;
+    }
+
+    @Override
+    public int hashCode() {
+      return className.hashCode() + vcode;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (o instanceof CVSKey)
+        return equals((CVSKey) o);
+      return false;
+    }
+
+    public boolean equals(CVSKey ocvsk) {
+      return className.equals(ocvsk.className) && vcode == ocvsk.vcode;
+    }
+  }
+
+  public static final Violations EMPTY = new Violations(Collections.emptyMap());
+
+  private Map<CVSKey,ConstraintViolationSummary> cvsmap;
 
   /**
    * Creates a new empty object.
    */
   public Violations() {
-    super();
+    cvsmap = new HashMap<>();
   }
 
   private Violations(Map<CVSKey,ConstraintViolationSummary> cvsmap) {
-    super(cvsmap);
+    this.cvsmap = cvsmap;
   }
 
   /**
@@ -56,7 +80,17 @@ public class Violations extends org.apache.accumulo.core.data.constraints.Violat
    * @return true if empty
    */
   public boolean isEmpty() {
-    return super.isEmpty();
+    return cvsmap.isEmpty();
+  }
+
+  private void add(CVSKey cvsk, ConstraintViolationSummary cvs) {
+    ConstraintViolationSummary existingCvs = cvsmap.get(cvsk);
+
+    if (existingCvs == null) {
+      cvsmap.put(cvsk, cvs);
+    } else {
+      existingCvs.numberOfViolatingMutations += cvs.numberOfViolatingMutations;
+    }
   }
 
   /**
@@ -66,7 +100,8 @@ public class Violations extends org.apache.accumulo.core.data.constraints.Violat
    *          summary of violation
    */
   public void add(ConstraintViolationSummary cvs) {
-    super.add(cvs);
+    CVSKey cvsk = new CVSKey(cvs);
+    add(cvsk, cvs);
   }
 
   /**
@@ -75,10 +110,13 @@ public class Violations extends org.apache.accumulo.core.data.constraints.Violat
    * @param violations
    *          violations to add
    */
-  @SuppressFBWarnings(value = "NM_WRONG_PACKAGE",
-      justification = "Same name used for compatibility during deprecation cycle")
-  public void add(org.apache.accumulo.core.constraints.Violations violations) {
-    super.add(violations);
+  public void add(Violations violations) {
+    Set<Entry<CVSKey,ConstraintViolationSummary>> es = violations.cvsmap.entrySet();
+
+    for (Entry<CVSKey,ConstraintViolationSummary> entry : es) {
+      add(entry.getKey(), entry.getValue());
+    }
+
   }
 
   /**
@@ -88,7 +126,10 @@ public class Violations extends org.apache.accumulo.core.data.constraints.Violat
    *          list of violation summaries
    */
   public void add(List<ConstraintViolationSummary> cvsList) {
-    super.add(cvsList);
+    for (ConstraintViolationSummary constraintViolationSummary : cvsList) {
+      add(constraintViolationSummary);
+    }
+
   }
 
   /**
@@ -97,7 +138,7 @@ public class Violations extends org.apache.accumulo.core.data.constraints.Violat
    * @return list of violation summaries
    */
   public List<ConstraintViolationSummary> asList() {
-    return super.asList();
+    return new ArrayList<>(cvsmap.values());
   }
 
 }

@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.constraints.Violations;
 
 import com.google.common.base.Preconditions;
 
