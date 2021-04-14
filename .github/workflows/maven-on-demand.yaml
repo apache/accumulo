@@ -57,7 +57,6 @@ on:
 jobs:
   mvn:
     name: mvn (triggered by ${{ github.event.sender.login }})
-    timeout-minutes: 360
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -78,6 +77,7 @@ jobs:
     - name: Show the first log message
       run: git log -n1
     - name: Build with Maven
+      timeout-minutes: 345
       run: mvn -B -V -e -ntp "-Dstyle.color=always" ${{ github.event.inputs.mvnOpts }} ${{ github.event.inputs.goals }} ${{ github.event.inputs.utOpts }} ${{ github.event.inputs.itOpts }} ${{ github.event.inputs.addOpts }}
       env:
         MAVEN_OPTS: -Djansi.force=true
