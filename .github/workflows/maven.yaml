@@ -32,7 +32,6 @@ on:
 jobs:
   # fast build to populate the local maven repository cache
   fastbuild:
-    timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -51,6 +50,7 @@ jobs:
     - name: Show the first log message
       run: git log -n1
     - name: Build with Maven (Fast Build)
+      timeout-minutes: 20
       run: mvn -B -V -e -ntp "-Dstyle.color=always" clean package dependency:resolve -PskipQA
       env:
         MAVEN_OPTS: -Djansi.force=true
@@ -63,7 +63,6 @@ jobs:
           - {name: 'Hadoop2', args: 'verify javadoc:jar -DskipITs'}
           - {name: 'Hadoop3', args: 'verify javadoc:jar -DskipITs -Dhadoop.profile=3'}
       fail-fast: false
-    timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -80,6 +79,7 @@ jobs:
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
     - name: Build with Maven (${{ matrix.profile.name }})
+      timeout-minutes: 60
       run: mvn -B -V -e -ntp "-Dstyle.color=always" ${{ matrix.profile.args }}
       env:
         MAVEN_OPTS: -Djansi.force=true
