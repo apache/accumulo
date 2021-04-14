@@ -45,6 +45,10 @@
                 <div class="col-sm-4 text-right">Instance&nbsp;Id</div>
                 <div class="col-sm-6 text-left">${instance_id}</div>
               </div>
+              <div class="row">
+                <div class="col-sm-4 text-right">Zookeeper&nbsp;Hosts</div>
+                <div class="col-sm-6 text-left">${zk_hosts}</div>
+              </div>
             </div>
           </div>
           <div class="modal-footer">
