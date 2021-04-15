@@ -94,6 +94,6 @@ public interface Constraint extends org.apache.accumulo.core.data.constraints.Co
   @Override
   default List<Short> checkMutation(
       org.apache.accumulo.core.data.constraints.Constraint.Environment env, Mutation mutation) {
-    throw new UnsupportedOperationException();
+    return check((Environment) env, mutation);
   }
 }
