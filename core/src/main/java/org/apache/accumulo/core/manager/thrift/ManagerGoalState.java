@@ -22,31 +22,17 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.master.thrift;
+package org.apache.accumulo.core.manager.thrift;
 
 
-public enum FateOperation implements org.apache.thrift.TEnum {
-  TABLE_CREATE(0),
-  TABLE_CLONE(1),
-  TABLE_DELETE(2),
-  TABLE_RENAME(3),
-  TABLE_ONLINE(4),
-  TABLE_OFFLINE(5),
-  TABLE_MERGE(6),
-  TABLE_DELETE_RANGE(7),
-  TABLE_BULK_IMPORT(8),
-  TABLE_COMPACT(9),
-  TABLE_IMPORT(10),
-  TABLE_EXPORT(11),
-  TABLE_CANCEL_COMPACT(12),
-  NAMESPACE_CREATE(13),
-  NAMESPACE_DELETE(14),
-  NAMESPACE_RENAME(15),
-  TABLE_BULK_IMPORT2(16);
+public enum ManagerGoalState implements org.apache.thrift.TEnum {
+  CLEAN_STOP(0),
+  SAFE_MODE(1),
+  NORMAL(2);
 
   private final int value;
 
-  private FateOperation(int value) {
+  private ManagerGoalState(int value) {
     this.value = value;
   }
 
@@ -62,42 +48,14 @@ public enum FateOperation implements org.apache.thrift.TEnum {
    * @return null if the value is not found.
    */
   @org.apache.thrift.annotation.Nullable
-  public static FateOperation findByValue(int value) { 
+  public static ManagerGoalState findByValue(int value) { 
     switch (value) {
       case 0:
-        return TABLE_CREATE;
+        return CLEAN_STOP;
       case 1:
-        return TABLE_CLONE;
+        return SAFE_MODE;
       case 2:
-        return TABLE_DELETE;
-      case 3:
-        return TABLE_RENAME;
-      case 4:
-        return TABLE_ONLINE;
-      case 5:
-        return TABLE_OFFLINE;
-      case 6:
-        return TABLE_MERGE;
-      case 7:
-        return TABLE_DELETE_RANGE;
-      case 8:
-        return TABLE_BULK_IMPORT;
-      case 9:
-        return TABLE_COMPACT;
-      case 10:
-        return TABLE_IMPORT;
-      case 11:
-        return TABLE_EXPORT;
-      case 12:
-        return TABLE_CANCEL_COMPACT;
-      case 13:
-        return NAMESPACE_CREATE;
-      case 14:
-        return NAMESPACE_DELETE;
-      case 15:
-        return NAMESPACE_RENAME;
-      case 16:
-        return TABLE_BULK_IMPORT2;
+        return NORMAL;
       default:
         return null;
     }

@@ -19,7 +19,7 @@
 package org.apache.accumulo.tserver.managermessage;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.master.thrift.ManagerClientService;
+import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.thrift.TException;
 

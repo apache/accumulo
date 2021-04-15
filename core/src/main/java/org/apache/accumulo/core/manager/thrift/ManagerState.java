@@ -22,7 +22,7 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.master.thrift;
+package org.apache.accumulo.core.manager.thrift;
 
 
 public enum ManagerState implements org.apache.thrift.TEnum {
@@ -52,7 +52,7 @@ public enum ManagerState implements org.apache.thrift.TEnum {
    * @return null if the value is not found.
    */
   @org.apache.thrift.annotation.Nullable
-  public static ManagerState findByValue(int value) {
+  public static ManagerState findByValue(int value) { 
     switch (value) {
       case 0:
         return INITIAL;

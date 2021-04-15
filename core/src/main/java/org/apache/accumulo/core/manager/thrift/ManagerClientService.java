@@ -22,7 +22,7 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.master.thrift;
+package org.apache.accumulo.core.manager.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
 public class ManagerClientService {
@@ -2776,7 +2776,7 @@ public class ManagerClientService {
       }
     }
 
-    public static class getManagerStats<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getManagerStats_args,ManagerMonitorInfo> {
+    public static class getManagerStats<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getManagerStats_args, ManagerMonitorInfo> {
       public getManagerStats() {
         super("getManagerStats");
       }
@@ -2787,7 +2787,7 @@ public class ManagerClientService {
 
       public org.apache.thrift.async.AsyncMethodCallback<ManagerMonitorInfo> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<ManagerMonitorInfo>() {
+        return new org.apache.thrift.async.AsyncMethodCallback<ManagerMonitorInfo>() { 
           public void onComplete(ManagerMonitorInfo o) {
             getManagerStats_result result = new getManagerStats_result();
             result.success = o;
@@ -3186,9 +3186,9 @@ public class ManagerClientService {
   public static class initiateFlush_args implements org.apache.thrift.TBase<initiateFlush_args, initiateFlush_args._Fields>, java.io.Serializable, Cloneable, Comparable<initiateFlush_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("initiateFlush_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)3);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)3);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new initiateFlush_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new initiateFlush_argsTupleSchemeFactory();
@@ -3199,9 +3199,9 @@ public class ManagerClientService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)3, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      TABLE_NAME((short)2, "tableName");
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      TABLE_NAME((short)3, "tableName");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -3217,11 +3217,11 @@ public class ManagerClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 3: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 1: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // TABLE_NAME
+          case 3: // TABLE_NAME
             return TABLE_NAME;
           default:
             return null;
@@ -3649,7 +3649,7 @@ public class ManagerClientService {
             break;
           }
           switch (schemeField.id) {
-            case 3: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -3658,7 +3658,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -3667,7 +3667,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // TABLE_NAME
+            case 3: // TABLE_NAME
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.tableName = iprot.readString();
                 struct.setTableNameIsSet(true);
@@ -3690,6 +3690,11 @@ public class ManagerClientService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
@@ -3698,11 +3703,6 @@ public class ManagerClientService {
         if (struct.tableName != null) {
           oprot.writeFieldBegin(TABLE_NAME_FIELD_DESC);
           oprot.writeString(struct.tableName);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -4458,13 +4458,13 @@ public class ManagerClientService {
   public static class waitForFlush_args implements org.apache.thrift.TBase<waitForFlush_args, waitForFlush_args._Fields>, java.io.Serializable, Cloneable, Comparable<waitForFlush_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("waitForFlush_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)5);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
-    private static final org.apache.thrift.protocol.TField START_ROW_FIELD_DESC = new org.apache.thrift.protocol.TField("startRow", org.apache.thrift.protocol.TType.STRING, (short)6);
-    private static final org.apache.thrift.protocol.TField END_ROW_FIELD_DESC = new org.apache.thrift.protocol.TField("endRow", org.apache.thrift.protocol.TType.STRING, (short)7);
-    private static final org.apache.thrift.protocol.TField FLUSH_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("flushID", org.apache.thrift.protocol.TType.I64, (short)3);
-    private static final org.apache.thrift.protocol.TField MAX_LOOPS_FIELD_DESC = new org.apache.thrift.protocol.TField("maxLoops", org.apache.thrift.protocol.TType.I64, (short)4);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField START_ROW_FIELD_DESC = new org.apache.thrift.protocol.TField("startRow", org.apache.thrift.protocol.TType.STRING, (short)4);
+    private static final org.apache.thrift.protocol.TField END_ROW_FIELD_DESC = new org.apache.thrift.protocol.TField("endRow", org.apache.thrift.protocol.TType.STRING, (short)5);
+    private static final org.apache.thrift.protocol.TField FLUSH_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("flushID", org.apache.thrift.protocol.TType.I64, (short)6);
+    private static final org.apache.thrift.protocol.TField MAX_LOOPS_FIELD_DESC = new org.apache.thrift.protocol.TField("maxLoops", org.apache.thrift.protocol.TType.I64, (short)7);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new waitForFlush_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new waitForFlush_argsTupleSchemeFactory();
@@ -4479,13 +4479,13 @@ public class ManagerClientService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)5, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      TABLE_NAME((short)2, "tableName"),
-      START_ROW((short)6, "startRow"),
-      END_ROW((short)7, "endRow"),
-      FLUSH_ID((short)3, "flushID"),
-      MAX_LOOPS((short)4, "maxLoops");
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      TABLE_NAME((short)3, "tableName"),
+      START_ROW((short)4, "startRow"),
+      END_ROW((short)5, "endRow"),
+      FLUSH_ID((short)6, "flushID"),
+      MAX_LOOPS((short)7, "maxLoops");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -4501,19 +4501,19 @@ public class ManagerClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 5: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 1: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // TABLE_NAME
+          case 3: // TABLE_NAME
             return TABLE_NAME;
-          case 6: // START_ROW
+          case 4: // START_ROW
             return START_ROW;
-          case 7: // END_ROW
+          case 5: // END_ROW
             return END_ROW;
-          case 3: // FLUSH_ID
+          case 6: // FLUSH_ID
             return FLUSH_ID;
-          case 4: // MAX_LOOPS
+          case 7: // MAX_LOOPS
             return MAX_LOOPS;
           default:
             return null;
@@ -5265,7 +5265,7 @@ public class ManagerClientService {
             break;
           }
           switch (schemeField.id) {
-            case 5: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -5274,7 +5274,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -5283,7 +5283,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // TABLE_NAME
+            case 3: // TABLE_NAME
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.tableName = iprot.readString();
                 struct.setTableNameIsSet(true);
@@ -5291,7 +5291,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 6: // START_ROW
+            case 4: // START_ROW
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.startRow = iprot.readBinary();
                 struct.setStartRowIsSet(true);
@@ -5299,7 +5299,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 7: // END_ROW
+            case 5: // END_ROW
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.endRow = iprot.readBinary();
                 struct.setEndRowIsSet(true);
@@ -5307,7 +5307,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 3: // FLUSH_ID
+            case 6: // FLUSH_ID
               if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
                 struct.flushID = iprot.readI64();
                 struct.setFlushIDIsSet(true);
@@ -5315,7 +5315,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 4: // MAX_LOOPS
+            case 7: // MAX_LOOPS
               if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
                 struct.maxLoops = iprot.readI64();
                 struct.setMaxLoopsIsSet(true);
@@ -5338,6 +5338,11 @@ public class ManagerClientService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
@@ -5346,17 +5351,6 @@ public class ManagerClientService {
         if (struct.tableName != null) {
           oprot.writeFieldBegin(TABLE_NAME_FIELD_DESC);
           oprot.writeString(struct.tableName);
-          oprot.writeFieldEnd();
-        }
-        oprot.writeFieldBegin(FLUSH_ID_FIELD_DESC);
-        oprot.writeI64(struct.flushID);
-        oprot.writeFieldEnd();
-        oprot.writeFieldBegin(MAX_LOOPS_FIELD_DESC);
-        oprot.writeI64(struct.maxLoops);
-        oprot.writeFieldEnd();
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.startRow != null) {
@@ -5369,6 +5363,12 @@ public class ManagerClientService {
           oprot.writeBinary(struct.endRow);
           oprot.writeFieldEnd();
         }
+        oprot.writeFieldBegin(FLUSH_ID_FIELD_DESC);
+        oprot.writeI64(struct.flushID);
+        oprot.writeFieldEnd();
+        oprot.writeFieldBegin(MAX_LOOPS_FIELD_DESC);
+        oprot.writeI64(struct.maxLoops);
+        oprot.writeFieldEnd();
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -6060,11 +6060,11 @@ public class ManagerClientService {
   public static class setTableProperty_args implements org.apache.thrift.TBase<setTableProperty_args, setTableProperty_args._Fields>, java.io.Serializable, Cloneable, Comparable<setTableProperty_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setTableProperty_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)5);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
-    private static final org.apache.thrift.protocol.TField PROPERTY_FIELD_DESC = new org.apache.thrift.protocol.TField("property", org.apache.thrift.protocol.TType.STRING, (short)3);
-    private static final org.apache.thrift.protocol.TField VALUE_FIELD_DESC = new org.apache.thrift.protocol.TField("value", org.apache.thrift.protocol.TType.STRING, (short)4);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField PROPERTY_FIELD_DESC = new org.apache.thrift.protocol.TField("property", org.apache.thrift.protocol.TType.STRING, (short)4);
+    private static final org.apache.thrift.protocol.TField VALUE_FIELD_DESC = new org.apache.thrift.protocol.TField("value", org.apache.thrift.protocol.TType.STRING, (short)5);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new setTableProperty_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new setTableProperty_argsTupleSchemeFactory();
@@ -6077,11 +6077,11 @@ public class ManagerClientService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)5, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      TABLE_NAME((short)2, "tableName"),
-      PROPERTY((short)3, "property"),
-      VALUE((short)4, "value");
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      TABLE_NAME((short)3, "tableName"),
+      PROPERTY((short)4, "property"),
+      VALUE((short)5, "value");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -6097,15 +6097,15 @@ public class ManagerClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 5: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 1: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // TABLE_NAME
+          case 3: // TABLE_NAME
             return TABLE_NAME;
-          case 3: // PROPERTY
+          case 4: // PROPERTY
             return PROPERTY;
-          case 4: // VALUE
+          case 5: // VALUE
             return VALUE;
           default:
             return null;
@@ -6687,7 +6687,7 @@ public class ManagerClientService {
             break;
           }
           switch (schemeField.id) {
-            case 5: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -6696,7 +6696,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -6705,7 +6705,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // TABLE_NAME
+            case 3: // TABLE_NAME
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.tableName = iprot.readString();
                 struct.setTableNameIsSet(true);
@@ -6713,7 +6713,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 3: // PROPERTY
+            case 4: // PROPERTY
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.property = iprot.readString();
                 struct.setPropertyIsSet(true);
@@ -6721,7 +6721,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 4: // VALUE
+            case 5: // VALUE
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.value = iprot.readString();
                 struct.setValueIsSet(true);
@@ -6744,6 +6744,11 @@ public class ManagerClientService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
@@ -6762,11 +6767,6 @@ public class ManagerClientService {
         if (struct.value != null) {
           oprot.writeFieldBegin(VALUE_FIELD_DESC);
           oprot.writeString(struct.value);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -7440,10 +7440,10 @@ public class ManagerClientService {
   public static class removeTableProperty_args implements org.apache.thrift.TBase<removeTableProperty_args, removeTableProperty_args._Fields>, java.io.Serializable, Cloneable, Comparable<removeTableProperty_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("removeTableProperty_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)4);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
-    private static final org.apache.thrift.protocol.TField PROPERTY_FIELD_DESC = new org.apache.thrift.protocol.TField("property", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField PROPERTY_FIELD_DESC = new org.apache.thrift.protocol.TField("property", org.apache.thrift.protocol.TType.STRING, (short)4);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new removeTableProperty_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new removeTableProperty_argsTupleSchemeFactory();
@@ -7455,10 +7455,10 @@ public class ManagerClientService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)4, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      TABLE_NAME((short)2, "tableName"),
-      PROPERTY((short)3, "property");
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      TABLE_NAME((short)3, "tableName"),
+      PROPERTY((short)4, "property");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -7474,13 +7474,13 @@ public class ManagerClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 4: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 1: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // TABLE_NAME
+          case 3: // TABLE_NAME
             return TABLE_NAME;
-          case 3: // PROPERTY
+          case 4: // PROPERTY
             return PROPERTY;
           default:
             return null;
@@ -7985,7 +7985,7 @@ public class ManagerClientService {
             break;
           }
           switch (schemeField.id) {
-            case 4: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -7994,7 +7994,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -8003,7 +8003,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // TABLE_NAME
+            case 3: // TABLE_NAME
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.tableName = iprot.readString();
                 struct.setTableNameIsSet(true);
@@ -8011,7 +8011,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 3: // PROPERTY
+            case 4: // PROPERTY
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.property = iprot.readString();
                 struct.setPropertyIsSet(true);
@@ -8034,6 +8034,11 @@ public class ManagerClientService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
@@ -8047,11 +8052,6 @@ public class ManagerClientService {
         if (struct.property != null) {
           oprot.writeFieldBegin(PROPERTY_FIELD_DESC);
           oprot.writeString(struct.property);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -8715,11 +8715,11 @@ public class ManagerClientService {
   public static class setNamespaceProperty_args implements org.apache.thrift.TBase<setNamespaceProperty_args, setNamespaceProperty_args._Fields>, java.io.Serializable, Cloneable, Comparable<setNamespaceProperty_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setNamespaceProperty_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)5);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField NS_FIELD_DESC = new org.apache.thrift.protocol.TField("ns", org.apache.thrift.protocol.TType.STRING, (short)2);
-    private static final org.apache.thrift.protocol.TField PROPERTY_FIELD_DESC = new org.apache.thrift.protocol.TField("property", org.apache.thrift.protocol.TType.STRING, (short)3);
-    private static final org.apache.thrift.protocol.TField VALUE_FIELD_DESC = new org.apache.thrift.protocol.TField("value", org.apache.thrift.protocol.TType.STRING, (short)4);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField NS_FIELD_DESC = new org.apache.thrift.protocol.TField("ns", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField PROPERTY_FIELD_DESC = new org.apache.thrift.protocol.TField("property", org.apache.thrift.protocol.TType.STRING, (short)4);
+    private static final org.apache.thrift.protocol.TField VALUE_FIELD_DESC = new org.apache.thrift.protocol.TField("value", org.apache.thrift.protocol.TType.STRING, (short)5);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new setNamespaceProperty_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new setNamespaceProperty_argsTupleSchemeFactory();
@@ -8732,11 +8732,11 @@ public class ManagerClientService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)5, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      NS((short)2, "ns"),
-      PROPERTY((short)3, "property"),
-      VALUE((short)4, "value");
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      NS((short)3, "ns"),
+      PROPERTY((short)4, "property"),
+      VALUE((short)5, "value");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -8752,15 +8752,15 @@ public class ManagerClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 5: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 1: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // NS
+          case 3: // NS
             return NS;
-          case 3: // PROPERTY
+          case 4: // PROPERTY
             return PROPERTY;
-          case 4: // VALUE
+          case 5: // VALUE
             return VALUE;
           default:
             return null;
@@ -9342,7 +9342,7 @@ public class ManagerClientService {
             break;
           }
           switch (schemeField.id) {
-            case 5: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -9351,7 +9351,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -9360,7 +9360,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // NS
+            case 3: // NS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.ns = iprot.readString();
                 struct.setNsIsSet(true);
@@ -9368,7 +9368,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 3: // PROPERTY
+            case 4: // PROPERTY
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.property = iprot.readString();
                 struct.setPropertyIsSet(true);
@@ -9376,7 +9376,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 4: // VALUE
+            case 5: // VALUE
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.value = iprot.readString();
                 struct.setValueIsSet(true);
@@ -9399,6 +9399,11 @@ public class ManagerClientService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
@@ -9417,11 +9422,6 @@ public class ManagerClientService {
         if (struct.value != null) {
           oprot.writeFieldBegin(VALUE_FIELD_DESC);
           oprot.writeString(struct.value);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -10095,10 +10095,10 @@ public class ManagerClientService {
   public static class removeNamespaceProperty_args implements org.apache.thrift.TBase<removeNamespaceProperty_args, removeNamespaceProperty_args._Fields>, java.io.Serializable, Cloneable, Comparable<removeNamespaceProperty_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("removeNamespaceProperty_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)4);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField NS_FIELD_DESC = new org.apache.thrift.protocol.TField("ns", org.apache.thrift.protocol.TType.STRING, (short)2);
-    private static final org.apache.thrift.protocol.TField PROPERTY_FIELD_DESC = new org.apache.thrift.protocol.TField("property", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField NS_FIELD_DESC = new org.apache.thrift.protocol.TField("ns", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField PROPERTY_FIELD_DESC = new org.apache.thrift.protocol.TField("property", org.apache.thrift.protocol.TType.STRING, (short)4);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new removeNamespaceProperty_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new removeNamespaceProperty_argsTupleSchemeFactory();
@@ -10110,10 +10110,10 @@ public class ManagerClientService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)4, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      NS((short)2, "ns"),
-      PROPERTY((short)3, "property");
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      NS((short)3, "ns"),
+      PROPERTY((short)4, "property");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -10129,13 +10129,13 @@ public class ManagerClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 4: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 1: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // NS
+          case 3: // NS
             return NS;
-          case 3: // PROPERTY
+          case 4: // PROPERTY
             return PROPERTY;
           default:
             return null;
@@ -10640,7 +10640,7 @@ public class ManagerClientService {
             break;
           }
           switch (schemeField.id) {
-            case 4: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -10649,7 +10649,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -10658,7 +10658,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // NS
+            case 3: // NS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.ns = iprot.readString();
                 struct.setNsIsSet(true);
@@ -10666,7 +10666,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 3: // PROPERTY
+            case 4: // PROPERTY
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.property = iprot.readString();
                 struct.setPropertyIsSet(true);
@@ -10689,6 +10689,11 @@ public class ManagerClientService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
@@ -10702,11 +10707,6 @@ public class ManagerClientService {
         if (struct.property != null) {
           oprot.writeFieldBegin(PROPERTY_FIELD_DESC);
           oprot.writeString(struct.property);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -11370,9 +11370,9 @@ public class ManagerClientService {
   public static class setManagerGoalState_args implements org.apache.thrift.TBase<setManagerGoalState_args, setManagerGoalState_args._Fields>, java.io.Serializable, Cloneable, Comparable<setManagerGoalState_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setManagerGoalState_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)3);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField STATE_FIELD_DESC = new org.apache.thrift.protocol.TField("state", org.apache.thrift.protocol.TType.I32, (short)2);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField STATE_FIELD_DESC = new org.apache.thrift.protocol.TField("state", org.apache.thrift.protocol.TType.I32, (short)3);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new setManagerGoalState_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new setManagerGoalState_argsTupleSchemeFactory();
@@ -11387,13 +11387,13 @@ public class ManagerClientService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)3, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
       /**
        * 
        * @see ManagerGoalState
        */
-      STATE((short)2, "state");
+      STATE((short)3, "state");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -11409,11 +11409,11 @@ public class ManagerClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 3: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 1: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // STATE
+          case 3: // STATE
             return STATE;
           default:
             return null;
@@ -11572,8 +11572,7 @@ public class ManagerClientService {
      * 
      * @see ManagerGoalState
      */
-    public setManagerGoalState_args setState(@org.apache.thrift.annotation.Nullable
-        ManagerGoalState state) {
+    public setManagerGoalState_args setState(@org.apache.thrift.annotation.Nullable ManagerGoalState state) {
       this.state = state;
       return this;
     }
@@ -11850,7 +11849,7 @@ public class ManagerClientService {
             break;
           }
           switch (schemeField.id) {
-            case 3: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -11859,7 +11858,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -11868,9 +11867,9 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // STATE
+            case 3: // STATE
               if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
-                struct.state = ManagerGoalState.findByValue(iprot.readI32());
+                struct.state = org.apache.accumulo.core.manager.thrift.ManagerGoalState.findByValue(iprot.readI32());
                 struct.setStateIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -11891,6 +11890,11 @@ public class ManagerClientService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
@@ -11899,11 +11903,6 @@ public class ManagerClientService {
         if (struct.state != null) {
           oprot.writeFieldBegin(STATE_FIELD_DESC);
           oprot.writeI32(struct.state.getValue());
-          oprot.writeFieldEnd();
-        }
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -11960,7 +11959,7 @@ public class ManagerClientService {
           struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
-          struct.state = ManagerGoalState.findByValue(iprot.readI32());
+          struct.state = org.apache.accumulo.core.manager.thrift.ManagerGoalState.findByValue(iprot.readI32());
           struct.setStateIsSet(true);
         }
       }
@@ -12450,9 +12449,9 @@ public class ManagerClientService {
   public static class shutdown_args implements org.apache.thrift.TBase<shutdown_args, shutdown_args._Fields>, java.io.Serializable, Cloneable, Comparable<shutdown_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("shutdown_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)3);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField STOP_TABLET_SERVERS_FIELD_DESC = new org.apache.thrift.protocol.TField("stopTabletServers", org.apache.thrift.protocol.TType.BOOL, (short)2);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField STOP_TABLET_SERVERS_FIELD_DESC = new org.apache.thrift.protocol.TField("stopTabletServers", org.apache.thrift.protocol.TType.BOOL, (short)3);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new shutdown_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new shutdown_argsTupleSchemeFactory();
@@ -12463,9 +12462,9 @@ public class ManagerClientService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)3, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      STOP_TABLET_SERVERS((short)2, "stopTabletServers");
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      STOP_TABLET_SERVERS((short)3, "stopTabletServers");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -12481,11 +12480,11 @@ public class ManagerClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 3: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 1: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // STOP_TABLET_SERVERS
+          case 3: // STOP_TABLET_SERVERS
             return STOP_TABLET_SERVERS;
           default:
             return null;
@@ -12910,7 +12909,7 @@ public class ManagerClientService {
             break;
           }
           switch (schemeField.id) {
-            case 3: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -12919,7 +12918,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -12928,7 +12927,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // STOP_TABLET_SERVERS
+            case 3: // STOP_TABLET_SERVERS
               if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
                 struct.stopTabletServers = iprot.readBool();
                 struct.setStopTabletServersIsSet(true);
@@ -12951,6 +12950,11 @@ public class ManagerClientService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
@@ -12959,11 +12963,6 @@ public class ManagerClientService {
         oprot.writeFieldBegin(STOP_TABLET_SERVERS_FIELD_DESC);
         oprot.writeBool(struct.stopTabletServers);
         oprot.writeFieldEnd();
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
-          oprot.writeFieldEnd();
-        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -13508,9 +13507,9 @@ public class ManagerClientService {
   public static class shutdownTabletServer_args implements org.apache.thrift.TBase<shutdownTabletServer_args, shutdownTabletServer_args._Fields>, java.io.Serializable, Cloneable, Comparable<shutdownTabletServer_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("shutdownTabletServer_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)3);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField TABLET_SERVER_FIELD_DESC = new org.apache.thrift.protocol.TField("tabletServer", org.apache.thrift.protocol.TType.STRING, (short)2);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField TABLET_SERVER_FIELD_DESC = new org.apache.thrift.protocol.TField("tabletServer", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField FORCE_FIELD_DESC = new org.apache.thrift.protocol.TField("force", org.apache.thrift.protocol.TType.BOOL, (short)4);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new shutdownTabletServer_argsStandardSchemeFactory();
@@ -13523,9 +13522,9 @@ public class ManagerClientService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)3, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      TABLET_SERVER((short)2, "tabletServer"),
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      TABLET_SERVER((short)3, "tabletServer"),
       FORCE((short)4, "force");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
@@ -13542,11 +13541,11 @@ public class ManagerClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 3: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 1: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // TABLET_SERVER
+          case 3: // TABLET_SERVER
             return TABLET_SERVER;
           case 4: // FORCE
             return FORCE;
@@ -14050,7 +14049,7 @@ public class ManagerClientService {
             break;
           }
           switch (schemeField.id) {
-            case 3: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -14059,7 +14058,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -14068,7 +14067,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // TABLET_SERVER
+            case 3: // TABLET_SERVER
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.tabletServer = iprot.readString();
                 struct.setTabletServerIsSet(true);
@@ -14099,6 +14098,11 @@ public class ManagerClientService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
@@ -14107,11 +14111,6 @@ public class ManagerClientService {
         if (struct.tabletServer != null) {
           oprot.writeFieldBegin(TABLET_SERVER_FIELD_DESC);
           oprot.writeString(struct.tabletServer);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldBegin(FORCE_FIELD_DESC);
@@ -14671,10 +14670,10 @@ public class ManagerClientService {
   public static class setSystemProperty_args implements org.apache.thrift.TBase<setSystemProperty_args, setSystemProperty_args._Fields>, java.io.Serializable, Cloneable, Comparable<setSystemProperty_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setSystemProperty_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)4);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField PROPERTY_FIELD_DESC = new org.apache.thrift.protocol.TField("property", org.apache.thrift.protocol.TType.STRING, (short)2);
-    private static final org.apache.thrift.protocol.TField VALUE_FIELD_DESC = new org.apache.thrift.protocol.TField("value", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField PROPERTY_FIELD_DESC = new org.apache.thrift.protocol.TField("property", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField VALUE_FIELD_DESC = new org.apache.thrift.protocol.TField("value", org.apache.thrift.protocol.TType.STRING, (short)4);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new setSystemProperty_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new setSystemProperty_argsTupleSchemeFactory();
@@ -14686,10 +14685,10 @@ public class ManagerClientService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)4, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      PROPERTY((short)2, "property"),
-      VALUE((short)3, "value");
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      PROPERTY((short)3, "property"),
+      VALUE((short)4, "value");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -14705,13 +14704,13 @@ public class ManagerClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 4: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 1: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // PROPERTY
+          case 3: // PROPERTY
             return PROPERTY;
-          case 3: // VALUE
+          case 4: // VALUE
             return VALUE;
           default:
             return null;
@@ -15216,7 +15215,7 @@ public class ManagerClientService {
             break;
           }
           switch (schemeField.id) {
-            case 4: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -15225,7 +15224,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -15234,7 +15233,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // PROPERTY
+            case 3: // PROPERTY
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.property = iprot.readString();
                 struct.setPropertyIsSet(true);
@@ -15242,7 +15241,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 3: // VALUE
+            case 4: // VALUE
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.value = iprot.readString();
                 struct.setValueIsSet(true);
@@ -15265,6 +15264,11 @@ public class ManagerClientService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
@@ -15278,11 +15282,6 @@ public class ManagerClientService {
         if (struct.value != null) {
           oprot.writeFieldBegin(VALUE_FIELD_DESC);
           oprot.writeString(struct.value);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -15839,9 +15838,9 @@ public class ManagerClientService {
   public static class removeSystemProperty_args implements org.apache.thrift.TBase<removeSystemProperty_args, removeSystemProperty_args._Fields>, java.io.Serializable, Cloneable, Comparable<removeSystemProperty_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("removeSystemProperty_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)3);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField PROPERTY_FIELD_DESC = new org.apache.thrift.protocol.TField("property", org.apache.thrift.protocol.TType.STRING, (short)2);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField PROPERTY_FIELD_DESC = new org.apache.thrift.protocol.TField("property", org.apache.thrift.protocol.TType.STRING, (short)3);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new removeSystemProperty_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new removeSystemProperty_argsTupleSchemeFactory();
@@ -15852,9 +15851,9 @@ public class ManagerClientService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)3, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      PROPERTY((short)2, "property");
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      PROPERTY((short)3, "property");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -15870,11 +15869,11 @@ public class ManagerClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 3: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 1: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // PROPERTY
+          case 3: // PROPERTY
             return PROPERTY;
           default:
             return null;
@@ -16302,7 +16301,7 @@ public class ManagerClientService {
             break;
           }
           switch (schemeField.id) {
-            case 3: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -16311,7 +16310,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -16320,7 +16319,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // PROPERTY
+            case 3: // PROPERTY
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.property = iprot.readString();
                 struct.setPropertyIsSet(true);
@@ -16343,6 +16342,11 @@ public class ManagerClientService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
@@ -16351,11 +16355,6 @@ public class ManagerClientService {
         if (struct.property != null) {
           oprot.writeFieldBegin(PROPERTY_FIELD_DESC);
           oprot.writeString(struct.property);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -16902,8 +16901,8 @@ public class ManagerClientService {
   public static class getManagerStats_args implements org.apache.thrift.TBase<getManagerStats_args, getManagerStats_args._Fields>, java.io.Serializable, Cloneable, Comparable<getManagerStats_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getManagerStats_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getManagerStats_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getManagerStats_argsTupleSchemeFactory();
@@ -16913,8 +16912,8 @@ public class ManagerClientService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)2, "tinfo"),
-      CREDENTIALS((short)1, "credentials");
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -16930,9 +16929,9 @@ public class ManagerClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 2: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 1: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
           default:
             return null;
@@ -17283,7 +17282,7 @@ public class ManagerClientService {
             break;
           }
           switch (schemeField.id) {
-            case 2: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -17292,7 +17291,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -17316,14 +17315,14 @@ public class ManagerClientService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.credentials != null) {
-          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
-          struct.credentials.write(oprot);
-          oprot.writeFieldEnd();
-        }
         if (struct.tinfo != null) {
           oprot.writeFieldBegin(TINFO_FIELD_DESC);
           struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -17520,8 +17519,7 @@ public class ManagerClientService {
       return this.success;
     }
 
-    public getManagerStats_result setSuccess(@org.apache.thrift.annotation.Nullable
-        ManagerMonitorInfo success) {
+    public getManagerStats_result setSuccess(@org.apache.thrift.annotation.Nullable ManagerMonitorInfo success) {
       this.success = success;
       return this;
     }
@@ -18712,10 +18710,10 @@ public class ManagerClientService {
   public static class reportSplitExtent_args implements org.apache.thrift.TBase<reportSplitExtent_args, reportSplitExtent_args._Fields>, java.io.Serializable, Cloneable, Comparable<reportSplitExtent_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("reportSplitExtent_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)4);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField SERVER_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("serverName", org.apache.thrift.protocol.TType.STRING, (short)2);
-    private static final org.apache.thrift.protocol.TField SPLIT_FIELD_DESC = new org.apache.thrift.protocol.TField("split", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField SERVER_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("serverName", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField SPLIT_FIELD_DESC = new org.apache.thrift.protocol.TField("split", org.apache.thrift.protocol.TType.STRUCT, (short)4);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new reportSplitExtent_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new reportSplitExtent_argsTupleSchemeFactory();
@@ -18727,10 +18725,10 @@ public class ManagerClientService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)4, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      SERVER_NAME((short)2, "serverName"),
-      SPLIT((short)3, "split");
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      SERVER_NAME((short)3, "serverName"),
+      SPLIT((short)4, "split");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -18746,13 +18744,13 @@ public class ManagerClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 4: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 1: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // SERVER_NAME
+          case 3: // SERVER_NAME
             return SERVER_NAME;
-          case 3: // SPLIT
+          case 4: // SPLIT
             return SPLIT;
           default:
             return null;
@@ -19260,7 +19258,7 @@ public class ManagerClientService {
             break;
           }
           switch (schemeField.id) {
-            case 4: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -19269,7 +19267,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -19278,7 +19276,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // SERVER_NAME
+            case 3: // SERVER_NAME
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.serverName = iprot.readString();
                 struct.setServerNameIsSet(true);
@@ -19286,7 +19284,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 3: // SPLIT
+            case 4: // SPLIT
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.split = new TabletSplit();
                 struct.split.read(iprot);
@@ -19310,6 +19308,11 @@ public class ManagerClientService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
@@ -19323,11 +19326,6 @@ public class ManagerClientService {
         if (struct.split != null) {
           oprot.writeFieldBegin(SPLIT_FIELD_DESC);
           struct.split.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -19409,11 +19407,11 @@ public class ManagerClientService {
   public static class reportTabletStatus_args implements org.apache.thrift.TBase<reportTabletStatus_args, reportTabletStatus_args._Fields>, java.io.Serializable, Cloneable, Comparable<reportTabletStatus_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("reportTabletStatus_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)5);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField SERVER_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("serverName", org.apache.thrift.protocol.TType.STRING, (short)2);
-    private static final org.apache.thrift.protocol.TField STATUS_FIELD_DESC = new org.apache.thrift.protocol.TField("status", org.apache.thrift.protocol.TType.I32, (short)3);
-    private static final org.apache.thrift.protocol.TField TABLET_FIELD_DESC = new org.apache.thrift.protocol.TField("tablet", org.apache.thrift.protocol.TType.STRUCT, (short)4);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField SERVER_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("serverName", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField STATUS_FIELD_DESC = new org.apache.thrift.protocol.TField("status", org.apache.thrift.protocol.TType.I32, (short)4);
+    private static final org.apache.thrift.protocol.TField TABLET_FIELD_DESC = new org.apache.thrift.protocol.TField("tablet", org.apache.thrift.protocol.TType.STRUCT, (short)5);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new reportTabletStatus_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new reportTabletStatus_argsTupleSchemeFactory();
@@ -19430,15 +19428,15 @@ public class ManagerClientService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)5, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      SERVER_NAME((short)2, "serverName"),
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      SERVER_NAME((short)3, "serverName"),
       /**
        * 
        * @see TabletLoadState
        */
-      STATUS((short)3, "status"),
-      TABLET((short)4, "tablet");
+      STATUS((short)4, "status"),
+      TABLET((short)5, "tablet");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -19454,15 +19452,15 @@ public class ManagerClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 5: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 1: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // SERVER_NAME
+          case 3: // SERVER_NAME
             return SERVER_NAME;
-          case 3: // STATUS
+          case 4: // STATUS
             return STATUS;
-          case 4: // TABLET
+          case 5: // TABLET
             return TABLET;
           default:
             return null;
@@ -20055,7 +20053,7 @@ public class ManagerClientService {
             break;
           }
           switch (schemeField.id) {
-            case 5: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -20064,7 +20062,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -20073,7 +20071,7 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // SERVER_NAME
+            case 3: // SERVER_NAME
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
                 struct.serverName = iprot.readString();
                 struct.setServerNameIsSet(true);
@@ -20081,15 +20079,15 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 3: // STATUS
+            case 4: // STATUS
               if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
-                struct.status = org.apache.accumulo.core.master.thrift.TabletLoadState.findByValue(iprot.readI32());
+                struct.status = org.apache.accumulo.core.manager.thrift.TabletLoadState.findByValue(iprot.readI32());
                 struct.setStatusIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 4: // TABLET
+            case 5: // TABLET
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tablet = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
                 struct.tablet.read(iprot);
@@ -20113,6 +20111,11 @@ public class ManagerClientService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
@@ -20131,11 +20134,6 @@ public class ManagerClientService {
         if (struct.tablet != null) {
           oprot.writeFieldBegin(TABLET_FIELD_DESC);
           struct.tablet.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -20208,7 +20206,7 @@ public class ManagerClientService {
           struct.setServerNameIsSet(true);
         }
         if (incoming.get(3)) {
-          struct.status = org.apache.accumulo.core.master.thrift.TabletLoadState.findByValue(iprot.readI32());
+          struct.status = org.apache.accumulo.core.manager.thrift.TabletLoadState.findByValue(iprot.readI32());
           struct.setStatusIsSet(true);
         }
         if (incoming.get(4)) {
@@ -21187,13 +21185,13 @@ public class ManagerClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list104 = iprot.readListBegin();
-                  struct.success = new java.util.ArrayList<java.lang.String>(_list104.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _elem105;
-                  for (int _i106 = 0; _i106 < _list104.size; ++_i106)
+                  org.apache.thrift.protocol.TList _list78 = iprot.readListBegin();
+                  struct.success = new java.util.ArrayList<java.lang.String>(_list78.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _elem79;
+                  for (int _i80 = 0; _i80 < _list78.size; ++_i80)
                   {
-                    _elem105 = iprot.readString();
-                    struct.success.add(_elem105);
+                    _elem79 = iprot.readString();
+                    struct.success.add(_elem79);
                   }
                   iprot.readListEnd();
                 }
@@ -21239,9 +21237,9 @@ public class ManagerClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.lang.String _iter107 : struct.success)
+            for (java.lang.String _iter81 : struct.success)
             {
-              oprot.writeString(_iter107);
+              oprot.writeString(_iter81);
             }
             oprot.writeListEnd();
           }
@@ -21288,9 +21286,9 @@ public class ManagerClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.lang.String _iter108 : struct.success)
+            for (java.lang.String _iter82 : struct.success)
             {
-              oprot.writeString(_iter108);
+              oprot.writeString(_iter82);
             }
           }
         }
@@ -21308,13 +21306,13 @@ public class ManagerClientService {
         java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TList _list109 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.success = new java.util.ArrayList<java.lang.String>(_list109.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _elem110;
-            for (int _i111 = 0; _i111 < _list109.size; ++_i111)
+            org.apache.thrift.protocol.TList _list83 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.success = new java.util.ArrayList<java.lang.String>(_list83.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _elem84;
+            for (int _i85 = 0; _i85 < _list83.size; ++_i85)
             {
-              _elem110 = iprot.readString();
-              struct.success.add(_elem110);
+              _elem84 = iprot.readString();
+              struct.success.add(_elem84);
             }
           }
           struct.setSuccessIsSet(true);
@@ -23110,13 +23108,13 @@ public class ManagerClientService {
             case 4: // LOGS_TO_WATCH
               if (schemeField.type == org.apache.thrift.protocol.TType.SET) {
                 {
-                  org.apache.thrift.protocol.TSet _set112 = iprot.readSetBegin();
-                  struct.logsToWatch = new java.util.HashSet<java.lang.String>(2*_set112.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _elem113;
-                  for (int _i114 = 0; _i114 < _set112.size; ++_i114)
+                  org.apache.thrift.protocol.TSet _set86 = iprot.readSetBegin();
+                  struct.logsToWatch = new java.util.HashSet<java.lang.String>(2*_set86.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _elem87;
+                  for (int _i88 = 0; _i88 < _set86.size; ++_i88)
                   {
-                    _elem113 = iprot.readString();
-                    struct.logsToWatch.add(_elem113);
+                    _elem87 = iprot.readString();
+                    struct.logsToWatch.add(_elem87);
                   }
                   iprot.readSetEnd();
                 }
@@ -23159,9 +23157,9 @@ public class ManagerClientService {
           oprot.writeFieldBegin(LOGS_TO_WATCH_FIELD_DESC);
           {
             oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, struct.logsToWatch.size()));
-            for (java.lang.String _iter115 : struct.logsToWatch)
+            for (java.lang.String _iter89 : struct.logsToWatch)
             {
-              oprot.writeString(_iter115);
+              oprot.writeString(_iter89);
             }
             oprot.writeSetEnd();
           }
@@ -23210,9 +23208,9 @@ public class ManagerClientService {
         if (struct.isSetLogsToWatch()) {
           {
             oprot.writeI32(struct.logsToWatch.size());
-            for (java.lang.String _iter116 : struct.logsToWatch)
+            for (java.lang.String _iter90 : struct.logsToWatch)
             {
-              oprot.writeString(_iter116);
+              oprot.writeString(_iter90);
             }
           }
         }
@@ -23238,13 +23236,13 @@ public class ManagerClientService {
         }
         if (incoming.get(3)) {
           {
-            org.apache.thrift.protocol.TSet _set117 = new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.logsToWatch = new java.util.HashSet<java.lang.String>(2*_set117.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _elem118;
-            for (int _i119 = 0; _i119 < _set117.size; ++_i119)
+            org.apache.thrift.protocol.TSet _set91 = new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.logsToWatch = new java.util.HashSet<java.lang.String>(2*_set91.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _elem92;
+            for (int _i93 = 0; _i93 < _set91.size; ++_i93)
             {
-              _elem118 = iprot.readString();
-              struct.logsToWatch.add(_elem118);
+              _elem92 = iprot.readString();
+              struct.logsToWatch.add(_elem92);
             }
           }
           struct.setLogsToWatchIsSet(true);
