@@ -137,7 +137,7 @@ public class FateMetricsIT {
     log.warn("MMF: {}", manager.getMicrometerMetrics());
 
     FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
-    metrics.overrideRefresh(0);
+    metrics.overrideRefresh();
 
     InMemTestCollector collector = new InMemTestCollector();
 
@@ -179,7 +179,7 @@ public class FateMetricsIT {
     log.debug("ZooStore tx1 id {}", tx1Id);
 
     FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
-    metrics.overrideRefresh(0);
+    metrics.overrideRefresh();
 
     InMemTestCollector collector = new InMemTestCollector();
 
@@ -215,7 +215,7 @@ public class FateMetricsIT {
         zookeeper.exists(MOCK_ZK_ROOT + "/fate/" + String.format("tx_%016x", tx1Id), false)));
 
     FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
-    metrics.overrideRefresh(0);
+    metrics.overrideRefresh();
 
     InMemTestCollector collector = new InMemTestCollector();
 
@@ -268,7 +268,7 @@ public class FateMetricsIT {
     zooStore.unreserve(txId, 50);
 
     FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
-    metrics.overrideRefresh(0);
+    metrics.overrideRefresh();
 
     InMemTestCollector collector = new InMemTestCollector();
 
