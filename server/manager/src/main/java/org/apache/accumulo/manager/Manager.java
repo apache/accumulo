@@ -1188,7 +1188,7 @@ public class Manager extends AbstractServer
           try {
             if ((replServer.get() == null)
                 && !getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
-              log.info(Property.REPLICATION_NAME.getKey() + " was set, starting repl services.");
+              log.info("{} was set, starting repl services.", Property.REPLICATION_NAME.getKey());
               replServer.set(setupReplication());
             }
           } catch (UnknownHostException | KeeperException | InterruptedException e) {
