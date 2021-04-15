@@ -39,7 +39,7 @@ import org.apache.accumulo.core.data.Key;
  * <pre>
  * <code>
  * new SamplerConfiguration(RowSampler.class.getName()).setOptions(
- *   ImmutableMap.of("hasher","murmur3_32","modulus","1009"));
+ *   Map.of("hasher","murmur3_32","modulus","1009"));
  * </code>
  * </pre>
  *

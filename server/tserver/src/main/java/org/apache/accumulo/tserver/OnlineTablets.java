@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver;
 
+import java.util.Collections;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -32,7 +33,7 @@ import com.google.common.collect.ImmutableSortedMap;
  * threads can access the snapshot without interfering with each other.
  */
 public class OnlineTablets {
-  private volatile ImmutableSortedMap<KeyExtent,Tablet> snapshot = ImmutableSortedMap.of();
+  private volatile SortedMap<KeyExtent,Tablet> snapshot = Collections.emptySortedMap();
   private final SortedMap<KeyExtent,Tablet> onlineTablets = new TreeMap<>();
 
   public synchronized void put(KeyExtent ke, Tablet t) {
@@ -52,7 +53,7 @@ public class OnlineTablets {
     snapshot = ImmutableSortedMap.copyOf(onlineTablets);
   }
 
-  ImmutableSortedMap<KeyExtent,Tablet> snapshot() {
+  SortedMap<KeyExtent,Tablet> snapshot() {
     return snapshot;
   }
 }

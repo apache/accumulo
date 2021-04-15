@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +47,6 @@ import org.apache.accumulo.core.file.rfile.RFileOperations;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.conf.Configuration;
@@ -56,8 +56,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableSortedMap;
 
 public class FileUtil {
 
@@ -237,7 +235,7 @@ public class FileUtil {
       if (prevEndRow == null)
         prevEndRow = new Text();
 
-      long numKeys = 0;
+      long numKeys;
 
       numKeys = countIndexEntries(context, prevEndRow, endRow, mapFiles, true, readers);
 
@@ -322,7 +320,7 @@ public class FileUtil {
 
       long t1 = System.currentTimeMillis();
 
-      long numKeys = 0;
+      long numKeys;
 
       numKeys = countIndexEntries(context, prevEndRow, endRow, mapFiles,
           tmpDir == null ? useIndex : false, readers);
@@ -337,7 +335,7 @@ public class FileUtil {
           return findMidPoint(context, tabletDirectory, prevEndRow, endRow, origMapFiles, minSplit,
               false);
         }
-        return ImmutableSortedMap.of();
+        return Collections.emptySortedMap();
       }
 
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(readers);
@@ -443,9 +441,8 @@ public class FileUtil {
         else
           reader = FileOperations.getInstance().newScanReaderBuilder()
               .forFile(file.getPathStr(), ns, ns.getConf(), context.getCryptoService())
-              .withTableConfiguration(acuConf).overRange(new Range(prevEndRow, false, null, true),
-                  LocalityGroupUtil.EMPTY_CF_SET, false)
-              .build();
+              .withTableConfiguration(acuConf)
+              .overRange(new Range(prevEndRow, false, null, true), Set.of(), false).build();
 
         while (reader.hasTop()) {
           Key key = reader.getTopKey();
@@ -472,9 +469,8 @@ public class FileUtil {
       else
         readers.add(FileOperations.getInstance().newScanReaderBuilder()
             .forFile(file.getPathStr(), ns, ns.getConf(), context.getCryptoService())
-            .withTableConfiguration(acuConf).overRange(new Range(prevEndRow, false, null, true),
-                LocalityGroupUtil.EMPTY_CF_SET, false)
-            .build());
+            .withTableConfiguration(acuConf)
+            .overRange(new Range(prevEndRow, false, null, true), Set.of(), false).build());
 
     }
     return numKeys;

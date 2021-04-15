@@ -32,8 +32,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
 
-import com.google.common.collect.ImmutableMap;
-
 public class ConfigurationImpl implements Configuration {
 
   private final AccumuloConfiguration acfg;
@@ -110,13 +108,9 @@ public class ConfigurationImpl implements Configuration {
 
   private Map<String,String> buildCustom(Property customPrefix) {
     // This could be optimized as described in #947
-    Map<String,String> props = acfg.getAllPropertiesWithPrefix(customPrefix);
-    var builder = ImmutableMap.<String,String>builder();
-    props.forEach((k, v) -> {
-      builder.put(k.substring(customPrefix.getKey().length()), v);
-    });
-
-    return builder.build();
+    return acfg.getAllPropertiesWithPrefix(customPrefix).entrySet().stream().collect(
+        Collectors.toUnmodifiableMap(e -> e.getKey().substring(customPrefix.getKey().length()),
+            Entry::getValue));
   }
 
   @Override
