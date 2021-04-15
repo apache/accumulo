@@ -151,7 +151,7 @@ for d in "${PACKAGES_TO_GENERATE[@]}"; do
         ;;
       java)
         SDIR="${BUILD_DIR}/gen-$lang/${BASE_OUTPUT_PACKAGE//.//}/${d//.//}/thrift"
-        DDIR="${FINAL_DIR}/java/${BASE_OUTPUT_PACKAGE//.//}/${d//.//}/thrift"
+        DDIR="${FINAL_DIR}/thrift-gen-$lang/${BASE_OUTPUT_PACKAGE//.//}/${d//.//}/thrift"
         FILE_SUFFIX=(.java)
         ;;
       rb)
