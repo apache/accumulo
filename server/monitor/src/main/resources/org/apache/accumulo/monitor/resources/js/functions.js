@@ -268,16 +268,6 @@ function getManager() {
 }
 
 /**
- * REST GET call for the zookeeper information,
- * stores it on a sessionStorage variable
- */
-function getZK() {
-  return $.getJSON('/rest/zk', function(data) {
-    sessionStorage.zk = JSON.stringify(data);
-  });
-}
-
-/**
  * REST GET call for the namespaces, stores it on a global variable
  */
 function getNamespaces() {
