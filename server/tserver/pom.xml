@@ -156,10 +156,9 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
             <!-- Tests that cannot run with reuseForks=true -->
-            <reuseForks>false</reuseForks>
-            <includes>
-              <include>**/AssignmentWatcherTest.java</include>
-            </includes>
+            <excludes>
+              <exclude>**/AssignmentWatcherTest.java</exclude>
+            </excludes>
           </configuration>
         </plugin>
       </plugins>

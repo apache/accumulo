@@ -816,21 +816,36 @@
             <forkCount>${surefire.forkCount}</forkCount>
             <reuseForks>${surefire.reuseForks}</reuseForks>
             <excludedGroups>${surefire.excludedGroups}</excludedGroups>
-            <!-- Tests to exclude due to not working with reuseForks being True -->
-            <excludes>
-              <exclude>**/TableIdTest.java</exclude>
-              <exclude>**/HadoopCredentialProviderTest.java</exclude>
-              <exclude>**/IdleRatioScanPrioritizerTest.java</exclude>
-              <exclude>**/AssignmentWatcherTest.java</exclude>
-              <exclude>**/TestCfCqSlice.java</exclude>
-              <exclude>**/TestCfCqSliceSeekingFilter.java</exclude>
-            </excludes>
             <groups>${surefire.groups}</groups>
             <systemPropertyVariables>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
             <argLine>${unitTestMemSize}</argLine>
           </configuration>
+          <executions>
+            <execution>
+              <id>reuseForks-false-tests</id>
+              <goals>
+                <goal>test</goal>
+              </goals>
+              <configuration>
+                <forkCount>${surefire.forkCount}</forkCount>
+                <reuseForks>false</reuseForks>
+                <includes>
+                  <include>**/TableIdTest.java</include>
+                  <include>**/HadoopCredentialProviderTest.java</include>
+                  <include>**/IdleRatioScanPrioritizerTest.java</include>
+                  <include>**/AssignmentWatcherTest.java</include>
+                  <include>**/TestCfCqSlice.java</include>
+                  <include>**/TestCfCqSliceSeekingFilter.java</include>
+                </includes>
+                <systemPropertyVariables>
+                  <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
+                </systemPropertyVariables>
+                <argLine>${unitTestMemSize}</argLine>
+              </configuration>
+            </execution>
+          </executions>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
