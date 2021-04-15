@@ -24,7 +24,7 @@
         </div>
       </div>
       <div class="row">
-        <div class="col-sm-6" id="manager">
+        <div class="col-sm-6 col-sm-offset-3" id="manager">
           <table class="table table-bordered table-striped table-condensed">
             <thead>
               <tr><th colspan="2"><a href="/manager">Accumulo Manager</a></th></tr>
@@ -36,16 +36,6 @@
               <tr><td class="left">Entries</td><td class="right"></td></tr>
               <tr><td class="left">Lookups</td><td class="right"></td></tr>
               <tr><td class="left">Uptime</td><td class="right"></td></tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div class="col-sm-6" id="zookeeper">
-          <table class="table table-bordered table-striped table-condensed">
-            <thead>
-              <tr><th colspan="3">Zookeeper</th></tr>
-              <tr><th>Server</th><th>Mode</th><th>Clients</th></tr>
-              <tr><td class="center" colspan="3"><i>No Zookeepers</i></td></tr>
             </thead>
             <tbody></tbody>
           </table>

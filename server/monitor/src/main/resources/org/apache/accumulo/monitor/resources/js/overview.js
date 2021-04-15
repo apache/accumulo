@@ -31,9 +31,6 @@ function refreshOverview() {
   getManager().then(function() {
     refreshManagerTable();
   });
-  getZK().then(function() {
-    refreshZKTable();
-  });
   var requests = [
     getIngestRate(),
     getScanEntries(),
@@ -82,34 +79,6 @@ function refreshManagerTable() {
     table.eq(4).html(bigNumberForQuantity(data.numentries));
     table.eq(5).html(bigNumberForQuantity(data.lookups));
     table.eq(6).html(timeDuration(data.uptime));
-  }
-}
-
-/**
- * Refresh the zookeeper table
- */
-function refreshZKTable() {
-  var data = sessionStorage.zk === undefined ?
-      [] : JSON.parse(sessionStorage.zk);
-
-  $('#zookeeper thead tr:last').hide();
-  clearTableBody('zookeeper');
-
-  if (data.length === 0 || data.zkServers.length === 0) {
-    $('#zookeeper thead tr:last').show();
-  } else {
-    $.each(data.zkServers, function(key, val) {
-      var cells = '<td class="left">' + val.server + '</td>';
-      if (val.clients >= 0) {
-        cells += '<td class="left">' + val.mode + '</td>';
-        cells += '<td class="right">' + val.clients + '</td>';
-      } else {
-        cells += '<td class="left"><span class="error">Down</span></td>';
-        cells += '<td class="right"></td>';
-      }
-      // create a <tr> element with html containing the cell data; append it to the table
-      $('<tr/>', { html: cells }).appendTo('#zookeeper tbody');
-    });
   }
 }
 
