@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -43,6 +44,8 @@ import org.apache.accumulo.core.util.BadArgumentException;
  *             {@link org.apache.accumulo.core.data.constraints.VisibilityConstraint}
  */
 @Deprecated(since = "2.1.0")
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
+        justification = "Same name used for compatibility during deprecation cycle")
 public class VisibilityConstraint
     extends org.apache.accumulo.core.data.constraints.VisibilityConstraint {
 
