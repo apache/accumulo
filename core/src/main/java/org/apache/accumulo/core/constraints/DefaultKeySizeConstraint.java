@@ -21,9 +21,10 @@ package org.apache.accumulo.core.constraints;
 import java.util.ArrayList;
 import java.util.List;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * A constraints that limits the size of keys to 1mb.
@@ -33,7 +34,7 @@ import org.apache.accumulo.core.data.Mutation;
  */
 @Deprecated(since = "2.1.0")
 @SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
-        justification = "Same name used for compatibility during deprecation cycle")
+    justification = "Same name used for compatibility during deprecation cycle")
 public class DefaultKeySizeConstraint
     extends org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint {
 
