@@ -208,6 +208,24 @@
               <exclude>**/TestCfCqSliceSeekingFilter.java</exclude>
             </excludes>
           </configuration>
+          <executions>
+            <execution>
+              <id>reuseForks-false-tests</id>
+              <goals>
+                <goal>test</goal>
+              </goals>
+              <configuration>
+                <reuseForks>false</reuseForks>
+                <includes>
+                  <include>**/TableIdTest.java</include>
+                  <include>**/HadoopCredentialProviderTest.java</include>
+                  <include>**/IdleRatioScanPrioritizerTest.java</include>
+                  <include>**/TestCfCqSlice.java</include>
+                  <include>**/TestCfCqSliceSeekingFilter.java</include>
+                </includes>
+              </configuration>
+            </execution>
+          </executions>
         </plugin>
       </plugins>
     </pluginManagement>

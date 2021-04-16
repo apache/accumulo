@@ -160,6 +160,20 @@
               <exclude>**/AssignmentWatcherTest.java</exclude>
             </excludes>
           </configuration>
+          <executions>
+            <execution>
+              <id>reuseForks-false-tests</id>
+              <goals>
+                <goal>test</goal>
+              </goals>
+              <configuration>
+                <reuseForks>false</reuseForks>
+                <includes>
+                  <include>**/AssignmentWatcherTest.java</include>
+                </includes>
+              </configuration>
+            </execution>
+          </executions>
         </plugin>
       </plugins>
     </pluginManagement>
