@@ -78,6 +78,9 @@ jobs:
       run: git log -n1
     - name: Override DNS to fix IP address for hostname
       run: |
+        ip -br addr
+        echo "'hostname -i' shows '$(hostname -i)'"
+        echo "'hostname -I' shows '$(hostname -I)'"
         hostname_short=$(hostname -s)
         hostname_long=$(hostname -f)
         if ! grep -q $hostname_short /etc/hosts; then
@@ -85,6 +88,9 @@ jobs:
           echo "Setting $hostname_long / $hostname_short to $actual_ip in /etc/hosts"
           echo "$actual_ip $hostname_long $hostname_short" | sudo tee -a /etc/hosts
         fi
+        ip -br addr
+        echo "'hostname -i' shows '$(hostname -i)'"
+        echo "'hostname -I' shows '$(hostname -I)'"
     - name: Build with Maven
       timeout-minutes: 345
       run: mvn -B -V -e -ntp "-Dstyle.color=always" ${{ github.event.inputs.mvnOpts }} ${{ github.event.inputs.goals }} ${{ github.event.inputs.utOpts }} ${{ github.event.inputs.itOpts }} ${{ github.event.inputs.addOpts }}
