@@ -54,7 +54,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.master.thrift.ManagerState;
+import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -106,7 +106,7 @@ abstract class TabletGroupWatcher extends Thread {
   private final TabletStateStore store;
   private final TabletGroupWatcher dependentWatcher;
   final TableStats stats = new TableStats();
-  private SortedSet<TServerInstance> lastScanServers = ImmutableSortedSet.of();
+  private SortedSet<TServerInstance> lastScanServers = Collections.emptySortedSet();
 
   TabletGroupWatcher(Manager manager, TabletStateStore store, TabletGroupWatcher dependentWatcher) {
     this.manager = manager;
@@ -198,7 +198,7 @@ abstract class TabletGroupWatcher extends Thread {
         if (currentTServers.isEmpty()) {
           eventListener.waitForEvents(Manager.TIME_TO_WAIT_BETWEEN_SCANS);
           synchronized (this) {
-            lastScanServers = ImmutableSortedSet.of();
+            lastScanServers = Collections.emptySortedSet();
           }
           continue;
         }
@@ -254,19 +254,17 @@ abstract class TabletGroupWatcher extends Thread {
           }
 
           // if we are shutting down all the tabletservers, we have to do it in order
-          if (goal == TabletGoalState.SUSPENDED && state == TabletState.HOSTED) {
-            if (manager.serversToShutdown.equals(currentTServers.keySet())) {
-              if (dependentWatcher != null && dependentWatcher.assignedOrHosted() > 0) {
-                goal = TabletGoalState.HOSTED;
-              }
+          if ((goal == TabletGoalState.SUSPENDED && state == TabletState.HOSTED)
+              && manager.serversToShutdown.equals(currentTServers.keySet())) {
+            if (dependentWatcher != null && dependentWatcher.assignedOrHosted() > 0) {
+              goal = TabletGoalState.HOSTED;
             }
           }
 
           if (goal == TabletGoalState.HOSTED) {
-            if (state != TabletState.HOSTED && !tls.walogs.isEmpty()) {
-              if (manager.recoveryManager.recoverLogs(tls.extent, tls.walogs))
-                continue;
-            }
+            if ((state != TabletState.HOSTED && !tls.walogs.isEmpty())
+                && manager.recoveryManager.recoverLogs(tls.extent, tls.walogs))
+              continue;
             switch (state) {
               case HOSTED:
                 if (location.equals(manager.migrations.get(tls.extent)))

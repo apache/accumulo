@@ -22,7 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.master.thrift.ManagerState;
+import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TabletState;
 
 public class TableStats {

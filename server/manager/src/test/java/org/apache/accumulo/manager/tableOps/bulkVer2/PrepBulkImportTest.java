@@ -80,7 +80,7 @@ public class PrepBulkImportTest {
   }
 
   Iterable<List<KeyExtent>> powerSet(KeyExtent... extents) {
-    Set<Set<KeyExtent>> powerSet = Sets.powerSet(Set.copyOf(Arrays.asList(extents)));
+    Set<Set<KeyExtent>> powerSet = Sets.powerSet(Set.of(extents));
 
     return Iterables.transform(powerSet, set -> {
       List<KeyExtent> list = new ArrayList<>(set);

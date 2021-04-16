@@ -24,13 +24,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage;
-
-import com.google.common.collect.ImmutableMap;
 
 /**
  * If no options are given, then this will default to an executor named {@code default} and
@@ -118,27 +118,23 @@ public class SimpleScanDispatcher implements ScanDispatcher {
     multiDispatch = Optional.ofNullable(options.get("multi_executor"))
         .map(name -> ScanDispatch.builder().setExecutorName(name).build()).orElse(baseDispatch);
 
-    var stpb = ImmutableMap.<String,Map<ScanInfo.Type,ScanDispatch>>builder();
-
-    for (String hintScanType : hintScanTypes) {
-      EnumMap<ScanInfo.Type,ScanDispatch> precomupted = new EnumMap<>(ScanInfo.Type.class);
-
-      precomupted.put(ScanInfo.Type.SINGLE, ScanDispatch.builder()
-          .setExecutorName(
-              scanExecutors.getOrDefault(hintScanType, singleDispatch.getExecutorName()))
-          .setIndexCacheUsage(indexCacheUsage.getOrDefault(hintScanType, CacheUsage.TABLE))
-          .setDataCacheUsage(dataCacheUsage.getOrDefault(hintScanType, CacheUsage.TABLE)).build());
-
-      precomupted.put(ScanInfo.Type.MULTI, ScanDispatch.builder()
-          .setExecutorName(
-              scanExecutors.getOrDefault(hintScanType, multiDispatch.getExecutorName()))
-          .setIndexCacheUsage(indexCacheUsage.getOrDefault(hintScanType, CacheUsage.TABLE))
-          .setDataCacheUsage(dataCacheUsage.getOrDefault(hintScanType, CacheUsage.TABLE)).build());
-
-      stpb.put(hintScanType, precomupted);
-    }
-
-    hintDispatch = stpb.build();
+    hintDispatch = hintScanTypes.stream()
+        .collect(Collectors.toUnmodifiableMap(Function.identity(), hintScanType -> {
+          EnumMap<ScanInfo.Type,ScanDispatch> precomupted = new EnumMap<>(ScanInfo.Type.class);
+          CacheUsage iCacheUsage = indexCacheUsage.getOrDefault(hintScanType, CacheUsage.TABLE);
+          CacheUsage dCacheUsage = dataCacheUsage.getOrDefault(hintScanType, CacheUsage.TABLE);
+          precomupted.put(ScanInfo.Type.SINGLE,
+              ScanDispatch.builder()
+                  .setExecutorName(
+                      scanExecutors.getOrDefault(hintScanType, singleDispatch.getExecutorName()))
+                  .setIndexCacheUsage(iCacheUsage).setDataCacheUsage(dCacheUsage).build());
+          precomupted.put(ScanInfo.Type.MULTI,
+              ScanDispatch.builder()
+                  .setExecutorName(
+                      scanExecutors.getOrDefault(hintScanType, multiDispatch.getExecutorName()))
+                  .setIndexCacheUsage(iCacheUsage).setDataCacheUsage(dCacheUsage).build());
+          return precomupted;
+        }));
   }
 
   @Override

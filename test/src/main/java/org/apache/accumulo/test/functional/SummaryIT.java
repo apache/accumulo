@@ -47,7 +47,10 @@ import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.IntPredicate;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -87,7 +90,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -752,11 +754,9 @@ public class SummaryIT extends AccumuloClusterHarness {
   }
 
   private Map<String,Long> nm(Object... entries) {
-    var imb = ImmutableMap.<String,Long>builder();
-    for (int i = 0; i < entries.length; i += 2) {
-      imb.put((String) entries[i], (Long) entries[i + 1]);
-    }
-    return imb.build();
+    IntPredicate evenIndex = i -> i % 2 == 0;
+    return IntStream.range(0, entries.length).filter(evenIndex).boxed().collect(
+        Collectors.toUnmodifiableMap(i -> (String) entries[i], i -> (Long) entries[i + 1]));
   }
 
   @Test
