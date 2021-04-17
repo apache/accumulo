@@ -182,13 +182,12 @@ public class SummarizerConfiguration {
    * @since 2.0.0
    */
   public static class Builder {
-    private String className;
-    private ImmutableMap.Builder<String,String> imBuilder;
+    private final String className;
+    private final ImmutableMap.Builder<String,String> imBuilder = ImmutableMap.builder();
     private String configId = null;
 
     private Builder(String className) {
       this.className = className;
-      this.imBuilder = ImmutableMap.builder();
     }
 
     /**

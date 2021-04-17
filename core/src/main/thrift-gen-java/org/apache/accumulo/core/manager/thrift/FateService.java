@@ -22,7 +22,7 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.master.thrift;
+package org.apache.accumulo.core.manager.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
 public class FateService {
@@ -834,8 +834,8 @@ public class FateService {
   public static class beginFateOperation_args implements org.apache.thrift.TBase<beginFateOperation_args, beginFateOperation_args._Fields>, java.io.Serializable, Cloneable, Comparable<beginFateOperation_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("beginFateOperation_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new beginFateOperation_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new beginFateOperation_argsTupleSchemeFactory();
@@ -845,8 +845,8 @@ public class FateService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)2, "tinfo"),
-      CREDENTIALS((short)1, "credentials");
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -862,9 +862,9 @@ public class FateService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 2: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 1: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
           default:
             return null;
@@ -1215,7 +1215,7 @@ public class FateService {
             break;
           }
           switch (schemeField.id) {
-            case 2: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -1224,7 +1224,7 @@ public class FateService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -1248,14 +1248,14 @@ public class FateService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.credentials != null) {
-          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
-          struct.credentials.write(oprot);
-          oprot.writeFieldEnd();
-        }
         if (struct.tinfo != null) {
           oprot.writeFieldBegin(TINFO_FIELD_DESC);
           struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -1894,13 +1894,13 @@ public class FateService {
   public static class executeFateOperation_args implements org.apache.thrift.TBase<executeFateOperation_args, executeFateOperation_args._Fields>, java.io.Serializable, Cloneable, Comparable<executeFateOperation_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("executeFateOperation_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)7);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField OPID_FIELD_DESC = new org.apache.thrift.protocol.TField("opid", org.apache.thrift.protocol.TType.I64, (short)2);
-    private static final org.apache.thrift.protocol.TField OP_FIELD_DESC = new org.apache.thrift.protocol.TField("op", org.apache.thrift.protocol.TType.I32, (short)3);
-    private static final org.apache.thrift.protocol.TField ARGUMENTS_FIELD_DESC = new org.apache.thrift.protocol.TField("arguments", org.apache.thrift.protocol.TType.LIST, (short)4);
-    private static final org.apache.thrift.protocol.TField OPTIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("options", org.apache.thrift.protocol.TType.MAP, (short)5);
-    private static final org.apache.thrift.protocol.TField AUTO_CLEAN_FIELD_DESC = new org.apache.thrift.protocol.TField("autoClean", org.apache.thrift.protocol.TType.BOOL, (short)6);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField OPID_FIELD_DESC = new org.apache.thrift.protocol.TField("opid", org.apache.thrift.protocol.TType.I64, (short)3);
+    private static final org.apache.thrift.protocol.TField OP_FIELD_DESC = new org.apache.thrift.protocol.TField("op", org.apache.thrift.protocol.TType.I32, (short)4);
+    private static final org.apache.thrift.protocol.TField ARGUMENTS_FIELD_DESC = new org.apache.thrift.protocol.TField("arguments", org.apache.thrift.protocol.TType.LIST, (short)5);
+    private static final org.apache.thrift.protocol.TField OPTIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("options", org.apache.thrift.protocol.TType.MAP, (short)6);
+    private static final org.apache.thrift.protocol.TField AUTO_CLEAN_FIELD_DESC = new org.apache.thrift.protocol.TField("autoClean", org.apache.thrift.protocol.TType.BOOL, (short)7);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new executeFateOperation_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new executeFateOperation_argsTupleSchemeFactory();
@@ -1919,17 +1919,17 @@ public class FateService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)7, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      OPID((short)2, "opid"),
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      OPID((short)3, "opid"),
       /**
        * 
        * @see FateOperation
        */
-      OP((short)3, "op"),
-      ARGUMENTS((short)4, "arguments"),
-      OPTIONS((short)5, "options"),
-      AUTO_CLEAN((short)6, "autoClean");
+      OP((short)4, "op"),
+      ARGUMENTS((short)5, "arguments"),
+      OPTIONS((short)6, "options"),
+      AUTO_CLEAN((short)7, "autoClean");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -1945,19 +1945,19 @@ public class FateService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 7: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 1: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // OPID
+          case 3: // OPID
             return OPID;
-          case 3: // OP
+          case 4: // OP
             return OP;
-          case 4: // ARGUMENTS
+          case 5: // ARGUMENTS
             return ARGUMENTS;
-          case 5: // OPTIONS
+          case 6: // OPTIONS
             return OPTIONS;
-          case 6: // AUTO_CLEAN
+          case 7: // AUTO_CLEAN
             return AUTO_CLEAN;
           default:
             return null;
@@ -2723,7 +2723,7 @@ public class FateService {
             break;
           }
           switch (schemeField.id) {
-            case 7: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -2732,7 +2732,7 @@ public class FateService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -2741,7 +2741,7 @@ public class FateService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // OPID
+            case 3: // OPID
               if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
                 struct.opid = iprot.readI64();
                 struct.setOpidIsSet(true);
@@ -2749,24 +2749,24 @@ public class FateService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 3: // OP
+            case 4: // OP
               if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
-                struct.op = org.apache.accumulo.core.master.thrift.FateOperation.findByValue(iprot.readI32());
+                struct.op = org.apache.accumulo.core.manager.thrift.FateOperation.findByValue(iprot.readI32());
                 struct.setOpIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 4: // ARGUMENTS
+            case 5: // ARGUMENTS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list86 = iprot.readListBegin();
-                  struct.arguments = new java.util.ArrayList<java.nio.ByteBuffer>(_list86.size);
-                  @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem87;
-                  for (int _i88 = 0; _i88 < _list86.size; ++_i88)
+                  org.apache.thrift.protocol.TList _list60 = iprot.readListBegin();
+                  struct.arguments = new java.util.ArrayList<java.nio.ByteBuffer>(_list60.size);
+                  @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem61;
+                  for (int _i62 = 0; _i62 < _list60.size; ++_i62)
                   {
-                    _elem87 = iprot.readBinary();
-                    struct.arguments.add(_elem87);
+                    _elem61 = iprot.readBinary();
+                    struct.arguments.add(_elem61);
                   }
                   iprot.readListEnd();
                 }
@@ -2775,18 +2775,18 @@ public class FateService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 5: // OPTIONS
+            case 6: // OPTIONS
               if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
                 {
-                  org.apache.thrift.protocol.TMap _map89 = iprot.readMapBegin();
-                  struct.options = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map89.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _key90;
-                  @org.apache.thrift.annotation.Nullable java.lang.String _val91;
-                  for (int _i92 = 0; _i92 < _map89.size; ++_i92)
+                  org.apache.thrift.protocol.TMap _map63 = iprot.readMapBegin();
+                  struct.options = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map63.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _key64;
+                  @org.apache.thrift.annotation.Nullable java.lang.String _val65;
+                  for (int _i66 = 0; _i66 < _map63.size; ++_i66)
                   {
-                    _key90 = iprot.readString();
-                    _val91 = iprot.readString();
-                    struct.options.put(_key90, _val91);
+                    _key64 = iprot.readString();
+                    _val65 = iprot.readString();
+                    struct.options.put(_key64, _val65);
                   }
                   iprot.readMapEnd();
                 }
@@ -2795,7 +2795,7 @@ public class FateService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 6: // AUTO_CLEAN
+            case 7: // AUTO_CLEAN
               if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
                 struct.autoClean = iprot.readBool();
                 struct.setAutoCleanIsSet(true);
@@ -2818,6 +2818,11 @@ public class FateService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
@@ -2835,9 +2840,9 @@ public class FateService {
           oprot.writeFieldBegin(ARGUMENTS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.arguments.size()));
-            for (java.nio.ByteBuffer _iter93 : struct.arguments)
+            for (java.nio.ByteBuffer _iter67 : struct.arguments)
             {
-              oprot.writeBinary(_iter93);
+              oprot.writeBinary(_iter67);
             }
             oprot.writeListEnd();
           }
@@ -2847,10 +2852,10 @@ public class FateService {
           oprot.writeFieldBegin(OPTIONS_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.options.size()));
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter94 : struct.options.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter68 : struct.options.entrySet())
             {
-              oprot.writeString(_iter94.getKey());
-              oprot.writeString(_iter94.getValue());
+              oprot.writeString(_iter68.getKey());
+              oprot.writeString(_iter68.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -2859,11 +2864,6 @@ public class FateService {
         oprot.writeFieldBegin(AUTO_CLEAN_FIELD_DESC);
         oprot.writeBool(struct.autoClean);
         oprot.writeFieldEnd();
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
-          oprot.writeFieldEnd();
-        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -2919,19 +2919,19 @@ public class FateService {
         if (struct.isSetArguments()) {
           {
             oprot.writeI32(struct.arguments.size());
-            for (java.nio.ByteBuffer _iter95 : struct.arguments)
+            for (java.nio.ByteBuffer _iter69 : struct.arguments)
             {
-              oprot.writeBinary(_iter95);
+              oprot.writeBinary(_iter69);
             }
           }
         }
         if (struct.isSetOptions()) {
           {
             oprot.writeI32(struct.options.size());
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter96 : struct.options.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter70 : struct.options.entrySet())
             {
-              oprot.writeString(_iter96.getKey());
-              oprot.writeString(_iter96.getValue());
+              oprot.writeString(_iter70.getKey());
+              oprot.writeString(_iter70.getValue());
             }
           }
         }
@@ -2959,33 +2959,33 @@ public class FateService {
           struct.setOpidIsSet(true);
         }
         if (incoming.get(3)) {
-          struct.op = org.apache.accumulo.core.master.thrift.FateOperation.findByValue(iprot.readI32());
+          struct.op = org.apache.accumulo.core.manager.thrift.FateOperation.findByValue(iprot.readI32());
           struct.setOpIsSet(true);
         }
         if (incoming.get(4)) {
           {
-            org.apache.thrift.protocol.TList _list97 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.arguments = new java.util.ArrayList<java.nio.ByteBuffer>(_list97.size);
-            @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem98;
-            for (int _i99 = 0; _i99 < _list97.size; ++_i99)
+            org.apache.thrift.protocol.TList _list71 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.arguments = new java.util.ArrayList<java.nio.ByteBuffer>(_list71.size);
+            @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem72;
+            for (int _i73 = 0; _i73 < _list71.size; ++_i73)
             {
-              _elem98 = iprot.readBinary();
-              struct.arguments.add(_elem98);
+              _elem72 = iprot.readBinary();
+              struct.arguments.add(_elem72);
             }
           }
           struct.setArgumentsIsSet(true);
         }
         if (incoming.get(5)) {
           {
-            org.apache.thrift.protocol.TMap _map100 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.options = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map100.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _key101;
-            @org.apache.thrift.annotation.Nullable java.lang.String _val102;
-            for (int _i103 = 0; _i103 < _map100.size; ++_i103)
+            org.apache.thrift.protocol.TMap _map74 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.options = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map74.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _key75;
+            @org.apache.thrift.annotation.Nullable java.lang.String _val76;
+            for (int _i77 = 0; _i77 < _map74.size; ++_i77)
             {
-              _key101 = iprot.readString();
-              _val102 = iprot.readString();
-              struct.options.put(_key101, _val102);
+              _key75 = iprot.readString();
+              _val76 = iprot.readString();
+              struct.options.put(_key75, _val76);
             }
           }
           struct.setOptionsIsSet(true);
@@ -3588,9 +3588,9 @@ public class FateService {
   public static class waitForFateOperation_args implements org.apache.thrift.TBase<waitForFateOperation_args, waitForFateOperation_args._Fields>, java.io.Serializable, Cloneable, Comparable<waitForFateOperation_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("waitForFateOperation_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)3);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField OPID_FIELD_DESC = new org.apache.thrift.protocol.TField("opid", org.apache.thrift.protocol.TType.I64, (short)2);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField OPID_FIELD_DESC = new org.apache.thrift.protocol.TField("opid", org.apache.thrift.protocol.TType.I64, (short)3);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new waitForFateOperation_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new waitForFateOperation_argsTupleSchemeFactory();
@@ -3601,9 +3601,9 @@ public class FateService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)3, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      OPID((short)2, "opid");
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      OPID((short)3, "opid");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -3619,11 +3619,11 @@ public class FateService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 3: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 1: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // OPID
+          case 3: // OPID
             return OPID;
           default:
             return null;
@@ -4048,7 +4048,7 @@ public class FateService {
             break;
           }
           switch (schemeField.id) {
-            case 3: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -4057,7 +4057,7 @@ public class FateService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -4066,7 +4066,7 @@ public class FateService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // OPID
+            case 3: // OPID
               if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
                 struct.opid = iprot.readI64();
                 struct.setOpidIsSet(true);
@@ -4089,6 +4089,11 @@ public class FateService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
@@ -4097,11 +4102,6 @@ public class FateService {
         oprot.writeFieldBegin(OPID_FIELD_DESC);
         oprot.writeI64(struct.opid);
         oprot.writeFieldEnd();
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
-          oprot.writeFieldEnd();
-        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -4858,9 +4858,9 @@ public class FateService {
   public static class finishFateOperation_args implements org.apache.thrift.TBase<finishFateOperation_args, finishFateOperation_args._Fields>, java.io.Serializable, Cloneable, Comparable<finishFateOperation_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("finishFateOperation_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)3);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField OPID_FIELD_DESC = new org.apache.thrift.protocol.TField("opid", org.apache.thrift.protocol.TType.I64, (short)2);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField OPID_FIELD_DESC = new org.apache.thrift.protocol.TField("opid", org.apache.thrift.protocol.TType.I64, (short)3);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new finishFateOperation_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new finishFateOperation_argsTupleSchemeFactory();
@@ -4871,9 +4871,9 @@ public class FateService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)3, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      OPID((short)2, "opid");
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      OPID((short)3, "opid");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -4889,11 +4889,11 @@ public class FateService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 3: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 1: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // OPID
+          case 3: // OPID
             return OPID;
           default:
             return null;
@@ -5318,7 +5318,7 @@ public class FateService {
             break;
           }
           switch (schemeField.id) {
-            case 3: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -5327,7 +5327,7 @@ public class FateService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -5336,7 +5336,7 @@ public class FateService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // OPID
+            case 3: // OPID
               if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
                 struct.opid = iprot.readI64();
                 struct.setOpidIsSet(true);
@@ -5359,6 +5359,11 @@ public class FateService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
@@ -5367,11 +5372,6 @@ public class FateService {
         oprot.writeFieldBegin(OPID_FIELD_DESC);
         oprot.writeI64(struct.opid);
         oprot.writeFieldEnd();
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
-          oprot.writeFieldEnd();
-        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }

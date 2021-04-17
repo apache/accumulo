@@ -24,8 +24,8 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.master.thrift.ManagerClientService;
-import org.apache.accumulo.core.master.thrift.TabletSplit;
+import org.apache.accumulo.core.manager.thrift.ManagerClientService;
+import org.apache.accumulo.core.manager.thrift.TabletSplit;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.hadoop.io.Text;

@@ -26,7 +26,7 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response.Status;
 
-import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
+import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.manager.ManagerResource;

@@ -105,6 +105,7 @@ public class WebViews {
     model.put("version", Constants.VERSION);
     model.put("instance_name", monitor.getContext().getInstanceName());
     model.put("instance_id", monitor.getContext().getInstanceID());
+    model.put("zk_hosts", monitor.getContext().getZooKeepers());
     addExternalResources(model);
     return model;
   }

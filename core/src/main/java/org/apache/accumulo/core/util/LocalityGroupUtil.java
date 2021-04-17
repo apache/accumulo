@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.util;
 
+import static java.util.stream.Collectors.toUnmodifiableSet;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -51,18 +53,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableSet;
 
 public class LocalityGroupUtil {
 
   private static final Logger log = LoggerFactory.getLogger(LocalityGroupUtil.class);
 
-  // using an ImmutableSet here for more efficient comparisons in LocalityGroupIterator
-  public static final Set<ByteSequence> EMPTY_CF_SET = Set.of();
-
   /**
    * Create a set of families to be passed into the SortedKeyValueIterator seek call from a supplied
-   * set of columns. We are using the ImmutableSet to enable faster comparisons down in the
+   * set of columns. We are using the immutable set to enable faster comparisons down in the
    * LocalityGroupIterator.
    *
    * @param columns
@@ -71,11 +69,10 @@ public class LocalityGroupUtil {
    */
   public static Set<ByteSequence> families(Collection<Column> columns) {
     if (columns.isEmpty()) {
-      return EMPTY_CF_SET;
+      return Set.of();
     }
-    var builder = ImmutableSet.<ByteSequence>builder();
-    columns.forEach(c -> builder.add(new ArrayByteSequence(c.getColumnFamily())));
-    return builder.build();
+    return columns.stream().map(c -> new ArrayByteSequence(c.getColumnFamily()))
+        .collect(toUnmodifiableSet());
   }
 
   @SuppressWarnings("serial")
@@ -129,18 +126,16 @@ public class LocalityGroupUtil {
         String group = property.substring(prefix.length());
         String[] parts = group.split("\\.");
         group = parts[0];
-        if (result.containsKey(group)) {
-          if (parts.length == 1) {
-            Set<ByteSequence> colFamsSet = decodeColumnFamilies(value);
-            if (!Collections.disjoint(all, colFamsSet)) {
-              colFamsSet.retainAll(all);
-              throw new LocalityGroupConfigurationError("Column families " + colFamsSet
-                  + " in group " + group + " is already used by another locality group");
-            }
-
-            all.addAll(colFamsSet);
-            result.put(group, colFamsSet);
+        if (result.containsKey(group) && (parts.length == 1)) {
+          Set<ByteSequence> colFamsSet = decodeColumnFamilies(value);
+          if (!Collections.disjoint(all, colFamsSet)) {
+            colFamsSet.retainAll(all);
+            throw new LocalityGroupConfigurationError("Column families " + colFamsSet + " in group "
+                + group + " is already used by another locality group");
           }
+
+          all.addAll(colFamsSet);
+          result.put(group, colFamsSet);
         }
       }
     }
