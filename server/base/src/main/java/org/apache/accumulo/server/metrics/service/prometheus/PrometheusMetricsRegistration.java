@@ -16,15 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.metrics.service;
+package org.apache.accumulo.server.metrics.service.prometheus;
 
 import java.util.Map;
 
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.metrics.service.MetricsRegistrationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.auto.service.AutoService;
 
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 
-public interface MetricsRegistrationService {
-  void register(final ServerContext context, final String serviceName,
-      final Map<String,String> properties, final CompositeMeterRegistry registry);
+@AutoService(MetricsRegistrationService.class)
+public class PrometheusMetricsRegistration implements MetricsRegistrationService {
+
+  private static final Logger log = LoggerFactory.getLogger(PrometheusMetricsRegistration.class);
+
+  @Override
+  public void register(final ServerContext context, final String serviceName,
+      final Map<String,String> properties, final CompositeMeterRegistry registry) {
+    log.info("Loading metrics service name: {}, to {}, with props: {}", serviceName, registry,
+        properties);
+    log.warn("ZZZ - Init prometheus metrics");
+  }
 }

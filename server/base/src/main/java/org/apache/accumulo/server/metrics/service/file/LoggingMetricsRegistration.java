@@ -16,11 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.metrics.service;
+package org.apache.accumulo.server.metrics.service.file;
 
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.metrics.service.MetricsRegistrationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,9 +50,10 @@ public class LoggingMetricsRegistration implements MetricsRegistrationService {
   private final Consumer<String> metricConsumer = metricsLogger::info;
 
   @Override
-  public void register(String name, Map<String,String> properties,
-      CompositeMeterRegistry registry) {
-    log.info("Loading metrics service name: {}, to {}, with props: {}", name, registry, properties);
+  public void register(final ServerContext context, final String serviceName,
+      final Map<String,String> properties, final CompositeMeterRegistry registry) {
+    log.info("Loading metrics service name: {}, to {}, with props: {}", serviceName, registry,
+        properties);
     if ("true".equals(properties.get("enabled"))) {
       log.info("enabled");
 
