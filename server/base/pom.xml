@@ -97,6 +97,20 @@
       <artifactId>zookeeper-jute</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-server</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-servlet</artifactId>
+      <version>11.0.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty.toolchain</groupId>
+      <artifactId>jetty-jakarta-servlet-api</artifactId>
+      <version>5.0.2</version>
+    </dependency>
+    <dependency>
       <groupId>org.jline</groupId>
       <artifactId>jline</artifactId>
     </dependency>
