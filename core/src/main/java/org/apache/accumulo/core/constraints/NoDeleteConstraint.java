@@ -35,8 +35,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @Deprecated(since = "2.1.0")
 @SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
     justification = "Same name used for compatibility during deprecation cycle")
-public class NoDeleteConstraint
-    extends org.apache.accumulo.core.data.constraints.NoDeleteConstraint {
+public class NoDeleteConstraint extends org.apache.accumulo.core.data.constraints.NoDeleteConstraint
+    implements Constraint {
 
   @Override
   public String getViolationDescription(short violationCode) {
@@ -46,7 +46,8 @@ public class NoDeleteConstraint
     return null;
   }
 
-  public List<Short> check(Environment env, Mutation mutation) {
+  @Override
+  public List<Short> check(Constraint.Environment env, Mutation mutation) {
     List<ColumnUpdate> updates = mutation.getUpdates();
     for (ColumnUpdate update : updates) {
       if (update.isDeleted()) {
@@ -57,8 +58,9 @@ public class NoDeleteConstraint
   }
 
   @Override
-  public List<Short> checkMutation(Environment env, Mutation mutation) {
-    return check(env, mutation);
+  public List<Short> checkMutation(
+      org.apache.accumulo.core.data.constraints.Constraint.Environment env, Mutation mutation) {
+    return check((Constraint.Environment) env, mutation);
   }
 
 }

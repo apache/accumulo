@@ -35,8 +35,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @Deprecated(since = "2.1.0")
 @SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
     justification = "Same name used for compatibility during deprecation cycle")
-public class DefaultKeySizeConstraint
-    extends org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint {
+public class DefaultKeySizeConstraint extends
+    org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint implements Constraint {
 
   protected static final short MAX__KEY_SIZE_EXCEEDED_VIOLATION = 1;
   protected static final long maxSize = 1048576; // 1MB default size
@@ -54,7 +54,8 @@ public class DefaultKeySizeConstraint
 
   static final List<Short> NO_VIOLATIONS = new ArrayList<>();
 
-  public List<Short> check(Environment env, Mutation mutation) {
+  @Override
+  public List<Short> check(Constraint.Environment env, Mutation mutation) {
 
     // fast size check
     if (mutation.numBytes() < maxSize)
@@ -76,7 +77,8 @@ public class DefaultKeySizeConstraint
   }
 
   @Override
-  public List<Short> checkMutation(Environment env, Mutation mutation) {
-    return check(env, mutation);
+  public List<Short> checkMutation(
+      org.apache.accumulo.core.data.constraints.Constraint.Environment env, Mutation mutation) {
+    return check((Constraint.Environment) env, mutation);
   }
 }

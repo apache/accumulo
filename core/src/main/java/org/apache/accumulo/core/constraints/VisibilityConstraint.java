@@ -48,7 +48,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
     justification = "Same name used for compatibility during deprecation cycle")
 public class VisibilityConstraint
-    extends org.apache.accumulo.core.data.constraints.VisibilityConstraint {
+    extends org.apache.accumulo.core.data.constraints.VisibilityConstraint implements Constraint {
 
   @Override
   public String getViolationDescription(short violationCode) {
@@ -62,7 +62,7 @@ public class VisibilityConstraint
     return null;
   }
 
-  public List<Short> check(Environment env, Mutation mutation) {
+  public List<Short> check(Constraint.Environment env, Mutation mutation) {
     List<ColumnUpdate> updates = mutation.getUpdates();
 
     HashSet<String> ok = null;
@@ -100,7 +100,8 @@ public class VisibilityConstraint
   }
 
   @Override
-  public List<Short> checkMutation(Environment env, Mutation mutation) {
-    return check(env, mutation);
+  public List<Short> checkMutation(
+      org.apache.accumulo.core.data.constraints.Constraint.Environment env, Mutation mutation) {
+    return check((Constraint.Environment) env, mutation);
   }
 }

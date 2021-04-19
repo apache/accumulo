@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.security;
+package org.apache.accumulo.core.data.constraints;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.createMock;
@@ -32,7 +32,8 @@ import java.util.List;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.constraints.Constraint.Environment;
-import org.apache.accumulo.core.data.constraints.VisibilityConstraint;
+import org.apache.accumulo.core.security.AuthorizationContainer;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.junit.Before;
 import org.junit.Test;
 
