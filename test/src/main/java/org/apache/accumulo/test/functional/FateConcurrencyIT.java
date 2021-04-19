@@ -494,6 +494,8 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     assertEquals(tableCount,
         tables.stream().map(SlowOps::getTableName).filter(this::findFate).count());
 
+    // force pause - see if metrics show compactions in progress
+
     try {
       Thread.sleep(120_000);
     } catch (InterruptedException ex) {
@@ -512,5 +514,13 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
             t.getTableName());
       }
     });
+
+    // force pause - see if metrics update on cancel
+    try {
+      Thread.sleep(120_000);
+    } catch (InterruptedException ex) {
+      // ignore
+    }
+
   }
 }

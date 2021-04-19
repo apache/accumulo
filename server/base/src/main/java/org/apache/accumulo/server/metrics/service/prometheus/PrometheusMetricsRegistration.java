@@ -19,10 +19,10 @@
 package org.apache.accumulo.server.metrics.service.prometheus;
 
 import java.util.Map;
-import java.util.Objects;
 
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metrics.service.MetricsRegistrationService;
+import org.apache.accumulo.server.metrics.service.MicrometerMetricsFactory;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
@@ -33,6 +33,8 @@ import org.slf4j.LoggerFactory;
 import com.google.auto.service.AutoService;
 
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
+import io.micrometer.prometheus.PrometheusConfig;
+import io.micrometer.prometheus.PrometheusMeterRegistry;
 
 @AutoService(MetricsRegistrationService.class)
 public class PrometheusMetricsRegistration implements MetricsRegistrationService {
@@ -40,6 +42,7 @@ public class PrometheusMetricsRegistration implements MetricsRegistrationService
   private static final Logger log = LoggerFactory.getLogger(PrometheusMetricsRegistration.class);
 
   private static Exporter exporter;
+  private MetricsHttpServer server;
 
   public static Exporter getExporter() {
     return exporter;
@@ -48,17 +51,38 @@ public class PrometheusMetricsRegistration implements MetricsRegistrationService
   @Override
   public void register(final ServerContext context, final String serviceName,
       final Map<String,String> properties, final CompositeMeterRegistry registry) {
+
     log.info("Loading metrics service name: {}, to {}, with props: {}", serviceName, registry,
         properties);
     log.warn("ZZZ - Init prometheus metrics");
-    exporter = Exporter.getInstance();
+    log.warn("ZZZ - service name: {}", serviceName);
+
+    String appName = properties.get(MicrometerMetricsFactory.CALLING_SERVICE_NAME);
+    log.warn("ZZZ - service name: {}", appName);
+    int port = Integer.parseInt(properties.getOrDefault(appName + ".PortNumber", "0"));
+
+    log.warn("ZZZ: pn from props: {}", port);
+    log.warn("P:{}", properties);
+
+    try {
+      server = new MetricsHttpServer(port);
+      exporter = new Exporter(registry);
+    } catch (Exception ex) {
+      log.warn("Failed to start prometheus http exporter - prometheus metrics will be unavailable",
+          ex);
+    }
+  }
+
+  public void stop() throws Exception {
+    server.close();
   }
 
   private static class MetricsHttpServer implements AutoCloseable {
 
     private final Server jetty;
+    private final int connectedPort;
 
-    public MetricsHttpServer(final int port) {
+    public MetricsHttpServer(final int port) throws Exception {
 
       jetty = new Server();
 
@@ -71,28 +95,40 @@ public class PrometheusMetricsRegistration implements MetricsRegistrationService
 
       servletHandler.addServletWithMapping(HealthCheckServlet.class, "/status");
       servletHandler.addServletWithMapping(PrometheusExporterServlet.class, "/metrics");
+
+      servletHandler.addServletWithMapping(CustomErrorServlet.class, "/*");
+
+      jetty.setStopAtShutdown(true);
+      jetty.setStopTimeout(5_000);
+
+      jetty.start();
+
+      connectedPort = ((ServerConnector) jetty.getConnectors()[0]).getLocalPort();
+
+      log.info("ZZZ: Metrics HTTP server port: {}", connectedPort);
+    }
+
+    public int getConnectedPort() {
+      return connectedPort;
     }
 
     @Override
     public void close() throws Exception {
-
+      jetty.stop();
     }
   }
 
   static class Exporter {
-    private static Exporter _instance;
 
-    private Exporter() {}
+    private final PrometheusMeterRegistry prometheusRegistry;
 
-    public static synchronized Exporter getInstance() {
-      if (Objects.isNull(_instance)) {
-        _instance = new Exporter();
-      }
-      return _instance;
+    public Exporter(final CompositeMeterRegistry registry) {
+      prometheusRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+      registry.add(prometheusRegistry);
     }
 
     public String prometheusScrape() {
-      return "return something";
+      return "SCRAPE: " + prometheusRegistry.scrape();
     }
   }
 }

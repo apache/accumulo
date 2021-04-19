@@ -56,7 +56,7 @@ public class MicrometerMetricsFactoryTest {
     while (count-- > 0) {
       try {
         counter.increment(1.0);
-        Thread.sleep(1_000);
+        Thread.sleep(30_000);
       } catch (InterruptedException ex) {
         // ignore
       }

@@ -45,6 +45,7 @@ public class MicrometerMetricsFactory {
       Property.GENERAL_METRICS_CONFIGURATION_PROPERTIES_FILE;
 
   private static final Logger log = LoggerFactory.getLogger(MicrometerMetricsFactory.class);
+  public static final String CALLING_SERVICE_NAME = "callingServiceName";
 
   private final CompositeMeterRegistry registry;
 
@@ -69,6 +70,7 @@ public class MicrometerMetricsFactory {
       for (MetricsRegistrationService metrics : loader) {
         for (Map.Entry<String,Map<String,String>> entry : serviceProperties.entrySet()) {
           if (entry.getValue().get("classname").equals(metrics.getClass().getName())) {
+            entry.getValue().put(CALLING_SERVICE_NAME, appName);
             metrics.register(context, entry.getKey(), entry.getValue(), registry);
           }
         }
