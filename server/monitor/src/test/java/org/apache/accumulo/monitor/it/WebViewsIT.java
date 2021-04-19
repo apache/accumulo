@@ -93,6 +93,7 @@ public class WebViewsIT extends JerseyTest {
     expect(contextMock.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
     expect(contextMock.getInstanceID()).andReturn("foo").atLeastOnce();
     expect(contextMock.getInstanceName()).andReturn("foo").anyTimes();
+    expect(contextMock.getZooKeepers()).andReturn("foo:2181").anyTimes();
 
     Monitor monitorMock = EasyMock.createMock(Monitor.class);
     expect(monitorMock.getContext()).andReturn(contextMock).anyTimes();
