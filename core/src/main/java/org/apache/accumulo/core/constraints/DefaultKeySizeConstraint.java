@@ -53,16 +53,14 @@ public class DefaultKeySizeConstraint implements Constraint {
       return NO_VIOLATIONS;
 
     List<Short> violations = new ArrayList<>();
-
+    int size = mutation.getRow().length;
     for (ColumnUpdate cu : mutation.getUpdates()) {
-      int size = mutation.getRow().length;
       size += cu.getColumnFamily().length;
       size += cu.getColumnQualifier().length;
       size += cu.getColumnVisibility().length;
-
-      if (size > maxSize)
-        violations.add(MAX__KEY_SIZE_EXCEEDED_VIOLATION);
     }
+    if (size > maxSize)
+      violations.add(MAX__KEY_SIZE_EXCEEDED_VIOLATION);
 
     return violations;
   }

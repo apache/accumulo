@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.constraints;
 
+import static org.apache.accumulo.core.constraints.DefaultKeySizeConstraint.MAX__KEY_SIZE_EXCEEDED_VIOLATION;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Collections;
@@ -36,6 +37,7 @@ public class DefaultKeySizeConstraintTest {
 
   @Test
   public void testConstraint() {
+    var singleViolation = Collections.singletonList(MAX__KEY_SIZE_EXCEEDED_VIOLATION);
 
     // pass constraints
     Mutation m = new Mutation("rowId");
@@ -45,29 +47,25 @@ public class DefaultKeySizeConstraintTest {
     // test with row id > 1mb
     m = new Mutation(oversized);
     m.put("colf", "colq", new Value(new byte[] {}));
-    assertEquals(
-        Collections.singletonList(DefaultKeySizeConstraint.MAX__KEY_SIZE_EXCEEDED_VIOLATION),
-        constraint.check(null, m));
+    assertEquals(singleViolation, constraint.check(null, m));
 
     // test with colf > 1mb
     m = new Mutation("rowid");
     m.put(new Text(oversized), new Text("colq"), new Value(new byte[] {}));
-    assertEquals(
-        Collections.singletonList(DefaultKeySizeConstraint.MAX__KEY_SIZE_EXCEEDED_VIOLATION),
-        constraint.check(null, m));
+    assertEquals(singleViolation, constraint.check(null, m));
 
     // test with colf > 1mb
     m = new Mutation("rowid");
     m.put(new Text(oversized), new Text("colq"), new Value(new byte[] {}));
-    assertEquals(
-        Collections.singletonList(DefaultKeySizeConstraint.MAX__KEY_SIZE_EXCEEDED_VIOLATION),
-        constraint.check(null, m));
+    assertEquals(singleViolation, constraint.check(null, m));
 
     // test sum of smaller sizes violates 1mb constraint
     m = new Mutation(large);
     m.put(new Text(large), new Text(large), new Value(new byte[] {}));
-    assertEquals(
-        Collections.singletonList(DefaultKeySizeConstraint.MAX__KEY_SIZE_EXCEEDED_VIOLATION),
-        constraint.check(null, m));
+    assertEquals(singleViolation, constraint.check(null, m));
+
+    // test large rowID with no columns
+    m = new Mutation(oversized);
+    assertEquals(singleViolation, constraint.check(null, m));
   }
 }
