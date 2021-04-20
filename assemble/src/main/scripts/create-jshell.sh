@@ -46,19 +46,14 @@ cat <<EOF
   // Does Accumulo properties exists?
   if (clientPropUrl != null) {
     var prop = new Properties(); 
-    
+
     // Load in Accumulo properties
     try (var in = clientPropUrl.openStream()) {
       prop.load(in);
     }
     // Build Accumulo Client after try-with-resources is closed
     System.out.println("Building Accumulo client using '" + clientPropUrl + "'\n");
-    name = prop.getProperty("instance.name");
-    zk = prop.getProperty("instance.zookeepers");
-    principal = prop.getProperty("auth.principal");
-    token = prop.getProperty("auth.token");
-      
-    client = Accumulo.newClient().to(name, zk).as(principal,token).build();
+    client = Accumulo.newClient().from(prop).build();
     System.out.println("Use 'client' to interact with Accumulo\n");
     
   } else 
