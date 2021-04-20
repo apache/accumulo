@@ -216,6 +216,9 @@
               </goals>
               <configuration>
                 <reuseForks>false</reuseForks>
+                <excludes>
+                  <exclude>NONE</exclude>
+                </excludes>
                 <includes>
                   <include>**/TableIdTest.java</include>
                   <include>**/HadoopCredentialProviderTest.java</include>
