@@ -26,11 +26,9 @@ import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 import org.apache.hadoop.metrics2.lib.MutableGaugeLong;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.micrometer.core.instrument.Gauge;
-import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 
 /**
  * Expected to be instantiated with GcMetricsFactory. This will configure both jmx and the hadoop
@@ -58,7 +56,7 @@ public class GcMetrics extends Metrics {
 
     metricValues = new AtomicReference<>(this.gc.getGcCycleMetrics());
 
-    CompositeMeterRegistry registry = gc.getMicrometerMetrics().getRegistry();
+    MeterRegistry registry = gc.getMicrometerMetrics().getRegistry();
 
     Gauge gcStarted = Gauge
         .builder(GC_METRIC_PREFIX + ".started", metricValues.get(),
