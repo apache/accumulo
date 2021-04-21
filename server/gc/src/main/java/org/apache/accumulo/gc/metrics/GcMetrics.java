@@ -51,8 +51,6 @@ public class GcMetrics extends Metrics {
   private static final String record = "AccGcCycleMetrics";
 
   private final SimpleGarbageCollector gc;
-  private static final Logger metricsLogger =
-      LoggerFactory.getLogger("org.apache.accumulo.metrics");
 
   public GcMetrics(SimpleGarbageCollector gc) {
     super(jmxName + ",sub=" + gc.getClass().getSimpleName(), description, "accgc", record);
