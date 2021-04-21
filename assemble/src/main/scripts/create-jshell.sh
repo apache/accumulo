@@ -48,11 +48,11 @@ cat <<EOF
     var prop = new Properties(); 
 
     // Load in Accumulo properties
+    System.out.println("Building Accumulo client using '" + clientPropUrl + "'\n");
     try (var in = clientPropUrl.openStream()) {
       prop.load(in);
     }
     // Build Accumulo Client after try-with-resources is closed
-    System.out.println("Building Accumulo client using '" + clientPropUrl + "'\n");
     client = Accumulo.newClient().from(prop).build();
     System.out.println("Use 'client' to interact with Accumulo\n");
     
