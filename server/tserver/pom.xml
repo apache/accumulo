@@ -168,9 +168,7 @@
               </goals>
               <configuration>
                 <reuseForks>false</reuseForks>
-                <excludes>
-                  <exclude>NONE</exclude>
-                </excludes>
+                <excludes combine.self="override" />
                 <includes>
                   <include>**/AssignmentWatcherTest.java</include>
                 </includes>
