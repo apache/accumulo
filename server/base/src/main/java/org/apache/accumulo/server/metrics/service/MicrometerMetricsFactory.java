@@ -33,7 +33,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 
 public class MicrometerMetricsFactory {
@@ -83,7 +82,7 @@ public class MicrometerMetricsFactory {
 
   }
 
-  public MeterRegistry getRegistry() {
+  public CompositeMeterRegistry getRegistry() {
     return registry;
   }
 
