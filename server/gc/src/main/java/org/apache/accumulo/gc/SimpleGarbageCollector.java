@@ -80,7 +80,6 @@ import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockWatcher;
 import org.apache.accumulo.gc.metrics.GcCycleMetrics;
-import org.apache.accumulo.gc.metrics.GcMetrics;
 import org.apache.accumulo.gc.metrics.GcMetricsFactory;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
 import org.apache.accumulo.server.AbstractServer;
@@ -125,7 +124,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
   private GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
-  private GcMetrics gcMetrics;
 
   public static void main(String[] args) throws Exception {
     try (SimpleGarbageCollector gc = new SimpleGarbageCollector(new ServerOpts(), args)) {
@@ -587,7 +585,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       }
       try {
         gcCycleMetrics.incrementRunCycleCount();
-        gcMetrics.prepareMetrics();
         long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
         log.debug("Sleeping for {} milliseconds", gcDelay);
         Thread.sleep(gcDelay);
@@ -759,7 +756,4 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     return gcCycleMetrics;
   }
 
-  public void setGcMetrics(GcMetrics gcMetrics) {
-    this.gcMetrics = gcMetrics;
-  }
 }
