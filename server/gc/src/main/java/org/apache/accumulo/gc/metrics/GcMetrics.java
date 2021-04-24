@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.server.metrics.Metrics;
+import org.apache.hadoop.metrics2.MetricsSystem;
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 import org.apache.hadoop.metrics2.lib.MutableGaugeLong;
 
@@ -51,8 +52,13 @@ public class GcMetrics extends Metrics {
   private final SimpleGarbageCollector gc;
 
   public GcMetrics(SimpleGarbageCollector gc) {
+
     super(jmxName + ",sub=" + gc.getClass().getSimpleName(), description, "accgc", record);
     this.gc = gc;
+
+    MetricsSystem metricsSystem = gc.getMetricsSystem();
+
+    register(metricsSystem);
 
     // Updated during each cycle of SimpleGC
     metricValues = new AtomicReference<>(this.gc.getGcCycleMetrics());
@@ -126,6 +132,10 @@ public class GcMetrics extends Metrics {
   @Override
   public void prepareMetrics() {
     hadoopMetrics.prepareMetrics(metricValues.get());
+  }
+
+  public void updateMetrics(GcCycleMetrics cycleMetrics) {
+    metricValues.set(cycleMetrics);
   }
 
   private static class GcHadoopMetrics {
