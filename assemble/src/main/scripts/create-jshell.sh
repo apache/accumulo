@@ -36,6 +36,31 @@ function addAccumuloAPI() {
   echo
 }
 
+function addClientBuild() {
+cat <<EOF
+  URL clientPropUrl = 
+    AccumuloClient.class.getClassLoader().getResource("accumulo-client.properties");
+  AccumuloClient client = null;
+  String name; String zk; String principal; String token;
+      
+  // Does Accumulo properties exists?
+  if (clientPropUrl != null) {
+    var prop = new Properties(); 
+
+    // Load in Accumulo properties
+    System.out.println("Building Accumulo client using '" + clientPropUrl + "'\n");
+    try (var in = clientPropUrl.openStream()) {
+      prop.load(in);
+    }
+    // Build Accumulo Client after try-with-resources is closed
+    client = Accumulo.newClient().from(prop).build();
+    System.out.println("Use 'client' to interact with Accumulo\n");
+    
+  } else 
+      System.out.println("'accumulo-client.properties' was not found on the classpath\n");
+EOF
+}
+
 function main() {
   local SOURCE bin scriptPath mainBase corePath
   # Establish Accumulo's main base directory
@@ -68,9 +93,11 @@ function main() {
     echo '// Essential Hadoop API'
     echo 'import org.apache.hadoop.io.Text;'
     echo
-    echo '// Initialization code'
-    echo 'System.out.println("Preparing JShell for Apache Accumulo");'
+    echo '// Initialization Code'
+    echo 'System.out.println("Preparing JShell for Apache Accumulo\n");'
     echo
+    echo '// Accumulo Client Build'
+    addClientBuild
   } > "$mainBase/assemble/target/jshell-init.jsh"
 }
 
