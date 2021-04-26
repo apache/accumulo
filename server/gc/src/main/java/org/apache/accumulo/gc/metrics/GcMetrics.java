@@ -32,15 +32,14 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
 /**
- * Expected to be instantiated with GcMetricsFactory. This will configure both jmx and the hadoop
- * metrics systems. The naming convention, in hadoop metrics2, the records will appear as
- * CONTEXT.RECORD (accgc.AccGcCycleMetrics). The value for context is also used by the configuration
- * file for sink configuration.
+ * This will configure jmx, micrometer metrics and the hadoop metrics systems. The naming convention
+ * in hadoop metrics2, the records will appear as CONTEXT.RECORD (accgc.AccGcCycleMetrics). The
+ * value for context is also used by the configuration file for sink configuration.
  */
 public class GcMetrics extends Metrics {
 
   private final GcHadoopMetrics hadoopMetrics;
-  private AtomicReference<GcCycleMetrics> metricValues;
+  private final AtomicReference<GcCycleMetrics> metricValues;
 
   // use common prefix, different that just gc, to prevent confusion with jvm gc metrics.
   public static final String GC_METRIC_PREFIX = "AccGc";
@@ -49,19 +48,16 @@ public class GcMetrics extends Metrics {
   private static final String description = "Accumulo garbage collection metrics";
   private static final String record = "AccGcCycleMetrics";
 
-  private final SimpleGarbageCollector gc;
-
   public GcMetrics(SimpleGarbageCollector gc) {
 
     super(jmxName + ",sub=" + gc.getClass().getSimpleName(), description, "accgc", record);
-    this.gc = gc;
 
     MetricsSystem metricsSystem = gc.getMetricsSystem();
 
     register(metricsSystem);
 
     // Updated during each cycle of SimpleGC
-    metricValues = new AtomicReference<>(this.gc.getGcCycleMetrics());
+    metricValues = new AtomicReference<>(gc.getGcCycleMetrics());
 
     MeterRegistry registry = gc.getMicrometerMetrics().getRegistry();
 
