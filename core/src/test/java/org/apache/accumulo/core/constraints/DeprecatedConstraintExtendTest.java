@@ -29,6 +29,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This tests the case where a user extended a Constraint class before it was deprecated to make
  * sure the old Constraint will still work with the API migration changes.
@@ -68,6 +70,8 @@ public class DeprecatedConstraintExtendTest {
   /**
    * Limit the size of 1mb but also a minimum of 1KB
    */
+  @SuppressFBWarnings(value = "NM_WRONG_PACKAGE",
+      justification = "Same name used for compatibility during deprecation cycle")
   private static class MinKeySizeConstraint extends DefaultKeySizeConstraint {
     protected static final short MIN_KEY_SIZE_EXCEEDED_VIOLATION = 2;
     protected static final long minSize = 1024; // 1MB default size
