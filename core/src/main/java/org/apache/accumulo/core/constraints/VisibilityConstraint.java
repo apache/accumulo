@@ -62,6 +62,7 @@ public class VisibilityConstraint
     return null;
   }
 
+  @Override
   public List<Short> check(Constraint.Environment env, Mutation mutation) {
     List<ColumnUpdate> updates = mutation.getUpdates();
 
