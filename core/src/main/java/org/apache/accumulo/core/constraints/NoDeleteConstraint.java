@@ -57,10 +57,4 @@ public class NoDeleteConstraint extends org.apache.accumulo.core.data.constraint
     return null;
   }
 
-  @Override
-  public List<Short> checkMutation(
-      org.apache.accumulo.core.data.constraints.Constraint.Environment env, Mutation mutation) {
-    return check((Constraint.Environment) env, mutation);
-  }
-
 }

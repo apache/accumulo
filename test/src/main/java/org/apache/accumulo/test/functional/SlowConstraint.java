@@ -34,7 +34,7 @@ public class SlowConstraint implements Constraint {
   }
 
   @Override
-  public List<Short> checkMutation(Environment env, Mutation mutation) {
+  public List<Short> check(Environment env, Mutation mutation) {
     sleepUninterruptibly(20, TimeUnit.SECONDS);
     return null;
   }

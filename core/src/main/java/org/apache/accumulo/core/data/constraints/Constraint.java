@@ -105,5 +105,5 @@ public interface Constraint {
    * @return list of violation codes, or null if none
    * @since 2.1.0
    */
-  List<Short> checkMutation(Environment env, Mutation mutation);
+  List<Short> check(Environment env, Mutation mutation);
 }

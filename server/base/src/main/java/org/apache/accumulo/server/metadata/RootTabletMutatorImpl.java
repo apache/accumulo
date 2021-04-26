@@ -88,7 +88,7 @@ public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.Ta
     Mutation mutation = getMutation();
 
     MetadataConstraints metaConstraint = new MetadataConstraints();
-    List<Short> violations = metaConstraint.checkMutation(new RootEnv(context), mutation);
+    List<Short> violations = metaConstraint.check(new RootEnv(context), mutation);
 
     if (violations != null && !violations.isEmpty()) {
       throw new IllegalStateException(

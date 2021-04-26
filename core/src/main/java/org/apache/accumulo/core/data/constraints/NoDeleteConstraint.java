@@ -40,7 +40,7 @@ public class NoDeleteConstraint implements Constraint {
   }
 
   @Override
-  public List<Short> checkMutation(Environment env, Mutation mutation) {
+  public List<Short> check(Environment env, Mutation mutation) {
     List<ColumnUpdate> updates = mutation.getUpdates();
     for (ColumnUpdate update : updates) {
       if (update.isDeleted()) {

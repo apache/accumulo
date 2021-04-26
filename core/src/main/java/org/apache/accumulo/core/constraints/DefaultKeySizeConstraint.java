@@ -75,10 +75,4 @@ public class DefaultKeySizeConstraint extends
 
     return violations;
   }
-
-  @Override
-  public List<Short> checkMutation(
-      org.apache.accumulo.core.data.constraints.Constraint.Environment env, Mutation mutation) {
-    return check((Constraint.Environment) env, mutation);
-  }
 }

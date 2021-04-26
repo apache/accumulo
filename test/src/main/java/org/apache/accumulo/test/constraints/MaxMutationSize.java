@@ -38,7 +38,7 @@ public class MaxMutationSize implements Constraint {
   }
 
   @Override
-  public List<Short> checkMutation(Environment env, Mutation mutation) {
+  public List<Short> check(Environment env, Mutation mutation) {
     if (mutation.estimatedMemoryUsed() < MAX_SIZE)
       return empty;
     return violations;
