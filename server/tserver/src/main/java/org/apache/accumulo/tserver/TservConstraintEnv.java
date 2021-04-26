@@ -21,7 +21,6 @@ package org.apache.accumulo.tserver;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 
-import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
