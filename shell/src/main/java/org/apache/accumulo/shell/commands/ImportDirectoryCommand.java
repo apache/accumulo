@@ -38,8 +38,11 @@ public class ImportDirectoryCommand extends Command {
     return "bulk imports an entire directory of data files into an existing table."
         + " The table is either passed with the -t tablename opt, or into to the current"
         + " table if the -t option is not provided. The boolean argument determines if accumulo"
-        + " sets the time. Passing 3 arguments will use the old bulk import.  The new bulk"
-        + " import only takes 2 arguments: <directory> true|false";
+        + " sets the time. If the -i ignore option is supplied then no exception will be thrown"
+        + " when attempting to import files from an empty source directory. An info log message"
+        + " will be displayed indicating the source directory is empty, but no error is thrown.\n"
+        + " Passing 3 arguments will use the old bulk import. The new bulk import only takes"
+        + " 2 arguments:  <directory> true|false";
   }
 
   @SuppressWarnings("deprecation")
@@ -48,6 +51,7 @@ public class ImportDirectoryCommand extends Command {
       throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
 
     final String tableName = OptUtil.getTableOpt(cl, shellState);
+    final boolean ignore = OptUtil.getIgnoreEmptyDirOpt(cl, shellState);
 
     String[] args = cl.getArgs();
     boolean setTime;
@@ -58,7 +62,7 @@ public class ImportDirectoryCommand extends Command {
       case 2: {
         // new bulk import only takes 2 args
         setTime = Boolean.parseBoolean(cl.getArgs()[1]);
-        shellState.getAccumuloClient().tableOperations().importDirectory(dir).to(tableName)
+        shellState.getAccumuloClient().tableOperations().importDirectory(dir, ignore).to(tableName)
             .tableTime(setTime).load();
         break;
       }
@@ -93,13 +97,14 @@ public class ImportDirectoryCommand extends Command {
 
   @Override
   public String usage() {
-    return getName() + "[-t tablename] <directory> [failureDirectory] true|false";
+    return getName() + " <directory> [failureDirectory] true|false";
   }
 
   @Override
   public Options getOptions() {
     final Options opts = super.getOptions();
     opts.addOption(OptUtil.tableOpt("name of the table to import files into"));
+    opts.addOption(OptUtil.ignoreEmptyDirOpt("ignore empty bulk import source directory"));
     return opts;
   }
 

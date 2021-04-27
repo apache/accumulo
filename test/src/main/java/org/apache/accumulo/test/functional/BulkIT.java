@@ -118,6 +118,15 @@ public class BulkIT extends AccumuloClusterHarness {
           false);
     } else {
       c.tableOperations().importDirectory(files.toString()).to(tableName).load();
+      // rerun using the ignore option and no error should be thrown since empty directories
+      // will not throw an exception.
+      c.tableOperations().importDirectory(files.toString(), true).to(tableName).load();
+      try {
+        // if run again, without ignore flag, an IllegalArgrumentException should be thrown
+        c.tableOperations().importDirectory(files.toString(), false).to(tableName).load();
+      } catch (IllegalArgumentException ex) {
+        // expected exception to be thrown
+      }
     }
   }
 }

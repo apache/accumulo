@@ -103,12 +103,18 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
   private final ClientContext context;
   private String tableName;
+  private boolean ignoreEmptyDir = false;
 
   private LoadPlan plan = null;
 
   public BulkImport(String directory, ClientContext context) {
+    this(directory, false, context);
+  }
+
+  public BulkImport(String directory, boolean ignoreEmptyDirectory, ClientContext context) {
     this.context = context;
     this.dir = Objects.requireNonNull(directory);
+    this.ignoreEmptyDir = ignoreEmptyDirectory;
   }
 
   @Override
@@ -150,8 +156,15 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         mappings = computeMappingFromPlan(fs, tableId, srcPath, maxTablets);
       }
 
-      if (mappings.isEmpty())
-        throw new IllegalArgumentException("Attempted to import zero files from " + srcPath);
+      if (mappings.isEmpty()) {
+        if (ignoreEmptyDir == true) {
+          log.info("Attempted to import files from empty directory - {}. Zero files imported",
+              srcPath);
+          return;
+        } else {
+          throw new IllegalArgumentException("Attempted to import zero files from " + srcPath);
+        }
+      }
 
       BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), fs::create);
 
