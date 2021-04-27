@@ -20,6 +20,8 @@ package org.apache.accumulo.core.constraints;
 
 import static org.junit.Assert.assertEquals;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 
 import org.apache.accumulo.core.data.Mutation;
@@ -37,11 +39,15 @@ public class DefaultKeySizeConstraintTest {
 
   @Test
   public void testConstraint() {
+    Arrays.fill(oversized, (byte)1);
+    Arrays.fill(large, (byte)1);
 
     // pass constraints
     Mutation m = new Mutation("rowId");
     m.put("colf", "colq", new Value(new byte[] {}));
-    assertEquals(Collections.emptyList(), constraint.check(null, m));
+    var list = constraint.check(null, m);
+    System.out.println("List = " + list);
+    assertEquals(Collections.emptyList(), list);
 
     // test with row id > 1mb
     m = new Mutation(oversized);

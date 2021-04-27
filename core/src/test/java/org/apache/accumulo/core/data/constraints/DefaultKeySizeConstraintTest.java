@@ -20,6 +20,7 @@ package org.apache.accumulo.core.data.constraints;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Arrays;
 import java.util.Collections;
 
 import org.apache.accumulo.core.data.Mutation;
@@ -27,7 +28,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class NewDefaultKeySizeConstraintTest {
+public class DefaultKeySizeConstraintTest {
 
   Constraint constraint = new DefaultKeySizeConstraint();
 
@@ -36,6 +37,8 @@ public class NewDefaultKeySizeConstraintTest {
 
   @Test
   public void testConstraint() {
+    Arrays.fill(oversized, (byte)1);
+    Arrays.fill(large, (byte)1);
 
     // pass constraints
     Mutation m = new Mutation("rowId");
