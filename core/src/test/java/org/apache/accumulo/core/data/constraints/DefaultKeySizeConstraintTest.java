@@ -37,8 +37,8 @@ public class DefaultKeySizeConstraintTest {
 
   @Test
   public void testConstraint() {
-    Arrays.fill(oversized, (byte)1);
-    Arrays.fill(large, (byte)1);
+    Arrays.fill(oversized, (byte) 1);
+    Arrays.fill(large, (byte) 1);
 
     // pass constraints
     Mutation m = new Mutation("rowId");
