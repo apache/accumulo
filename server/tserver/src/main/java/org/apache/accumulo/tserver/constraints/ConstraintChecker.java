@@ -39,11 +39,11 @@ import com.google.common.annotations.VisibleForTesting;
 
 public class ConstraintChecker {
 
-  private ArrayList<Constraint> constrains;
+  private ArrayList<Constraint> constraints;
   private static final Logger log = LoggerFactory.getLogger(ConstraintChecker.class);
 
   public ConstraintChecker(AccumuloConfiguration conf) {
-    constrains = new ArrayList<>();
+    constraints = new ArrayList<>();
 
     try {
       String context = ClassLoaderUtil.tableContext(conf);
@@ -72,7 +72,7 @@ public class ConstraintChecker {
 
   @VisibleForTesting
   ArrayList<Constraint> getConstraints() {
-    return constrains;
+    return constraints;
   }
 
   private static Violations addViolation(Violations violations, ConstraintViolationSummary cvs) {
