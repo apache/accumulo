@@ -72,7 +72,7 @@ public class ConstraintChecker {
 
   @VisibleForTesting
   ArrayList<Constraint> getConstraints() {
-    return constraints;
+    return constrains;
   }
 
   private static Violations addViolation(Violations violations, ConstraintViolationSummary cvs) {
