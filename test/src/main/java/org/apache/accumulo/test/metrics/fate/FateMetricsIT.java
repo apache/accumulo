@@ -20,6 +20,7 @@ package org.apache.accumulo.test.metrics.fate;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -51,6 +52,7 @@ import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 /**
@@ -70,7 +72,7 @@ public class FateMetricsIT {
   private ZooKeeper zookeeper = null;
   private ServerContext context = null;
   private Manager manager;
-  private SimpleMeterRegistry testRegistry = new SimpleMeterRegistry();
+  private final SimpleMeterRegistry testRegistry = new SimpleMeterRegistry();
 
   @BeforeClass
   public static void setupZk() {
@@ -137,8 +139,10 @@ public class FateMetricsIT {
     log.warn("MMF: {}", manager.getMicrometerMetrics());
 
     FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
-    metrics.overrideRefresh();
 
+    // hadoop metrics testing
+
+    metrics.overrideRefresh();
     InMemTestCollector collector = new InMemTestCollector();
 
     metrics.getMetrics(collector, true);
@@ -163,6 +167,31 @@ public class FateMetricsIT {
     assertEquals(0L, collector.getValue("FateTxState_IN_PROGRESS"));
     assertEquals(0L, collector.getValue("currentFateOps"));
 
+    // micrometer metrics testing
+
+    Gauge currentFateOps = testRegistry.find("fate.status").tag("status", "currentFateOps").gauge();
+    assertNotNull(currentFateOps);
+    assertNotNull(testRegistry.find("fate.status").tag("status", "zkChildFateOpsTotal").gauge());
+    assertNotNull(
+        testRegistry.find("fate.status").tag("status", "zkConnectionErrorsTotal").gauge());
+
+    // Transaction STATES - defined by TStatus.
+    assertNotNull(testRegistry.find("fate.status").tag("status", "FateTxState_NEW").gauge());
+    Gauge inProgress =
+        testRegistry.find("fate.status").tag("status", "FateTxState_IN_PROGRESS").gauge();
+    assertNotNull(inProgress);
+    assertNotNull(
+        testRegistry.find("fate.status").tag("status", "FateTxState_FAILED_IN_PROGRESS").gauge());
+    assertNotNull(testRegistry.find("fate.status").tag("status", "FateTxState_FAILED").gauge());
+    assertNotNull(testRegistry.find("fate.status").tag("status", "FateTxState_SUCCESSFUL").gauge());
+    assertNotNull(testRegistry.find("fate.status").tag("status", "FateTxState_UNKNOWN").gauge());
+
+    // metrics derived from operation types when see - none should have been seen.
+    assertNull(testRegistry.find("fate.status").tag("status", "FateTxOpType_FakeOp").gauge());
+
+    assertEquals(0, inProgress.value(), 0.0);
+    assertEquals(0, currentFateOps.value(), 0.0);
+
     EasyMock.verify(manager);
 
   }
@@ -179,8 +208,10 @@ public class FateMetricsIT {
     log.debug("ZooStore tx1 id {}", tx1Id);
 
     FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
-    metrics.overrideRefresh();
 
+    // hadoop metrics testing
+
+    metrics.overrideRefresh();
     InMemTestCollector collector = new InMemTestCollector();
 
     metrics.getMetrics(collector, true);
@@ -193,6 +224,22 @@ public class FateMetricsIT {
 
     assertTrue(collector.contains("FateTxState_IN_PROGRESS"));
     assertEquals(0L, collector.getValue("FateTxState_IN_PROGRESS"));
+
+    // micrometer metrics testing
+
+    Gauge fateTxStateNew =
+        testRegistry.find("fate.status").tag("status", "FateTxState_NEW").gauge();
+    assertNotNull(fateTxStateNew);
+    assertEquals(1, fateTxStateNew.value(), 0.0);
+
+    Gauge currentFateOps = testRegistry.find("fate.status").tag("status", "currentFateOps").gauge();
+    assertNotNull(currentFateOps);
+    assertEquals(1, currentFateOps.value(), 0.0);
+
+    Gauge fateTxStateInProgress =
+        testRegistry.find("fate.status").tag("status", "FateTxState_IN_PROGRESS").gauge();
+    assertNotNull(fateTxStateInProgress);
+    assertEquals(0, fateTxStateInProgress.value(), 0.0);
 
     EasyMock.verify(manager);
 
@@ -215,8 +262,10 @@ public class FateMetricsIT {
         zookeeper.exists(MOCK_ZK_ROOT + "/fate/" + String.format("tx_%016x", tx1Id), false)));
 
     FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
-    metrics.overrideRefresh();
 
+    // hadoop metrics testing
+
+    metrics.overrideRefresh();
     InMemTestCollector collector = new InMemTestCollector();
 
     metrics.getMetrics(collector, true);
@@ -227,7 +276,16 @@ public class FateMetricsIT {
     assertEquals(1L, collector.getValue("FateTxState_IN_PROGRESS"));
     assertEquals(1L, collector.getValue("FateTxOpType_FakeOp"));
 
-    assertEquals(1.0, testRegistry.get("current.fateOps").gauge().value(), 0.1);
+    // micrometer metrics testing
+
+    Gauge inProgress =
+        testRegistry.find("fate.status").tag("status", "FateTxState_IN_PROGRESS").gauge();
+    assertNotNull(inProgress);
+    assertEquals(1, inProgress.value(), 0.0);
+
+    Gauge fakeOp = testRegistry.find("fate.status").tag("status", "FateTxOpType_FakeOp").gauge();
+    assertNotNull(fakeOp);
+    assertEquals(1, fakeOp.value(), 0.0);
 
     EasyMock.verify(manager);
   }
@@ -268,8 +326,10 @@ public class FateMetricsIT {
     zooStore.unreserve(txId, 50);
 
     FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
-    metrics.overrideRefresh();
 
+    // hadoop metrics test
+
+    metrics.overrideRefresh();
     InMemTestCollector collector = new InMemTestCollector();
 
     metrics.getMetrics(collector, true);
@@ -277,6 +337,20 @@ public class FateMetricsIT {
     assertEquals(0L, collector.getValue("FateTxState_IN_PROGRESS"));
     assertEquals(1L, collector.getValue("FateTxState_SUCCESSFUL"));
     assertNull(collector.getValue("FateTxOpType_FakeOp"));
+
+    // micrometer metrics test
+
+    Gauge inProgress =
+        testRegistry.find("fate.status").tag("status", "FateTxState_IN_PROGRESS").gauge();
+    assertNotNull(inProgress);
+    assertEquals(0, inProgress.value(), 0.0);
+
+    Gauge successful =
+        testRegistry.find("fate.status").tag("status", "FateTxState_SUCCESSFUL").gauge();
+    assertNotNull(successful);
+    assertEquals(1, successful.value(), 0.0);
+
+    assertNull(testRegistry.find("fate.status").tag("status", "FateTxOpType_FakeOp").gauge());
 
   }
 
