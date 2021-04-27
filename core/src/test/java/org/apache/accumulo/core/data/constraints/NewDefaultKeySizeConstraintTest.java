@@ -27,12 +27,12 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-public class DefaultKeySizeConstraintTest {
+public class NewDefaultKeySizeConstraintTest {
 
   Constraint constraint = new DefaultKeySizeConstraint();
 
-  byte[] oversized = new byte[1048577];
-  byte[] large = new byte[419430];
+  final private byte[] oversized = new byte[1048577];
+  final private byte[] large = new byte[419430];
 
   @Test
   public void testConstraint() {
