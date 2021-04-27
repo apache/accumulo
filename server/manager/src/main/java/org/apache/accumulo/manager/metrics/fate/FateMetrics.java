@@ -149,6 +149,7 @@ public class FateMetrics extends ManagerMetrics {
 
       for (ReadOnlyTStore.TStatus t : ReadOnlyTStore.TStatus.values()) {
         // types are from a fixed set
+        // this map is unused
         Map<String,Long> fateTypeCounts = new TreeMap<>();
         fateTypeCounts.put(t.name(), 0L);
       }
@@ -164,8 +165,7 @@ public class FateMetrics extends ManagerMetrics {
       fateOpCounts.replaceAll((key, value) -> 0L);
 
       results.add(new MMWrapper("currentFateOps", values.getCurrentFateOps()));
-
-      results.add(new MMWrapper("zkChildFateOpsTotal;", values.getZkFateChildOpsTotal()));
+      results.add(new MMWrapper("zkChildFateOpsTotal", values.getZkFateChildOpsTotal()));
       results.add(new MMWrapper("zkConnectionErrorsTotal", values.getZkConnectionErrors()));
       values.getTxStateCounters()
           .forEach((n, v) -> results.add(new MMWrapper(FATE_TX_STATE_METRIC_PREFIX + n, v)));
