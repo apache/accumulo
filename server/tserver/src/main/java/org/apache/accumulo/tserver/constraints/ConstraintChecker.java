@@ -39,7 +39,7 @@ import com.google.common.annotations.VisibleForTesting;
 
 public class ConstraintChecker {
 
-  private ArrayList<Constraint> constraints;
+  private ArrayList<Constraint> constrains;
   private static final Logger log = LoggerFactory.getLogger(ConstraintChecker.class);
 
   public ConstraintChecker(AccumuloConfiguration conf) {
