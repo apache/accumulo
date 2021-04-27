@@ -39,7 +39,7 @@ import com.google.common.annotations.VisibleForTesting;
 
 public class ConstraintChecker {
 
-  private ArrayList<Constraint> constrains;
+  private ArrayList<Constraint> constraints;
   private static final Logger log = LoggerFactory.getLogger(ConstraintChecker.class);
 
   public ConstraintChecker(AccumuloConfiguration conf) {
@@ -57,13 +57,13 @@ public class ConstraintChecker {
 
           log.debug("Loaded constraint {} for {}", clazz.getName(),
               ((TableConfiguration) conf).getTableId());
-          constrains.add(clazz.getDeclaredConstructor().newInstance());
+          constraints.add(clazz.getDeclaredConstructor().newInstance());
         }
       }
 
     } catch (Exception e) {
-      constrains.clear();
-      constrains.add(new UnsatisfiableConstraint((short) -1,
+      constraints.clear();
+      constraints.add(new UnsatisfiableConstraint((short) -1,
           "Failed to load constraints, not accepting mutations."));
       log.error("Failed to load constraints " + ((TableConfiguration) conf).getTableId() + " " + e,
           e);
@@ -72,7 +72,7 @@ public class ConstraintChecker {
 
   @VisibleForTesting
   ArrayList<Constraint> getConstraints() {
-    return constrains;
+    return constraints;
   }
 
   private static Violations addViolation(Violations violations, ConstraintViolationSummary cvs) {
