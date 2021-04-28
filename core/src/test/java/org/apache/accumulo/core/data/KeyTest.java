@@ -18,13 +18,7 @@
  */
 package org.apache.accumulo.core.data;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -33,6 +27,8 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
+import static org.junit.Assert.*;
+
 
 public class KeyTest {
 
@@ -178,19 +174,16 @@ public class KeyTest {
     // are converted to byte array containing
     // the same value
     if (key.getRowBytes().length != 0) {
-      assertTrue(Arrays.equals(row, key.getRowBytes()));
-
+      assertArrayEquals(row, key.getRowBytes());
     }
     if (key.getColFamily().length != 0) {
-      assertTrue(Arrays.equals(cf, key.getColFamily()));
-
+      assertArrayEquals(cf, key.getColFamily());
     }
     if (key.getColQualifier().length != 0) {
-      assertTrue(Arrays.equals(cq, key.getColQualifier()));
-
+      assertArrayEquals(cq, key.getColQualifier());
     }
     if (key.getColVisibility().length != 0) {
-      assertTrue(Arrays.equals(cv, key.getColVisibility()));
+      assertArrayEquals(cv, key.getColVisibility());
     }
   }
 
