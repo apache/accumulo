@@ -117,25 +117,25 @@ public class KeyTest {
     if (key.getRowBytes().length != 0) {
       assertNotSame(row, key.getRowBytes());
       assertNotSame(row, key.getRowData().getBackingArray());
-      assertTrue(Arrays.equals(row, key.getRowBytes()));
+      assertArrayEquals(row, key.getRowBytes());
 
     }
     if (key.getColFamily().length != 0) {
       assertNotSame(cf, key.getColFamily());
       assertNotSame(cf, key.getColumnFamilyData().getBackingArray());
-      assertTrue(Arrays.equals(cf, key.getColFamily()));
+      assertArrayEquals(cf, key.getColFamily());
 
     }
     if (key.getColQualifier().length != 0) {
       assertNotSame(cq, key.getColQualifier());
       assertNotSame(cq, key.getColumnQualifierData().getBackingArray());
-      assertTrue(Arrays.equals(cq, key.getColQualifier()));
+      assertArrayEquals(cq, key.getColQualifier());
 
     }
     if (key.getColVisibility().length != 0) {
       assertNotSame(cv, key.getColVisibility());
       assertNotSame(cv, key.getColumnVisibilityData().getBackingArray());
-      assertTrue(Arrays.equals(cv, key.getColVisibility()));
+      assertArrayEquals(cv, key.getColVisibility());
     }
   }
 
