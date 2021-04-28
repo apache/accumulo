@@ -117,13 +117,22 @@ public class BulkIT extends AccumuloClusterHarness {
       c.tableOperations().importDirectory(tableName, files.toString(), bulkFailures.toString(),
           false);
     } else {
+      // not appending the 'ignoreEmptyDir' method defaults to not ignoring empty directories.
       c.tableOperations().importDirectory(files.toString()).to(tableName).load();
-      // rerun using the ignore option and no error should be thrown since empty directories
-      // will not throw an exception.
-      c.tableOperations().importDirectory(files.toString(), true).to(tableName).load();
       try {
-        // if run again, without ignore flag, an IllegalArgrumentException should be thrown
-        c.tableOperations().importDirectory(files.toString(), false).to(tableName).load();
+        // if run again, the expected IllegalArgrumentException is thrown
+        c.tableOperations().importDirectory(files.toString()).to(tableName).load();
+      } catch (IllegalArgumentException ex) {
+        // expected exception to be thrown
+      }
+      // re-run using the ignoreEmptyDir option and no error should be thrown since empty
+      // directories will be ignored
+      c.tableOperations().importDirectory(files.toString()).to(tableName).ignoreEmptyDir(true)
+          .load();
+      try {
+        // setting ignoreEmptyDir to false, explicitly, results in exception being thrown again.
+        c.tableOperations().importDirectory(files.toString()).to(tableName).ignoreEmptyDir(false)
+            .load();
       } catch (IllegalArgumentException ex) {
         // expected exception to be thrown
       }

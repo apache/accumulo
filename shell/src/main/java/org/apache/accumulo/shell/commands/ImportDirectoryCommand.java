@@ -62,8 +62,8 @@ public class ImportDirectoryCommand extends Command {
       case 2: {
         // new bulk import only takes 2 args
         setTime = Boolean.parseBoolean(cl.getArgs()[1]);
-        shellState.getAccumuloClient().tableOperations().importDirectory(dir, ignore).to(tableName)
-            .tableTime(setTime).load();
+        shellState.getAccumuloClient().tableOperations().importDirectory(dir).to(tableName)
+            .tableTime(setTime).ignoreEmptyDir(ignore).load();
         break;
       }
       case 3: {
