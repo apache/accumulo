@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.constraints;
+package org.apache.accumulo.core.data.constraints;
 
 import static org.junit.Assert.assertEquals;
 
@@ -27,17 +27,15 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-@SuppressWarnings("deprecation")
 public class DefaultKeySizeConstraintTest {
 
   Constraint constraint = new DefaultKeySizeConstraint();
 
-  byte[] oversized = new byte[1048577];
-  byte[] large = new byte[419430];
+  final private byte[] oversized = new byte[1048577];
+  final private byte[] large = new byte[419430];
 
   @Test
   public void testConstraint() {
-
     // pass constraints
     Mutation m = new Mutation("rowId");
     m.put("colf", "colq", new Value(new byte[] {}));

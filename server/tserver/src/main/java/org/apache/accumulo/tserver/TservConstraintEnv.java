@@ -21,15 +21,18 @@ package org.apache.accumulo.tserver;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 
-import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.security.AuthorizationContainer;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.constraints.SystemEnvironment;
 import org.apache.accumulo.server.security.SecurityOperation;
 
-public class TservConstraintEnv implements SystemEnvironment {
+@SuppressWarnings("deprecation")
+public class TservConstraintEnv
+    implements SystemEnvironment, org.apache.accumulo.core.constraints.Constraint.Environment {
 
   private final ServerContext context;
   private final TCredentials credentials;
@@ -52,19 +55,19 @@ public class TservConstraintEnv implements SystemEnvironment {
   }
 
   @Override
+  public TabletId getTablet() {
+    return new TabletIdImpl(ke);
+  }
+
+  @Override
   public String getUser() {
     return credentials.getPrincipal();
   }
 
   @Override
   public AuthorizationContainer getAuthorizationsContainer() {
-    return new AuthorizationContainer() {
-      @Override
-      public boolean contains(ByteSequence auth) {
-        return security.authenticatedUserHasAuthorizations(credentials, Collections
-            .singletonList(ByteBuffer.wrap(auth.getBackingArray(), auth.offset(), auth.length())));
-      }
-    };
+    return auth -> security.authenticatedUserHasAuthorizations(credentials, Collections
+        .singletonList(ByteBuffer.wrap(auth.getBackingArray(), auth.offset(), auth.length())));
   }
 
   @Override
