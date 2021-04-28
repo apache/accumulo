@@ -25,6 +25,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -63,7 +64,7 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 @Category({ZooKeeperTestingServerTests.class})
 public class FateMetricsIT {
 
-  public static final String INSTANCE_ID = "1234";
+  public static final String INSTANCE_ID = UUID.randomUUID().toString();
   public static final String MOCK_ZK_ROOT = "/accumulo/" + INSTANCE_ID;
   public static final String A_FAKE_SECRET = "aPasswd";
   private static final Logger log = LoggerFactory.getLogger(FateMetricsIT.class);
@@ -134,13 +135,13 @@ public class FateMetricsIT {
    * Validate that the expected metrics values are present in the metrics collector output
    */
   @Test
-  public void noFates() {
+  public void hadoopNoFates() {
 
     log.warn("MMF: {}", manager.getMicrometerMetrics());
 
     FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
 
-    // hadoop metrics testing
+    log.trace("fate metrics: {}", metrics);
 
     metrics.overrideRefresh();
     InMemTestCollector collector = new InMemTestCollector();
@@ -167,7 +168,20 @@ public class FateMetricsIT {
     assertEquals(0L, collector.getValue("FateTxState_IN_PROGRESS"));
     assertEquals(0L, collector.getValue("currentFateOps"));
 
-    // micrometer metrics testing
+    EasyMock.verify(manager);
+
+  }
+
+  /**
+   * Validate that the expected metrics values are present in the metrics collector output
+   */
+  @Test
+  public void micrometerNoFates() {
+
+    log.warn("MMF: {}", manager.getMicrometerMetrics());
+
+    FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
+    log.trace("fate metrics: {}", metrics);
 
     Gauge currentFateOps = testRegistry.find("fate.status").tag("status", "currentFateOps").gauge();
     assertNotNull(currentFateOps);
@@ -202,7 +216,7 @@ public class FateMetricsIT {
    * transaction states.
    */
   @Test
-  public void fateNewStatus() {
+  public void hadoopFateNewStatus() {
 
     long tx1Id = zooStore.create();
     log.debug("ZooStore tx1 id {}", tx1Id);
@@ -225,7 +239,23 @@ public class FateMetricsIT {
     assertTrue(collector.contains("FateTxState_IN_PROGRESS"));
     assertEquals(0L, collector.getValue("FateTxState_IN_PROGRESS"));
 
-    // micrometer metrics testing
+    EasyMock.verify(manager);
+
+  }
+
+  /**
+   * Seed a fake FAKE fate that has a reserved transaction id. This sets a "new" status, but the
+   * repo and debug props are not yet set. Verify the the metric collection handles partial
+   * transaction states.
+   */
+  @Test
+  public void micrometerFateNewStatus() {
+
+    long tx1Id = zooStore.create();
+    log.debug("ZooStore tx1 id {}", tx1Id);
+
+    FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
+    log.trace("fate metrics: {}", metrics);
 
     Gauge fateTxStateNew =
         testRegistry.find("fate.status").tag("status", "FateTxState_NEW").gauge();
@@ -254,7 +284,7 @@ public class FateMetricsIT {
    *           any exception is a test failure.
    */
   @Test
-  public void oneInProgress() throws Exception {
+  public void hadoopOneInProgress() throws Exception {
 
     long tx1Id = seedTransaction();
 
@@ -276,7 +306,27 @@ public class FateMetricsIT {
     assertEquals(1L, collector.getValue("FateTxState_IN_PROGRESS"));
     assertEquals(1L, collector.getValue("FateTxOpType_FakeOp"));
 
-    // micrometer metrics testing
+    EasyMock.verify(manager);
+  }
+
+  /**
+   * Seeds the zoo store with a "fake" repo operation with a step, and sets the prop_debug field.
+   * This emulates the actions performed with {@link org.apache.accumulo.fate.Fate} for what is
+   * expected in zookeeper / the zoo store for an IN_PROGRESS transaction.
+   *
+   * @throws Exception
+   *           any exception is a test failure.
+   */
+  @Test
+  public void micrometerOneInProgress() throws Exception {
+
+    long tx1Id = seedTransaction();
+
+    log.debug("FATE tx: {}", prettyStat(
+        zookeeper.exists(MOCK_ZK_ROOT + "/fate/" + String.format("tx_%016x", tx1Id), false)));
+
+    FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
+    log.trace("fate metrics: {}", metrics);
 
     Gauge inProgress =
         testRegistry.find("fate.status").tag("status", "FateTxState_IN_PROGRESS").gauge();
