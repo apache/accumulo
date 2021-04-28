@@ -57,7 +57,6 @@ public interface Constraint {
      * Gets the tablet Id of the environment.
      *
      * @return TabletId
-     * @since 2.1.0
      */
     TabletId getTablet();
 
@@ -65,7 +64,6 @@ public interface Constraint {
      * Gets the user within the environment.
      *
      * @return user
-     * @since 2.1.0
      */
     String getUser();
 
@@ -73,7 +71,6 @@ public interface Constraint {
      * Gets the authorizations in the environment.
      *
      * @return authorizations
-     * @since 2.1.0
      */
     AuthorizationContainer getAuthorizationsContainer();
   }
@@ -84,7 +81,6 @@ public interface Constraint {
    * @param violationCode
    *          numeric violation code
    * @return matching violation description
-   * @since 2.1.0
    */
   String getViolationDescription(short violationCode);
 
@@ -103,7 +99,6 @@ public interface Constraint {
    * @param mutation
    *          mutation to check
    * @return list of violation codes, or null if none
-   * @since 2.1.0
    */
   List<Short> check(Environment env, Mutation mutation);
 }
