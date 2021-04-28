@@ -2003,6 +2003,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public ImportDestinationArguments importDirectory(String directory) {
-    return new BulkImport(directory, context);
+    return importDirectory(directory, false);
+  }
+
+  @Override
+  public ImportDestinationArguments importDirectory(final String directory,
+      final boolean ignoreEmptyDir) {
+    return new BulkImport(directory, ignoreEmptyDir, context);
   }
 }

@@ -74,6 +74,8 @@ public class ImportDirectoryCommandTest {
 
     // no -t option, use current table context
     expect(cli.hasOption("t")).andReturn(false).once();
+    // no -i option supplied
+    expect(cli.hasOption("i")).andReturn(false).once();
     expect(shellState.getTableName()).andReturn("tablename").once();
 
     expect(cli.getArgs()).andReturn(cliArgs).atLeastOnce();
@@ -83,7 +85,8 @@ public class ImportDirectoryCommandTest {
     shellState.checkTableState();
     expectLastCall().once();
 
-    expect(tableOperations.importDirectory("in_dir")).andReturn(bulkImport).once();
+    // given the -i option, the ignoreEmptyBulkDir boolean is set to false
+    expect(tableOperations.importDirectory("in_dir", false)).andReturn(bulkImport).once();
     expect(bulkImport.to("tablename")).andReturn(bulkImport).once();
     expect(bulkImport.tableTime(false)).andReturn(bulkImport).once();
     bulkImport.load();
@@ -103,6 +106,8 @@ public class ImportDirectoryCommandTest {
   public void testPassTableOptCmdForm() throws Exception {
     String[] cliArgs = {"in_dir", "false"};
 
+    // -i option specified, ignore empty bulk import directory
+    expect(cli.hasOption("i")).andReturn(true).once();
     // -t option specified, table is from option
     expect(cli.hasOption("t")).andReturn(true).once();
     expect(cli.getOptionValue("t")).andReturn("passedName").once();
@@ -114,7 +119,8 @@ public class ImportDirectoryCommandTest {
 
     // shellState.checkTableState() is NOT called
 
-    expect(tableOperations.importDirectory("in_dir")).andReturn(bulkImport).once();
+    // given the -i option, the ignoreEmptyBulkDir boolean is set to true
+    expect(tableOperations.importDirectory("in_dir", true)).andReturn(bulkImport).once();
     expect(bulkImport.to("passedName")).andReturn(bulkImport).once();
     expect(bulkImport.tableTime(false)).andReturn(bulkImport).once();
     bulkImport.load();
