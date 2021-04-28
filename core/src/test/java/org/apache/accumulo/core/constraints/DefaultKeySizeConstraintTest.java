@@ -45,7 +45,6 @@ public class DefaultKeySizeConstraintTest {
     Mutation m = new Mutation("rowId");
     m.put("colf", "colq", new Value(new byte[] {}));
     var list = constraint.check(null, m);
-    System.out.println("List = " + list);
     assertEquals(Collections.emptyList(), list);
 
     // test with row id > 1mb
