@@ -719,7 +719,7 @@ public interface TableOperations {
     /**
      * Ignores empty bulk import source directory, rather than throwing an IllegalArgumentException.
      *
-     *  @since 2.1.0
+     * @since 2.1.0
      */
     ImportMappingOptions ignoreEmptyDir(boolean ignore);
 
