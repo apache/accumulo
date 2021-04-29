@@ -544,7 +544,7 @@ public class CompactableImpl implements Compactable {
       RateLimiter writeLimiter, long queuedTime) {
 
     Set<StoredTabletFile> jobFiles = job.getFiles().stream()
-        .map(cf -> ((CompactableFileImpl) cf).getStortedTabletFile()).collect(Collectors.toSet());
+        .map(cf -> ((CompactableFileImpl) cf).getStoredTabletFile()).collect(Collectors.toSet());
 
     Long compactionId = null;
     Long checkCompactionId = null;
