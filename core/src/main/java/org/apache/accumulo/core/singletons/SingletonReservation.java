@@ -1,3 +1,35 @@
+Skip to content
+Search or jump to…
+
+Pull requests
+Issues
+Marketplace
+Explore
+ 
+@Umang228 
+Umang228
+/
+accumulo
+forked from apache/accumulo
+0
+0357
+Code
+Pull requests
+Actions
+Projects
+Security
+Insights
+Settings
+accumulo/core/src/main/java/org/apache/accumulo/core/singletons/SingletonReservation.java /
+@ctubbsii
+ctubbsii Standardize license headers (apache#1433)
+…
+Latest commit 3fd5cad on Nov 16, 2019
+ History
+ 2 contributors
+@ctubbsii@keith-turner
+72 lines (61 sloc)  2.31 KB
+  
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,7 +79,7 @@ public class SingletonReservation implements AutoCloseable {
       // deregister cleanable, but it won't run because it checks
       // the value of closed first, which is now true
       cleanable.clean();
-      SingletonManager.releaseRerservation();
+      SingletonManager.releaseReservation();
     }
   }
 
@@ -70,3 +102,16 @@ public class SingletonReservation implements AutoCloseable {
     return NOOP;
   }
 }
+© 2021 GitHub, Inc.
+Terms
+Privacy
+Security
+Status
+Docs
+Contact GitHub
+Pricing
+API
+Training
+Blog
+About
+Loading complete
