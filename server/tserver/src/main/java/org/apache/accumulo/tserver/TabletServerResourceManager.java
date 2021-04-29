@@ -98,7 +98,7 @@ public class TabletServerResourceManager {
   private final ExecutorService assignmentPool;
   private final ExecutorService assignMetaDataPool;
   private final ExecutorService summaryRetrievalPool;
-  private final ExecutorService summaryParitionPool;
+  private final ExecutorService summaryParititionPool;
   private final ExecutorService summaryRemotePool;
 
   private final Map<String,ExecutorService> scanExecutors;
@@ -363,7 +363,7 @@ public class TabletServerResourceManager {
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_REMOTE_THREADS),
         "summary remote", (ThreadPoolExecutor) summaryRemotePool);
 
-    summaryParitionPool =
+    summaryPartitionPool =
         ThreadPools.createExecutorService(acuConf, Property.TSERV_SUMMARY_PARTITION_THREADS);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_PARTITION_THREADS),
