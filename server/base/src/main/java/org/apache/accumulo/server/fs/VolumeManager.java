@@ -62,16 +62,20 @@ public interface VolumeManager extends AutoCloseable {
 
     private static int endOfVolumeIndex(String path, String dir) {
       // Strip off the suffix that starts with the FileType (e.g. tables, wal, etc)
-      int dirIndex = path.indexOf('/' + dir);
+      int dirIndex = path.indexOf('/' + dir + '/');
+
       if (dirIndex != -1) {
         return dirIndex;
+      }
+      
+      if (path.endsWith('/' + dir)) { 
+        return path.length() - (dir.length() + 1); 
       }
 
       if (path.contains(":"))
         throw new IllegalArgumentException(path + " is absolute, but does not contain " + dir);
       return -1;
-
-    }
+    } 
 
     public Path getVolume(Path path) {
       String pathString = path.toString();
