@@ -151,9 +151,18 @@ public class BulkNewIT extends SharedMiniClusterBase {
     String h1 = writeData(dir + "/f1.", aconf, 0, 332);
 
     c.tableOperations().importDirectory(dir).to(tableName).tableTime(setTime).load();
-    // running again with boolean set to true will not throw an exception
-    c.tableOperations().importDirectory(dir, true).to(tableName).tableTime(setTime).load();
-    // but if run with with boolean set to true, an IllegalArgument exception will be thrown
+    // running again with ignoreEmptyDir set to true will not throw an exception
+    c.tableOperations().importDirectory(dir).to(tableName).tableTime(setTime).ignoreEmptyDir(true)
+        .load();
+    // but if run with with ignoreEmptyDir value set to false, an IllegalArgument exception will
+    // be thrown
+    try {
+      c.tableOperations().importDirectory(dir).to(tableName).tableTime(setTime)
+          .ignoreEmptyDir(false).load();
+    } catch (IllegalArgumentException ex) {
+      // expected the exception
+    }
+    // or if not supplied at all, the IllegalArgument exception will be thrown as well
     try {
       c.tableOperations().importDirectory(dir).to(tableName).tableTime(setTime).load();
     } catch (IllegalArgumentException ex) {
@@ -480,7 +489,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
       String dir = getDir("/testBulkFile-");
       FileSystem fs = getCluster().getFileSystem();
       fs.mkdirs(new Path(dir));
-      c.tableOperations().importDirectory(dir, true).to(tableName).load();
+      c.tableOperations().importDirectory(dir).to(tableName).ignoreEmptyDir(true).load();
     }
   }
 

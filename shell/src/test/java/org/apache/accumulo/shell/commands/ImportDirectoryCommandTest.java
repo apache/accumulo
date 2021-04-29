@@ -85,10 +85,10 @@ public class ImportDirectoryCommandTest {
     shellState.checkTableState();
     expectLastCall().once();
 
-    // given the -i option, the ignoreEmptyBulkDir boolean is set to false
-    expect(tableOperations.importDirectory("in_dir", false)).andReturn(bulkImport).once();
+    expect(tableOperations.importDirectory("in_dir")).andReturn(bulkImport).once();
     expect(bulkImport.to("tablename")).andReturn(bulkImport).once();
     expect(bulkImport.tableTime(false)).andReturn(bulkImport).once();
+    expect(bulkImport.ignoreEmptyDir(false)).andReturn(bulkImport).once();
     bulkImport.load();
     expectLastCall().once();
 
@@ -119,10 +119,10 @@ public class ImportDirectoryCommandTest {
 
     // shellState.checkTableState() is NOT called
 
-    // given the -i option, the ignoreEmptyBulkDir boolean is set to true
-    expect(tableOperations.importDirectory("in_dir", true)).andReturn(bulkImport).once();
+    expect(tableOperations.importDirectory("in_dir")).andReturn(bulkImport).once();
     expect(bulkImport.to("passedName")).andReturn(bulkImport).once();
     expect(bulkImport.tableTime(false)).andReturn(bulkImport).once();
+    expect(bulkImport.ignoreEmptyDir(true)).andReturn(bulkImport).once();
     bulkImport.load();
     expectLastCall().once();
 

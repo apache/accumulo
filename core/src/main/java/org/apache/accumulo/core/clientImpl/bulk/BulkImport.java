@@ -97,29 +97,30 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   private static final Logger log = LoggerFactory.getLogger(BulkImport.class);
 
   private boolean setTime = false;
+  private boolean ignoreEmptyDir = false;
   private Executor executor = null;
   private final String dir;
   private int numThreads = -1;
 
   private final ClientContext context;
   private String tableName;
-  private boolean ignoreEmptyDir = false;
 
   private LoadPlan plan = null;
 
   public BulkImport(String directory, ClientContext context) {
-    this(directory, false, context);
-  }
-
-  public BulkImport(String directory, boolean ignoreEmptyDirectory, ClientContext context) {
     this.context = context;
     this.dir = Objects.requireNonNull(directory);
-    this.ignoreEmptyDir = ignoreEmptyDirectory;
   }
 
   @Override
   public ImportMappingOptions tableTime(boolean value) {
     this.setTime = value;
+    return this;
+  }
+
+  @Override
+  public ImportMappingOptions ignoreEmptyDir(boolean ignore) {
+    this.ignoreEmptyDir = ignore;
     return this;
   }
 
