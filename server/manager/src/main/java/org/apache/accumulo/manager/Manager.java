@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.emptySortedMap;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
@@ -66,12 +67,12 @@ import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.manager.thrift.ManagerClientService.Iface;
+import org.apache.accumulo.core.manager.thrift.ManagerClientService.Processor;
+import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
+import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
+import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
-import org.apache.accumulo.core.master.thrift.ManagerClientService.Iface;
-import org.apache.accumulo.core.master.thrift.ManagerClientService.Processor;
-import org.apache.accumulo.core.master.thrift.ManagerGoalState;
-import org.apache.accumulo.core.master.thrift.ManagerMonitorInfo;
-import org.apache.accumulo.core.master.thrift.ManagerState;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -211,10 +212,8 @@ public class Manager extends AbstractServer
 
   Fate<Manager> fate;
 
-  volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus =
-      Collections.unmodifiableSortedMap(new TreeMap<>());
-  volatile SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancer =
-      Collections.unmodifiableSortedMap(new TreeMap<>());
+  volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = emptySortedMap();
+  volatile SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancer = emptySortedMap();
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
@@ -615,10 +614,8 @@ public class Manager extends AbstractServer
                 if (tls.chopped) {
                   return TabletGoalState.UNASSIGNED;
                 }
-              } else {
-                if (tls.chopped && tls.walogs.isEmpty()) {
-                  return TabletGoalState.UNASSIGNED;
-                }
+              } else if (tls.chopped && tls.walogs.isEmpty()) {
+                return TabletGoalState.UNASSIGNED;
               }
 
               return TabletGoalState.HOSTED;
@@ -1189,11 +1186,10 @@ public class Manager extends AbstractServer
     ThreadPools.createGeneralScheduledExecutorService(getConfiguration())
         .scheduleWithFixedDelay(() -> {
           try {
-            if (replServer.get() == null) {
-              if (!getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
-                log.info(Property.REPLICATION_NAME.getKey() + " was set, starting repl services.");
-                replServer.set(setupReplication());
-              }
+            if ((replServer.get() == null)
+                && !getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
+              log.info("{} was set, starting repl services.", Property.REPLICATION_NAME.getKey());
+              replServer.set(setupReplication());
             }
           } catch (UnknownHostException | KeeperException | InterruptedException e) {
             log.error("Error occurred starting replication services. ", e);
@@ -1497,10 +1493,9 @@ public class Manager extends AbstractServer
 
       Set<TServerInstance> unexpected = new HashSet<>(deleted);
       unexpected.removeAll(this.serversToShutdown);
-      if (!unexpected.isEmpty()) {
-        if (stillManager() && !getManagerGoalState().equals(ManagerGoalState.CLEAN_STOP)) {
-          log.warn("Lost servers {}", unexpected);
-        }
+      if (!unexpected.isEmpty()
+          && (stillManager() && !getManagerGoalState().equals(ManagerGoalState.CLEAN_STOP))) {
+        log.warn("Lost servers {}", unexpected);
       }
       serversToShutdown.removeAll(deleted);
       badServers.keySet().removeAll(deleted);
@@ -1582,10 +1577,8 @@ public class Manager extends AbstractServer
 
     for (TableId tableId : Tables.getIdToNameMap(context).keySet()) {
       TableState state = manager.getTableState(tableId);
-      if (state != null) {
-        if (state == TableState.ONLINE) {
-          result.add(tableId);
-        }
+      if ((state != null) && (state == TableState.ONLINE)) {
+        result.add(tableId);
       }
     }
     return result;
@@ -1620,16 +1613,12 @@ public class Manager extends AbstractServer
   }
 
   public void assignedTablet(KeyExtent extent) {
-    if (extent.isMeta()) {
-      if (getManagerState().equals(ManagerState.UNLOAD_ROOT_TABLET)) {
-        setManagerState(ManagerState.UNLOAD_METADATA_TABLETS);
-      }
+    if (extent.isMeta() && getManagerState().equals(ManagerState.UNLOAD_ROOT_TABLET)) {
+      setManagerState(ManagerState.UNLOAD_METADATA_TABLETS);
     }
-    if (extent.isRootTablet()) {
-      // probably too late, but try anyhow
-      if (getManagerState().equals(ManagerState.STOP)) {
-        setManagerState(ManagerState.UNLOAD_ROOT_TABLET);
-      }
+    // probably too late, but try anyhow
+    if (extent.isRootTablet() && getManagerState().equals(ManagerState.STOP)) {
+      setManagerState(ManagerState.UNLOAD_ROOT_TABLET);
     }
   }
 

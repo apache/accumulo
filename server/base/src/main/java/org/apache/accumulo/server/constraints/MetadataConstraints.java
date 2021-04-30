@@ -28,10 +28,10 @@ import java.util.List;
 import java.util.Objects;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;

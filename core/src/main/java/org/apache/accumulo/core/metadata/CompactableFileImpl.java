@@ -59,7 +59,7 @@ public class CompactableFileImpl implements CompactableFile {
     return dataFileValue.getNumEntries();
   }
 
-  public StoredTabletFile getStortedTabletFile() {
+  public StoredTabletFile getStoredTabletFile() {
     return storedTabletFile;
   }
 

@@ -35,6 +35,7 @@ import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TableStatisticsImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
+import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TableStatistics;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -250,12 +251,9 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
       TServerStatusImpl status =
           new TServerStatusImpl(new org.apache.accumulo.core.master.thrift.TabletServerStatus());
       Map<String,TableStatistics> tableMap = new HashMap<>();
-      tableMap.put(FOO.getId().canonical(),
-          new TableStatisticsImpl(new org.apache.accumulo.core.master.thrift.TableInfo()));
-      tableMap.put(BAR.getId().canonical(),
-          new TableStatisticsImpl(new org.apache.accumulo.core.master.thrift.TableInfo()));
-      tableMap.put(BAZ.getId().canonical(),
-          new TableStatisticsImpl(new org.apache.accumulo.core.master.thrift.TableInfo()));
+      tableMap.put(FOO.getId().canonical(), new TableStatisticsImpl(new TableInfo()));
+      tableMap.put(BAR.getId().canonical(), new TableStatisticsImpl(new TableInfo()));
+      tableMap.put(BAZ.getId().canonical(), new TableStatisticsImpl(new TableInfo()));
       status.setTableMap(tableMap);
       current.put(new TabletServerIdImpl(base + i, 9997, Integer.toHexString(1)), status);
     }

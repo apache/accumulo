@@ -39,7 +39,7 @@ import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.IterConfigUtil;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.constraints.VisibilityConstraint;
+import org.apache.accumulo.core.data.constraints.VisibilityConstraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;

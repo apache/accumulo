@@ -24,12 +24,19 @@ import java.util.List;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This constraint ensures mutations do not have deletes.
  *
  * @since 2.0.0
+ * @deprecated since 2.1.0 Use {@link org.apache.accumulo.core.data.constraints.NoDeleteConstraint}
  */
-public class NoDeleteConstraint implements Constraint {
+@Deprecated(since = "2.1.0")
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
+    justification = "Same name used for compatibility during deprecation cycle")
+public class NoDeleteConstraint extends org.apache.accumulo.core.data.constraints.NoDeleteConstraint
+    implements Constraint {
 
   @Override
   public String getViolationDescription(short violationCode) {
@@ -40,14 +47,13 @@ public class NoDeleteConstraint implements Constraint {
   }
 
   @Override
-  public List<Short> check(Environment env, Mutation mutation) {
+  public List<Short> check(Constraint.Environment env, Mutation mutation) {
     List<ColumnUpdate> updates = mutation.getUpdates();
     for (ColumnUpdate update : updates) {
       if (update.isDeleted()) {
         return Collections.singletonList((short) 1);
       }
     }
-
     return null;
   }
 

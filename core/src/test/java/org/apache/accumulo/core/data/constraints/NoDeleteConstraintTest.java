@@ -16,28 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.monitor.rest.zk;
+package org.apache.accumulo.core.data.constraints;
 
-import java.util.ArrayList;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
 import java.util.List;
 
-/**
- * Generates a list of Zookeeper server information
- *
- * @since 2.0.0
- */
-public class ZKInformation {
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
+import org.junit.Test;
 
-  // Variable names become JSON keys
-  public List<ZooKeeper> zkServers = new ArrayList<>();
+public class NoDeleteConstraintTest {
 
-  /**
-   * Adds a new zk server to the list
-   *
-   * @param server
-   *          ZK server to add
-   */
-  public void addZK(ZooKeeper server) {
-    zkServers.add(server);
+  @Test
+  public void testConstraint() {
+    Mutation m1 = new Mutation("r1");
+    m1.putDelete("f1", "q1");
+
+    NoDeleteConstraint ndc = new NoDeleteConstraint();
+
+    List<Short> results = ndc.check(null, m1);
+    assertEquals(1, results.size());
+    assertEquals(1, results.get(0).intValue());
+
+    Mutation m2 = new Mutation("r1");
+    m2.put("f1", "q1", new Value("v1"));
+
+    results = ndc.check(null, m2);
+    assertNull(results);
   }
 }

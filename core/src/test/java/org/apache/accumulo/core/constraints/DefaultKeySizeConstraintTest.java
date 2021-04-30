@@ -27,6 +27,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
+@SuppressWarnings("deprecation")
 public class DefaultKeySizeConstraintTest {
 
   Constraint constraint = new DefaultKeySizeConstraint();

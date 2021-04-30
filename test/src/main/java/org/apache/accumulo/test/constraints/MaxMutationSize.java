@@ -21,8 +21,8 @@ package org.apache.accumulo.test.constraints;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.constraints.Constraint;
 
 /**
  * Ensure that mutations are a reasonable size: we must be able to fit several in memory at a time.

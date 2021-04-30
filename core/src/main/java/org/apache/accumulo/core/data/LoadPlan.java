@@ -197,7 +197,7 @@ public class LoadPlan {
 
   public static Builder builder() {
     return new Builder() {
-      ImmutableList.Builder<Destination> fmb = ImmutableList.builder();
+      final ImmutableList.Builder<Destination> fmb = ImmutableList.builder();
 
       @Override
       public Builder loadFileTo(String fileName, RangeType rangeType, Text startRow, Text endRow) {

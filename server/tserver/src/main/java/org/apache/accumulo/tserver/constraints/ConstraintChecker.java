@@ -25,13 +25,15 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.constraints.Constraint;
-import org.apache.accumulo.core.constraints.Constraint.Environment;
 import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.data.constraints.Constraint;
+import org.apache.accumulo.core.data.constraints.Constraint.Environment;
 import org.apache.accumulo.core.dataImpl.ComparableBytes;
 import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.hadoop.io.BinaryComparable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,11 +41,11 @@ import com.google.common.annotations.VisibleForTesting;
 
 public class ConstraintChecker {
 
-  private ArrayList<Constraint> constrains;
+  private ArrayList<Constraint> constraints;
   private static final Logger log = LoggerFactory.getLogger(ConstraintChecker.class);
 
   public ConstraintChecker(AccumuloConfiguration conf) {
-    constrains = new ArrayList<>();
+    constraints = new ArrayList<>();
 
     try {
       String context = ClassLoaderUtil.tableContext(conf);
@@ -57,13 +59,13 @@ public class ConstraintChecker {
 
           log.debug("Loaded constraint {} for {}", clazz.getName(),
               ((TableConfiguration) conf).getTableId());
-          constrains.add(clazz.getDeclaredConstructor().newInstance());
+          constraints.add(clazz.getDeclaredConstructor().newInstance());
         }
       }
 
     } catch (Exception e) {
-      constrains.clear();
-      constrains.add(new UnsatisfiableConstraint((short) -1,
+      constraints.clear();
+      constraints.add(new UnsatisfiableConstraint((short) -1,
           "Failed to load constraints, not accepting mutations."));
       log.error("Failed to load constraints " + ((TableConfiguration) conf).getTableId() + " " + e,
           e);
@@ -72,7 +74,7 @@ public class ConstraintChecker {
 
   @VisibleForTesting
   ArrayList<Constraint> getConstraints() {
-    return constrains;
+    return constraints;
   }
 
   private static Violations addViolation(Violations violations, ConstraintViolationSummary cvs) {
@@ -84,7 +86,7 @@ public class ConstraintChecker {
   }
 
   public Violations check(Environment env, Mutation m) {
-    if (!env.getExtent().contains(new ComparableBytes(m.getRow()))) {
+    if (!tabletContains(env.getTablet(), new ComparableBytes(m.getRow()))) {
       Violations violations = new Violations();
 
       ConstraintViolationSummary cvs = new ConstraintViolationSummary(
@@ -135,5 +137,17 @@ public class ConstraintChecker {
     }
 
     return violations;
+  }
+
+  /**
+   * Return true if the tablet contains the row. This is similar to the contains in KeyExtent
+   */
+  public boolean tabletContains(TabletId tablet, BinaryComparable row) {
+    if (row == null) {
+      throw new IllegalArgumentException(
+          "Passing null to contains is ambiguous, could be in first or last extent of table");
+    }
+    return (tablet.getPrevEndRow() == null || tablet.getPrevEndRow().compareTo(row) < 0)
+        && (tablet.getEndRow() == null || tablet.getEndRow().compareTo(row) >= 0);
   }
 }

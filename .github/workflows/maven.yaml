@@ -32,7 +32,6 @@ on:
 jobs:
   # fast build to populate the local maven repository cache
   fastbuild:
-    timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -51,6 +50,7 @@ jobs:
     - name: Show the first log message
       run: git log -n1
     - name: Build with Maven (Fast Build)
+      timeout-minutes: 20
       run: mvn -B -V -e -ntp "-Dstyle.color=always" clean package dependency:resolve -DskipTests -DskipFormat -DverifyFormat
       env:
         MAVEN_OPTS: -Djansi.force=true
@@ -64,7 +64,6 @@ jobs:
           - {name: 'qa-checks',     args: 'verify javadoc:jar -Psec-bugs -DskipTests -Dspotbugs.timeout=3600000'}
           - {name: 'hadoop-compat', args: 'package -DskipTests -Dhadoop.version=3.0.3'}
       fail-fast: false
-    timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -80,7 +79,23 @@ jobs:
           !~/.m2/repository/org/apache/accumulo
         key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
         restore-keys: ${{ runner.os }}-m2
+    - name: Override DNS to fix IP address for hostname
+      run: |
+        ip -br addr
+        echo "'hostname -i' shows '$(hostname -i)'"
+        echo "'hostname -I' shows '$(hostname -I)'"
+        hostname_short=$(hostname -s)
+        hostname_long=$(hostname -f)
+        if ! grep -q $hostname_short /etc/hosts; then
+          actual_ip=$(ip -4 addr show dev eth0 | grep -o 'inet [0-9.]*' | cut -f2 -d ' ')
+          echo "Setting $hostname_long / $hostname_short to $actual_ip in /etc/hosts"
+          echo "$actual_ip $hostname_long $hostname_short" | sudo tee -a /etc/hosts
+          ip -br addr
+          echo "'hostname -i' shows '$(hostname -i)'"
+          echo "'hostname -I' shows '$(hostname -I)'"
+        fi
     - name: Build with Maven (${{ matrix.profile.name }})
+      timeout-minutes: 60
       run: mvn -B -V -e -ntp "-Dstyle.color=always" -DskipFormat ${{ matrix.profile.args }}
       env:
         MAVEN_OPTS: -Djansi.force=true

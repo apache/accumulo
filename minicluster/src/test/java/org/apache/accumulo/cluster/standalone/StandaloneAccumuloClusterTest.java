@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.cluster.standalone;
 
-import org.apache.accumulo.core.master.thrift.ManagerGoalState;
+import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.minicluster.ServerType;
 import org.easymock.EasyMock;
 import org.junit.Test;

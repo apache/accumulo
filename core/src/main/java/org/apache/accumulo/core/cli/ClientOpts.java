@@ -152,7 +152,7 @@ public class ClientOpts extends Help {
   public String principal = null;
 
   @Parameter(names = "--password", converter = PasswordConverter.class,
-      description = "conection password (can be specified as '<password>', 'pass:<password>',"
+      description = "connection password (can be specified as '<password>', 'pass:<password>',"
           + " 'file:<local file containing the password>' or 'env:<variable containing"
           + " the pass>')",
       password = true)

@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -45,8 +46,6 @@ import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.conf.ZooCachePropertyAccessor.PropCacheKey;
-
-import com.google.common.collect.ImmutableMap;
 
 public class TableConfiguration extends AccumuloConfiguration {
 
@@ -183,11 +182,8 @@ public class TableConfiguration extends AccumuloConfiguration {
     private ParsedIteratorConfig(List<IterInfo> ii, Map<String,Map<String,String>> opts,
         String context) {
       this.tableIters = List.copyOf(ii);
-      var imb = ImmutableMap.<String,Map<String,String>>builder();
-      for (Entry<String,Map<String,String>> entry : opts.entrySet()) {
-        imb.put(entry.getKey(), Map.copyOf(entry.getValue()));
-      }
-      tableOpts = imb.build();
+      tableOpts = opts.entrySet().stream()
+          .collect(Collectors.toUnmodifiableMap(Entry::getKey, e -> Map.copyOf(e.getValue())));
       this.context = context;
     }
 
