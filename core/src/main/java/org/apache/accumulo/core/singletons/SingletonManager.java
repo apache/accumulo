@@ -139,7 +139,7 @@ public class SingletonManager {
     return new SingletonReservation();
   }
 
-  static synchronized void releaseRerservation() {
+  static synchronized void releaseReservation() {
     Preconditions.checkState(reservations > 0);
     reservations--;
     transition();
