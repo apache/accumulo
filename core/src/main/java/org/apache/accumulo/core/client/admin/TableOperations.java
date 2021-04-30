@@ -717,6 +717,13 @@ public interface TableOperations {
     ImportMappingOptions tableTime(boolean value);
 
     /**
+     * Ignores empty bulk import source directory, rather than throwing an IllegalArgumentException.
+     *
+     * @since 2.1.0
+     */
+    ImportMappingOptions ignoreEmptyDir(boolean ignore);
+
+    /**
      * Loads the files into the table.
      */
     void load()

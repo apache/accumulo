@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.tserver.constraints;
 
-import static org.easymock.EasyMock.anyObject;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.createMockBuilder;
 import static org.easymock.EasyMock.expect;
@@ -31,12 +31,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.constraints.Constraint;
-import org.apache.accumulo.core.constraints.Constraint.Environment;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.hadoop.io.BinaryComparable;
+import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.data.constraints.Constraint;
+import org.apache.accumulo.core.data.constraints.Constraint.Environment;
+import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,8 +47,9 @@ public class ConstraintCheckerTest {
   private ConstraintChecker cc;
   private ArrayList<Constraint> constraints;
   private Environment env;
-  private KeyExtent extent;
+  private TabletId tabletId;
   private Mutation m;
+  private Mutation m2;
 
   @Before
   public void setup() throws SecurityException {
@@ -57,10 +58,15 @@ public class ConstraintCheckerTest {
     expect(cc.getConstraints()).andReturn(constraints);
 
     env = createMock(Environment.class);
-    extent = createMock(KeyExtent.class);
-    expect(env.getExtent()).andReturn(extent);
+    tabletId = createMock(TabletId.class);
+    expect(env.getTablet()).andReturn(tabletId);
 
     m = createMock(Mutation.class);
+    m2 = createMock(Mutation.class);
+    expect(tabletId.getEndRow()).andReturn(new Text("d")).anyTimes();
+    expect(tabletId.getPrevEndRow()).andReturn(new Text("a")).anyTimes();
+    expect(m.getRow()).andReturn("b".getBytes(UTF_8)).anyTimes();
+    expect(m2.getRow()).andReturn("z".getBytes(UTF_8)).anyTimes();
   }
 
   private Constraint makeSuccessConstraint() {
@@ -83,9 +89,10 @@ public class ConstraintCheckerTest {
   }
 
   private void replayAll() {
-    replay(extent);
+    replay(tabletId);
     replay(env);
     replay(cc);
+    replay(m);
   }
 
   private Constraint makeExceptionConstraint() {
@@ -97,23 +104,21 @@ public class ConstraintCheckerTest {
 
   @Test
   public void testCheckAllOK() {
-    expect(extent.contains(anyObject(BinaryComparable.class))).andReturn(true);
     replayAll();
     constraints.add(makeSuccessConstraint());
     assertNull(cc.check(env, m));
   }
 
   @Test
-  public void testCheckMutationOutsideKeyExtent() {
-    expect(extent.contains(anyObject(BinaryComparable.class))).andReturn(false);
+  public void testCheckMutationOutsideTablet() {
     replayAll();
-    ConstraintViolationSummary cvs = Iterables.getOnlyElement(cc.check(env, m).asList());
+    replay(m2);
+    ConstraintViolationSummary cvs = Iterables.getOnlyElement(cc.check(env, m2).asList());
     assertEquals(SystemConstraint.class.getName(), cvs.getConstrainClass());
   }
 
   @Test
   public void testCheckFailure() {
-    expect(extent.contains(anyObject(BinaryComparable.class))).andReturn(true);
     replayAll();
     constraints.add(makeFailureConstraint());
     List<ConstraintViolationSummary> cvsList = cc.check(env, m).asList();
@@ -127,7 +132,6 @@ public class ConstraintCheckerTest {
 
   @Test
   public void testCheckException() {
-    expect(extent.contains(anyObject(BinaryComparable.class))).andReturn(true);
     replayAll();
     constraints.add(makeExceptionConstraint());
     ConstraintViolationSummary cvs = Iterables.getOnlyElement(cc.check(env, m).asList());

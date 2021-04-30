@@ -206,6 +206,7 @@
               <exclude>**/IdleRatioScanPrioritizerTest.java</exclude>
               <exclude>**/TestCfCqSlice.java</exclude>
               <exclude>**/TestCfCqSliceSeekingFilter.java</exclude>
+              <exclude>**/core/constraints/DefaultKeySizeConstraintTest.java</exclude>
             </excludes>
           </configuration>
           <executions>
@@ -223,6 +224,7 @@
                   <include>**/IdleRatioScanPrioritizerTest.java</include>
                   <include>**/TestCfCqSlice.java</include>
                   <include>**/TestCfCqSliceSeekingFilter.java</include>
+                  <exclude>**/core/constraints/DefaultKeySizeConstraintTest.java</exclude>
                 </includes>
               </configuration>
             </execution>

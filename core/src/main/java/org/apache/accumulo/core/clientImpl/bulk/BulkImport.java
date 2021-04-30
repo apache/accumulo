@@ -97,6 +97,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   private static final Logger log = LoggerFactory.getLogger(BulkImport.class);
 
   private boolean setTime = false;
+  private boolean ignoreEmptyDir = false;
   private Executor executor = null;
   private final String dir;
   private int numThreads = -1;
@@ -114,6 +115,12 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   @Override
   public ImportMappingOptions tableTime(boolean value) {
     this.setTime = value;
+    return this;
+  }
+
+  @Override
+  public ImportMappingOptions ignoreEmptyDir(boolean ignore) {
+    this.ignoreEmptyDir = ignore;
     return this;
   }
 
@@ -150,8 +157,15 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         mappings = computeMappingFromPlan(fs, tableId, srcPath, maxTablets);
       }
 
-      if (mappings.isEmpty())
-        throw new IllegalArgumentException("Attempted to import zero files from " + srcPath);
+      if (mappings.isEmpty()) {
+        if (ignoreEmptyDir == true) {
+          log.info("Attempted to import files from empty directory - {}. Zero files imported",
+              srcPath);
+          return;
+        } else {
+          throw new IllegalArgumentException("Attempted to import zero files from " + srcPath);
+        }
+      }
 
       BulkSerialize.writeLoadMapping(mappings, srcPath.toString(), fs::create);
 

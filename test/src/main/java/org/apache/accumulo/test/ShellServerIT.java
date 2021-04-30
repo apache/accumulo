@@ -1434,18 +1434,62 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
-  public void importDirectory() throws Exception {
+  public void importDirectoryOld() throws Exception {
     final String table = name.getMethodName();
-
     Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
-    File importDir = new File(rootPath, "import");
+    File errorsDir = new File(rootPath, "errors_" + table);
+    assertTrue(errorsDir.mkdir());
+    fs.mkdirs(new Path(errorsDir.toString()));
+    File importDir = createRFiles(conf, fs, table);
+    ts.exec("createtable " + table, true);
+    ts.exec("importdirectory " + importDir + " " + errorsDir + " true", true);
+    ts.exec("scan -r 00000000", true, "00000000", true);
+    ts.exec("scan -r 00000099", true, "00000099", true);
+    ts.exec("deletetable -f " + table);
+  }
+
+  @Test
+  public void importDirectory() throws Exception {
+    final String table = name.getMethodName();
+    Configuration conf = new Configuration();
+    FileSystem fs = FileSystem.get(conf);
+    File importDir = createRFiles(conf, fs, table);
+    ts.exec("createtable " + table, true);
+    ts.exec("importdirectory " + importDir + " true", true);
+    ts.exec("scan -r 00000000", true, "00000000", true);
+    ts.exec("scan -r 00000099", true, "00000099", true);
+    ts.exec("deletetable -f " + table);
+  }
+
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
+  @Test
+  public void importDirectoryWithOptions() throws Exception {
+    final String table = name.getMethodName();
+    Configuration conf = new Configuration();
+    FileSystem fs = FileSystem.get(conf);
+    File importDir = createRFiles(conf, fs, table);
+    ts.exec("createtable " + table, true);
+    ts.exec("notable", true);
+    ts.exec("importdirectory -t " + table + " -i " + importDir + " true", true);
+    ts.exec("scan -t " + table + " -r 00000000", true, "00000000", true);
+    ts.exec("scan -t " + table + " -r 00000099", true, "00000099", true);
+    // Attempt to re-import without -i option, error should occur
+    ts.exec("importdirectory -t " + table + " " + importDir + " true", false);
+    // Attempt re-import once more, this time with -i option. No error should occur, only a
+    // message indicating the directory was empty and zero files were imported
+    ts.exec("importdirectory -t " + table + " -i " + importDir + " true", true);
+    ts.exec("scan -t " + table + " -r 00000000", true, "00000000", true);
+    ts.exec("scan -t " + table + " -r 00000099", true, "00000099", true);
+    ts.exec("deletetable -f " + table);
+  }
+
+  private File createRFiles(final Configuration conf, final FileSystem fs, final String postfix)
+      throws IOException {
+    File importDir = new File(rootPath, "import_" + postfix);
     assertTrue(importDir.mkdir());
     String even = new File(importDir, "even.rf").toString();
     String odd = new File(importDir, "odd.rf").toString();
-    File errorsDir = new File(rootPath, "errors");
-    assertTrue(errorsDir.mkdir());
-    fs.mkdirs(new Path(errorsDir.toString()));
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     FileSKVWriter evenWriter = FileOperations.getInstance().newWriterBuilder()
         .forFile(even, fs, conf, CryptoServiceFactory.newDefaultInstance())
@@ -1468,11 +1512,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     evenWriter.close();
     oddWriter.close();
     assertEquals(0, ts.shell.getExitCode());
-    ts.exec("createtable " + table, true);
-    ts.exec("importdirectory " + importDir + " " + errorsDir + " true", true);
-    ts.exec("scan -r 00000000", true, "00000000", true);
-    ts.exec("scan -r 00000099", true, "00000099", true);
-    ts.exec("deletetable -f " + table);
+    return importDir;
   }
 
   @Test
@@ -1994,6 +2034,17 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     // validate -t option is used.
     ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), true);
+
+    // validate -t option is used.
+    ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), true);
+
+    // validate -t and -i option is used with new bulk import.
+    // This will fail as there are no files in the import directory
+    ts.exec(String.format("importdirectory -t %s %s false", table, importDir), false);
+
+    // validate -t and -i option is used with new bulk import.
+    // This should pass even if no files in import directory. Empty import dir is ignored.
+    ts.exec(String.format("importdirectory -t %s %s false -i", table, importDir), true);
 
     // validate original cmd format.
     ts.exec(String.format("table %s", table), true);
