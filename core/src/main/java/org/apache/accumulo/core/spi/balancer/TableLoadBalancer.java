@@ -108,10 +108,8 @@ public class TableLoadBalancer implements TabletBalancer {
   public void getAssignments(AssignmentParameters params) {
     // separate the unassigned into tables
     Map<TableId,Map<TabletId,TabletServerId>> groupedUnassigned = new HashMap<>();
-    params.unassignedTablets()
-        .forEach((tid, lastTserver) -> groupedUnassigned
-            .computeIfAbsent(TableId.of(tid.getTable().canonical()), k -> new HashMap<>())
-            .put(tid, lastTserver));
+    params.unassignedTablets().forEach((tid, lastTserver) -> groupedUnassigned
+        .computeIfAbsent(tid.getTable(), k -> new HashMap<>()).put(tid, lastTserver));
     for (Entry<TableId,Map<TabletId,TabletServerId>> e : groupedUnassigned.entrySet()) {
       Map<TabletId,TabletServerId> newAssignments = new HashMap<>();
       getBalancerForTable(e.getKey()).getAssignments(
