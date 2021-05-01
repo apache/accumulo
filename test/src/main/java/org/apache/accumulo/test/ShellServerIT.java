@@ -50,6 +50,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
@@ -340,16 +341,17 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @AfterClass
-  public static void tearDownAfterClass() {
+  public static void tearDownAfterClass() throws Exception {
     if (traceProcess != null) {
       traceProcess.destroy();
     }
 
+    deleteTables();
+
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  @After
-  public void deleteTables() throws Exception {
+  public static void deleteTables() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       for (String table : c.tableOperations().list()) {
         if (!table.startsWith(Namespace.ACCUMULO.name() + ".") && !table.equals("trace"))
@@ -513,7 +515,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     String o = ts.output.get();
     // for some reason, there's a bit of fluctuation
     assertTrue("Output did not match regex: '" + o + "'",
-        o.matches(".*[1-9][0-9][0-9]\\s\\[" + table + "\\]\\n"));
+        o.matches(".*[1-9][0-9][0-9]\\s\\[" + table + "]\\n"));
     ts.exec("deletetable -f " + table);
   }
 
@@ -1717,7 +1719,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     fooFilterJar.deleteOnExit();
 
     File fooConstraintJar = File.createTempFile("FooConstraint", ".jar", new File(rootPath));
-    FileUtils.copyInputStreamToFile(this.getClass().getResourceAsStream("/FooConstraint.jar"),
+    FileUtils.copyInputStreamToFile(this.getClass().getResourceAsStream("/FooConstraint_2_1.jar"),
         fooConstraintJar);
     fooConstraintJar.deleteOnExit();
 
@@ -1795,7 +1797,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("renamenamespace thing1 thing2");
     namespaces = ts.exec("namespaces");
     assertTrue(namespaces.contains("thing2"));
-    assertTrue(!namespaces.contains("thing1"));
+    assertFalse(namespaces.contains("thing1"));
 
     // can't delete a namespace that still contains tables, unless you do -f
     ts.exec("createtable thing2.thingy", true);
@@ -2476,13 +2478,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       splitsFile = System.getProperty("user.dir") + "/target/splitFile";
       generateSplitsFile(splitsFile, 1000, 12, false, false, true, false, false);
-      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      if (Objects.nonNull(splitsFile)) {
+        Files.delete(Paths.get(splitsFile));
+      }
     }
   }
 
@@ -2498,13 +2502,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       splitsFile = System.getProperty("user.dir") + "/target/splitFile";
       generateSplitsFile(splitsFile, 300, 12, false, false, false, false, false);
-      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      if (Objects.nonNull(splitsFile)) {
+        Files.delete(Paths.get(splitsFile));
+      }
     }
   }
 
@@ -2520,13 +2526,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       splitsFile = System.getProperty("user.dir") + "/target/splitFile";
       generateSplitsFile(splitsFile, 100, 23, false, true, true, false, false);
-      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      if (Objects.nonNull(splitsFile)) {
+        Files.delete(Paths.get(splitsFile));
+      }
     }
   }
 
@@ -2542,13 +2550,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       splitsFile = System.getProperty("user.dir") + "/target/splitFile";
       generateSplitsFile(splitsFile, 100, 31, false, false, true, true, false);
-      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      if (Objects.nonNull(splitsFile)) {
+        Files.delete(Paths.get(splitsFile));
+      }
     }
   }
 
@@ -2564,13 +2574,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       splitsFile = System.getProperty("user.dir") + "/target/splitFile";
       generateSplitsFile(splitsFile, 100, 32, false, false, true, false, true);
-      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      if (Objects.nonNull(splitsFile)) {
+        Files.delete(Paths.get(splitsFile));
+      }
     }
   }
 
@@ -2586,13 +2598,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       splitsFile = System.getProperty("user.dir") + "/target/splitFile";
       generateSplitsFile(splitsFile, 100, 12, false, false, false, true, true);
-      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      if (Objects.nonNull(splitsFile)) {
+        Files.delete(Paths.get(splitsFile));
+      }
     }
   }
 
@@ -2608,13 +2622,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       splitsFile = System.getProperty("user.dir") + "/target/splitFile";
       generateSplitsFile(splitsFile, 100, 12, false, false, true, true, true);
-      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      if (Objects.nonNull(splitsFile)) {
+        Files.delete(Paths.get(splitsFile));
+      }
     }
   }
 
@@ -2630,13 +2646,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       splitsFile = System.getProperty("user.dir") + "/target/splitFile";
       generateSplitsFile(splitsFile, 0, 0, false, false, false, false, false);
-      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, false);
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      if (Objects.nonNull(splitsFile)) {
+        Files.delete(Paths.get(splitsFile));
+      }
     }
   }
 
@@ -2687,13 +2705,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       splitsFile = System.getProperty("user.dir") + "/target/splitFile";
       generateSplitsFile(splitsFile, 200, 12, true, true, true, false, false);
-      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      if (Objects.nonNull(splitsFile)) {
+        Files.delete(Paths.get(splitsFile));
+      }
     }
   }
 
@@ -2709,13 +2729,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       splitsFile = System.getProperty("user.dir") + "/target/splitFile";
       generateSplitsFile(splitsFile, 300, 12, true, true, false, false, false);
-      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      if (Objects.nonNull(splitsFile)) {
+        Files.delete(Paths.get(splitsFile));
+      }
     }
   }
 
@@ -2731,13 +2753,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       splitsFile = System.getProperty("user.dir") + "/target/splitFile";
       generateSplitsFile(splitsFile, 100, 23, true, true, true, false, false);
-      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      if (Objects.nonNull(splitsFile)) {
+        Files.delete(Paths.get(splitsFile));
+      }
     }
   }
 
@@ -2753,13 +2777,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       splitsFile = System.getProperty("user.dir") + "/target/splitFile";
       generateSplitsFile(splitsFile, 100, 31, true, true, true, true, false);
-      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      if (Objects.nonNull(splitsFile)) {
+        Files.delete(Paths.get(splitsFile));
+      }
     }
   }
 
@@ -2775,13 +2801,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       splitsFile = System.getProperty("user.dir") + "/target/splitFile";
       generateSplitsFile(splitsFile, 100, 32, true, true, true, false, true);
-      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      if (Objects.nonNull(splitsFile)) {
+        Files.delete(Paths.get(splitsFile));
+      }
     }
   }
 
@@ -2797,13 +2825,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       splitsFile = System.getProperty("user.dir") + "/target/splitFile";
       generateSplitsFile(splitsFile, 100, 12, true, true, false, true, true);
-      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      if (Objects.nonNull(splitsFile)) {
+        Files.delete(Paths.get(splitsFile));
+      }
     }
   }
 
@@ -2819,23 +2849,24 @@ public class ShellServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       splitsFile = System.getProperty("user.dir") + "/target/splitFile";
       generateSplitsFile(splitsFile, 100, 12, true, true, true, true, true);
-      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
       final String tableName = name.getMethodName() + "_table";
       ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      if (Objects.nonNull(splitsFile)) {
+        Files.delete(Paths.get(splitsFile));
+      }
     }
   }
 
-  private SortedSet<Text> readSplitsFromFile(final String splitsFile, boolean decode)
-      throws IOException {
+  private SortedSet<Text> readSplitsFromFile(final String splitsFile) throws IOException {
     SortedSet<Text> splits = new TreeSet<>();
     try (BufferedReader reader = newBufferedReader(Paths.get(splitsFile))) {
       String split;
       while ((split = reader.readLine()) != null) {
-        Text unencodedString = decode(split, decode);
+        Text unencodedString = decode(split);
         if (unencodedString != null)
           splits.add(unencodedString);
       }
@@ -2850,7 +2881,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     java.nio.file.Path splitsPath = java.nio.file.Paths.get(splitsFile);
     int insertAt = (len % 2 == 0) ? len / 2 : (len + 1) / 2;
     Collection<Text> sortedSplits = null;
-    Collection<Text> randomSplits = null;
+    Collection<Text> randomSplits;
 
     if (binarySplits)
       randomSplits = generateBinarySplits(numItems, len);
@@ -2900,9 +2931,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   private Text getRandomText(final int len) {
-    int desiredLen = len;
-    if (len > 32)
-      desiredLen = 32;
+    var desiredLen = Math.min(len, 32);
     return new Text(
         String.valueOf(UUID.randomUUID()).replaceAll("-", "").substring(0, desiredLen - 1));
   }
@@ -2913,9 +2942,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     return encode ? Base64.getEncoder().encodeToString(TextUtil.getBytes(text)) : text.toString();
   }
 
-  private Text decode(final String text, final boolean decode) {
+  private Text decode(final String text) {
     if (requireNonNull(text).isBlank())
       return null;
-    return decode ? new Text(Base64.getDecoder().decode(text)) : new Text(text);
+    return new Text(text);
   }
 }
