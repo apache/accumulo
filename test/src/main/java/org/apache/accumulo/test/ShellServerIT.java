@@ -2294,7 +2294,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("createtable " + table + " -l locg1=fam1,fam2", true);
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       Map<String,Set<Text>> lMap = accumuloClient.tableOperations().getLocalityGroups(table);
-      Set<Text> expectedColFams = new HashSet<>(Arrays.asList(new Text("fam1"), new Text("fam2")));
+      Set<Text> expectedColFams = Set.of(new Text("fam1"), new Text("fam2"));
       for (Entry<String,Set<Text>> entry : lMap.entrySet()) {
         assertEquals("locg1", entry.getKey());
         assertTrue(entry.getValue().containsAll(expectedColFams));
@@ -2316,8 +2316,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
       Map<String,Set<Text>> lMap = accumuloClient.tableOperations().getLocalityGroups(table);
       assertTrue(lMap.containsKey("locg1"));
       assertTrue(lMap.containsKey("locg2"));
-      Set<Text> expectedColFams1 = new HashSet<>(Arrays.asList(new Text("fam1"), new Text("fam2")));
-      Set<Text> expectedColFams2 = new HashSet<>(Arrays.asList(new Text("colfam1")));
+      Set<Text> expectedColFams1 = Set.of(new Text("fam1"), new Text("fam2"));
+      Set<Text> expectedColFams2 = Set.of(new Text("colfam1"));
       assertTrue(lMap.get("locg1").containsAll(expectedColFams1));
       assertTrue(lMap.get("locg2").containsAll(expectedColFams2));
       ts.exec("deletetable -f " + table);

@@ -26,7 +26,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -86,7 +85,7 @@ public class OrIteratorIT extends AccumuloClusterHarness {
       expectedData.put("mort", "6");
 
       try (BatchScanner bs = client.createBatchScanner(tableName)) {
-        Set<Range> ranges = new HashSet<>(Arrays.asList(Range.exact("row1"), Range.exact("row2")));
+        Set<Range> ranges = Set.of(Range.exact("row1"), Range.exact("row2"));
         bs.setRanges(ranges);
         bs.addScanIterator(is);
         for (Entry<Key,Value> entry : bs) {

@@ -23,9 +23,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -70,12 +68,11 @@ public class ManagerMetricsIT extends AccumuloClusterHarness {
   private long maxWait;
 
   private static final Set<String> REQUIRED_METRIC_KEYS =
-      new HashSet<>(Arrays.asList("currentFateOps", "totalFateOps", "totalZkConnErrors",
-          "FateTxState_NEW", "FateTxState_IN_PROGRESS", "FateTxState_FAILED_IN_PROGRESS",
-          "FateTxState_FAILED", "FateTxState_SUCCESSFUL", "FateTxState_UNKNOWN"));
+      Set.of("currentFateOps", "totalFateOps", "totalZkConnErrors", "FateTxState_NEW",
+          "FateTxState_IN_PROGRESS", "FateTxState_FAILED_IN_PROGRESS", "FateTxState_FAILED",
+          "FateTxState_SUCCESSFUL", "FateTxState_UNKNOWN");
 
-  private static final Set<String> OPTIONAL_METRIC_KEYS =
-      new HashSet<>(Collections.singletonList("FateTxOpType_CompactRange"));
+  private static final Set<String> OPTIONAL_METRIC_KEYS = Set.of("FateTxOpType_CompactRange");
 
   private final MetricsFileTailer metricsTail = new MetricsFileTailer("accumulo.sink.file-manager");
 
