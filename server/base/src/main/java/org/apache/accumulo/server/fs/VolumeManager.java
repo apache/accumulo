@@ -67,15 +67,15 @@ public interface VolumeManager extends AutoCloseable {
       if (dirIndex != -1) {
         return dirIndex;
       }
-      
-      if (path.endsWith('/' + dir)) { 
-        return path.length() - (dir.length() + 1); 
+
+      if (path.endsWith('/' + dir)) {
+        return path.length() - (dir.length() + 1);
       }
 
       if (path.contains(":"))
         throw new IllegalArgumentException(path + " is absolute, but does not contain " + dir);
       return -1;
-    } 
+    }
 
     public Path getVolume(Path path) {
       String pathString = path.toString();

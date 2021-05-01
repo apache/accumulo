@@ -100,19 +100,18 @@ public class FileTypeTest {
     assertEquals(new Path("tables/2b/t-001/C00.rf"),
         FileType.TABLE.removeVolume(new Path("hdfs://nn1/a/tables/2b/t-001/C00.rf")));
 
-    assertEquals(new Path("tables"), 
+    assertEquals(new Path("tables"),
         FileType.TABLE.removeVolume(new Path("file:/a/accumulo/tables")));
-    assertEquals(new Path("tables/"), 
+    assertEquals(new Path("tables/"),
         FileType.TABLE.removeVolume(new Path("file:/a/accumulo/tables/")));
-    assertEquals(new Path("file:/a/accumulo"), 
+    assertEquals(new Path("file:/a/accumulo"),
         FileType.TABLE.getVolume(new Path("file:/a/accumulo/tables/")));
-    assertEquals(null, 
-        FileType.TABLE.getVolume(new Path("/a/accumulo/tables2/")));
-    assertEquals(new Path("tables/2b/t-001/C00.rf"), 
-        FileType.TABLE.removeVolume(new Path("file:/a/accumulo/tablesstuff/tables/2b/t-001/C00.rf")));
-    assertEquals(new Path("tables/tablestuff2"), 
+    assertEquals(null, FileType.TABLE.getVolume(new Path("/a/accumulo/tables2/")));
+    assertEquals(new Path("tables/2b/t-001/C00.rf"), FileType.TABLE
+        .removeVolume(new Path("file:/a/accumulo/tablesstuff/tables/2b/t-001/C00.rf")));
+    assertEquals(new Path("tables/tablestuff2"),
         FileType.TABLE.removeVolume(new Path("file:/a/accumulo/tablesstuff/tables/tablestuff2")));
-    assertEquals(new Path("tables/tables"), 
+    assertEquals(new Path("tables/tables"),
         FileType.TABLE.removeVolume(new Path("file:/a/accumulo/tablesstuff/tables/tables")));
   }
 }
