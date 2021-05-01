@@ -21,11 +21,11 @@ package org.apache.accumulo.server.constraints;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ColumnUpdate;
@@ -75,8 +75,8 @@ public class MetadataConstraints implements Constraint {
   }
 
   // @formatter:off
-  private static final HashSet<ColumnFQ> validColumnQuals =
-      new HashSet<>(Arrays.asList(TabletColumnFamily.PREV_ROW_COLUMN,
+  private static final Set<ColumnFQ> validColumnQuals =
+      Set.of(TabletColumnFamily.PREV_ROW_COLUMN,
           TabletColumnFamily.OLD_PREV_ROW_COLUMN,
           SuspendLocationColumn.SUSPEND_COLUMN,
           ServerColumnFamily.DIRECTORY_COLUMN,
@@ -84,10 +84,10 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.TIME_COLUMN,
           ServerColumnFamily.LOCK_COLUMN,
           ServerColumnFamily.FLUSH_COLUMN,
-          ServerColumnFamily.COMPACT_COLUMN));
+          ServerColumnFamily.COMPACT_COLUMN);
 
-  private static final HashSet<Text> validColumnFams =
-      new HashSet<>(Arrays.asList(BulkFileColumnFamily.NAME,
+  private static final Set<Text> validColumnFams =
+      Set.of(BulkFileColumnFamily.NAME,
           LogColumnFamily.NAME,
           ScanFileColumnFamily.NAME,
           DataFileColumnFamily.NAME,
@@ -95,7 +95,7 @@ public class MetadataConstraints implements Constraint {
           LastLocationColumnFamily.NAME,
           FutureLocationColumnFamily.NAME,
           ChoppedColumnFamily.NAME,
-          ClonedColumnFamily.NAME));
+          ClonedColumnFamily.NAME);
   // @formatter:on
 
   private static boolean isValidColumn(ColumnUpdate cu) {
