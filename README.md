@@ -17,8 +17,8 @@ limitations under the License.
 
 <!-- LOGO -->
 <p align="center">
-    <a href="https://vuejs.org" target="_blank" rel="noopener noreferrer">
-        <img src="contrib/accumulo-logo.png" alt="Vue logo">
+    <a href="https://accumulo.apache.org/" target="_blank" rel="noopener noreferrer">
+        <img src="contrib/accumulo-logo.png" alt="Accumulo logo">
     </a>
 </p>
 
@@ -88,17 +88,9 @@ Contributions are welcome to all Apache Accumulo repositories
 
 If you want to contribute, go through our guide [How to contribute](https://accumulo.apache.org/how-to-contribute/)
 
-## Issues
-
-Accumulo uses GitHub [issues](https://github.com/apache/accumulo/issues) to track bugs and new features.
-
-## Pull requests
-
-Please make sure to read the [Contributing Guide](.github/CONTRIBUTING.md) before making a [pull request](https://github.com/apache/accumulo/pulls).
-
 # Code of Conduct
 
-In [Apache Code of Conduct](https://www.apache.org/foundation/policies/conduct.html) you will find the original of [CODE_OF_CONDUCT.md](.github/CODE_OF_CONDUCT.md).
+See [Apache Code of Conduct](https://www.apache.org/foundation/policies/conduct.html)
 
 # Export Control
 
