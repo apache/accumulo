@@ -22,7 +22,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -66,14 +65,14 @@ public class RowFilterTest {
 
       // ensure that seeks are confined to the row
       rowIterator.seek(new Range(null, false, firstKey == null ? null : firstKey.getRow(), false),
-          new HashSet<>(), false);
+          Set.of(), false);
       while (rowIterator.hasTop()) {
         sum2 += Integer.parseInt(rowIterator.getTopValue().toString());
         rowIterator.next();
       }
 
       rowIterator.seek(new Range(firstKey == null ? null : firstKey.getRow(), false, null, true),
-          new HashSet<>(), false);
+          Set.of(), false);
       while (rowIterator.hasTop()) {
         sum2 += Integer.parseInt(rowIterator.getTopValue().toString());
         rowIterator.next();
@@ -85,7 +84,7 @@ public class RowFilterTest {
   }
 
   public static class RowZeroOrOneFilter extends RowFilter {
-    private static final Set<String> passRows = new HashSet<>(Arrays.asList("0", "1"));
+    private static final Set<String> passRows = Set.of("0", "1");
 
     @Override
     public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) {
@@ -94,7 +93,7 @@ public class RowFilterTest {
   }
 
   public static class RowOneOrTwoFilter extends RowFilter {
-    private static final Set<String> passRows = new HashSet<>(Arrays.asList("1", "2"));
+    private static final Set<String> passRows = Set.of("1", "2");
 
     @Override
     public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) {
@@ -188,24 +187,24 @@ public class RowFilterTest {
 
     filter.seek(new Range(), Collections.emptySet(), false);
 
-    assertEquals(new HashSet<>(Arrays.asList("2", "3")), getRows(filter));
+    assertEquals(Set.of("2", "3"), getRows(filter));
 
     ByteSequence cf = new ArrayByteSequence("cf2");
 
     filter.seek(new Range(), Set.of(cf), true);
-    assertEquals(new HashSet<>(Arrays.asList("1", "3", "0", "4")), getRows(filter));
+    assertEquals(Set.of("1", "3", "0", "4"), getRows(filter));
 
     filter.seek(new Range("0", "4"), Collections.emptySet(), false);
-    assertEquals(new HashSet<>(Arrays.asList("2", "3")), getRows(filter));
+    assertEquals(Set.of("2", "3"), getRows(filter));
 
     filter.seek(new Range("2"), Collections.emptySet(), false);
-    assertEquals(new HashSet<>(Arrays.asList("2")), getRows(filter));
+    assertEquals(Set.of("2"), getRows(filter));
 
     filter.seek(new Range("4"), Collections.emptySet(), false);
-    assertEquals(new HashSet<String>(), getRows(filter));
+    assertEquals(Set.of(), getRows(filter));
 
     filter.seek(new Range("4"), Set.of(cf), true);
-    assertEquals(new HashSet<>(Arrays.asList("4")), getRows(filter));
+    assertEquals(Set.of("4"), getRows(filter));
 
   }
 
@@ -221,7 +220,7 @@ public class RowFilterTest {
 
     filter.seek(new Range(), Collections.emptySet(), false);
 
-    assertEquals(new HashSet<>(Arrays.asList("0", "1", "2", "3", "4")), getRows(filter));
+    assertEquals(Set.of("0", "1", "2", "3", "4"), getRows(filter));
   }
 
   @Test
@@ -237,7 +236,7 @@ public class RowFilterTest {
 
     filter.seek(new Range(), Collections.emptySet(), false);
 
-    assertEquals(new HashSet<>(Arrays.asList("1")), getRows(filter));
+    assertEquals(Set.of("1"), getRows(filter));
   }
 
   @Test

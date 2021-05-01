@@ -21,8 +21,6 @@ package org.apache.accumulo.core.file;
 import static org.apache.accumulo.core.file.blockfile.impl.CacheProvider.NULL_PROVIDER;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -47,13 +45,13 @@ public abstract class FileOperations {
   private static final String HADOOP_JOBHISTORY_LOCATION = "_logs"; // dir related to
                                                                     // hadoop.job.history.user.location
 
-  private static final HashSet<String> validExtensions =
-      new HashSet<>(Arrays.asList(Constants.MAPFILE_EXTENSION, RFile.EXTENSION));
+  private static final Set<String> validExtensions =
+      Set.of(Constants.MAPFILE_EXTENSION, RFile.EXTENSION);
 
   // Sometimes we want to know what files accumulo bulk processing creates
-  private static final HashSet<String> bulkWorkingFiles =
-      new HashSet<>(Arrays.asList(Constants.BULK_LOAD_MAPPING, Constants.BULK_RENAME_FILE,
-          FileOutputCommitter.SUCCEEDED_FILE_NAME, HADOOP_JOBHISTORY_LOCATION));
+  private static final Set<String> bulkWorkingFiles =
+      Set.of(Constants.BULK_LOAD_MAPPING, Constants.BULK_RENAME_FILE,
+          FileOutputCommitter.SUCCEEDED_FILE_NAME, HADOOP_JOBHISTORY_LOCATION);
 
   public static Set<String> getValidExtensions() {
     return validExtensions;
