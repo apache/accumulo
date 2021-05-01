@@ -136,24 +136,6 @@ more details on bouncycastle's cryptography features.
 
 <br/>
 
-# Social media
-
-| RRSS                                                                                                | Username                                                                  |
-| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| <img src="https://accumulo.apache.org/images/Twitter_logo_blue.png" alt="Twittwer logo" width="16"> | [@apacheaccumulo](https://twitter.com/apacheaccumulo)                     |
-| <img src="https://accumulo.apache.org/images/InBug-16px_0.png">                                     | [Apache Accumulo Professionals](https://www.linkedin.com/groups/4554913/) |
-
-## Mailing Lists
-
-The Accumulo mailing lists are for general discussions, questions, and announcements. While you can read the archives using the links below, it’s best to subscribe to the `user` and `dev` (if you contribute) mailing lists to follow discussions as they happen.
-
-| Name          | Description                                      | Read               | Follow                | Post        |
-| ------------- | ------------------------------------------------ | ------------------ | --------------------- | ----------- |
-| user          | General user questions, help, and announcements  | [🔍ARCHIVE][arch01] | [➕][sub01] [➖][SUB01] | [📩](post01) |
-| dev           | Contributor discussions and development activity | [🔍ARCHIVE][arch02] | [➕][sub02] [➖][SUB02] | [📩](post02) |
-| commits       | Code changes                                     | [🔍ARCHIVE][arch03] | [➕][sub03] [➖][SUB03] |             |
-| notifications | Automated notifications (GitHub, etc.)           | [🔍ARCHIVE][arch04] | [➕][sub04] [➖][SUB04] |             |
-
 # License
 
 [Apache License, Version 2.0](./LICENSE).
