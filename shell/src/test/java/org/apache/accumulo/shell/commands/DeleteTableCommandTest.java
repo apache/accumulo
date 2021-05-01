@@ -20,24 +20,23 @@ package org.apache.accumulo.shell.commands;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.junit.Test;
 
+import com.google.common.collect.Sets;
+
 public class DeleteTableCommandTest {
 
   @Test
   public void removeAccumuloNamespaceTables() {
-    Set<String> tables =
-        new HashSet<>(Arrays.asList(MetadataTable.NAME, RootTable.NAME, "a1", "a2"));
+    Set<String> tables = Sets.newHashSet(MetadataTable.NAME, RootTable.NAME, "a1", "a2");
     DeleteTableCommand cmd = new DeleteTableCommand();
     cmd.pruneTables(tables);
 
-    assertEquals(new HashSet<>(Arrays.asList("a1", "a2")), tables);
+    assertEquals(Set.of("a1", "a2"), tables);
   }
 
 }
