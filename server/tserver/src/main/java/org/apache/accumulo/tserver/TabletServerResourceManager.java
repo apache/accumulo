@@ -98,7 +98,7 @@ public class TabletServerResourceManager {
   private final ExecutorService assignmentPool;
   private final ExecutorService assignMetaDataPool;
   private final ExecutorService summaryRetrievalPool;
-  private final ExecutorService summaryParititionPool;
+  private final ExecutorService summaryPartitionPool;
   private final ExecutorService summaryRemotePool;
 
   private final Map<String,ExecutorService> scanExecutors;
