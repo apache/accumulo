@@ -367,7 +367,7 @@ public class TabletServerResourceManager {
         ThreadPools.createExecutorService(acuConf, Property.TSERV_SUMMARY_PARTITION_THREADS);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_PARTITION_THREADS),
-        "summary partition", (ThreadPoolExecutor) summaryParitionPool);
+        "summary partition", (ThreadPoolExecutor) summaryPartitionPool);
 
     Collection<ScanExecutorConfig> scanExecCfg = acuConf.getScanExecutors();
     Map<String,Queue<Runnable>> scanExecQueues = new HashMap<>();
@@ -859,7 +859,7 @@ public class TabletServerResourceManager {
   }
 
   public ExecutorService getSummaryPartitionExecutor() {
-    return summaryParitionPool;
+    return summaryPartitionPool;
   }
 
   public ExecutorService getSummaryRemoteExecutor() {
