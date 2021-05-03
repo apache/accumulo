@@ -15,84 +15,45 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-<!-- LOGO -->
-<p align="center">
-    <a href="https://accumulo.apache.org/" target="_blank" rel="noopener noreferrer">
-        <img src="contrib/accumulo-logo.png" alt="Accumulo logo">
-    </a>
-</p>
+[![Apache Accumulo][logo]][accumulo]
+--
+[![Build Status][ti]][tl] [![Maven Central][mi]][ml] [![Javadoc][ji]][jl] [![Apache License][li]][ll]
 
-<!-- BADGES -->
-<p align="center">
-    <!-- Build Status -->
-    <a href="https://github.com/apache/accumulo/actions">
-        <img src="https://github.com/apache/accumulo/workflows/QA/badge.svg" alt="Build Status">
-    </a>
-    <!-- Maven Central -->
-    <a href="https://maven-badges.herokuapp.com/maven-central/org.apache.accumulo/accumulo-core">
-        <img src="https://maven-badges.herokuapp.com/maven-central/org.apache.accumulo/accumulo-core/badge.svg"
-            alt="Maven Central">
-    </a>
-    <!-- JavaDocs -->
-    <a href="https://www.javadoc.io/doc/org.apache.accumulo/accumulo-core">
-        <img src="https://www.javadoc.io/badge/org.apache.accumulo/accumulo-core.svg" alt="JavaDocs">
-    </a>
-    <!-- Apache License -->
-    <a href="https://www.apache.org/licenses/LICENSE-2.0">
-        <img src="https://img.shields.io/badge/license-ASL-blue.svg" alt="Apache License">
-    </a>
-</p>
+[Apache Accumulo][accumulo] is a sorted, distributed key/value store that provides robust,
+scalable data storage and retrieval. With Apache Accumulo, users can store and manage large data sets across a cluster. Accumulo uses [Apache Hadoop]'s HDFS to store its data and
+[Apache Zookeeper] for consensus. Check out the [Accumulo project website][accumulo] for
+news and general information.
 
-# About
-
-[Apache Accumulo®][accumulo] is a sorted, distributed key/value store that provides robust, scalable data storage and retrieval.
-
-With Apache Accumulo, users can store and manage large
-data sets across a cluster. Accumulo uses [Apache Hadoop]'s HDFS to store its data and
 [Apache Zookeeper] for consensus.
 
-Visit our 🌐 [project website][accumulo] for news and general information
+Download the latest version of Apache Accumulo® [here][dl]
 
-Download the latest version of Apache Accumulo® [here](https://accumulo.apache.org/downloads/).
+## Getting Started
 
-# Getting Started
-
-Follow the [quick start] to install and run Accumulo
-
-# Documentation
-
-Read the [Accumulo documentation][docs]
-
-# Examples
-
+* Follow the [quick start] to install and run Accumulo
+* Read the [Accumulo documentation][docs]
 * Run the [Accumulo examples][examples] to learn how to write Accumulo clients
 * View the [Javadocs][javadocs] to learn the [Accumulo API][api]
 
 More resources can be found on the [project website][accumulo].
 
-# Building
+## Building
 
-Accumulo uses [Maven] to compile, [test], and package its source.
-
-The following
-command :
+Accumulo uses [Maven] to compile, [test], and package its source. The following
+command will build the binary tar.gz from source. Add `-DskipTests` to build without
+waiting for the tests to run.
 
     mvn package
 
-will build the binary `tar.gz` (`assemble/target/accumulo-<version>-bin.tar.gz`) from source.
-> _Add `-DskipTests` to build without waiting for the tests to run._
+This command produces `assemble/target/accumulo-<version>-bin.tar.gz`
 
-# Contributing
+## Contributing
 
 Contributions are welcome to all Apache Accumulo repositories
 
 If you want to contribute, go through our guide [How to contribute](https://accumulo.apache.org/how-to-contribute/)
 
-# Code of Conduct
-
-See [Apache Code of Conduct](https://www.apache.org/foundation/policies/conduct.html)
-
-# Export Control
+## Export Control
 
 <details>
 <summary>Click here to show/hide details</summary>
@@ -126,14 +87,9 @@ more details on bouncycastle's cryptography features.
 
 </details>
 
-<br/>
-
-# License
-
-[Apache License, Version 2.0](./LICENSE).
-
 [api]: https://accumulo.apache.org/api
 [accumulo]: https://accumulo.apache.org
+[logo]: contrib/accumulo-logo.png
 [quick start]: https://accumulo.apache.org/docs/2.x/getting-started/quickstart
 [test]: TESTING.md
 [Apache Hadoop]: https://hadoop.apache.org
@@ -142,23 +98,14 @@ more details on bouncycastle's cryptography features.
 [docs]: https://accumulo.apache.org/latest/accumulo_user_manual
 [examples]: https://github.com/apache/accumulo-examples
 [javadocs]: https://accumulo.apache.org/latest/apidocs
+[li]: https://img.shields.io/badge/license-ASL-blue.svg
+[ll]: https://www.apache.org/licenses/LICENSE-2.0
+[mi]: https://maven-badges.herokuapp.com/maven-central/org.apache.accumulo/accumulo-core/badge.svg
+[ml]: https://maven-badges.herokuapp.com/maven-central/org.apache.accumulo/accumulo-core/
+[ji]: https://www.javadoc.io/badge/org.apache.accumulo/accumulo-core.svg
+[jl]: https://www.javadoc.io/doc/org.apache.accumulo/accumulo-core
+[ti]: https://github.com/apache/accumulo/workflows/QA/badge.svg
+[tl]: https://github.com/apache/accumulo/actions
 [java-export]: https://www.oracle.com/us/products/export/export-regulations-345813.html
 [bouncy-site]: https://bouncycastle.org
-
-[arch01]: https://lists.apache.org/list.html?user@accumulo.apache.org
-[sub01]: user-subscribe@accumulo.apache.org
-[unf01]: user-unsubscribe@accumulo.apache.org
-[post01]: user@accumulo.apache.org
-
-[arch02]: https://lists.apache.org/list.html?dev@accumulo.apache.org
-[sub02]: dev-subscribe@accumulo.apache.org
-[unf02]: dev-unsubscribe@accumulo.apache.org
-[post02]: dev@accumulo.apache.org
-
-[arch03]: https://lists.apache.org/list.html?commits@accumulo.apache.org
-[sub03]: commits-subscribe@accumulo.apache.org
-[unf03]: commits-unsubscribe@accumulo.apache.org
-
-[arch04]: https://lists.apache.org/list.html?notifications@accumulo.apache.org
-[sub04]: notifications-subscribe@accumulo.apache.org
-[unf04]: notifications-unsubscribe@accumulo.apache.org
+[dl]: https://accumulo.apache.org/downloads/
