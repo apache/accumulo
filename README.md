@@ -26,7 +26,7 @@ news and general information.
 
 [Apache Zookeeper] for consensus.
 
-Download the latest version of Apache Accumulo® [here][dl]
+Download the latest version of Apache Accumulo® [here][dl].
 
 ## Getting Started
 
