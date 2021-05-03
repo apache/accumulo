@@ -40,13 +40,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressWarnings("deprecation")
 public class DeprecatedConstraintExtendTest {
 
-  Constraint constraint = new MinKeySizeConstraint();
-
   byte[] min = new byte[1024];
   byte[] oversized = new byte[1048577];
 
   @Test
   public void testMinKeySizeConstraint() {
+    Constraint constraint = new MinKeySizeConstraint();
 
     // pass constraints
     Mutation m = new Mutation(min);
@@ -65,6 +64,20 @@ public class DeprecatedConstraintExtendTest {
     assertEquals(
         Collections.singletonList(DefaultKeySizeConstraint.MAX__KEY_SIZE_EXCEEDED_VIOLATION),
         constraint.check(null, m));
+  }
+
+  @Test
+  public void testFoo() {
+    FooConstraint fc = new FooConstraint();
+    // pass constraints
+    Mutation m = new Mutation("blah");
+    m.put("colf", "colq", new Value(new byte[] {}));
+    assertEquals(null, fc.check(null, m));
+
+    // test fail constraint
+    m = new Mutation("foo");
+    m.put("colf", "colq", new Value(new byte[] {}));
+    assertEquals(Collections.singletonList(Short.valueOf("1")), fc.check(null, m));
   }
 
   /**
@@ -94,4 +107,25 @@ public class DeprecatedConstraintExtendTest {
       return violations;
     }
   }
+
+  /**
+   * Test previously defined constraint.
+   */
+  public class FooConstraint implements Constraint {
+    public String getViolationDescription(short violationCode) {
+      switch (violationCode) {
+        case 1:
+          return "Contains foo";
+      }
+      throw new IllegalArgumentException();
+    }
+
+    public List<Short> check(Constraint.Environment env, Mutation mutation) {
+      if (new String(mutation.getRow()).contains("foo")) {
+        return Collections.singletonList(Short.valueOf("1"));
+      }
+      return null;
+    }
+  }
+
 }
