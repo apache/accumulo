@@ -128,35 +128,33 @@
         <directory>src/test/resources</directory>
       </testResource>
     </testResources>
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <configuration>
-            <!-- Tests that cannot run with reuseForks=true -->
-            <excludes>
-              <exclude>**/AuthenticationTokenSecretManagerTest.java</exclude>
-            </excludes>
-          </configuration>
-          <executions>
-            <execution>
-              <id>reuseForks-false-tests</id>
-              <goals>
-                <goal>test</goal>
-              </goals>
-              <configuration>
-                <reuseForks>false</reuseForks>
-                <excludes combine.self="override" />
-                <includes>
-                  <include>**/AuthenticationTokenSecretManagerTest.java</include>
-                </includes>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
-      </plugins>
-    </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!-- Tests that cannot run with reuseForks=true -->
+          <excludes>
+            <exclude>**/AuthenticationTokenSecretManagerTest.java</exclude>
+          </excludes>
+        </configuration>
+        <executions>
+          <execution>
+            <id>reuseForks-false-tests</id>
+            <goals>
+              <goal>test</goal>
+            </goals>
+            <configuration>
+              <reuseForks>false</reuseForks>
+              <excludes combine.self="override" />
+              <includes>
+                <include>**/AuthenticationTokenSecretManagerTest.java</include>
+              </includes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
   <profiles>
     <profile>
