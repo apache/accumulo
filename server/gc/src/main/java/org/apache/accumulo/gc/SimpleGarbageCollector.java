@@ -112,7 +112,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-// Could/Should implement HighlyAvaialbleService but the Thrift server is already started before
+// Could/Should implement HighlyAvailableService but the Thrift server is already started before
 // the ZK lock is acquired. The server is only for metrics, there are no concerns about clients
 // using the service before the lock is acquired.
 public class SimpleGarbageCollector extends AbstractServer implements Iface {
@@ -121,7 +121,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   private final GCStatus status =
       new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
   private final GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
-  private ServiceLock lock;
   private GcMetrics gcMetrics = null;
 
   SimpleGarbageCollector(ServerOpts opts, String[] args) {
@@ -460,7 +459,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
     UUID zooLockUUID = UUID.randomUUID();
     while (true) {
-      lock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, zooLockUUID);
+      ServiceLock lock =
+          new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, zooLockUUID);
       if (lock.tryLock(lockWatcher,
           new ServerServices(addr.toString(), Service.GC_CLIENT).toString().getBytes())) {
         log.debug("Got GC ZooKeeper lock");
@@ -508,7 +508,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   private class GCEnv implements GarbageCollectionEnvironment {
 
-    private DataLevel level;
+    private final DataLevel level;
 
     GCEnv(Ample.DataLevel level) {
       this.level = level;
@@ -569,7 +569,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
             .checkConsistency().fetch(DIR, FILES, SCANS).build().stream();
       }
 
-      Stream<Reference> refStream = tabletStream.flatMap(tm -> {
+      return tabletStream.flatMap(tm -> {
         Stream<Reference> refs = Stream.concat(tm.getFiles().stream(), tm.getScans().stream())
             .map(f -> new Reference(tm.getTableId(), f.getMetaUpdateDelete(), false));
         if (tm.getDirName() != null) {
@@ -578,8 +578,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         }
         return refs;
       });
-
-      return refStream;
     }
 
     @Override

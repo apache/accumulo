@@ -137,10 +137,7 @@ public class FateMetricsIT {
   @Test
   public void hadoopNoFates() {
 
-    log.warn("MMF: {}", manager.getMicrometerMetrics());
-
     FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
-
     log.trace("fate metrics: {}", metrics);
 
     metrics.overrideRefresh();
@@ -169,7 +166,6 @@ public class FateMetricsIT {
     assertEquals(0L, collector.getValue("currentFateOps"));
 
     EasyMock.verify(manager);
-
   }
 
   /**
@@ -207,7 +203,6 @@ public class FateMetricsIT {
     assertEquals(0, currentFateOps.value(), 0.0);
 
     EasyMock.verify(manager);
-
   }
 
   /**
@@ -222,8 +217,6 @@ public class FateMetricsIT {
     log.debug("ZooStore tx1 id {}", tx1Id);
 
     FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
-
-    // hadoop metrics testing
 
     metrics.overrideRefresh();
     InMemTestCollector collector = new InMemTestCollector();
@@ -240,7 +233,6 @@ public class FateMetricsIT {
     assertEquals(0L, collector.getValue("FateTxState_IN_PROGRESS"));
 
     EasyMock.verify(manager);
-
   }
 
   /**
@@ -272,7 +264,6 @@ public class FateMetricsIT {
     assertEquals(0, fateTxStateInProgress.value(), 0.0);
 
     EasyMock.verify(manager);
-
   }
 
   /**
@@ -292,8 +283,6 @@ public class FateMetricsIT {
         zookeeper.exists(MOCK_ZK_ROOT + "/fate/" + String.format("tx_%016x", tx1Id), false)));
 
     FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
-
-    // hadoop metrics testing
 
     metrics.overrideRefresh();
     InMemTestCollector collector = new InMemTestCollector();
@@ -368,27 +357,11 @@ public class FateMetricsIT {
    *           any exception is a test failure.
    */
   @Test
-  public void typeClears() throws Exception {
-    long txId = seedTransaction();
-
-    zooStore.reserve(txId);
-    zooStore.setStatus(txId, ReadOnlyTStore.TStatus.SUCCESSFUL);
-    zooStore.unreserve(txId, 50);
+  public void micrometerTypeClears() throws Exception {
+    initTypeClears();
 
     FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
-
-    // hadoop metrics test
-
-    metrics.overrideRefresh();
-    InMemTestCollector collector = new InMemTestCollector();
-
-    metrics.getMetrics(collector, true);
-
-    assertEquals(0L, collector.getValue("FateTxState_IN_PROGRESS"));
-    assertEquals(1L, collector.getValue("FateTxState_SUCCESSFUL"));
-    assertNull(collector.getValue("FateTxOpType_FakeOp"));
-
-    // micrometer metrics test
+    log.trace("fate metrics: {}", metrics);
 
     Gauge inProgress =
         testRegistry.find("fate.status").tag("status", "FateTxState_IN_PROGRESS").gauge();
@@ -401,7 +374,37 @@ public class FateMetricsIT {
     assertEquals(1, successful.value(), 0.0);
 
     assertNull(testRegistry.find("fate.status").tag("status", "FateTxOpType_FakeOp").gauge());
+  }
 
+  /**
+   * builds on the "in progress" transaction - when a transaction completes, the op type metric
+   * should not reflect the previous operation that was "in progress".
+   *
+   * @throws Exception
+   *           any exception is a test failure.
+   */
+  @Test
+  public void hadoopTypeClears() throws Exception {
+    initTypeClears();
+
+    FateMetrics metrics = new FateMetrics(context, 10, manager.getMicrometerMetrics());
+
+    metrics.overrideRefresh();
+    InMemTestCollector collector = new InMemTestCollector();
+
+    metrics.getMetrics(collector, true);
+
+    assertEquals(0L, collector.getValue("FateTxState_IN_PROGRESS"));
+    assertEquals(1L, collector.getValue("FateTxState_SUCCESSFUL"));
+    assertNull(collector.getValue("FateTxOpType_FakeOp"));
+  }
+
+  private void initTypeClears() throws Exception {
+    long txId = seedTransaction();
+
+    zooStore.reserve(txId);
+    zooStore.setStatus(txId, ReadOnlyTStore.TStatus.SUCCESSFUL);
+    zooStore.unreserve(txId, 50);
   }
 
   String prettyStat(final Stat stat) {
