@@ -49,9 +49,9 @@ This command produces `assemble/target/accumulo-<version>-bin.tar.gz`
 
 ## Contributing
 
-Contributions are welcome to all Apache Accumulo repositories
+Contributions are welcome to all Apache Accumulo repositories.
 
-If you want to contribute, go through our guide [How to contribute](https://accumulo.apache.org/how-to-contribute/)
+If you want to contribute, read [our guide on our website][contribute].
 
 ## Export Control
 
