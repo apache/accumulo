@@ -22,12 +22,9 @@ limitations under the License.
 [Apache Accumulo][accumulo] is a sorted, distributed key/value store that provides robust,
 scalable data storage and retrieval. With Apache Accumulo, users can store and manage large
 data sets across a cluster. Accumulo uses [Apache Hadoop]'s HDFS to store its data and
-[Apache Zookeeper] for consensus. Check out the [Accumulo project website][accumulo] for
-news and general information.
-
 [Apache Zookeeper] for consensus.
 
-Download the latest version of Apache Accumulo® [here][dl].
+Download the latest version of Apache Accumulo on the [project website][dl].
 
 ## Getting Started
 
