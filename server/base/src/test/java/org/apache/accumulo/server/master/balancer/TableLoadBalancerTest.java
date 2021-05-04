@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -43,6 +42,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.master.state.TabletMigration;
@@ -134,15 +134,9 @@ public class TableLoadBalancerTest {
   }
 
   private ServerContext createMockContext() {
-    ServerContext context = createMock(ServerContext.class);
     final String instanceId =
         UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}).toString();
-    expect(context.getProperties()).andReturn(new Properties()).anyTimes();
-    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
-    expect(context.getZooKeepers()).andReturn("10.0.0.1:1234").anyTimes();
-    expect(context.getZooKeepersSessionTimeOut()).andReturn(30_000).anyTimes();
-    expect(context.getZooKeeperRoot()).andReturn("/root/").anyTimes();
-    return context;
+    return MockServerContext.getWithZK(instanceId, "10.0.0.1:1234", 30_000);
   }
 
   @Test
