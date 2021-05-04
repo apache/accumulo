@@ -108,4 +108,5 @@ more details on bouncycastle's cryptography features.
 [tl]: https://github.com/apache/accumulo/actions
 [java-export]: https://www.oracle.com/us/products/export/export-regulations-345813.html
 [bouncy-site]: https://bouncycastle.org
-[dl]: https://accumulo.apache.org/downloads/
+[dl]: https://accumulo.apache.org/downloads
+[contribute]: https://accumulo.apache.org/how-to-contribute
