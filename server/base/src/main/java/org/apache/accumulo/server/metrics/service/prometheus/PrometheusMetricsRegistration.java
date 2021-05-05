@@ -128,7 +128,7 @@ public class PrometheusMetricsRegistration implements MetricsRegistrationService
     }
 
     public String prometheusScrape() {
-      return prometheusRegistry.scrape();
+      return System.currentTimeMillis() + "\n" + prometheusRegistry.scrape();
     }
   }
 }

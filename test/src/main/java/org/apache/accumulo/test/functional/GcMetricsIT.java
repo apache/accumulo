@@ -29,7 +29,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Scanner;
@@ -61,6 +60,8 @@ public class GcMetricsIT extends ConfigurableMacBase {
   private static final int NUM_TAIL_ATTEMPTS = 20;
   private static final long TAIL_DELAY = 5_000;
   private static final Pattern metricLinePattern = Pattern.compile("^(?<timestamp>\\d+).*");
+  private static final Pattern metricScrapePattern =
+      Pattern.compile("^(?<timestamp>\\d+).*", Pattern.DOTALL);
   private static final String[] EXPECTED_METRIC_KEYS = new String[] {"AccGcCandidates",
       "AccGcDeleted", "AccGcErrors", "AccGcFinished", "AccGcInUse", "AccGcPostOpDuration",
       "AccGcRunCycleCount", "AccGcStarted", "AccGcWalCandidates", "AccGcWalDeleted",
@@ -161,7 +162,8 @@ public class GcMetricsIT extends ConfigurableMacBase {
     }
 
     void compareWithSubsequentRun(LineUpdate update) {
-      log.debug("First run: {}, Second run: {}", values, update.values);
+      log.debug("First run: {}", values);
+      log.debug("Second run: {}", update.values);
       assertTrue("first gc should finish before second starts", gcFinished < update.gcStarted);
       assertTrue("first gcWal should finish before second starts",
           gcWalFinished < update.gcWalStarted);
@@ -178,14 +180,13 @@ public class GcMetricsIT extends ConfigurableMacBase {
     private static Map<String,Long> parseLine(String line) {
       log.debug("Line received:{}", line);
       Map<String,Long> values = Collections.emptyMap();
-      if (line != null) {
-        values = Stream.of(line.split(",")).map(String::trim)
-            .filter(s -> s.startsWith(GcMetrics.GC_METRIC_PREFIX)).map(s -> s.split("="))
-            .collect(toMap(a -> a[0], a -> Long.parseLong(a[1]), (a, b) -> {
-              throw new IllegalArgumentException("Metric field found with two values '" + a
-                  + "' and '" + b + "' in GC Metrics line: " + line);
-            }, TreeMap::new));
-      }
+      values = Stream.of(line.split(",")).map(String::trim)
+          .filter(s -> s.startsWith(GcMetrics.GC_METRIC_PREFIX)).map(s -> s.split("="))
+          .collect(toMap(a -> a[0], a -> Long.parseLong(a[1]), (a, b) -> {
+            throw new IllegalArgumentException("Metric field found with two values '" + a
+                + "' and '" + b + "' in GC Metrics line: " + line);
+          }, TreeMap::new));
+
       log.debug("Mapped values:{}", values);
       return values;
     }
@@ -195,7 +196,7 @@ public class GcMetricsIT extends ConfigurableMacBase {
     for (int count = 0; count < NUM_TAIL_ATTEMPTS; count++) {
       String line = gcTail.getLast();
       // check for valid metrics line update since the previous update
-      if (line != null && isValidRecentMetricsLine(line, timestamp)) {
+      if (isValidRecentMetricsLine(line, timestamp)) {
         LineUpdate lineUpdate = new LineUpdate(line);
         // capture metrics for a regular gc event and a wal gc event that both occurred
         // after the specified timestamp, and not just the same entry in the metrics file
@@ -220,16 +221,16 @@ public class GcMetricsIT extends ConfigurableMacBase {
       return false;
     }
     Matcher m = metricLinePattern.matcher(line);
-    if (m.matches()) {
-      try {
-        long timestamp = Long.parseLong(m.group("timestamp"));
-        return timestamp > prevTimestamp;
-      } catch (NumberFormatException ex) {
-        log.debug("Could not parse timestamp from line '{}", line);
-        return false;
-      }
+    if (!m.matches()) {
+      return false;
     }
-    return false;
+    try {
+      long timestamp = Long.parseLong(m.group("timestamp"));
+      return timestamp > prevTimestamp;
+    } catch (NumberFormatException ex) {
+      log.debug("Could not parse timestamp from line '{}", line);
+      return false;
+    }
   }
 
   private static class ScrapeUpdate {
@@ -255,7 +256,8 @@ public class GcMetricsIT extends ConfigurableMacBase {
     }
 
     void compareWithSubsequentRunPrometheus(ScrapeUpdate update) {
-      log.debug("First run: {}\nSecond run: {}", values, update.values);
+      log.debug("First run: {}", values);
+      log.debug("Second run: {}", update.values);
       assertTrue("first gc should finish before second starts", gcFinished < update.gcStarted);
       assertTrue("first gcWal should finish before second starts",
           gcWalFinished < update.gcWalStarted);
@@ -269,22 +271,20 @@ public class GcMetricsIT extends ConfigurableMacBase {
      * @return a map of the metrics that start with AccGc
      */
     private static Map<String,Long> parseScrape(String scrape) {
-      Map<String,Long> values = new HashMap<>();
-      if (scrape != null) {
-        Scanner scanner = new Scanner(scrape);
-        while (scanner.hasNextLine()) {
-          String line = scanner.nextLine();
-          if (line.startsWith("#") || line.isBlank() || line.isEmpty()) {
-            // skip this line
-            continue;
-          } else {
-            String[] temp = line.split(" ");
-            assertEquals(temp.length, 2);
-            String key = temp[0];
-            BigInteger value = new BigDecimal(temp[1]).toBigInteger();
-            log.debug("KEY: {} VALUE: {}", key, value);
-            values.put(key, value.longValue());
-          }
+      Map<String,Long> values = new TreeMap<>();
+      Scanner scanner = new Scanner(scrape);
+      assertTrue("Scrape is empty", scanner.hasNextLine());
+      scanner.nextLine(); // bypass the timestamp
+      while (scanner.hasNextLine()) {
+        String line = scanner.nextLine();
+        if (line.startsWith("#") || line.isBlank() || line.isEmpty()) {
+          continue; // do nothing/skip this line
+        } else {
+          String[] temp = line.split(" "); // split meter name from value
+          assertEquals("Error while splitting line", 2, temp.length);
+          String key = temp[0]; // meter name
+          BigInteger value = new BigDecimal(temp[1]).toBigInteger(); // meter value
+          values.put(key, value.longValue());
         }
       }
       log.debug("Mapped values:{}", values);
@@ -296,8 +296,8 @@ public class GcMetricsIT extends ConfigurableMacBase {
       throws Exception {
     for (int count = 0; count < NUM_TAIL_ATTEMPTS; count++) {
       String scrape = getPrometheusScrape();
-      // check for valid metrics line update since the previous update
-      if (scrape != null && isValidRecentMetricsScrape(scrape, timestamp)) {
+      // check for valid metrics scrape update since the previous update
+      if (isValidRecentMetricsScrape(scrape, timestamp)) {
         ScrapeUpdate scrapeUpdate = new ScrapeUpdate(scrape);
         // capture metrics for a regular gc event and a wal gc event that both occurred
         // after the specified timestamp, and not just the same entry in the metrics file
@@ -318,12 +318,24 @@ public class GcMetricsIT extends ConfigurableMacBase {
   }
 
   private boolean isValidRecentMetricsScrape(final String scrape, final long prevTimestamp) {
-    // TODO verify metrics scrape
-    return true;
+    if (Objects.isNull(scrape)) {
+      return false;
+    }
+    Matcher m = metricScrapePattern.matcher(scrape);
+    if (!m.matches()) {
+      return false;
+    }
+    try {
+      long timestamp = Long.parseLong(m.group("timestamp"));
+      return timestamp > prevTimestamp;
+    } catch (NumberFormatException ex) {
+      log.debug("Could not parse timestamp from scrape '{}", scrape);
+      return false;
+    }
   }
 
   private String getPrometheusScrape() throws InterruptedException {
-    AtomicReference<String> scrape = new AtomicReference<>("");
+    AtomicReference<String> scrape = new AtomicReference<>();
     int count = 0;
     while (true) {
       try {
