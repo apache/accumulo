@@ -22,8 +22,9 @@ limitations under the License.
 [Apache Accumulo][accumulo] is a sorted, distributed key/value store that provides robust,
 scalable data storage and retrieval. With Apache Accumulo, users can store and manage large
 data sets across a cluster. Accumulo uses [Apache Hadoop]'s HDFS to store its data and
-[Apache Zookeeper] for consensus. Check out the [Accumulo project website][accumulo] for
-news and general information.
+[Apache Zookeeper] for consensus.
+
+Download the latest version of Apache Accumulo on the [project website][dl].
 
 ## Getting Started
 
@@ -43,6 +44,12 @@ waiting for the tests to run.
     mvn package
 
 This command produces `assemble/target/accumulo-<version>-bin.tar.gz`
+
+## Contributing
+
+Contributions are welcome to all Apache Accumulo repositories.
+
+If you want to contribute, read [our guide on our website][contribute].
 
 ## Export Control
 
@@ -100,3 +107,5 @@ more details on bouncycastle's cryptography features.
 [tl]: https://github.com/apache/accumulo/actions
 [java-export]: https://www.oracle.com/us/products/export/export-regulations-345813.html
 [bouncy-site]: https://bouncycastle.org
+[dl]: https://accumulo.apache.org/downloads
+[contribute]: https://accumulo.apache.org/how-to-contribute
