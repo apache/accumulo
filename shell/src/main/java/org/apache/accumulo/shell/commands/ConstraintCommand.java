@@ -20,7 +20,7 @@ package org.apache.accumulo.shell.commands;
 
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.constraints.Constraint;
+import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellCommandException;

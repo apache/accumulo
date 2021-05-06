@@ -18,6 +18,6 @@
  */
 package org.apache.accumulo.tserver.constraints;
 
-import org.apache.accumulo.core.constraints.Constraint;
+import org.apache.accumulo.core.data.constraints.Constraint;
 
 public abstract class SystemConstraint implements Constraint {}

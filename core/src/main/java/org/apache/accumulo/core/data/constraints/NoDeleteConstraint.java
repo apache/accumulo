@@ -16,31 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.constraints;
+package org.apache.accumulo.core.data.constraints;
 
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.constraints.Constraint;
 
 /**
- * Ensure that mutations are a reasonable size: we must be able to fit several in memory at a time.
+ * This constraint ensures mutations do not have deletes.
+ *
+ * @since 2.1.0 moved from org.apache.accumulo.core.constraints package
  */
-public class MaxMutationSize implements Constraint {
-  static final long MAX_SIZE = Runtime.getRuntime().maxMemory() >> 8;
-  static final List<Short> empty = Collections.emptyList();
-  static final List<Short> violations = Collections.singletonList((short) 0);
+public class NoDeleteConstraint implements Constraint {
 
   @Override
   public String getViolationDescription(short violationCode) {
-    return String.format("mutation exceeded maximum size of %d", MAX_SIZE);
+    if (violationCode == 1) {
+      return "Deletes are not allowed";
+    }
+    return null;
   }
 
   @Override
   public List<Short> check(Environment env, Mutation mutation) {
-    if (mutation.estimatedMemoryUsed() < MAX_SIZE)
-      return empty;
-    return violations;
+    List<ColumnUpdate> updates = mutation.getUpdates();
+    for (ColumnUpdate update : updates) {
+      if (update.isDeleted()) {
+        return Collections.singletonList((short) 1);
+      }
+    }
+
+    return null;
   }
+
 }

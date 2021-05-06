@@ -20,8 +20,6 @@ package org.apache.accumulo.core.client.security.tokens;
 
 import static org.junit.Assert.fail;
 
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod;
@@ -36,7 +34,7 @@ public class KerberosTokenTest {
   public void testAuthMethodAcceptance() {
     // There is also KERBEROS_SSL but that appears to be deprecated/OBE
     Set<AuthenticationMethod> allowedMethods =
-        new HashSet<>(Arrays.asList(AuthenticationMethod.KERBEROS, AuthenticationMethod.PROXY));
+        Set.of(AuthenticationMethod.KERBEROS, AuthenticationMethod.PROXY);
     for (AuthenticationMethod authMethod : AuthenticationMethod.values()) {
       final boolean allowable = allowedMethods.contains(authMethod);
       try {

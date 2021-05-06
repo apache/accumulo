@@ -20,7 +20,6 @@ package org.apache.accumulo.server.security.handler;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
@@ -44,15 +43,13 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Sets;
-
 public class KerberosAuthenticator implements Authenticator {
   private static final Logger log = LoggerFactory.getLogger(KerberosAuthenticator.class);
 
   private static final Set<Class<? extends AuthenticationToken>> SUPPORTED_TOKENS =
-      Sets.newHashSet(Arrays.asList(KerberosToken.class, SystemToken.class));
+      Set.of(KerberosToken.class, SystemToken.class);
   private static final Set<String> SUPPORTED_TOKEN_NAMES =
-      Sets.newHashSet(KerberosToken.class.getName(), SystemToken.class.getName());
+      Set.of(KerberosToken.class.getName(), SystemToken.class.getName());
 
   private final ZKAuthenticator zkAuthenticator = new ZKAuthenticator();
   private ZooCache zooCache;

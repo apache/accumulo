@@ -21,8 +21,8 @@ package org.apache.accumulo.tserver.constraints;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.constraints.Constraint;
 
 public class UnsatisfiableConstraint implements Constraint {
 

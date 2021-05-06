@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.constraints;
+package org.apache.accumulo.core.data.constraints;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -31,8 +31,6 @@ import org.apache.accumulo.core.security.VisibilityEvaluator;
 import org.apache.accumulo.core.security.VisibilityParseException;
 import org.apache.accumulo.core.util.BadArgumentException;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /**
  * A constraint that checks the visibility of columns against the actor's authorizations. Violation
  * codes:
@@ -41,14 +39,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <li>2 = insufficient authorization</li>
  * </ul>
  *
- * @deprecated since 2.1.0 Use
- *             {@link org.apache.accumulo.core.data.constraints.VisibilityConstraint}
+ * @since 2.1.0 moved from org.apache.accumulo.core.constraints package
  */
-@Deprecated(since = "2.1.0")
-@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
-    justification = "Same name used for compatibility during deprecation cycle")
-public class VisibilityConstraint
-    extends org.apache.accumulo.core.data.constraints.VisibilityConstraint implements Constraint {
+public class VisibilityConstraint implements Constraint {
 
   @Override
   public String getViolationDescription(short violationCode) {
@@ -63,7 +56,7 @@ public class VisibilityConstraint
   }
 
   @Override
-  public List<Short> check(Constraint.Environment env, Mutation mutation) {
+  public List<Short> check(Environment env, Mutation mutation) {
     List<ColumnUpdate> updates = mutation.getUpdates();
 
     HashSet<String> ok = null;

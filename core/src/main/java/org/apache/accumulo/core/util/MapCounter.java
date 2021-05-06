@@ -31,7 +31,7 @@ public class MapCounter<KT> {
     long l = 0L;
   }
 
-  private HashMap<KT,MutableLong> map;
+  private final HashMap<KT,MutableLong> map;
 
   public MapCounter() {
     map = new HashMap<>();

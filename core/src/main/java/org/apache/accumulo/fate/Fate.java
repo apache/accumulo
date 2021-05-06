@@ -48,14 +48,14 @@ public class Fate<T> {
   private static final Logger log = LoggerFactory.getLogger(Fate.class);
   private final Logger runnerLog = LoggerFactory.getLogger(TransactionRunner.class);
 
-  private TStore<T> store;
-  private T environment;
+  private final TStore<T> store;
+  private final T environment;
   private ExecutorService executor;
 
   private static final EnumSet<TStatus> FINISHED_STATES =
       EnumSet.of(TStatus.FAILED, TStatus.SUCCESSFUL, TStatus.UNKNOWN);
 
-  private AtomicBoolean keepRunning = new AtomicBoolean(true);
+  private final AtomicBoolean keepRunning = new AtomicBoolean(true);
 
   private class TransactionRunner implements Runnable {
 

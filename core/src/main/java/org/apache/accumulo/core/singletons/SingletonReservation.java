@@ -47,7 +47,7 @@ public class SingletonReservation implements AutoCloseable {
       // deregister cleanable, but it won't run because it checks
       // the value of closed first, which is now true
       cleanable.clean();
-      SingletonManager.releaseRerservation();
+      SingletonManager.releaseReservation();
     }
   }
 
