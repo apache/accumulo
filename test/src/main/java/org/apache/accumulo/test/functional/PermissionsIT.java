@@ -26,7 +26,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -722,7 +721,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         break;
       case ALTER_TABLE:
         Map<String,Set<Text>> groups = new HashMap<>();
-        groups.put("tgroup", new HashSet<>(Arrays.asList(new Text("t1"), new Text("t2"))));
+        groups.put("tgroup", Set.of(new Text("t1"), new Text("t2")));
         try {
           test_user_client.tableOperations().setLocalityGroups(tableName, groups);
           throw new IllegalStateException("User should not be able to set locality groups");

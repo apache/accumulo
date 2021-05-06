@@ -24,9 +24,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.constraints.Constraint;
 
 /**
  * This class is an accumulo constraint that ensures all fields of a key are alpha numeric.

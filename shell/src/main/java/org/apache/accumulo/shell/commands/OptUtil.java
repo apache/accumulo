@@ -34,6 +34,7 @@ import org.apache.hadoop.io.Text;
 public abstract class OptUtil {
   public static final String START_ROW_OPT = "b";
   public static final String END_ROW_OPT = "e";
+  public static final String IGNORE_EMPTY_BULKDIR_OPT = "i";
 
   public static String getTableOpt(final CommandLine cl, final Shell shellState)
       throws TableNotFoundException {
@@ -51,6 +52,14 @@ public abstract class OptUtil {
     }
 
     return tableName;
+  }
+
+  public static boolean getIgnoreEmptyDirOpt(final CommandLine cl, final Shell shellState) {
+    boolean ignoreEmptyDir = false;
+    if (cl.hasOption(IGNORE_EMPTY_BULKDIR_OPT)) {
+      ignoreEmptyDir = true;
+    }
+    return ignoreEmptyDir;
   }
 
   public static String getNamespaceOpt(final CommandLine cl, final Shell shellState)
@@ -77,6 +86,17 @@ public abstract class OptUtil {
     tableOpt.setArgName("table");
     tableOpt.setRequired(false);
     return tableOpt;
+  }
+
+  public static Option ignoreEmptyDirOpt() {
+    return ignoreEmptyDirOpt("ignoreEmptyDir");
+  }
+
+  public static Option ignoreEmptyDirOpt(final String description) {
+    final Option ignoreEmptyDirOpt = new Option("i", "ignore", false, description);
+    ignoreEmptyDirOpt.setArgName("ignore");
+    ignoreEmptyDirOpt.setRequired(false);
+    return ignoreEmptyDirOpt;
   }
 
   public static Option namespaceOpt() {

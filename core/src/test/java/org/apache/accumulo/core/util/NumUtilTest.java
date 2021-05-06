@@ -22,12 +22,15 @@ import static org.apache.accumulo.core.util.NumUtil.bigNumberForQuantity;
 import static org.apache.accumulo.core.util.NumUtil.bigNumberForSize;
 import static org.junit.Assert.assertEquals;
 
+import java.util.Locale;
+
 import org.junit.Test;
 
 public class NumUtilTest {
 
   @Test
   public void testBigNumberForSize() {
+    Locale.setDefault(Locale.US);
     assertEquals("1,000", bigNumberForSize(1000));
     assertEquals("1.00K", bigNumberForSize(1024));
     assertEquals("1.50K", bigNumberForSize(1024 + (1024 / 2)));

@@ -25,9 +25,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,15 +39,13 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Sets;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class FileSystemMonitor {
   private static final String PROC_MOUNTS = "/proc/mounts";
   private static final Logger log = LoggerFactory.getLogger(FileSystemMonitor.class);
   private static final String DEVICE_PREFIX = "/dev/";
-  private static final Set<String> ACCEPTED_FILESYSTEMS = Sets.newHashSet("ext3", "ext4", "xfs");
+  private static final Set<String> ACCEPTED_FILESYSTEMS = Set.of("ext3", "ext4", "xfs");
 
   static class Mount {
     String device;
@@ -64,7 +60,7 @@ public class FileSystemMonitor {
       mountPoint = tokens[1].trim();
       filesystemType = tokens[2].trim().toLowerCase();
 
-      options = new HashSet<>(Arrays.asList(tokens[3].split(",")));
+      options = Set.of(tokens[3].split(","));
     }
 
     @Override
