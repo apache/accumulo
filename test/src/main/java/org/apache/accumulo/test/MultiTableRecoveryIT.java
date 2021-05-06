@@ -61,7 +61,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 5 * 60;
+    return 8 * 60;
   }
 
   @Test

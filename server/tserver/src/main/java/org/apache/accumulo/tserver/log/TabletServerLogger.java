@@ -530,11 +530,11 @@ public class TabletServerLogger {
     return seq;
   }
 
-  public void recover(VolumeManager fs, KeyExtent extent, List<Path> logs, Set<String> tabletFiles,
-      MutationReceiver mr) throws IOException {
+  public void recover(VolumeManager fs, KeyExtent extent, List<Path> recoveryDirs,
+      Set<String> tabletFiles, MutationReceiver mr) throws IOException {
     try {
       SortedLogRecovery recovery = new SortedLogRecovery(fs);
-      recovery.recover(extent, logs, tabletFiles, mr);
+      recovery.recover(extent, recoveryDirs, tabletFiles, mr);
     } catch (Exception e) {
       throw new IOException(e);
     }

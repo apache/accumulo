@@ -20,60 +20,74 @@ package org.apache.accumulo.tserver.log;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.rfile.RFile;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.log.SortedLogState;
+import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
-import org.apache.accumulo.tserver.logger.LogFileValue;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
-import com.google.common.collect.UnmodifiableIterator;
 
 /**
  * Iterates over multiple sorted recovery logs merging them into a single sorted stream.
  */
-public class RecoveryLogsIterator implements CloseableIterator<Entry<LogFileKey,LogFileValue>> {
+public class RecoveryLogsIterator implements Iterator<Entry<Key,Value>>, AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(RecoveryLogsIterator.class);
 
-  List<CloseableIterator<Entry<LogFileKey,LogFileValue>>> iterators;
-  private UnmodifiableIterator<Entry<LogFileKey,LogFileValue>> iter;
+  private final List<Scanner> scanners;
+  private final Iterator<Entry<Key,Value>> iter;
 
   /**
    * Iterates only over keys in the range [start,end].
    */
-  RecoveryLogsIterator(VolumeManager fs, List<Path> recoveryLogPaths, LogFileKey start,
-      LogFileKey end) throws IOException {
+  RecoveryLogsIterator(VolumeManager fs, List<Path> recoveryLogDirs, LogFileKey start,
+      LogFileKey end, Text... colFamToFetch) throws IOException {
 
-    iterators = new ArrayList<>(recoveryLogPaths.size());
+    List<Iterator<Entry<Key,Value>>> iterators = new ArrayList<>(recoveryLogDirs.size());
+    scanners = new ArrayList<>();
+    Key startKey = start.toKey();
+    Key endKey = end.toKey();
+    Range range = new Range(startKey, endKey);
 
-    try {
-      for (Path log : recoveryLogPaths) {
-        LOG.debug("Opening recovery log {}", log.getName());
-        RecoveryLogReader rlr = new RecoveryLogReader(fs, log, start, end);
-        if (rlr.hasNext()) {
+    for (Path logDir : recoveryLogDirs) {
+      LOG.debug("Opening recovery log dir {}", logDir.getName());
+      for (Path log : getFiles(fs, logDir)) {
+        var scanner = RFile.newScanner().from(log.toString())
+            .withFileSystem(fs.getFileSystemByPath(log)).build();
+        for (var cf : colFamToFetch)
+          scanner.fetchColumnFamily(cf);
+        scanner.setRange(range);
+        LOG.debug("Get iterator for Key Range = {} to {}", startKey, endKey);
+        Iterator<Entry<Key,Value>> scanIter = scanner.iterator();
+
+        if (scanIter.hasNext()) {
           LOG.debug("Write ahead log {} has data in range {} {}", log.getName(), start, end);
-          iterators.add(rlr);
+          iterators.add(scanIter);
+          scanners.add(scanner);
         } else {
           LOG.debug("Write ahead log {} has no data in range {} {}", log.getName(), start, end);
-          rlr.close();
+          scanner.close();
         }
       }
-
-      iter = Iterators.mergeSorted(iterators, (o1, o2) -> o1.getKey().compareTo(o2.getKey()));
-
-    } catch (RuntimeException | IOException e) {
-      try {
-        close();
-      } catch (Exception e2) {
-        e.addSuppressed(e2);
-      }
-      throw e;
     }
+    iter = Iterators.mergeSorted(iterators, Entry.comparingByKey());
   }
 
   @Override
@@ -82,7 +96,7 @@ public class RecoveryLogsIterator implements CloseableIterator<Entry<LogFileKey,
   }
 
   @Override
-  public Entry<LogFileKey,LogFileValue> next() {
+  public Entry<Key,Value> next() {
     return iter.next();
   }
 
@@ -93,11 +107,48 @@ public class RecoveryLogsIterator implements CloseableIterator<Entry<LogFileKey,
 
   @Override
   public void close() {
-    for (CloseableIterator<?> reader : iterators) {
-      try {
-        reader.close();
-      } catch (IOException e) {
-        LOG.debug("Failed to close reader", e);
+    scanners.forEach(ScannerBase::close);
+  }
+
+  /**
+   * Check for sorting signal files (finished/failed) and get the logs in the provided directory.
+   */
+  private List<Path> getFiles(VolumeManager fs, Path directory) throws IOException {
+    boolean foundFinish = false;
+    List<Path> logFiles = new ArrayList<>();
+    for (FileStatus child : fs.listStatus(directory)) {
+      if (child.getPath().getName().startsWith("_"))
+        continue;
+      if (SortedLogState.isFinished(child.getPath().getName())) {
+        foundFinish = true;
+        continue;
+      }
+      if (SortedLogState.FAILED.getMarker().equals(child.getPath().getName())) {
+        continue;
+      }
+      FileSystem ns = fs.getFileSystemByPath(child.getPath());
+      Path fullLogPath = ns.makeQualified(child.getPath());
+      try (var scanner = RFile.newScanner().from(fullLogPath.toString())
+          .withFileSystem(fs.getFileSystemByPath(fullLogPath)).build()) {
+        validateFirstKey(scanner.iterator());
+      }
+      logFiles.add(fullLogPath);
+    }
+    if (!foundFinish)
+      throw new IOException(
+          "Sort \"" + SortedLogState.FINISHED.getMarker() + "\" flag not found in " + directory);
+    return logFiles;
+  }
+
+  /**
+   * Check that the first entry in the WAL is OPEN
+   */
+  private void validateFirstKey(Iterator<Map.Entry<Key,Value>> iterator) throws IOException {
+    if (iterator.hasNext()) {
+      Key firstKey = iterator.next().getKey();
+      LogFileKey key = LogFileKey.fromKey(firstKey);
+      if (key.event != LogEvents.OPEN) {
+        throw new IllegalStateException("First log entry value is not OPEN");
       }
     }
   }

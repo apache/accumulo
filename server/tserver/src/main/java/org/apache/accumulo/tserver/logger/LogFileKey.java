@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver.logger;
 
+import static java.util.Arrays.copyOf;
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
 import static org.apache.accumulo.tserver.logger.LogEvents.MANY_MUTATIONS;
 import static org.apache.accumulo.tserver.logger.LogEvents.MUTATION;
@@ -26,8 +27,13 @@ import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Base64;
 
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 
 public class LogFileKey implements WritableComparable<LogFileKey> {
@@ -188,5 +194,91 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
         return String.format("DEFINE_TABLET %d %d %s", tabletId, seq, tablet);
     }
     throw new RuntimeException("Unknown type of entry: " + event);
+  }
+
+  /**
+   * Converts LogFileKey to Key. Creates a Key containing all of the LogFileKey fields. The fields
+   * are stored so the Key sorts maintaining the legacy sort order. The row of the Key is composed
+   * of 3 fields: EventNum + tabletID + seq (separated by underscore). The EventNum is the integer
+   * returned by eventType(). The column family is always the event. The column qualifier is
+   * dependent of the type of event and could be empty.
+   *
+   * <pre>
+   *     Key Schema:
+   *     Row = EventNum_tabletID_seq
+   *     Family = event
+   *     Qualifier = tserverSession OR filename OR KeyExtent
+   * </pre>
+   */
+  public Key toKey() throws IOException {
+    String row = "";
+    int eventNum = eventType(event);
+    String family = event.name();
+    String qual = "";
+    switch (event) {
+      case OPEN:
+        row = formatRow(eventNum, 0, 0);
+        qual = tserverSession;
+        break;
+      case COMPACTION_START:
+        row = formatRow(eventNum, tabletId, seq);
+        if (filename != null)
+          qual = filename;
+        break;
+      case MUTATION:
+      case MANY_MUTATIONS:
+      case COMPACTION_FINISH:
+        row = formatRow(eventNum, tabletId, seq);
+        break;
+      case DEFINE_TABLET:
+        row = formatRow(eventNum, tabletId, seq);
+        // Base64 encode KeyExtent
+        DataOutputBuffer buffer = new DataOutputBuffer();
+        tablet.writeTo(buffer);
+        qual = Base64.getEncoder().encodeToString(copyOf(buffer.getData(), buffer.getLength()));
+        buffer.close();
+        break;
+    }
+    return new Key(new Text(row), new Text(family), new Text(qual));
+  }
+
+  // format row = 1_000001_0000000001
+  private String formatRow(int eventNum, int tabletId, long seq) {
+    return String.format("%d_%06d_%010d", eventNum, tabletId, seq);
+  }
+
+  /**
+   * Create LogFileKey from row. Follows schema defined by {@link #toKey()}
+   */
+  public static LogFileKey fromKey(Key key) throws IOException {
+    var logFileKey = new LogFileKey();
+    String[] rowParts = key.getRow().toString().split("_");
+    int tabletId = Integer.parseInt(rowParts[1]);
+    long seq = Long.parseLong(rowParts[2]);
+    String qualifier = key.getColumnQualifier().toString();
+
+    logFileKey.tabletId = tabletId;
+    logFileKey.seq = seq;
+    logFileKey.event = LogEvents.valueOf(key.getColumnFamily().toString());
+
+    // handle special cases of what is stored in the qualifier
+    switch (logFileKey.event) {
+      case OPEN:
+        logFileKey.tserverSession = qualifier;
+        break;
+      case COMPACTION_START:
+        logFileKey.filename = qualifier;
+        break;
+      case DEFINE_TABLET:
+        // decode Base64 KeyExtent
+        DataInputBuffer buffer = new DataInputBuffer();
+        byte[] bytes = Base64.getDecoder().decode(qualifier);
+        buffer.reset(bytes, bytes.length);
+        logFileKey.tablet = KeyExtent.readFrom(buffer);
+        buffer.close();
+        break;
+    }
+
+    return logFileKey;
   }
 }

@@ -20,8 +20,12 @@ package org.apache.accumulo.tserver.logger;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
+import java.io.DataInputStream;
 import java.io.DataOutput;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,6 +33,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.hadoop.io.Writable;
 
@@ -91,6 +96,25 @@ public class LogFileValue implements Writable {
   @Override
   public String toString() {
     return format(this, 5);
+  }
+
+  /**
+   * Convert list of mutations to a byte array and use to create a Value
+   */
+  public Value toValue() throws IOException {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    write(new DataOutputStream(baos));
+    return new Value(baos.toByteArray());
+  }
+
+  /**
+   * Get the mutations from the Value
+   */
+  public static LogFileValue fromValue(Value value) throws IOException {
+    LogFileValue logFileValue = new LogFileValue();
+    var bais = new ByteArrayInputStream(value.get());
+    logFileValue.readFields(new DataInputStream(bais));
+    return logFileValue;
   }
 
 }
