@@ -52,6 +52,7 @@ public class MinorCompactor extends Compactor {
   private static final Logger log = LoggerFactory.getLogger(MinorCompactor.class);
 
   private final TabletServer tabletServer;
+  private final MinorCompactionReason mincReason;
 
   public MinorCompactor(TabletServer tabletServer, Tablet tablet, InMemoryMap imm,
       TabletFile outputFile, MinorCompactionReason mincReason, TableConfiguration tableConfig) {
@@ -79,6 +80,7 @@ public class MinorCompactor extends Compactor {
           }
         }, Collections.emptyList(), mincReason.ordinal(), tableConfig);
     this.tabletServer = tabletServer;
+    this.mincReason = mincReason;
   }
 
   private boolean isTableDeleting() {
@@ -107,6 +109,7 @@ public class MinorCompactor extends Compactor {
     double growthFactor = 4;
     int maxSleepTime = 1000 * 60 * 3; // 3 minutes
     boolean reportedProblem = false;
+    int retryCounter = 0;
 
     runningCompactions.add(this);
     try {
@@ -131,12 +134,21 @@ public class MinorCompactor extends Compactor {
           reportedProblem = true;
         } catch (RuntimeException | NoClassDefFoundError e) {
           // if this is coming from a user iterator, it is possible that the user could change the
-          // iterator config and that the
-          // minor compaction would succeed
+          // iterator config and that the minor compaction would succeed
+          // If the minor compaction stalls for too long during recovery, it can interfere with
+          // other tables loading
+          // Throw exception if this happens so assignments can be rescheduled.
+          if (retryCounter >= 4 && mincReason.equals(MinorCompactionReason.RECOVERY)) {
+            log.warn("Minc is stuck for too long during recovery, throwing error for reschedule.");
+            ProblemReports.getInstance(tabletServer.getContext()).report(new ProblemReport(
+                getExtent().tableId(), ProblemType.FILE_WRITE, outputFileName, e));
+            throw new IllegalStateException(e);
+          }
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName, e);
           ProblemReports.getInstance(tabletServer.getContext()).report(
               new ProblemReport(getExtent().tableId(), ProblemType.FILE_WRITE, outputFileName, e));
           reportedProblem = true;
+          retryCounter++;
         } catch (CompactionCanceledException e) {
           throw new IllegalStateException(e);
         }
