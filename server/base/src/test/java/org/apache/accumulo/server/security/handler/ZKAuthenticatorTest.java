@@ -39,6 +39,7 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ByteArraySet;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
@@ -132,10 +133,9 @@ public class ZKAuthenticatorTest {
     byte[] newHash = ZKSecurityTool.createPass(rawPass.clone());
 
     // mocking zk interaction
-    ServerContext context = createMock(ServerContext.class);
+    ServerContext context = MockServerContext.getWithZK("example", "", 30_000);
     ZooReaderWriter zr = createMock(ZooReaderWriter.class);
     expect(context.getZooReaderWriter()).andReturn(zr).anyTimes();
-    expect(context.getInstanceID()).andReturn("example").once();
     ZooKeeper zk = createMock(ZooKeeper.class);
     expect(zk.getChildren(EasyMock.anyObject(), EasyMock.anyObject()))
         .andReturn(Arrays.asList(principal)).anyTimes();
@@ -166,10 +166,9 @@ public class ZKAuthenticatorTest {
     byte[] outdatedHash = ZKSecurityTool.createOutdatedPass(rawPass);
 
     // mocking zk interaction
-    ServerContext context = createMock(ServerContext.class);
+    ServerContext context = MockServerContext.getWithZK("example", "", 30_000);
     ZooReaderWriter zr = createMock(ZooReaderWriter.class);
     expect(context.getZooReaderWriter()).andReturn(zr).anyTimes();
-    expect(context.getInstanceID()).andReturn("example").once();
     ZooKeeper zk = createMock(ZooKeeper.class);
     expect(zk.getChildren(EasyMock.anyObject(), EasyMock.anyObject()))
         .andReturn(Arrays.asList(principal)).anyTimes();
