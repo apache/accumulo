@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.server.metrics.service;
 
-import java.io.IOException;
-
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
@@ -35,7 +33,7 @@ public class MicrometerMetricsFactoryTest {
   private static final Logger log = LoggerFactory.getLogger(MicrometerMetricsFactoryTest.class);
 
   @Test
-  public void loadingTest() throws IOException {
+  public void loadingTest() {
 
     ServerContext context = EasyMock.mock(ServerContext.class);
     AccumuloConfiguration conf = EasyMock.mock(AccumuloConfiguration.class);
@@ -52,7 +50,7 @@ public class MicrometerMetricsFactoryTest {
 
     Counter counter = Counter.builder("test.counter").register(factory.getRegistry());
 
-    // increase count, timout for manual testing
+    // increase count, timeout for manual testing
     int count = 2;
     while (count-- > 0) {
       try {

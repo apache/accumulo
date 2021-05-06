@@ -58,7 +58,7 @@ public class PrometheusMetricsRegistration implements MetricsRegistrationService
     log.warn("ZZZ - service name: {}", serviceName);
 
     String appName = properties.get(MicrometerMetricsFactory.CALLING_SERVICE_NAME);
-    log.warn("ZZZ - service name: {}", appName);
+    log.warn("ZZZ - app name: {}", appName);
     int port = Integer.parseInt(properties.getOrDefault(appName + ".PortNumber", "0"));
 
     log.warn("ZZZ: pn from props: {}", port);
@@ -128,7 +128,7 @@ public class PrometheusMetricsRegistration implements MetricsRegistrationService
     }
 
     public String prometheusScrape() {
-      return "SCRAPE: " + prometheusRegistry.scrape();
+      return System.currentTimeMillis() + "\n" + prometheusRegistry.scrape();
     }
   }
 }
