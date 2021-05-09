@@ -17,13 +17,13 @@ limitations under the License.
 
 # Contributors Guide
 
- If you believe that you have found a bug, please search for an existing [issue](https://github.com/apache/accumulo/issues) to see if it has already been reported. If you would like to add a new feature to Accumulo, please send an email with your idea to the [dev](mailto:dev@accumulo.apache.org) mail list. If it's appropriate, then we will create an issue.  For simple changes, its ok to just submit a pull request without an issue.
+If you believe that you have found a [bug](https://github.com/apache/accumulo/labels/bug), please search for an existing [issue](https://github.com/apache/accumulo/issues) to see if it has already been reported. If you would like to add a new feature to Accumulo, please send an email with your idea to the [dev](mailto:dev@accumulo.apache.org) mail list. If it's appropriate, then we will create an issue.  For simple changes, its ok to just submit a pull request without an issue.
 
 ## Development
 
 - See the [Developer's Guide](https://accumulo.apache.org/how-to-contribute/) for information regarding common build commands, IDE setup and more.
 - Ensure that your work targets the correct branch
-- Add / update unit and integration tests
+- Add/update unit and integration tests
 
 ## Patch Submission
 
@@ -35,4 +35,3 @@ limitations under the License.
 
 - We welcome reviews from anyone. Any committer can approve and merge the changes.
 - Reviewers will likely have questions and comments. They may use terms such as those in [RFC2119](https://tools.ietf.org/html/rfc2119).
-
