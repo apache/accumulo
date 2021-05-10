@@ -25,7 +25,7 @@ Unit tests can be run by invoking `mvn package` at the root of the Apache Accumu
 `test` phase of the [Maven lifecycle][lifecycle]. The `test` phase cannot be run directly, because not all of Accumulo's
 modules are Java artifacts, and therefore will not be resolvable by their sibling modules until they are created in
 their `package` phase. To avoid building against stale artifacts from previous builds that may have been published to a
-remote server or installed to your local Maven repository, always build with the `package` phase to to run the unit
+remote server or installed to your local Maven repository, always build with the `package` phase to run the unit
 tests. The [maven-surefire-plugin][surefire] is bound to the `test` phase of the Maven lifecycle by default and will run
 the JUnit tests. To execute the unit tests, simply build the project by running:
 
