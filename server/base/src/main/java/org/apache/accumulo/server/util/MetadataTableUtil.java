@@ -144,10 +144,15 @@ public class MetadataTableUtil {
   public static void update(ServerContext context, ServiceLock zooLock, Mutation m,
       KeyExtent extent) {
     Writer t = extent.isMeta() ? getRootTable(context) : getMetadataTable(context);
-    update(context, t, zooLock, m);
+    update(context, t, zooLock, m, extent);
   }
 
   public static void update(ServerContext context, Writer t, ServiceLock zooLock, Mutation m) {
+    update(context, t, zooLock, m, null);
+  }
+
+  public static void update(ServerContext context, Writer t, ServiceLock zooLock, Mutation m,
+      KeyExtent extent) {
     if (zooLock != null)
       putLockID(context, zooLock, m);
     while (true) {
@@ -155,14 +160,19 @@ public class MetadataTableUtil {
         t.update(m);
         return;
       } catch (AccumuloException | TableNotFoundException | AccumuloSecurityException e) {
-        log.error("{}", e.getMessage(), e);
+        logUpdateFailure(m, extent, e);
       } catch (ConstraintViolationException e) {
-        log.error("{}", e.getMessage(), e);
+        logUpdateFailure(m, extent, e);
         // retrying when a CVE occurs is probably futile and can cause problems, see ACCUMULO-3096
         throw new RuntimeException(e);
       }
       sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
+  }
+
+  private static void logUpdateFailure(Mutation m, KeyExtent extent, Exception e) {
+    String extentMsg = extent == null ? "" : " for extent: " + extent;
+    log.error("Failed to write metadata updates {} {}", extentMsg, m.prettyPrint(), e);
   }
 
   public static void updateTabletFlushID(KeyExtent extent, long flushID, ServerContext context,
