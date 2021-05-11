@@ -461,8 +461,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       log.error("Unable to advertise monitor HTTP address in zookeeper", ex);
     }
 
-    Threads.createThread("ZooKeeperStatus", new ZooKeeperStatus(context)).start();
-
     // need to regularly fetch data so plot data is updated
     Threads.createThread("Data fetcher", () -> {
       while (true) {
