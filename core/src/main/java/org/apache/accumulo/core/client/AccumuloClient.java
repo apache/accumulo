@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.client;
 
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.Properties;
 
@@ -377,6 +378,18 @@ public interface AccumuloClient extends AutoCloseable {
      *      properties documentation</a>
      */
     FromOptions<T> from(Path propertiesFile);
+
+    /**
+     * Build using Java properties object. An example properties file can be found at
+     * conf/accumulo-client.properties in the Accumulo tarball distribution.
+     *
+     * @param propertiesURL
+     *          URL path to properties file
+     * @return this builder
+     * @see <a href="https://accumulo.apache.org/docs/2.x/configuration/client-properties">Client
+     *      properties documentation</a>
+     */
+    FromOptions<T> from(URL propertiesURL);
 
     /**
      * Build using Java properties object. An example properties file can be found at
