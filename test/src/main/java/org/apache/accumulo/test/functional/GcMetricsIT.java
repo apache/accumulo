@@ -28,7 +28,6 @@ import java.math.BigInteger;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Scanner;
@@ -179,7 +178,7 @@ public class GcMetricsIT extends ConfigurableMacBase {
      */
     private static Map<String,Long> parseLine(String line) {
       log.debug("Line received:{}", line);
-      Map<String,Long> values = Collections.emptyMap();
+      Map<String,Long> values;
       values = Stream.of(line.split(",")).map(String::trim)
           .filter(s -> s.startsWith(GcMetrics.GC_METRIC_PREFIX)).map(s -> s.split("="))
           .collect(toMap(a -> a[0], a -> Long.parseLong(a[1]), (a, b) -> {
