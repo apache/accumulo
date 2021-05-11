@@ -243,7 +243,13 @@ public enum Property {
   GENERAL_MAX_SCANNER_RETRY_PERIOD("general.max.scanner.retry.period", "5s",
       PropertyType.TIMEDURATION,
       "The maximum amount of time that a Scanner should wait before retrying a failed RPC"),
-
+  // experimental - micrometer properties
+  @Experimental
+  GENERAL_METRICS_CONFIGURATION_PROPERTIES_FILE("general.metrics.configuration.properties",
+      "accumulo.metrics.configuration.properties", PropertyType.STRING,
+      "The Accumulo metrics configuration properties filename. The file is used to"
+          + " configure micrometer MeterRegistries that loaded at runtime using classes that"
+          + " extend MetricsServiceLoader.class"),
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the manager server."),
