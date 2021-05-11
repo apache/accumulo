@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.tablet;
+package org.apache.accumulo.server.compaction;
 
 import java.io.IOException;
 import java.text.DateFormat;
@@ -38,6 +38,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.IterConfigUtil;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
@@ -52,19 +53,17 @@ import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
-import org.apache.accumulo.tserver.InMemoryMap;
-import org.apache.accumulo.tserver.MinorCompactionReason;
-import org.apache.accumulo.tserver.TabletIteratorEnvironment;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
@@ -88,10 +87,16 @@ public class Compactor implements Callable<CompactionStats> {
     RateLimiter getReadLimiter();
 
     RateLimiter getWriteLimiter();
+
+    SystemIteratorEnvironment createIteratorEnv(ServerContext context,
+        AccumuloConfiguration acuTableConf, TableId tableId);
+
+    SortedKeyValueIterator<Key,Value> getMinCIterator();
+
+    TCompactionReason getReason();
   }
 
   private final Map<StoredTabletFile,DataFileValue> filesToCompact;
-  private final InMemoryMap imm;
   private final TabletFile outputFile;
   private final boolean propogateDeletes;
   private final AccumuloConfiguration acuTableConf;
@@ -103,8 +108,6 @@ public class Compactor implements Callable<CompactionStats> {
   // things to report
   private String currentLocalityGroup = "";
   private final long startTime;
-
-  private int reason;
 
   private final AtomicLong entriesRead = new AtomicLong(0);
   private final AtomicLong entriesWritten = new AtomicLong(0);
@@ -147,20 +150,18 @@ public class Compactor implements Callable<CompactionStats> {
     return compactions;
   }
 
-  public Compactor(ServerContext context, Tablet tablet, Map<StoredTabletFile,DataFileValue> files,
-      InMemoryMap imm, TabletFile outputFile, boolean propogateDeletes, CompactionEnv env,
-      List<IteratorSetting> iterators, int reason, AccumuloConfiguration tableConfiguation) {
+  public Compactor(ServerContext context, KeyExtent extent,
+      Map<StoredTabletFile,DataFileValue> files, TabletFile outputFile, boolean propogateDeletes,
+      CompactionEnv env, List<IteratorSetting> iterators, AccumuloConfiguration tableConfiguation) {
     this.context = context;
-    this.extent = tablet.getExtent();
+    this.extent = extent;
     this.fs = context.getVolumeManager();
     this.acuTableConf = tableConfiguation;
     this.filesToCompact = files;
-    this.imm = imm;
     this.outputFile = outputFile;
     this.propogateDeletes = propogateDeletes;
     this.env = env;
     this.iterators = iterators;
-    this.reason = reason;
 
     startTime = System.currentTimeMillis();
   }
@@ -169,16 +170,12 @@ public class Compactor implements Callable<CompactionStats> {
     return fs;
   }
 
-  KeyExtent getExtent() {
+  public KeyExtent getExtent() {
     return extent;
   }
 
-  String getOutputFile() {
+  protected String getOutputFile() {
     return outputFile.toString();
-  }
-
-  CompactionKind getMajorCompactionReason() {
-    return CompactionKind.values()[reason];
   }
 
   protected Map<String,Set<ByteSequence>> getLocalityGroups(AccumuloConfiguration acuTableConf)
@@ -343,8 +340,8 @@ public class Compactor implements Callable<CompactionStats> {
       long entriesCompacted = 0;
       List<SortedKeyValueIterator<Key,Value>> iters = openMapDataFiles(readers);
 
-      if (imm != null) {
-        iters.add(imm.compactionIterator());
+      if (env.getIteratorScope() == IteratorScope.minc) {
+        iters.add(env.getMinCIterator());
       }
 
       CountingIterator citr =
@@ -355,15 +352,8 @@ public class Compactor implements Callable<CompactionStats> {
 
       // if(env.getIteratorScope() )
 
-      TabletIteratorEnvironment iterEnv;
-      if (env.getIteratorScope() == IteratorScope.majc)
-        iterEnv = new TabletIteratorEnvironment(context, IteratorScope.majc, !propogateDeletes,
-            acuTableConf, getExtent().tableId(), getMajorCompactionReason());
-      else if (env.getIteratorScope() == IteratorScope.minc)
-        iterEnv = new TabletIteratorEnvironment(context, IteratorScope.minc, acuTableConf,
-            getExtent().tableId());
-      else
-        throw new IllegalArgumentException();
+      SystemIteratorEnvironment iterEnv =
+          env.createIteratorEnv(context, acuTableConf, getExtent().tableId());
 
       SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(IterConfigUtil
           .convertItersAndLoad(env.getIteratorScope(), cfsi, acuTableConf, iterators, iterEnv));
@@ -425,7 +415,7 @@ public class Compactor implements Callable<CompactionStats> {
   }
 
   boolean hasIMM() {
-    return imm != null;
+    return env.getIteratorScope() == IteratorScope.minc;
   }
 
   boolean willPropogateDeletes() {
@@ -448,8 +438,8 @@ public class Compactor implements Callable<CompactionStats> {
     return this.iterators;
   }
 
-  MinorCompactionReason getMinCReason() {
-    return MinorCompactionReason.values()[reason];
+  public TCompactionReason getReason() {
+    return env.getReason();
   }
 
 }

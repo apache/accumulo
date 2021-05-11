@@ -31,12 +31,22 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.compaction.CompactionStats;
+import org.apache.accumulo.server.compaction.Compactor;
 import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
+import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
@@ -55,9 +65,8 @@ public class MinorCompactor extends Compactor {
 
   public MinorCompactor(TabletServer tabletServer, Tablet tablet, InMemoryMap imm,
       TabletFile outputFile, MinorCompactionReason mincReason, TableConfiguration tableConfig) {
-    super(tabletServer.getContext(), tablet, Collections.emptyMap(), imm, outputFile, true,
+    super(tabletServer.getContext(), tablet.getExtent(), Collections.emptyMap(), outputFile, true,
         new CompactionEnv() {
-
           @Override
           public boolean isCompactionEnabled() {
             return true;
@@ -77,7 +86,32 @@ public class MinorCompactor extends Compactor {
           public RateLimiter getWriteLimiter() {
             return null;
           }
-        }, Collections.emptyList(), mincReason.ordinal(), tableConfig);
+
+          @Override
+          public SystemIteratorEnvironment createIteratorEnv(ServerContext context,
+              AccumuloConfiguration acuTableConf, TableId tableId) {
+            return new TabletIteratorEnvironment(context, IteratorScope.minc, acuTableConf,
+                tableId);
+          }
+
+          @Override
+          public SortedKeyValueIterator<Key,Value> getMinCIterator() {
+            return imm.compactionIterator();
+          }
+
+          @Override
+          public TCompactionReason getReason() {
+            switch (mincReason) {
+              case USER:
+                return TCompactionReason.USER;
+              case CLOSE:
+                return TCompactionReason.CLOSE;
+              case SYSTEM:
+              default:
+                return TCompactionReason.SYSTEM;
+            }
+          }
+        }, Collections.emptyList(), tableConfig);
     this.tabletServer = tabletServer;
   }
 

@@ -27,6 +27,8 @@ import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 
+import com.google.common.base.Preconditions;
+
 /**
  * An immutable object that describes what files to compact and where to compact them.
  *
@@ -40,14 +42,25 @@ public class CompactionJobImpl implements CompactionJob {
   private final Set<CompactableFile> files;
   private final CompactionKind kind;
   private boolean selectedAll;
+  private boolean hasSelectedAll;
 
-  CompactionJobImpl(long priority, CompactionExecutorId executor, Collection<CompactableFile> files,
-      CompactionKind kind, boolean selectedAllFiles) {
+  public CompactionJobImpl(long priority, CompactionExecutorId executor,
+      Collection<CompactableFile> files, CompactionKind kind, boolean selectedAllFiles) {
     this.priority = priority;
     this.executor = Objects.requireNonNull(executor);
     this.files = Set.copyOf(files);
-    this.kind = kind;
+    this.kind = Objects.requireNonNull(kind);
     this.selectedAll = selectedAllFiles;
+    this.hasSelectedAll = true;
+  }
+
+  public CompactionJobImpl(long priority, CompactionExecutorId executor,
+      Collection<CompactableFile> files, CompactionKind kind) {
+    this.priority = priority;
+    this.executor = Objects.requireNonNull(executor);
+    this.files = Set.copyOf(files);
+    this.kind = Objects.requireNonNull(kind);
+    this.hasSelectedAll = false;
   }
 
   @Override
@@ -85,6 +98,7 @@ public class CompactionJobImpl implements CompactionJob {
   }
 
   public boolean selectedAll() {
+    Preconditions.checkState(hasSelectedAll);
     return selectedAll;
   }
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.tablet;
+package org.apache.accumulo.server.compaction;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,8 +29,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
-import org.apache.accumulo.core.tabletserver.thrift.CompactionReason;
-import org.apache.accumulo.core.tabletserver.thrift.CompactionType;
+import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
+import org.apache.accumulo.core.tabletserver.thrift.TCompactionType;
 
 public class CompactionInfo {
 
@@ -38,11 +38,13 @@ public class CompactionInfo {
   private final String localityGroup;
   private final long entriesRead;
   private final long entriesWritten;
+  private final TCompactionReason reason;
 
   CompactionInfo(Compactor compactor) {
     this.localityGroup = compactor.getCurrentLocalityGroup();
     this.entriesRead = compactor.getEntriesRead();
     this.entriesWritten = compactor.getEntriesWritten();
+    this.reason = compactor.getReason();
     this.compactor = compactor;
   }
 
@@ -72,48 +74,17 @@ public class CompactionInfo {
 
   public ActiveCompaction toThrift() {
 
-    CompactionType type;
+    TCompactionType type;
 
     if (compactor.hasIMM())
       if (!compactor.getFilesToCompact().isEmpty())
-        type = CompactionType.MERGE;
+        type = TCompactionType.MERGE;
       else
-        type = CompactionType.MINOR;
+        type = TCompactionType.MINOR;
     else if (!compactor.willPropogateDeletes())
-      type = CompactionType.FULL;
+      type = TCompactionType.FULL;
     else
-      type = CompactionType.MAJOR;
-
-    CompactionReason reason;
-
-    if (compactor.hasIMM()) {
-      switch (compactor.getMinCReason()) {
-        case USER:
-          reason = CompactionReason.USER;
-          break;
-        case CLOSE:
-          reason = CompactionReason.CLOSE;
-          break;
-        case SYSTEM:
-        default:
-          reason = CompactionReason.SYSTEM;
-          break;
-      }
-    } else {
-      switch (compactor.getMajorCompactionReason()) {
-        case USER:
-          reason = CompactionReason.USER;
-          break;
-        case CHOP:
-          reason = CompactionReason.CHOP;
-          break;
-        case SELECTOR:
-        case SYSTEM:
-        default:
-          reason = CompactionReason.SYSTEM;
-          break;
-      }
-    }
+      type = TCompactionType.MAJOR;
 
     List<IterInfo> iiList = new ArrayList<>();
     Map<String,Map<String,String>> iterOptions = new HashMap<>();

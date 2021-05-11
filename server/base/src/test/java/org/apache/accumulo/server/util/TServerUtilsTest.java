@@ -243,7 +243,8 @@ public class TServerUtilsTest {
     conf.set(Property.TSERV_PORTSEARCH, "true");
 
     // Ensure that the TServer client port we set above is NOT in the reserved ports
-    Map<Integer,Property> reservedPorts = TServerUtils.getReservedPorts(conf);
+    Map<Integer,Property> reservedPorts =
+        TServerUtils.getReservedPorts(conf, Property.TSERV_CLIENTPORT);
     assertFalse(reservedPorts.containsKey(tserverDefaultPort));
 
     // Ensure that all the ports we assigned (GC, Manager, Monitor) are included in the reserved

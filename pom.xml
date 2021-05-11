@@ -87,6 +87,8 @@
     <module>iterator-test-harness</module>
     <module>minicluster</module>
     <module>server/base</module>
+    <module>server/compactor</module>
+    <module>server/compaction-coordinator</module>
     <module>server/gc</module>
     <module>server/manager</module>
     <module>server/master</module>
@@ -264,6 +266,16 @@
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
         <version>4.13.2</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-compaction-coordinator</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-compactor</artifactId>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>

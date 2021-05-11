@@ -31,4 +31,9 @@ public interface ExecutorManager {
    * Create a thread pool executor within a compaction service.
    */
   public CompactionExecutorId createExecutor(String name, int threads);
+
+  /**
+   * @return an id for a configured external execution queue.
+   */
+  public CompactionExecutorId getExternalExecutor(String name);
 }

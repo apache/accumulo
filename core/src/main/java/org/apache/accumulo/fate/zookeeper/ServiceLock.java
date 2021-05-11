@@ -135,7 +135,9 @@ public class ServiceLock implements Watcher {
     }
 
     @Override
-    public void failedToAcquireLock(Exception e) {}
+    public void failedToAcquireLock(Exception e) {
+      LOG.debug("Failed to acquire lock", e);
+    }
 
     @Override
     public void lostLock(LockLossReason reason) {

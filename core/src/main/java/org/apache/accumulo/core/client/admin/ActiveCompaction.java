@@ -128,4 +128,26 @@ public abstract class ActiveCompaction {
    * @return the per compaction iterators configured
    */
   public abstract List<IteratorSetting> getIterators();
+
+  /**
+   * @since 2.1.0
+   */
+  public interface CompactionHost {
+    enum Type {
+      TSERVER, COMPACTOR
+    }
+
+    Type getType();
+
+    String getAddress();
+
+    int getPort();
+  }
+
+  /**
+   * Return the host where the compaction is running.
+   *
+   * @since 2.1.0
+   */
+  public abstract CompactionHost getHost();
 }

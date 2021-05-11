@@ -235,7 +235,7 @@ public class TabletServer extends AbstractServer {
     }
   }
 
-  TabletServer(ServerOpts opts, String[] args) {
+  protected TabletServer(ServerOpts opts, String[] args) {
     super("tserver", opts, args);
     ServerContext context = super.getContext();
     context.setupCrypto();
@@ -568,13 +568,18 @@ public class TabletServer extends AbstractServer {
     return null;
   }
 
+  // exists to be overridden in tests
+  protected ThriftClientHandler getThriftClientHandler() {
+    return new ThriftClientHandler(this);
+  }
+
   private void returnManagerConnection(ManagerClientService.Client client) {
     ThriftUtil.returnClient(client);
   }
 
   private HostAndPort startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
-    clientHandler = new ThriftClientHandler(this);
+    clientHandler = getThriftClientHandler();
     Iface rpcProxy = TraceUtil.wrapService(clientHandler);
     final Processor<Iface> processor;
     if (getContext().getThriftServerType() == ThriftServerType.SASL) {

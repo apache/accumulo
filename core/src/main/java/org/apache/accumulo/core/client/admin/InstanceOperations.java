@@ -102,7 +102,10 @@ public interface InstanceOperations {
       throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * List the active compaction running on a tablet server
+   * List the active compaction running on a tablet server. Using this method with
+   * {@link #getTabletServers()} will only show compactions running on tservers, leaving out any
+   * external compactions running on compactors. Use {@link #getActiveCompactions()} to get a list
+   * of all compactions running on tservers and compactors.
    *
    * @param tserver
    *          The tablet server address should be of the form {@code <ip address>:<port>}
@@ -111,6 +114,14 @@ public interface InstanceOperations {
    */
   List<ActiveCompaction> getActiveCompactions(String tserver)
       throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * List all compactions running in Accumulo
+   *
+   * @return the list of active compactions
+   * @since 2.1.0
+   */
+  List<ActiveCompaction> getActiveCompactions() throws AccumuloException, AccumuloSecurityException;
 
   /**
    * Throws an exception if a tablet server can not be contacted.

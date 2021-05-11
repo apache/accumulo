@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.junit.Test;
@@ -43,7 +42,7 @@ public class CompactionPrioritizerTest {
           .create(URI.create("hdfs://foonn/accumulo/tables/5/" + tablet + "/" + i + ".rf"), 4, 4));
     }
     return new CompactionJobImpl(CompactionJobPrioritizer.createPriority(kind, totalFiles),
-        CompactionExecutorId.of("test"), files, kind, false);
+        CompactionExecutorIdImpl.externalId("test"), files, kind, false);
   }
 
   @Test

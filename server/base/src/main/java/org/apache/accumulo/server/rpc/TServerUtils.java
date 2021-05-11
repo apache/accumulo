@@ -103,11 +103,12 @@ public class TServerUtils {
    * @return A Map object with reserved port numbers as keys and Property objects as values
    */
 
-  public static Map<Integer,Property> getReservedPorts(AccumuloConfiguration config) {
+  public static Map<Integer,Property> getReservedPorts(AccumuloConfiguration config,
+      Property portProperty) {
     return EnumSet.allOf(Property.class).stream()
-        .filter(p -> p.getType() == PropertyType.PORT && p != Property.TSERV_CLIENTPORT)
+        .filter(p -> p.getType() == PropertyType.PORT && p != portProperty)
         .flatMap(rp -> config.getPortStream(rp).mapToObj(portNum -> new Pair<>(portNum, rp)))
-        .collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
+        .filter(p -> p.getFirst() != 0).collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
   }
 
   /**
@@ -190,7 +191,7 @@ public class TServerUtils {
     } catch (TTransportException e) {
       if (portSearch) {
         // Build a list of reserved ports - as identified by properties of type PropertyType.PORT
-        Map<Integer,Property> reservedPorts = getReservedPorts(config);
+        Map<Integer,Property> reservedPorts = getReservedPorts(config, portHintProperty);
 
         HostAndPort last = addresses[addresses.length - 1];
         // Attempt to allocate a port outside of the specified port property
