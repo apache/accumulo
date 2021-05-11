@@ -147,10 +147,6 @@ public class MetadataTableUtil {
     update(context, t, zooLock, m, extent);
   }
 
-  public static void update(ServerContext context, Writer t, ServiceLock zooLock, Mutation m) {
-    update(context, t, zooLock, m, null);
-  }
-
   public static void update(ServerContext context, Writer t, ServiceLock zooLock, Mutation m,
       KeyExtent extent) {
     if (zooLock != null)
@@ -171,8 +167,7 @@ public class MetadataTableUtil {
   }
 
   private static void logUpdateFailure(Mutation m, KeyExtent extent, Exception e) {
-    String extentMsg = extent == null ? "" : " for extent: " + extent;
-    log.error("Failed to write metadata updates {} {}", extentMsg, m.prettyPrint(), e);
+    log.error("Failed to write metadata updates for extent {} {}", extent, m.prettyPrint(), e);
   }
 
   public static void updateTabletFlushID(KeyExtent extent, long flushID, ServerContext context,
