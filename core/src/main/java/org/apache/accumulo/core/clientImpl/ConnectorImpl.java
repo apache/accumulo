@@ -54,7 +54,7 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   private static final String SYSTEM_TOKEN_NAME =
       "org.apache.accumulo.server.security.SystemCredentials$SystemToken";
   private final ClientContext context;
-  private static final String VALID_NAME_REGEX = "^(\\w{1,1024}[.])?(\\w{1,1024})$";
+  private static final String VALID_TABLENAME_REGEX = "^(\\w{1,1024}[.])?(\\w{1,1024})$";
 
   public ConnectorImpl(ClientContext context) throws AccumuloSecurityException, AccumuloException {
     this.context = context;
@@ -86,7 +86,7 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   @Override
   public BatchScanner createBatchScanner(String tableName, Authorizations authorizations,
       int numQueryThreads) throws TableNotFoundException {
-    checkArgument(tableName.matches(VALID_NAME_REGEX),
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
         "tableName must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
@@ -99,7 +99,7 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
       throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
-    checkArgument(tableName.matches(VALID_NAME_REGEX),
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
         "tableName must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
@@ -111,7 +111,7 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
       int numQueryThreads, BatchWriterConfig config) throws TableNotFoundException {
-    checkArgument(tableName.matches(VALID_NAME_REGEX),
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
         "tableName must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
@@ -122,7 +122,7 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency,
       int maxWriteThreads) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
-    checkArgument(tableName.matches(VALID_NAME_REGEX),
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
         "tableName must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
@@ -134,7 +134,7 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   @Override
   public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config)
       throws TableNotFoundException {
-    checkArgument(tableName.matches(VALID_NAME_REGEX),
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
         "tableName must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
@@ -156,7 +156,7 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   @Override
   public ConditionalWriter createConditionalWriter(String tableName, ConditionalWriterConfig config)
       throws TableNotFoundException {
-    checkArgument(tableName.matches(VALID_NAME_REGEX),
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
         "tableName must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
@@ -166,7 +166,7 @@ public class ConnectorImpl extends org.apache.accumulo.core.client.Connector {
   @Override
   public Scanner createScanner(String tableName, Authorizations authorizations)
       throws TableNotFoundException {
-    checkArgument(tableName.matches(VALID_NAME_REGEX),
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
         "tableName must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 

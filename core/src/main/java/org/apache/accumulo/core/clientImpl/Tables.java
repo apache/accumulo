@@ -45,7 +45,7 @@ import com.google.common.cache.CacheBuilder;
 
 public class Tables {
 
-  public static final String VALID_NAME_REGEX = "^(\\w{1,1024}[.])?(\\w{1,1024})$";
+  public static final String VALID_TABLENAME_REGEX = "^(\\w{1,1024}[.])?(\\w{1,1024})$";
 
   private static final SecurityPermission TABLES_PERMISSION =
       new SecurityPermission("tablesPermission");
@@ -287,7 +287,8 @@ public class Tables {
   }
 
   public static Pair<String,String> qualify(String tableName, String defaultNamespace) {
-    checkArgument(tableName.matches(VALID_NAME_REGEX), "Invalid table name '" + tableName + "'");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "Invalid table name '" + tableName + "'");
 
     if (MetadataTable.OLD_NAME.equals(tableName))
       tableName = MetadataTable.NAME;

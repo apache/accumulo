@@ -97,7 +97,7 @@ public class ClientContext implements AccumuloClient {
   private ClientInfo info;
   private String instanceId;
   private final ZooCache zooCache;
-  private static final String VALID_NAME_REGEX = "^(\\w{1,1024}[.])?(\\w{1,1024})$";
+  private static final String VALID_TABLENAME_REGEX = "^(\\w{1,1024}[.])?(\\w{1,1024})$";
 
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
@@ -473,7 +473,7 @@ public class ClientContext implements AccumuloClient {
   }
 
   TableId getTableId(String tableName) throws TableNotFoundException {
-    checkArgument(tableName.matches(VALID_NAME_REGEX),
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
         "tableName must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
@@ -488,7 +488,7 @@ public class ClientContext implements AccumuloClient {
       int numQueryThreads) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
-    checkArgument(tableName.matches(VALID_NAME_REGEX),
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
         "tableName must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
@@ -519,7 +519,7 @@ public class ClientContext implements AccumuloClient {
       int numQueryThreads, BatchWriterConfig config) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
-    checkArgument(tableName.matches(VALID_NAME_REGEX),
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
         "tableName must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
@@ -539,7 +539,7 @@ public class ClientContext implements AccumuloClient {
   public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config)
       throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
-    checkArgument(tableName.matches(VALID_NAME_REGEX),
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
         "tableName must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
@@ -553,7 +553,7 @@ public class ClientContext implements AccumuloClient {
 
   @Override
   public BatchWriter createBatchWriter(String tableName) throws TableNotFoundException {
-    checkArgument(tableName.matches(VALID_NAME_REGEX),
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
         "tableName must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
@@ -574,7 +574,7 @@ public class ClientContext implements AccumuloClient {
   @Override
   public ConditionalWriter createConditionalWriter(String tableName, ConditionalWriterConfig config)
       throws TableNotFoundException {
-    checkArgument(tableName.matches(VALID_NAME_REGEX),
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
         "tableName must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
@@ -587,7 +587,7 @@ public class ClientContext implements AccumuloClient {
       throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(authorizations != null, "authorizations is null");
-    checkArgument(tableName.matches(VALID_NAME_REGEX),
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
         "tableName must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
@@ -603,7 +603,7 @@ public class ClientContext implements AccumuloClient {
   @Override
   public Scanner createScanner(String tableName)
       throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
-    checkArgument(tableName.matches(VALID_NAME_REGEX),
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
         "tableName must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
