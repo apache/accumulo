@@ -285,6 +285,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
             output.get().contains(s));
       shell.resetExitCode();
     }
+
+    void writeToHistory(String cmd) {
+      input.set(cmd);
+      reader.readLine();
+    }
   }
 
   private static final NoOpErrorMessageCallback noop = new NoOpErrorMessageCallback();
@@ -1431,18 +1436,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-  // TODO - evaluate this test is testing what is expected or history is working.
   @Test
   public void history() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     ts.exec("history -c", true);
-    ts.exec("createtable " + table);
-    ts.exec("deletetable -f " + table);
-    // TODO - this may be passing only because method name is history.
+    ts.writeToHistory("createtable " + table);
+    ts.writeToHistory("deletetable -f " + table);
     ts.exec("history", true, table, true);
-    // TODO - what is this testing?
-    ts.exec("history", true, "history", true);
+    ts.exec("history", true, "foo", false);
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
