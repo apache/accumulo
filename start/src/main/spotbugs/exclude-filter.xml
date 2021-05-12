@@ -16,11 +16,6 @@
 -->
 <FindBugsFilter>
   <Match>
-    <!-- shell can call System.exit -->
-    <Class name="org.apache.accumulo.shell.Shell" />
-    <Bug code="DM" pattern="DM_EXIT" />
-  </Match>
-  <Match>
     <!-- More convenient to ignore these everywhere, because it's very common and unimportant -->
     <Bug pattern="JUA_DONT_ASSERT_INSTANCEOF_IN_TESTS" />
   </Match>
