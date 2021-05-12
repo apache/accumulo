@@ -155,7 +155,7 @@ public class CompactionIT extends AccumuloClusterHarness {
 
       List<String> rows = new ArrayList<>();
       c.createScanner(tableName).forEach((k, v) -> rows.add(k.getRow().toString()));
-      assertEquals(List.of("1", "2", "3", "4"), actualRows);
+      assertEquals(List.of("1", "2", "3", "4"), rows);
     }
   }
 
