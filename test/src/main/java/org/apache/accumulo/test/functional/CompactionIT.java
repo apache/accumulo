@@ -21,6 +21,10 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -28,8 +32,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.PluginConfig;
+import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -43,14 +54,51 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
+import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 
 @SuppressWarnings("removal")
 public class CompactionIT extends AccumuloClusterHarness {
+
+  public static class RandomErrorThrowingSelector implements CompactionSelector {
+
+    public static String FILE_LIST_PARAM = "filesToCompact";
+    private static final Logger LOG = LoggerFactory.getLogger(RandomErrorThrowingSelector.class);
+    private static Boolean ERROR_THROWN = Boolean.FALSE;
+
+    private List<String> filesToCompact;
+
+    @Override
+    public void init(InitParamaters iparams) {
+      String files = iparams.getOptions().get(FILE_LIST_PARAM);
+      Objects.requireNonNull(files);
+      String[] f = files.split(",");
+      filesToCompact = Lists.newArrayList(f);
+    }
+
+    @Override
+    public Selection select(SelectionParameters sparams) {
+      if (!ERROR_THROWN) {
+        ERROR_THROWN = Boolean.TRUE;
+        throw new RuntimeException("Exception for test");
+      }
+      List<CompactableFile> matches = new ArrayList<>();
+      sparams.getAvailableFiles().forEach(cf -> {
+        LOG.info("Tablet file: {}", cf);
+        if (filesToCompact.contains(cf.getFileName())) {
+          matches.add(cf);
+        }
+      });
+      return new Selection(matches);
+    }
+
+  }
+
   private static final Logger log = LoggerFactory.getLogger(CompactionIT.class);
 
   @Override
@@ -66,6 +114,54 @@ public class CompactionIT extends AccumuloClusterHarness {
   @Override
   protected int defaultTimeoutSeconds() {
     return 4 * 60;
+  }
+
+  @Test
+  public void testBadSelector() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      final String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      // Ensure compactions don't kick off
+      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "10.0");
+      // Create multiple RFiles
+      BatchWriter bw = c.createBatchWriter(tableName);
+      Mutation m = new Mutation("1");
+      m.put("cf", "cq", new Value(new byte[0]));
+      bw.addMutation(m);
+      bw.flush();
+      c.tableOperations().flush(tableName, new Text("0"), new Text("9"), true);
+      Mutation m2 = new Mutation("2");
+      m2.put("cf", "cq", new Value(new byte[0]));
+      bw.addMutation(m2);
+      bw.flush();
+      c.tableOperations().flush(tableName, new Text("0"), new Text("9"), true);
+      Mutation m3 = new Mutation("3");
+      m3.put("cf", "cq", new Value(new byte[0]));
+      bw.addMutation(m3);
+      bw.flush();
+      c.tableOperations().flush(tableName, new Text("0"), new Text("9"), true);
+      Mutation m4 = new Mutation("4");
+      m4.put("cf", "cq", new Value(new byte[0]));
+      bw.addMutation(m4);
+      bw.close();
+      c.tableOperations().flush(tableName, new Text("0"), new Text("9"), true);
+
+      List<String> files = FunctionalTestUtils.getRFileNames(c, tableName);
+      Assert.assertEquals(4, files.size());
+
+      String subset = files.get(0).substring(files.get(0).lastIndexOf('/') + 1) + ","
+          + files.get(3).substring(files.get(3).lastIndexOf('/') + 1);
+
+      CompactionConfig config = new CompactionConfig()
+          .setSelector(new PluginConfig(RandomErrorThrowingSelector.class.getName(),
+              Map.of(RandomErrorThrowingSelector.FILE_LIST_PARAM, subset)))
+          .setWait(true);
+      c.tableOperations().compact(tableName, config);
+
+      List<String> files2 = FunctionalTestUtils.getRFileNames(c, tableName);
+      Assert.assertFalse(files2.contains(files.get(0)));
+      Assert.assertFalse(files2.contains(files.get(3)));
+    }
   }
 
   @Test

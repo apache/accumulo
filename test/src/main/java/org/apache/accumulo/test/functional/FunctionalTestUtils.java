@@ -30,8 +30,10 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
@@ -79,6 +81,19 @@ public class FunctionalTestUtils {
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       return Iterators.size(scanner.iterator());
     }
+  }
+
+  public static List<String> getRFileNames(AccumuloClient c, String tableName) throws Exception {
+    List<String> files = new ArrayList<>();
+    try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
+      scanner.setRange(TabletsSection.getRange(tableId));
+      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+      scanner.forEach(entry -> {
+        files.add(entry.getKey().getColumnQualifier().toString());
+      });
+    }
+    return files;
   }
 
   static void checkRFiles(AccumuloClient c, String tableName, int minTablets, int maxTablets,
