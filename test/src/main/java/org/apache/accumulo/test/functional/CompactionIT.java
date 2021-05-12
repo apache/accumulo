@@ -124,27 +124,15 @@ public class CompactionIT extends AccumuloClusterHarness {
       tc.setProperties(Map.of(Property.TABLE_MAJC_RATIO.getKey(), "10.0"));
       c.tableOperations().create(tableName, tc);
       // Create multiple RFiles
-      BatchWriter bw = c.createBatchWriter(tableName);
-      Mutation m = new Mutation("1");
-      m.put("cf", "cq", new Value(new byte[0]));
-      bw.addMutation(m);
-      bw.flush();
-      c.tableOperations().flush(tableName, new Text("0"), new Text("9"), true);
-      Mutation m2 = new Mutation("2");
-      m2.put("cf", "cq", new Value(new byte[0]));
-      bw.addMutation(m2);
-      bw.flush();
-      c.tableOperations().flush(tableName, new Text("0"), new Text("9"), true);
-      Mutation m3 = new Mutation("3");
-      m3.put("cf", "cq", new Value(new byte[0]));
-      bw.addMutation(m3);
-      bw.flush();
-      c.tableOperations().flush(tableName, new Text("0"), new Text("9"), true);
-      Mutation m4 = new Mutation("4");
-      m4.put("cf", "cq", new Value(new byte[0]));
-      bw.addMutation(m4);
-      bw.close();
-      c.tableOperations().flush(tableName, new Text("0"), new Text("9"), true);
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (int i = 1; i <= 4; i++) {
+          Mutation m = new Mutation(Integer.toString(i));
+          m.put("cf", "cq", new Value());
+          bw.addMutation(m);
+          bw.flush();
+          c.tableOperations().flush(tableName, null, null, true);
+        }
+      }
 
       List<String> files = FunctionalTestUtils.getRFilePaths(c, tableName);
       assertEquals(4, files.size());
