@@ -1442,14 +1442,21 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     // test clear history command works
     ts.writeToHistory("foo");
-    ts.exec("history -c", true, "foo", false);
+    ts.exec("history", true, "foo", true);
+    ts.exec("history -c", true);
+    ts.exec("history", true, "foo", false);
 
-    // write to history file. Does not execute functions
+    // Verify commands are not currently in history then write to history file. Does not execute
+    // table ops.
+    ts.exec("history", true, table, false);
+    ts.exec("history", true, "createtable", false);
+    ts.exec("history", true, "deletetable", false);
     ts.writeToHistory("createtable " + table);
     ts.writeToHistory("deletetable -f " + table);
 
     // test that history command prints contents of history file
-    ts.exec("history", true, table, true);
+    ts.exec("history", true, "createtable " + table, true);
+    ts.exec("history", true, "deletetable -f " + table, true);
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
