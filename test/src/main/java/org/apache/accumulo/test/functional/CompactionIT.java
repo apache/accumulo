@@ -158,11 +158,12 @@ public class CompactionIT extends AccumuloClusterHarness {
           .setWait(true);
       c.tableOperations().compact(tableName, config);
 
-      List<String> files2 = FunctionalTestUtils.getRFilePaths(c, tableName);
-      assertFalse(files2.contains(files.get(0)));
-      assertTrue(files2.contains(files.get(1)));
-      assertTrue(files2.contains(files.get(2)));
-      assertFalse(files2.contains(files.get(3)));
+      // check that the subset of files selected are compacted, but the others remain untouched
+      List<String> filesAfterCompact = FunctionalTestUtils.getRFilePaths(c, tableName);
+      assertFalse(filesAfterCompact.contains(files.get(0)));
+      assertTrue(filesAfterCompact.contains(files.get(1)));
+      assertTrue(filesAfterCompact.contains(files.get(2)));
+      assertFalse(filesAfterCompact.contains(files.get(3)));
 
       List<Text> rows = new ArrayList<>();
       rows.add(new Text("1"));
