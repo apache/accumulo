@@ -66,6 +66,7 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.spi.cache.BlockCache;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.summary.Gatherer;
@@ -226,6 +227,9 @@ public class CompactableUtils {
         cfg.getClassName(), CompactionConfigurer.class);
 
     configurer.init(new CompactionConfigurer.InitParamaters() {
+
+      private final ServiceEnvironment senv = new ServiceEnvironmentImpl(tablet.getContext());
+
       @Override
       public Map<String,String> getOptions() {
         return cfg.getOptions();
@@ -233,7 +237,7 @@ public class CompactableUtils {
 
       @Override
       public PluginEnvironment getEnvironment() {
-        return new ServiceEnvironmentImpl(tablet.getContext());
+        return senv;
       }
 
       @Override
@@ -243,6 +247,9 @@ public class CompactableUtils {
     });
 
     var overrides = configurer.override(new CompactionConfigurer.InputParameters() {
+
+      private final ServiceEnvironment senv = new ServiceEnvironmentImpl(tablet.getContext());
+
       @Override
       public Collection<CompactableFile> getInputFiles() {
         return files;
@@ -250,7 +257,7 @@ public class CompactableUtils {
 
       @Override
       public PluginEnvironment getEnvironment() {
-        return new ServiceEnvironmentImpl(tablet.getContext());
+        return senv;
       }
 
       @Override
@@ -285,6 +292,8 @@ public class CompactableUtils {
         selectorConfig.getClassName(), CompactionSelector.class);
     selector.init(new CompactionSelector.InitParamaters() {
 
+      private final ServiceEnvironment senv = new ServiceEnvironmentImpl(tablet.getContext());
+
       @Override
       public Map<String,String> getOptions() {
         return selectorConfig.getOptions();
@@ -292,7 +301,7 @@ public class CompactableUtils {
 
       @Override
       public PluginEnvironment getEnvironment() {
-        return new ServiceEnvironmentImpl(tablet.getContext());
+        return senv;
       }
 
       @Override
@@ -303,9 +312,11 @@ public class CompactableUtils {
 
     Selection selection = selector.select(new CompactionSelector.SelectionParameters() {
 
+      private final ServiceEnvironment senv = new ServiceEnvironmentImpl(tablet.getContext());
+
       @Override
       public PluginEnvironment getEnvironment() {
-        return new ServiceEnvironmentImpl(tablet.getContext());
+        return senv;
       }
 
       @Override

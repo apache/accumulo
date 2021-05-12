@@ -87,6 +87,7 @@ public class CompactionService {
 
     private final Map<String,String> plannerOpts;
     private final Map<CompactionExecutorId,Integer> requestedExecutors;
+    private final ServiceEnvironment senv = new ServiceEnvironmentImpl(serverCtx);
 
     CpInitParams(Map<String,String> plannerOpts) {
       this.plannerOpts = plannerOpts;
@@ -95,7 +96,7 @@ public class CompactionService {
 
     @Override
     public ServiceEnvironment getServiceEnvironment() {
-      return new ServiceEnvironmentImpl(serverCtx);
+      return senv;
     }
 
     @Override
@@ -229,6 +230,8 @@ public class CompactionService {
 
     PlanningParameters params = new PlanningParameters() {
 
+      private final ServiceEnvironment senv = new ServiceEnvironmentImpl(serverCtx);
+
       @Override
       public TableId getTableId() {
         return compactable.getTableId();
@@ -236,7 +239,7 @@ public class CompactionService {
 
       @Override
       public ServiceEnvironment getServiceEnvironment() {
-        return new ServiceEnvironmentImpl(serverCtx);
+        return senv;
       }
 
       @Override

@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -46,6 +47,8 @@ import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.conf.ZooCachePropertyAccessor.PropCacheKey;
+
+import com.google.common.base.Suppliers;
 
 public class TableConfiguration extends AccumuloConfiguration {
 
@@ -213,6 +216,11 @@ public class TableConfiguration extends AccumuloConfiguration {
         conf.getAllPropertiesWithPrefixStripped(Property.TABLE_SCAN_DISPATCHER_OPTS);
 
     newDispatcher.init(new ScanDispatcher.InitParameters() {
+
+      // scan dispatcher are in the critical path for scans, so only create ServiceEnv if needed.
+      private final Supplier<ServiceEnvironment> senvSupplier =
+          Suppliers.memoize(() -> new ServiceEnvironmentImpl(context));
+
       @Override
       public TableId getTableId() {
         return tableId;
@@ -225,7 +233,7 @@ public class TableConfiguration extends AccumuloConfiguration {
 
       @Override
       public ServiceEnvironment getServiceEnv() {
-        return new ServiceEnvironmentImpl(context);
+        return senvSupplier.get();
       }
     });
 
@@ -241,6 +249,9 @@ public class TableConfiguration extends AccumuloConfiguration {
         conf.getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_DISPATCHER_OPTS);
 
     newDispatcher.init(new CompactionDispatcher.InitParameters() {
+
+      private final ServiceEnvironment senv = new ServiceEnvironmentImpl(context);
+
       @Override
       public TableId getTableId() {
         return tableId;
@@ -253,7 +264,7 @@ public class TableConfiguration extends AccumuloConfiguration {
 
       @Override
       public ServiceEnvironment getServiceEnv() {
-        return new ServiceEnvironmentImpl(context);
+        return senv;
       }
     });
 
