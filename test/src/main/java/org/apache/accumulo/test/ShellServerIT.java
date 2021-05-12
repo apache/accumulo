@@ -1440,11 +1440,16 @@ public class ShellServerIT extends SharedMiniClusterBase {
   public void history() throws Exception {
     final String table = getUniqueNames(1)[0];
 
-    ts.exec("history -c", true);
+    // test clear history command works
+    ts.writeToHistory("foo");
+    ts.exec("history -c", true, "foo", false);
+
+    // write to history file. Does not execute functions
     ts.writeToHistory("createtable " + table);
     ts.writeToHistory("deletetable -f " + table);
+
+    // test that history command prints contents of history file
     ts.exec("history", true, table, true);
-    ts.exec("history", true, "foo", false);
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
