@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -35,6 +36,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
@@ -54,7 +56,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,9 +121,10 @@ public class CompactionIT extends AccumuloClusterHarness {
   public void testBadSelector() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
+      NewTableConfiguration tc = new NewTableConfiguration();
       // Ensure compactions don't kick off
-      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "10.0");
+      tc.setProperties(Map.of(Property.TABLE_MAJC_RATIO.getKey(), "10.0"));
+      c.tableOperations().create(tableName, tc);
       // Create multiple RFiles
       BatchWriter bw = c.createBatchWriter(tableName);
       Mutation m = new Mutation("1");
@@ -146,8 +148,8 @@ public class CompactionIT extends AccumuloClusterHarness {
       bw.close();
       c.tableOperations().flush(tableName, new Text("0"), new Text("9"), true);
 
-      List<String> files = FunctionalTestUtils.getRFileNames(c, tableName);
-      Assert.assertEquals(4, files.size());
+      List<String> files = FunctionalTestUtils.getRFilePaths(c, tableName);
+      assertEquals(4, files.size());
 
       String subset = files.get(0).substring(files.get(0).lastIndexOf('/') + 1) + ","
           + files.get(3).substring(files.get(3).lastIndexOf('/') + 1);
@@ -158,9 +160,21 @@ public class CompactionIT extends AccumuloClusterHarness {
           .setWait(true);
       c.tableOperations().compact(tableName, config);
 
-      List<String> files2 = FunctionalTestUtils.getRFileNames(c, tableName);
-      Assert.assertFalse(files2.contains(files.get(0)));
-      Assert.assertFalse(files2.contains(files.get(3)));
+      List<String> files2 = FunctionalTestUtils.getRFilePaths(c, tableName);
+      assertFalse(files2.contains(files.get(0)));
+      assertTrue(files2.contains(files.get(1)));
+      assertTrue(files2.contains(files.get(2)));
+      assertFalse(files2.contains(files.get(3)));
+
+      List<Text> rows = new ArrayList<>();
+      rows.add(new Text("1"));
+      rows.add(new Text("2"));
+      rows.add(new Text("3"));
+      rows.add(new Text("4"));
+      c.createScanner(tableName).forEach((k, v) -> {
+        assertTrue(rows.remove(k.getRow()));
+      });
+      assertEquals(0, rows.size());
     }
   }
 

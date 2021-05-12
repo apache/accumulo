@@ -83,7 +83,7 @@ public class FunctionalTestUtils {
     }
   }
 
-  public static List<String> getRFileNames(AccumuloClient c, String tableName) throws Exception {
+  public static List<String> getRFilePaths(AccumuloClient c, String tableName) throws Exception {
     List<String> files = new ArrayList<>();
     try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
       TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
