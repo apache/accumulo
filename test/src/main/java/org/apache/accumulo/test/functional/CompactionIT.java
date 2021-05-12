@@ -18,9 +18,14 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -28,8 +33,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.PluginConfig;
+import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -48,9 +61,43 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 
 @SuppressWarnings("removal")
 public class CompactionIT extends AccumuloClusterHarness {
+
+  public static class RandomErrorThrowingSelector implements CompactionSelector {
+
+    public static final String FILE_LIST_PARAM = "filesToCompact";
+    private static Boolean ERROR_THROWN = Boolean.FALSE;
+
+    private List<String> filesToCompact;
+
+    @Override
+    public void init(InitParamaters iparams) {
+      String files = iparams.getOptions().get(FILE_LIST_PARAM);
+      Objects.requireNonNull(files);
+      String[] f = files.split(",");
+      filesToCompact = Lists.newArrayList(f);
+    }
+
+    @Override
+    public Selection select(SelectionParameters sparams) {
+      if (!ERROR_THROWN) {
+        ERROR_THROWN = Boolean.TRUE;
+        throw new RuntimeException("Exception for test");
+      }
+      List<CompactableFile> matches = new ArrayList<>();
+      sparams.getAvailableFiles().forEach(cf -> {
+        if (filesToCompact.contains(cf.getFileName())) {
+          matches.add(cf);
+        }
+      });
+      return new Selection(matches);
+    }
+
+  }
+
   private static final Logger log = LoggerFactory.getLogger(CompactionIT.class);
 
   @Override
@@ -66,6 +113,50 @@ public class CompactionIT extends AccumuloClusterHarness {
   @Override
   protected int defaultTimeoutSeconds() {
     return 4 * 60;
+  }
+
+  @Test
+  public void testBadSelector() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      final String tableName = getUniqueNames(1)[0];
+      NewTableConfiguration tc = new NewTableConfiguration();
+      // Ensure compactions don't kick off
+      tc.setProperties(Map.of(Property.TABLE_MAJC_RATIO.getKey(), "10.0"));
+      c.tableOperations().create(tableName, tc);
+      // Create multiple RFiles
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (int i = 1; i <= 4; i++) {
+          Mutation m = new Mutation(Integer.toString(i));
+          m.put("cf", "cq", new Value());
+          bw.addMutation(m);
+          bw.flush();
+          c.tableOperations().flush(tableName, null, null, true);
+        }
+      }
+
+      List<String> files = FunctionalTestUtils.getRFilePaths(c, tableName);
+      assertEquals(4, files.size());
+
+      String subset = files.get(0).substring(files.get(0).lastIndexOf('/') + 1) + ","
+          + files.get(3).substring(files.get(3).lastIndexOf('/') + 1);
+
+      CompactionConfig config = new CompactionConfig()
+          .setSelector(new PluginConfig(RandomErrorThrowingSelector.class.getName(),
+              Map.of(RandomErrorThrowingSelector.FILE_LIST_PARAM, subset)))
+          .setWait(true);
+      c.tableOperations().compact(tableName, config);
+
+      // check that the subset of files selected are compacted, but the others remain untouched
+      List<String> filesAfterCompact = FunctionalTestUtils.getRFilePaths(c, tableName);
+      assertFalse(filesAfterCompact.contains(files.get(0)));
+      assertTrue(filesAfterCompact.contains(files.get(1)));
+      assertTrue(filesAfterCompact.contains(files.get(2)));
+      assertFalse(filesAfterCompact.contains(files.get(3)));
+
+      List<String> rows = new ArrayList<>();
+      c.createScanner(tableName).forEach((k, v) -> rows.add(k.getRow().toString()));
+      assertEquals(List.of("1", "2", "3", "4"), rows);
+    }
   }
 
   @Test
