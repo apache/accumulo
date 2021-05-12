@@ -153,15 +153,9 @@ public class CompactionIT extends AccumuloClusterHarness {
       assertTrue(filesAfterCompact.contains(files.get(2)));
       assertFalse(filesAfterCompact.contains(files.get(3)));
 
-      List<Text> rows = new ArrayList<>();
-      rows.add(new Text("1"));
-      rows.add(new Text("2"));
-      rows.add(new Text("3"));
-      rows.add(new Text("4"));
-      c.createScanner(tableName).forEach((k, v) -> {
-        assertTrue(rows.remove(k.getRow()));
-      });
-      assertEquals(0, rows.size());
+      List<String> rows = new ArrayList<>();
+      c.createScanner(tableName).forEach((k, v) -> rows.add(k.getRow().toString()));
+      assertEquals(List.of("1", "2", "3", "4"), actualRows);
     }
   }
 
