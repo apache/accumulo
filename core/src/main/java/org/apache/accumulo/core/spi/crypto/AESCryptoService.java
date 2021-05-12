@@ -64,17 +64,17 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 public class AESCryptoService implements CryptoService {
   // properties required for using this service
-  public static final String CRYPTO_PREFIX = "instance.crypto.opts.";
-  public static final String KEY_URI = CRYPTO_PREFIX + "key.uri";
+  private static final String CRYPTO_PREFIX = "instance.crypto.opts.";
+  private static final String KEY_URI = CRYPTO_PREFIX + "key.uri";
   // optional properties
   // defaults to true
-  public static final String ENCRYPT_ENABLED = CRYPTO_PREFIX + "enabled";
+  private static final String ENCRYPT_ENABLED = CRYPTO_PREFIX + "enabled";
 
   // Hard coded NoCryptoService.VERSION - this permits the removal of NoCryptoService from the
   // core jar, allowing use of only one crypto service
   private static final String NO_CRYPTO_VERSION = "U+1F47B";
-  public static final String URI = "uri";
-  public static final String KEY_WRAP_TRANSFORM = "AESWrap";
+  private static final String URI = "uri";
+  private static final String KEY_WRAP_TRANSFORM = "AESWrap";
 
   private Key encryptingKek = null;
   private String keyLocation = null;
