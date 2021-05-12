@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
  * This class generates documentation to inform users of the available configuration properties in a
  * presentable form.
  */
-class ConfigurationDocGen {
+public class ConfigurationDocGen {
   private abstract class Format {
 
     abstract void beginSection(String section);
