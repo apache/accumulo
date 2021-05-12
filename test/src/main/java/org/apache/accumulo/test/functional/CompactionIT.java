@@ -69,7 +69,6 @@ public class CompactionIT extends AccumuloClusterHarness {
   public static class RandomErrorThrowingSelector implements CompactionSelector {
 
     public static String FILE_LIST_PARAM = "filesToCompact";
-    private static final Logger LOG = LoggerFactory.getLogger(RandomErrorThrowingSelector.class);
     private static Boolean ERROR_THROWN = Boolean.FALSE;
 
     private List<String> filesToCompact;
@@ -90,7 +89,6 @@ public class CompactionIT extends AccumuloClusterHarness {
       }
       List<CompactableFile> matches = new ArrayList<>();
       sparams.getAvailableFiles().forEach(cf -> {
-        LOG.info("Tablet file: {}", cf);
         if (filesToCompact.contains(cf.getFileName())) {
           matches.add(cf);
         }
