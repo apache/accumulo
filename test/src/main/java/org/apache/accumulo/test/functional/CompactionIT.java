@@ -68,7 +68,7 @@ public class CompactionIT extends AccumuloClusterHarness {
 
   public static class RandomErrorThrowingSelector implements CompactionSelector {
 
-    public static String FILE_LIST_PARAM = "filesToCompact";
+    public static final String FILE_LIST_PARAM = "filesToCompact";
     private static Boolean ERROR_THROWN = Boolean.FALSE;
 
     private List<String> filesToCompact;
