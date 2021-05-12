@@ -34,7 +34,7 @@ public interface CompactionConfigurer {
   /**
    * @since 2.1.0
    */
-  public interface InitParamaters {
+  public interface InitParameters {
     TableId getTableId();
 
     Map<String,String> getOptions();
@@ -42,7 +42,7 @@ public interface CompactionConfigurer {
     PluginEnvironment getEnvironment();
   }
 
-  void init(InitParamaters iparams);
+  void init(InitParameters iparams);
 
   /**
    * @since 2.1.0

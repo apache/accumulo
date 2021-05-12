@@ -226,10 +226,9 @@ public class CompactableUtils {
     CompactionConfigurer configurer = CompactableUtils.newInstance(tablet.getTableConfiguration(),
         cfg.getClassName(), CompactionConfigurer.class);
 
-    configurer.init(new CompactionConfigurer.InitParamaters() {
+    final ServiceEnvironment senv = new ServiceEnvironmentImpl(tablet.getContext());
 
-      private final ServiceEnvironment senv = new ServiceEnvironmentImpl(tablet.getContext());
-
+    configurer.init(new CompactionConfigurer.InitParameters() {
       @Override
       public Map<String,String> getOptions() {
         return cfg.getOptions();
@@ -247,9 +246,6 @@ public class CompactableUtils {
     });
 
     var overrides = configurer.override(new CompactionConfigurer.InputParameters() {
-
-      private final ServiceEnvironment senv = new ServiceEnvironmentImpl(tablet.getContext());
-
       @Override
       public Collection<CompactableFile> getInputFiles() {
         return files;
@@ -290,10 +286,10 @@ public class CompactableUtils {
 
     CompactionSelector selector = newInstance(tablet.getTableConfiguration(),
         selectorConfig.getClassName(), CompactionSelector.class);
+
+    final ServiceEnvironment senv = new ServiceEnvironmentImpl(tablet.getContext());
+
     selector.init(new CompactionSelector.InitParamaters() {
-
-      private final ServiceEnvironment senv = new ServiceEnvironmentImpl(tablet.getContext());
-
       @Override
       public Map<String,String> getOptions() {
         return selectorConfig.getOptions();
@@ -311,9 +307,6 @@ public class CompactableUtils {
     });
 
     Selection selection = selector.select(new CompactionSelector.SelectionParameters() {
-
-      private final ServiceEnvironment senv = new ServiceEnvironmentImpl(tablet.getContext());
-
       @Override
       public PluginEnvironment getEnvironment() {
         return senv;

@@ -180,8 +180,7 @@ public class TabletServerResourceManager {
         Comparator<ScanInfo> comparator =
             factory.createComparator(new ScanPrioritizer.CreateParameters() {
 
-              private final Supplier<ServiceEnvironment> senvSupplier =
-                  Suppliers.memoize(() -> new ServiceEnvironmentImpl(context));
+              private final ServiceEnvironment senv = new ServiceEnvironmentImpl(context);
 
               @Override
               public Map<String,String> getOptions() {
@@ -190,7 +189,7 @@ public class TabletServerResourceManager {
 
               @Override
               public ServiceEnvironment getServiceEnv() {
-                return senvSupplier.get();
+                return senv;
               }
             });
 
