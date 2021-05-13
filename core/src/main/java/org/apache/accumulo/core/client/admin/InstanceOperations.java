@@ -116,7 +116,7 @@ public interface InstanceOperations {
       throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * List all compactions running in Accumulo
+   * List all internal and external compactions running in Accumulo.
    *
    * @return the list of active compactions
    * @since 2.1.0
