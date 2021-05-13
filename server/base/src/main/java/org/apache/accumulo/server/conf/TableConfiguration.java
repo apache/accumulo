@@ -213,6 +213,9 @@ public class TableConfiguration extends AccumuloConfiguration {
         conf.getAllPropertiesWithPrefixStripped(Property.TABLE_SCAN_DISPATCHER_OPTS);
 
     newDispatcher.init(new ScanDispatcher.InitParameters() {
+
+      private final ServiceEnvironment senv = new ServiceEnvironmentImpl(context);
+
       @Override
       public TableId getTableId() {
         return tableId;
@@ -225,7 +228,7 @@ public class TableConfiguration extends AccumuloConfiguration {
 
       @Override
       public ServiceEnvironment getServiceEnv() {
-        return new ServiceEnvironmentImpl(context);
+        return senv;
       }
     });
 
@@ -241,6 +244,9 @@ public class TableConfiguration extends AccumuloConfiguration {
         conf.getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_DISPATCHER_OPTS);
 
     newDispatcher.init(new CompactionDispatcher.InitParameters() {
+
+      private final ServiceEnvironment senv = new ServiceEnvironmentImpl(context);
+
       @Override
       public TableId getTableId() {
         return tableId;
@@ -253,7 +259,7 @@ public class TableConfiguration extends AccumuloConfiguration {
 
       @Override
       public ServiceEnvironment getServiceEnv() {
-        return new ServiceEnvironmentImpl(context);
+        return senv;
       }
     });
 
