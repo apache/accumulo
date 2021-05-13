@@ -289,7 +289,7 @@ public class CompactableUtils {
 
     final ServiceEnvironment senv = new ServiceEnvironmentImpl(tablet.getContext());
 
-    selector.init(new CompactionSelector.InitParamaters() {
+    selector.init(new CompactionSelector.InitParameters() {
       @Override
       public Map<String,String> getOptions() {
         return selectorConfig.getOptions();
