@@ -74,7 +74,7 @@ public class CompactionIT extends AccumuloClusterHarness {
     private List<String> filesToCompact;
 
     @Override
-    public void init(InitParamaters iparams) {
+    public void init(InitParameters iparams) {
       String files = iparams.getOptions().get(FILE_LIST_PARAM);
       Objects.requireNonNull(files);
       String[] f = files.split(",");
