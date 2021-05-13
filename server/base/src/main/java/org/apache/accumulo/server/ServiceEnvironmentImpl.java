@@ -34,12 +34,11 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
   private final ServerContext srvCtx;
   private final Configuration conf;
-  private final Map<TableId,Configuration> tableConfigs;
+  private final Map<TableId,Configuration> tableConfigs = new ConcurrentHashMap<>();
 
   public ServiceEnvironmentImpl(ServerContext ctx) {
     this.srvCtx = ctx;
     this.conf = new ConfigurationImpl(srvCtx.getConfiguration());
-    this.tableConfigs = new ConcurrentHashMap<>();
   }
 
   @Override
