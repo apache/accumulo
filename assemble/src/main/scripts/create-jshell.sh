@@ -38,25 +38,18 @@ function addAccumuloAPI() {
 
 function addClientBuild() {
 cat <<EOF
-  URL clientPropUrl = 
+  URL clientPropUrl =
     AccumuloClient.class.getClassLoader().getResource("accumulo-client.properties");
   AccumuloClient client = null;
-  String name; String zk; String principal; String token;
-      
+
   // Does Accumulo properties exists?
   if (clientPropUrl != null) {
-    var prop = new Properties(); 
 
-    // Load in Accumulo properties
-    System.out.println("Building Accumulo client using '" + clientPropUrl + "'\n");
-    try (var in = clientPropUrl.openStream()) {
-      prop.load(in);
-    }
-    // Build Accumulo Client after try-with-resources is closed
-    client = Accumulo.newClient().from(prop).build();
+    // Build Accumulo Client
+    client = Accumulo.newClient().from(clientPropUrl).build();
     System.out.println("Use 'client' to interact with Accumulo\n");
-    
-  } else 
+
+  } else
       System.out.println("'accumulo-client.properties' was not found on the classpath\n");
 EOF
 }
