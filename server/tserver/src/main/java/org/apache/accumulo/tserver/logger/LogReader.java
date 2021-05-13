@@ -22,7 +22,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.DataInputStream;
 import java.io.EOFException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -37,6 +36,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.log.RecoveryLogReader;
@@ -47,10 +47,14 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
-public class LogReader {
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@AutoService(KeywordExecutable.class)
+public class LogReader implements KeywordExecutable {
+
   private static final Logger log = LoggerFactory.getLogger(LogReader.class);
 
   static class Opts extends Help {
@@ -73,19 +77,37 @@ public class LogReader {
    * @param args
    *          - first argument is the file to print
    */
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws Exception {
+    new LogReader().execute(args);
+  }
+
+  @Override
+  public String keyword() {
+    return "wal-info";
+  }
+
+  @Override
+  public String description() {
+    return "Prints WAL Info";
+  }
+
+  @SuppressFBWarnings(value = "DM_EXIT",
+      justification = "System.exit is fine here because it's a utility class executed by a main()")
+  @Override
+  public void execute(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(LogReader.class.getName(), args);
+    opts.parseArgs("accumulo wal-info", args);
+    if (opts.files.isEmpty()) {
+      System.err.println("No WAL files were given");
+      System.exit(1);
+    }
+
     var siteConfig = SiteConfiguration.auto();
     try (var fs = VolumeManagerImpl.get(siteConfig, new Configuration())) {
 
       Matcher rowMatcher = null;
       KeyExtent ke = null;
       Text row = null;
-      if (opts.files.isEmpty()) {
-        new JCommander(opts).usage();
-        return;
-      }
       if (opts.row != null) {
         row = new Text(opts.row);
       }
