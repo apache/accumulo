@@ -20,6 +20,7 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createClient;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createTransport;
 import static org.apache.accumulo.core.rpc.ThriftUtil.getTServerClient;
@@ -30,9 +31,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -228,14 +229,13 @@ public class InstanceOperationsImpl implements InstanceOperations {
       }
 
       for (HostAndPort compactorAddr : compactors) {
-        futures
-            .add(
-                executorService
-                    .submit(
-                        () -> ExternalCompactionUtil.getActiveCompaction(compactorAddr, context)
-                            .stream().map(tac -> new ActiveCompactionImpl(context, tac,
-                                compactorAddr, CompactionHost.Type.COMPACTOR))
-                            .collect(Collectors.toList())));
+        Callable<List<ActiveCompaction>> task =
+            () -> ExternalCompactionUtil.getActiveCompaction(compactorAddr, context).stream()
+                .map(tac -> new ActiveCompactionImpl(context, tac, compactorAddr,
+                    CompactionHost.Type.COMPACTOR))
+                .collect(toList());
+
+        futures.add(executorService.submit(task));
       }
 
       List<ActiveCompaction> ret = new ArrayList<>();
