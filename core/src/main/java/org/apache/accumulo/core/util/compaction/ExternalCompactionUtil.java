@@ -64,7 +64,7 @@ public class ExternalCompactionUtil {
     if (address == null) {
       return null;
     }
-    return address.getHost() + ":" + address.getPort();
+    return address.toString();
   }
 
   /**
