@@ -37,11 +37,11 @@ public class ExternalCompactionFinalState {
     FINISHED, FAILED
   }
 
-  private ExternalCompactionId ecid;
-  private KeyExtent extent;
-  private FinalState state;
-  private long fileSize;
-  private long fileEntries;
+  private final ExternalCompactionId ecid;
+  private final KeyExtent extent;
+  private final FinalState state;
+  private final long fileSize;
+  private final long fileEntries;
 
   public ExternalCompactionFinalState(ExternalCompactionId ecid, KeyExtent extent, FinalState state,
       long fileSize, long fileEntries) {
@@ -78,18 +78,22 @@ public class ExternalCompactionFinalState {
   // class must consider persisted data.
   private static class Extent {
 
-    String tableId;
-    String er;
-    String per;
+    final String tableId;
+    final String er;
+    final String per;
 
     Extent(KeyExtent extent) {
       this.tableId = extent.tableId().canonical();
       if (extent.endRow() != null) {
         er = Base64.getEncoder().encodeToString(TextUtil.getBytes(extent.endRow()));
+      } else {
+        er = null;
       }
 
       if (extent.prevEndRow() != null) {
         per = Base64.getEncoder().encodeToString(TextUtil.getBytes(extent.prevEndRow()));
+      } else {
+        per = null;
       }
     }
 
