@@ -777,7 +777,13 @@ public class CompactableImpl implements Compactable {
     Set<StoredTabletFile> selectedFiles;
   }
 
-  private CompactionInfo reserveFilesForCompaction(CompactionServiceId service, CompactionJob job) {
+  /**
+   * Attempt to reserve files for compaction. Its possible that since a compaction job was queued
+   * that things have changed and there is no longer anything to do for the job. In this case
+   * Optional.empty() is returned.
+   */
+  private Optional<CompactionInfo> reserveFilesForCompaction(CompactionServiceId service,
+      CompactionJob job) {
     CompactionInfo cInfo = new CompactionInfo();
 
     cInfo.jobFiles = job.getFiles().stream()
@@ -788,10 +794,10 @@ public class CompactableImpl implements Compactable {
 
     synchronized (this) {
       if (closed)
-        return null;
+        return Optional.empty();
 
       if (!service.equals(getConfiguredService(job.getKind())))
-        return null;
+        return Optional.empty();
 
       switch (selectStatus) {
         case NEW:
@@ -799,7 +805,7 @@ public class CompactableImpl implements Compactable {
           log.trace(
               "Ignoring compaction because files are being selected for user compaction {} {}",
               getExtent(), job);
-          return null;
+          return Optional.empty();
         case SELECTED: {
           if (job.getKind() == CompactionKind.USER || job.getKind() == CompactionKind.SELECTOR) {
             if (selectKind == job.getKind()) {
@@ -807,17 +813,17 @@ public class CompactableImpl implements Compactable {
                 log.error("Ignoring {} compaction that does not contain selected files {} {} {}",
                     job.getKind(), getExtent(), asFileNames(selectedFiles),
                     asFileNames(cInfo.jobFiles));
-                return null;
+                return Optional.empty();
               }
             } else {
               log.trace("Ingoring {} compaction because not selected kind {}", job.getKind(),
                   getExtent());
-              return null;
+              return Optional.empty();
             }
           } else if (!Collections.disjoint(selectedFiles, cInfo.jobFiles)) {
             log.trace("Ingoring compaction that overlaps with selected files {} {} {}", getExtent(),
                 job.getKind(), asFileNames(Sets.intersection(selectedFiles, cInfo.jobFiles)));
-            return null;
+            return Optional.empty();
           }
           break;
         }
@@ -826,7 +832,7 @@ public class CompactableImpl implements Compactable {
           if (job.getKind() == CompactionKind.USER || job.getKind() == CompactionKind.SELECTOR) {
             log.trace("Ignoring {} compaction because selectStatus is {} for {}", job.getKind(),
                 selectStatus, getExtent());
-            return null;
+            return Optional.empty();
           }
           break;
         }
@@ -838,7 +844,7 @@ public class CompactableImpl implements Compactable {
         allCompactingFiles.addAll(cInfo.jobFiles);
         runnningJobs.add(job);
       } else {
-        return null;
+        return Optional.empty();
       }
 
       compactionRunning = !allCompactingFiles.isEmpty();
@@ -875,7 +881,7 @@ public class CompactableImpl implements Compactable {
       cInfo.localCompactionCfg = this.compactionConfig;
     }
 
-    return cInfo;
+    return Optional.of(cInfo);
   }
 
   private void completeCompaction(CompactionJob job, Set<StoredTabletFile> jobFiles,
@@ -907,10 +913,11 @@ public class CompactableImpl implements Compactable {
   public void compact(CompactionServiceId service, CompactionJob job, RateLimiter readLimiter,
       RateLimiter writeLimiter, long queuedTime) {
 
-    CompactionInfo cInfo = reserveFilesForCompaction(service, job);
-    if (cInfo == null)
+    Optional<CompactionInfo> ocInfo = reserveFilesForCompaction(service, job);
+    if (ocInfo.isEmpty())
       return;
 
+    var cInfo = ocInfo.get();
     StoredTabletFile metaFile = null;
     long startTime = System.currentTimeMillis();
     // create an empty stats object to be populated by CompactableUtils.compact()
@@ -945,9 +952,12 @@ public class CompactableImpl implements Compactable {
 
     Preconditions.checkState(!tablet.getExtent().isMeta());
 
-    CompactionInfo cInfo = reserveFilesForCompaction(service, job);
-    if (cInfo == null)
+    Optional<CompactionInfo> ocInfo = reserveFilesForCompaction(service, job);
+    if (ocInfo.isEmpty())
       return null;
+
+    var cInfo = ocInfo.get();
+
     try {
       AccumuloConfiguration compactionConfig = CompactableUtils.getCompactionConfig(job.getKind(),
           tablet, cInfo.localHelper, job.getFiles());
