@@ -122,7 +122,7 @@ import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.compaction.CompactionInfo;
-import org.apache.accumulo.server.compaction.Compactor;
+import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.TooManyFilesException;
@@ -1648,7 +1648,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       throw e;
     }
 
-    List<CompactionInfo> compactions = Compactor.getRunningCompactions();
+    List<CompactionInfo> compactions = FileCompactor.getRunningCompactions();
     List<ActiveCompaction> ret = new ArrayList<>(compactions.size());
 
     for (CompactionInfo compactionInfo : compactions) {

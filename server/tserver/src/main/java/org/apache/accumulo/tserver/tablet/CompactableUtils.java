@@ -78,9 +78,9 @@ import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.compaction.CompactionStats;
-import org.apache.accumulo.server.compaction.Compactor;
-import org.apache.accumulo.server.compaction.Compactor.CompactionCanceledException;
-import org.apache.accumulo.server.compaction.Compactor.CompactionEnv;
+import org.apache.accumulo.server.compaction.FileCompactor;
+import org.apache.accumulo.server.compaction.FileCompactor.CompactionCanceledException;
+import org.apache.accumulo.server.compaction.FileCompactor.CompactionEnv;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
@@ -599,8 +599,8 @@ public class CompactableUtils {
     TabletFile newFile = tablet.getNextMapFilename(!propogateDeletes ? "A" : "C");
     TabletFile compactTmpName = new TabletFile(new Path(newFile.getMetaInsert() + "_tmp"));
 
-    Compactor compactor = new Compactor(tablet.getContext(), tablet.getExtent(), compactFiles,
-        compactTmpName, propogateDeletes, cenv, iters, tableConfig);
+    FileCompactor compactor = new FileCompactor(tablet.getContext(), tablet.getExtent(),
+        compactFiles, compactTmpName, propogateDeletes, cenv, iters, tableConfig);
 
     var mcs = compactor.call();
 

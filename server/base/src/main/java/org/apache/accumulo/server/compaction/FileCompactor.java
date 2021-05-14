@@ -70,8 +70,8 @@ import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Compactor implements Callable<CompactionStats> {
-  private static final Logger log = LoggerFactory.getLogger(Compactor.class);
+public class FileCompactor implements Callable<CompactionStats> {
+  private static final Logger log = LoggerFactory.getLogger(FileCompactor.class);
   private static final AtomicLong nextCompactorID = new AtomicLong(0);
 
   public static class CompactionCanceledException extends Exception {
@@ -135,14 +135,14 @@ public class Compactor implements Callable<CompactionStats> {
     entriesWritten.set(0);
   }
 
-  protected static final Set<Compactor> runningCompactions =
+  protected static final Set<FileCompactor> runningCompactions =
       Collections.synchronizedSet(new HashSet<>());
 
   public static List<CompactionInfo> getRunningCompactions() {
     ArrayList<CompactionInfo> compactions = new ArrayList<>();
 
     synchronized (runningCompactions) {
-      for (Compactor compactor : runningCompactions) {
+      for (FileCompactor compactor : runningCompactions) {
         compactions.add(new CompactionInfo(compactor));
       }
     }
@@ -150,7 +150,7 @@ public class Compactor implements Callable<CompactionStats> {
     return compactions;
   }
 
-  public Compactor(ServerContext context, KeyExtent extent,
+  public FileCompactor(ServerContext context, KeyExtent extent,
       Map<StoredTabletFile,DataFileValue> files, TabletFile outputFile, boolean propogateDeletes,
       CompactionEnv env, List<IteratorSetting> iterators, AccumuloConfiguration tableConfiguation) {
     this.context = context;

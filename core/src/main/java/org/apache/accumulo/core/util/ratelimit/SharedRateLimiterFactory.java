@@ -99,20 +99,6 @@ public class SharedRateLimiterFactory {
     }
   }
 
-  /**
-   * Remove the rate limiter from the set of active limiters, if it exists
-   *
-   * @param name
-   *          key for the rate limiter
-   */
-  public void remove(String name) {
-    synchronized (activeLimiters) {
-      if (activeLimiters.containsKey(name)) {
-        activeLimiters.remove(name);
-      }
-    }
-  }
-
   private void copyAndThen(String actionName, Consumer<SharedRateLimiter> action) {
     Map<String,SharedRateLimiter> limitersCopy = new HashMap<>();
     // synchronize only for copy

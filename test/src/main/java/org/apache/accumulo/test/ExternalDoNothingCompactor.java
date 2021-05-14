@@ -29,7 +29,7 @@ import org.apache.accumulo.core.compaction.thrift.Compactor.Iface;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.server.compaction.Compactor.CompactionCanceledException;
+import org.apache.accumulo.server.compaction.FileCompactor.CompactionCanceledException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

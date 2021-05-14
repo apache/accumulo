@@ -70,7 +70,7 @@ import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.compaction.CompactionStats;
-import org.apache.accumulo.server.compaction.Compactor.CompactionCanceledException;
+import org.apache.accumulo.server.compaction.FileCompactor.CompactionCanceledException;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.tserver.compactions.Compactable;
 import org.apache.accumulo.tserver.compactions.CompactionManager;

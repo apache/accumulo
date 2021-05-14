@@ -74,6 +74,8 @@ public class ExternalCompactionFinalState {
     return fileEntries;
   }
 
+  // This class is used to serialize and deserialize this class using GSon. Any changes to this
+  // class must consider persisted data.
   private static class Extent {
 
     String tableId;
@@ -102,6 +104,8 @@ public class ExternalCompactionFinalState {
     }
   }
 
+  // This class is used to serialize and deserialize this class using GSon. Any changes to this
+  // class must consider persisted data.
   private static class JsonData {
     Extent extent;
     String state;

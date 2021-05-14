@@ -559,8 +559,8 @@ public class Compactor extends AbstractServer
               .forEach(tis -> iters.add(SystemIteratorUtil.toIteratorSetting(tis)));
 
           CompactionEnvironment cenv = new CompactionEnvironment(JOB_HOLDER, queueName);
-          org.apache.accumulo.server.compaction.Compactor compactor =
-              new org.apache.accumulo.server.compaction.Compactor(getContext(),
+          org.apache.accumulo.server.compaction.FileCompactor compactor =
+              new org.apache.accumulo.server.compaction.FileCompactor(getContext(),
                   KeyExtent.fromThrift(job.getExtent()), files, outputFile,
                   job.isPropagateDeletes(), cenv, iters, tConfig);
 
@@ -690,7 +690,7 @@ public class Compactor extends AbstractServer
 
           while (!stopped.await(waitTime, TimeUnit.SECONDS)) {
             List<CompactionInfo> running =
-                org.apache.accumulo.server.compaction.Compactor.getRunningCompactions();
+                org.apache.accumulo.server.compaction.FileCompactor.getRunningCompactions();
             if (!running.isEmpty()) {
               // Compaction has started. There should only be one in the list
               CompactionInfo info = running.get(0);
@@ -822,7 +822,7 @@ public class Compactor extends AbstractServer
     }
 
     List<CompactionInfo> compactions =
-        org.apache.accumulo.server.compaction.Compactor.getRunningCompactions();
+        org.apache.accumulo.server.compaction.FileCompactor.getRunningCompactions();
     List<ActiveCompaction> ret = new ArrayList<>(compactions.size());
 
     for (CompactionInfo compactionInfo : compactions) {

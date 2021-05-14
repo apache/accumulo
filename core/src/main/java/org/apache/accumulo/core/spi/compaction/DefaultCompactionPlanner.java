@@ -119,10 +119,10 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
       CompactionExecutorId ceid;
 
-      if (executorConfig.externalQueue == null) {
+      if (executorConfig.numThreads != null && executorConfig.externalQueue == null) {
         ceid = params.getExecutorManager().createExecutor(executorConfig.name,
             executorConfig.numThreads);
-      } else if (executorConfig.numThreads == null) {
+      } else if (executorConfig.externalQueue != null && executorConfig.numThreads == null) {
         ceid = params.getExecutorManager().getExternalExecutor(executorConfig.externalQueue);
       } else {
         throw new IllegalArgumentException(

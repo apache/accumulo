@@ -34,13 +34,13 @@ import org.apache.accumulo.core.tabletserver.thrift.TCompactionType;
 
 public class CompactionInfo {
 
-  private final Compactor compactor;
+  private final FileCompactor compactor;
   private final String localityGroup;
   private final long entriesRead;
   private final long entriesWritten;
   private final TCompactionReason reason;
 
-  CompactionInfo(Compactor compactor) {
+  CompactionInfo(FileCompactor compactor) {
     this.localityGroup = compactor.getCurrentLocalityGroup();
     this.entriesRead = compactor.getEntriesRead();
     this.entriesWritten = compactor.getEntriesWritten();
