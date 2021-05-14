@@ -138,15 +138,15 @@ public class MinorCompactor extends Compactor {
           // If the minor compaction stalls for too long during recovery, it can interfere with
           // other tables loading
           // Throw exception if this happens so assignments can be rescheduled.
+          ProblemReports.getInstance(tabletServer.getContext()).report(
+              new ProblemReport(getExtent().tableId(), ProblemType.FILE_WRITE, outputFileName, e));
           if (retryCounter >= 4 && mincReason.equals(MinorCompactionReason.RECOVERY)) {
-            log.warn("Minc is stuck for too long during recovery, throwing error for reschedule.");
-            ProblemReports.getInstance(tabletServer.getContext()).report(new ProblemReport(
-                getExtent().tableId(), ProblemType.FILE_WRITE, outputFileName, e));
+            log.warn(
+                "MinC ({}) is stuck for too long during recovery, throwing error to reschedule.",
+                getExtent(), e);
             throw new IllegalStateException(e);
           }
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName, e);
-          ProblemReports.getInstance(tabletServer.getContext()).report(
-              new ProblemReport(getExtent().tableId(), ProblemType.FILE_WRITE, outputFileName, e));
           reportedProblem = true;
           retryCounter++;
         } catch (CompactionCanceledException e) {
