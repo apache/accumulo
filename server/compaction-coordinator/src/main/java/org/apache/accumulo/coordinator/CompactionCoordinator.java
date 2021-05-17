@@ -221,16 +221,13 @@ public class CompactionCoordinator extends AbstractServer
         Iface> processor =
             new org.apache.accumulo.core.compaction.thrift.CompactionCoordinator.Processor<>(
                 rpcProxy);
-    Property maxMessageSizeProperty =
-        (aconf.get(Property.COORDINATOR_THRIFTCLIENT_MAX_MESSAGE_SIZE) != null
-            ? Property.COORDINATOR_THRIFTCLIENT_MAX_MESSAGE_SIZE
-            : Property.GENERAL_MAX_MESSAGE_SIZE);
+    Property maxMessageSizeProperty = (aconf.get(Property.COORDINATOR_MAX_MESSAGE_SIZE) != null
+        ? Property.COORDINATOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getMetricsSystem(), getContext(), getHostname(),
-        Property.COORDINATOR_THRIFTCLIENT_CLIENTPORT, processor, this.getClass().getSimpleName(),
+        Property.COORDINATOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.COORDINATOR_THRIFTCLIENT_PORTSEARCH,
-        Property.COORDINATOR_THRIFTCLIENT_MINTHREADS,
-        Property.COORDINATOR_THRIFTCLIENT_MINTHREADS_TIMEOUT,
-        Property.COORDINATOR_THRIFTCLIENT_THREADCHECK, maxMessageSizeProperty);
+        Property.COORDINATOR_MINTHREADS, Property.COORDINATOR_MINTHREADS_TIMEOUT,
+        Property.COORDINATOR_THREADCHECK, maxMessageSizeProperty);
     LOG.info("address = {}", sp.address);
     return sp;
   }
