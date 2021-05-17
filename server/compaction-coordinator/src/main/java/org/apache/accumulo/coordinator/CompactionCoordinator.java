@@ -636,13 +636,16 @@ public class CompactionCoordinator extends AbstractServer
     }
     LOG.info("Compaction completed, id: {}, stats: {}", externalCompactionId, stats);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
+    compactionFinalizer.commitCompaction(ecid, KeyExtent.fromThrift(textent), stats.fileSize,
+        stats.entriesWritten);
+    // It's possible that RUNNING might not have an entry for this ecid in the case
+    // of a coordinator restart when the Coordinator can't find the TServer for the
+    // corresponding external compaction.
     final RunningCompaction rc = RUNNING.get(ecid);
     if (null != rc) {
       RUNNING.remove(ecid, rc);
-      compactionFinalizer.commitCompaction(ecid, KeyExtent.fromThrift(textent), stats.fileSize,
-          stats.entriesWritten);
     } else {
-      LOG.error(
+      LOG.warn(
           "Compaction completed called by Compactor for {}, but no running compaction for that id.",
           externalCompactionId);
       throw new UnknownCompactionIdException();
@@ -659,12 +662,15 @@ public class CompactionCoordinator extends AbstractServer
     }
     LOG.info("Compaction failed, id: {}", externalCompactionId);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
+    compactionFinalizer.failCompactions(Map.of(ecid, KeyExtent.fromThrift(extent)));
+    // It's possible that RUNNING might not have an entry for this ecid in the case
+    // of a coordinator restart when the Coordinator can't find the TServer for the
+    // corresponding external compaction.
     final RunningCompaction rc = RUNNING.get(ecid);
     if (null != rc) {
       RUNNING.remove(ecid, rc);
-      compactionFinalizer.failCompactions(Map.of(ecid, KeyExtent.fromThrift(extent)));
     } else {
-      LOG.error(
+      LOG.warn(
           "Compaction failed called by Compactor for {}, but no running compaction for that id.",
           externalCompactionId);
       throw new UnknownCompactionIdException();
