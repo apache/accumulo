@@ -18,7 +18,12 @@
  */
 package org.apache.accumulo.server.compaction;
 
-import org.apache.accumulo.fate.util.UtilWaitThread;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
+import java.util.concurrent.TimeUnit;
+
+import org.apache.accumulo.fate.util.Retry;
+import org.apache.accumulo.fate.util.Retry.NeedsRetryDelay;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,11 +60,8 @@ public class RetryableThriftCall<T> {
   private static final Logger LOG = LoggerFactory.getLogger(RetryableThriftCall.class);
   public static final long MAX_WAIT_TIME = 60000;
 
-  private final long start;
-  private final long maxWaitTime;
-  private int maxNumRetries;
   private final RetryableThriftFunction<T> function;
-  private final boolean retryForever;
+  private final Retry retry;
 
   /**
    * RetryableThriftCall constructor
@@ -75,11 +77,16 @@ public class RetryableThriftCall<T> {
    */
   public RetryableThriftCall(long start, long maxWaitTime, int maxNumRetries,
       RetryableThriftFunction<T> function) {
-    this.start = start;
-    this.maxWaitTime = maxWaitTime;
-    this.maxNumRetries = maxNumRetries;
     this.function = function;
-    this.retryForever = (maxNumRetries == 0);
+    NeedsRetryDelay builder = null;
+    if (maxNumRetries == 0) {
+      builder = Retry.builder().infiniteRetries();
+    } else {
+      builder = Retry.builder().maxRetries(maxNumRetries);
+    }
+    this.retry = builder.retryAfter(start, MILLISECONDS).incrementBy(0, MILLISECONDS)
+        .maxWait(maxWaitTime, MILLISECONDS).backOffFactor(2).logInterval(1, TimeUnit.MINUTES)
+        .createRetry();
   }
 
   /**
@@ -94,26 +101,24 @@ public class RetryableThriftCall<T> {
    *           TException
    */
   public T run() throws RetriesExceededException {
-    long waitTime = start;
-    int numRetries = 0;
     T result = null;
     do {
       try {
         result = function.execute();
       } catch (TException e) {
-        LOG.error("Error in Thrift function, retrying in {}ms. Error: {}", waitTime, e, e);
-        if (!retryForever) {
-          numRetries++;
-          if (numRetries > maxNumRetries) {
-            throw new RetriesExceededException(
-                "Maximum number of retries (" + this.maxNumRetries + ") attempted.", e);
-          }
-        }
+        LOG.error("Error in Thrift function, retrying ...", e);
       }
       if (result == null) {
-        UtilWaitThread.sleep(waitTime);
-        if (waitTime != maxWaitTime) {
-          waitTime = Math.min(waitTime * 2, maxWaitTime);
+        if (this.retry.canRetry()) {
+          this.retry.useRetry();
+          try {
+            this.retry.waitForNextAttempt();
+          } catch (InterruptedException e) {
+            LOG.error("Error waiting for next attempt: {}, retrying now.", e.getMessage(), e);
+          }
+        } else {
+          throw new RetriesExceededException(
+              "Maximum number of retries (" + this.retry.retriesCompleted() + ") attempted.");
         }
       }
     } while (null == result);
