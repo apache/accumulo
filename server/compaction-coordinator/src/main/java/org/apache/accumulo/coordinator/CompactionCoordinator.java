@@ -65,9 +65,6 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerOpts;
-import org.apache.accumulo.server.compaction.RetryableThriftCall;
-import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
-import org.apache.accumulo.server.compaction.RetryableThriftFunction;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.rpc.ServerAddress;
@@ -551,61 +548,6 @@ public class CompactionCoordinator extends AbstractServer
     TTransport transport =
         ThriftTransportPool.getInstance().getTransport(compactorAddress, 0, getContext());
     return ThriftUtil.createClient(new Compactor.Client.Factory(), transport);
-  }
-
-  /**
-   * Called by the TabletServer to cancel the running compaction.
-   *
-   * @param tinfo
-   *          trace info
-   * @param credentials
-   *          tcredentials object
-   * @param externalCompactionId
-   *          compaction id
-   * @throws TException
-   *           thrift error
-   */
-  @Override
-  public void cancelCompaction(TInfo tinfo, TCredentials credentials, String externalCompactionId)
-      throws TException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-    cancelCompaction(externalCompactionId);
-  }
-
-  private void cancelCompaction(String externalCompactionId) throws TException {
-    LOG.info("Compaction cancel requested, id: {}", externalCompactionId);
-    final RunningCompaction rc = RUNNING.get(ExternalCompactionId.of(externalCompactionId));
-    if (null == rc) {
-      return;
-    }
-    final HostAndPort compactor = HostAndPort.fromString(rc.getCompactorAddress());
-    RetryableThriftCall<String> cancelThriftCall = new RetryableThriftCall<>(1000,
-        RetryableThriftCall.MAX_WAIT_TIME, 0, new RetryableThriftFunction<String>() {
-          @Override
-          public String execute() throws TException {
-            Compactor.Client compactorConnection = null;
-            try {
-              compactorConnection = getCompactorConnection(compactor);
-              compactorConnection.cancel(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                  rc.getJob().getExternalCompactionId());
-              return "";
-            } catch (TException e) {
-              throw e;
-            } finally {
-              ThriftUtil.returnClient(compactorConnection);
-            }
-          }
-        });
-    try {
-      cancelThriftCall.run();
-    } catch (RetriesExceededException e) {
-      LOG.error("Unable to contact Compactor {} to cancel running compaction {}",
-          rc.getCompactorAddress(), rc.getJob(), e);
-    }
   }
 
   /**

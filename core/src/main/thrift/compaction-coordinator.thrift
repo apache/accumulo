@@ -53,17 +53,6 @@ exception UnknownCompactionIdException {}
 service CompactionCoordinator {
 
   /*
-   * Called by TabletServer to cancel a compaction for a tablet
-   */
-  void cancelCompaction(
-    1:trace.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string externalCompactionId
-  ) throws (
-    1:UnknownCompactionIdException e
-  )
-
-  /*
    * Called by Compactor on successful completion of compaction job
    */
   void compactionCompleted(
