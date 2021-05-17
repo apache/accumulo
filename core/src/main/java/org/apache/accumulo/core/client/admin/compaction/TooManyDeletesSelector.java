@@ -85,7 +85,7 @@ public class TooManyDeletesSelector implements CompactionSelector {
   public static final String PROCEED_ZERO_NO_SUMMARY_OPT_DEFAULT = "false";
 
   @Override
-  public void init(InitParamaters iparams) {
+  public void init(InitParameters iparams) {
     var options = iparams.getOptions();
     this.threshold = Double.parseDouble(options.getOrDefault(THRESHOLD_OPT, THRESHOLD_OPT_DEFAULT));
     if (threshold <= 0.0 || threshold > 1.0) {

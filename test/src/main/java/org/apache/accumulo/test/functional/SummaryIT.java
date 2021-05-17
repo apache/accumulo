@@ -443,7 +443,7 @@ public class SummaryIT extends AccumuloClusterHarness {
   public static class FooSelector implements CompactionSelector {
 
     @Override
-    public void init(InitParamaters iparams) {}
+    public void init(InitParameters iparams) {}
 
     @Override
     public Selection select(SelectionParameters sparams) {

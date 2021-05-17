@@ -79,7 +79,7 @@ public class InternerTest {
     assertNotEquals(obj1, intern2);
   }
 
-  @Test(timeout = 10_000)
+  @Test(timeout = 20_000)
   public void testInternsGetGarbageCollected() {
     var interner = new Interner<TestObj>();
     assertEquals(0, interner.size()); // ensure empty

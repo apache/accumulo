@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration.ScanExecutorConfig;
@@ -79,6 +80,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
@@ -179,6 +181,8 @@ public class TabletServerResourceManager {
         Comparator<ScanInfo> comparator =
             factory.createComparator(new ScanPrioritizer.CreateParameters() {
 
+              private final ServiceEnvironment senv = new ServiceEnvironmentImpl(context);
+
               @Override
               public Map<String,String> getOptions() {
                 return sec.prioritizerOpts;
@@ -186,7 +190,7 @@ public class TabletServerResourceManager {
 
               @Override
               public ServiceEnvironment getServiceEnv() {
-                return new ServiceEnvironmentImpl(context);
+                return senv;
               }
             });
 
@@ -784,6 +788,11 @@ public class TabletServerResourceManager {
       scanExecutors.get("meta").execute(task);
     } else {
       DispatchParameters params = new DispatchParamsImpl() {
+
+        // in scan critical path so only create ServiceEnv if needed
+        private final Supplier<ServiceEnvironment> senvSupplier =
+            Suppliers.memoize(() -> new ServiceEnvironmentImpl(context));
+
         @Override
         public ScanInfo getScanInfo() {
           return scanInfo;
@@ -796,7 +805,7 @@ public class TabletServerResourceManager {
 
         @Override
         public ServiceEnvironment getServiceEnv() {
-          return new ServiceEnvironmentImpl(context);
+          return senvSupplier.get();
         }
       };
 

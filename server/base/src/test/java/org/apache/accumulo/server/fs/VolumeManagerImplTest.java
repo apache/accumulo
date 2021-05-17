@@ -22,13 +22,17 @@ import static org.junit.Assert.assertThrows;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.fs.VolumeChooser;
+import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class VolumeManagerImplTest {
@@ -75,7 +79,28 @@ public class VolumeManagerImplTest {
     conf.set(Property.GENERAL_VOLUME_CHOOSER, WrongVolumeChooser.class.getName());
     try (var vm = VolumeManagerImpl.get(conf, hadoopConf)) {
       org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment chooserEnv =
-          new VolumeChooserEnvironmentImpl(TableId.of("sometable"), null, null);
+          new VolumeChooserEnvironment() {
+
+            @Override
+            public Optional<TableId> getTable() {
+              throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public ServiceEnvironment getServiceEnv() {
+              throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public Text getEndRow() {
+              throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public Scope getChooserScope() {
+              throw new UnsupportedOperationException();
+            }
+          };
       assertThrows(RuntimeException.class, () -> vm.choose(chooserEnv, volumes));
     }
   }

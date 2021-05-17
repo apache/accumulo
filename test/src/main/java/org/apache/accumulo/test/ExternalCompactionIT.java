@@ -835,7 +835,7 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
   public static class FSelector implements CompactionSelector {
 
     @Override
-    public void init(InitParamaters iparams) {}
+    public void init(InitParameters iparams) {}
 
     @Override
     public Selection select(SelectionParameters sparams) {

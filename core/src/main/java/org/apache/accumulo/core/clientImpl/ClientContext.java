@@ -23,6 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
@@ -798,8 +799,13 @@ public class ClientContext implements AccumuloClient {
     }
 
     @Override
+    public FromOptions<T> from(URL propertiesURL) {
+      return from(ClientInfoImpl.toProperties(propertiesURL));
+    }
+
+    @Override
     public FromOptions<T> from(Properties properties) {
-      // make a copy, so that this builder's subsequent methods don't mutate the
+      // Make a copy, so that this builder's subsequent methods don't mutate the
       // properties object provided by the caller
       this.properties = new Properties();
       this.properties.putAll(properties);

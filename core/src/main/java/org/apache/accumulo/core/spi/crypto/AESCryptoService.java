@@ -63,12 +63,18 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Example implementation of AES encryption for Accumulo
  */
 public class AESCryptoService implements CryptoService {
+  // properties required for using this service
+  private static final String CRYPTO_PREFIX = "instance.crypto.opts.";
+  private static final String KEY_URI = CRYPTO_PREFIX + "key.uri";
+  // optional properties
+  // defaults to true
+  private static final String ENCRYPT_ENABLED = CRYPTO_PREFIX + "enabled";
 
   // Hard coded NoCryptoService.VERSION - this permits the removal of NoCryptoService from the
   // core jar, allowing use of only one crypto service
   private static final String NO_CRYPTO_VERSION = "U+1F47B";
-  public static final String URI = "uri";
-  public static final String KEY_WRAP_TRANSFORM = "AESWrap";
+  private static final String URI = "uri";
+  private static final String KEY_WRAP_TRANSFORM = "AESWrap";
 
   private Key encryptingKek = null;
   private String keyLocation = null;
@@ -76,14 +82,20 @@ public class AESCryptoService implements CryptoService {
   // Lets just load keks for reading once
   private HashMap<String,Key> decryptingKeys = null;
   private SecureRandom sr = null;
+  private boolean encryptEnabled = true;
+
+  private static final FileEncrypter DISABLED = new NoFileEncrypter();
 
   @Override
   public void init(Map<String,String> conf) throws CryptoException {
-    String keyLocation = conf.get("instance.crypto.opts.key.uri");
+    String keyLocation =
+        Objects.requireNonNull(conf.get(KEY_URI), "Config property " + KEY_URI + " is required.");
+    String enabledProp = conf.get(ENCRYPT_ENABLED);
+    if (enabledProp != null)
+      encryptEnabled = Boolean.parseBoolean(enabledProp);
+
     // get key from URI for now, keyMgr framework could be expanded on in the future
     String keyMgr = "uri";
-    Objects.requireNonNull(keyLocation,
-        "Config property instance.crypto.opts.key.uri is required.");
     this.sr = CryptoUtils.newSha1SecureRandom();
     this.decryptingKeys = new HashMap<>();
     switch (keyMgr) {
@@ -101,6 +113,9 @@ public class AESCryptoService implements CryptoService {
 
   @Override
   public FileEncrypter getFileEncrypter(CryptoEnvironment environment) {
+    if (!encryptEnabled) {
+      return DISABLED;
+    }
     CryptoModule cm;
     switch (environment.getScope()) {
       case WAL:

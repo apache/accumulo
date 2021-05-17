@@ -1127,9 +1127,11 @@ public class CompactableImpl implements Compactable {
 
       var dispatch = dispatcher.dispatch(new DispatchParameters() {
 
+        private final ServiceEnvironment senv = new ServiceEnvironmentImpl(tablet.getContext());
+
         @Override
         public ServiceEnvironment getServiceEnv() {
-          return new ServiceEnvironmentImpl(tablet.getContext());
+          return senv;
         }
 
         @Override
