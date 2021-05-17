@@ -47,7 +47,6 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
@@ -154,7 +153,7 @@ public class CompactionCoordinator extends AbstractServer
         TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
   }
 
-  private void startCompactionCleaner(ScheduledThreadPoolExecutor schedExecutor) {
+  protected void startCompactionCleaner(ScheduledThreadPoolExecutor schedExecutor) {
     schedExecutor.scheduleWithFixedDelay(() -> cleanUpCompactors(), 0, 5, TimeUnit.MINUTES);
   }
 
@@ -250,111 +249,17 @@ public class CompactionCoordinator extends AbstractServer
     // Attempt to get the running compactions on the compactors and then resolve which tserver
     // the external compaction came from to re-populate the RUNNING collection.
     LOG.info("Checking for running external compactions");
-    tserverSet.scanServers();
-    final Set<TServerInstance> tservers = tserverSet.getCurrentServers();
-    if (null != tservers && !tservers.isEmpty()) {
-      // On re-start contact the running Compactors to try and seed the list of running compactions
-      Map<HostAndPort,TExternalCompactionJob> running =
-          ExternalCompactionUtil.getCompactionsRunningOnCompactors(getContext());
-      if (running.isEmpty()) {
-        LOG.info("No compactions running on Compactors.");
-      } else {
-        LOG.info("Found {} running external compactions", running.size());
-        running.forEach((hp, job) -> {
-          // Find the tserver that has this compaction id
-          boolean matchFound = false;
-
-          // Attempt to find the TServer hosting the tablet based on the metadata table
-          // TODO use #1974 for more efficient metadata reads
-          KeyExtent extent = KeyExtent.fromThrift(job.getExtent());
-          LOG.debug("Getting tablet metadata for extent: {}", extent);
-          TabletMetadata tabletMetadata = getMetadataEntryForExtent(extent);
-
-          if (tabletMetadata != null && tabletMetadata.getExtent().equals(extent)
-              && tabletMetadata.getLocation() != null
-              && tabletMetadata.getLocation().getType() == LocationType.CURRENT) {
-
-            TServerInstance tsi = tservers.stream()
-                .filter(
-                    t -> t.getHostAndPort().equals(tabletMetadata.getLocation().getHostAndPort()))
-                .findFirst().orElse(null);
-
-            if (null != tsi) {
-              TabletClientService.Client client = null;
-              try {
-                LOG.debug(
-                    "Checking to see if tserver {} is running external compaction for extent: {}",
-                    tsi.getHostAndPort(), extent);
-                client = getTabletServerConnection(tsi);
-                boolean tserverMatch = client.isRunningExternalCompaction(TraceUtil.traceInfo(),
-                    getContext().rpcCreds(), job.getExternalCompactionId(), job.getExtent());
-                if (tserverMatch) {
-                  LOG.debug(
-                      "Tablet server {} is running external compaction for extent: {}, adding to running list",
-                      tsi.getHostAndPort(), extent);
-                  RUNNING.put(ExternalCompactionId.of(job.getExternalCompactionId()),
-                      new RunningCompaction(job, ExternalCompactionUtil.getHostPortString(hp),
-                          tsi));
-                  matchFound = true;
-                } else {
-                  LOG.debug("Tablet server {} is NOT running external compaction for extent: {}",
-                      tsi.getHostAndPort(), extent);
-                }
-              } catch (TException e) {
-                LOG.warn("Failed to notify tserver {}",
-                    tabletMetadata.getLocation().getHostAndPort(), e);
-              } finally {
-                ThriftUtil.returnClient(client);
-              }
-            } else {
-              LOG.info("Tablet server {} is not currently in live tserver set",
-                  tabletMetadata.getLocation().getHostAndPort());
-            }
-          } else {
-            LOG.info("No current location for extent: {}", extent);
-          }
-
-          // As a fallback, try them all
-          if (!matchFound) {
-            LOG.debug("Checking all tservers for external running compaction, extent: {}", extent);
-            for (TServerInstance tsi : tservers) {
-              TabletClientService.Client client = null;
-              try {
-                client = getTabletServerConnection(tsi);
-                LOG.debug(
-                    "Checking to see if tserver {} is running external compaction for extent: {}",
-                    tsi.getHostAndPort(), extent);
-                boolean tserverMatch = client.isRunningExternalCompaction(TraceUtil.traceInfo(),
-                    getContext().rpcCreds(), job.getExternalCompactionId(), job.getExtent());
-                if (tserverMatch) {
-                  LOG.debug(
-                      "Tablet server {} is running external compaction for extent: {}, adding to running list",
-                      tsi.getHostAndPort(), extent);
-                  RUNNING.put(ExternalCompactionId.of(job.getExternalCompactionId()),
-                      new RunningCompaction(job, ExternalCompactionUtil.getHostPortString(hp),
-                          tsi));
-                  matchFound = true;
-                }
-              } catch (TException e) {
-                LOG.error(
-                    "Error from tserver {} while trying to check if external compaction is running, trying next tserver",
-                    ExternalCompactionUtil.getHostPortString(tsi.getHostAndPort()), e);
-              } finally {
-                ThriftUtil.returnClient(client);
-              }
-            }
-          }
-
-          if (!matchFound) {
-            LOG.warn(
-                "There is an external compaction running on a compactor, but could not find corresponding tablet server. Extent: {}, Compactor: {}, Compaction: {}",
-                extent, hp, job);
-          }
-        });
-      }
-      tservers.clear();
+    // On re-start contact the running Compactors to try and seed the list of running compactions
+    Map<HostAndPort,TExternalCompactionJob> running =
+        ExternalCompactionUtil.getCompactionsRunningOnCompactors(getContext());
+    if (running.isEmpty()) {
+      LOG.info("No running external compactions found");
     } else {
-      LOG.info("No running tablet servers found, continuing startup");
+      LOG.info("Found {} running external compactions", running.size());
+      running.forEach((hp, job) -> {
+        RUNNING.put(ExternalCompactionId.of(job.getExternalCompactionId()),
+            new RunningCompaction(job, ExternalCompactionUtil.getHostPortString(hp)));
+      });
     }
 
     tserverSet.startListeningForTabletServerChanges();
@@ -493,7 +398,7 @@ public class CompactionCoordinator extends AbstractServer
           continue;
         }
         RUNNING.put(ExternalCompactionId.of(job.getExternalCompactionId()),
-            new RunningCompaction(job, compactorAddress, tserver));
+            new RunningCompaction(job, compactorAddress));
         LOG.debug("Returning external job {} to {}", job.externalCompactionId, compactorAddress);
         result = job;
         break;

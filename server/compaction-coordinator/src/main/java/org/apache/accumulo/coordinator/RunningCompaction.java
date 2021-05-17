@@ -22,21 +22,18 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
-import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 
 public class RunningCompaction {
 
   private final TExternalCompactionJob job;
   private final String compactorAddress;
-  private final TServerInstance tserver;
   private final Map<Long,CompactionUpdate> updates = new TreeMap<>();
 
-  RunningCompaction(TExternalCompactionJob job, String compactorAddress, TServerInstance tserver) {
+  RunningCompaction(TExternalCompactionJob job, String compactorAddress) {
     super();
     this.job = job;
     this.compactorAddress = compactorAddress;
-    this.tserver = tserver;
   }
 
   public Map<Long,CompactionUpdate> getUpdates() {
@@ -53,10 +50,6 @@ public class RunningCompaction {
 
   public String getCompactorAddress() {
     return compactorAddress;
-  }
-
-  public TServerInstance getTserver() {
-    return tserver;
   }
 
 }
