@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.apache.accumulo.coordinator.CompactionFinalizer;
+import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState.FinalState;
@@ -32,7 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TestCompactionCoordinatorForOfflineTable extends TestCompactionCoordinator
-    implements org.apache.accumulo.core.compaction.thrift.CompactionCoordinator.Iface {
+    implements CompactionCoordinatorService.Iface {
 
   public static class NonNotifyingCompactionFinalizer extends CompactionFinalizer {
 

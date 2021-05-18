@@ -31,7 +31,7 @@ import java.util.concurrent.Future;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.compaction.thrift.Compactor;
+import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
@@ -126,9 +126,9 @@ public class ExternalCompactionUtil {
 
   public static List<ActiveCompaction> getActiveCompaction(HostAndPort compactor,
       ClientContext context) throws ThriftSecurityException {
-    Compactor.Client client = null;
+    CompactorService.Client client = null;
     try {
-      client = ThriftUtil.getClient(new Compactor.Client.Factory(), compactor, context);
+      client = ThriftUtil.getClient(new CompactorService.Client.Factory(), compactor, context);
       return client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds());
     } catch (ThriftSecurityException e) {
       throw e;
@@ -152,9 +152,9 @@ public class ExternalCompactionUtil {
   public static TExternalCompactionJob getRunningCompaction(HostAndPort compactorAddr,
       ClientContext context) {
 
-    Compactor.Client client = null;
+    CompactorService.Client client = null;
     try {
-      client = ThriftUtil.getClient(new Compactor.Client.Factory(), compactorAddr, context);
+      client = ThriftUtil.getClient(new CompactorService.Client.Factory(), compactorAddr, context);
       TExternalCompactionJob job =
           client.getRunningCompaction(TraceUtil.traceInfo(), context.rpcCreds());
       if (job.getExternalCompactionId() != null) {
@@ -171,9 +171,9 @@ public class ExternalCompactionUtil {
 
   private static ExternalCompactionId getRunningCompactionId(HostAndPort compactorAddr,
       ClientContext context) {
-    Compactor.Client client = null;
+    CompactorService.Client client = null;
     try {
-      client = ThriftUtil.getClient(new Compactor.Client.Factory(), compactorAddr, context);
+      client = ThriftUtil.getClient(new CompactorService.Client.Factory(), compactorAddr, context);
       String secid = client.getRunningCompactionId(TraceUtil.traceInfo(), context.rpcCreds());
       if (!secid.isEmpty()) {
         return ExternalCompactionId.of(secid);

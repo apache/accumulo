@@ -40,8 +40,9 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinator;
-import org.apache.accumulo.core.compaction.thrift.Compactor.Iface;
+import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
+import org.apache.accumulo.core.compaction.thrift.CompactorService;
+import org.apache.accumulo.core.compaction.thrift.CompactorService.Iface;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -102,8 +103,7 @@ import com.beust.jcommander.Parameter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class Compactor extends AbstractServer
-    implements org.apache.accumulo.core.compaction.thrift.Compactor.Iface {
+public class Compactor extends AbstractServer implements CompactorService.Iface {
 
   public static class CompactorServerOpts extends ServerOpts {
     @Parameter(required = true, names = {"-q", "--queue"}, description = "compaction queue name")
@@ -119,8 +119,8 @@ public class Compactor extends AbstractServer
   private static final long TIME_BETWEEN_CANCEL_CHECKS = 5 * 60 * 1000;
 
   private static final long TEN_MEGABYTES = 10485760;
-  private static final CompactionCoordinator.Client.Factory COORDINATOR_CLIENT_FACTORY =
-      new CompactionCoordinator.Client.Factory();
+  private static final CompactionCoordinatorService.Client.Factory COORDINATOR_CLIENT_FACTORY =
+      new CompactionCoordinatorService.Client.Factory();
 
   protected static final CompactionJobHolder JOB_HOLDER = new CompactionJobHolder();
 
@@ -128,7 +128,7 @@ public class Compactor extends AbstractServer
   private final UUID compactorId = UUID.randomUUID();
   private final AccumuloConfiguration aconf;
   private final String queueName;
-  private final AtomicReference<CompactionCoordinator.Client> coordinatorClient =
+  private final AtomicReference<CompactionCoordinatorService.Client> coordinatorClient =
       new AtomicReference<>();
   protected final AtomicReference<ExternalCompactionId> currentCompactionId =
       new AtomicReference<>();
@@ -311,8 +311,7 @@ public class Compactor extends AbstractServer
     if (getContext().getThriftServerType() == ThriftServerType.SASL) {
       rpcProxy = TCredentialsUpdatingWrapper.service(rpcProxy, getClass(), getConfiguration());
     }
-    final org.apache.accumulo.core.compaction.thrift.Compactor.Processor<Iface> processor =
-        new org.apache.accumulo.core.compaction.thrift.Compactor.Processor<>(rpcProxy);
+    final CompactorService.Processor<Iface> processor = new CompactorService.Processor<>(rpcProxy);
     Property maxMessageSizeProperty = (aconf.get(Property.COMPACTOR_MAX_MESSAGE_SIZE) != null
         ? Property.COMPACTOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getMetricsSystem(), getContext(), getHostname(),
@@ -495,7 +494,7 @@ public class Compactor extends AbstractServer
    * @throws TTransportException
    *           when unable to get client
    */
-  protected CompactionCoordinator.Client getCoordinatorClient() throws TTransportException {
+  protected CompactionCoordinatorService.Client getCoordinatorClient() throws TTransportException {
     HostAndPort coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(getContext());
     if (null == coordinatorHost) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");

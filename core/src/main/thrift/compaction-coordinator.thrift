@@ -50,7 +50,7 @@ struct Status {
 
 exception UnknownCompactionIdException {}
 
-service CompactionCoordinator {
+service CompactionCoordinatorService {
 
   /*
    * Called by Compactor on successful completion of compaction job
@@ -104,7 +104,7 @@ service CompactionCoordinator {
 
 }
 
-service Compactor {
+service CompactorService {
 
   /*
    * Called by Coordinator to instruct the Compactor to stop working on the compaction.

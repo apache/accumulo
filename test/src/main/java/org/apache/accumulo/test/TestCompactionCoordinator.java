@@ -27,6 +27,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.coordinator.ExternalCompactionMetrics;
+import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
@@ -48,7 +49,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 
 public class TestCompactionCoordinator extends CompactionCoordinator
-    implements org.apache.accumulo.core.compaction.thrift.CompactionCoordinator.Iface {
+    implements CompactionCoordinatorService.Iface {
 
   private static final Logger LOG = LoggerFactory.getLogger(TestCompactionCoordinator.class);
   private static final Gson GSON = new Gson();

@@ -36,8 +36,9 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinator.Iface;
-import org.apache.accumulo.core.compaction.thrift.Compactor;
+import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
+import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.Iface;
+import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -81,8 +82,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CompactionCoordinator extends AbstractServer
-    implements org.apache.accumulo.core.compaction.thrift.CompactionCoordinator.Iface,
-    LiveTServerSet.Listener {
+    implements CompactionCoordinatorService.Iface, LiveTServerSet.Listener {
 
   private static final Logger LOG = LoggerFactory.getLogger(CompactionCoordinator.class);
   private static final long TIME_BETWEEN_GC_CHECKS = 5000;
@@ -214,10 +214,8 @@ public class CompactionCoordinator extends AbstractServer
       rpcProxy = TCredentialsUpdatingWrapper.service(rpcProxy, CompactionCoordinator.class,
           getConfiguration());
     }
-    final org.apache.accumulo.core.compaction.thrift.CompactionCoordinator.Processor<
-        Iface> processor =
-            new org.apache.accumulo.core.compaction.thrift.CompactionCoordinator.Processor<>(
-                rpcProxy);
+    final CompactionCoordinatorService.Processor<Iface> processor =
+        new CompactionCoordinatorService.Processor<>(rpcProxy);
     Property maxMessageSizeProperty = (aconf.get(Property.COORDINATOR_MAX_MESSAGE_SIZE) != null
         ? Property.COORDINATOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getMetricsSystem(), getContext(), getHostname(),
@@ -449,11 +447,11 @@ public class CompactionCoordinator extends AbstractServer
    * @throws TTransportException
    *           thrift error
    */
-  protected Compactor.Client getCompactorConnection(HostAndPort compactorAddress)
+  protected CompactorService.Client getCompactorConnection(HostAndPort compactorAddress)
       throws TTransportException {
     TTransport transport =
         ThriftTransportPool.getInstance().getTransport(compactorAddress, 0, getContext());
-    return ThriftUtil.createClient(new Compactor.Client.Factory(), transport);
+    return ThriftUtil.createClient(new CompactorService.Client.Factory(), transport);
   }
 
   /**

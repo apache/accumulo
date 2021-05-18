@@ -25,7 +25,7 @@
 package org.apache.accumulo.core.compaction.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-public class CompactionCoordinator {
+public class CompactionCoordinatorService {
 
   public interface Iface {
 
