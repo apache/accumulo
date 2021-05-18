@@ -144,7 +144,7 @@ public class MinorCompactor extends Compactor {
             log.warn(
                 "MinC ({}) is stuck for too long during recovery, throwing error to reschedule.",
                 getExtent(), e);
-            throw new IllegalStateException(e);
+            throw new RuntimeException(e);
           }
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName, e);
           reportedProblem = true;
