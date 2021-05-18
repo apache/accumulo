@@ -432,9 +432,6 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
       Text end = md.get(1).getEndRow();
       client.tableOperations().merge(table1, start, end);
 
-      assertEquals(0,
-          getCluster().getServerContext().getAmple().getExternalCompactionFinalStates().count());
-
       // wait for failure or test timeout
       ExternalCompactionMetrics metrics = getCoordinatorMetrics();
       while (metrics.getFailed() == 0) {
@@ -452,7 +449,12 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
           .forTable(tid).fetch(ColumnType.ECOMP).build()) {
         Set<ExternalCompactionId> ecids2 = tm.stream()
             .flatMap(t -> t.getExternalCompactions().keySet().stream()).collect(Collectors.toSet());
-        assertTrue(Collections.disjoint(ecids, ecids2));
+        // keep checking until test times out
+        while (!Collections.disjoint(ecids, ecids2)) {
+          UtilWaitThread.sleep(25);
+          ecids2 = tm.stream().flatMap(t -> t.getExternalCompactions().keySet().stream())
+              .collect(Collectors.toSet());
+        }
       }
 
     }
