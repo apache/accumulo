@@ -22,6 +22,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.net.UnknownHostException;
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -315,7 +316,7 @@ public class CompactionCoordinator extends AbstractServer
   }
 
   protected void startDeadCompactionDetector() {
-    new DeadCompactionDetector(getContext(), compactionFinalizer, schedExecutor).start();
+    new DeadCompactionDetector(getContext(), this, schedExecutor).start();
   }
 
   protected long getMissingCompactorWarningTime() {
@@ -509,17 +510,25 @@ public class CompactionCoordinator extends AbstractServer
     }
     LOG.info("Compaction failed, id: {}", externalCompactionId);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
-    compactionFinalizer.failCompactions(Map.of(ecid, KeyExtent.fromThrift(extent)));
-    // It's possible that RUNNING might not have an entry for this ecid in the case
-    // of a coordinator restart when the Coordinator can't find the TServer for the
-    // corresponding external compaction.
-    final RunningCompaction rc = RUNNING.get(ecid);
-    if (null != rc) {
-      RUNNING.remove(ecid, rc);
-    } else {
-      LOG.warn(
-          "Compaction failed called by Compactor for {}, but no running compaction for that id.",
-          externalCompactionId);
+    compactionFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
+  }
+
+  void compactionFailed(Map<ExternalCompactionId,KeyExtent> compactions)
+      throws UnknownCompactionIdException {
+    compactionFinalizer.failCompactions(compactions);
+    final Set<ExternalCompactionId> unknownIds = new HashSet<>();
+    compactions.forEach((k, v) -> {
+      final RunningCompaction rc = RUNNING.get(k);
+      if (null != rc) {
+        RUNNING.remove(k, rc);
+      } else {
+        LOG.warn(
+            "Compaction failed called by Compactor for {}, but no running compaction for that id.",
+            k);
+        unknownIds.add(k);
+      }
+    });
+    if (!unknownIds.isEmpty()) {
       throw new UnknownCompactionIdException();
     }
   }

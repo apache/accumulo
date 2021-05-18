@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -42,13 +43,13 @@ public class DeadCompactionDetector {
   private static final Logger log = LoggerFactory.getLogger(DeadCompactionDetector.class);
 
   private final ServerContext context;
-  private final CompactionFinalizer finalizer;
+  private final CompactionCoordinator coordinator;
   private ScheduledThreadPoolExecutor schedExecutor;
 
-  public DeadCompactionDetector(ServerContext context, CompactionFinalizer finalizer,
+  public DeadCompactionDetector(ServerContext context, CompactionCoordinator coordinator,
       ScheduledThreadPoolExecutor stpe) {
     this.context = context;
-    this.finalizer = finalizer;
+    this.coordinator = coordinator;
     this.schedExecutor = stpe;
   }
 
@@ -101,7 +102,11 @@ public class DeadCompactionDetector {
     // Everything left in tabletCompactions is no longer running anywhere and should be failed.
     // Its possible that a compaction committed while going through the steps above, if so then
     // that is ok and marking it failed will end up being a no-op.
-    finalizer.failCompactions(tabletCompactions);
+    try {
+      coordinator.compactionFailed(tabletCompactions);
+    } catch (UnknownCompactionIdException e) {
+      // One or more Ids was not in the Running compaction list. This is ok to ignore.
+    }
   }
 
   private void detectDanglingFinalStateMarkers() {
