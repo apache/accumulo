@@ -158,14 +158,20 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
       CompactionExecutorId ceid;
 
+      Objects.requireNonNull(executorConfig.type,
+          "'type' is a required and must be 'internal' or 'external'");
       switch (executorConfig.type) {
         case "internal":
+          Preconditions.checkArgument(null == executorConfig.queue,
+              "'queue' should not be specified for internal compactions");
           Objects.requireNonNull(executorConfig.numThreads,
               "'numThreads' must be specified for internal type");
           ceid = params.getExecutorManager().createExecutor(executorConfig.name,
               executorConfig.numThreads);
           break;
         case "external":
+          Preconditions.checkArgument(null == executorConfig.numThreads,
+              "'numThreads' should not be specified for external compactions");
           Objects.requireNonNull(executorConfig.queue,
               "'queue' must be specified for external type");
           ceid = params.getExecutorManager().getExternalExecutor(executorConfig.queue);
