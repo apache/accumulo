@@ -53,6 +53,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <li>{@code tserver.compaction.major.service.<service>.opts.executors} This is a json array of
  * objects where each object has the fields:
  * <table>
+ * <caption>Default Compaction Planner Executor options</caption>
  * <tr>
  * <th>Field Name</th>
  * <th>Description</th>
@@ -71,11 +72,13 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * </tr>
  * <tr>
  * <td>numThreads</td>
- * <td>number of threads for this executor configuration (required for 'internal')</td>
+ * <td>number of threads for this executor configuration (required for 'internal', cannot be
+ * specified for 'external')</td>
  * </tr>
  * <tr>
  * <td>queue</td>
- * <td>name of the external compaction queue (required for 'external')</td>
+ * <td>name of the external compaction queue (required for 'external', cannot be specified for
+ * 'internal')</td>
  * </tr>
  * </table>
  * <br>
