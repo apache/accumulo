@@ -88,14 +88,15 @@ public class CompactionFinalizer {
     var ecfs =
         new ExternalCompactionFinalState(ecid, extent, FinalState.FINISHED, fileSize, fileEntries);
 
+    LOG.info("Initiating commmit for external compaction: {}", ecfs);
+
     // write metadata entry
-    LOG.info("Writing completed external compaction to metadata table: {}", ecfs);
     context.getAmple().putExternalCompactionFinalStates(List.of(ecfs));
 
-    // queue RPC if queue is not full
-    LOG.info("Queueing tserver notification for completed external compaction: {}", ecfs);
     if (!pendingNotifications.offer(ecfs)) {
-      LOG.info("Queue full, notification to tablet server will not occur.");
+      LOG.debug("Queue full, notification to tablet server will happen later {}.", ecfs);
+    } else {
+      LOG.debug("Queued tserver notification for completed external compaction: {}", ecfs);
     }
   }
 
@@ -117,12 +118,12 @@ public class CompactionFinalizer {
       client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), loc.getHostAndPort(),
           context);
       if (ecfs.getFinalState() == FinalState.FINISHED) {
-        LOG.info("Notifying tserver {} that compaction {} has finished.", loc, ecfs);
+        LOG.debug("Notifying tserver {} that compaction {} has finished.", loc, ecfs);
         client.compactionJobFinished(TraceUtil.traceInfo(), context.rpcCreds(),
             ecfs.getExternalCompactionId().canonical(), ecfs.getExtent().toThrift(),
             ecfs.getFileSize(), ecfs.getEntries());
       } else if (ecfs.getFinalState() == FinalState.FAILED) {
-        LOG.info("Notifying tserver {} that compaction {} has failed.", loc, ecfs);
+        LOG.debug("Notifying tserver {} that compaction {} has failed.", loc, ecfs);
         client.compactionJobFailed(TraceUtil.traceInfo(), context.rpcCreds(),
             ecfs.getExternalCompactionId().canonical(), ecfs.getExtent().toThrift());
       } else {
@@ -156,8 +157,7 @@ public class CompactionFinalizer {
           if (tabletMetadata == null || !tabletMetadata.getExtent().equals(ecfs.getExtent())) {
             // this is an unknown tablet so need to delete its final state marker from metadata
             // table
-            LOG.debug(
-                "Unable to find tserver for external compaction {}, deleting completion entry",
+            LOG.debug("Unable to find tablet for external compaction {}, deleting completion entry",
                 ecfs);
             statusesToDelete.add(ecfs.getExternalCompactionId());
           } else if (tabletMetadata.getLocation() != null
@@ -201,7 +201,7 @@ public class CompactionFinalizer {
           context.getAmple().getExternalCompactionFinalStates().iterator();
       while (finalStates.hasNext()) {
         ExternalCompactionFinalState state = finalStates.next();
-        LOG.info("Found external compaction in final state: {}, queueing for tserver notification",
+        LOG.debug("Found external compaction in final state: {}, queueing for tserver notification",
             state);
         pendingNotifications.put(state);
       }
