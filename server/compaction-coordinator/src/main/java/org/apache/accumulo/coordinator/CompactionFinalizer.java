@@ -150,14 +150,18 @@ public class CompactionFinalizer {
 
         for (ExternalCompactionFinalState ecfs : batch) {
           // TODO: use #1974 for more efficient metadata reads
-          TabletMetadata tabletMetadata = context.getAmple().readTablets()
-              .forTablet(ecfs.getExtent()).fetch(ColumnType.LOCATION, ColumnType.PREV_ROW).build()
-              .stream().findFirst().orElse(null);
+          TabletMetadata tabletMetadata =
+              context.getAmple().readTablets().forTablet(ecfs.getExtent())
+                  .fetch(ColumnType.LOCATION, ColumnType.PREV_ROW, ColumnType.ECOMP).build()
+                  .stream().findFirst().orElse(null);
 
-          if (tabletMetadata == null || !tabletMetadata.getExtent().equals(ecfs.getExtent())) {
-            // this is an unknown tablet so need to delete its final state marker from metadata
-            // table
-            LOG.debug("Unable to find tablet for external compaction {}, deleting completion entry",
+          if (tabletMetadata == null || !tabletMetadata.getExtent().equals(ecfs.getExtent())
+              || !tabletMetadata.getExternalCompactions().keySet()
+                  .contains(ecfs.getExternalCompactionId())) {
+            // there is not per tablet external compaction entry, so delete its final state marker
+            // from metadata table
+            LOG.debug(
+                "Unable to find tablets external compaction entry, deleting completion entry {}",
                 ecfs);
             statusesToDelete.add(ecfs.getExternalCompactionId());
           } else if (tabletMetadata.getLocation() != null
