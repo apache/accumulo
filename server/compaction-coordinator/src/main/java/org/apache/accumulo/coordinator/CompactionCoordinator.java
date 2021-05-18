@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -267,32 +269,8 @@ public class CompactionCoordinator extends AbstractServer
     LOG.info("Starting loop to check tservers for compaction summaries");
     while (!shutdown) {
       long start = System.currentTimeMillis();
-      tserverSet.getCurrentServers().forEach(tsi -> {
-        try {
-          TabletClientService.Client client = null;
-          try {
-            LOG.debug("Contacting tablet server {} to get external compaction summaries",
-                tsi.getHostPort());
-            client = getTabletServerConnection(tsi);
-            List<TCompactionQueueSummary> summaries =
-                client.getCompactionQueueInfo(TraceUtil.traceInfo(), getContext().rpcCreds());
-            summaries.forEach(summary -> {
-              QueueAndPriority qp =
-                  QueueAndPriority.get(summary.getQueue().intern(), summary.getPriority());
-              synchronized (qp) {
-                TIME_COMPACTOR_LAST_CHECKED.computeIfAbsent(qp.getQueue(), k -> 0L);
-                QUEUE_SUMMARIES.update(tsi, summaries);
-              }
-            });
-          } finally {
-            ThriftUtil.returnClient(client);
-          }
-        } catch (TException e) {
-          LOG.warn("Error getting external compaction summaries from tablet server: {}",
-              tsi.getHostAndPort(), e);
-          QUEUE_SUMMARIES.remove(Set.of(tsi));
-        }
-      });
+
+      updateSummaries();
 
       long now = System.currentTimeMillis();
       TIME_COMPACTOR_LAST_CHECKED.forEach((k, v) -> {
@@ -311,6 +289,61 @@ public class CompactionCoordinator extends AbstractServer
     }
 
     LOG.info("Shutting down");
+  }
+
+  private void updateSummaries() {
+    ExecutorService executor =
+        ThreadPools.createFixedThreadPool(10, "Compaction Summary Gatherer", false);
+    try {
+      Set<String> queuesSeen = new ConcurrentSkipListSet<>();
+
+      tserverSet.getCurrentServers().forEach(tsi -> {
+        executor.execute(() -> updateSummaries(tsi, queuesSeen));
+      });
+
+      executor.shutdown();
+
+      try {
+        while (!executor.awaitTermination(1, TimeUnit.MINUTES)) {}
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new RuntimeException(e);
+      }
+
+      // remove any queues that were seen in the past, but were not seen in the latest gathering of
+      // summaries
+      TIME_COMPACTOR_LAST_CHECKED.keySet().retainAll(queuesSeen);
+
+      // add any queues that were never seen before
+      queuesSeen.forEach(q -> {
+        TIME_COMPACTOR_LAST_CHECKED.computeIfAbsent(q, k -> System.currentTimeMillis());
+      });
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  private void updateSummaries(TServerInstance tsi, Set<String> queuesSeen) {
+    try {
+      TabletClientService.Client client = null;
+      try {
+        LOG.debug("Contacting tablet server {} to get external compaction summaries",
+            tsi.getHostPort());
+        client = getTabletServerConnection(tsi);
+        List<TCompactionQueueSummary> summaries =
+            client.getCompactionQueueInfo(TraceUtil.traceInfo(), getContext().rpcCreds());
+        summaries.forEach(summary -> {
+          queuesSeen.add(summary.getQueue());
+          QUEUE_SUMMARIES.update(tsi, summaries);
+        });
+      } finally {
+        ThriftUtil.returnClient(client);
+      }
+    } catch (TException e) {
+      LOG.warn("Error getting external compaction summaries from tablet server: {}",
+          tsi.getHostAndPort(), e);
+      QUEUE_SUMMARIES.remove(Set.of(tsi));
+    }
   }
 
   protected void startDeadCompactionDetector() {
