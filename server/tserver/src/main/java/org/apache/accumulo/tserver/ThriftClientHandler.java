@@ -1721,17 +1721,6 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
   }
 
   @Override
-  public boolean isRunningExternalCompaction(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent extent) throws TException {
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-    return server.getCompactionManager().isRunningExternalCompaction(
-        ExternalCompactionId.of(externalCompactionId), KeyExtent.fromThrift(extent));
-  }
-
-  @Override
   public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) {
     String log = server.logger.getLogFile();
     // Might be null if there no active logger

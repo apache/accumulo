@@ -303,11 +303,6 @@ public class NullTserver {
     public void compactionJobFailed(TInfo tinfo, TCredentials credentials,
         String externalCompactionId, TKeyExtent extent) throws TException {}
 
-    @Override
-    public boolean isRunningExternalCompaction(TInfo tinfo, TCredentials credentials,
-        String externalCompactionId, TKeyExtent extent) throws TException {
-      return false;
-    }
   }
 
   static class Opts extends Help {

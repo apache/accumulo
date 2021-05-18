@@ -548,12 +548,6 @@ service TabletClientService extends client.ClientService {
     4:data.TKeyExtent extent
   )
   
-  bool isRunningExternalCompaction(
-    1:trace.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string externalCompactionId
-    4:data.TKeyExtent extent
-  )
 }
 
 typedef i32 TabletID

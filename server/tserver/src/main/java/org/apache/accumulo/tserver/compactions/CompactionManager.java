@@ -478,11 +478,6 @@ public class CompactionManager {
     }
   }
 
-  public boolean isRunningExternalCompaction(ExternalCompactionId eci, KeyExtent ke) {
-    var ecInfo = runningExternalCompactions.get(eci);
-    return (null != ecInfo && ecInfo.extent.compareTo(ke) == 0);
-  }
-
   public void externalCompactionFailed(ExternalCompactionId ecid, KeyExtent extentCompacted,
       Map<KeyExtent,Tablet> currentTablets) {
     var ecInfo = runningExternalCompactions.get(ecid);
