@@ -139,11 +139,11 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
     cfg.setProperty("tserver.compaction.major.service.cs1.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs1.planner.opts.executors",
-        "[{'name':'all','externalQueue':'DCQ1'}]");
+        "[{'name':'all', 'type': 'external', 'queue': 'DCQ1'}]");
     cfg.setProperty("tserver.compaction.major.service.cs2.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs2.planner.opts.executors",
-        "[{'name':'all','externalQueue':'DCQ2'}]");
+        "[{'name':'all', 'type': 'external','queue': 'DCQ2'}]");
     cfg.setProperty(Property.COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL.getKey(), "30s");
     cfg.setProperty(Property.COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL, "10s");
     // use raw local file system so walogs sync and flush will work

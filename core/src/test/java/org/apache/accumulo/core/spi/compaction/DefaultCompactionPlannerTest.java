@@ -344,12 +344,13 @@ public class DefaultCompactionPlannerTest {
 
     EasyMock.replay(conf, senv);
 
-    StringBuilder execBldr = new StringBuilder("[{'name':'small','maxSize':'32M','numThreads':1},"
-        + "{'name':'medium','maxSize':'128M','numThreads':2},"
-        + "{'name':'large','maxSize':'512M','numThreads':3}");
+    StringBuilder execBldr =
+        new StringBuilder("[{'name':'small','type': 'internal','maxSize':'32M','numThreads':1},"
+            + "{'name':'medium','type': 'internal','maxSize':'128M','numThreads':2},"
+            + "{'name':'large','type': 'internal','maxSize':'512M','numThreads':3}");
 
     if (withHugeExecutor) {
-      execBldr.append(",{'name':'huge','numThreads':4}]");
+      execBldr.append(",{'name':'huge','type': 'internal','numThreads':4}]");
     } else {
       execBldr.append("]");
     }
