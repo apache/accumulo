@@ -666,7 +666,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
           LOG.warn("Retries exceeded getting next job. Retrying...");
           continue;
         }
-        LOG.info("Received next compaction job: {}", job);
+        LOG.debug("Received next compaction job: {}", job);
 
         final LongAdder totalInputEntries = new LongAdder();
         final LongAdder totalInputBytes = new LongAdder();
@@ -715,7 +715,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
             }
           }
           compactionThread.join();
-          LOG.info("Compaction thread finished.");
+          LOG.trace("Compaction thread finished.");
 
           if (compactionThread.isInterrupted() || JOB_HOLDER.isCancelled()
               || ((err.get() != null && err.get().getClass().equals(InterruptedException.class)))) {
