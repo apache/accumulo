@@ -98,7 +98,7 @@ public class TestUpgradePathForWALogs {
       LogSorter logSorter = new LogSorter(context, config);
       LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
 
-      logProcessor.sort(WALOG_FROM_15,
+      logProcessor.sort(context.getVolumeManager(), WALOG_FROM_15,
           new Path("file://" + tempFolder.getRoot().getAbsolutePath() + WALOG_FROM_15),
           "file://" + tempFolder.getRoot().getAbsolutePath() + "/manyMaps");
 
@@ -134,7 +134,7 @@ public class TestUpgradePathForWALogs {
       LogSorter logSorter = new LogSorter(context, config);
       LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
 
-      logProcessor.sort(walogToTest,
+      logProcessor.sort(context.getVolumeManager(), walogToTest,
           new Path("file://" + tempFolder.getRoot().getAbsolutePath() + walogToTest),
           "file://" + tempFolder.getRoot().getAbsolutePath() + "/manyMaps");
 
