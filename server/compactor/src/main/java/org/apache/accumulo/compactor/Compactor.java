@@ -470,7 +470,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
                 try {
                   ExternalCompactionId eci = ExternalCompactionId.generate(uuid.get());
                   coordinatorClient.compareAndSet(null, getCoordinatorClient());
-                  LOG.info("Attempting to get next job, eci = {}", eci);
+                  LOG.trace("Attempting to get next job, eci = {}", eci);
                   currentCompactionId.set(eci);
                   return coordinatorClient.get().getCompactionJob(TraceUtil.traceInfo(),
                       getContext().rpcCreds(), queueName,
@@ -499,7 +499,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     if (null == coordinatorHost) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
-    LOG.info("CompactionCoordinator address is: {}", coordinatorHost);
+    LOG.trace("CompactionCoordinator address is: {}", coordinatorHost);
     return ThriftUtil.getClient(COORDINATOR_CLIENT_FACTORY, coordinatorHost, getContext());
   }
 
@@ -563,7 +563,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
                   KeyExtent.fromThrift(job.getExtent()), files, outputFile,
                   job.isPropagateDeletes(), cenv, iters, tConfig);
 
-          LOG.info("Starting compactor");
+          LOG.trace("Starting compactor");
           started.countDown();
 
           org.apache.accumulo.server.compaction.CompactionStats stat = compactor.call();
@@ -654,7 +654,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
         try {
           job = getNextJob(getNextId());
           if (!job.isSetExternalCompactionId()) {
-            LOG.info("No external compactions in queue {}", this.queueName);
+            LOG.trace("No external compactions in queue {}", this.queueName);
             UtilWaitThread.sleep(getWaitTimeBetweenCompactionChecks());
             continue;
           }
@@ -684,7 +684,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
           started.await(); // wait until the compactor is started
           final long inputEntries = totalInputEntries.sum();
           final long waitTime = calculateProgressCheckTime(totalInputBytes.sum());
-          LOG.info("Progress checks will occur every {} seconds", waitTime);
+          LOG.debug("Progress checks will occur every {} seconds", waitTime);
           String percentComplete = "unknown";
 
           while (!stopped.await(waitTime, TimeUnit.SECONDS)) {
@@ -701,9 +701,9 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
                     "Compaction in progress, read %d of %d input entries ( %s %s ), written %d entries",
                     info.getEntriesRead(), inputEntries, percentComplete, "%",
                     info.getEntriesWritten());
-                LOG.info(message);
+                LOG.debug(message);
                 try {
-                  LOG.info("Updating coordinator with compaction progress: {}.", message);
+                  LOG.debug("Updating coordinator with compaction progress: {}.", message);
                   updateCompactionState(job, TCompactionState.IN_PROGRESS, message);
                 } catch (RetriesExceededException e) {
                   LOG.warn("Error updating coordinator with compaction progress, error: {}",
@@ -741,7 +741,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
             }
           } else {
             try {
-              LOG.info("Updating coordinator with compaction completion.");
+              LOG.trace("Updating coordinator with compaction completion.");
               updateCompactionCompleted(job, JOB_HOLDER.getStats());
             } catch (RetriesExceededException e) {
               LOG.error(
