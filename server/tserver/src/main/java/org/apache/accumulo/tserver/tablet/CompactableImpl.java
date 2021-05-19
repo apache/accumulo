@@ -1052,7 +1052,6 @@ public class CompactableImpl implements Compactable {
     } finally {
       synchronized (this) {
         Preconditions.checkState(externalCompactionsCommitting.remove(extCompactionId));
-        Preconditions.checkState(!closed);
         notifyAll();
       }
     }
@@ -1087,7 +1086,6 @@ public class CompactableImpl implements Compactable {
     } finally {
       synchronized (this) {
         Preconditions.checkState(externalCompactionsCommitting.remove(ecid));
-        Preconditions.checkState(!closed);
         notifyAll();
       }
     }
