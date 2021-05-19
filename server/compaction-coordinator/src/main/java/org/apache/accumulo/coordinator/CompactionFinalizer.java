@@ -88,7 +88,7 @@ public class CompactionFinalizer {
     var ecfs =
         new ExternalCompactionFinalState(ecid, extent, FinalState.FINISHED, fileSize, fileEntries);
 
-    LOG.info("Initiating commmit for external compaction: {}", ecfs);
+    LOG.debug("Initiating commmit for external compaction: {}", ecfs);
 
     // write metadata entry
     context.getAmple().putExternalCompactionFinalStates(List.of(ecfs));

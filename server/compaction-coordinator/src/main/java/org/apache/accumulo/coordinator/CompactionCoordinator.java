@@ -513,10 +513,12 @@ public class CompactionCoordinator extends AbstractServer
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    LOG.info("Compaction completed, id: {}, stats: {}", externalCompactionId, stats);
+
+    var extent = KeyExtent.fromThrift(textent);
+    LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
+        extent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
-    compactionFinalizer.commitCompaction(ecid, KeyExtent.fromThrift(textent), stats.fileSize,
-        stats.entriesWritten);
+    compactionFinalizer.commitCompaction(ecid, extent, stats.fileSize, stats.entriesWritten);
     // It's possible that RUNNING might not have an entry for this ecid in the case
     // of a coordinator restart when the Coordinator can't find the TServer for the
     // corresponding external compaction.
@@ -593,7 +595,7 @@ public class CompactionCoordinator extends AbstractServer
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    LOG.info("Compaction status update, id: {}, timestamp: {}, state: {}, message: {}",
+    LOG.debug("Compaction status update, id: {}, timestamp: {}, state: {}, message: {}",
         externalCompactionId, timestamp, state, message);
     final RunningCompaction rc = RUNNING.get(ExternalCompactionId.of(externalCompactionId));
     if (null != rc) {
