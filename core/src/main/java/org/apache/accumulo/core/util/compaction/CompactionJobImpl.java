@@ -20,14 +20,13 @@ package org.apache.accumulo.core.util.compaction;
 
 import java.util.Collection;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-
-import com.google.common.base.Preconditions;
 
 /**
  * An immutable object that describes what files to compact and where to compact them.
@@ -41,17 +40,16 @@ public class CompactionJobImpl implements CompactionJob {
   private final CompactionExecutorId executor;
   private final Set<CompactableFile> files;
   private final CompactionKind kind;
-  private boolean selectedAll;
-  private boolean hasSelectedAll;
+  // Tracks if a job selected all of the tablets files that existed at the time the job was created.
+  private final Optional<Boolean> jobSelectedAll;
 
   public CompactionJobImpl(long priority, CompactionExecutorId executor,
-      Collection<CompactableFile> files, CompactionKind kind, boolean selectedAllFiles) {
+      Collection<CompactableFile> files, CompactionKind kind, boolean jobSelectedAll) {
     this.priority = priority;
     this.executor = Objects.requireNonNull(executor);
     this.files = Set.copyOf(files);
     this.kind = Objects.requireNonNull(kind);
-    this.selectedAll = selectedAllFiles;
-    this.hasSelectedAll = true;
+    this.jobSelectedAll = Optional.of(jobSelectedAll);
   }
 
   public CompactionJobImpl(long priority, CompactionExecutorId executor,
@@ -60,7 +58,9 @@ public class CompactionJobImpl implements CompactionJob {
     this.executor = Objects.requireNonNull(executor);
     this.files = Set.copyOf(files);
     this.kind = Objects.requireNonNull(kind);
-    this.hasSelectedAll = false;
+    // its assumed this information will not be needed when this constructor is called, however
+    // Optional.empty() will cause an exception if anyone tries to get it.
+    this.jobSelectedAll = Optional.empty();
   }
 
   @Override
@@ -98,8 +98,7 @@ public class CompactionJobImpl implements CompactionJob {
   }
 
   public boolean selectedAll() {
-    Preconditions.checkState(hasSelectedAll);
-    return selectedAll;
+    return jobSelectedAll.get();
   }
 
   @Override

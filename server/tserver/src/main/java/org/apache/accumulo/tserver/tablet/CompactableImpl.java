@@ -126,7 +126,11 @@ public class CompactableImpl implements Compactable {
 
   private FileSelectionStatus selectStatus = FileSelectionStatus.NOT_ACTIVE;
   private CompactionKind selectKind = null;
-  private boolean selectedAll = false;
+  // Tracks if when a set of files was selected, if at that time the set was all of the tablets
+  // files. Because a set of selected files can be compacted over one or more compactions, its
+  // important to track this in order to know if the last compaction is a full compaction and should
+  // not propagate deletes.
+  private boolean initiallySelectedAll = false;
   private CompactionHelper chelper = null;
   private Long compactionId;
   private CompactionConfig compactionConfig;
@@ -392,7 +396,7 @@ public class CompactableImpl implements Compactable {
     CompactionKind extKind = null;
     boolean unexpectedExternal = false;
     Set<StoredTabletFile> tmpSelectedFiles = null;
-    Boolean selAll = null;
+    Boolean initiallySelAll = null;
     Long cid = null;
     Boolean propDel = null;
     int count = 0;
@@ -425,9 +429,9 @@ public class CompactableImpl implements Compactable {
         break;
       }
 
-      if (selAll == null) {
-        selAll = ecMeta.isSelectedAll();
-      } else if (selAll != ecMeta.isSelectedAll()) {
+      if (initiallySelAll == null) {
+        initiallySelAll = ecMeta.getInitiallySelecteAll();
+      } else if (initiallySelAll != ecMeta.getInitiallySelecteAll()) {
         unexpectedExternal = true;
         reasons.add("Disagreement on selectedAll");
         break;
@@ -452,8 +456,8 @@ public class CompactableImpl implements Compactable {
       }
 
       if (propDel == null) {
-        propDel = ecMeta.isPropogateDeletes();
-      } else if (propDel != ecMeta.isPropogateDeletes()) {
+        propDel = ecMeta.getPropogateDeletes();
+      } else if (propDel != ecMeta.getPropogateDeletes()) {
         unexpectedExternal = true;
         reasons.add("Disagreement on propogateDeletes");
         break;
@@ -502,11 +506,11 @@ public class CompactableImpl implements Compactable {
       this.selectedFiles.clear();
       this.selectedFiles.addAll(tmpSelectedFiles);
       this.selectKind = extKind;
-      this.selectedAll = selAll;
+      this.initiallySelectedAll = initiallySelAll;
       this.selectStatus = FileSelectionStatus.SELECTED;
 
       log.debug("Selected compaction status initialized from external compactions {} {} {} {}",
-          getExtent(), selectStatus, selectedAll, asFileNames(selectedFiles));
+          getExtent(), selectStatus, initiallySelectedAll, asFileNames(selectedFiles));
     }
   }
 
@@ -528,7 +532,7 @@ public class CompactableImpl implements Compactable {
         selectStatus = FileSelectionStatus.NEW;
         selectKind = kind;
         selectedFiles.clear();
-        selectedAll = false;
+        initiallySelectedAll = false;
         this.chelper = localHelper;
         this.compactionId = compactionId;
         this.compactionConfig = compactionConfig;
@@ -575,9 +579,9 @@ public class CompactableImpl implements Compactable {
           Preconditions.checkState(selectStatus == FileSelectionStatus.SELECTING);
           selectStatus = FileSelectionStatus.SELECTED;
           selectedFiles.addAll(selectingFiles);
-          selectedAll = allSelected;
+          initiallySelectedAll = allSelected;
           log.trace("Selected compaction status changed {} {} {} {}", getExtent(), selectStatus,
-              selectedAll, asFileNames(selectedFiles));
+              initiallySelectedAll, asFileNames(selectedFiles));
           TabletLogger.selected(getExtent(), selectKind, selectedFiles);
         }
 
@@ -781,7 +785,8 @@ public class CompactableImpl implements Compactable {
     CompactionHelper localHelper;
     List<IteratorSetting> iters = List.of();
     CompactionConfig localCompactionCfg;
-    boolean selectedAll;
+    // At the time when a set of files was selected, was the complete set of tablet files
+    boolean initiallySelectedAll;
     Set<StoredTabletFile> selectedFiles;
   }
 
@@ -861,13 +866,13 @@ public class CompactableImpl implements Compactable {
         case SELECTOR:
         case USER:
           Preconditions.checkState(selectStatus == FileSelectionStatus.SELECTED);
-          if (job.getKind() == selectKind && selectedAll
+          if (job.getKind() == selectKind && initiallySelectedAll
               && cInfo.jobFiles.containsAll(selectedFiles)) {
             cInfo.propogateDeletes = false;
           }
 
           cInfo.selectedFiles = Set.copyOf(selectedFiles);
-          cInfo.selectedAll = selectedAll;
+          cInfo.initiallySelectedAll = initiallySelectedAll;
 
           break;
         default:
@@ -989,7 +994,7 @@ public class CompactableImpl implements Compactable {
       ecInfo.meta = new ExternalCompactionMetadata(cInfo.jobFiles,
           Sets.difference(cInfo.selectedFiles, cInfo.jobFiles), compactTmpName, newFile,
           compactorId, job.getKind(), job.getPriority(), job.getExecutor(), cInfo.propogateDeletes,
-          cInfo.selectedAll, cInfo.checkCompactionId);
+          cInfo.initiallySelectedAll, cInfo.checkCompactionId);
 
       tablet.getContext().getAmple().mutateTablet(getExtent())
           .putExternalCompaction(externalCompactionId, ecInfo.meta).mutate();

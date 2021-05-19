@@ -48,13 +48,13 @@ public class ExternalCompactionMetadata {
   private final long priority;
   private final CompactionExecutorId ceid;
   private final boolean propogateDeletes;
-  private final boolean selectedAll;
+  private final boolean initiallySelectedAll;
   private final Long compactionId;
 
   public ExternalCompactionMetadata(Set<StoredTabletFile> jobFiles, Set<StoredTabletFile> nextFiles,
       TabletFile compactTmpName, TabletFile newFile, String compactorId, CompactionKind kind,
-      long priority, CompactionExecutorId ceid, boolean propogateDeletes, boolean selectedAll,
-      Long compactionId) {
+      long priority, CompactionExecutorId ceid, boolean propogateDeletes,
+      boolean initiallySelectedAll, Long compactionId) {
     this.jobFiles = Objects.requireNonNull(jobFiles);
     this.nextFiles = Objects.requireNonNull(nextFiles);
     this.compactTmpName = Objects.requireNonNull(compactTmpName);
@@ -64,7 +64,7 @@ public class ExternalCompactionMetadata {
     this.priority = priority;
     this.ceid = Objects.requireNonNull(ceid);
     this.propogateDeletes = propogateDeletes;
-    this.selectedAll = selectedAll;
+    this.initiallySelectedAll = initiallySelectedAll;
     this.compactionId = compactionId;
   }
 
@@ -100,12 +100,12 @@ public class ExternalCompactionMetadata {
     return ceid;
   }
 
-  public boolean isPropogateDeletes() {
+  public boolean getPropogateDeletes() {
     return propogateDeletes;
   }
 
-  public boolean isSelectedAll() {
-    return selectedAll;
+  public boolean getInitiallySelecteAll() {
+    return initiallySelectedAll;
   }
 
   public Long getCompactionId() {
@@ -141,7 +141,7 @@ public class ExternalCompactionMetadata {
     jData.executorId = ((CompactionExecutorIdImpl) ceid).getExternalName();
     jData.priority = priority;
     jData.propDels = propogateDeletes;
-    jData.selectedAll = selectedAll;
+    jData.selectedAll = initiallySelectedAll;
     jData.compactionId = compactionId;
     return GSON.toJson(jData);
   }
