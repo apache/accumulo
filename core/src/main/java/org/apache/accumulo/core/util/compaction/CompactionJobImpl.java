@@ -43,24 +43,20 @@ public class CompactionJobImpl implements CompactionJob {
   // Tracks if a job selected all of the tablets files that existed at the time the job was created.
   private final Optional<Boolean> jobSelectedAll;
 
+  /**
+   *
+   * @param jobSelectedAll
+   *          This parameters only needs to be non-empty for job objects that are used to start
+   *          compaction. After a job is running, its not used. So when a job object is recreated
+   *          for a running external compaction this parameter can be empty.
+   */
   public CompactionJobImpl(long priority, CompactionExecutorId executor,
-      Collection<CompactableFile> files, CompactionKind kind, boolean jobSelectedAll) {
+      Collection<CompactableFile> files, CompactionKind kind, Optional<Boolean> jobSelectedAll) {
     this.priority = priority;
     this.executor = Objects.requireNonNull(executor);
     this.files = Set.copyOf(files);
     this.kind = Objects.requireNonNull(kind);
-    this.jobSelectedAll = Optional.of(jobSelectedAll);
-  }
-
-  public CompactionJobImpl(long priority, CompactionExecutorId executor,
-      Collection<CompactableFile> files, CompactionKind kind) {
-    this.priority = priority;
-    this.executor = Objects.requireNonNull(executor);
-    this.files = Set.copyOf(files);
-    this.kind = Objects.requireNonNull(kind);
-    // its assumed this information will not be needed when this constructor is called, however
-    // Optional.empty() will cause an exception if anyone tries to get it.
-    this.jobSelectedAll = Optional.empty();
+    this.jobSelectedAll = Objects.requireNonNull(jobSelectedAll);
   }
 
   @Override

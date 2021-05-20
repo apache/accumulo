@@ -189,7 +189,7 @@ public class CompactableImpl implements Compactable {
             ecMeta.getJobFiles().stream().map(f -> new CompactableFileImpl(f, dataFileSizes.get(f)))
                 .collect(Collectors.toList());
         CompactionJob job = new CompactionJobImpl(ecMeta.getPriority(),
-            ecMeta.getCompactionExecutorId(), files, ecMeta.getKind());
+            ecMeta.getCompactionExecutorId(), files, ecMeta.getKind(), Optional.empty());
         runnningJobs.add(job);
 
         ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
