@@ -1040,7 +1040,6 @@ public class CompactableImpl implements Compactable {
         log.debug("Attempting to commit external compaction {}", extCompactionId);
         StoredTabletFile metaFile = null;
         try {
-          // possibly do some sanity checks here
           metaFile = tablet.getDatafileManager().bringMajorCompactionOnline(
               ecInfo.meta.getJobFiles(), ecInfo.meta.getCompactTmpName(), ecInfo.meta.getNewFile(),
               ecInfo.meta.getCompactionId(),
