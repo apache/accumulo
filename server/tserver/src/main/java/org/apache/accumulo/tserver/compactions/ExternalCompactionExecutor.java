@@ -189,19 +189,18 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
   }
 
   public TCompactionQueueSummary summarize() {
-    long priority = 0;
     ExternalJob topJob = queue.peek();
     while (topJob != null && topJob.getStatus() != Status.QUEUED) {
       queue.removeIf(extJob -> extJob.getStatus() != Status.QUEUED);
       topJob = queue.peek();
     }
 
-    if (topJob != null) {
-      priority = topJob.getJob().getPriority();
+    if (topJob == null) {
+      return null;
     }
 
     return new TCompactionQueueSummary(((CompactionExecutorIdImpl) ceid).getExternalName(),
-        priority);
+        topJob.getJob().getPriority());
   }
 
   public CompactionExecutorId getId() {

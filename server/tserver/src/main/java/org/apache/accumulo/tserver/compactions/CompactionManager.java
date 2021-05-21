@@ -499,7 +499,7 @@ public class CompactionManager {
 
   public List<TCompactionQueueSummary> getCompactionQueueSummaries() {
     return externalExecutors.values().stream().map(ece -> ece.summarize())
-        .collect(Collectors.toList());
+        .filter(summary -> summary != null).collect(Collectors.toList());
   }
 
   public static class ExtCompMetric {
