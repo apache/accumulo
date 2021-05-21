@@ -141,7 +141,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
   // Exposed for tests
   protected volatile Boolean shutdown = false;
 
-  private AtomicBoolean compactionRunning = new AtomicBoolean(false);
+  private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
 
   protected Compactor(CompactorServerOpts opts, String[] args) {
     super("compactor", opts, args);

@@ -249,15 +249,19 @@ public class CompactionManager {
         long passed = TimeUnit.MILLISECONDS.convert(System.nanoTime() - lastCheckAllTime,
             TimeUnit.NANOSECONDS);
         if (passed >= maxTimeBetweenChecks) {
-          HashSet<ExternalCompactionId> observedEcids = new HashSet<>();
+          // take a snapshot of what is currently running
+          HashSet<ExternalCompactionId> runningEcids =
+              new HashSet<>(runningExternalCompactions.keySet());
           for (Compactable compactable : compactables) {
             last = compactable;
             compact(compactable);
-            compactable.getExternalCompactionIds(observedEcids::add);
+            // remove anything from snapshot that tablets know are running
+            compactable.getExternalCompactionIds(runningEcids::remove);
           }
           lastCheckAllTime = System.nanoTime();
-          // clean up any external compactions that are not currently running
-          runningExternalCompactions.keySet().retainAll(observedEcids);
+          // anything left in the snapshot is unknown to any tablet and should be removed if it
+          // still exists
+          runningExternalCompactions.keySet().removeAll(runningEcids);
         } else {
           var compactable =
               compactablesToCheck.poll(maxTimeBetweenChecks - passed, TimeUnit.MILLISECONDS);
