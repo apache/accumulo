@@ -87,16 +87,6 @@ public class LogSorter {
         currentWork.put(sortId, this);
       }
 
-      try {
-        sort(sortId, new Path(src), dest);
-      } finally {
-        currentWork.remove(sortId);
-      }
-
-    }
-
-    public void sort(String name, Path srcPath, String destPath) {
-
       synchronized (this) {
         sortStart = System.currentTimeMillis();
       }
@@ -104,61 +94,15 @@ public class LogSorter {
       VolumeManager fs = context.getVolumeManager();
 
       String formerThreadName = Thread.currentThread().getName();
-      int part = 0;
       try {
-        // check for finished first since another thread may have already done the sort
-        if (fs.exists(SortedLogState.getFinishedMarkerPath(destPath))) {
-          log.debug("Sorting already finished at {}", destPath);
-          return;
-        }
-
-        log.info("Copying {} to {}", srcPath, destPath);
-        // the following call does not throw an exception if the file/dir does not exist
-        fs.deleteRecursively(new Path(destPath));
-
-        input = fs.open(srcPath);
-        try {
-          decryptingInput = DfsLogger.getDecryptingStream(input, conf);
-        } catch (LogHeaderIncompleteException e) {
-          log.warn("Could not read header from write-ahead log {}. Not sorting.", srcPath);
-          // Creating a 'finished' marker will cause recovery to proceed normally and the
-          // empty file will be correctly ignored downstream.
-          fs.mkdirs(new Path(destPath));
-          writeBuffer(destPath, Collections.emptyList(), part++);
-          fs.create(SortedLogState.getFinishedMarkerPath(destPath)).close();
-          return;
-        }
-
-        final long bufferSize = conf.getAsBytes(Property.TSERV_SORT_BUFFER_SIZE);
-        Thread.currentThread().setName("Sorting " + name + " for recovery");
-        while (true) {
-          final ArrayList<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
-          try {
-            long start = input.getPos();
-            while (input.getPos() - start < bufferSize) {
-              LogFileKey key = new LogFileKey();
-              LogFileValue value = new LogFileValue();
-              key.readFields(decryptingInput);
-              value.readFields(decryptingInput);
-              buffer.add(new Pair<>(key, value));
-            }
-            writeBuffer(destPath, buffer, part++);
-            buffer.clear();
-          } catch (EOFException ex) {
-            writeBuffer(destPath, buffer, part++);
-            break;
-          }
-        }
-        fs.create(new Path(destPath, "finished")).close();
-        log.info("Finished log sort {} {} bytes {} parts in {}ms", name, getBytesCopied(), part,
-            getSortTime());
+        sort(fs, sortId, new Path(src), dest);
       } catch (Exception t) {
         try {
           // parent dir may not exist
-          fs.mkdirs(new Path(destPath));
-          fs.create(SortedLogState.getFailedMarkerPath(destPath)).close();
+          fs.mkdirs(new Path(dest));
+          fs.create(SortedLogState.getFailedMarkerPath(dest)).close();
         } catch (IOException e) {
-          log.error("Error creating failed flag file " + name, e);
+          log.error("Error creating failed flag file " + sortId, e);
         }
         log.error("Caught exception", t);
       } finally {
@@ -166,12 +110,65 @@ public class LogSorter {
         try {
           close();
         } catch (Exception e) {
-          log.error("Error during cleanup sort/copy " + name, e);
+          log.error("Error during cleanup sort/copy " + sortId, e);
         }
         synchronized (this) {
           sortStop = System.currentTimeMillis();
         }
+        currentWork.remove(sortId);
       }
+    }
+
+    public void sort(VolumeManager fs, String name, Path srcPath, String destPath)
+        throws IOException {
+      int part = 0;
+
+      // check for finished first since another thread may have already done the sort
+      if (fs.exists(SortedLogState.getFinishedMarkerPath(destPath))) {
+        log.debug("Sorting already finished at {}", destPath);
+        return;
+      }
+
+      log.info("Copying {} to {}", srcPath, destPath);
+      // the following call does not throw an exception if the file/dir does not exist
+      fs.deleteRecursively(new Path(destPath));
+
+      input = fs.open(srcPath);
+      try {
+        decryptingInput = DfsLogger.getDecryptingStream(input, conf);
+      } catch (LogHeaderIncompleteException e) {
+        log.warn("Could not read header from write-ahead log {}. Not sorting.", srcPath);
+        // Creating a 'finished' marker will cause recovery to proceed normally and the
+        // empty file will be correctly ignored downstream.
+        fs.mkdirs(new Path(destPath));
+        writeBuffer(destPath, Collections.emptyList(), part++);
+        fs.create(SortedLogState.getFinishedMarkerPath(destPath)).close();
+        return;
+      }
+
+      final long bufferSize = conf.getAsBytes(Property.TSERV_SORT_BUFFER_SIZE);
+      Thread.currentThread().setName("Sorting " + name + " for recovery");
+      while (true) {
+        final ArrayList<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
+        try {
+          long start = input.getPos();
+          while (input.getPos() - start < bufferSize) {
+            LogFileKey key = new LogFileKey();
+            LogFileValue value = new LogFileValue();
+            key.readFields(decryptingInput);
+            value.readFields(decryptingInput);
+            buffer.add(new Pair<>(key, value));
+          }
+          writeBuffer(destPath, buffer, part++);
+          buffer.clear();
+        } catch (EOFException ex) {
+          writeBuffer(destPath, buffer, part++);
+          break;
+        }
+      }
+      fs.create(new Path(destPath, "finished")).close();
+      log.info("Finished log sort {} {} bytes {} parts in {}ms", name, getBytesCopied(), part,
+          getSortTime());
     }
 
     private void writeBuffer(String destPath, List<Pair<LogFileKey,LogFileValue>> buffer, int part)
