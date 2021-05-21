@@ -64,7 +64,7 @@ public class TestCompactionCoordinator extends CompactionCoordinator
   private Server startHttpMetricServer() throws Exception {
     int port = 9099;
     String hostname = getHostname();
-    Server metricServer = new Server(new QueuedThreadPool(4, 1));
+    Server metricServer = new Server(new QueuedThreadPool(8, 1));
     ServerConnector c = new ServerConnector(metricServer);
     c.setHost(hostname);
     c.setPort(port);
