@@ -31,6 +31,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
+import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.Client;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.CompactorService.Iface;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
@@ -100,6 +102,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
+import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -128,8 +131,6 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
   private final UUID compactorId = UUID.randomUUID();
   private final AccumuloConfiguration aconf;
   private final String queueName;
-  private final AtomicReference<CompactionCoordinatorService.Client> coordinatorClient =
-      new AtomicReference<>();
   protected final AtomicReference<ExternalCompactionId> currentCompactionId =
       new AtomicReference<>();
 
@@ -139,6 +140,8 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
 
   // Exposed for tests
   protected volatile Boolean shutdown = false;
+
+  private AtomicBoolean compactionRunning = new AtomicBoolean(false);
 
   protected Compactor(CompactorServerOpts opts, String[] args) {
     super("compactor", opts, args);
@@ -382,14 +385,14 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
         RetryableThriftCall.MAX_WAIT_TIME, 25, new RetryableThriftFunction<String>() {
           @Override
           public String execute() throws TException {
+            Client coordinatorClient = getCoordinatorClient();
             try {
-              coordinatorClient.compareAndSet(null, getCoordinatorClient());
-              coordinatorClient.get().updateCompactionStatus(TraceUtil.traceInfo(),
+              coordinatorClient.updateCompactionStatus(TraceUtil.traceInfo(),
                   getContext().rpcCreds(), job.getExternalCompactionId(), state, message,
                   System.currentTimeMillis());
               return "";
             } finally {
-              ThriftUtil.returnClient(coordinatorClient.getAndSet(null));
+              ThriftUtil.returnClient(coordinatorClient);
             }
           }
         });
@@ -410,13 +413,13 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
         RetryableThriftCall.MAX_WAIT_TIME, 25, new RetryableThriftFunction<String>() {
           @Override
           public String execute() throws TException {
+            Client coordinatorClient = getCoordinatorClient();
             try {
-              coordinatorClient.compareAndSet(null, getCoordinatorClient());
-              coordinatorClient.get().compactionFailed(TraceUtil.traceInfo(),
-                  getContext().rpcCreds(), job.getExternalCompactionId(), job.extent);
+              coordinatorClient.compactionFailed(TraceUtil.traceInfo(), getContext().rpcCreds(),
+                  job.getExternalCompactionId(), job.extent);
               return "";
             } finally {
-              ThriftUtil.returnClient(coordinatorClient.getAndSet(null));
+              ThriftUtil.returnClient(coordinatorClient);
             }
           }
         });
@@ -439,13 +442,13 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
         RetryableThriftCall.MAX_WAIT_TIME, 25, new RetryableThriftFunction<String>() {
           @Override
           public String execute() throws TException {
+            Client coordinatorClient = getCoordinatorClient();
             try {
-              coordinatorClient.compareAndSet(null, getCoordinatorClient());
-              coordinatorClient.get().compactionCompleted(TraceUtil.traceInfo(),
-                  getContext().rpcCreds(), job.getExternalCompactionId(), job.extent, stats);
+              coordinatorClient.compactionCompleted(TraceUtil.traceInfo(), getContext().rpcCreds(),
+                  job.getExternalCompactionId(), job.extent, stats);
               return "";
             } finally {
-              ThriftUtil.returnClient(coordinatorClient.getAndSet(null));
+              ThriftUtil.returnClient(coordinatorClient);
             }
           }
         });
@@ -467,12 +470,12 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
             new RetryableThriftFunction<TExternalCompactionJob>() {
               @Override
               public TExternalCompactionJob execute() throws TException {
+                Client coordinatorClient = getCoordinatorClient();
                 try {
                   ExternalCompactionId eci = ExternalCompactionId.generate(uuid.get());
-                  coordinatorClient.compareAndSet(null, getCoordinatorClient());
                   LOG.trace("Attempting to get next job, eci = {}", eci);
                   currentCompactionId.set(eci);
-                  return coordinatorClient.get().getCompactionJob(TraceUtil.traceInfo(),
+                  return coordinatorClient.getCompactionJob(TraceUtil.traceInfo(),
                       getContext().rpcCreds(), queueName,
                       ExternalCompactionUtil.getHostPortString(compactorAddress.getAddress()),
                       eci.toString());
@@ -480,7 +483,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
                   currentCompactionId.set(null);
                   throw e;
                 } finally {
-                  ThriftUtil.returnClient(coordinatorClient.getAndSet(null));
+                  ThriftUtil.returnClient(coordinatorClient);
                 }
               }
             });
@@ -528,6 +531,11 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     return new Runnable() {
       @Override
       public void run() {
+        // Its only expected that a single compaction runs at a time. Multiple compactions running
+        // at a time could cause odd behavior like out of order and unexpected thrift calls to the
+        // coordinator. This is a sanity check to ensure the expectation is met. Should this check
+        // ever fail, it means there is a bug elsewhere.
+        Preconditions.checkState(compactionRunning.compareAndSet(false, true));
         try {
           LOG.info("Starting up compaction runnable for job: {}", job);
           updateCompactionState(job, TCompactionState.STARTED, "Compaction started");
@@ -583,6 +591,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
           throw new RuntimeException("Compaction failed", e);
         } finally {
           stopped.countDown();
+          Preconditions.checkState(compactionRunning.compareAndSet(true, false));
         }
       }
     };
@@ -701,7 +710,6 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
                     "Compaction in progress, read %d of %d input entries ( %s %s ), written %d entries",
                     info.getEntriesRead(), inputEntries, percentComplete, "%",
                     info.getEntriesWritten());
-                LOG.debug(message);
                 try {
                   LOG.debug("Updating coordinator with compaction progress: {}.", message);
                   updateCompactionState(job, TCompactionState.IN_PROGRESS, message);
@@ -711,7 +719,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
                 }
               }
             } else {
-              LOG.warn("Waiting on compaction thread to finish, but no RUNNING compaction");
+              LOG.error("Waiting on compaction thread to finish, but no RUNNING compaction");
             }
           }
           compactionThread.join();
@@ -767,6 +775,13 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
           }
         } finally {
           currentCompactionId.set(null);
+          // In the case where there is an error in the foreground code the background compaction
+          // may still be running. Must cancel it before starting another iteration of the loop to
+          // avoid multiple threads updating shared state.
+          while (compactionThread.isAlive()) {
+            compactionThread.interrupt();
+            compactionThread.join(1000);
+          }
         }
 
       }
@@ -774,11 +789,6 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     } catch (Exception e) {
       LOG.error("Unhandled error occurred in Compactor", e);
     } finally {
-      // close connection to coordinator
-      if (null != coordinatorClient.get()) {
-        ThriftUtil.returnClient(coordinatorClient.get());
-      }
-
       // Shutdown local thrift server
       LOG.info("Stopping Thrift Servers");
       TServerUtils.stopTServer(compactorAddress.server);
