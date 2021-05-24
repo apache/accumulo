@@ -276,6 +276,8 @@ public interface AccumuloClient extends AutoCloseable {
    * @return ConditionalWriter object for writing ConditionalMutations
    * @throws TableNotFoundException
    *           when the specified table doesn't exist
+   *
+   * @since 2.1.0
    */
   ConditionalWriter createConditionalWriter(String tableName) throws TableNotFoundException;
 

@@ -95,21 +95,21 @@ public class ClientContext implements AccumuloClient {
 
   private static final Logger log = LoggerFactory.getLogger(ClientContext.class);
 
-  private ClientInfo info;
+  private final ClientInfo info;
   private String instanceId;
   private final ZooCache zooCache;
 
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
   private ConditionalWriterConfig conditionalWriterConfig;
-  private AccumuloConfiguration serverConf;
-  private Configuration hadoopConf;
+  private final AccumuloConfiguration serverConf;
+  private final Configuration hadoopConf;
 
   // These fields are very frequently accessed (each time a connection is created) and expensive to
   // compute, so cache them.
-  private Supplier<Long> timeoutSupplier;
-  private Supplier<SaslConnectionParams> saslSupplier;
-  private Supplier<SslConnectionParams> sslSupplier;
+  private final Supplier<Long> timeoutSupplier;
+  private final Supplier<SaslConnectionParams> saslSupplier;
+  private final Supplier<SslConnectionParams> sslSupplier;
   private TCredentials rpcCreds;
 
   private volatile boolean closed = false;
@@ -119,7 +119,7 @@ public class ClientContext implements AccumuloClient {
   private NamespaceOperations namespaceops = null;
   private InstanceOperations instanceops = null;
   private ReplicationOperations replicationops = null;
-  private SingletonReservation singletonReservation;
+  private final SingletonReservation singletonReservation;
 
   private void ensureOpen() {
     if (closed) {
@@ -284,7 +284,7 @@ public class ClientContext implements AccumuloClient {
     return saslSupplier.get();
   }
 
-  public BatchWriterConfig getBatchWriterConfig() {
+  public synchronized BatchWriterConfig getBatchWriterConfig() {
     ensureOpen();
     if (batchWriterConfig == null) {
       Properties props = info.getProperties();
@@ -313,7 +313,7 @@ public class ClientContext implements AccumuloClient {
     return batchWriterConfig;
   }
 
-  public ConditionalWriterConfig getConditionalWriterConfig() {
+  public synchronized ConditionalWriterConfig getConditionalWriterConfig() {
     ensureOpen();
     if (conditionalWriterConfig == null) {
       Properties props = info.getProperties();
@@ -690,7 +690,7 @@ public class ClientContext implements AccumuloClient {
 
     private Properties properties = new Properties();
     private AuthenticationToken token = null;
-    private Function<ClientBuilderImpl<T>,T> builderFunction;
+    private final Function<ClientBuilderImpl<T>,T> builderFunction;
 
     public ClientBuilderImpl(Function<ClientBuilderImpl<T>,T> builderFunction) {
       this.builderFunction = builderFunction;

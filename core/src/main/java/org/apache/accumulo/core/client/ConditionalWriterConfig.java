@@ -42,19 +42,9 @@ public class ConditionalWriterConfig {
 
   private Authorizations auths = Authorizations.EMPTY;
 
-  private Durability durability = Durability.DEFAULT;
-  private boolean isDurabilitySet = false;
+  private Durability durability = null;
 
   private String classLoaderContext = null;
-
-  private static long getDefaultTimeout() {
-    long defVal =
-        ConfigurationTypeHelper.getTimeInMillis(CONDITIONAL_WRITER_TIMEOUT_MAX.getDefaultValue());
-    if (defVal == 0L)
-      return Long.MAX_VALUE;
-    else
-      return defVal;
-  }
 
   /**
    * A set of authorization labels that will be checked against the column visibility of each key in
@@ -136,7 +126,6 @@ public class ConditionalWriterConfig {
    */
   public ConditionalWriterConfig setDurability(Durability durability) {
     this.durability = durability;
-    isDurabilitySet = true;
     return this;
   }
 
@@ -153,7 +142,19 @@ public class ConditionalWriterConfig {
   }
 
   public Durability getDurability() {
+    if (durability == null) {
+      return Durability.DEFAULT;
+    }
     return durability;
+  }
+
+  private static long getDefaultTimeout() {
+    long defVal =
+        ConfigurationTypeHelper.getTimeInMillis(CONDITIONAL_WRITER_TIMEOUT_MAX.getDefaultValue());
+    if (defVal == 0L)
+      return Long.MAX_VALUE;
+    else
+      return defVal;
   }
 
   /**
@@ -203,18 +204,14 @@ public class ConditionalWriterConfig {
    * @param other
    *          Another ConditionalWriterConfig
    * @return Merged ConditionalWriterConfig
-   * @since 2.0.0
+   * @since 2.1.0
    */
   public ConditionalWriterConfig merge(ConditionalWriterConfig other) {
     ConditionalWriterConfig result = new ConditionalWriterConfig();
     result.timeout = merge(this.timeout, other.timeout);
     result.maxWriteThreads = merge(this.maxWriteThreads, other.maxWriteThreads);
-    result.auths = merge(this.auths, other.auths);
-    if (this.isDurabilitySet) {
-      result.durability = this.durability;
-    } else if (other.isDurabilitySet) {
-      result.durability = other.durability;
-    }
+    result.durability = merge(this.durability, other.durability);
+    result.auths = this.auths;
     return result;
   }
 
