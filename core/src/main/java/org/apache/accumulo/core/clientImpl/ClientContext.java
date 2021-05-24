@@ -101,6 +101,7 @@ public class ClientContext implements AccumuloClient {
 
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
+  private ConditionalWriterConfig conditionalWriterConfig;
   private AccumuloConfiguration serverConf;
   private Configuration hadoopConf;
 
@@ -304,8 +305,33 @@ public class ClientContext implements AccumuloClient {
       if (!durability.isEmpty()) {
         batchWriterConfig.setDurability(Durability.valueOf(durability.toUpperCase()));
       }
+      Integer maxThreads = ClientProperty.BATCH_WRITER_THREADS_MAX.getInteger(props);
+      if (maxThreads != null) {
+        batchWriterConfig.setMaxWriteThreads(maxThreads);
+      }
     }
     return batchWriterConfig;
+  }
+
+  public ConditionalWriterConfig getConditionalWriterConfig() {
+    ensureOpen();
+    if (conditionalWriterConfig == null) {
+      Properties props = info.getProperties();
+      conditionalWriterConfig = new ConditionalWriterConfig();
+      Long timeout = ClientProperty.CONDITIONAL_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
+      if (timeout != null) {
+        conditionalWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
+      }
+      String durability = ClientProperty.CONDITIONAL_WRITER_DURABILITY.getValue(props);
+      if (!durability.isEmpty()) {
+        conditionalWriterConfig.setDurability(Durability.valueOf(durability.toUpperCase()));
+      }
+      Integer maxThreads = ClientProperty.CONDITIONAL_WRITER_THREADS_MAX.getInteger(props);
+      if (maxThreads != null) {
+        conditionalWriterConfig.setMaxWriteThreads(maxThreads);
+      }
+    }
+    return conditionalWriterConfig;
   }
 
   /**
@@ -555,7 +581,17 @@ public class ClientContext implements AccumuloClient {
   public ConditionalWriter createConditionalWriter(String tableName, ConditionalWriterConfig config)
       throws TableNotFoundException {
     ensureOpen();
-    return new ConditionalWriterImpl(this, getTableId(tableName), config);
+    if (config == null) {
+      config = new ConditionalWriterConfig();
+    }
+    return new ConditionalWriterImpl(this, getTableId(tableName),
+        config.merge(getConditionalWriterConfig()));
+  }
+
+  @Override
+  public ConditionalWriter createConditionalWriter(String tableName) throws TableNotFoundException {
+    ensureOpen();
+    return new ConditionalWriterImpl(this, getTableId(tableName), new ConditionalWriterConfig());
   }
 
   @Override

@@ -268,6 +268,18 @@ public interface AccumuloClient extends AutoCloseable {
       throws TableNotFoundException;
 
   /**
+   * Factory method to create a ConditionalWriter connected to Accumulo.
+   *
+   * @param tableName
+   *          the name of the table to query data from
+   *
+   * @return ConditionalWriter object for writing ConditionalMutations
+   * @throws TableNotFoundException
+   *           when the specified table doesn't exist
+   */
+  ConditionalWriter createConditionalWriter(String tableName) throws TableNotFoundException;
+
+  /**
    * Get the current user for this AccumuloClient
    *
    * @return the user name
