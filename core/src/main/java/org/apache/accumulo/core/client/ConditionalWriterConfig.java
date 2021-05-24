@@ -20,7 +20,8 @@ package org.apache.accumulo.core.client;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
-import static org.apache.accumulo.core.conf.ClientProperty.*;
+import static org.apache.accumulo.core.conf.ClientProperty.CONDITIONAL_WRITER_THREADS_MAX;
+import static org.apache.accumulo.core.conf.ClientProperty.CONDITIONAL_WRITER_TIMEOUT_MAX;
 
 import java.util.concurrent.TimeUnit;
 
@@ -200,8 +201,8 @@ public class ConditionalWriterConfig {
    * given to this config.
    *
    * @param other
-   *          Another BatchWriterConfig
-   * @return Merged BatchWriterConfig
+   *          Another ConditionalWriterConfig
+   * @return Merged ConditionalWriterConfig
    * @since 2.0.0
    */
   public ConditionalWriterConfig merge(ConditionalWriterConfig other) {
