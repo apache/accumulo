@@ -83,6 +83,7 @@ import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.compaction.CompactionInfo;
+import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.compaction.RetryableThriftCall;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
 import org.apache.accumulo.server.compaction.RetryableThriftFunction;
@@ -566,9 +567,8 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
               .forEach(tis -> iters.add(SystemIteratorUtil.toIteratorSetting(tis)));
 
           CompactionEnvironment cenv = new CompactionEnvironment(JOB_HOLDER, queueName);
-          org.apache.accumulo.server.compaction.FileCompactor compactor =
-              new org.apache.accumulo.server.compaction.FileCompactor(getContext(), extent, files,
-                  outputFile, job.isPropagateDeletes(), cenv, iters, tConfig);
+          FileCompactor compactor = new FileCompactor(getContext(), extent, files, outputFile,
+              job.isPropagateDeletes(), cenv, iters, tConfig);
 
           LOG.trace("Starting compactor");
           started.countDown();
