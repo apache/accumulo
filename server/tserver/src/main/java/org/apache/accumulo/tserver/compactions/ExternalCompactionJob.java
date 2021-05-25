@@ -40,7 +40,7 @@ import com.google.common.base.Preconditions;
 public class ExternalCompactionJob {
 
   private Map<StoredTabletFile,DataFileValue> jobFiles;
-  private boolean propogateDeletes;
+  private boolean propagateDeletes;
   private TabletFile compactTmpName;
   private KeyExtent extent;
   private ExternalCompactionId externalCompactionId;
@@ -52,11 +52,11 @@ public class ExternalCompactionJob {
   public ExternalCompactionJob() {}
 
   public ExternalCompactionJob(Map<StoredTabletFile,DataFileValue> jobFiles,
-      boolean propogateDeletes, TabletFile compactTmpName, KeyExtent extent,
+      boolean propagateDeletes, TabletFile compactTmpName, KeyExtent extent,
       ExternalCompactionId externalCompactionId, CompactionKind kind, List<IteratorSetting> iters,
       Long userCompactionId, Map<String,String> overrides) {
     this.jobFiles = Objects.requireNonNull(jobFiles);
-    this.propogateDeletes = propogateDeletes;
+    this.propagateDeletes = propagateDeletes;
     this.compactTmpName = Objects.requireNonNull(compactTmpName);
     this.extent = Objects.requireNonNull(extent);
     this.externalCompactionId = Objects.requireNonNull(externalCompactionId);
@@ -81,7 +81,7 @@ public class ExternalCompactionJob {
     }).collect(Collectors.toList());
 
     return new TExternalCompactionJob(externalCompactionId.toString(), extent.toThrift(), files,
-        iteratorSettings, compactTmpName.getPathStr(), propogateDeletes,
+        iteratorSettings, compactTmpName.getPathStr(), propagateDeletes,
         org.apache.accumulo.core.tabletserver.thrift.TCompactionKind.valueOf(kind.name()),
         userCompactionId, overrides);
   }

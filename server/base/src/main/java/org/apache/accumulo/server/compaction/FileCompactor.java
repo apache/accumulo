@@ -98,7 +98,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   private final Map<StoredTabletFile,DataFileValue> filesToCompact;
   private final TabletFile outputFile;
-  private final boolean propogateDeletes;
+  private final boolean propagateDeletes;
   private final AccumuloConfiguration acuTableConf;
   private final CompactionEnv env;
   private final VolumeManager fs;
@@ -151,7 +151,7 @@ public class FileCompactor implements Callable<CompactionStats> {
   }
 
   public FileCompactor(ServerContext context, KeyExtent extent,
-      Map<StoredTabletFile,DataFileValue> files, TabletFile outputFile, boolean propogateDeletes,
+      Map<StoredTabletFile,DataFileValue> files, TabletFile outputFile, boolean propagateDeletes,
       CompactionEnv env, List<IteratorSetting> iterators, AccumuloConfiguration tableConfiguation) {
     this.context = context;
     this.extent = extent;
@@ -159,7 +159,7 @@ public class FileCompactor implements Callable<CompactionStats> {
     this.acuTableConf = tableConfiguation;
     this.filesToCompact = files;
     this.outputFile = outputFile;
-    this.propogateDeletes = propogateDeletes;
+    this.propagateDeletes = propagateDeletes;
     this.env = env;
     this.iterators = iterators;
 
@@ -347,7 +347,7 @@ public class FileCompactor implements Callable<CompactionStats> {
       CountingIterator citr =
           new CountingIterator(new MultiIterator(iters, extent.toDataRange()), entriesRead);
       SortedKeyValueIterator<Key,Value> delIter =
-          DeletingIterator.wrap(citr, propogateDeletes, DeletingIterator.getBehavior(acuTableConf));
+          DeletingIterator.wrap(citr, propagateDeletes, DeletingIterator.getBehavior(acuTableConf));
       ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
 
       // if(env.getIteratorScope() )
@@ -419,7 +419,7 @@ public class FileCompactor implements Callable<CompactionStats> {
   }
 
   boolean willPropogateDeletes() {
-    return propogateDeletes;
+    return propagateDeletes;
   }
 
   long getEntriesRead() {

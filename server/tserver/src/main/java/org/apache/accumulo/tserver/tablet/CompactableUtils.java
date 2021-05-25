@@ -553,7 +553,7 @@ public class CompactableUtils {
   }
 
   static StoredTabletFile compact(Tablet tablet, CompactionJob job, Set<StoredTabletFile> jobFiles,
-      Long compactionId, Set<StoredTabletFile> selectedFiles, boolean propogateDeletes,
+      Long compactionId, Set<StoredTabletFile> selectedFiles, boolean propagateDeletes,
       CompactableImpl.CompactionHelper helper, List<IteratorSetting> iters,
       CompactionCheck compactionCheck, RateLimiter readLimiter, RateLimiter writeLimiter,
       CompactionStats stats) throws IOException, CompactionCanceledException {
@@ -582,7 +582,7 @@ public class CompactableUtils {
       @Override
       public SystemIteratorEnvironment createIteratorEnv(ServerContext context,
           AccumuloConfiguration acuTableConf, TableId tableId) {
-        return new TabletIteratorEnvironment(context, IteratorScope.majc, !propogateDeletes,
+        return new TabletIteratorEnvironment(context, IteratorScope.majc, !propagateDeletes,
             acuTableConf, tableId, job.getKind());
       }
 
@@ -613,11 +613,11 @@ public class CompactableUtils {
     HashMap<StoredTabletFile,DataFileValue> compactFiles = new HashMap<>();
     jobFiles.forEach(file -> compactFiles.put(file, allFiles.get(file)));
 
-    TabletFile newFile = tablet.getNextMapFilename(!propogateDeletes ? "A" : "C");
+    TabletFile newFile = tablet.getNextMapFilename(!propagateDeletes ? "A" : "C");
     TabletFile compactTmpName = new TabletFile(new Path(newFile.getMetaInsert() + "_tmp"));
 
     FileCompactor compactor = new FileCompactor(tablet.getContext(), tablet.getExtent(),
-        compactFiles, compactTmpName, propogateDeletes, cenv, iters, compactionConfig);
+        compactFiles, compactTmpName, propagateDeletes, cenv, iters, compactionConfig);
 
     var mcs = compactor.call();
 

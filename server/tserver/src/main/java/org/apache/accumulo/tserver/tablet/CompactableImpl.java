@@ -457,7 +457,7 @@ public class CompactableImpl implements Compactable {
         propDel = ecMeta.getPropogateDeletes();
       } else if (propDel != ecMeta.getPropogateDeletes()) {
         unexpectedExternal = true;
-        reasons.add("Disagreement on propogateDeletes");
+        reasons.add("Disagreement on propagateDeletes");
         break;
       }
 
@@ -779,7 +779,7 @@ public class CompactableImpl implements Compactable {
   private static class CompactionInfo {
     Set<StoredTabletFile> jobFiles;
     Long checkCompactionId = null;
-    boolean propogateDeletes = true;
+    boolean propagateDeletes = true;
     CompactionHelper localHelper;
     List<IteratorSetting> iters = List.of();
     CompactionConfig localCompactionCfg;
@@ -866,7 +866,7 @@ public class CompactableImpl implements Compactable {
           Preconditions.checkState(selectStatus == FileSelectionStatus.SELECTED);
           if (job.getKind() == selectKind && initiallySelectedAll
               && cInfo.jobFiles.containsAll(selectedFiles)) {
-            cInfo.propogateDeletes = false;
+            cInfo.propagateDeletes = false;
           }
 
           cInfo.selectedFiles = Set.copyOf(selectedFiles);
@@ -877,7 +877,7 @@ public class CompactableImpl implements Compactable {
           if (((CompactionJobImpl) job).selectedAll()) {
             // At the time when the job was created all files were selected, so deletes can be
             // dropped.
-            cInfo.propogateDeletes = false;
+            cInfo.propagateDeletes = false;
           }
 
           cInfo.selectedFiles = Set.of();
@@ -939,7 +939,7 @@ public class CompactableImpl implements Compactable {
       tablet.incrementStatusMajor();
 
       metaFile = CompactableUtils.compact(tablet, job, cInfo.jobFiles, cInfo.checkCompactionId,
-          cInfo.selectedFiles, cInfo.propogateDeletes, cInfo.localHelper, cInfo.iters,
+          cInfo.selectedFiles, cInfo.propagateDeletes, cInfo.localHelper, cInfo.iters,
           new CompactionCheck(service, job.getKind(), cInfo.checkCompactionId), readLimiter,
           writeLimiter, stats);
 
@@ -973,14 +973,14 @@ public class CompactableImpl implements Compactable {
       Map<String,String> overrides =
           CompactableUtils.getOverrides(job.getKind(), tablet, cInfo.localHelper, job.getFiles());
 
-      var newFile = tablet.getNextMapFilename(!cInfo.propogateDeletes ? "A" : "C");
+      var newFile = tablet.getNextMapFilename(!cInfo.propagateDeletes ? "A" : "C");
       var compactTmpName = new TabletFile(new Path(newFile.getMetaInsert() + "_tmp"));
 
       ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
 
       ecInfo.meta = new ExternalCompactionMetadata(cInfo.jobFiles,
           Sets.difference(cInfo.selectedFiles, cInfo.jobFiles), compactTmpName, newFile,
-          compactorId, job.getKind(), job.getPriority(), job.getExecutor(), cInfo.propogateDeletes,
+          compactorId, job.getKind(), job.getPriority(), job.getExecutor(), cInfo.propagateDeletes,
           cInfo.initiallySelectedAll, cInfo.checkCompactionId);
 
       tablet.getContext().getAmple().mutateTablet(getExtent())
@@ -994,7 +994,7 @@ public class CompactableImpl implements Compactable {
       HashMap<StoredTabletFile,DataFileValue> compactFiles = new HashMap<>();
       cInfo.jobFiles.forEach(file -> compactFiles.put(file, allFiles.get(file)));
 
-      return new ExternalCompactionJob(compactFiles, cInfo.propogateDeletes, compactTmpName,
+      return new ExternalCompactionJob(compactFiles, cInfo.propagateDeletes, compactTmpName,
           getExtent(), externalCompactionId, job.getKind(), cInfo.iters, cInfo.checkCompactionId,
           overrides);
 
