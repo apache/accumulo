@@ -34,16 +34,13 @@ import org.apache.accumulo.core.security.Authorizations;
 public class ConditionalWriterConfig {
 
   private static final Long DEFAULT_TIMEOUT = getDefaultTimeout();
-  private Long timeout = null;
-
   private static final Integer DEFAULT_MAX_WRITE_THREADS =
       Integer.parseInt(CONDITIONAL_WRITER_THREADS_MAX.getDefaultValue());
+
+  private Long timeout = null;
   private Integer maxWriteThreads = null;
-
-  private Authorizations auths = Authorizations.EMPTY;
-
+  private Authorizations auths = null;
   private Durability durability = null;
-
   private String classLoaderContext = null;
 
   /**
@@ -130,7 +127,7 @@ public class ConditionalWriterConfig {
   }
 
   public Authorizations getAuthorizations() {
-    return auths;
+    return auths != null ? auths : Authorizations.EMPTY;
   }
 
   public long getTimeout(TimeUnit timeUnit) {
@@ -142,19 +139,13 @@ public class ConditionalWriterConfig {
   }
 
   public Durability getDurability() {
-    if (durability == null) {
-      return Durability.DEFAULT;
-    }
-    return durability;
+    return durability != null ? durability : Durability.DEFAULT;
   }
 
   private static long getDefaultTimeout() {
     long defVal =
         ConfigurationTypeHelper.getTimeInMillis(CONDITIONAL_WRITER_TIMEOUT_MAX.getDefaultValue());
-    if (defVal == 0L)
-      return Long.MAX_VALUE;
-    else
-      return defVal;
+    return defVal != 0L ? defVal : Long.MAX_VALUE;
   }
 
   /**
@@ -211,7 +202,7 @@ public class ConditionalWriterConfig {
     result.timeout = merge(this.timeout, other.timeout);
     result.maxWriteThreads = merge(this.maxWriteThreads, other.maxWriteThreads);
     result.durability = merge(this.durability, other.durability);
-    result.auths = this.auths;
+    result.auths = merge(this.auths, other.auths);
     return result;
   }
 
