@@ -49,7 +49,6 @@ import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
@@ -542,13 +541,14 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
 
           final AccumuloConfiguration tConfig;
 
-          if (!job.getTableCompactionProperties().isEmpty()) {
-            tConfig = new ConfigurationCopy(DefaultConfiguration.getInstance());
-            job.getTableCompactionProperties()
-                .forEach((k, v) -> ((ConfigurationCopy) tConfig).set(k, v));
-            LOG.debug("Overriding default properties with {}", job.getTableCompactionProperties());
+          var extent = KeyExtent.fromThrift(job.getExtent());
+
+          if (!job.getOverrides().isEmpty()) {
+            tConfig = new ConfigurationCopy(getContext().getTableConfiguration(extent.tableId()));
+            job.getOverrides().forEach((k, v) -> ((ConfigurationCopy) tConfig).set(k, v));
+            LOG.debug("Overriding table properties with {}", job.getOverrides());
           } else {
-            tConfig = DefaultConfiguration.getInstance();
+            tConfig = getContext().getTableConfiguration(extent.tableId());
           }
 
           final TabletFile outputFile = new TabletFile(new Path(job.getOutputFile()));
@@ -567,9 +567,8 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
 
           CompactionEnvironment cenv = new CompactionEnvironment(JOB_HOLDER, queueName);
           org.apache.accumulo.server.compaction.FileCompactor compactor =
-              new org.apache.accumulo.server.compaction.FileCompactor(getContext(),
-                  KeyExtent.fromThrift(job.getExtent()), files, outputFile,
-                  job.isPropagateDeletes(), cenv, iters, tConfig);
+              new org.apache.accumulo.server.compaction.FileCompactor(getContext(), extent, files,
+                  outputFile, job.isPropagateDeletes(), cenv, iters, tConfig);
 
           LOG.trace("Starting compactor");
           started.countDown();

@@ -47,14 +47,14 @@ public class ExternalCompactionJob {
   private CompactionKind kind;
   private List<IteratorSetting> iters;
   private long userCompactionId;
-  private Map<String,String> tableCompactionConfiguration;
+  private Map<String,String> overrides;
 
   public ExternalCompactionJob() {}
 
   public ExternalCompactionJob(Map<StoredTabletFile,DataFileValue> jobFiles,
       boolean propogateDeletes, TabletFile compactTmpName, KeyExtent extent,
       ExternalCompactionId externalCompactionId, CompactionKind kind, List<IteratorSetting> iters,
-      Long userCompactionId, Map<String,String> tableCompactionConfiguration) {
+      Long userCompactionId, Map<String,String> overrides) {
     this.jobFiles = Objects.requireNonNull(jobFiles);
     this.propogateDeletes = propogateDeletes;
     this.compactTmpName = Objects.requireNonNull(compactTmpName);
@@ -68,7 +68,7 @@ public class ExternalCompactionJob {
     } else {
       this.userCompactionId = 0;
     }
-    this.tableCompactionConfiguration = tableCompactionConfiguration;
+    this.overrides = overrides;
   }
 
   public TExternalCompactionJob toThrift() {
@@ -83,7 +83,7 @@ public class ExternalCompactionJob {
     return new TExternalCompactionJob(externalCompactionId.toString(), extent.toThrift(), files,
         iteratorSettings, compactTmpName.getPathStr(), propogateDeletes,
         org.apache.accumulo.core.tabletserver.thrift.TCompactionKind.valueOf(kind.name()),
-        userCompactionId, tableCompactionConfiguration);
+        userCompactionId, overrides);
   }
 
   public ExternalCompactionId getExternalCompactionId() {

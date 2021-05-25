@@ -45,8 +45,6 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -154,7 +152,7 @@ public class CompactableImpl implements Compactable {
 
     Set<StoredTabletFile> getFilesToDrop();
 
-    AccumuloConfiguration override(AccumuloConfiguration conf, Set<CompactableFile> files);
+    Map<String,String> getConfigOverrides(Set<CompactableFile> files);
 
   }
 
@@ -972,19 +970,8 @@ public class CompactableImpl implements Compactable {
     var cInfo = ocInfo.get();
 
     try {
-      AccumuloConfiguration compactionConfig = CompactableUtils.getCompactionConfig(job.getKind(),
-          tablet, cInfo.localHelper, job.getFiles());
-      Map<String,String> tableCompactionProperties = new HashMap<>();
-      Map<String,String> defaultsProps = new HashMap<>();
-      DefaultConfiguration.getInstance().forEach(e -> defaultsProps.put(e.getKey(), e.getValue()));
-      compactionConfig.forEach(entry -> {
-        var k = entry.getKey();
-        var v = entry.getValue();
-        if (k.startsWith(Property.TABLE_PREFIX.getKey())
-            && !defaultsProps.getOrDefault(k, "").equals(v)) {
-          tableCompactionProperties.put(k, v);
-        }
-      });
+      Map<String,String> overrides =
+          CompactableUtils.getOverrides(job.getKind(), tablet, cInfo.localHelper, job.getFiles());
 
       var newFile = tablet.getNextMapFilename(!cInfo.propogateDeletes ? "A" : "C");
       var compactTmpName = new TabletFile(new Path(newFile.getMetaInsert() + "_tmp"));
@@ -1009,7 +996,7 @@ public class CompactableImpl implements Compactable {
 
       return new ExternalCompactionJob(compactFiles, cInfo.propogateDeletes, compactTmpName,
           getExtent(), externalCompactionId, job.getKind(), cInfo.iters, cInfo.checkCompactionId,
-          tableCompactionProperties);
+          overrides);
 
     } catch (Exception e) {
       externalCompactions.remove(externalCompactionId);
