@@ -25,6 +25,7 @@ import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
 import static org.apache.accumulo.tserver.logger.LogEvents.MANY_MUTATIONS;
 import static org.apache.accumulo.tserver.logger.LogEvents.MUTATION;
+import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 
 import java.io.IOException;
 import java.util.AbstractMap;
@@ -50,7 +51,6 @@ import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,9 +108,8 @@ public class SortedLogRecovery {
   private int findMaxTabletId(KeyExtent extent, List<Path> recoveryLogDirs) throws IOException {
     int tabletId = -1;
 
-    try (RecoveryLogsIterator rli =
-        new RecoveryLogsIterator(fs, recoveryLogDirs, minKey(DEFINE_TABLET, extent),
-            maxKey(DEFINE_TABLET, extent), new Text(DEFINE_TABLET.name()))) {
+    try (var rli = new RecoveryLogsIterator(fs, recoveryLogDirs, minKey(DEFINE_TABLET, extent),
+        maxKey(DEFINE_TABLET, extent), true, DEFINE_TABLET, OPEN)) {
 
       KeyExtent alternative = extent;
       if (extent.isRootTablet()) {
@@ -210,9 +209,9 @@ public class SortedLogRecovery {
     long lastFinish = 0;
     long recoverySeq = 0;
 
-    try (RecoveryLogsIterator rli = new RecoveryLogsIterator(fs, recoveryLogs,
-        minKey(COMPACTION_START, tabletId), maxKey(COMPACTION_START, tabletId),
-        new Text(COMPACTION_START.name()), new Text(COMPACTION_FINISH.name()))) {
+    try (RecoveryLogsIterator rli =
+        new RecoveryLogsIterator(fs, recoveryLogs, minKey(COMPACTION_START, tabletId),
+            maxKey(COMPACTION_START, tabletId), false, COMPACTION_START, COMPACTION_FINISH)) {
 
       DeduplicatingIterator ddi = new DeduplicatingIterator(rli);
 
@@ -267,8 +266,8 @@ public class SortedLogRecovery {
 
     LogFileKey end = maxKey(MUTATION, tabletId);
 
-    try (RecoveryLogsIterator rli = new RecoveryLogsIterator(fs, recoveryLogs, start, end,
-        new Text(MUTATION.name()), new Text(MANY_MUTATIONS.name()))) {
+    try (RecoveryLogsIterator rli =
+        new RecoveryLogsIterator(fs, recoveryLogs, start, end, false, MUTATION, MANY_MUTATIONS)) {
       while (rli.hasNext()) {
         Entry<Key,Value> entry = rli.next();
         LogFileKey logFileKey = LogFileKey.fromKey(entry.getKey());

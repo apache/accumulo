@@ -72,6 +72,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class SortedLogRecoveryTest {
 
+  static final int bufferSize = 5;
   static final KeyExtent extent = new KeyExtent(TableId.of("table"), null, null);
   static final Text cf = new Text("cf");
   static final Text cq = new Text("cq");
@@ -156,11 +157,11 @@ public class SortedLogRecoveryTest {
   }
 
   private List<Mutation> recover(Map<String,KeyValue[]> logs, KeyExtent extent) throws IOException {
-    return recover(logs, new HashSet<>(), extent);
+    return recover(logs, new HashSet<>(), extent, bufferSize);
   }
 
-  private List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files, KeyExtent extent)
-      throws IOException {
+  private List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files, KeyExtent extent,
+      int bufferSize) throws IOException {
 
     final String workdir = tempFolder.newFolder().getAbsolutePath();
     try (var fs = VolumeManagerImpl.getLocalForTesting(workdir)) {
@@ -175,12 +176,18 @@ public class SortedLogRecoveryTest {
       for (Entry<String,KeyValue[]> entry : logs.entrySet()) {
         String destPath = workdir + "/" + entry.getKey();
         FileSystem ns = fs.getFileSystemByPath(new Path(destPath));
-        // convert test object to Pairs for LogSorter
+        // convert test object to Pairs for LogSorter, flushing based on bufferSize
         List<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
+        int parts = 0;
         for (KeyValue pair : entry.getValue()) {
           buffer.add(new Pair<>(pair.key, pair.value));
+          if (buffer.size() >= bufferSize) {
+            LogSorter.writeBuffer(context, destPath, buffer, parts++);
+            buffer.clear();
+          }
         }
-        LogSorter.writeBuffer(context, destPath, buffer, 0);
+        LogSorter.writeBuffer(context, destPath, buffer, parts);
+
         ns.create(SortedLogState.getFinishedMarkerPath(destPath)).close();
         dirs.add(new Path(destPath));
       }
@@ -709,7 +716,7 @@ public class SortedLogRecoveryTest {
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
 
-    List<Mutation> mutations = recover(logs, Collections.singleton("/t/f1"), extent);
+    List<Mutation> mutations = recover(logs, Collections.singleton("/t/f1"), extent, bufferSize);
 
     assertEquals(0, mutations.size());
   }
@@ -732,7 +739,7 @@ public class SortedLogRecoveryTest {
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
 
-    List<Mutation> mutations = recover(logs, Collections.singleton("/t/f1"), extent);
+    List<Mutation> mutations = recover(logs, Collections.singleton("/t/f1"), extent, bufferSize);
 
     assertEquals(1, mutations.size());
     assertEquals(m, mutations.get(0));
@@ -837,7 +844,7 @@ public class SortedLogRecoveryTest {
 
     HashSet<String> filesSet = new HashSet<>();
     filesSet.addAll(Arrays.asList(tabletFiles));
-    List<Mutation> mutations = recover(logs, filesSet, extent);
+    List<Mutation> mutations = recover(logs, filesSet, extent, bufferSize);
 
     if (startMatches) {
       assertEquals(1, mutations.size());

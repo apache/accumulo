@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.tserver.logger.LogEvents;
@@ -58,7 +59,7 @@ public class RecoveryLogsIterator implements Iterator<Entry<Key,Value>>, AutoClo
    * Iterates only over keys in the range [start,end].
    */
   RecoveryLogsIterator(VolumeManager fs, List<Path> recoveryLogDirs, LogFileKey start,
-      LogFileKey end, Text... colFamToFetch) throws IOException {
+      LogFileKey end, boolean checkFirstKey, LogEvents... colFamToFetch) throws IOException {
 
     List<Iterator<Entry<Key,Value>>> iterators = new ArrayList<>(recoveryLogDirs.size());
     scanners = new ArrayList<>();
@@ -68,23 +69,22 @@ public class RecoveryLogsIterator implements Iterator<Entry<Key,Value>>, AutoClo
 
     for (Path logDir : recoveryLogDirs) {
       LOG.debug("Opening recovery log dir {}", logDir.getName());
-      for (Path log : getFiles(fs, logDir)) {
-        var scanner = RFile.newScanner().from(log.toString())
-            .withFileSystem(fs.getFileSystemByPath(log)).build();
-        for (var cf : colFamToFetch)
-          scanner.fetchColumnFamily(cf);
-        scanner.setRange(range);
-        LOG.debug("Get iterator for Key Range = {} to {}", startKey, endKey);
-        Iterator<Entry<Key,Value>> scanIter = scanner.iterator();
-
-        if (scanIter.hasNext()) {
-          LOG.debug("Write ahead log {} has data in range {} {}", log.getName(), start, end);
-          iterators.add(scanIter);
-          scanners.add(scanner);
-        } else {
-          LOG.debug("Write ahead log {} has no data in range {} {}", log.getName(), start, end);
-          scanner.close();
-        }
+      var scanner = RFile.newScanner().from(getFiles(fs, logDir))
+          .withFileSystem(fs.getFileSystemByPath(logDir)).build();
+      for (var cf : colFamToFetch)
+        scanner.fetchColumnFamily(new Text(cf.name()));
+      scanner.setRange(range);
+      LOG.debug("Get iterator for Key Range = {} to {}", startKey, endKey);
+      PeekingIterator<Entry<Key,Value>> scanIter = new PeekingIterator<>(scanner.iterator());
+      if (scanIter.hasNext()) {
+        if (checkFirstKey)
+          validateFirstKey(scanIter, logDir);
+        LOG.debug("Write ahead log {} has data in range {} {}", logDir.getName(), start, end);
+        iterators.add(scanIter);
+        scanners.add(scanner);
+      } else {
+        LOG.debug("Write ahead log {} has no data in range {} {}", logDir.getName(), start, end);
+        scanner.close();
       }
     }
     iter = Iterators.mergeSorted(iterators, Entry.comparingByKey());
@@ -113,9 +113,9 @@ public class RecoveryLogsIterator implements Iterator<Entry<Key,Value>>, AutoClo
   /**
    * Check for sorting signal files (finished/failed) and get the logs in the provided directory.
    */
-  private List<Path> getFiles(VolumeManager fs, Path directory) throws IOException {
+  private String[] getFiles(VolumeManager fs, Path directory) throws IOException {
     boolean foundFinish = false;
-    List<Path> logFiles = new ArrayList<>();
+    List<String> logFiles = new ArrayList<>();
     for (FileStatus child : fs.listStatus(directory)) {
       if (child.getPath().getName().startsWith("_"))
         continue;
@@ -128,24 +128,21 @@ public class RecoveryLogsIterator implements Iterator<Entry<Key,Value>>, AutoClo
       }
       FileSystem ns = fs.getFileSystemByPath(child.getPath());
       Path fullLogPath = ns.makeQualified(child.getPath());
-      try (var scanner = RFile.newScanner().from(fullLogPath.toString())
-          .withFileSystem(fs.getFileSystemByPath(fullLogPath)).build()) {
-        validateFirstKey(scanner.iterator(), fullLogPath);
-      }
-      logFiles.add(fullLogPath);
+      logFiles.add(fullLogPath.toString());
     }
     if (!foundFinish)
       throw new IOException(
           "Sort \"" + SortedLogState.FINISHED.getMarker() + "\" flag not found in " + directory);
-    return logFiles;
+    return logFiles.toArray(new String[0]);
   }
 
   /**
-   * Check that the first entry in the WAL is OPEN
+   * Check that the first entry in the WAL is OPEN. Only need to do this once.
    */
-  private void validateFirstKey(Iterator<Map.Entry<Key,Value>> iterator, Path fullLogPath) throws IOException {
+  private void validateFirstKey(PeekingIterator<Map.Entry<Key,Value>> iterator, Path fullLogPath)
+      throws IOException {
     if (iterator.hasNext()) {
-      Key firstKey = iterator.next().getKey();
+      Key firstKey = iterator.peek().getKey();
       LogFileKey key = LogFileKey.fromKey(firstKey);
       if (key.event != LogEvents.OPEN) {
         throw new IllegalStateException("First log entry is not OPEN " + fullLogPath);
