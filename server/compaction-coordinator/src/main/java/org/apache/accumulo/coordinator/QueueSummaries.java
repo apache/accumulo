@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.coordinator;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,10 +33,14 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
 public class QueueSummaries {
+
+  private static final Logger log = LoggerFactory.getLogger(QueueSummaries.class);
 
   // keep track of the last tserver returned for queue
   final Map<String,PrioTserver> LAST = new HashMap<>();
@@ -132,6 +137,13 @@ public class QueueSummaries {
 
   synchronized void update(TServerInstance tsi, List<TCompactionQueueSummary> summaries) {
 
+    if (log.isTraceEnabled()) {
+      Map<String,List<Long>> summariesToLog = new TreeMap<>();
+      summaries.forEach(summary -> summariesToLog
+          .computeIfAbsent(summary.getQueue(), k -> new ArrayList<>()).add(summary.getPriority()));
+      log.trace("Adding summaries from {} : {}", tsi, summariesToLog);
+    }
+
     Set<QueueAndPriority> newQP = new HashSet<>();
     summaries.forEach(summary -> {
       QueueAndPriority qp =
@@ -155,6 +167,9 @@ public class QueueSummaries {
   }
 
   synchronized void removeSummary(TServerInstance tsi, String queue, long priority) {
+
+    log.trace("Removing summary {} {} {}", tsi, queue, priority);
+
     TreeMap<Long,TreeSet<TServerInstance>> m = QUEUES.get(queue);
     if (m != null) {
       TreeSet<TServerInstance> s = m.get(priority);
@@ -178,6 +193,11 @@ public class QueueSummaries {
   }
 
   synchronized void remove(Set<TServerInstance> deleted) {
+
+    if (!deleted.isEmpty()) {
+      log.trace("Removing all summaries to tservers {}", deleted);
+    }
+
     deleted.forEach(tsi -> {
       INDEX.getOrDefault(tsi, Set.of()).forEach(qp -> {
         TreeMap<Long,TreeSet<TServerInstance>> m = QUEUES.get(qp.getQueue());

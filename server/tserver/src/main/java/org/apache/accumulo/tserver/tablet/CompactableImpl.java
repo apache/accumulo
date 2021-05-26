@@ -994,6 +994,8 @@ public class CompactableImpl implements Compactable {
       HashMap<StoredTabletFile,DataFileValue> compactFiles = new HashMap<>();
       cInfo.jobFiles.forEach(file -> compactFiles.put(file, allFiles.get(file)));
 
+      TabletLogger.compacting(getExtent(), job, cInfo.localCompactionCfg);
+
       return new ExternalCompactionJob(compactFiles, cInfo.propagateDeletes, compactTmpName,
           getExtent(), externalCompactionId, job.getKind(), cInfo.iters, cInfo.checkCompactionId,
           overrides);

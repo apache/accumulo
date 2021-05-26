@@ -332,9 +332,9 @@ public class CompactionCoordinator extends AbstractServer
         client = getTabletServerConnection(tsi);
         List<TCompactionQueueSummary> summaries =
             client.getCompactionQueueInfo(TraceUtil.traceInfo(), getContext().rpcCreds());
+        QUEUE_SUMMARIES.update(tsi, summaries);
         summaries.forEach(summary -> {
           queuesSeen.add(summary.getQueue());
-          QUEUE_SUMMARIES.update(tsi, summaries);
         });
       } finally {
         ThriftUtil.returnClient(client);
@@ -413,7 +413,7 @@ public class CompactionCoordinator extends AbstractServer
     while (prioTserver != null) {
       TServerInstance tserver = prioTserver.tserver;
 
-      LOG.debug("Getting compaction for queue {} from tserver {}", queue, tserver.getHostAndPort());
+      LOG.trace("Getting compaction for queue {} from tserver {}", queue, tserver.getHostAndPort());
       // Get a compaction from the tserver
       TabletClientService.Client client = null;
       try {
@@ -422,7 +422,7 @@ public class CompactionCoordinator extends AbstractServer
             client.reserveCompactionJob(TraceUtil.traceInfo(), getContext().rpcCreds(), queue,
                 prioTserver.prio, compactorAddress, externalCompactionId);
         if (null == job.getExternalCompactionId()) {
-          LOG.debug("No compactions found for queue {} on tserver {}, trying next tserver", queue,
+          LOG.trace("No compactions found for queue {} on tserver {}, trying next tserver", queue,
               tserver.getHostAndPort(), compactorAddress);
 
           QUEUE_SUMMARIES.removeSummary(tserver, queueName, prioTserver.prio);

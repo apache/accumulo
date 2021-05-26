@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -188,19 +189,21 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
     return found;
   }
 
-  public TCompactionQueueSummary summarize() {
-    ExternalJob topJob = queue.peek();
-    while (topJob != null && topJob.getStatus() != Status.QUEUED) {
-      queue.removeIf(extJob -> extJob.getStatus() != Status.QUEUED);
-      topJob = queue.peek();
+  public Stream<TCompactionQueueSummary> summarize() {
+    HashSet<Long> uniqPrios = new HashSet<Long>();
+    queuedTask.forEach(task -> uniqPrios.add(task.getJob().getPriority()));
+
+    Stream<Long> prioStream = uniqPrios.stream();
+
+    if (uniqPrios.size() > 100) {
+      // Until #2094 is addressed limit what is sent to the coordinator to avoid causing it run out
+      // of memory. Send the 100 highest prios.
+      prioStream = prioStream.sorted(Comparator.reverseOrder()).limit(100);
     }
 
-    if (topJob == null) {
-      return null;
-    }
+    String queueName = ((CompactionExecutorIdImpl) ceid).getExternalName();
 
-    return new TCompactionQueueSummary(((CompactionExecutorIdImpl) ceid).getExternalName(),
-        topJob.getJob().getPriority());
+    return prioStream.map(prio -> new TCompactionQueueSummary(queueName, prio));
   }
 
   public CompactionExecutorId getId() {
