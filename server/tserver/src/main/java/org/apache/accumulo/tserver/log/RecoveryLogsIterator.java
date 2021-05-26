@@ -130,7 +130,7 @@ public class RecoveryLogsIterator implements Iterator<Entry<Key,Value>>, AutoClo
       Path fullLogPath = ns.makeQualified(child.getPath());
       try (var scanner = RFile.newScanner().from(fullLogPath.toString())
           .withFileSystem(fs.getFileSystemByPath(fullLogPath)).build()) {
-        validateFirstKey(scanner.iterator());
+        validateFirstKey(scanner.iterator(), fullLogPath);
       }
       logFiles.add(fullLogPath);
     }
@@ -143,12 +143,12 @@ public class RecoveryLogsIterator implements Iterator<Entry<Key,Value>>, AutoClo
   /**
    * Check that the first entry in the WAL is OPEN
    */
-  private void validateFirstKey(Iterator<Map.Entry<Key,Value>> iterator) throws IOException {
+  private void validateFirstKey(Iterator<Map.Entry<Key,Value>> iterator, Path fullLogPath) throws IOException {
     if (iterator.hasNext()) {
       Key firstKey = iterator.next().getKey();
       LogFileKey key = LogFileKey.fromKey(firstKey);
       if (key.event != LogEvents.OPEN) {
-        throw new IllegalStateException("First log entry value is not OPEN");
+        throw new IllegalStateException("First log entry is not OPEN " + fullLogPath);
       }
     }
   }
