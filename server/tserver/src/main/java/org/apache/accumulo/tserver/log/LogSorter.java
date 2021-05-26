@@ -36,7 +36,6 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.util.Pair;
@@ -216,7 +215,6 @@ public class LogSorter {
   }
 
   @VisibleForTesting
-  // TODO improve performance of conversion to Key/Value
   public static void writeBuffer(ServerContext context, String destPath,
       List<Pair<LogFileKey,LogFileValue>> buffer, int part) throws IOException {
     String filename = String.format("part-r-%05d.rf", part);
@@ -224,8 +222,8 @@ public class LogSorter {
     FileSystem fs = context.getVolumeManager().getFileSystemByPath(path);
     Path fullPath = fs.makeQualified(path);
 
-    // convert the LogFileKeys to Keys and collect the mutations
-    Map<Key,List<Mutation>> keyListMap = new HashMap<>();
+    // convert the LogFileKeys to Keys, sort and collect the mutations
+    Map<Key,List<Mutation>> keyListMap = new TreeMap<>();
     for (Pair<LogFileKey,LogFileValue> pair : buffer) {
       var logFileKey = pair.getFirst();
       var logFileValue = pair.getSecond();
@@ -238,20 +236,14 @@ public class LogSorter {
       }
     }
 
-    // serialize the mutations into value and sort the keys
-    Map<Key,Value> convertedPairs = new TreeMap<>();
-    for (Map.Entry<Key,List<Mutation>> e : keyListMap.entrySet()) {
-      LogFileValue val = new LogFileValue();
-      val.mutations = e.getValue();
-      convertedPairs.put(e.getKey(), val.toValue());
-    }
-
     try (var writer = FileOperations.getInstance().newWriterBuilder()
         .forFile(fullPath.toString(), fs, fs.getConf(), context.getCryptoService())
         .withTableConfiguration(DefaultConfiguration.getInstance()).build()) {
       writer.startDefaultLocalityGroup();
-      for (var entry : convertedPairs.entrySet()) {
-        writer.append(entry.getKey(), entry.getValue());
+      for (var entry : keyListMap.entrySet()) {
+        LogFileValue val = new LogFileValue();
+        val.mutations = entry.getValue();
+        writer.append(entry.getKey(), val.toValue());
       }
     }
   }
