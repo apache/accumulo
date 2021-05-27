@@ -116,7 +116,7 @@ public class ReplicationTableUtil {
     // Make sure the StatusFormatter is set on the metadata table
     Iterable<Entry<String,String>> properties;
     try {
-      properties = tops.getProperties(tableName);
+      properties = tops.getPropertiesMap(tableName).entrySet();
     } catch (AccumuloException | TableNotFoundException e) {
       throw new RuntimeException(e);
     }

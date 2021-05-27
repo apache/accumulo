@@ -202,9 +202,30 @@ public interface NamespaceOperations {
    *           if the user does not have permission
    * @throws NamespaceNotFoundException
    *           if the specified namespace doesn't exist
-   * @since 1.6.0
+   * @deprecated since 2.1.0; use {@link #getPropertiesMap(String)} instead.
    */
+  @Deprecated(since = "2.1.0")
   Iterable<Entry<String,String>> getProperties(String namespace)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
+
+  /**
+   * Gets properties of a namespace, which are inherited by tables in this namespace. Note that
+   * recently changed properties may not be available immediately. This new method returns a Map
+   * instead of an Iterable.
+   *
+   * @param namespace
+   *          the name of the namespace
+   * @return all properties visible by this namespace (system and per-table properties). Note that
+   *         recently changed properties may not be visible immediately.
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   * @throws NamespaceNotFoundException
+   *           if the specified namespace doesn't exist
+   * @since 2.1.0
+   */
+  Map<String,String> getPropertiesMap(String namespace)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**

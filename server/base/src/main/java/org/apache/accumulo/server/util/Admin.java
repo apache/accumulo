@@ -529,7 +529,8 @@ public class Admin implements KeywordExecutable {
     try (BufferedWriter nsWriter = new BufferedWriter(new FileWriter(namespaceScript, UTF_8))) {
       nsWriter.write(createNsFormat.format(new String[] {namespace}));
       TreeMap<String,String> props = new TreeMap<>();
-      for (Entry<String,String> p : accumuloClient.namespaceOperations().getProperties(namespace)) {
+      for (Entry<String,String> p : accumuloClient.namespaceOperations().getPropertiesMap(namespace)
+          .entrySet()) {
         props.put(p.getKey(), p.getValue());
       }
       for (Entry<String,String> entry : props.entrySet()) {
@@ -608,7 +609,8 @@ public class Admin implements KeywordExecutable {
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(tableBackup, UTF_8))) {
       writer.write(createTableFormat.format(new String[] {tableName}));
       TreeMap<String,String> props = new TreeMap<>();
-      for (Entry<String,String> p : accumuloClient.tableOperations().getProperties(tableName)) {
+      for (Entry<String,String> p : accumuloClient.tableOperations().getPropertiesMap(tableName)
+          .entrySet()) {
         props.put(p.getKey(), p.getValue());
       }
       for (Entry<String,String> prop : props.entrySet()) {

@@ -617,8 +617,26 @@ public interface TableOperations {
    *         recently changed properties may not be visible immediately.
    * @throws TableNotFoundException
    *           if the table does not exist
+   * @deprecated since 2.1.0; use {@link #getPropertiesMap(String)} instead.
    */
+  @Deprecated(since = "2.1.0")
   Iterable<Entry<String,String>> getProperties(String tableName)
+      throws AccumuloException, TableNotFoundException;
+
+  /**
+   * Gets properties of a table. This operation is asynchronous and eventually consistent. It is not
+   * guaranteed that all tablets in a table will return the same values. Within a few seconds
+   * without another change, all tablets in a table should be consistent. The clone table feature
+   * can be used if consistency is required. This new method returns a Map instead of an Iterable.
+   *
+   * @param tableName
+   *          the name of the table
+   * @return all properties visible by this table (system and per-table properties). Note that
+   *         recently changed properties may not be visible immediately.
+   * @throws TableNotFoundException
+   *           if the table does not exist
+   */
+  Map<String,String> getPropertiesMap(String tableName)
       throws AccumuloException, TableNotFoundException;
 
   /**

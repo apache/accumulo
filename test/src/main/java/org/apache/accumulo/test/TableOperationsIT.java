@@ -180,7 +180,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     String tableName = getUniqueNames(1)[0];
     accumuloClient.tableOperations().create(tableName);
     Iterable<Map.Entry<String,String>> itrProps =
-        accumuloClient.tableOperations().getProperties(tableName);
+        accumuloClient.tableOperations().getPropertiesMap(tableName).entrySet();
     Map<String,String> props = propsToMap(itrProps);
     assertEquals(DefaultKeySizeConstraint.class.getName(),
         props.get(Property.TABLE_CONSTRAINT_PREFIX + "1"));

@@ -459,13 +459,13 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     if (namespaces) {
       try {
         tableProps = shellState.getAccumuloClient().namespaceOperations()
-            .getProperties(OptUtil.getNamespaceOpt(cl, shellState));
+            .getPropertiesMap(OptUtil.getNamespaceOpt(cl, shellState)).entrySet();
       } catch (NamespaceNotFoundException e) {
         throw new IllegalArgumentException(e);
       }
     } else if (tables) {
       tableProps = shellState.getAccumuloClient().tableOperations()
-          .getProperties(OptUtil.getTableOpt(cl, shellState));
+          .getPropertiesMap(OptUtil.getTableOpt(cl, shellState)).entrySet();
     } else {
       throw new IllegalArgumentException("No table or namespace specified");
     }

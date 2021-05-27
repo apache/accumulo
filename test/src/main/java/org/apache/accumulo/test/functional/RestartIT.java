@@ -265,7 +265,8 @@ public class RestartIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K");
       String splitThreshold = null;
-      for (Entry<String,String> entry : c.tableOperations().getProperties(tableName)) {
+      for (Entry<String,String> entry : c.tableOperations().getPropertiesMap(tableName)
+          .entrySet()) {
         if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey())) {
           splitThreshold = entry.getValue();
           break;

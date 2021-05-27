@@ -173,7 +173,7 @@ public class ConfigCommand extends Command {
         String n = Namespaces.getNamespaceName(shellState.getContext(), Tables.getNamespaceId(
             shellState.getContext(), Tables.getTableId(shellState.getContext(), tableName)));
         for (Entry<String,String> e : shellState.getAccumuloClient().namespaceOperations()
-            .getProperties(n)) {
+            .getPropertiesMap(n).entrySet()) {
           namespaceConfig.put(e.getKey(), e.getValue());
         }
       }
@@ -181,9 +181,11 @@ public class ConfigCommand extends Command {
       Iterable<Entry<String,String>> acuconf =
           shellState.getAccumuloClient().instanceOperations().getSystemConfiguration().entrySet();
       if (tableName != null) {
-        acuconf = shellState.getAccumuloClient().tableOperations().getProperties(tableName);
+        acuconf =
+            shellState.getAccumuloClient().tableOperations().getPropertiesMap(tableName).entrySet();
       } else if (namespace != null) {
-        acuconf = shellState.getAccumuloClient().namespaceOperations().getProperties(namespace);
+        acuconf = shellState.getAccumuloClient().namespaceOperations().getPropertiesMap(namespace)
+            .entrySet();
       }
       final TreeMap<String,String> sortedConf = new TreeMap<>();
       for (Entry<String,String> propEntry : acuconf) {

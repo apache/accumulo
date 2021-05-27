@@ -284,7 +284,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     // possible race condition here, if table is renamed
     String tableName = Tables.getTableName(context, tableId);
     AccumuloConfiguration acuTableConf =
-        new ConfigurationCopy(context.tableOperations().getProperties(tableName));
+        new ConfigurationCopy(context.tableOperations().getPropertiesMap(tableName));
 
     Configuration conf = context.getHadoopConf();
 

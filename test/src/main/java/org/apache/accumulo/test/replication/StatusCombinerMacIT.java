@@ -86,7 +86,8 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
       assertTrue(scopes.contains(IteratorScope.minc));
       assertTrue(scopes.contains(IteratorScope.majc));
 
-      Iterable<Entry<String,String>> propIter = tops.getProperties(MetadataTable.NAME);
+      Iterable<Entry<String,String>> propIter =
+          tops.getPropertiesMap(MetadataTable.NAME).entrySet();
       HashMap<String,String> properties = new HashMap<>();
       for (Entry<String,String> entry : propIter) {
         properties.put(entry.getKey(), entry.getValue());

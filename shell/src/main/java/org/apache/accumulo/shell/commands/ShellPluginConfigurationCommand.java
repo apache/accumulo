@@ -66,7 +66,7 @@ public abstract class ShellPluginConfigurationCommand extends Command {
       // Get the options for this table
 
       for (Entry<String,String> ent : shellState.getAccumuloClient().tableOperations()
-          .getProperties(tableName)) {
+          .getPropertiesMap(tableName).entrySet()) {
         // List all parameters with the property name
         if (ent.getKey().startsWith(tableProp.toString())) {
           shellState.getWriter().println(ent.getKey() + ": " + ent.getValue());
@@ -99,7 +99,8 @@ public abstract class ShellPluginConfigurationCommand extends Command {
       final Shell shellState, final Class<T> clazz, final Property pluginProp) {
     Iterator<Entry<String,String>> props;
     try {
-      props = shellState.getAccumuloClient().tableOperations().getProperties(tableName).iterator();
+      props = shellState.getAccumuloClient().tableOperations().getPropertiesMap(tableName)
+          .entrySet().iterator();
     } catch (AccumuloException | TableNotFoundException e) {
       return null;
     }

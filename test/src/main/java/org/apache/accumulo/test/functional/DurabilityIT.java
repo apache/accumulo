@@ -165,10 +165,10 @@ public class DurabilityIT extends ConfigurableMacBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.instanceOperations().setProperty(Property.TABLE_DURABILITY.getKey(), "none");
-      Map<String,String> props = map(c.tableOperations().getProperties(MetadataTable.NAME));
+      Map<String,String> props = c.tableOperations().getPropertiesMap(MetadataTable.NAME);
       assertEquals("sync", props.get(Property.TABLE_DURABILITY.getKey()));
       c.tableOperations().create(tableName);
-      props = map(c.tableOperations().getProperties(tableName));
+      props = c.tableOperations().getPropertiesMap(tableName);
       assertEquals("none", props.get(Property.TABLE_DURABILITY.getKey()));
       restartTServer();
       assertTrue(c.tableOperations().exists(tableName));

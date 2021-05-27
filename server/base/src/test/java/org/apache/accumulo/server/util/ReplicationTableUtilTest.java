@@ -149,7 +149,7 @@ public class ReplicationTableUtilTest {
     tops.attachIterator(myMetadataTable, combiner);
     expectLastCall().once();
 
-    expect(tops.getProperties(myMetadataTable)).andReturn(Collections.emptyList());
+    expect(tops.getPropertiesMap(myMetadataTable)).andReturn(Collections.emptyMap());
     tops.setProperty(myMetadataTable, Property.TABLE_FORMATTER_CLASS.getKey(),
         ReplicationTableUtil.STATUS_FORMATTER_CLASS_NAME);
     expectLastCall().once();

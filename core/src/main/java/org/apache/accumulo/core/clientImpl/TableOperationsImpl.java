@@ -1033,7 +1033,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   void checkLocalityGroups(String tableName, String propChanged)
       throws AccumuloException, TableNotFoundException {
     if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
-      Iterable<Entry<String,String>> allProps = getProperties(tableName);
+      Iterable<Entry<String,String>> allProps = getPropertiesMap(tableName).entrySet();
       try {
         LocalityGroupUtil.checkLocalityGroups(allProps);
       } catch (LocalityGroupConfigurationError | RuntimeException e) {
@@ -1048,6 +1048,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
+  @Deprecated(since = "2.1.0")
   public Iterable<Entry<String,String>> getProperties(final String tableName)
       throws AccumuloException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
@@ -1068,7 +1069,29 @@ public class TableOperationsImpl extends TableOperationsHelper {
     } catch (Exception e) {
       throw new AccumuloException(e);
     }
+  }
 
+  @Override
+  public Map<String,String> getPropertiesMap(final String tableName)
+      throws AccumuloException, TableNotFoundException {
+    checkArgument(tableName != null, "tableName is null");
+    try {
+      return ServerClient.executeRaw(context, client -> client
+          .getTableConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
+    } catch (ThriftTableOperationException e) {
+      switch (e.getType()) {
+        case NOTFOUND:
+          throw new TableNotFoundException(e);
+        case NAMESPACE_NOTFOUND:
+          throw new TableNotFoundException(tableName, new NamespaceNotFoundException(e));
+        default:
+          throw new AccumuloException(e.description, e);
+      }
+    } catch (AccumuloException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new AccumuloException(e);
+    }
   }
 
   @Override
@@ -1094,7 +1117,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     // remove anything extraneous
     String prefix = Property.TABLE_LOCALITY_GROUP_PREFIX.getKey();
-    for (Entry<String,String> entry : getProperties(tableName)) {
+    for (Entry<String,String> entry : getPropertiesMap(tableName).entrySet()) {
       String property = entry.getKey();
       if (property.startsWith(prefix)) {
         // this property configures a locality group, find out which
@@ -1711,7 +1734,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private void clearSamplerOptions(String tableName)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
     String prefix = Property.TABLE_SAMPLER_OPTS.getKey();
-    for (Entry<String,String> entry : getProperties(tableName)) {
+    for (Entry<String,String> entry : getPropertiesMap(tableName).entrySet()) {
       String property = entry.getKey();
       if (property.startsWith(prefix)) {
         removeProperty(tableName, property);

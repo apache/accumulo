@@ -723,7 +723,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   protected void checkTableForProperty(TableOperations tops, String tableName, String expectedKey,
       String expectedValue) throws Exception {
     for (int i = 0; i < 5; i++) {
-      for (Entry<String,String> entry : tops.getProperties(tableName)) {
+      for (Entry<String,String> entry : tops.getPropertiesMap(tableName).entrySet()) {
         if (expectedKey.equals(entry.getKey())) {
           assertEquals(expectedValue, entry.getValue());
           return;
@@ -937,7 +937,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("scan", true, "value", true);
 
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
-      for (Entry<String,String> entry : accumuloClient.tableOperations().getProperties(table)) {
+      for (Entry<String,String> entry : accumuloClient.tableOperations().getPropertiesMap(table)
+          .entrySet()) {
         if (entry.getKey().equals("table.custom.description"))
           assertEquals("Initial property was not set correctly", "description", entry.getValue());
 

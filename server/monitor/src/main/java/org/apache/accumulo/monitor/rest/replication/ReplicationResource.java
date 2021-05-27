@@ -133,7 +133,7 @@ public class ReplicationResource {
 
       Iterable<Entry<String,String>> propertiesForTable;
       try {
-        propertiesForTable = tops.getProperties(table);
+        propertiesForTable = tops.getPropertiesMap(table).entrySet();
       } catch (TableNotFoundException e) {
         log.warn("Could not fetch properties for {}", table, e);
         continue;

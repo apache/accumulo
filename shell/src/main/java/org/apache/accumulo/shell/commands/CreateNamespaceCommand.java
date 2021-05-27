@@ -57,7 +57,8 @@ public class CreateNamespaceCommand extends Command {
     if (cl.hasOption(createNamespaceOptCopyConfig.getOpt())) {
       String copy = cl.getOptionValue(createNamespaceOptCopyConfig.getOpt());
       if (shellState.getAccumuloClient().namespaceOperations().exists(namespace)) {
-        configuration = shellState.getAccumuloClient().namespaceOperations().getProperties(copy);
+        configuration =
+            shellState.getAccumuloClient().namespaceOperations().getPropertiesMap(copy).entrySet();
       }
     }
     if (configuration != null) {
