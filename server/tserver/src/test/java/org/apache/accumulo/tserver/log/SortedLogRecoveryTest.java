@@ -112,11 +112,6 @@ public class SortedLogRecoveryTest {
     public int compareTo(KeyValue o) {
       return key.compareTo(o.key);
     }
-
-    @Override
-    public String toString() {
-      return "" + key + " #muts:" + value.mutations.size();
-    }
   }
 
   private static KeyValue createKeyValue(LogEvents type, long seq, int tid,
@@ -388,33 +383,6 @@ public class SortedLogRecoveryTest {
     // Verify recovered data
     assertEquals(1, mutations.size());
     assertEquals(m, mutations.get(0));
-  }
-
-  @Test
-  public void testMutationsSameSeq() throws IOException {
-    // Create a test log
-    KeyExtent other = new KeyExtent(TableId.of("other"), null, null);
-    Mutation ignored = new ServerMutation(new Text("ignored"));
-    ignored.put(cf, cq, value);
-    Mutation m = new ServerMutation(new Text("row1"));
-    Mutation m2 = new ServerMutation(new Text("row1"));
-    Mutation m3 = new ServerMutation(new Text("row1"));
-    m.put(cf, cq, value);
-    m2.put(new Text("cf2"), new Text("cq2"), value);
-    m3.put(new Text("cf3"), new Text("cq3"), value);
-    KeyValue[] entries = {createKeyValue(OPEN, 0, -1, "1"),
-        createKeyValue(DEFINE_TABLET, 1, 1, other), createKeyValue(DEFINE_TABLET, 1, 3, extent),
-        createKeyValue(MUTATION, 1, 1, ignored), createKeyValue(MUTATION, 1, 3, m),
-        createKeyValue(MUTATION, 1, 3, m2), createKeyValue(MUTATION, 1, 3, m3)};
-    Map<String,KeyValue[]> logs = new TreeMap<>();
-    logs.put("testlog", entries);
-    // Recover
-    List<Mutation> mutations = recover(logs, extent);
-    // Verify recovered data
-    assertEquals(3, mutations.size());
-    assertEquals(m, mutations.get(0));
-    assertEquals(m2, mutations.get(1));
-    assertEquals(m3, mutations.get(2));
   }
 
   @Test
