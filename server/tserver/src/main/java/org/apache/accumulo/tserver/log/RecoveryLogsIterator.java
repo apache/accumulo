@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Scanner;
@@ -31,7 +30,6 @@ import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.tserver.logger.LogEvents;
@@ -56,7 +54,7 @@ public class RecoveryLogsIterator implements Iterator<Entry<Key,Value>>, AutoClo
   private final Iterator<Entry<Key,Value>> iter;
 
   /**
-   * Iterates only over keys in the range [start,end].
+   * Scans the files in each recoveryLogDir over the range [start,end].
    */
   RecoveryLogsIterator(VolumeManager fs, List<Path> recoveryLogDirs, LogFileKey start,
       LogFileKey end, boolean checkFirstKey, LogEvents... colFamToFetch) throws IOException {
@@ -71,14 +69,18 @@ public class RecoveryLogsIterator implements Iterator<Entry<Key,Value>>, AutoClo
       LOG.debug("Opening recovery log dir {}", logDir.getName());
       var scanner = RFile.newScanner().from(getFiles(fs, logDir))
           .withFileSystem(fs.getFileSystemByPath(logDir)).build();
+
+      // only check the first key once to prevent extra iterator creation and seeking
+      if (checkFirstKey)
+        validateFirstKey(scanner.iterator(), logDir);
+
       for (var cf : colFamToFetch)
         scanner.fetchColumnFamily(new Text(cf.name()));
       scanner.setRange(range);
       LOG.debug("Get iterator for Key Range = {} to {}", startKey, endKey);
-      PeekingIterator<Entry<Key,Value>> scanIter = new PeekingIterator<>(scanner.iterator());
+      var scanIter = scanner.iterator();
+
       if (scanIter.hasNext()) {
-        if (checkFirstKey)
-          validateFirstKey(scanIter, logDir);
         LOG.debug("Write ahead log {} has data in range {} {}", logDir.getName(), start, end);
         iterators.add(scanIter);
         scanners.add(scanner);
@@ -139,10 +141,10 @@ public class RecoveryLogsIterator implements Iterator<Entry<Key,Value>>, AutoClo
   /**
    * Check that the first entry in the WAL is OPEN. Only need to do this once.
    */
-  private void validateFirstKey(PeekingIterator<Map.Entry<Key,Value>> iterator, Path fullLogPath)
+  private void validateFirstKey(Iterator<Entry<Key,Value>> iterator, Path fullLogPath)
       throws IOException {
     if (iterator.hasNext()) {
-      Key firstKey = iterator.peek().getKey();
+      Key firstKey = iterator.next().getKey();
       LogFileKey key = LogFileKey.fromKey(firstKey);
       if (key.event != LogEvents.OPEN) {
         throw new IllegalStateException("First log entry is not OPEN " + fullLogPath);
