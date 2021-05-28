@@ -353,7 +353,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
    * tablet servers on that host.
    */
   public static class HostAndPortRegexTableLoadBalancer extends HostRegexTableLoadBalancer {
-    private static Logger LOG =
+    private static final Logger LOG =
         LoggerFactory.getLogger(HostAndPortRegexTableLoadBalancer.class.getName());
 
     @Override
