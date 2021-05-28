@@ -200,7 +200,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     LOG.debug("Performing pool recheck - regrouping tablet servers based on regular expressions");
     Map<String,SortedMap<TabletServerId,TServerStatus>> newPools = new HashMap<>();
     for (Entry<TabletServerId,TServerStatus> e : current.entrySet()) {
-      List<String> poolNames = getPoolNamesForHost(e.getKey().getHost());
+      List<String> poolNames = getPoolNamesForHost(e.getKey());
       for (String pool : poolNames) {
         SortedMap<TabletServerId,TServerStatus> np = newPools.get(pool);
         if (np == null) {
@@ -232,11 +232,12 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   /**
    * Matches host against the regexes and returns the matching pool names
    *
-   * @param host
+   * @param tabletServerId
    *          tablet server host
    * @return pool names, will return default pool if host matches more no regex
    */
-  protected List<String> getPoolNamesForHost(String host) {
+  protected List<String> getPoolNamesForHost(TabletServerId tabletServerId) {
+    final String host = tabletServerId.getHost();
     String test = host;
     if (!hrtlbConf.get().isIpBasedRegex) {
       try {
@@ -401,7 +402,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
           for (Entry<TabletServerId,TServerStatus> e : current.entrySet()) {
             // pool names are the same as table names, except in the DEFAULT case.
             // If this table is assigned to a pool for this host, then move on.
-            List<String> hostPools = getPoolNamesForHost(e.getKey().getHost());
+            List<String> hostPools = getPoolNamesForHost(e.getKey());
             if (hostPools.contains(tablePoolName)) {
               continue;
             }
