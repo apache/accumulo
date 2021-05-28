@@ -23,8 +23,10 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import java.net.UnknownHostException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,9 +42,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ManagerClient;
@@ -52,9 +56,11 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.spi.balancer.HostRegexTableLoadBalancer;
+import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -64,6 +70,7 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -81,6 +88,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   public static final long SUSPEND_DURATION = 80;
   public static final int TABLETS = 30;
 
+  private ProcessReference metadataTserverProcess;
+
   @Override
   protected int defaultTimeoutSeconds() {
     return 5 * 60;
@@ -91,12 +100,54 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     cfg.setProperty(Property.TABLE_SUSPEND_DURATION, SUSPEND_DURATION + "s");
     cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "5s");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
-    cfg.setNumTservers(TSERVERS);
+    // Start with 1 tserver, we'll increase that later
+    cfg.setNumTservers(1);
     // config custom balancer to keep all metadata on one server
-    cfg.setProperty(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + MetadataTable.NAME, "*");
-    cfg.setProperty(HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK_KEY, "7s");
-    cfg.setProperty(Property.TABLE_LOAD_BALANCER.getKey(),
-        HostRegexTableLoadBalancer.class.getName());
+    cfg.setProperty(HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK_KEY, "1ms");
+    cfg.setProperty(Property.MANAGER_TABLET_BALANCER.getKey(),
+        HostAndPortRegexTableLoadBalancer.class.getName());
+  }
+
+  @Before
+  public void setUp() throws Exception {
+    super.setUp();
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      // Wait for all tablet servers to come online and then choose the first server in the list.
+      // Update the balancer configuration to assign all metadata tablets to that server (and
+      // everything else to other servers).
+      InstanceOperations iops = client.instanceOperations();
+      List<String> tservers = iops.getTabletServers();
+      while (tservers == null || tservers.size() < 1) {
+        Thread.sleep(1000L);
+        tservers = client.instanceOperations().getTabletServers();
+      }
+      HostAndPort metadataServer = HostAndPort.fromString(tservers.get(0));
+      log.info("Configuring balancer to assign all metadata tablets to {}", metadataServer);
+      iops.setProperty(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + MetadataTable.NAME,
+          metadataServer.toString());
+
+      // Wait for the balancer to assign all metadata tablets to the chosen server.
+      ClientContext ctx = (ClientContext) client;
+      TabletLocations tl = TabletLocations.retrieve(ctx, MetadataTable.NAME, RootTable.NAME);
+      while (tl.hosted.keySet().size() != 1 || !tl.hosted.containsKey(metadataServer)) {
+        log.info("Metadata tablets are not hosted on the correct server. Waiting for balancer...");
+        Thread.sleep(1000L);
+        tl = TabletLocations.retrieve(ctx, MetadataTable.NAME, RootTable.NAME);
+      }
+      log.info("Metadata tablets are now hosted on {}", metadataServer);
+    }
+
+    // Since we started only a single tablet server, we know it's the one hosting the
+    // metadata table. Save its process reference off so we can exclude it later when
+    // killing tablet servers.
+    Collection<ProcessReference> procs = getCluster().getProcesses().get(ServerType.TABLET_SERVER);
+    assertEquals("Expected a single tserver process", 1, procs.size());
+    metadataTserverProcess = procs.iterator().next();
+
+    // Update the number of tservers and start the new tservers.
+    getCluster().getConfig().setNumTservers(TSERVERS);
+    getCluster().start();
   }
 
   @Test
@@ -104,8 +155,10 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     // Run the test body. When we get to the point where we need a tserver to go away, get rid of it
     // via crashing
     suspensionTestBody((ctx, locs, count) -> {
-      List<ProcessReference> procs =
-          new ArrayList<>(getCluster().getProcesses().get(ServerType.TABLET_SERVER));
+      // Exclude the tablet server hosting the metadata table from the list and only
+      // kill tablet servers that are not hosting the metadata table.
+      List<ProcessReference> procs = getCluster().getProcesses().get(ServerType.TABLET_SERVER)
+          .stream().filter(p -> !metadataTserverProcess.equals(p)).collect(Collectors.toList());
       Collections.shuffle(procs);
 
       for (int i = 0; i < count; ++i) {
@@ -140,6 +193,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       }
 
       // remove servers with metadata on them from the list of servers to be shutdown
+      assertEquals("Expecting a single tServer in metadataServerSet", 1, metadataServerSet.size());
       tserverSet.removeAll(metadataServerSet);
 
       assertEquals("Expecting two tServers in shutdown-list", 2, tserverSet.size());
@@ -210,13 +264,15 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       // ... and balanced.
       ctx.instanceOperations().waitForBalance();
       do {
-        // Give at least another 15 seconds for migrations to finish up
-        Thread.sleep(15000);
+        // Keep checking until all tablets are hosted and spread out across the tablet servers
+        Thread.sleep(1000);
         ds = TabletLocations.retrieve(ctx, tableName);
-      } while (ds.hostedCount != TABLETS);
+      } while (ds.hostedCount != TABLETS || ds.hosted.keySet().size() != (TSERVERS - 1));
 
-      // Pray all of our tservers have at least 1 tablet.
-      assertEquals(TSERVERS, ds.hosted.keySet().size());
+      // Given the loop exit condition above, at this point we're sure that all tablets are hosted
+      // and some are hosted on each of the tablet servers other than the one reserved for hosting
+      // the metadata table.
+      assertEquals(TSERVERS - 1, ds.hosted.keySet().size());
 
       // Kill two tablet servers hosting our tablets. This should put tablets into suspended state,
       // and thus halt balancing.
@@ -231,7 +287,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         Thread.sleep(1000);
         ds = TabletLocations.retrieve(ctx, tableName);
       } while (ds.suspended.keySet().size() != 2
-          && (ds.suspendedCount + ds.hostedCount) != TABLETS);
+          || (ds.suspendedCount + ds.hostedCount) != TABLETS);
 
       SetMultimap<HostAndPort,KeyExtent> deadTabletsByServer = ds.suspended;
 
@@ -285,6 +341,48 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     THREAD_POOL.shutdownNow();
   }
 
+  /**
+   * A version of {@link HostRegexTableLoadBalancer} that includes the tablet server port in
+   * addition to the host name when checking regular expressions. This is useful for testing when
+   * multiple tablet servers are running on the same host and one wishes to make pools from the
+   * tablet servers on that host.
+   */
+  public static class HostAndPortRegexTableLoadBalancer extends HostRegexTableLoadBalancer {
+    private static Logger LOG =
+        LoggerFactory.getLogger(HostAndPortRegexTableLoadBalancer.class.getName());
+
+    @Override
+    protected List<String> getPoolNamesForHost(TabletServerId tabletServerId) {
+      final String host = tabletServerId.getHost();
+      String test = host;
+      if (!isIpBasedRegex()) {
+        try {
+          test = getNameFromIp(host);
+        } catch (UnknownHostException e1) {
+          LOG.error("Unable to determine host name for IP: " + host + ", setting to default pool",
+              e1);
+          return Collections.singletonList(DEFAULT_POOL);
+        }
+      }
+
+      // Add the port on the end
+      final String hostString = test + ":" + tabletServerId.getPort();
+      List<String> pools = getPoolNameToRegexPattern().entrySet().stream()
+          .filter(e -> e.getValue().matcher(hostString).matches()).map(Map.Entry::getKey)
+          .collect(Collectors.toList());
+      if (pools.isEmpty()) {
+        pools.add(DEFAULT_POOL);
+      }
+      return pools;
+    }
+
+    @Override
+    public long balance(BalanceParameters params) {
+      super.balance(params);
+      return 1000L; // Balance once per second during the test
+    }
+  }
+
   private static class TabletLocations {
     public final Map<KeyExtent,TabletLocationState> locationStates = new HashMap<>();
     public final SetMultimap<HostAndPort,KeyExtent> hosted = HashMultimap.create();
@@ -295,6 +393,11 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
     public static TabletLocations retrieve(final ClientContext ctx, final String tableName)
         throws Exception {
+      return retrieve(ctx, tableName, MetadataTable.NAME);
+    }
+
+    public static TabletLocations retrieve(final ClientContext ctx, final String tableName,
+        final String metaName) throws Exception {
       int sleepTime = 200;
       int remainingAttempts = 30;
 
@@ -302,7 +405,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         try {
           FutureTask<TabletLocations> tlsFuture = new FutureTask<>(() -> {
             TabletLocations answer = new TabletLocations();
-            answer.scan(ctx, tableName);
+            answer.scan(ctx, tableName, metaName);
             return answer;
           });
           THREAD_POOL.submit(tlsFuture);
@@ -321,10 +424,10 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       }
     }
 
-    private void scan(ClientContext ctx, String tableName) {
+    private void scan(ClientContext ctx, String tableName, String metaName) {
       Map<String,String> idMap = ctx.tableOperations().tableIdMap();
       String tableId = Objects.requireNonNull(idMap.get(tableName));
-      try (var scanner = new MetaDataTableScanner(ctx, new Range(), MetadataTable.NAME)) {
+      try (var scanner = new MetaDataTableScanner(ctx, new Range(), metaName)) {
         while (scanner.hasNext()) {
           TabletLocationState tls = scanner.next();
 
