@@ -21,6 +21,7 @@ package org.apache.accumulo.test.manager;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.net.UnknownHostException;
@@ -159,7 +160,10 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       // kill tablet servers that are not hosting the metadata table.
       List<ProcessReference> procs = getCluster().getProcesses().get(ServerType.TABLET_SERVER)
           .stream().filter(p -> !metadataTserverProcess.equals(p)).collect(Collectors.toList());
-      Collections.shuffle(procs);
+      Collections.shuffle(procs, RANDOM);
+      assertEquals("Not enough tservers exist", TSERVERS - 1, procs.size());
+      assertTrue("Attempting to kill more tservers (" + count + ") than exist in the cluster ("
+          + procs.size() + ")", procs.size() >= count);
 
       for (int i = 0; i < count; ++i) {
         ProcessReference pr = procs.get(i);
@@ -196,7 +200,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       assertEquals("Expecting a single tServer in metadataServerSet", 1, metadataServerSet.size());
       tserverSet.removeAll(metadataServerSet);
 
-      assertEquals("Expecting two tServers in shutdown-list", 2, tserverSet.size());
+      assertEquals("Expecting " + (TSERVERS - 1) + " tServers in shutdown-list", TSERVERS - 1,
+          tserverSet.size());
 
       List<TServerInstance> tserversList = new ArrayList<>(tserverSet);
       Collections.shuffle(tserversList, RANDOM);
@@ -279,14 +284,14 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
       TabletLocations beforeDeathState = ds;
       log.info("Eliminating tablet servers");
-      serverStopper.eliminateTabletServers(ctx, beforeDeathState, 2);
+      serverStopper.eliminateTabletServers(ctx, beforeDeathState, TSERVERS - 1);
 
       // All tablets should be either hosted or suspended.
       log.info("Waiting on suspended tablets");
       do {
         Thread.sleep(1000);
         ds = TabletLocations.retrieve(ctx, tableName);
-      } while (ds.suspended.keySet().size() != 2
+      } while (ds.suspended.keySet().size() != (TSERVERS - 1)
           || (ds.suspendedCount + ds.hostedCount) != TABLETS);
 
       SetMultimap<HostAndPort,KeyExtent> deadTabletsByServer = ds.suspended;
