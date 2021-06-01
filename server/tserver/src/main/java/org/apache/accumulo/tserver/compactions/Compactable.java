@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
@@ -32,10 +33,13 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Interface between compaction service and tablet.
@@ -65,6 +69,17 @@ public interface Compactable {
           .map(stf -> new CompactableFileImpl(stf, allFiles.get(stf))).collect(Collectors.toSet()));
 
       this.compacting = Set.copyOf(running);
+
+      // Do some sanity checks on sets of files
+      Preconditions.checkArgument(this.allFiles.containsAll(this.candidates),
+          "Candidates not in set of all files %s %s", this.allFiles, this.candidates);
+      var compactingFiles =
+          compacting.stream().flatMap(job -> job.getFiles().stream()).collect(Collectors.toSet());
+      Preconditions.checkArgument(this.allFiles.containsAll(compactingFiles),
+          "Compacting not in set of all files %s %s", this.allFiles, compactingFiles);
+      Preconditions.checkArgument(Collections.disjoint(compactingFiles, this.candidates),
+          "Compacting and candidates overlap %s %s", compactingFiles, this.candidates);
+
       this.executionHints = executionHints;
     }
 
@@ -88,4 +103,15 @@ public interface Compactable {
   CompactionServiceId getConfiguredService(CompactionKind kind);
 
   double getCompactionRatio();
+
+  ExternalCompactionJob reserveExternalCompaction(CompactionServiceId service, CompactionJob job,
+      String compactorId, ExternalCompactionId externalCompactionId);
+
+  void commitExternalCompaction(ExternalCompactionId extCompactionId, long fileSize, long entries);
+
+  void externalCompactionFailed(ExternalCompactionId ecid);
+
+  boolean isActive(ExternalCompactionId ecid);
+
+  void getExternalCompactionIds(Consumer<ExternalCompactionId> tmp);
 }

@@ -25,10 +25,12 @@ import java.util.Map;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
+import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost.Type;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
+import org.apache.accumulo.core.util.HostAndPort;
 
 /**
  * @since 1.6.0
@@ -37,11 +39,16 @@ public class ActiveCompactionImpl extends ActiveCompaction {
 
   private org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac;
   private ClientContext context;
+  private HostAndPort hostport;
+  private Type type;
 
   ActiveCompactionImpl(ClientContext context,
-      org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac) {
+      org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac, HostAndPort hostport,
+      CompactionHost.Type type) {
     this.tac = tac;
     this.context = context;
+    this.hostport = hostport;
+    this.type = type;
   }
 
   @Override
@@ -108,5 +115,25 @@ public class ActiveCompactionImpl extends ActiveCompaction {
     }
 
     return ret;
+  }
+
+  @Override
+  public CompactionHost getHost() {
+    return new CompactionHost() {
+      @Override
+      public Type getType() {
+        return type;
+      }
+
+      @Override
+      public String getAddress() {
+        return hostport.getHost();
+      }
+
+      @Override
+      public int getPort() {
+        return hostport.getPort();
+      }
+    };
   }
 }

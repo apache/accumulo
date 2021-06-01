@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan.Builder;
+import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
 import org.apache.hadoop.shaded.com.google.common.collect.Iterables;
 import org.easymock.EasyMock;
@@ -146,7 +147,7 @@ public class DefaultCompactionPlannerTest {
     // planner should compact.
     var job = Iterables.getOnlyElement(plan.getJobs());
     assertEquals(candidates, job.getFiles());
-    assertEquals(CompactionExecutorId.of("medium"), job.getExecutor());
+    assertEquals(CompactionExecutorIdImpl.externalId("medium"), job.getExecutor());
   }
 
   @Test
@@ -162,7 +163,7 @@ public class DefaultCompactionPlannerTest {
     // a running non-user compaction should not prevent a user compaction
     var job = Iterables.getOnlyElement(plan.getJobs());
     assertEquals(candidates, job.getFiles());
-    assertEquals(CompactionExecutorId.of("medium"), job.getExecutor());
+    assertEquals(CompactionExecutorIdImpl.externalId("medium"), job.getExecutor());
 
     // should only run one user compaction at a time
     compacting = Set.of(createJob(CompactionKind.USER, all, createCFs("F1", "3M", "F2", "3M")));
@@ -180,7 +181,7 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = Iterables.getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "1M", "F2", "2M", "F3", "4M"), job.getFiles());
-    assertEquals(CompactionExecutorId.of("small"), job.getExecutor());
+    assertEquals(CompactionExecutorIdImpl.externalId("small"), job.getExecutor());
 
     // should compact all 15
     all = createCFs("FI", "7M", "F4", "8M", "F5", "16M", "F6", "32M", "F7", "64M", "F8", "128M",
@@ -190,7 +191,7 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = Iterables.getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactionExecutorId.of("huge"), job.getExecutor());
+    assertEquals(CompactionExecutorIdImpl.externalId("huge"), job.getExecutor());
 
     // For user compaction, can compact a subset that meets the compaction ratio if there is also a
     // larger set of files the meets the compaction ratio
@@ -200,7 +201,7 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = Iterables.getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "3M", "F2", "4M", "F3", "5M", "F4", "6M"), job.getFiles());
-    assertEquals(CompactionExecutorId.of("small"), job.getExecutor());
+    assertEquals(CompactionExecutorIdImpl.externalId("small"), job.getExecutor());
 
     // There is a subset of small files that meets the compaction ratio, but the larger set does not
     // so compact everything to avoid doing more than logarithmic work
@@ -209,7 +210,7 @@ public class DefaultCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = Iterables.getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactionExecutorId.of("medium"), job.getExecutor());
+    assertEquals(CompactionExecutorIdImpl.externalId("medium"), job.getExecutor());
 
   }
 
@@ -223,21 +224,21 @@ public class DefaultCompactionPlannerTest {
     // should only compact files less than max size
     var job = Iterables.getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "128M", "F2", "129M", "F3", "130M"), job.getFiles());
-    assertEquals(CompactionExecutorId.of("large"), job.getExecutor());
+    assertEquals(CompactionExecutorIdImpl.externalId("large"), job.getExecutor());
 
     // user compaction can exceed the max size
     params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.USER);
     plan = planner.makePlan(params);
     job = Iterables.getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactionExecutorId.of("large"), job.getExecutor());
+    assertEquals(CompactionExecutorIdImpl.externalId("large"), job.getExecutor());
   }
 
   private CompactionJob createJob(CompactionKind kind, Set<CompactableFile> all,
       Set<CompactableFile> files) {
     return new CompactionPlanImpl.BuilderImpl(kind, all, all)
-        .addJob(all.size(), CompactionExecutorId.of("small"), files).build().getJobs().iterator()
-        .next();
+        .addJob(all.size(), CompactionExecutorIdImpl.externalId("small"), files).build().getJobs()
+        .iterator().next();
   }
 
   private static Set<CompactableFile> createCFs(String... namesSizePairs) {
@@ -343,12 +344,13 @@ public class DefaultCompactionPlannerTest {
 
     EasyMock.replay(conf, senv);
 
-    StringBuilder execBldr = new StringBuilder("[{'name':'small','maxSize':'32M','numThreads':1},"
-        + "{'name':'medium','maxSize':'128M','numThreads':2},"
-        + "{'name':'large','maxSize':'512M','numThreads':3}");
+    StringBuilder execBldr =
+        new StringBuilder("[{'name':'small','type': 'internal','maxSize':'32M','numThreads':1},"
+            + "{'name':'medium','type': 'internal','maxSize':'128M','numThreads':2},"
+            + "{'name':'large','type': 'internal','maxSize':'512M','numThreads':3}");
 
     if (withHugeExecutor) {
-      execBldr.append(",{'name':'huge','numThreads':4}]");
+      execBldr.append(",{'name':'huge','type': 'internal','numThreads':4}]");
     } else {
       execBldr.append("]");
     }
@@ -395,7 +397,12 @@ public class DefaultCompactionPlannerTest {
                 fail("Unexpected name " + name);
                 break;
             }
-            return CompactionExecutorId.of(name);
+            return CompactionExecutorIdImpl.externalId(name);
+          }
+
+          @Override
+          public CompactionExecutorId getExternalExecutor(String name) {
+            throw new UnsupportedOperationException();
           }
         };
       }

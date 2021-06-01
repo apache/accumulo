@@ -54,7 +54,7 @@ public class RowDeletingIterator implements SortedKeyValueIterator<Key,Value> {
 
   public static final Value DELETE_ROW_VALUE = new Value("DEL_ROW");
   private SortedKeyValueIterator<Key,Value> source;
-  private boolean propogateDeletes;
+  private boolean propagateDeletes;
   private ByteSequence currentRow;
   private boolean currentRowDeleted;
   private long deleteTS;
@@ -63,16 +63,16 @@ public class RowDeletingIterator implements SortedKeyValueIterator<Key,Value> {
 
   private static final ByteSequence EMPTY = new ArrayByteSequence(new byte[] {});
 
-  private RowDeletingIterator(SortedKeyValueIterator<Key,Value> source, boolean propogateDeletes2) {
+  private RowDeletingIterator(SortedKeyValueIterator<Key,Value> source, boolean propagateDeletes2) {
     this.source = source;
-    this.propogateDeletes = propogateDeletes2;
+    this.propagateDeletes = propagateDeletes2;
   }
 
   public RowDeletingIterator() {}
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new RowDeletingIterator(source.deepCopy(env), propogateDeletes);
+    return new RowDeletingIterator(source.deepCopy(env), propagateDeletes);
   }
 
   @Override
@@ -94,7 +94,7 @@ public class RowDeletingIterator implements SortedKeyValueIterator<Key,Value> {
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
     this.source = source;
-    this.propogateDeletes =
+    this.propagateDeletes =
         (env.getIteratorScope() == IteratorScope.majc && !env.isFullMajorCompaction())
             || env.getIteratorScope() == IteratorScope.minc;
   }
@@ -139,7 +139,7 @@ public class RowDeletingIterator implements SortedKeyValueIterator<Key,Value> {
         currentRowDeleted = true;
         deleteTS = source.getTopKey().getTimestamp();
 
-        if (propogateDeletes)
+        if (propagateDeletes)
           break;
       } else {
         break;

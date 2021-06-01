@@ -26,6 +26,7 @@
   <Match>
     <!-- ignore thrift-generated files -->
     <Or>
+      <Package name="org.apache.accumulo.core.compaction.thrift" />
       <Package name="org.apache.accumulo.core.clientImpl.thrift" />
       <Package name="org.apache.accumulo.core.dataImpl.thrift" />
       <Package name="org.apache.accumulo.core.gc.thrift" />

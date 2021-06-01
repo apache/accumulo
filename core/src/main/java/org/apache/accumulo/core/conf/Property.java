@@ -442,7 +442,7 @@ public enum Property {
       "The maximum number of files a compaction will open"),
   TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS(
       "tserver.compaction.major.service.root.planner.opts.executors",
-      ("[{'name':'small','maxSize':'32M','numThreads':1},{'name':'huge','numThreads':1}]")
+      ("[{'name':'small','type':'internal','maxSize':'32M','numThreads':1},{'name':'huge','type':'internal','numThreads':1}]")
           .replaceAll("'", "\""),
       PropertyType.STRING,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} "),
@@ -458,7 +458,7 @@ public enum Property {
       "The maximum number of files a compaction will open"),
   TSERV_COMPACTION_SERVICE_META_EXECUTORS(
       "tserver.compaction.major.service.meta.planner.opts.executors",
-      ("[{'name':'small','maxSize':'32M','numThreads':2},{'name':'huge','numThreads':2}]")
+      ("[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'huge','type':'internal','numThreads':2}]")
           .replaceAll("'", "\""),
       PropertyType.STRING,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} "),
@@ -474,7 +474,7 @@ public enum Property {
       "The maximum number of files a compaction will open"),
   TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS(
       "tserver.compaction.major.service.default.planner.opts.executors",
-      ("[{'name':'small','maxSize':'32M','numThreads':2},{'name':'medium','maxSize':'128M','numThreads':2},{'name':'large','numThreads':2}]")
+      ("[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'medium','type':'internal','maxSize':'128M','numThreads':2},{'name':'large','type':'internal','numThreads':2}]")
           .replaceAll("'", "\""),
       PropertyType.STRING,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} "),
@@ -1021,6 +1021,49 @@ public enum Property {
   REPLICATION_RPC_TIMEOUT("replication.rpc.timeout", "2m", PropertyType.TIMEDURATION,
       "Amount of time for a single replication RPC call to last before failing"
           + " the attempt. See replication.work.attempts."),
+  // Compactor properties
+  COMPACTOR_PREFIX("compactor.", null, PropertyType.PREFIX,
+      "Properties in this category affect the behavior of the accumulo compactor server."),
+  COMPACTOR_PORTSEARCH("compactor.port.search", "true", PropertyType.BOOLEAN,
+      "If the compactor.port.client is in use, search higher ports until one is available"),
+  COMPACTOR_CLIENTPORT("compactor.port.client", "9101", PropertyType.PORT,
+      "The port used for handling client connections on the compactor servers"),
+  COMPACTOR_MINTHREADS("compactor.server.threads.minimum", "1", PropertyType.COUNT,
+      "The minimum number of threads to use to handle incoming requests."),
+  COMPACTOR_MINTHREADS_TIMEOUT("compactor.server.threads.timeout", "0s", PropertyType.TIMEDURATION,
+      "The time after which incoming request threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely."),
+  COMPACTOR_THREADCHECK("compactor.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
+      "The time between adjustments of the server thread pool."),
+  COMPACTOR_MAX_MESSAGE_SIZE("compactor.server.message.size.max", "10M", PropertyType.BYTES,
+      "The maximum size of a message that can be sent to a tablet server."),
+  // CompactionCoordinator properties
+  COORDINATOR_PREFIX("coordinator.", null, PropertyType.PREFIX,
+      "Properties in this category affect the behavior of the accumulo compaction coordinator server."),
+  COORDINATOR_THRIFTCLIENT_PORTSEARCH("coordinator.thrift.port.search", "false",
+      PropertyType.BOOLEAN,
+      "If the ports above are in use, search higher ports until one is available"),
+  COORDINATOR_CLIENTPORT("coordinator.port.client", "9100", PropertyType.PORT,
+      "The port used for handling Thrift client connections on the compaction coordinator server"),
+  COORDINATOR_MINTHREADS("coordinator.server.threads.minimum", "1", PropertyType.COUNT,
+      "The minimum number of threads to use to handle incoming requests."),
+  COORDINATOR_MINTHREADS_TIMEOUT("coordinator.server.threads.timeout", "0s",
+      PropertyType.TIMEDURATION,
+      "The time after which incoming request threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely."),
+  COORDINATOR_THREADCHECK("coordinator.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
+      "The time between adjustments of the server thread pool."),
+  COORDINATOR_MAX_MESSAGE_SIZE("coordinator.server.message.size.max", "10M", PropertyType.BYTES,
+      "The maximum size of a message that can be sent to a tablet server."),
+  COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL("coordinator.server.compactor.dead.check.interval",
+      "5m", PropertyType.TIMEDURATION, "The interval at which to check for dead compactors."),
+  COORDINATOR_FINALIZER_TSERVER_NOTIFIER_MAXTHREADS("coordinator.server.finalizer.threads.maximum",
+      "5", PropertyType.COUNT,
+      "The maximum number of threads to use for notifying tablet servers that an external compaction has completed."),
+  COORDINATOR_FINALIZER_COMPLETION_CHECK_INTERVAL("coordinator.server.finalizer.check.interval",
+      "60s", PropertyType.TIMEDURATION,
+      "The interval at which to check for external compaction final state markers in the metadata table."),
+  COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL(
+      "coordinator.server.tserver.compaction.check.interval", "1m", PropertyType.TIMEDURATION,
+      "The interval at which to check the tservers for external compactions."),
   // deprecated properties grouped at the end to reference property that replaces them
   @Deprecated(since = "1.6.0")
   @ReplacedBy(property = INSTANCE_VOLUMES)

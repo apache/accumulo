@@ -78,6 +78,10 @@ public class LiveTServerSet implements Watcher {
       address = addr;
     }
 
+    public HostAndPort getAddress() {
+      return address;
+    }
+
     private String lockString(ServiceLock mlock) {
       return mlock.getLockID().serialize(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
     }

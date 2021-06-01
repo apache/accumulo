@@ -91,6 +91,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -104,7 +105,9 @@ import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
+import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
 import org.apache.accumulo.core.tabletserver.thrift.TDurability;
+import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletserver.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
@@ -118,8 +121,11 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.client.ClientServiceHandler;
+import org.apache.accumulo.server.compaction.CompactionInfo;
+import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.data.ServerMutation;
+import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
@@ -135,8 +141,6 @@ import org.apache.accumulo.tserver.session.SingleScanSession;
 import org.apache.accumulo.tserver.session.SummarySession;
 import org.apache.accumulo.tserver.session.UpdateSession;
 import org.apache.accumulo.tserver.tablet.CommitSession;
-import org.apache.accumulo.tserver.tablet.CompactionInfo;
-import org.apache.accumulo.tserver.tablet.Compactor;
 import org.apache.accumulo.tserver.tablet.KVEntry;
 import org.apache.accumulo.tserver.tablet.PreparedMutations;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
@@ -156,7 +160,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.cache.Cache;
 import com.google.common.collect.Collections2;
 
-class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
+public class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
 
   private static final Logger log = LoggerFactory.getLogger(ThriftClientHandler.class);
   private static final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = 1000;
@@ -165,7 +169,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
   private final WriteTracker writeTracker = new WriteTracker();
   private final RowLocks rowLocks = new RowLocks();
 
-  ThriftClientHandler(TabletServer server) {
+  public ThriftClientHandler(TabletServer server) {
     super(server.getContext(), new TransactionWatcher(server.getContext()));
     this.server = server;
     log.debug("{} created", ThriftClientHandler.class.getName());
@@ -1644,7 +1648,7 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
       throw e;
     }
 
-    List<CompactionInfo> compactions = Compactor.getRunningCompactions();
+    List<CompactionInfo> compactions = FileCompactor.getRunningCompactions();
     List<ActiveCompaction> ret = new ArrayList<>(compactions.size());
 
     for (CompactionInfo compactionInfo : compactions) {
@@ -1652,6 +1656,68 @@ class ThriftClientHandler extends ClientServiceHandler implements TabletClientSe
     }
 
     return ret;
+  }
+
+  @Override
+  public List<TCompactionQueueSummary> getCompactionQueueInfo(TInfo tinfo, TCredentials credentials)
+      throws ThriftSecurityException, TException {
+
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+
+    return server.getCompactionManager().getCompactionQueueSummaries();
+  }
+
+  @Override
+  public TExternalCompactionJob reserveCompactionJob(TInfo tinfo, TCredentials credentials,
+      String queueName, long priority, String compactor, String externalCompactionId)
+      throws ThriftSecurityException, TException {
+
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+
+    ExternalCompactionId eci = ExternalCompactionId.of(externalCompactionId);
+
+    var extCompaction = server.getCompactionManager().reserveExternalCompaction(queueName, priority,
+        compactor, eci);
+
+    if (extCompaction != null) {
+      return extCompaction.toThrift();
+    }
+
+    return new TExternalCompactionJob();
+  }
+
+  @Override
+  public void compactionJobFinished(TInfo tinfo, TCredentials credentials,
+      String externalCompactionId, TKeyExtent extent, long fileSize, long entries)
+      throws ThriftSecurityException, TException {
+
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+
+    server.getCompactionManager().commitExternalCompaction(
+        ExternalCompactionId.of(externalCompactionId), KeyExtent.fromThrift(extent),
+        server.getOnlineTablets(), fileSize, entries);
+  }
+
+  @Override
+  public void compactionJobFailed(TInfo tinfo, TCredentials credentials,
+      String externalCompactionId, TKeyExtent extent) throws TException {
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+
+    server.getCompactionManager().externalCompactionFailed(
+        ExternalCompactionId.of(externalCompactionId), KeyExtent.fromThrift(extent),
+        server.getOnlineTablets());
   }
 
   @Override

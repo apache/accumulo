@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -44,29 +42,31 @@ public class ListCompactionsCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
 
-    List<String> tservers;
     String filterText = null;
 
     final InstanceOperations instanceOps = shellState.getAccumuloClient().instanceOperations();
 
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
 
+    Stream<String> activeCompactionStream;
+
     if (cl.hasOption(tserverOption.getOpt())) {
-      tservers = new ArrayList<>();
-      tservers.add(cl.getOptionValue(tserverOption.getOpt()));
+      activeCompactionStream = ActiveCompactionHelper
+          .activeCompactionsForServer(cl.getOptionValue(tserverOption.getOpt()), instanceOps);
     } else {
-      tservers = instanceOps.getTabletServers();
+      activeCompactionStream = ActiveCompactionHelper.stream(instanceOps);
     }
 
     if (cl.hasOption(filterOption.getOpt())) {
       filterText = ".*" + cl.getOptionValue(filterOption.getOpt()) + ".*";
     }
 
-    Stream<String> activeCompactionStream = ActiveCompactionHelper.stream(tservers, instanceOps);
     if (filterText != null) {
       final String finalFilterText = filterText;
       activeCompactionStream = activeCompactionStream.filter(t -> t.matches(finalFilterText));
     }
+
+    activeCompactionStream = ActiveCompactionHelper.appendHeader(activeCompactionStream);
 
     shellState.printLines(activeCompactionStream.iterator(), paginate);
 

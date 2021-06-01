@@ -51,17 +51,58 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *
  * <ul>
  * <li>{@code tserver.compaction.major.service.<service>.opts.executors} This is a json array of
- * objects where each object has the fields: name, maxSize, and numThreads. The maxSize field
- * determine the maximum size of compaction that will run on an executor. The maxSize field can have
- * a suffix of K,M,G for kilobytes, megabytes, or gigabytes. One executor can have no max size and
- * it will run everything that is too large for the other executors. If all executors have a max
- * size, then system compactions will only run for compactions smaller than the largest max size.
- * User, chop, and selector compactions will always run, even if there is no executor for their
- * size. These compaction will run on the executor with the largest max size. The value for this
- * field should look like
- * {@code [{"name":"executor1","maxSize":"100M","numThreads":3},{"name":"executor2","maxSize":"500M","numThreads":3},{"executor3":"huge","numThreads":3}]}.
- * This configuration would run compactions less than 100M on executor1, compactions less than 500M
- * on executor2, and all other on executor3.
+ * objects where each object has the fields:
+ * <table>
+ * <caption>Default Compaction Planner Executor options</caption>
+ * <tr>
+ * <th>Field Name</th>
+ * <th>Description</th>
+ * </tr>
+ * <tr>
+ * <td>name</td>
+ * <td>name or alias of the executor (required)</td>
+ * </tr>
+ * <tr>
+ * <td>type</td>
+ * <td>valid values 'internal' or 'external' (required)</td>
+ * </tr>
+ * <tr>
+ * <td>maxSize</td>
+ * <td>threshold sum of the input files (required for all but one of the configs)</td>
+ * </tr>
+ * <tr>
+ * <td>numThreads</td>
+ * <td>number of threads for this executor configuration (required for 'internal', cannot be
+ * specified for 'external')</td>
+ * </tr>
+ * <tr>
+ * <td>queue</td>
+ * <td>name of the external compaction queue (required for 'external', cannot be specified for
+ * 'internal')</td>
+ * </tr>
+ * </table>
+ * <br>
+ * The maxSize field determines the maximum size of compaction that will run on an executor. The
+ * maxSize field can have a suffix of K,M,G for kilobytes, megabytes, or gigabytes and represents
+ * the sum of the input files for a given compaction. One executor can have no max size and it will
+ * run everything that is too large for the other executors. If all executors have a max size, then
+ * system compactions will only run for compactions smaller than the largest max size. User, chop,
+ * and selector compactions will always run, even if there is no executor for their size. These
+ * compactions will run on the executor with the largest max size. The following example value for
+ * this property will create 3 threads to run compactions of files whose file size sum is less than
+ * 100M, 3 threads to run compactions of files whose file size sum is less than 500M, and run all
+ * other compactions on Compactors configured to run compactions for Queue1:
+ *
+ * <pre>
+ * {@code
+ * [{"name":"small", "type": "internal", "maxSize":"100M","numThreads":3},
+ *  {"name":"medium", "type": "internal", "maxSize":"500M","numThreads":3},
+ *  {"name: "large", "type": "external", "queue", "Queue1"}
+ * ]}
+ * </pre>
+ *
+ * Note that the use of 'external' requires that the CompactionCoordinator and at least one
+ * Compactor for Queue1 is running.
  * <li>{@code tserver.compaction.major.service.<service>.opts.maxOpen} This determines the maximum
  * number of files that will be included in a single compaction.
  * </ul>
@@ -75,9 +116,11 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
   private static Logger log = LoggerFactory.getLogger(DefaultCompactionPlanner.class);
 
   public static class ExecutorConfig {
+    String type;
     String name;
     String maxSize;
-    int numThreads;
+    Integer numThreads;
+    String queue;
   }
 
   private static class Executor {
@@ -103,7 +146,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
   private List<Executor> executors;
   private int maxFilesToCompact;
 
-  @SuppressFBWarnings(value = "UWF_UNWRITTEN_FIELD", justification = "Field is written by Gson")
+  @SuppressFBWarnings(value = {"UWF_UNWRITTEN_FIELD", "NP_UNWRITTEN_FIELD"},
+      justification = "Field is written by Gson")
   @Override
   public void init(InitParameters params) {
     ExecutorConfig[] execConfigs =
@@ -112,10 +156,32 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     List<Executor> tmpExec = new ArrayList<>();
 
     for (ExecutorConfig executorConfig : execConfigs) {
-      var ceid = params.getExecutorManager().createExecutor(executorConfig.name,
-          executorConfig.numThreads);
       Long maxSize = executorConfig.maxSize == null ? null
           : ConfigurationTypeHelper.getFixedMemoryAsBytes(executorConfig.maxSize);
+
+      CompactionExecutorId ceid;
+
+      Objects.requireNonNull(executorConfig.type,
+          "'type' is a required and must be 'internal' or 'external'");
+      switch (executorConfig.type) {
+        case "internal":
+          Preconditions.checkArgument(null == executorConfig.queue,
+              "'queue' should not be specified for internal compactions");
+          Objects.requireNonNull(executorConfig.numThreads,
+              "'numThreads' must be specified for internal type");
+          ceid = params.getExecutorManager().createExecutor(executorConfig.name,
+              executorConfig.numThreads);
+          break;
+        case "external":
+          Preconditions.checkArgument(null == executorConfig.numThreads,
+              "'numThreads' should not be specified for external compactions");
+          Objects.requireNonNull(executorConfig.queue,
+              "'queue' must be specified for external type");
+          ceid = params.getExecutorManager().getExternalExecutor(executorConfig.queue);
+          break;
+        default:
+          throw new IllegalArgumentException("type must be 'internal' or 'external'");
+      }
       tmpExec.add(new Executor(ceid, maxSize));
     }
 

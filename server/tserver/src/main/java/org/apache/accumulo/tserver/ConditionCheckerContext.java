@@ -46,6 +46,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration.ParsedIteratorConfig;
+import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.accumulo.tserver.data.ServerConditionalMutation;
 import org.apache.hadoop.io.Text;
 

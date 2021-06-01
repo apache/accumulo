@@ -542,7 +542,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
     }
   }
 
-  private long getFileSizes(AccumuloClient client, String tableName) {
+  public static long getFileSizes(AccumuloClient client, String tableName) {
     var tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
 
     try (var tabletsMeta =
