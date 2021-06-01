@@ -201,6 +201,8 @@
           <configuration>
             <!-- Tests that cannot run with reuseForks=true -->
             <excludes>
+              <exclude>**/InternerTest.java</exclude>
+              <exclude>**/NamespaceIdTest.java</exclude>
               <exclude>**/TableIdTest.java</exclude>
               <exclude>**/HadoopCredentialProviderTest.java</exclude>
               <exclude>**/IdleRatioScanPrioritizerTest.java</exclude>
@@ -219,6 +221,8 @@
                 <reuseForks>false</reuseForks>
                 <excludes combine.self="override" />
                 <includes>
+                  <include>**/InternerTest.java</include>
+                  <include>**/NamespaceIdTest.java</include>
                   <include>**/TableIdTest.java</include>
                   <include>**/HadoopCredentialProviderTest.java</include>
                   <include>**/IdleRatioScanPrioritizerTest.java</include>

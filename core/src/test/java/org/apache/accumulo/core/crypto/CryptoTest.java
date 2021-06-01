@@ -83,6 +83,7 @@ public class CryptoTest {
   public static final int MARKER_INT = 0xCADEFEDD;
   public static final String MARKER_STRING = "1 2 3 4 5 6 7 8 a b c d e f g h ";
   public static final String CRYPTO_ON_CONF = "ON";
+  public static final String CRYPTO_ON_DISABLED_CONF = "ON_DISABLED";
   public static final String CRYPTO_OFF_CONF = "OFF";
   public static final String keyPath =
       System.getProperty("user.dir") + "/target/CryptoTest-testkeyfile";
@@ -155,6 +156,26 @@ public class CryptoTest {
     decrypt(resultingBytes, Scope.WAL, CRYPTO_ON_CONF);
   }
 
+  /**
+   * AESCryptoService is configured but only for reading
+   */
+  @Test
+  public void testAESCryptoServiceWALDisabled() throws Exception {
+    AESCryptoService cs = new AESCryptoService();
+    // make sure we can read encrypted
+    byte[] encryptedBytes = encrypt(cs, Scope.WAL, CRYPTO_ON_CONF);
+    String stringEncryptedBytes = Arrays.toString(encryptedBytes);
+    String stringifiedMarkerBytes = getStringifiedBytes(null, MARKER_STRING, MARKER_INT);
+    assertNotEquals(stringEncryptedBytes, stringifiedMarkerBytes);
+    decrypt(encryptedBytes, Scope.WAL, CRYPTO_ON_DISABLED_CONF);
+
+    // make sure we don't encrypt when disabled
+    byte[] plainBytes = encrypt(cs, Scope.WAL, CRYPTO_ON_DISABLED_CONF);
+    String stringPlainBytes = Arrays.toString(plainBytes);
+    assertNotEquals(stringEncryptedBytes, stringPlainBytes);
+    decrypt(plainBytes, Scope.WAL, CRYPTO_ON_DISABLED_CONF);
+  }
+
   @Test
   public void testAESCryptoServiceRFILE() throws Exception {
     AESCryptoService cs = new AESCryptoService();
@@ -166,6 +187,26 @@ public class CryptoTest {
     assertNotEquals(stringifiedBytes, stringifiedMarkerBytes);
 
     decrypt(resultingBytes, Scope.RFILE, CRYPTO_ON_CONF);
+  }
+
+  /**
+   * AESCryptoService is configured but only for reading
+   */
+  @Test
+  public void testAESCryptoServiceRFILEDisabled() throws Exception {
+    AESCryptoService cs = new AESCryptoService();
+    // make sure we can read encrypted
+    byte[] encryptedBytes = encrypt(cs, Scope.RFILE, CRYPTO_ON_CONF);
+    String stringEncryptedBytes = Arrays.toString(encryptedBytes);
+    String stringifiedMarkerBytes = getStringifiedBytes(null, MARKER_STRING, MARKER_INT);
+    assertNotEquals(stringEncryptedBytes, stringifiedMarkerBytes);
+    decrypt(encryptedBytes, Scope.RFILE, CRYPTO_ON_DISABLED_CONF);
+
+    // make sure we don't encrypt when disabled
+    byte[] plainBytes = encrypt(cs, Scope.RFILE, CRYPTO_ON_DISABLED_CONF);
+    String stringPlainBytes = Arrays.toString(plainBytes);
+    assertNotEquals(stringEncryptedBytes, stringPlainBytes);
+    decrypt(plainBytes, Scope.RFILE, CRYPTO_ON_DISABLED_CONF);
   }
 
   @Test

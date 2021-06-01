@@ -23,6 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
@@ -100,6 +101,7 @@ public class ClientContext implements AccumuloClient {
 
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
+  private ConditionalWriterConfig conditionalWriterConfig;
   private final AccumuloConfiguration serverConf;
   private final Configuration hadoopConf;
 
@@ -282,7 +284,7 @@ public class ClientContext implements AccumuloClient {
     return saslSupplier.get();
   }
 
-  public BatchWriterConfig getBatchWriterConfig() {
+  public synchronized BatchWriterConfig getBatchWriterConfig() {
     ensureOpen();
     if (batchWriterConfig == null) {
       Properties props = info.getProperties();
@@ -303,8 +305,33 @@ public class ClientContext implements AccumuloClient {
       if (!durability.isEmpty()) {
         batchWriterConfig.setDurability(Durability.valueOf(durability.toUpperCase()));
       }
+      Integer maxThreads = ClientProperty.BATCH_WRITER_THREADS_MAX.getInteger(props);
+      if (maxThreads != null) {
+        batchWriterConfig.setMaxWriteThreads(maxThreads);
+      }
     }
     return batchWriterConfig;
+  }
+
+  public synchronized ConditionalWriterConfig getConditionalWriterConfig() {
+    ensureOpen();
+    if (conditionalWriterConfig == null) {
+      Properties props = info.getProperties();
+      conditionalWriterConfig = new ConditionalWriterConfig();
+      Long timeout = ClientProperty.CONDITIONAL_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
+      if (timeout != null) {
+        conditionalWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
+      }
+      String durability = ClientProperty.CONDITIONAL_WRITER_DURABILITY.getValue(props);
+      if (!durability.isEmpty()) {
+        conditionalWriterConfig.setDurability(Durability.valueOf(durability.toUpperCase()));
+      }
+      Integer maxThreads = ClientProperty.CONDITIONAL_WRITER_THREADS_MAX.getInteger(props);
+      if (maxThreads != null) {
+        conditionalWriterConfig.setMaxWriteThreads(maxThreads);
+      }
+    }
+    return conditionalWriterConfig;
   }
 
   /**
@@ -554,7 +581,17 @@ public class ClientContext implements AccumuloClient {
   public ConditionalWriter createConditionalWriter(String tableName, ConditionalWriterConfig config)
       throws TableNotFoundException {
     ensureOpen();
-    return new ConditionalWriterImpl(this, getTableId(tableName), config);
+    if (config == null) {
+      config = new ConditionalWriterConfig();
+    }
+    return new ConditionalWriterImpl(this, getTableId(tableName),
+        config.merge(getConditionalWriterConfig()));
+  }
+
+  @Override
+  public ConditionalWriter createConditionalWriter(String tableName) throws TableNotFoundException {
+    ensureOpen();
+    return new ConditionalWriterImpl(this, getTableId(tableName), new ConditionalWriterConfig());
   }
 
   @Override
@@ -798,8 +835,13 @@ public class ClientContext implements AccumuloClient {
     }
 
     @Override
+    public FromOptions<T> from(URL propertiesURL) {
+      return from(ClientInfoImpl.toProperties(propertiesURL));
+    }
+
+    @Override
     public FromOptions<T> from(Properties properties) {
-      // make a copy, so that this builder's subsequent methods don't mutate the
+      // Make a copy, so that this builder's subsequent methods don't mutate the
       // properties object provided by the caller
       this.properties = new Properties();
       this.properties.putAll(properties);

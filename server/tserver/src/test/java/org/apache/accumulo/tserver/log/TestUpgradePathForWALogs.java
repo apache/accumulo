@@ -18,10 +18,13 @@
  */
 package org.apache.accumulo.tserver.log;
 
+import static org.apache.accumulo.server.log.SortedLogState.getFinishedMarkerPath;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -35,7 +38,6 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.Path;
 import org.junit.After;
@@ -46,11 +48,16 @@ import org.junit.rules.TemporaryFolder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
+@SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "PATH_TRAVERSAL_OUT"},
+    justification = "paths not set by user input")
 public class TestUpgradePathForWALogs {
 
+  // older logs no longer compatible
   private static final String WALOG_FROM_15 = "/walog-from-15.walog";
+  // logs from versions 1.6 through 1.10 should be the same
   private static final String WALOG_FROM_16 = "/walog-from-16.walog";
+  // logs from 2.0 were changed for improved crypto
+  private static final String WALOG_FROM_20 = "/walog-from-20.walog";
 
   private static final AccumuloConfiguration config = DefaultConfiguration.getInstance();
   private ServerContext context;
@@ -66,86 +73,82 @@ public class TestUpgradePathForWALogs {
     String path = workDir.getAbsolutePath();
     assertTrue(workDir.delete());
     VolumeManager fs = VolumeManagerImpl.getLocalForTesting(path);
-    Path manyMapsPath = new Path("file://" + path);
-    fs.mkdirs(manyMapsPath);
-    fs.create(SortedLogState.getFinishedMarkerPath(manyMapsPath)).close();
     expect(context.getVolumeManager()).andReturn(fs).anyTimes();
     replay(context);
   }
 
   @After
-  public void tearDown() throws IOException {
-    context.getVolumeManager().close();
+  public void tearDown() {
     verify(context);
   }
 
+  /**
+   * Since 2.0 this version of WAL is no longer compatible.
+   */
   @Test
   public void testUpgradeOf15WALog() throws IOException {
-    InputStream walogStream = null;
-    OutputStream walogInHDFStream = null;
+    String walogToTest = WALOG_FROM_15;
+    String testPath = tempFolder.getRoot().getAbsolutePath();
 
-    try {
-
-      walogStream = getClass().getResourceAsStream(WALOG_FROM_15);
-      walogInHDFStream =
-          new FileOutputStream(new File(tempFolder.getRoot().getAbsolutePath() + WALOG_FROM_15));
-
+    try (InputStream walogStream = getClass().getResourceAsStream(walogToTest);
+        OutputStream walogInHDFStream = new FileOutputStream(testPath + walogToTest)) {
       IOUtils.copyLarge(walogStream, walogInHDFStream);
       walogInHDFStream.flush();
       walogInHDFStream.close();
-      walogInHDFStream = null;
 
       LogSorter logSorter = new LogSorter(context, config);
       LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
 
-      logProcessor.sort(WALOG_FROM_15,
-          new Path("file://" + tempFolder.getRoot().getAbsolutePath() + WALOG_FROM_15),
-          "file://" + tempFolder.getRoot().getAbsolutePath() + "/manyMaps");
-
-    } finally {
-      if (walogStream != null) {
-        walogStream.close();
-      }
-
-      if (walogInHDFStream != null) {
-        walogInHDFStream.close();
-      }
+      assertThrows(IllegalArgumentException.class,
+          () -> logProcessor.sort(context.getVolumeManager(), WALOG_FROM_15,
+              new Path("file://" + testPath + WALOG_FROM_15), "file://" + testPath + "/manyMaps"));
     }
   }
 
   @Test
   public void testBasic16WALogRead() throws IOException {
     String walogToTest = WALOG_FROM_16;
+    String testPath = tempFolder.getRoot().getAbsolutePath();
+    String destPath = "file://" + testPath + "/manyMaps";
 
-    InputStream walogStream = null;
-    OutputStream walogInHDFStream = null;
-
-    try {
-
-      walogStream = getClass().getResourceAsStream(walogToTest);
-      walogInHDFStream =
-          new FileOutputStream(new File(tempFolder.getRoot().getAbsolutePath() + walogToTest));
-
+    try (InputStream walogStream = getClass().getResourceAsStream(walogToTest);
+        OutputStream walogInHDFStream = new FileOutputStream(testPath + walogToTest)) {
       IOUtils.copyLarge(walogStream, walogInHDFStream);
       walogInHDFStream.flush();
       walogInHDFStream.close();
-      walogInHDFStream = null;
+
+      assertFalse(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));
 
       LogSorter logSorter = new LogSorter(context, config);
       LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
 
-      logProcessor.sort(walogToTest,
-          new Path("file://" + tempFolder.getRoot().getAbsolutePath() + walogToTest),
-          "file://" + tempFolder.getRoot().getAbsolutePath() + "/manyMaps");
+      logProcessor.sort(context.getVolumeManager(), walogToTest,
+          new Path("file://" + testPath + walogToTest), destPath);
 
-    } finally {
-      if (walogStream != null) {
-        walogStream.close();
-      }
+      assertTrue(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));
+    }
+  }
 
-      if (walogInHDFStream != null) {
-        walogInHDFStream.close();
-      }
+  @Test
+  public void testBasic20WALogRead() throws IOException {
+    String walogToTest = WALOG_FROM_20;
+    String testPath = tempFolder.getRoot().getAbsolutePath();
+    String destPath = "file://" + testPath + "/manyMaps";
+
+    try (InputStream walogStream = getClass().getResourceAsStream(walogToTest);
+        OutputStream walogInHDFStream = new FileOutputStream(testPath + walogToTest)) {
+      IOUtils.copyLarge(walogStream, walogInHDFStream);
+      walogInHDFStream.flush();
+      walogInHDFStream.close();
+
+      assertFalse(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));
+
+      LogSorter logSorter = new LogSorter(context, config);
+      LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
+      logProcessor.sort(context.getVolumeManager(), walogToTest,
+          new Path("file://" + testPath + walogToTest), destPath);
+
+      assertTrue(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));
     }
   }
 

@@ -41,7 +41,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
  */
 public interface CompactionSelector {
 
-  public interface InitParamaters {
+  public interface InitParameters {
     Map<String,String> getOptions();
 
     TableId getTableId();
@@ -49,7 +49,7 @@ public interface CompactionSelector {
     PluginEnvironment getEnvironment();
   }
 
-  void init(InitParamaters iparams);
+  void init(InitParameters iparams);
 
   public interface SelectionParameters {
     PluginEnvironment getEnvironment();

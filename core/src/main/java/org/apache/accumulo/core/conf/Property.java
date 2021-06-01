@@ -448,8 +448,8 @@ public enum Property {
       "The maximum number of files a compaction will open"),
   TSERV_COMPACTION_SERVICE_ROOT_EXECUTORS(
       "tserver.compaction.major.service.root.planner.opts.executors",
-      "[{'name':'small','maxSize':'32M','numThreads':1},"
-          + "{'name':'huge','numThreads':1}]".replaceAll("'", "\""),
+      ("[{'name':'small','maxSize':'32M','numThreads':1},{'name':'huge','numThreads':1}]")
+          .replaceAll("'", "\""),
       PropertyType.STRING,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} "),
   TSERV_COMPACTION_SERVICE_META_PLANNER("tserver.compaction.major.service.meta.planner",
@@ -464,8 +464,8 @@ public enum Property {
       "The maximum number of files a compaction will open"),
   TSERV_COMPACTION_SERVICE_META_EXECUTORS(
       "tserver.compaction.major.service.meta.planner.opts.executors",
-      "[{'name':'small','maxSize':'32M','numThreads':2},"
-          + "{'name':'huge','numThreads':2}]".replaceAll("'", "\""),
+      ("[{'name':'small','maxSize':'32M','numThreads':2},{'name':'huge','numThreads':2}]")
+          .replaceAll("'", "\""),
       PropertyType.STRING,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} "),
   TSERV_COMPACTION_SERVICE_DEFAULT_PLANNER("tserver.compaction.major.service.default.planner",
@@ -480,9 +480,8 @@ public enum Property {
       "The maximum number of files a compaction will open"),
   TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS(
       "tserver.compaction.major.service.default.planner.opts.executors",
-      "[{'name':'small','maxSize':'32M','numThreads':2},"
-          + "{'name':'medium','maxSize':'128M','numThreads':2},"
-          + "{'name':'large','numThreads':2}]".replaceAll("'", "\""),
+      ("[{'name':'small','maxSize':'32M','numThreads':2},{'name':'medium','maxSize':'128M','numThreads':2},{'name':'large','numThreads':2}]")
+          .replaceAll("'", "\""),
       PropertyType.STRING,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner %} "),
   @Deprecated(since = "2.1.0", forRemoval = true)

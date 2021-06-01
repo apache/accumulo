@@ -44,8 +44,8 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
   protected AbstractServer(String appName, ServerOpts opts, String[] args) {
     this.log = LoggerFactory.getLogger(getClass().getName());
     this.applicationName = appName;
-    this.hostname = Objects.requireNonNull(opts.getAddress());
     opts.parseArgs(appName, args);
+    this.hostname = Objects.requireNonNull(opts.getAddress());
     var siteConfig = opts.getSiteConfiguration();
     SecurityUtil.serverLogin(siteConfig);
     context = new ServerContext(siteConfig);

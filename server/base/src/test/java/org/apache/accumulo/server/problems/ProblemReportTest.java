@@ -41,6 +41,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
@@ -57,9 +58,8 @@ public class ProblemReportTest {
 
   @Before
   public void setUp() {
-    context = createMock(ServerContext.class);
+    context = MockServerContext.getWithZK("instance", "", 30_000);
     zoorw = createMock(ZooReaderWriter.class);
-    expect(context.getZooKeeperRoot()).andReturn("/accumulo/instance");
     expect(context.getZooReaderWriter()).andReturn(zoorw).anyTimes();
     replay(context);
   }

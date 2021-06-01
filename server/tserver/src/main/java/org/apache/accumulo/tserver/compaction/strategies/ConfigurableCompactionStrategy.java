@@ -171,7 +171,7 @@ public class ConfigurableCompactionStrategy implements CompactionSelector, Compa
 
   @Override
   public void init(
-      org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer.InitParamaters iparams) {
+      org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer.InitParameters iparams) {
     Set<Entry<String,String>> es = iparams.getOptions().entrySet();
     for (Entry<String,String> entry : es) {
 
@@ -205,7 +205,7 @@ public class ConfigurableCompactionStrategy implements CompactionSelector, Compa
 
   @Override
   public void init(
-      org.apache.accumulo.core.client.admin.compaction.CompactionSelector.InitParamaters iparams) {
+      org.apache.accumulo.core.client.admin.compaction.CompactionSelector.InitParameters iparams) {
     boolean selectNoSummary = false;
     boolean selectExtraSummary = false;
 

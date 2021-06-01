@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.data;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.io.DataInput;
@@ -1772,4 +1773,35 @@ public class Mutation implements Writable {
     return this.useOldDeserialize ? SERIALIZED_FORMAT.VERSION1 : SERIALIZED_FORMAT.VERSION2;
   }
 
+  /**
+   * Creates a multi-lined, human-readable String for this mutation.
+   *
+   * This method creates many intermediate Strings and should not be used for large volumes of
+   * Mutations.
+   *
+   * @return A multi-lined, human-readable String for this mutation.
+   *
+   * @since 2.1.0
+   */
+  public String prettyPrint() {
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("mutation: ").append(new String(row, UTF_8)).append('\n');
+    for (ColumnUpdate update : getUpdates()) {
+      sb.append(" update: ");
+      sb.append(new String(update.getColumnFamily(), UTF_8));
+      sb.append(':');
+      sb.append(new String(update.getColumnQualifier(), UTF_8));
+      sb.append(" value ");
+
+      if (update.isDeleted()) {
+        sb.append("[delete]");
+      } else {
+        sb.append(new String(update.getValue(), UTF_8));
+      }
+      sb.append('\n');
+    }
+
+    return sb.toString();
+  }
 }

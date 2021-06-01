@@ -29,7 +29,6 @@ import static org.junit.Assert.assertNull;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.UUID;
 import java.util.function.Predicate;
 
@@ -41,6 +40,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,14 +61,8 @@ public class NamespaceConfigurationTest {
   public void setUp() {
     iid = UUID.randomUUID().toString();
 
-    context = createMock(ServerContext.class);
+    context = MockServerContext.getWithZK(iid, ZOOKEEPERS, ZK_SESSION_TIMEOUT);
     parent = createMock(AccumuloConfiguration.class);
-
-    expect(context.getProperties()).andReturn(new Properties());
-    expect(context.getZooKeeperRoot()).andReturn("/accumulo/" + iid).anyTimes();
-    expect(context.getInstanceID()).andReturn(iid).anyTimes();
-    expect(context.getZooKeepers()).andReturn(ZOOKEEPERS).anyTimes();
-    expect(context.getZooKeepersSessionTimeOut()).andReturn(ZK_SESSION_TIMEOUT).anyTimes();
     replay(context);
 
     c = new NamespaceConfiguration(NSID, context, parent);
