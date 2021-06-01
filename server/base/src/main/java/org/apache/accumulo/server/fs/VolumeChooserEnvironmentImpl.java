@@ -42,12 +42,14 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
   private final Scope scope;
   private final Optional<TableId> tableId;
   private final Text endRow;
+  private final ServiceEnvironment senv;
 
   public VolumeChooserEnvironmentImpl(Scope scope, ServerContext context) {
     this.context = context;
     this.scope = Objects.requireNonNull(scope);
     this.tableId = Optional.empty();
     this.endRow = null;
+    this.senv = new ServiceEnvironmentImpl(context);
   }
 
   public VolumeChooserEnvironmentImpl(TableId tableId, Text endRow, ServerContext context) {
@@ -55,6 +57,7 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
     this.scope = Scope.TABLE;
     this.tableId = Optional.of(tableId);
     this.endRow = endRow;
+    this.senv = new ServiceEnvironmentImpl(context);
   }
 
   public VolumeChooserEnvironmentImpl(Scope scope, TableId tableId, Text endRow,
@@ -63,6 +66,7 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
     this.scope = Objects.requireNonNull(scope);
     this.tableId = Optional.of(tableId);
     this.endRow = endRow;
+    this.senv = new ServiceEnvironmentImpl(context);
   }
 
   /**
@@ -100,7 +104,7 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
 
   @Override
   public ServiceEnvironment getServiceEnv() {
-    return new ServiceEnvironmentImpl(context);
+    return senv;
   }
 
   @Override

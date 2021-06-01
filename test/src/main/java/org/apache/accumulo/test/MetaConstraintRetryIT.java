@@ -55,7 +55,7 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
       m.put("badcolfam", "badcolqual", "3");
 
       try {
-        MetadataTableUtil.update(context, w, null, m);
+        MetadataTableUtil.update(context, w, null, m, extent);
       } catch (RuntimeException e) {
         if (e.getCause().getClass().equals(ConstraintViolationException.class)) {
           throw (ConstraintViolationException) e.getCause();

@@ -74,6 +74,19 @@ public enum ClientProperty {
           + " use the table's durability setting. ",
       "2.0.0", false),
 
+  // ConditionalWriter
+  CONDITIONAL_WRITER_TIMEOUT_MAX("conditional.writer.timeout.max", "0", PropertyType.TIMEDURATION,
+      "Maximum amount of time an unresponsive server will be re-tried. A value of 0 will use "
+          + "Long.MAX_VALUE.",
+      "2.1.0", false),
+  CONDITIONAL_WRITER_THREADS_MAX("conditional.writer.threads.max", "3", PropertyType.COUNT,
+      "Maximum number of threads to use for writing data to tablet servers.", "2.1.0", false),
+  CONDITIONAL_WRITER_DURABILITY("conditional.writer.durability", "default", PropertyType.DURABILITY,
+      Property.TABLE_DURABILITY.getDescription() + " Setting this property will change the "
+          + "durability for the ConditionalWriter session. A value of \"default\" will use the"
+          + " table's durability setting. ",
+      "2.1.0", false),
+
   // Scanner
   SCANNER_BATCH_SIZE("scanner.batch.size", "1000", PropertyType.COUNT,
       "Number of key/value pairs that will be fetched at time from tablet server", "2.0.0", false),
@@ -117,12 +130,12 @@ public enum ClientProperty {
 
   public static final String TRACE_SPAN_RECEIVER_PREFIX = "trace.span.receiver";
 
-  private String key;
-  private String defaultValue;
-  private PropertyType type;
-  private String description;
-  private String since;
-  private boolean required;
+  private final String key;
+  private final String defaultValue;
+  private final PropertyType type;
+  private final String description;
+  private final String since;
+  private final boolean required;
 
   ClientProperty(String key, String defaultValue, PropertyType type, String description,
       String since, boolean required) {
@@ -218,7 +231,7 @@ public enum ClientProperty {
     if (value.isEmpty()) {
       return false;
     }
-    return Boolean.valueOf(value);
+    return Boolean.parseBoolean(value);
   }
 
   public void setBytes(Properties properties, Long bytes) {

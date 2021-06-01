@@ -107,7 +107,6 @@ public class ConfigurationImpl implements Configuration {
   }
 
   private Map<String,String> buildCustom(Property customPrefix) {
-    // This could be optimized as described in #947
     return acfg.getAllPropertiesWithPrefix(customPrefix).entrySet().stream().collect(
         Collectors.toUnmodifiableMap(e -> e.getKey().substring(customPrefix.getKey().length()),
             Entry::getValue));

@@ -163,9 +163,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
       client.tableOperations().create(tableName);
 
-      try (
-          ConditionalWriter cw =
-              client.createConditionalWriter(tableName, new ConditionalWriterConfig());
+      try (ConditionalWriter cw = client.createConditionalWriter(tableName);
           Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
 
         // mutation conditional on column tx:seq not existing
@@ -256,10 +254,8 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
     try (AccumuloClient client1 = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      String user = null;
-
       ClusterUser user1 = getUser(0);
-      user = user1.getPrincipal();
+      String user = user1.getPrincipal();
       if (saslEnabled()) {
         // The token is pointless for kerberos
         client1.securityOperations().createLocalUser(user, null);
@@ -482,9 +478,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       client.tableOperations().clone(tableName, tableName + "_clone", true, new HashMap<>(),
           new HashSet<>());
 
-      try (
-          ConditionalWriter cw =
-              client.createConditionalWriter(tableName + "_clone", new ConditionalWriterConfig());
+      try (ConditionalWriter cw = client.createConditionalWriter(tableName + "_clone");
           Scanner scanner = client.createScanner(tableName + "_clone", new Authorizations())) {
 
         ConditionalMutation cm0 = new ConditionalMutation("99006+", new Condition("tx", "seq"));
@@ -553,8 +547,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         Entry<Key,Value> entry = Iterables.getOnlyElement(scanner);
         assertEquals("3", entry.getValue().toString());
 
-        try (ConditionalWriter cw =
-            client.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
+        try (ConditionalWriter cw = client.createConditionalWriter(tableName)) {
 
           ConditionalMutation cm0 = new ConditionalMutation("ACCUMULO-1000",
               new Condition("count", "comments").setValue("3"));
@@ -598,7 +591,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           while (results.hasNext()) {
             Result result = results.next();
             String k = new String(result.getMutation().getRow());
-            assertFalse("Did not expect to see multiple resultus for the row: " + k,
+            assertFalse("Did not expect to see multiple results for the row: " + k,
                 actual.containsKey(k));
             actual.put(k, result.getStatus());
           }
@@ -686,9 +679,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       client.tableOperations().offline(tableName, true);
       client.tableOperations().online(tableName, true);
 
-      try (
-          ConditionalWriter cw =
-              client.createConditionalWriter(tableName, new ConditionalWriterConfig());
+      try (ConditionalWriter cw = client.createConditionalWriter(tableName);
           Scanner scanner = client.createScanner(tableName, new Authorizations())) {
 
         ConditionalMutation cm6 = new ConditionalMutation("ACCUMULO-1000",
@@ -736,7 +727,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         while (results.hasNext()) {
           Result result = results.next();
           String k = new String(result.getMutation().getRow());
-          assertFalse("Did not expect to see multiple resultus for the row: " + k,
+          assertFalse("Did not expect to see multiple results for the row: " + k,
               actual.containsKey(k));
           actual.put(k, result.getStatus());
         }
@@ -899,9 +890,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         cml.add(cm);
       }
-
-      try (ConditionalWriter cw =
-          client.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw = client.createConditionalWriter(tableName)) {
 
         Iterator<Result> results = cw.write(cml.iterator());
 
@@ -1008,14 +997,19 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         while (results.hasNext()) {
           Result result = results.next();
           String row = new String(result.getMutation().getRow());
-          if (row.equals("19059")) {
-            assertEquals(Status.ACCEPTED, result.getStatus());
-          } else if (row.equals("59056")) {
-            assertEquals(Status.INVISIBLE_VISIBILITY, result.getStatus());
-          } else if (row.equals("99006")) {
-            assertEquals(Status.VIOLATED, result.getStatus());
-          } else if (row.equals("90909")) {
-            assertEquals(Status.REJECTED, result.getStatus());
+          switch (row) {
+            case "19059":
+              assertEquals(Status.ACCEPTED, result.getStatus());
+              break;
+            case "59056":
+              assertEquals(Status.INVISIBLE_VISIBILITY, result.getStatus());
+              break;
+            case "99006":
+              assertEquals(Status.VIOLATED, result.getStatus());
+              break;
+            case "90909":
+              assertEquals(Status.REJECTED, result.getStatus());
+              break;
           }
           rows.add(row);
         }
@@ -1038,8 +1032,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
       client.tableOperations().create(tableName);
 
-      try (ConditionalWriter cw =
-          client.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw = client.createConditionalWriter(tableName)) {
 
         ConditionalMutation cm1 = new ConditionalMutation("r1", new Condition("tx", "seq"));
         cm1.put("tx", "seq", "1");
@@ -1238,8 +1231,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
       client.tableOperations().create(tableName, ntc);
 
-      try (ConditionalWriter cw =
-          client.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw = client.createConditionalWriter(tableName)) {
 
         ArrayList<ByteSequence> rows = new ArrayList<>();
 
@@ -1305,11 +1297,10 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
   public void testSecurity() throws Exception {
     // test against table user does not have read and/or write permissions for
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String user = null;
 
       // Create a new user
       ClusterUser user1 = getUser(0);
-      user = user1.getPrincipal();
+      String user = user1.getPrincipal();
       if (saslEnabled()) {
         client.securityOperations().createLocalUser(user, null);
       } else {
@@ -1337,12 +1328,9 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       try (
           AccumuloClient client2 =
               Accumulo.newClient().from(client.properties()).as(user, user1.getToken()).build();
-          ConditionalWriter cw1 =
-              client2.createConditionalWriter(table1, new ConditionalWriterConfig());
-          ConditionalWriter cw2 =
-              client2.createConditionalWriter(table2, new ConditionalWriterConfig());
-          ConditionalWriter cw3 =
-              client2.createConditionalWriter(table3, new ConditionalWriterConfig())) {
+          ConditionalWriter cw1 = client2.createConditionalWriter(table1);
+          ConditionalWriter cw2 = client2.createConditionalWriter(table2);
+          ConditionalWriter cw3 = client2.createConditionalWriter(table3)) {
 
         // Should be able to conditional-update a table we have R/W on
         assertEquals(Status.ACCEPTED, cw3.write(cm1).getStatus());
@@ -1426,14 +1414,13 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       try {
-        client.createConditionalWriter(table, new ConditionalWriterConfig());
+        client.createConditionalWriter(table);
         fail("Creating conditional writer for table that doesn't exist should fail");
       } catch (TableNotFoundException e) {}
 
       client.tableOperations().create(table);
 
-      try (ConditionalWriter cw =
-          client.createConditionalWriter(table, new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw = client.createConditionalWriter(table)) {
 
         client.tableOperations().delete(table);
 
@@ -1461,8 +1448,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
       client.tableOperations().create(table);
 
-      try (ConditionalWriter cw =
-          client.createConditionalWriter(table, new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw = client.createConditionalWriter(table)) {
 
         client.tableOperations().offline(table, true);
 
@@ -1481,7 +1467,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         }
 
         try {
-          client.createConditionalWriter(table, new ConditionalWriterConfig());
+          client.createConditionalWriter(table);
           fail("Expected exception creating conditional writer to offline table");
         } catch (TableOfflineException e) {}
       }
@@ -1495,8 +1481,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
       client.tableOperations().create(table);
 
-      try (ConditionalWriter cw =
-          client.createConditionalWriter(table, new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw = client.createConditionalWriter(table)) {
 
         IteratorSetting iterSetting = new IteratorSetting(5, BadIterator.class);
 
@@ -1526,8 +1511,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
       client.tableOperations().create(table);
 
-      try (ConditionalWriter cw =
-          client.createConditionalWriter(table, new ConditionalWriterConfig())) {
+      try (ConditionalWriter cw = client.createConditionalWriter(table)) {
 
         ConditionalMutation cm1 = new ConditionalMutation("r1");
         cm1.put("tx", "seq", "1");
@@ -1557,8 +1541,8 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       TraceUtil.enableClientTraces("localhost", "testTrace", mac.getClientProperties());
       sleepUninterruptibly(1, TimeUnit.SECONDS);
       long rootTraceId;
-      try (TraceScope root = Trace.startSpan("traceTest", Sampler.ALWAYS); ConditionalWriter cw =
-          client.createConditionalWriter(tableName, new ConditionalWriterConfig())) {
+      try (TraceScope root = Trace.startSpan("traceTest", Sampler.ALWAYS);
+          ConditionalWriter cw = client.createConditionalWriter(tableName)) {
         rootTraceId = root.getSpan().getTraceId();
 
         // mutation conditional on column tx:seq not exiting

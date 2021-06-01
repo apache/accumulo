@@ -377,11 +377,11 @@ public class LocalityGroupUtil {
     if (lgName == null) {
       // this is the default locality group, create a set of all families not in the default group
       Set<ByteSequence> nonDefaultFamilies = new HashSet<>();
-      for (Entry<String,ArrayList<ByteSequence>> entry : localityGroupCF.entrySet()) {
-        if (entry.getKey() != null) {
-          nonDefaultFamilies.addAll(entry.getValue());
+      localityGroupCF.forEach((k, v) -> {
+        if (k != null) {
+          nonDefaultFamilies.addAll(v);
         }
-      }
+      });
 
       families = nonDefaultFamilies;
       inclusive = false;

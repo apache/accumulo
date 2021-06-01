@@ -71,8 +71,7 @@ public abstract class Metrics implements MetricsSource {
   }
 
   private static void loadMetricsService() {
-    ServiceLoader<MetricsRegistrationService> loader =
-        ServiceLoader.load(MetricsRegistrationService.class);
+    ServiceLoader.load(MetricsRegistrationService.class);
   }
 
   private final String name;

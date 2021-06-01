@@ -920,4 +920,24 @@ public class MutationTest {
     m.estRowAndLargeValSize += (Long.MAX_VALUE / 2);
     m.put("cf", "cq2", "v");
   }
+
+  @Test
+  public void testPrettyPrint() {
+    String row = "row";
+    String fam1 = "fam1";
+    String fam2 = "fam2";
+    String qual1 = "qual1";
+    String qual2 = "qual2";
+    String value1 = "value1";
+
+    Mutation m = new Mutation("row");
+    m.put(fam1, qual1, value1);
+    m.putDelete(fam2, qual2);
+    m.getUpdates(); // serialize
+
+    String expected = "mutation: " + row + "\n update: " + fam1 + ":" + qual1 + " value " + value1
+        + "\n update: " + fam2 + ":" + qual2 + " value [delete]\n";
+
+    assertEquals(expected, m.prettyPrint());
+  }
 }

@@ -58,7 +58,7 @@ public class CompressionConfigurer implements CompactionConfigurer {
   private String largeCompress;
 
   @Override
-  public void init(InitParamaters iparams) {
+  public void init(InitParameters iparams) {
     var options = iparams.getOptions();
 
     String largeThresh = options.get(LARGE_FILE_COMPRESSION_THRESHOLD);

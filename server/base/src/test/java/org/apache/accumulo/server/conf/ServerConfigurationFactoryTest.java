@@ -30,14 +30,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 
-import java.util.Properties;
-
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
+import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
 import org.easymock.EasyMock;
 import org.junit.After;
@@ -77,20 +76,12 @@ public class ServerConfigurationFactoryTest {
 
   @Before
   public void setUp() {
-    context = createMock(ServerContext.class);
-    expect(context.getInstanceID()).andReturn(IID).anyTimes();
-    expect(context.getProperties()).andReturn(new Properties()).anyTimes();
-    expect(context.getZooKeepers()).andReturn(ZK_HOST).anyTimes();
-    expect(context.getZooKeepersSessionTimeOut()).andReturn(ZK_TIMEOUT).anyTimes();
+    context = MockServerContext.getWithZK(IID, ZK_HOST, ZK_TIMEOUT);
   }
 
   @After
   public void tearDown() {
     ServerConfigurationFactory.clearCachedConfigurations();
-  }
-
-  private void mockInstanceForConfig() {
-    expect(context.getZooKeeperRoot()).andReturn("/accumulo/" + IID).anyTimes();
   }
 
   private void ready() {
@@ -115,7 +106,6 @@ public class ServerConfigurationFactoryTest {
 
   @Test
   public void testGetConfiguration() {
-    mockInstanceForConfig();
     ready();
     AccumuloConfiguration c = scf.getSystemConfiguration();
     assertNotNull(c);
@@ -125,11 +115,9 @@ public class ServerConfigurationFactoryTest {
 
   @Test
   public void testGetNamespaceConfiguration() {
-    mockInstanceForConfig();
     ready();
     NamespaceConfiguration c = scf.getNamespaceConfiguration(NSID);
     assertEquals(NSID, c.getNamespaceId());
-
     assertSame(c, scf.getNamespaceConfiguration(NSID));
   }
 
