@@ -27,8 +27,13 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ClientProperty;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -90,4 +95,96 @@ public class ClientContextTest {
     assertFalse(props.containsKey("ignored.property"));
     assertEquals("mysecret", props.get(Property.INSTANCE_SECRET.getKey()));
   }
+
+  @Test
+  public void testGetBatchWriterConfigUsingDefaults() {
+    Properties props = new Properties();
+    BatchWriterConfig batchWriterConfig = ClientContext.getBatchWriterConfig(props);
+    assertNotNull(batchWriterConfig);
+
+    long expectedMemory = ConfigurationTypeHelper
+        .getMemoryAsBytes(ClientProperty.BATCH_WRITER_MEMORY_MAX.getDefaultValue());
+    assertEquals(expectedMemory, batchWriterConfig.getMaxMemory());
+
+    // If the value of BATCH_WRITE_LATENCY_MAX or BATCH_WRITER_TIMEOUT_MAX, is set to zero,
+    // Long.MAX_VALUE is returned. Effectively, this will cause data to be held in memory
+    // indefinitely for BATCH_WRITE_LATENCY_MAX and for no timeout, for BATCH_WRITER_TIMEOUT_MAX.
+    // Due to this behavior, the test compares the return values differently. If a value of
+    // 0 is used, compare the return value using TimeUnit.MILLISECONDS, otherwise the value
+    // should be converted to seconds in order to match the value set in ClientProperty.
+    long expectedLatency = ConfigurationTypeHelper
+        .getTimeInMillis(ClientProperty.BATCH_WRITER_LATENCY_MAX.getDefaultValue());
+    if (expectedLatency == 0) {
+      expectedLatency = Long.MAX_VALUE;
+      assertEquals(expectedLatency, batchWriterConfig.getMaxLatency(TimeUnit.MILLISECONDS));
+    } else {
+      assertEquals(expectedLatency, batchWriterConfig.getMaxLatency(TimeUnit.SECONDS));
+    }
+
+    long expectedTimeout = ConfigurationTypeHelper
+        .getTimeInMillis(ClientProperty.BATCH_WRITER_TIMEOUT_MAX.getDefaultValue());
+    if (expectedTimeout == 0) {
+      expectedTimeout = Long.MAX_VALUE;
+      assertEquals(expectedTimeout, batchWriterConfig.getTimeout(TimeUnit.MILLISECONDS));
+    } else {
+      assertEquals(expectedTimeout, batchWriterConfig.getTimeout(TimeUnit.SECONDS));
+    }
+
+    int expectedThreads =
+        Integer.parseInt(ClientProperty.BATCH_WRITER_THREADS_MAX.getDefaultValue());
+    assertEquals(expectedThreads, batchWriterConfig.getMaxWriteThreads());
+
+    Durability expectedDurability =
+        Durability.valueOf(ClientProperty.BATCH_WRITER_DURABILITY.getDefaultValue().toUpperCase());
+    assertEquals(expectedDurability, batchWriterConfig.getDurability());
+  }
+
+  @Test
+  public void testGetBatchWriterConfigNotUsingDefaults() {
+    Properties props = new Properties();
+
+    // set properties to non-default values
+    props.setProperty(ClientProperty.BATCH_WRITER_MEMORY_MAX.getKey(), "10M");
+    props.setProperty(ClientProperty.BATCH_WRITER_LATENCY_MAX.getKey(), "0");
+    props.setProperty(ClientProperty.BATCH_WRITER_TIMEOUT_MAX.getKey(), "15");
+    props.setProperty(ClientProperty.BATCH_WRITER_THREADS_MAX.getKey(), "12");
+    props.setProperty(ClientProperty.BATCH_WRITER_DURABILITY.getKey(), Durability.FLUSH.name());
+
+    BatchWriterConfig batchWriterConfig = ClientContext.getBatchWriterConfig(props);
+    assertNotNull(batchWriterConfig);
+
+    long expectedMemory = ConfigurationTypeHelper
+        .getMemoryAsBytes(ClientProperty.BATCH_WRITER_MEMORY_MAX.getValue(props));
+    assertEquals(expectedMemory, batchWriterConfig.getMaxMemory());
+
+    // If the value of BATCH_WRITE_LATENCY_MAX or BATCH_WRITER_TIMEOUT_MAX, is set to zero,
+    // Long.MAX_VALUE is returned. Effectively, this will cause data to be held in memory
+    // indefinitely for BATCH_WRITE_LATENCY_MAX and for no timeout, for BATCH_WRITER_TIMEOUT_MAX.
+    // Due to this behavior, the test compares the return values differently. If a value of
+    // 0 is used, compare the return value using TimeUnit.MILLISECONDS, otherwise the value
+    // should be converted to seconds in order to match the value set in ClientProperty.
+    long expectedLatency = ClientProperty.BATCH_WRITER_LATENCY_MAX.getTimeInMillis(props);
+    if (expectedLatency == 0) {
+      expectedLatency = Long.MAX_VALUE;
+      assertEquals(expectedLatency, batchWriterConfig.getMaxLatency(TimeUnit.MILLISECONDS));
+    } else {
+      assertEquals(expectedLatency, batchWriterConfig.getMaxLatency(TimeUnit.SECONDS));
+    }
+
+    long expectedTimeout = ClientProperty.BATCH_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
+    if (expectedTimeout == 0) {
+      expectedTimeout = Long.MAX_VALUE;
+      assertEquals(expectedTimeout, batchWriterConfig.getTimeout(TimeUnit.MILLISECONDS));
+    } else {
+      assertEquals(expectedTimeout, batchWriterConfig.getTimeout(TimeUnit.SECONDS));
+    }
+
+    long expectedThreads = ClientProperty.BATCH_WRITER_THREADS_MAX.getInteger(props);
+    assertEquals(expectedThreads, batchWriterConfig.getMaxWriteThreads());
+
+    Durability expectedDurability =
+        Durability.valueOf(ClientProperty.BATCH_WRITER_DURABILITY.getValue(props).toUpperCase());
+    assertEquals(expectedDurability, batchWriterConfig.getDurability());
+  }
+
 }
