@@ -47,6 +47,24 @@ public class CompactionPrioritizerTest {
   }
 
   @Test
+  public void testPrioritizer() throws Exception {
+    assertEquals((short) 0, CompactionJobPrioritizer.createPriority(CompactionKind.USER, 0));
+    assertEquals((short) 10000,
+        CompactionJobPrioritizer.createPriority(CompactionKind.USER, 10000));
+    assertEquals((short) 32767,
+        CompactionJobPrioritizer.createPriority(CompactionKind.USER, 32767));
+    assertEquals((short) 32767,
+        CompactionJobPrioritizer.createPriority(CompactionKind.USER, Integer.MAX_VALUE));
+
+    assertEquals((short) -32768, CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, 0));
+    assertEquals((short) -22768,
+        CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, 10000));
+    assertEquals((short) -1, CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, 32767));
+    assertEquals((short) -1,
+        CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, Integer.MAX_VALUE));
+  }
+
+  @Test
   public void testCompactionJobComparator() {
     var j1 = createJob(CompactionKind.USER, "t-009", 10, 20);
     var j2 = createJob(CompactionKind.USER, "t-010", 11, 25);
@@ -58,7 +76,7 @@ public class CompactionPrioritizerTest {
     var j8 = createJob(CompactionKind.SELECTOR, "t-014", 5, 21);
     var j9 = createJob(CompactionKind.SELECTOR, "t-015", 7, 21);
 
-    var expected = List.of(j2, j3, j1, j6, j7, j9, j8, j4, j5);
+    var expected = List.of(j6, j2, j3, j1, j7, j4, j9, j8, j5);
 
     var shuffled = new ArrayList<>(expected);
     Collections.shuffle(shuffled);

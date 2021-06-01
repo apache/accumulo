@@ -27,30 +27,32 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 public class CompactionJobPrioritizer {
 
   public static final Comparator<CompactionJob> JOB_COMPARATOR =
-      Comparator.comparingLong(CompactionJob::getPriority)
+      Comparator.comparingInt(CompactionJob::getPriority)
           .thenComparingInt(job -> job.getFiles().size()).reversed();
 
-  public static long createPriority(CompactionKind kind, int totalFiles) {
-    long kindPrio;
-
+  public static short createPriority(CompactionKind kind, int totalFiles) {
     switch (kind) {
       case USER:
-        kindPrio = 4;
-        break;
-      case SELECTOR:
-        kindPrio = 2;
-        break;
       case CHOP:
-        kindPrio = 3;
-        break;
+        // user-initiated compactions will have a positive priority
+        // based on number of files
+        if (totalFiles > Short.MAX_VALUE) {
+          return Short.MAX_VALUE;
+        }
+        return (short) totalFiles;
+      case SELECTOR:
       case SYSTEM:
-        kindPrio = 1;
-        break;
+        // system-initiated compactions will have a negative priority
+        // starting at -32768 and increasing based on number of files
+        // maxing out at -1
+        if (totalFiles > Short.MAX_VALUE) {
+          return -1;
+        } else {
+          return (short) (Short.MIN_VALUE + totalFiles);
+        }
       default:
         throw new AssertionError("Unknown kind " + kind);
     }
-
-    return (kindPrio << 56) | totalFiles;
   }
 
 }
