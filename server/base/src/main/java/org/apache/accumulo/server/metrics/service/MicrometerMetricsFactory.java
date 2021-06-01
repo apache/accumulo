@@ -112,13 +112,14 @@ public class MicrometerMetricsFactory {
     log.warn("Looking for: {}", filename);
 
     ClassLoader clazz = this.getClass().getClassLoader();
-    InputStream in = clazz.getResourceAsStream(filename);
     Properties p = new Properties();
 
-    if (Objects.nonNull(in)) {
-      p.load(in);
-    } else {
-      log.warn("Could not find metrics property file {}, metrics are disabled", filename);
+    try (InputStream in = clazz.getResourceAsStream(filename)) {
+      if (Objects.nonNull(in)) {
+        p.load(in);
+      } else {
+        log.warn("Could not find metrics property file {}, metrics are disabled", filename);
+      }
     }
 
     return getServiceProps(p);
