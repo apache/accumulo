@@ -22,7 +22,6 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.net.UnknownHostException;
 import java.time.Duration;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,11 +37,11 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.Iface;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
-import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -391,11 +390,14 @@ public class CompactionCoordinator extends AbstractServer
    *          queue
    * @param compactorAddress
    *          compactor address
+   * @throws ThriftSecurityException
+   *           when permission error
    * @return compaction job
    */
   @Override
   public TExternalCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
-      String queueName, String compactorAddress, String externalCompactionId) throws TException {
+      String queueName, String compactorAddress, String externalCompactionId)
+      throws ThriftSecurityException {
 
     // do not expect users to call this directly, expect compactors to call this method
     if (!security.canPerformSystemActions(credentials)) {
@@ -500,14 +502,13 @@ public class CompactionCoordinator extends AbstractServer
    *          tablet extent
    * @param stats
    *          compaction stats
-   * @throws UnknownCompactionIdException
-   *           if compaction is not running
-   * @throws TException
-   *           thrift error
+   * @throws ThriftSecurityException
+   *           when permission error
    */
   @Override
   public void compactionCompleted(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent textent, TCompactionStats stats) throws TException {
+      String externalCompactionId, TKeyExtent textent, TCompactionStats stats)
+      throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -529,13 +530,12 @@ public class CompactionCoordinator extends AbstractServer
       LOG.warn(
           "Compaction completed called by Compactor for {}, but no running compaction for that id.",
           externalCompactionId);
-      throw new UnknownCompactionIdException();
     }
   }
 
   @Override
   public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-      TKeyExtent extent) throws TException {
+      TKeyExtent extent) throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -546,10 +546,8 @@ public class CompactionCoordinator extends AbstractServer
     compactionFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
   }
 
-  void compactionFailed(Map<ExternalCompactionId,KeyExtent> compactions)
-      throws UnknownCompactionIdException {
+  void compactionFailed(Map<ExternalCompactionId,KeyExtent> compactions) {
     compactionFinalizer.failCompactions(compactions);
-    final Set<ExternalCompactionId> unknownIds = new HashSet<>();
     compactions.forEach((k, v) -> {
       final RunningCompaction rc = RUNNING.get(k);
       if (null != rc) {
@@ -558,12 +556,8 @@ public class CompactionCoordinator extends AbstractServer
         LOG.warn(
             "Compaction failed called by Compactor for {}, but no running compaction for that id.",
             k);
-        unknownIds.add(k);
       }
     });
-    if (!unknownIds.isEmpty()) {
-      throw new UnknownCompactionIdException();
-    }
   }
 
   /**
@@ -581,15 +575,13 @@ public class CompactionCoordinator extends AbstractServer
    *          informational message
    * @param timestamp
    *          timestamp of the message
-   * @throws UnknownCompactionIdException
-   *           if compaction is not running
-   * @throws TException
-   *           thrift error
+   * @throws ThriftSecurityException
+   *           when permission error
    */
   @Override
   public void updateCompactionStatus(TInfo tinfo, TCredentials credentials,
       String externalCompactionId, TCompactionState state, String message, long timestamp)
-      throws TException {
+      throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -600,8 +592,6 @@ public class CompactionCoordinator extends AbstractServer
     final RunningCompaction rc = RUNNING.get(ExternalCompactionId.of(externalCompactionId));
     if (null != rc) {
       rc.addUpdate(timestamp, message, state);
-    } else {
-      throw new UnknownCompactionIdException();
     }
   }
 

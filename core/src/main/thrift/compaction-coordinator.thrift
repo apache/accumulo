@@ -61,8 +61,6 @@ service CompactionCoordinatorService {
     3:string externalCompactionId
     4:data.TKeyExtent extent
     5:tabletserver.TCompactionStats stats
-  ) throws (
-    1:UnknownCompactionIdException e
   )
   
   /*
@@ -86,8 +84,6 @@ service CompactionCoordinatorService {
     4:TCompactionState state
     5:string message
     6:i64 timestamp
-  ) throws (
-    1:UnknownCompactionIdException e
   )
   
   /*
@@ -98,8 +94,6 @@ service CompactionCoordinatorService {
     2:security.TCredentials credentials
     3:string externalCompactionId
     4:data.TKeyExtent extent
-  ) throws (
-    1:UnknownCompactionIdException e
   )
 
 }
