@@ -42,6 +42,7 @@ public class CoordinatorExecutable implements KeywordExecutable {
 
   @Override
   public void execute(final String[] args) throws Exception {
+    System.out.println("WARNING: External compaction processes are experimental");
     CompactionCoordinator.main(args);
   }
 
