@@ -31,7 +31,6 @@ import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -229,7 +228,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     assertEquals(0, SingletonManager.getReservationCount());
 
     expectClosed(() -> c.createScanner(tableName, Authorizations.EMPTY));
-    expectClosed(() -> c.createConditionalWriter(tableName, new ConditionalWriterConfig()));
+    expectClosed(() -> c.createConditionalWriter(tableName));
     expectClosed(() -> c.createBatchWriter(tableName));
     expectClosed(c::tableOperations);
     expectClosed(c::instanceOperations);
