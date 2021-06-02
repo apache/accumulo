@@ -168,12 +168,12 @@ public class Upgrader9to10 implements Upgrader {
     final byte[] EMPTY_BYTE_ARRAY = new byte[0];
     try {
       ctx.getZooReaderWriter().putPersistentData(ctx.getZooKeeperRoot() + Constants.ZCOORDINATOR,
-          EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
+          EMPTY_BYTE_ARRAY, NodeExistsPolicy.SKIP);
       ctx.getZooReaderWriter().putPersistentData(
           ctx.getZooKeeperRoot() + Constants.ZCOORDINATOR_LOCK, EMPTY_BYTE_ARRAY,
-          NodeExistsPolicy.FAIL);
+          NodeExistsPolicy.SKIP);
       ctx.getZooReaderWriter().putPersistentData(ctx.getZooKeeperRoot() + Constants.ZCOMPACTORS,
-          EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
+          EMPTY_BYTE_ARRAY, NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Unable to create external compaction paths", e);
     }
