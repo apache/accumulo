@@ -636,6 +636,7 @@ public interface TableOperations {
    *         recently changed properties may not be visible immediately.
    * @throws TableNotFoundException
    *           if the table does not exist
+   * @since 2.1.0
    */
   Map<String,String> getConfiguration(String tableName)
       throws AccumuloException, TableNotFoundException;

@@ -143,7 +143,7 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    @Deprecated
+    @Deprecated (since = "2.1.0")
     public Iterable<Entry<String,String>> getProperties(String tableName) {
       Map<String,String> empty = Collections.emptyMap();
       if (!settings.containsKey(tableName))
