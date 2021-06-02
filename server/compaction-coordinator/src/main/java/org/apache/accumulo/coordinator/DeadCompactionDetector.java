@@ -21,6 +21,7 @@ package org.apache.accumulo.coordinator;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -41,13 +42,16 @@ public class DeadCompactionDetector {
 
   private final ServerContext context;
   private final CompactionCoordinator coordinator;
-  private ScheduledThreadPoolExecutor schedExecutor;
+  private final ScheduledThreadPoolExecutor schedExecutor;
+  private final ConcurrentHashMap<ExternalCompactionId,Long> deadCompactions;
+  private long threshold;
 
   public DeadCompactionDetector(ServerContext context, CompactionCoordinator coordinator,
       ScheduledThreadPoolExecutor stpe) {
     this.context = context;
     this.coordinator = coordinator;
     this.schedExecutor = stpe;
+    this.deadCompactions = new ConcurrentHashMap<>();
   }
 
   private void detectDeadCompactions() {
@@ -67,6 +71,9 @@ public class DeadCompactionDetector {
         });
 
     if (tabletCompactions.isEmpty()) {
+      // Clear out dead compactions, tservers don't think anything is running
+      log.trace("Clearing the dead compaction map, no tablets have compactions running");
+      this.deadCompactions.clear();
       // no need to look for dead compactions when tablets don't have anything recorded as running
       return;
     }
@@ -74,6 +81,17 @@ public class DeadCompactionDetector {
     if (log.isTraceEnabled()) {
       tabletCompactions.forEach((ecid, extent) -> log.trace("Saw {} for {}", ecid, extent));
     }
+
+    // Remove from the dead map any compactions that the Tablet's
+    // do not think are running any more.
+    this.deadCompactions.keySet().forEach(eci -> {
+      if (!tabletCompactions.containsKey(eci)) {
+        if (this.deadCompactions.remove(eci) != null)
+          log.trace(
+              "Removed {} from the dead compaction map, no tablet thinks this compaction is running",
+              eci);
+      }
+    });
 
     // Determine what compactions are currently running and remove those.
     //
@@ -85,30 +103,54 @@ public class DeadCompactionDetector {
 
     running.forEach((ecid) -> {
       if (tabletCompactions.remove(ecid) != null) {
-        log.trace("Removed {} running on a compactor", ecid);
+        log.trace("Removed compaction {} running on a compactor", ecid);
+      }
+      if (this.deadCompactions.remove(ecid) != null) {
+        log.trace("Removed {} from the dead compaction map, it's running on a compactor", ecid);
       }
     });
 
     // Determine which compactions are currently committing and remove those
     context.getAmple().getExternalCompactionFinalStates()
-        .map(ecfs -> ecfs.getExternalCompactionId()).forEach(tabletCompactions::remove);
+        .map(ecfs -> ecfs.getExternalCompactionId()).forEach(ecid -> {
+          if (tabletCompactions.remove(ecid) != null) {
+            log.trace("Removed compaction {} that is committing", ecid);
+          }
+          if (this.deadCompactions.remove(ecid) != null) {
+            log.trace("Removed {} from the dead compaction map, it's committing", ecid);
+          }
+        });
 
-    tabletCompactions
-        .forEach((ecid, extent) -> log.debug("Detected dead compaction {} {}", ecid, extent));
+    tabletCompactions.forEach((ecid, extent) -> {
+      log.debug("Possible dead compaction detected {} {}", ecid, extent);
+      this.deadCompactions.putIfAbsent(ecid, System.currentTimeMillis());
+    });
 
     // Everything left in tabletCompactions is no longer running anywhere and should be failed.
     // Its possible that a compaction committed while going through the steps above, if so then
     // that is ok and marking it failed will end up being a no-op.
-    try {
-      coordinator.compactionFailed(tabletCompactions);
-    } catch (UnknownCompactionIdException e) {
-      // One or more Ids was not in the Running compaction list. This is ok to ignore.
-    }
+    long now = System.currentTimeMillis();
+    this.deadCompactions.forEach((eci, startTime) -> {
+      if ((now - startTime) > threshold) {
+        // Compaction believed to be dead for two cycles. Fail it.
+        try {
+          log.warn(
+              "Failing compaction {} which is believed to be dead. Last seen at {} and not seen since.",
+              eci, startTime);
+          coordinator.compactionFailed(tabletCompactions);
+          this.deadCompactions.remove(eci);
+        } catch (UnknownCompactionIdException e) {
+          // One or more Ids was not in the Running compaction list. This is ok to ignore.
+        }
+      }
+    });
   }
 
   public void start() {
     long interval = this.context.getConfiguration()
         .getTimeInMillis(Property.COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL);
+
+    this.threshold = 2 * interval;
 
     schedExecutor.scheduleWithFixedDelay(() -> {
       try {
