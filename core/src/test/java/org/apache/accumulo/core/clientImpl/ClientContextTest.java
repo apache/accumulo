@@ -157,19 +157,7 @@ public class ClientContextTest {
         .getMemoryAsBytes(ClientProperty.BATCH_WRITER_MEMORY_MAX.getValue(props));
     assertEquals(expectedMemory, batchWriterConfig.getMaxMemory());
 
-    // If the value of BATCH_WRITE_LATENCY_MAX or BATCH_WRITER_TIMEOUT_MAX, is set to zero,
-    // Long.MAX_VALUE is returned. Effectively, this will cause data to be held in memory
-    // indefinitely for BATCH_WRITE_LATENCY_MAX and for no timeout, for BATCH_WRITER_TIMEOUT_MAX.
-    // Due to this behavior, the test compares the return values differently. If a value of
-    // 0 is used, compare the return value using TimeUnit.MILLISECONDS, otherwise the value
-    // should be converted to seconds in order to match the value set in ClientProperty.
-    long expectedLatency = ClientProperty.BATCH_WRITER_LATENCY_MAX.getTimeInMillis(props);
-    if (expectedLatency == 0) {
-      expectedLatency = Long.MAX_VALUE;
-      assertEquals(expectedLatency, batchWriterConfig.getMaxLatency(TimeUnit.MILLISECONDS));
-    } else {
-      assertEquals(expectedLatency, batchWriterConfig.getMaxLatency(TimeUnit.SECONDS));
-    }
+    assertEquals(Long.MAX_VALUE, batchWriterConfig.getMaxLatency(TimeUnit.MILLISECONDS));
 
     long expectedTimeout = ClientProperty.BATCH_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
     if (expectedTimeout == 0) {
