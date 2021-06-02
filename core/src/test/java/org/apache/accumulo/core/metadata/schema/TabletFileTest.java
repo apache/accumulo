@@ -24,6 +24,7 @@ import static org.junit.Assert.fail;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 
 public class TabletFileTest {
@@ -38,6 +39,16 @@ public class TabletFileTest {
     assertEquals(tabletDir, tabletFile.getTabletDir());
     assertEquals(fileName, tabletFile.getFileName());
     return tabletFile;
+  }
+
+  @Test
+  public void testEquivalence() {
+    TabletFile newFile = new TabletFile(
+        new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
+    TabletFile tmpFile = new TabletFile(new Path(newFile.getMetaInsert() + "_tmp"));
+    TabletFile newFile2 = new TabletFile(
+        new Path(tmpFile.getMetaInsert().substring(0, tmpFile.getMetaInsert().indexOf("_tmp"))));
+    assertEquals(newFile, newFile2);
   }
 
   @Test

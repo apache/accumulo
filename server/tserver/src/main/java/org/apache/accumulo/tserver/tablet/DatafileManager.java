@@ -398,12 +398,18 @@ class DatafileManager {
   }
 
   StoredTabletFile bringMajorCompactionOnline(Set<StoredTabletFile> oldDatafiles,
-      TabletFile tmpDatafile, TabletFile newDatafile, Long compactionId,
-      Set<StoredTabletFile> selectedFiles, DataFileValue dfv, Optional<ExternalCompactionId> ecid)
-      throws IOException {
+      TabletFile tmpDatafile, Long compactionId, Set<StoredTabletFile> selectedFiles,
+      DataFileValue dfv, Optional<ExternalCompactionId> ecid) throws IOException {
     final KeyExtent extent = tablet.getExtent();
     VolumeManager vm = tablet.getTabletServer().getContext().getVolumeManager();
     long t1, t2;
+
+    int idx = tmpDatafile.getMetaInsert().indexOf("_tmp");
+    String newFilePath = tmpDatafile.getMetaInsert();
+    if (idx > 0) {
+      newFilePath = newFilePath.substring(0, idx);
+    }
+    TabletFile newDatafile = new TabletFile(new Path(newFilePath));
 
     if (vm.exists(newDatafile.getPath())) {
       log.error("Target map file already exist " + newDatafile, new Exception());

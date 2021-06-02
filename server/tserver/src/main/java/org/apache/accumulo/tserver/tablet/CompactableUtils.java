@@ -613,8 +613,9 @@ public class CompactableUtils {
     HashMap<StoredTabletFile,DataFileValue> compactFiles = new HashMap<>();
     jobFiles.forEach(file -> compactFiles.put(file, allFiles.get(file)));
 
-    TabletFile newFile = tablet.getNextMapFilename(!propagateDeletes ? "A" : "C");
-    TabletFile compactTmpName = new TabletFile(new Path(newFile.getMetaInsert() + "_tmp"));
+    String tmpFileName =
+        tablet.getNextMapFilename(!propagateDeletes ? "A" : "C").getMetaInsert() + "_tmp";
+    TabletFile compactTmpName = new TabletFile(new Path(tmpFileName));
 
     FileCompactor compactor = new FileCompactor(tablet.getContext(), tablet.getExtent(),
         compactFiles, compactTmpName, propagateDeletes, cenv, iters, compactionConfig);
@@ -632,7 +633,7 @@ public class CompactableUtils {
     stats.add(mcs);
 
     metaFile = tablet.getDatafileManager().bringMajorCompactionOnline(compactFiles.keySet(),
-        compactTmpName, newFile, compactionId, selectedFiles,
+        compactTmpName, compactionId, selectedFiles,
         new DataFileValue(mcs.getFileSize(), mcs.getEntriesWritten()), Optional.empty());
     return metaFile;
   }

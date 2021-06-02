@@ -42,7 +42,6 @@ public class ExternalCompactionMetadata {
   private final Set<StoredTabletFile> jobFiles;
   private final Set<StoredTabletFile> nextFiles;
   private final TabletFile compactTmpName;
-  private final TabletFile newFile;
   private final String compactorId;
   private final CompactionKind kind;
   private final long priority;
@@ -52,13 +51,12 @@ public class ExternalCompactionMetadata {
   private final Long compactionId;
 
   public ExternalCompactionMetadata(Set<StoredTabletFile> jobFiles, Set<StoredTabletFile> nextFiles,
-      TabletFile compactTmpName, TabletFile newFile, String compactorId, CompactionKind kind,
-      long priority, CompactionExecutorId ceid, boolean propagateDeletes,
-      boolean initiallySelectedAll, Long compactionId) {
+      TabletFile compactTmpName, String compactorId, CompactionKind kind, long priority,
+      CompactionExecutorId ceid, boolean propagateDeletes, boolean initiallySelectedAll,
+      Long compactionId) {
     this.jobFiles = Objects.requireNonNull(jobFiles);
     this.nextFiles = Objects.requireNonNull(nextFiles);
     this.compactTmpName = Objects.requireNonNull(compactTmpName);
-    this.newFile = Objects.requireNonNull(newFile);
     this.compactorId = Objects.requireNonNull(compactorId);
     this.kind = Objects.requireNonNull(kind);
     this.priority = priority;
@@ -78,10 +76,6 @@ public class ExternalCompactionMetadata {
 
   public TabletFile getCompactTmpName() {
     return compactTmpName;
-  }
-
-  public TabletFile getNewFile() {
-    return newFile;
   }
 
   public String getCompactorId() {
@@ -118,7 +112,6 @@ public class ExternalCompactionMetadata {
     List<String> inputs;
     List<String> nextFiles;
     String tmp;
-    String dest;
     String compactor;
     String kind;
     String executorId;
@@ -135,7 +128,6 @@ public class ExternalCompactionMetadata {
     jData.nextFiles =
         nextFiles.stream().map(StoredTabletFile::getMetaUpdateDelete).collect(toList());
     jData.tmp = compactTmpName.getMetaInsert();
-    jData.dest = newFile.getMetaInsert();
     jData.compactor = compactorId;
     jData.kind = kind.name();
     jData.executorId = ((CompactionExecutorIdImpl) ceid).getExternalName();
@@ -152,10 +144,9 @@ public class ExternalCompactionMetadata {
     return new ExternalCompactionMetadata(
         jData.inputs.stream().map(StoredTabletFile::new).collect(toSet()),
         jData.nextFiles.stream().map(StoredTabletFile::new).collect(toSet()),
-        new TabletFile(new Path(jData.tmp)), new TabletFile(new Path(jData.dest)), jData.compactor,
-        CompactionKind.valueOf(jData.kind), jData.priority,
-        CompactionExecutorIdImpl.externalId(jData.executorId), jData.propDels, jData.selectedAll,
-        jData.compactionId);
+        new TabletFile(new Path(jData.tmp)), jData.compactor, CompactionKind.valueOf(jData.kind),
+        jData.priority, CompactionExecutorIdImpl.externalId(jData.executorId), jData.propDels,
+        jData.selectedAll, jData.compactionId);
   }
 
   @Override

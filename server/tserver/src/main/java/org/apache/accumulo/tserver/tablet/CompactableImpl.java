@@ -973,14 +973,15 @@ public class CompactableImpl implements Compactable {
       Map<String,String> overrides =
           CompactableUtils.getOverrides(job.getKind(), tablet, cInfo.localHelper, job.getFiles());
 
-      var newFile = tablet.getNextMapFilename(!cInfo.propagateDeletes ? "A" : "C");
-      var compactTmpName = new TabletFile(new Path(newFile.getMetaInsert() + "_tmp"));
+      String tmpFileName =
+          tablet.getNextMapFilename(!cInfo.propagateDeletes ? "A" : "C").getMetaInsert() + "_tmp";
+      TabletFile compactTmpName = new TabletFile(new Path(tmpFileName));
 
       ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
 
       ecInfo.meta = new ExternalCompactionMetadata(cInfo.jobFiles,
-          Sets.difference(cInfo.selectedFiles, cInfo.jobFiles), compactTmpName, newFile,
-          compactorId, job.getKind(), job.getPriority(), job.getExecutor(), cInfo.propagateDeletes,
+          Sets.difference(cInfo.selectedFiles, cInfo.jobFiles), compactTmpName, compactorId,
+          job.getKind(), job.getPriority(), job.getExecutor(), cInfo.propagateDeletes,
           cInfo.initiallySelectedAll, cInfo.checkCompactionId);
 
       tablet.getContext().getAmple().mutateTablet(getExtent())
@@ -1029,11 +1030,11 @@ public class CompactableImpl implements Compactable {
         log.debug("Attempting to commit external compaction {}", extCompactionId);
         StoredTabletFile metaFile = null;
         try {
-          metaFile = tablet.getDatafileManager().bringMajorCompactionOnline(
-              ecInfo.meta.getJobFiles(), ecInfo.meta.getCompactTmpName(), ecInfo.meta.getNewFile(),
-              ecInfo.meta.getCompactionId(),
-              Sets.union(ecInfo.meta.getJobFiles(), ecInfo.meta.getNextFiles()),
-              new DataFileValue(fileSize, entries), Optional.of(extCompactionId));
+          metaFile =
+              tablet.getDatafileManager().bringMajorCompactionOnline(ecInfo.meta.getJobFiles(),
+                  ecInfo.meta.getCompactTmpName(), ecInfo.meta.getCompactionId(),
+                  Sets.union(ecInfo.meta.getJobFiles(), ecInfo.meta.getNextFiles()),
+                  new DataFileValue(fileSize, entries), Optional.of(extCompactionId));
           TabletLogger.compacted(getExtent(), ecInfo.job, metaFile);
         } catch (Exception e) {
           metaFile = null;
