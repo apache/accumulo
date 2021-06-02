@@ -1048,7 +1048,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  @Deprecated (since = "2.1.0")
+  @Deprecated(since = "2.1.0")
   public Iterable<Entry<String,String>> getProperties(final String tableName)
       throws AccumuloException, TableNotFoundException {
     return getConfiguration(tableName).entrySet();
