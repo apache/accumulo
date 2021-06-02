@@ -284,31 +284,36 @@ public class ClientContext implements AccumuloClient {
     return saslSupplier.get();
   }
 
+  static BatchWriterConfig getBatchWriterConfig(Properties props) {
+    BatchWriterConfig batchWriterConfig = new BatchWriterConfig();
+
+    Long maxMemory = ClientProperty.BATCH_WRITER_MEMORY_MAX.getBytes(props);
+    if (maxMemory != null) {
+      batchWriterConfig.setMaxMemory(maxMemory);
+    }
+    Long maxLatency = ClientProperty.BATCH_WRITER_LATENCY_MAX.getTimeInMillis(props);
+    if (maxLatency != null) {
+      batchWriterConfig.setMaxLatency(maxLatency, TimeUnit.SECONDS);
+    }
+    Long timeout = ClientProperty.BATCH_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
+    if (timeout != null) {
+      batchWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
+    }
+    Integer maxThreads = ClientProperty.BATCH_WRITER_THREADS_MAX.getInteger(props);
+    if (maxThreads != null) {
+      batchWriterConfig.setMaxWriteThreads(maxThreads);
+    }
+    String durability = ClientProperty.BATCH_WRITER_DURABILITY.getValue(props);
+    if (!durability.isEmpty()) {
+      batchWriterConfig.setDurability(Durability.valueOf(durability.toUpperCase()));
+    }
+    return batchWriterConfig;
+  }
+
   public synchronized BatchWriterConfig getBatchWriterConfig() {
     ensureOpen();
     if (batchWriterConfig == null) {
-      Properties props = info.getProperties();
-      batchWriterConfig = new BatchWriterConfig();
-      Long maxMemory = ClientProperty.BATCH_WRITER_MEMORY_MAX.getBytes(props);
-      if (maxMemory != null) {
-        batchWriterConfig.setMaxMemory(maxMemory);
-      }
-      Long maxLatency = ClientProperty.BATCH_WRITER_LATENCY_MAX.getTimeInMillis(props);
-      if (maxLatency != null) {
-        batchWriterConfig.setMaxLatency(maxLatency, TimeUnit.SECONDS);
-      }
-      Long timeout = ClientProperty.BATCH_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
-      if (timeout != null) {
-        batchWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
-      }
-      String durability = ClientProperty.BATCH_WRITER_DURABILITY.getValue(props);
-      if (!durability.isEmpty()) {
-        batchWriterConfig.setDurability(Durability.valueOf(durability.toUpperCase()));
-      }
-      Integer maxThreads = ClientProperty.BATCH_WRITER_THREADS_MAX.getInteger(props);
-      if (maxThreads != null) {
-        batchWriterConfig.setMaxWriteThreads(maxThreads);
-      }
+      batchWriterConfig = getBatchWriterConfig(info.getProperties());
     }
     return batchWriterConfig;
   }
