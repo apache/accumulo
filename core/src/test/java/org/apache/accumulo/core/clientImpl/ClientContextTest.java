@@ -179,10 +179,10 @@ public class ClientContextTest {
     assertNotNull(conditionalWriterConfig);
 
     // If the value of CONDITIONAL_WRITER_TIMEOUT_MAX is set to zero, Long.MAX_VALUE is returned.
-    // Effectively, this indicates there is no timeout for BATCH_WRITER_TIMEOUT_MAX. Due to this
-    // behavior, the test compares the return values differently. If a value of 0 is used, compare
-    // the return value using TimeUnit.MILLISECONDS, otherwise the value should be converted to
-    // seconds in order to match the value set in ClientProperty.
+    // Effectively, this indicates there is no timeout for CONDITIONAL_WRITER_TIMEOUT_MAX. Due to
+    // this behavior, the test compares the return values differently. If a value of 0 is used,
+    // compare the return value using TimeUnit.MILLISECONDS, otherwise the value should be
+    // converted to seconds in order to match the value set in ClientProperty.
     long expectedTimeout = ConfigurationTypeHelper
         .getTimeInMillis(ClientProperty.CONDITIONAL_WRITER_TIMEOUT_MAX.getDefaultValue());
     if (expectedTimeout == 0) {
