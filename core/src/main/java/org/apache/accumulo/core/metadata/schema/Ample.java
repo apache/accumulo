@@ -20,6 +20,7 @@ package org.apache.accumulo.core.metadata.schema;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -201,6 +202,20 @@ public interface Ample {
     throw new UnsupportedOperationException();
   }
 
+  default void
+      putExternalCompactionFinalStates(Collection<ExternalCompactionFinalState> finalStates) {
+    throw new UnsupportedOperationException();
+  }
+
+  default Stream<ExternalCompactionFinalState> getExternalCompactionFinalStates() {
+    throw new UnsupportedOperationException();
+  }
+
+  default void
+      deleteExternalCompactionFinalStates(Collection<ExternalCompactionId> statusesToDelete) {
+    throw new UnsupportedOperationException();
+  }
+
   /**
    * Return an encoded delete marker Mutation to delete the specified TabletFile path. A String is
    * used for the parameter because the Garbage Collector is optimized to store a directory for
@@ -269,6 +284,11 @@ public interface Ample {
     TabletMutator putSuspension(TServerInstance tserver, long suspensionTime);
 
     TabletMutator deleteSuspension();
+
+    TabletMutator putExternalCompaction(ExternalCompactionId ecid,
+        ExternalCompactionMetadata ecMeta);
+
+    TabletMutator deleteExternalCompaction(ExternalCompactionId ecid);
 
     /**
      * This method persist (or queues for persisting) previous put and deletes against this object.

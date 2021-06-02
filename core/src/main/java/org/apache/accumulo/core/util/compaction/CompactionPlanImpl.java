@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
@@ -79,8 +80,8 @@ public class CompactionPlanImpl implements CompactionPlan {
 
       seenFiles.addAll(filesSet);
 
-      jobs.add(
-          new CompactionJobImpl(priority, executor, filesSet, kind, filesSet.equals(allFiles)));
+      jobs.add(new CompactionJobImpl(priority, executor, filesSet, kind,
+          Optional.of(filesSet.equals(allFiles))));
       return this;
     }
 

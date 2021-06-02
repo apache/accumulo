@@ -65,7 +65,7 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
 
   private int maxColumns;
 
-  private boolean propogateSuppression = false;
+  private boolean propagateSuppression = false;
 
   private Range range;
   private Collection<ByteSequence> columnFamilies;
@@ -154,16 +154,16 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
 
     bufferNextRow();
 
-    while (!propogateSuppression && currentPosition < keys.size()
+    while (!propagateSuppression && currentPosition < keys.size()
         && isSuppressionMarker(keys.get(0), values.get(0))) {
       bufferNextRow();
     }
   }
 
-  private LargeRowFilter(SortedKeyValueIterator<Key,Value> source, boolean propogateSuppression,
+  private LargeRowFilter(SortedKeyValueIterator<Key,Value> source, boolean propagateSuppression,
       int maxColumns) {
     this.source = source;
-    this.propogateSuppression = propogateSuppression;
+    this.propagateSuppression = propagateSuppression;
     this.maxColumns = maxColumns;
   }
 
@@ -174,7 +174,7 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
       IteratorEnvironment env) throws IOException {
     this.source = source;
     this.maxColumns = Integer.parseInt(options.get(MAX_COLUMNS));
-    this.propogateSuppression = env.getIteratorScope() != IteratorScope.scan;
+    this.propagateSuppression = env.getIteratorScope() != IteratorScope.scan;
   }
 
   @Override
@@ -251,7 +251,7 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new LargeRowFilter(source.deepCopy(env), propogateSuppression, maxColumns);
+    return new LargeRowFilter(source.deepCopy(env), propagateSuppression, maxColumns);
   }
 
   @Override

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver;
+package org.apache.accumulo.server.iterators;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,8 +41,7 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
-import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
-import org.apache.accumulo.tserver.FileManager.ScanFileManager;
+import org.apache.accumulo.server.fs.FileManager.ScanFileManager;
 import org.apache.hadoop.fs.Path;
 
 public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
@@ -172,6 +171,7 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     return authorizations;
   }
 
+  @Override
   public SortedKeyValueIterator<Key,Value>
       getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
     if (topLevelIterators.isEmpty())

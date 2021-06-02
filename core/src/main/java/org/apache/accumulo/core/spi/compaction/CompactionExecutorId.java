@@ -30,11 +30,7 @@ import org.apache.accumulo.core.data.AbstractId;
 public class CompactionExecutorId extends AbstractId<CompactionExecutorId> {
   private static final long serialVersionUID = 1L;
 
-  private CompactionExecutorId(String canonical) {
+  protected CompactionExecutorId(String canonical) {
     super(canonical);
-  }
-
-  public static CompactionExecutorId of(String canonical) {
-    return new CompactionExecutorId(canonical);
   }
 }

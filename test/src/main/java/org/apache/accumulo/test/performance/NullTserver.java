@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -61,7 +62,9 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
+import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
 import org.apache.accumulo.core.tabletserver.thrift.TDurability;
+import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tabletserver.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -80,6 +83,7 @@ import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
+import org.apache.thrift.TException;
 
 import com.beust.jcommander.Parameter;
 
@@ -276,6 +280,29 @@ public class NullTserver {
     public TSummaries contiuneGetSummaries(TInfo tinfo, long sessionId) {
       return null;
     }
+
+    @Override
+    public List<TCompactionQueueSummary> getCompactionQueueInfo(TInfo tinfo,
+        TCredentials credentials) throws ThriftSecurityException, TException {
+      return null;
+    }
+
+    @Override
+    public TExternalCompactionJob reserveCompactionJob(TInfo tinfo, TCredentials credentials,
+        String queueName, long priority, String compactor, String externalCompactionId)
+        throws ThriftSecurityException, TException {
+      return null;
+    }
+
+    @Override
+    public void compactionJobFinished(TInfo tinfo, TCredentials credentials,
+        String externalCompactionId, TKeyExtent extent, long fileSize, long entries)
+        throws ThriftSecurityException, TException {}
+
+    @Override
+    public void compactionJobFailed(TInfo tinfo, TCredentials credentials,
+        String externalCompactionId, TKeyExtent extent) throws TException {}
+
   }
 
   static class Opts extends Help {

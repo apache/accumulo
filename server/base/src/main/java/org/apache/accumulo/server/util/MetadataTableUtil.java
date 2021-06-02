@@ -70,6 +70,7 @@ import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
@@ -77,6 +78,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ch
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -248,7 +250,7 @@ public class MetadataTableUtil {
   }
 
   public static void splitTablet(KeyExtent extent, Text oldPrevEndRow, double splitRatio,
-      ServerContext context, ServiceLock zooLock) {
+      ServerContext context, ServiceLock zooLock, Set<ExternalCompactionId> ecids) {
     Mutation m = TabletColumnFamily.createPrevRowMutation(extent);
 
     TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value(Double.toString(splitRatio)));
@@ -256,6 +258,9 @@ public class MetadataTableUtil {
     TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
         TabletColumnFamily.encodePrevEndRow(oldPrevEndRow));
     ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
+
+    ecids.forEach(ecid -> m.putDelete(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical()));
+
     update(context, zooLock, m, extent);
   }
 

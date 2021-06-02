@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -46,6 +47,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
@@ -182,7 +184,7 @@ public class ManagerMetadataUtil {
   public static void replaceDatafiles(ServerContext context, KeyExtent extent,
       Set<StoredTabletFile> datafilesToDelete, Set<StoredTabletFile> scanFiles, TabletFile path,
       Long compactionId, DataFileValue size, String address, TServerInstance lastLocation,
-      ServiceLock zooLock) {
+      ServiceLock zooLock, Optional<ExternalCompactionId> ecid) {
 
     context.getAmple().putGcCandidates(extent.tableId(), datafilesToDelete);
 
@@ -203,6 +205,9 @@ public class ManagerMetadataUtil {
     // remove the old location
     if (lastLocation != null && !lastLocation.equals(self))
       tablet.deleteLocation(lastLocation, LocationType.LAST);
+
+    if (ecid.isPresent())
+      tablet.deleteExternalCompaction(ecid.get());
 
     tablet.putZooLock(zooLock);
 

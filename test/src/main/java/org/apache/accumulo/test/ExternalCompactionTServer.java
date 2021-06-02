@@ -16,15 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver;
+package org.apache.accumulo.test;
 
-import java.io.IOException;
+import org.apache.accumulo.server.ServerOpts;
+import org.apache.accumulo.tserver.TabletServer;
+import org.apache.accumulo.tserver.ThriftClientHandler;
 
-public class TooManyFilesException extends IOException {
+public class ExternalCompactionTServer extends TabletServer {
 
-  private static final long serialVersionUID = 1L;
-
-  public TooManyFilesException(String msg) {
-    super(msg);
+  ExternalCompactionTServer(ServerOpts opts, String[] args) {
+    super(opts, args);
   }
+
+  @Override
+  protected ThriftClientHandler getThriftClientHandler() {
+    return new NonCommittingExternalCompactionThriftClientHandler(this);
+  }
+
+  public static void main(String[] args) throws Exception {
+    try (
+        ExternalCompactionTServer tserver = new ExternalCompactionTServer(new ServerOpts(), args)) {
+      tserver.runServer();
+    }
+
+  }
+
 }

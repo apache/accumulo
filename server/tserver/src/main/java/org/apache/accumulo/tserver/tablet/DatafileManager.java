@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -40,6 +41,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
@@ -396,7 +398,8 @@ class DatafileManager {
   }
 
   StoredTabletFile bringMajorCompactionOnline(Set<StoredTabletFile> oldDatafiles,
-      TabletFile tmpDatafile, TabletFile newDatafile, Long compactionId, DataFileValue dfv)
+      TabletFile tmpDatafile, TabletFile newDatafile, Long compactionId,
+      Set<StoredTabletFile> selectedFiles, DataFileValue dfv, Optional<ExternalCompactionId> ecid)
       throws IOException {
     final KeyExtent extent = tablet.getExtent();
     VolumeManager vm = tablet.getTabletServer().getContext().getVolumeManager();
@@ -418,6 +421,9 @@ class DatafileManager {
     TServerInstance lastLocation = null;
     // calling insert to get the new file before inserting into the metadata
     StoredTabletFile newFile = newDatafile.insert();
+
+    Long compactionIdToWrite = null;
+
     synchronized (tablet) {
       t1 = System.currentTimeMillis();
 
@@ -443,6 +449,10 @@ class DatafileManager {
 
       lastLocation = tablet.resetLastLocation();
 
+      if (compactionId != null && Collections.disjoint(selectedFiles, datafileSizes.keySet())) {
+        compactionIdToWrite = compactionId;
+      }
+
       t2 = System.currentTimeMillis();
     }
 
@@ -451,10 +461,10 @@ class DatafileManager {
     if (!filesInUseByScans.isEmpty())
       log.debug("Adding scan refs to metadata {} {}", extent, filesInUseByScans);
     ManagerMetadataUtil.replaceDatafiles(tablet.getContext(), extent, oldDatafiles,
-        filesInUseByScans, newFile, compactionId, dfv,
+        filesInUseByScans, newFile, compactionIdToWrite, dfv,
         tablet.getTabletServer().getClientAddressString(), lastLocation,
-        tablet.getTabletServer().getLock());
-    tablet.setLastCompactionID(compactionId);
+        tablet.getTabletServer().getLock(), ecid);
+    tablet.setLastCompactionID(compactionIdToWrite);
     removeFilesAfterScan(filesInUseByScans);
 
     if (log.isTraceEnabled()) {

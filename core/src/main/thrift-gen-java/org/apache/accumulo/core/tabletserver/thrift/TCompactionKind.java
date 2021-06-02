@@ -25,16 +25,15 @@
 package org.apache.accumulo.core.tabletserver.thrift;
 
 
-public enum CompactionReason implements org.apache.thrift.TEnum {
-  USER(0),
-  SYSTEM(1),
-  CHOP(2),
-  IDLE(3),
-  CLOSE(4);
+public enum TCompactionKind implements org.apache.thrift.TEnum {
+  CHOP(0),
+  SELECTOR(1),
+  SYSTEM(2),
+  USER(3);
 
   private final int value;
 
-  private CompactionReason(int value) {
+  private TCompactionKind(int value) {
     this.value = value;
   }
 
@@ -50,18 +49,16 @@ public enum CompactionReason implements org.apache.thrift.TEnum {
    * @return null if the value is not found.
    */
   @org.apache.thrift.annotation.Nullable
-  public static CompactionReason findByValue(int value) { 
+  public static TCompactionKind findByValue(int value) { 
     switch (value) {
       case 0:
-        return USER;
-      case 1:
-        return SYSTEM;
-      case 2:
         return CHOP;
+      case 1:
+        return SELECTOR;
+      case 2:
+        return SYSTEM;
       case 3:
-        return IDLE;
-      case 4:
-        return CLOSE;
+        return USER;
       default:
         return null;
     }

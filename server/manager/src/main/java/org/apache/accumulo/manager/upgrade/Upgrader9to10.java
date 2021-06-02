@@ -128,6 +128,7 @@ public class Upgrader9to10 implements Upgrader {
     setMetaTableProps(ctx);
     upgradeRootTabletMetadata(ctx);
     renameOldMasterPropsinZK(ctx);
+    createExternalCompactionNodes(ctx);
   }
 
   @Override
@@ -159,6 +160,22 @@ public class Upgrader9to10 implements Upgrader {
           Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta");
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Unable to set system table properties", e);
+    }
+  }
+
+  private void createExternalCompactionNodes(ServerContext ctx) {
+
+    final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+    try {
+      ctx.getZooReaderWriter().putPersistentData(ctx.getZooKeeperRoot() + Constants.ZCOORDINATOR,
+          EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
+      ctx.getZooReaderWriter().putPersistentData(
+          ctx.getZooKeeperRoot() + Constants.ZCOORDINATOR_LOCK, EMPTY_BYTE_ARRAY,
+          NodeExistsPolicy.FAIL);
+      ctx.getZooReaderWriter().putPersistentData(ctx.getZooKeeperRoot() + Constants.ZCOMPACTORS,
+          EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException("Unable to create external compaction paths", e);
     }
   }
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.tablet;
+package org.apache.accumulo.server.compaction;
 
 import java.io.IOException;
 import java.util.ArrayList;
