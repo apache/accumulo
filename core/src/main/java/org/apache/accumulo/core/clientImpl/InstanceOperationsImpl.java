@@ -98,7 +98,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throws AccumuloSecurityException, AccumuloException {
     if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
       try {
-        LocalityGroupUtil.checkLocalityGroups(getSystemConfiguration().entrySet());
+        LocalityGroupUtil.checkLocalityGroups(getSystemConfiguration());
       } catch (LocalityGroupConfigurationError | RuntimeException e) {
         LoggerFactory.getLogger(this.getClass()).warn("Changing '" + propChanged
             + "' resulted in bad locality group config. This may be a transient situation since "

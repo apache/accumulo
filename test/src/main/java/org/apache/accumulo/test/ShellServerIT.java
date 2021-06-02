@@ -723,7 +723,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   protected void checkTableForProperty(TableOperations tops, String tableName, String expectedKey,
       String expectedValue) throws Exception {
     for (int i = 0; i < 5; i++) {
-      for (Entry<String,String> entry : tops.getPropertiesMap(tableName).entrySet()) {
+      for (Entry<String,String> entry : tops.getConfiguration(tableName).entrySet()) {
         if (expectedKey.equals(entry.getKey())) {
           assertEquals(expectedValue, entry.getValue());
           return;
@@ -937,18 +937,16 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("scan", true, "value", true);
 
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
-      for (Entry<String,String> entry : accumuloClient.tableOperations().getPropertiesMap(table)
-          .entrySet()) {
-        if (entry.getKey().equals("table.custom.description"))
-          assertEquals("Initial property was not set correctly", "description", entry.getValue());
+      accumuloClient.tableOperations().getConfiguration(table).forEach((key, value) -> {
+        if (key.equals("table.custom.description"))
+          assertEquals("Initial property was not set correctly", "description", value);
 
-        if (entry.getKey().equals("table.custom.testProp"))
-          assertEquals("Initial property was not set correctly", "testProp", entry.getValue());
+        if (key.equals("table.custom.testProp"))
+          assertEquals("Initial property was not set correctly", "testProp", value);
 
-        if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
-          assertEquals("Initial property was not set correctly", "10K", entry.getValue());
-
-      }
+        if (key.equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
+          assertEquals("Initial property was not set correctly", "10K", value);
+      });
     }
     ts.exec("deletetable -f " + table);
   }

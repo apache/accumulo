@@ -114,14 +114,14 @@ public class ReplicationTableUtil {
     }
 
     // Make sure the StatusFormatter is set on the metadata table
-    Iterable<Entry<String,String>> properties;
+    Map<String,String> properties;
     try {
-      properties = tops.getPropertiesMap(tableName).entrySet();
+      properties = tops.getConfiguration(tableName);
     } catch (AccumuloException | TableNotFoundException e) {
       throw new RuntimeException(e);
     }
 
-    for (Entry<String,String> property : properties) {
+    for (Entry<String,String> property : properties.entrySet()) {
       if (Property.TABLE_FORMATTER_CLASS.getKey().equals(property.getKey())) {
         if (!STATUS_FORMATTER_CLASS_NAME.equals(property.getValue())) {
           log.info("Setting formatter for {} from {} to {}", tableName, property.getValue(),

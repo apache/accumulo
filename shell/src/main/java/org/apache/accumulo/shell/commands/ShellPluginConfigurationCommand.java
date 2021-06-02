@@ -19,7 +19,7 @@
 package org.apache.accumulo.shell.commands;
 
 import java.util.Arrays;
-import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -64,14 +64,12 @@ public abstract class ShellPluginConfigurationCommand extends Command {
       shellState.getWriter().println("Removed " + pluginType + " on " + tableName);
     } else if (cl.hasOption(listPluginOption.getOpt())) {
       // Get the options for this table
-
-      for (Entry<String,String> ent : shellState.getAccumuloClient().tableOperations()
-          .getPropertiesMap(tableName).entrySet()) {
-        // List all parameters with the property name
-        if (ent.getKey().startsWith(tableProp.toString())) {
-          shellState.getWriter().println(ent.getKey() + ": " + ent.getValue());
-        }
-      }
+      shellState.getAccumuloClient().tableOperations().getConfiguration(tableName)
+          .forEach((key, value) -> {
+            if (key.startsWith(tableProp.toString())) {
+              shellState.getWriter().println(key + ": " + value);
+            }
+          });
     } else {
       // Set the plugin with the provided options
       String className = cl.getOptionValue(pluginClassOption.getOpt());
@@ -97,16 +95,14 @@ public abstract class ShellPluginConfigurationCommand extends Command {
 
   public static <T> Class<? extends T> getPluginClass(final String tableName,
       final Shell shellState, final Class<T> clazz, final Property pluginProp) {
-    Iterator<Entry<String,String>> props;
+    Map<String,String> props;
     try {
-      props = shellState.getAccumuloClient().tableOperations().getPropertiesMap(tableName)
-          .entrySet().iterator();
+      props = shellState.getAccumuloClient().tableOperations().getConfiguration(tableName);
     } catch (AccumuloException | TableNotFoundException e) {
       return null;
     }
 
-    while (props.hasNext()) {
-      final Entry<String,String> ent = props.next();
+    for (Entry<String,String> ent : props.entrySet()) {
       if (ent.getKey().equals(pluginProp.toString())) {
         Class<? extends T> pluginClazz;
         String[] args = new String[2];

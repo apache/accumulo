@@ -97,9 +97,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
       checkMetadata(table2, c);
 
       HashMap<String,String> tableProps = new HashMap<>();
-      for (Entry<String,String> prop : c.tableOperations().getPropertiesMap(table2).entrySet()) {
-        tableProps.put(prop.getKey(), prop.getValue());
-      }
+      c.tableOperations().getConfiguration(table2).forEach(tableProps::put);
 
       assertEquals("500K", tableProps.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey()));
       assertEquals(Property.TABLE_FILE_MAX.getDefaultValue(),

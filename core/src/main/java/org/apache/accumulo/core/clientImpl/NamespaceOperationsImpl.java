@@ -199,31 +199,14 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   }
 
   @Override
-  @Deprecated(since = "2.1.0")
+  @Deprecated
   public Iterable<Entry<String,String>> getProperties(final String namespace)
       throws AccumuloException, NamespaceNotFoundException {
-    checkArgument(namespace != null, "namespace is null");
-    try {
-      return ServerClient.executeRaw(context, client -> client
-          .getNamespaceConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), namespace))
-          .entrySet();
-    } catch (ThriftTableOperationException e) {
-      switch (e.getType()) {
-        case NAMESPACE_NOTFOUND:
-          throw new NamespaceNotFoundException(e);
-        case OTHER:
-        default:
-          throw new AccumuloException(e.description, e);
-      }
-    } catch (AccumuloException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new AccumuloException(e);
-    }
+    return getConfiguration(namespace).entrySet();
   }
 
   @Override
-  public Map<String,String> getPropertiesMap(final String namespace)
+  public Map<String,String> getConfiguration(final String namespace)
       throws AccumuloException, NamespaceNotFoundException {
     checkArgument(namespace != null, "namespace is null");
     try {
@@ -309,7 +292,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   private void checkLocalityGroups(String namespace, String propChanged)
       throws AccumuloException, NamespaceNotFoundException {
     if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
-      Iterable<Entry<String,String>> allProps = getPropertiesMap(namespace).entrySet();
+      Map<String,String> allProps = getConfiguration(namespace);
       try {
         LocalityGroupUtil.checkLocalityGroups(allProps);
       } catch (LocalityGroupConfigurationError | RuntimeException e) {

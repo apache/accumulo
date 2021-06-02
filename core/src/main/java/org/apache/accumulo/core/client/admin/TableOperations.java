@@ -617,7 +617,8 @@ public interface TableOperations {
    *         recently changed properties may not be visible immediately.
    * @throws TableNotFoundException
    *           if the table does not exist
-   * @deprecated since 2.1.0; use {@link #getPropertiesMap(String)} instead.
+   * @since 1.6.0
+   * @deprecated since 2.1.0; use {@link #getConfiguration(String)} (String)} instead.
    */
   @Deprecated(since = "2.1.0")
   Iterable<Entry<String,String>> getProperties(String tableName)
@@ -636,7 +637,7 @@ public interface TableOperations {
    * @throws TableNotFoundException
    *           if the table does not exist
    */
-  Map<String,String> getPropertiesMap(String tableName)
+  Map<String,String> getConfiguration(String tableName)
       throws AccumuloException, TableNotFoundException;
 
   /**

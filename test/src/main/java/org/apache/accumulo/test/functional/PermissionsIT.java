@@ -193,7 +193,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
-              || root_client.tableOperations().getPropertiesMap(tableName)
+              || root_client.tableOperations().getConfiguration(tableName)
                   .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
             throw e;
         }
@@ -208,7 +208,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
-              || !root_client.tableOperations().getPropertiesMap(tableName)
+              || !root_client.tableOperations().getConfiguration(tableName)
                   .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
             throw e;
         }
@@ -347,7 +347,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
-              || root_client.namespaceOperations().getPropertiesMap(namespace)
+              || root_client.namespaceOperations().getConfiguration(namespace)
                   .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
             throw e;
         }
@@ -362,7 +362,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
-              || !root_client.namespaceOperations().getPropertiesMap(namespace)
+              || !root_client.namespaceOperations().getConfiguration(namespace)
                   .get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
             throw e;
         }
@@ -439,14 +439,14 @@ public class PermissionsIT extends AccumuloClusterHarness {
         test_user_client.tableOperations().setProperty(tableName,
             Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
         loginAs(rootUser);
-        Map<String,String> properties = root_client.tableOperations().getPropertiesMap(tableName);
+        Map<String,String> properties = root_client.tableOperations().getConfiguration(tableName);
         if (!properties.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
           throw new IllegalStateException("Should be able to set a table property");
         loginAs(testUser);
         test_user_client.tableOperations().removeProperty(tableName,
             Property.TABLE_BLOOM_ERRORRATE.getKey());
         loginAs(rootUser);
-        properties = root_client.tableOperations().getPropertiesMap(tableName);
+        properties = root_client.tableOperations().getConfiguration(tableName);
         if (properties.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
           throw new IllegalStateException("Should be able to remove a table property");
         loginAs(testUser);
@@ -535,14 +535,14 @@ public class PermissionsIT extends AccumuloClusterHarness {
         test_user_client.namespaceOperations().setProperty(namespace,
             Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
         loginAs(rootUser);
-        Map<String,String> propies = root_client.namespaceOperations().getPropertiesMap(namespace);
+        Map<String,String> propies = root_client.namespaceOperations().getConfiguration(namespace);
         if (!propies.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
           throw new IllegalStateException("Should be able to set a table property");
         loginAs(testUser);
         test_user_client.namespaceOperations().removeProperty(namespace,
             Property.TABLE_BLOOM_ERRORRATE.getKey());
         loginAs(rootUser);
-        propies = root_client.namespaceOperations().getPropertiesMap(namespace);
+        propies = root_client.namespaceOperations().getConfiguration(namespace);
         if (propies.get(Property.TABLE_BLOOM_ERRORRATE.getKey()).equals("003.14159%"))
           throw new IllegalStateException("Should be able to remove a table property");
         loginAs(testUser);
@@ -860,12 +860,9 @@ public class PermissionsIT extends AccumuloClusterHarness {
       c.tableOperations().setProperty(tableName, propertyName, description1);
 
       // Loop through properties to make sure the new property is added to the list
-      int count = 0;
-      for (Entry<String,String> property : c.tableOperations().getPropertiesMap(tableName)
-          .entrySet()) {
-        if (property.getKey().equals(propertyName) && property.getValue().equals(description1))
-          count++;
-      }
+      long count = c.tableOperations().getConfiguration(tableName).entrySet().stream()
+          .filter(e -> e.getKey().equals(propertyName) && e.getValue().equals(description1))
+          .count();
       assertEquals(count, 1);
 
       // Set the property as something different
@@ -873,24 +870,17 @@ public class PermissionsIT extends AccumuloClusterHarness {
       c.tableOperations().setProperty(tableName, propertyName, description2);
 
       // Loop through properties to make sure the new property is added to the list
-      count = 0;
-      for (Entry<String,String> property : c.tableOperations().getPropertiesMap(tableName)
-          .entrySet()) {
-        if (property.getKey().equals(propertyName) && property.getValue().equals(description2))
-          count++;
-      }
+      count = c.tableOperations().getConfiguration(tableName).entrySet().stream()
+          .filter(e -> e.getKey().equals(propertyName) && e.getValue().equals(description2))
+          .count();
       assertEquals(count, 1);
 
       // Remove the property and make sure there is no longer a value associated with it
       c.tableOperations().removeProperty(tableName, propertyName);
 
       // Loop through properties to make sure the new property is added to the list
-      count = 0;
-      for (Entry<String,String> property : c.tableOperations().getPropertiesMap(tableName)
-          .entrySet()) {
-        if (property.getKey().equals(propertyName))
-          count++;
-      }
+      count = c.tableOperations().getConfiguration(tableName).entrySet().stream()
+          .filter(e -> e.getKey().equals(propertyName)).count();
       assertEquals(count, 0);
       if (!havePerm)
         throw new IllegalStateException("User should not been able to alter property.");

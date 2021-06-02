@@ -143,7 +143,7 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    @Deprecated(since = "2.1.0")
+    @Deprecated
     public Iterable<Entry<String,String>> getProperties(String tableName) {
       Map<String,String> empty = Collections.emptyMap();
       if (!settings.containsKey(tableName))
@@ -152,7 +152,7 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    public Map<String,String> getPropertiesMap(String tableName) {
+    public Map<String,String> getConfiguration(String tableName) {
       Map<String,String> empty = Collections.emptyMap();
       if (!settings.containsKey(tableName))
         return empty;
@@ -278,9 +278,7 @@ public class TableOperationsHelperTest {
       expected.put(parts[0], parts[1]);
     }
     Map<String,String> actual = new TreeMap<>();
-    for (Entry<String,String> entry : t.getPropertiesMap(tablename).entrySet()) {
-      actual.put(entry.getKey(), entry.getValue());
-    }
+    t.getConfiguration(tablename).forEach(actual::put);
     assertEquals(expected, actual);
   }
 

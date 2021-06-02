@@ -202,7 +202,8 @@ public interface NamespaceOperations {
    *           if the user does not have permission
    * @throws NamespaceNotFoundException
    *           if the specified namespace doesn't exist
-   * @deprecated since 2.1.0; use {@link #getPropertiesMap(String)} instead.
+   * @since 1.6.0
+   * @deprecated since 2.1.0; use {@link #getConfiguration(String)} (String)} instead.
    */
   @Deprecated(since = "2.1.0")
   Iterable<Entry<String,String>> getProperties(String namespace)
@@ -225,7 +226,7 @@ public interface NamespaceOperations {
    *           if the specified namespace doesn't exist
    * @since 2.1.0
    */
-  Map<String,String> getPropertiesMap(String namespace)
+  Map<String,String> getConfiguration(String namespace)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**

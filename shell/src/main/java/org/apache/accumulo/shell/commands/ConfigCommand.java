@@ -172,27 +172,21 @@ public class ConfigCommand extends Command {
       if (tableName != null) {
         String n = Namespaces.getNamespaceName(shellState.getContext(), Tables.getNamespaceId(
             shellState.getContext(), Tables.getTableId(shellState.getContext(), tableName)));
-        for (Entry<String,String> e : shellState.getAccumuloClient().namespaceOperations()
-            .getPropertiesMap(n).entrySet()) {
-          namespaceConfig.put(e.getKey(), e.getValue());
-        }
+        shellState.getAccumuloClient().namespaceOperations().getConfiguration(n)
+            .forEach(namespaceConfig::put);
       }
 
-      Iterable<Entry<String,String>> acuconf =
-          shellState.getAccumuloClient().instanceOperations().getSystemConfiguration().entrySet();
+      Map<String,String> acuconf =
+          shellState.getAccumuloClient().instanceOperations().getSystemConfiguration();
       if (tableName != null) {
-        acuconf =
-            shellState.getAccumuloClient().tableOperations().getPropertiesMap(tableName).entrySet();
+        acuconf = shellState.getAccumuloClient().tableOperations().getConfiguration(tableName);
       } else if (namespace != null) {
-        acuconf = shellState.getAccumuloClient().namespaceOperations().getPropertiesMap(namespace)
-            .entrySet();
+        acuconf = shellState.getAccumuloClient().namespaceOperations().getConfiguration(namespace);
       }
       final TreeMap<String,String> sortedConf = new TreeMap<>();
-      for (Entry<String,String> propEntry : acuconf) {
-        sortedConf.put(propEntry.getKey(), propEntry.getValue());
-      }
+      acuconf.forEach(sortedConf::put);
 
-      for (Entry<String,String> propEntry : acuconf) {
+      for (Entry<String,String> propEntry : acuconf.entrySet()) {
         final String key = propEntry.getKey();
         final String value = propEntry.getValue();
         // only show properties which names or values

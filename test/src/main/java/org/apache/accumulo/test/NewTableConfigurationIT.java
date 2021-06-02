@@ -179,7 +179,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       client.tableOperations().create(tableName, ntc);
       // verify
       int count = 0;
-      for (Entry<String,String> property : client.tableOperations().getPropertiesMap(tableName)
+      for (Entry<String,String> property : client.tableOperations().getConfiguration(tableName)
           .entrySet()) {
         if (property.getKey().equals("table.group.lg1")) {
           assertEquals(property.getValue(), "dog");
@@ -410,7 +410,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       client.tableOperations().create(tableName, ntc);
 
       int count = 0;
-      for (Entry<String,String> property : client.tableOperations().getPropertiesMap(tableName)
+      for (Entry<String,String> property : client.tableOperations().getConfiguration(tableName)
           .entrySet()) {
         if (property.getKey().equals(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1")) {
           assertEquals(property.getValue(), "val1");
@@ -530,7 +530,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       client.tableOperations().create(tableName, ntc);
       // verify user table properties
       int count = 0;
-      for (Entry<String,String> property : client.tableOperations().getPropertiesMap(tableName)
+      for (Entry<String,String> property : client.tableOperations().getConfiguration(tableName)
           .entrySet()) {
         if (property.getKey().equals(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1")) {
           assertEquals(property.getValue(), "val1");
@@ -583,7 +583,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       assertEquals(0, iteratorList.size());
 
       int count = 0;
-      for (Entry<String,String> property : client.tableOperations().getPropertiesMap(tableName)
+      for (Entry<String,String> property : client.tableOperations().getConfiguration(tableName)
           .entrySet()) {
         if (property.getKey().equals("table.group.lgp")) {
           assertEquals(property.getValue(), "col");
@@ -677,12 +677,9 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
 
   private Map<String,String> getProperties(AccumuloClient accumuloClient, String tableName)
       throws AccumuloException, TableNotFoundException {
-    Iterable<Entry<String,String>> properties =
-        accumuloClient.tableOperations().getPropertiesMap(tableName).entrySet();
+    Map<String,String> properties = accumuloClient.tableOperations().getConfiguration(tableName);
     Map<String,String> propertyMap = new HashMap<>();
-    for (Entry<String,String> entry : properties) {
-      propertyMap.put(entry.getKey(), entry.getValue());
-    }
+    properties.forEach(propertyMap::put);
     return propertyMap;
   }
 

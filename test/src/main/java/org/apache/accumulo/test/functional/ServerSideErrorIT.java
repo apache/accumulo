@@ -97,7 +97,7 @@ public class ServerSideErrorIT extends AccumuloClusterHarness {
 
         // remove the bad agg so accumulo can shutdown
         TableOperations to = c.tableOperations();
-        for (Entry<String,String> e : to.getPropertiesMap(tableName).entrySet()) {
+        for (Entry<String,String> e : to.getConfiguration(tableName).entrySet()) {
           to.removeProperty(tableName, e.getKey());
         }
 

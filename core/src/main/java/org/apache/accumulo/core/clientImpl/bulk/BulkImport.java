@@ -138,7 +138,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     TableOperationsImpl tableOps = new TableOperationsImpl(context);
 
     int maxTablets = 0;
-    for (var prop : tableOps.getPropertiesMap(tableName).entrySet()) {
+    for (var prop : tableOps.getConfiguration(tableName).entrySet()) {
       if (prop.getKey().equals(Property.TABLE_BULK_MAX_TABLETS.getKey())) {
         maxTablets = Integer.parseInt(prop.getValue());
         break;
