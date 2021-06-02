@@ -139,9 +139,9 @@ public class CloseWriteAheadLogReferences implements Runnable {
    */
   protected long updateReplicationEntries(AccumuloClient client, Set<String> closedWals) {
     long recordsClosed = 0;
-    try {
-      BatchWriter bw = client.createBatchWriter(MetadataTable.NAME);
-      BatchScanner bs = client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
+    try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME);
+        BatchScanner bs = client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4)) {
+
       bs.setRanges(Collections.singleton(Range.prefix(ReplicationSection.getRowPrefix())));
       bs.fetchColumnFamily(ReplicationSection.COLF);
 
@@ -174,6 +174,8 @@ public class CloseWriteAheadLogReferences implements Runnable {
       }
     } catch (TableNotFoundException e) {
       log.error("Replication table was deleted", e);
+    } catch (MutationsRejectedException e) {
+      log.error("Failed to write delete mutations for replication table", e);
     }
 
     return recordsClosed;
