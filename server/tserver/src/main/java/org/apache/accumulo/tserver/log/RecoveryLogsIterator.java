@@ -67,28 +67,30 @@ public class RecoveryLogsIterator implements Iterator<Entry<Key,Value>>, AutoClo
 
     for (Path logDir : recoveryLogDirs) {
       LOG.debug("Opening recovery log dir {}", logDir.getName());
-      String[] logFiles = getFiles(vm, logDir);
+      List<Path> logFiles = getFiles(vm, logDir);
       var fs = vm.getFileSystemByPath(logDir);
 
       // only check the first key once to prevent extra iterator creation and seeking
       if (checkFirstKey) {
-        validateFirstKey(RFile.newScanner().from(logFiles).withFileSystem(fs).build(), logDir);
+        validateFirstKey(
+            RFile.newScanner().from(logFiles.stream().map(Path::toString).toArray(String[]::new))
+                .withFileSystem(fs).build(),
+            logDir);
       }
 
-      for (String log : logFiles) {
-        var scanner = RFile.newScanner().from(log).withFileSystem(fs).build();
+      for (Path log : logFiles) {
+        var scanner = RFile.newScanner().from(log.toString()).withFileSystem(fs).build();
         for (var cf : colFamToFetch)
           scanner.fetchColumnFamily(new Text(cf.name()));
         scanner.setRange(range);
-        LOG.debug("Get iterator for Key Range = {} to {}", startKey, endKey);
         Iterator<Entry<Key,Value>> scanIter = scanner.iterator();
 
         if (scanIter.hasNext()) {
-          LOG.debug("Write ahead log {} has data in range {} {}", log, start, end);
+          LOG.debug("Write ahead log {} has data in range {} {}", log.getName(), start, end);
           iterators.add(scanIter);
           scanners.add(scanner);
         } else {
-          LOG.debug("Write ahead log {} has no data in range {} {}", log, start, end);
+          LOG.debug("Write ahead log {} has no data in range {} {}", log.getName(), start, end);
           scanner.close();
         }
       }
@@ -119,9 +121,9 @@ public class RecoveryLogsIterator implements Iterator<Entry<Key,Value>>, AutoClo
   /**
    * Check for sorting signal files (finished/failed) and get the logs in the provided directory.
    */
-  private String[] getFiles(VolumeManager fs, Path directory) throws IOException {
+  private List<Path> getFiles(VolumeManager fs, Path directory) throws IOException {
     boolean foundFinish = false;
-    List<String> logFiles = new ArrayList<>();
+    List<Path> logFiles = new ArrayList<>();
     for (FileStatus child : fs.listStatus(directory)) {
       if (child.getPath().getName().startsWith("_"))
         continue;
@@ -134,12 +136,12 @@ public class RecoveryLogsIterator implements Iterator<Entry<Key,Value>>, AutoClo
       }
       FileSystem ns = fs.getFileSystemByPath(child.getPath());
       Path fullLogPath = ns.makeQualified(child.getPath());
-      logFiles.add(fullLogPath.toString());
+      logFiles.add(fullLogPath);
     }
     if (!foundFinish)
       throw new IOException(
           "Sort \"" + SortedLogState.FINISHED.getMarker() + "\" flag not found in " + directory);
-    return logFiles.toArray(new String[0]);
+    return logFiles;
   }
 
   /**
