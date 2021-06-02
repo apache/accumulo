@@ -196,8 +196,8 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
     Stream<Short> prioStream = uniqPrios.stream();
 
     if (uniqPrios.size() > 100) {
-      // Until #2094 is addressed limit what is sent to the coordinator to avoid causing it run out
-      // of memory. Send the 100 highest prios.
+      // Send the 100 highest priorities to the
+      // coordinator to avoid causing it run out of memory
       prioStream = prioStream.sorted(Comparator.reverseOrder()).limit(100);
     }
 
