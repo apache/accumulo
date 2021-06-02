@@ -284,7 +284,7 @@ public class ClientContext implements AccumuloClient {
     return saslSupplier.get();
   }
 
-  public static BatchWriterConfig getBatchWriterConfig(Properties props) {
+  static BatchWriterConfig getBatchWriterConfig(Properties props) {
     BatchWriterConfig batchWriterConfig = new BatchWriterConfig();
 
     Long maxMemory = ClientProperty.BATCH_WRITER_MEMORY_MAX.getBytes(props);
