@@ -1150,7 +1150,7 @@ public class TabletServer extends AbstractServer {
       }
       recoveryDirs.add(recovery);
     }
-    logger.recover(fs, extent, recoveryDirs, tabletFiles, mutationReceiver);
+    logger.recover(getContext(), extent, recoveryDirs, tabletFiles, mutationReceiver);
   }
 
   public int createLogId() {

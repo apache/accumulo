@@ -45,6 +45,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -163,6 +164,7 @@ public class SortedLogRecoveryTest {
       expect(context.getVolumeManager()).andReturn(fs).anyTimes();
       expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
           .anyTimes();
+      expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
       replay(context);
       final Path workdirPath = new Path("file://" + workdir);
       fs.deleteRecursively(workdirPath);
@@ -187,7 +189,7 @@ public class SortedLogRecoveryTest {
         dirs.add(new Path(destPath));
       }
       // Recover
-      SortedLogRecovery recovery = new SortedLogRecovery(fs);
+      SortedLogRecovery recovery = new SortedLogRecovery(context);
       CaptureMutations capture = new CaptureMutations();
       recovery.recover(extent, dirs, files, capture);
       verify(context);

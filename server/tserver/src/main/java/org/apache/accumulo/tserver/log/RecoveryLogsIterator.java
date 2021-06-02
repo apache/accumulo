@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.tserver.logger.LogEvents;
@@ -56,7 +57,7 @@ public class RecoveryLogsIterator implements Iterator<Entry<Key,Value>>, AutoClo
   /**
    * Scans the files in each recoveryLogDir over the range [start,end].
    */
-  RecoveryLogsIterator(VolumeManager vm, List<Path> recoveryLogDirs, LogFileKey start,
+  RecoveryLogsIterator(ServerContext context, List<Path> recoveryLogDirs, LogFileKey start,
       LogFileKey end, boolean checkFirstKey, LogEvents... colFamToFetch) throws IOException {
 
     List<Iterator<Entry<Key,Value>>> iterators = new ArrayList<>(recoveryLogDirs.size());
@@ -64,6 +65,7 @@ public class RecoveryLogsIterator implements Iterator<Entry<Key,Value>>, AutoClo
     Key startKey = start.toKey();
     Key endKey = end.toKey();
     Range range = new Range(startKey, endKey);
+    var vm = context.getVolumeManager();
 
     for (Path logDir : recoveryLogDirs) {
       LOG.debug("Opening recovery log dir {}", logDir.getName());
@@ -74,12 +76,13 @@ public class RecoveryLogsIterator implements Iterator<Entry<Key,Value>>, AutoClo
       if (checkFirstKey) {
         validateFirstKey(
             RFile.newScanner().from(logFiles.stream().map(Path::toString).toArray(String[]::new))
-                .withFileSystem(fs).build(),
+                .withFileSystem(fs).withTableProperties(context.getConfiguration()).build(),
             logDir);
       }
 
       for (Path log : logFiles) {
-        var scanner = RFile.newScanner().from(log.toString()).withFileSystem(fs).build();
+        var scanner = RFile.newScanner().from(log.toString()).withFileSystem(fs)
+            .withTableProperties(context.getConfiguration()).build();
         for (var cf : colFamToFetch)
           scanner.fetchColumnFamily(new Text(cf.name()));
         scanner.setRange(range);

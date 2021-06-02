@@ -46,7 +46,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
@@ -66,10 +66,10 @@ public class SortedLogRecovery {
 
   private static final Logger log = LoggerFactory.getLogger(SortedLogRecovery.class);
 
-  private VolumeManager fs;
+  private final ServerContext context;
 
-  public SortedLogRecovery(VolumeManager fs) {
-    this.fs = fs;
+  public SortedLogRecovery(ServerContext context) {
+    this.context = context;
   }
 
   static LogFileKey maxKey(LogEvents event, KeyExtent extent) {
@@ -108,7 +108,7 @@ public class SortedLogRecovery {
   private int findMaxTabletId(KeyExtent extent, List<Path> recoveryLogDirs) throws IOException {
     int tabletId = -1;
 
-    try (var rli = new RecoveryLogsIterator(fs, recoveryLogDirs, minKey(DEFINE_TABLET, extent),
+    try (var rli = new RecoveryLogsIterator(context, recoveryLogDirs, minKey(DEFINE_TABLET, extent),
         maxKey(DEFINE_TABLET, extent), true, DEFINE_TABLET, OPEN)) {
 
       KeyExtent alternative = extent;
@@ -210,7 +210,7 @@ public class SortedLogRecovery {
     long recoverySeq = 0;
 
     try (RecoveryLogsIterator rli =
-        new RecoveryLogsIterator(fs, recoveryLogs, minKey(COMPACTION_START, tabletId),
+        new RecoveryLogsIterator(context, recoveryLogs, minKey(COMPACTION_START, tabletId),
             maxKey(COMPACTION_START, tabletId), false, COMPACTION_START, COMPACTION_FINISH)) {
 
       DeduplicatingIterator ddi = new DeduplicatingIterator(rli);
@@ -266,8 +266,8 @@ public class SortedLogRecovery {
 
     LogFileKey end = maxKey(MUTATION, tabletId);
 
-    try (RecoveryLogsIterator rli =
-        new RecoveryLogsIterator(fs, recoveryLogs, start, end, false, MUTATION, MANY_MUTATIONS)) {
+    try (RecoveryLogsIterator rli = new RecoveryLogsIterator(context, recoveryLogs, start, end,
+        false, MUTATION, MANY_MUTATIONS)) {
       while (rli.hasNext()) {
         Entry<Key,Value> entry = rli.next();
         LogFileKey logFileKey = LogFileKey.fromKey(entry.getKey());
