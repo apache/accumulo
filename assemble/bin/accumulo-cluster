@@ -59,16 +59,16 @@ function verify_config {
 
   unset manager1
   if [[ -f "${conf}/$manager_file" ]]; then
-    manager1=$(egrep -v '(^#|^\s*$)' "${conf}/$manager_file" | head -1)
+    manager1=$(grep -E -v '(^#|^\s*$)' "${conf}/$manager_file" | head -1)
   fi
 
   if [[ -z "${monitor}" ]] ; then
     monitor=$manager1
     if [[ -f "${conf}/monitor" ]]; then
-      monitor=$(egrep -v '(^#|^\s*$)' "${conf}/monitor" | head -1)
+      monitor=$(grep -E -v '(^#|^\s*$)' "${conf}/monitor" | head -1)
     fi
     if [[ -z "${monitor}" ]] ; then
-      echo "Could not infer a Monitor role. You need to either define \"${conf}/monitor\"," 
+      echo "Could not infer a Monitor role. You need to either define \"${conf}/monitor\","
       echo "or make sure \"${conf}/$manager_file\" is non-empty."
       exit 1
     fi
@@ -128,7 +128,7 @@ function start_service() {
 function start_tservers() {
   echo -n "Starting tablet servers ..."
   count=1
-  for server in $(egrep -v '(^#|^\s*$)' "${conf}/tservers"); do
+ grep -E -v '(^#|^\s*$)' < "${conf}/tservers" |  while read -r server; do
     echo -n "."
     start_service "$server" tserver &
     if (( ++count % 72 == 0 )) ;
@@ -147,17 +147,17 @@ function start_all() {
     start_tservers
   fi
 
-  for host in $(egrep -v '(^#|^\s*$)' "${conf}/$manager_file"); do
-    start_service "$host" manager
-  done
+ grep -E -v '(^#|^\s*$)' < "${conf}/$manager_file" |  while read -r host; do
+  start_service "$host" manager
+ done
 
-  for host in $(egrep -v '(^#|^\s*$)' "${conf}/gc"); do
-    start_service "$host" gc
-  done
+  grep -E -v '(^#|^\s*$)' < "${conf}/gc" |  while read -r host; do
+  start_service "$host" gc
+ done
 
-  for host in $(egrep -v '(^#|^\s*$)' "${conf}/tracers"); do
-    start_service "$host" tracer
-  done
+  grep -E -v '(^#|^\s*$)' < "${conf}/tracers" |  while read -r host; do
+  start_service "$host" tracer
+ done
 
   start_service "$monitor" monitor
 }
@@ -188,14 +188,14 @@ function start_here() {
 
   for host in $local_hosts; do
     if [[ "$host" == "$monitor" ]]; then
-      start_service "$host" monitor 
+      start_service "$host" monitor
       break
     fi
   done
 
   for host in $local_hosts; do
     if grep -q "^${host}\$" "${conf}/tracers"; then
-      start_service "$host" tracer 
+      start_service "$host" tracer
       break
     fi
   done
@@ -214,18 +214,18 @@ function kill_service() {
 }
 
 function stop_tservers() {
-  tserver_hosts=$(egrep -v '(^#|^\s*$)' "${conf}/tservers")
+  tserver_hosts=$(grep -E -v '(^#|^\s*$)' "${conf}/tservers")
 
   echo "Stopping unresponsive tablet servers (if any)..."
   for host in ${tserver_hosts}; do
-    stop_service "$host" tserver & 
+    stop_service "$host" tserver &
   done
 
   sleep 10
 
   echo "Stopping unresponsive tablet servers hard (if any)..."
   for host in ${tserver_hosts}; do
-    kill_service "$host" tserver & 
+    kill_service "$host" tserver &
   done
 
   echo "Cleaning tablet server entries from zookeeper"
@@ -235,21 +235,21 @@ function stop_tservers() {
 function kill_all() {
   echo "Killing Accumulo cluster..."
 
-  for manager in $(grep -v '^#' "${conf}/$manager_file"); do
+  grep -v '^#'  < "${conf}/$manager_file" |  while read -r manager; do
     kill_service "$manager" manager
   done
 
-  for gc in $(grep -v '^#' "${conf}/gc"); do
+  grep -v '^#'  < "${conf}/gc" |  while read -r gc; do
     kill_service "$gc" gc
   done
 
   kill_service "$monitor" monitor
 
-  for tracer in $(egrep -v '(^#|^\s*$)' "${conf}/tracers"); do
+  grep -E -v '(^#|^\s*$)' < "${conf}/tracers" |  while read -r tracer; do
     kill_service "$tracer" tracer
   done
 
-  for host in $(egrep -v '(^#|^\s*$)' "${conf}/tservers"); do
+  grep -E -v '(^#|^\s*$)' < "${conf}/tservers" |  while read -r server; do
     kill_service "$host" tserver
   done
 
@@ -275,17 +275,17 @@ function stop_all() {
 
   # Look for processes not killed by 'admin stopAll'
   for end_cmd in "stop" "kill" ; do
-    for manager in $(grep -v '^#' "${conf}/$manager_file"); do
+    grep -v '^#'  < "${conf}/$manager_file" |  while read -r manager; do
       end_service "$manager" manager $end_cmd
     done
 
-    for gc in $(grep -v '^#' "${conf}/gc"); do
+    grep -v '^#'  < "${conf}/gc" |  while read -r gc; do
       end_service "$gc" gc $end_cmd
     done
 
     end_service "$monitor" monitor $end_cmd
 
-    for tracer in $(egrep -v '(^#|^\s*$)' "${conf}/tracers"); do
+    grep -E -v '(^#|^\s*$)' < "${conf}/tracers" |  while read -r tracer; do
       end_service "$tracer" tracer $end_cmd
     done
   done
@@ -299,9 +299,9 @@ function stop_all() {
 
 function stop_here() {
   # Determine hostname without errors to user
-  hosts_to_check=($(hostname -a 2> /dev/null | head -1) $(hostname -f))
+  hosts_to_check="$(hostname -a 2> /dev/null | head -1) $(hostname -f)"
 
-  if egrep -q localhost\|127.0.0.1 "${conf}/tservers"; then
+  if grep -E -q localhost\|127.0.0.1 "${conf}/tservers"; then
     ${accumulo_cmd} admin stop localhost
   else
     for host in "${hosts_to_check[@]}"; do
@@ -344,7 +344,7 @@ function main() {
   if [[ ! -f "$conf/$manager_file" && -f "$conf/masters" ]]; then
     echo "WARN : Use of 'masters' file is deprecated; use 'managers' file instead."
     manager_file="masters"
-  fi 
+  fi
 
   case "$1" in
     create-config)
