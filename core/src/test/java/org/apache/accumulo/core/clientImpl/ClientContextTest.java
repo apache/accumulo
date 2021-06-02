@@ -159,13 +159,7 @@ public class ClientContextTest {
 
     assertEquals(Long.MAX_VALUE, batchWriterConfig.getMaxLatency(TimeUnit.MILLISECONDS));
 
-    long expectedTimeout = ClientProperty.BATCH_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
-    if (expectedTimeout == 0) {
-      expectedTimeout = Long.MAX_VALUE;
-      assertEquals(expectedTimeout, batchWriterConfig.getTimeout(TimeUnit.MILLISECONDS));
-    } else {
-      assertEquals(expectedTimeout, batchWriterConfig.getTimeout(TimeUnit.SECONDS));
-    }
+    assertEquals(15, batchWriterConfig.getTimeout(TimeUnit.SECONDS));
 
     long expectedThreads = ClientProperty.BATCH_WRITER_THREADS_MAX.getInteger(props);
     assertEquals(expectedThreads, batchWriterConfig.getMaxWriteThreads());
