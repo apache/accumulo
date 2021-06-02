@@ -30,7 +30,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ReplicationOperationsImpl;
 import org.apache.accumulo.core.data.Key;
@@ -137,7 +136,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     bw.close();
 
-    bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    bw = client.createBatchWriter(MetadataTable.NAME);
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
     m.put(ReplicationSection.COLF, new Text(tableId.canonical()), ProtobufUtil.toValue(stat));
 
@@ -166,7 +165,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     // With the records, we shouldn't be drained
     assertFalse(done.get());
 
-    bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    bw = client.createBatchWriter(MetadataTable.NAME);
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
     m.putDelete(ReplicationSection.COLF, new Text(tableId.canonical()));
     bw.addMutation(m);
@@ -233,7 +232,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     bw.close();
 
-    bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    bw = client.createBatchWriter(MetadataTable.NAME);
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
     m.put(ReplicationSection.COLF, new Text(tableId1.canonical()), ProtobufUtil.toValue(stat));
 
@@ -264,7 +263,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     // With the records, we shouldn't be drained
     assertFalse(done.get());
 
-    bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    bw = client.createBatchWriter(MetadataTable.NAME);
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
     m.putDelete(ReplicationSection.COLF, new Text(tableId1.canonical()));
     bw.addMutation(m);
@@ -279,6 +278,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     m.putDelete(StatusSection.NAME, new Text(tableId1.canonical()));
     bw.addMutation(m);
     bw.flush();
+    bw.close();
 
     try {
       t.join(5000);
@@ -311,7 +311,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     LogEntry logEntry =
         new LogEntry(new KeyExtent(tableId1, null, null), System.currentTimeMillis(), file1);
 
-    bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    bw = client.createBatchWriter(MetadataTable.NAME);
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
     m.put(ReplicationSection.COLF, new Text(tableId1.canonical()), ProtobufUtil.toValue(stat));
     bw.addMutation(m);
@@ -342,7 +342,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     Status newStatus = Status.newBuilder().setBegin(1000).setEnd(2000).setInfiniteEnd(false)
         .setClosed(true).build();
-    bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    bw = client.createBatchWriter(MetadataTable.NAME);
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
     m.put(ReplicationSection.COLF, new Text(tableId1.canonical()), ProtobufUtil.toValue(newStatus));
     bw.addMutation(m);
@@ -385,7 +385,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     bw.addMutation(m);
     bw.close();
 
-    bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    bw = client.createBatchWriter(MetadataTable.NAME);
     m = new Mutation(ReplicationSection.getRowPrefix() + file1);
     m.put(ReplicationSection.COLF, new Text(tableId1.canonical()), ProtobufUtil.toValue(stat));
     bw.addMutation(m);
@@ -418,7 +418,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     Thread.sleep(2000);
 
     // Write another file, but also delete the old files
-    bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+    bw = client.createBatchWriter(MetadataTable.NAME);
     m = new Mutation(
         ReplicationSection.getRowPrefix() + "/accumulo/wals/tserver+port/" + UUID.randomUUID());
     m.put(ReplicationSection.COLF, new Text(tableId1.canonical()), ProtobufUtil.toValue(stat));

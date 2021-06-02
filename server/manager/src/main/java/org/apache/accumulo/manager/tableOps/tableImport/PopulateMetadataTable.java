@@ -32,7 +32,6 @@ import java.util.zip.ZipInputStream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -91,13 +90,10 @@ class PopulateMetadataTable extends ManagerRepo {
 
     Path path = new Path(tableInfo.exportFile);
 
-    BatchWriter mbw = null;
     ZipInputStream zis = null;
 
-    try {
+    try (BatchWriter mbw = manager.getContext().createBatchWriter(MetadataTable.NAME)) {
       VolumeManager fs = manager.getVolumeManager();
-
-      mbw = manager.getContext().createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
 
       zis = new ZipInputStream(fs.open(path));
 
@@ -195,10 +191,6 @@ class PopulateMetadataTable extends ManagerRepo {
         } catch (IOException ioe) {
           log.warn("Failed to close zip file ", ioe);
         }
-      }
-
-      if (mbw != null) {
-        mbw.close();
       }
     }
   }

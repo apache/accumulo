@@ -32,7 +32,6 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.Namespace;
@@ -81,7 +80,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
           "1000");
 
       // Create a BatchWriter and add a mutation to the table
-      BatchWriter batchWriter = client.createBatchWriter(tableName, new BatchWriterConfig());
+      BatchWriter batchWriter = client.createBatchWriter(tableName);
       Mutation m = new Mutation("Row");
       m.put("cf", "cq", "value");
       batchWriter.addMutation(m);
@@ -143,7 +142,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       // Create a BatchWriter and key for a table entry that is longer than the allowed size for an
       // end row
       // Fill this key with all m's except the last spot
-      BatchWriter batchWriter = client.createBatchWriter(tableName, new BatchWriterConfig());
+      BatchWriter batchWriter = client.createBatchWriter(tableName);
       byte[] data = new byte[(int) (ConfigurationTypeHelper
           .getFixedMemoryAsBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
       for (int i = 0; i < data.length - 1; i++) {
@@ -218,7 +217,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
       // Create a BatchWriter and key for a table entry that is longer than the allowed size for an
       // end row
-      BatchWriter batchWriter = client.createBatchWriter(tableName, new BatchWriterConfig());
+      BatchWriter batchWriter = client.createBatchWriter(tableName);
       byte[] data = new byte[10];
 
       // Fill key with all j's except for last spot which alternates through 1 through 10 for every
@@ -264,7 +263,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
     // Create a BatchWriter and key for a table entry that is longer than the allowed size for an
     // end row
-    BatchWriter batchWriter = client.createBatchWriter(tableName, new BatchWriterConfig());
+    BatchWriter batchWriter = client.createBatchWriter(tableName);
     byte[] data = new byte[(int) (ConfigurationTypeHelper
         .getFixedMemoryAsBytes(Property.TABLE_MAX_END_ROW_SIZE.getDefaultValue()) + 2)];
 

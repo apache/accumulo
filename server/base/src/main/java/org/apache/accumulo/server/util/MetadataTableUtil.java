@@ -588,7 +588,7 @@ public class MetadataTableUtil {
   public static void cloneTable(ServerContext context, TableId srcTableId, TableId tableId)
       throws Exception {
 
-    try (BatchWriter bw = context.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
+    try (BatchWriter bw = context.createBatchWriter(MetadataTable.NAME)) {
 
       while (true) {
 
@@ -654,7 +654,7 @@ public class MetadataTableUtil {
     try (
         Scanner mscanner =
             new IsolatedScanner(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-        BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
+        BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
       mscanner.fetchColumnFamily(BulkFileColumnFamily.NAME);
 

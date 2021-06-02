@@ -25,7 +25,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -248,7 +247,7 @@ public class StatusMaker {
     log.debug("Deleting {} from metadata table as it's no longer needed", k.toStringNoTruncate());
     if (metadataWriter == null) {
       try {
-        metadataWriter = client.createBatchWriter(sourceTableName, new BatchWriterConfig());
+        metadataWriter = client.createBatchWriter(sourceTableName);
       } catch (TableNotFoundException e) {
         throw new RuntimeException("Metadata table doesn't exist");
       }

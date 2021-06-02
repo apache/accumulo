@@ -40,7 +40,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -472,7 +471,7 @@ public class Upgrader9to10 implements Upgrader {
     Ample ample = ctx.getAmple();
 
     // find all deletes
-    try (BatchWriter writer = c.createBatchWriter(tableName, new BatchWriterConfig())) {
+    try (BatchWriter writer = c.createBatchWriter(tableName)) {
       log.info("looking for candidates in table {}", tableName);
       Iterator<String> oldCandidates = getOldCandidates(ctx, tableName);
       String upgradeProp = ctx.getConfiguration().get(Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE);
@@ -565,7 +564,7 @@ public class Upgrader9to10 implements Upgrader {
     AccumuloClient c = ctx;
 
     try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
-        BatchWriter writer = c.createBatchWriter(tableName, new BatchWriterConfig())) {
+        BatchWriter writer = c.createBatchWriter(tableName)) {
       DIRECTORY_COLUMN.fetch(scanner);
 
       for (Entry<Key,Value> entry : scanner) {
