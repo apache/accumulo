@@ -196,17 +196,17 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     log.info("Writing a few mutations to the table");
 
-    BatchWriter bw = client.createBatchWriter(table);
+    try (BatchWriter bw = client.createBatchWriter(table)) {
+      byte[] empty = new byte[0];
+      for (int i = 0; i < 5; i++) {
+        Mutation m = new Mutation(Integer.toString(i));
+        m.put(empty, empty, empty);
+        bw.addMutation(m);
+      }
 
-    byte[] empty = new byte[0];
-    for (int i = 0; i < 5; i++) {
-      Mutation m = new Mutation(Integer.toString(i));
-      m.put(empty, empty, empty);
-      bw.addMutation(m);
+      log.info("Flushing mutations to the server");
+      bw.flush();
     }
-
-    log.info("Flushing mutations to the server");
-    bw.flush();
 
     log.info(
         "Checking that metadata only has two WALs recorded for this table (inUse, and opened)");
