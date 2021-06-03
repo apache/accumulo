@@ -103,7 +103,7 @@ public class DeadCompactionDetector {
 
   public void start() {
     long interval = this.context.getConfiguration()
-        .getTimeInMillis(Property.COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL);
+        .getTimeInMillis(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL);
 
     schedExecutor.scheduleWithFixedDelay(() -> {
       try {
