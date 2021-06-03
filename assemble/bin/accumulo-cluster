@@ -249,7 +249,7 @@ function kill_all() {
     kill_service "$tracer" tracer
   done
 
-  grep -Ev '(^#|^\s*$)' "${conf}/tservers" | while read -r server; do
+  grep -Ev '(^#|^\s*$)' "${conf}/tservers" | while read -r host; do
     kill_service "$host" tserver
   done
 
