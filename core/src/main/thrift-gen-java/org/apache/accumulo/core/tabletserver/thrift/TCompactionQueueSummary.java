@@ -29,13 +29,13 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TCompactionQueueSummary");
 
   private static final org.apache.thrift.protocol.TField QUEUE_FIELD_DESC = new org.apache.thrift.protocol.TField("queue", org.apache.thrift.protocol.TType.STRING, (short)1);
-  private static final org.apache.thrift.protocol.TField PRIORITY_FIELD_DESC = new org.apache.thrift.protocol.TField("priority", org.apache.thrift.protocol.TType.I64, (short)2);
+  private static final org.apache.thrift.protocol.TField PRIORITY_FIELD_DESC = new org.apache.thrift.protocol.TField("priority", org.apache.thrift.protocol.TType.I16, (short)2);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TCompactionQueueSummaryStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TCompactionQueueSummaryTupleSchemeFactory();
 
   public @org.apache.thrift.annotation.Nullable java.lang.String queue; // required
-  public long priority; // required
+  public short priority; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -109,7 +109,7 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
     tmpMap.put(_Fields.QUEUE, new org.apache.thrift.meta_data.FieldMetaData("queue", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.PRIORITY, new org.apache.thrift.meta_data.FieldMetaData("priority", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I16)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TCompactionQueueSummary.class, metaDataMap);
   }
@@ -119,7 +119,7 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
 
   public TCompactionQueueSummary(
     java.lang.String queue,
-    long priority)
+    short priority)
   {
     this();
     this.queue = queue;
@@ -174,11 +174,11 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
     }
   }
 
-  public long getPriority() {
+  public short getPriority() {
     return this.priority;
   }
 
-  public TCompactionQueueSummary setPriority(long priority) {
+  public TCompactionQueueSummary setPriority(short priority) {
     this.priority = priority;
     setPriorityIsSet(true);
     return this;
@@ -211,7 +211,7 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
       if (value == null) {
         unsetPriority();
       } else {
-        setPriority((java.lang.Long)value);
+        setPriority((java.lang.Short)value);
       }
       break;
 
@@ -290,7 +290,7 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
     if (isSetQueue())
       hashCode = hashCode * 8191 + queue.hashCode();
 
-    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(priority);
+    hashCode = hashCode * 8191 + priority;
 
     return hashCode;
   }
@@ -409,8 +409,8 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
             }
             break;
           case 2: // PRIORITY
-            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
-              struct.priority = iprot.readI64();
+            if (schemeField.type == org.apache.thrift.protocol.TType.I16) {
+              struct.priority = iprot.readI16();
               struct.setPriorityIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -437,7 +437,7 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
         oprot.writeFieldEnd();
       }
       oprot.writeFieldBegin(PRIORITY_FIELD_DESC);
-      oprot.writeI64(struct.priority);
+      oprot.writeI16(struct.priority);
       oprot.writeFieldEnd();
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -468,7 +468,7 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
         oprot.writeString(struct.queue);
       }
       if (struct.isSetPriority()) {
-        oprot.writeI64(struct.priority);
+        oprot.writeI16(struct.priority);
       }
     }
 
@@ -481,7 +481,7 @@ public class TCompactionQueueSummary implements org.apache.thrift.TBase<TCompact
         struct.setQueueIsSet(true);
       }
       if (incoming.get(1)) {
-        struct.priority = iprot.readI64();
+        struct.priority = iprot.readI16();
         struct.setPriorityIsSet(true);
       }
     }

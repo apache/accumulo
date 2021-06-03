@@ -159,7 +159,7 @@ public class CompactionCoordinatorTest {
     public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
         TKeyExtent extent) throws TException {}
 
-    public Map<String,TreeMap<Long,TreeSet<TServerInstance>>> getQueues() {
+    public Map<String,TreeMap<Short,TreeSet<TServerInstance>>> getQueues() {
       return CompactionCoordinator.QUEUE_SUMMARIES.QUEUES;
     }
 
@@ -280,7 +280,7 @@ public class CompactionCoordinatorTest {
     EasyMock.expect(tsc.getCompactionQueueInfo(EasyMock.anyObject(), EasyMock.anyObject()))
         .andReturn(Collections.singletonList(queueSummary)).anyTimes();
     EasyMock.expect(queueSummary.getQueue()).andReturn("R2DQ").anyTimes();
-    EasyMock.expect(queueSummary.getPriority()).andReturn(1L).anyTimes();
+    EasyMock.expect(queueSummary.getPriority()).andReturn((short) 1).anyTimes();
 
     AuditedSecurityOperation security = PowerMock.createNiceMock(AuditedSecurityOperation.class);
 
@@ -294,12 +294,12 @@ public class CompactionCoordinatorTest {
     assertEquals(0, coordinator.getRunning().size());
     coordinator.run();
     assertEquals(1, coordinator.getQueues().size());
-    QueueAndPriority qp = QueueAndPriority.get("R2DQ".intern(), 1L);
-    Map<Long,TreeSet<TServerInstance>> m = coordinator.getQueues().get("R2DQ".intern());
+    QueueAndPriority qp = QueueAndPriority.get("R2DQ".intern(), (short) 1);
+    Map<Short,TreeSet<TServerInstance>> m = coordinator.getQueues().get("R2DQ".intern());
     assertNotNull(m);
     assertEquals(1, m.size());
-    assertTrue(m.containsKey(1L));
-    Set<TServerInstance> t = m.get(1L);
+    assertTrue(m.containsKey((short) 1));
+    Set<TServerInstance> t = m.get((short) 1);
     assertNotNull(t);
     assertEquals(1, t.size());
     TServerInstance queuedTsi = t.iterator().next();
@@ -353,7 +353,7 @@ public class CompactionCoordinatorTest {
     EasyMock.expect(tsc.getCompactionQueueInfo(EasyMock.anyObject(), EasyMock.anyObject()))
         .andReturn(Collections.singletonList(queueSummary)).anyTimes();
     EasyMock.expect(queueSummary.getQueue()).andReturn("R2DQ").anyTimes();
-    EasyMock.expect(queueSummary.getPriority()).andReturn(1L).anyTimes();
+    EasyMock.expect(queueSummary.getPriority()).andReturn((short) 1).anyTimes();
 
     AuditedSecurityOperation security = PowerMock.createNiceMock(AuditedSecurityOperation.class);
 
@@ -367,12 +367,12 @@ public class CompactionCoordinatorTest {
     assertEquals(0, coordinator.getRunning().size());
     coordinator.run();
     assertEquals(1, coordinator.getQueues().size());
-    QueueAndPriority qp = QueueAndPriority.get("R2DQ".intern(), 1L);
-    Map<Long,TreeSet<TServerInstance>> m = coordinator.getQueues().get("R2DQ".intern());
+    QueueAndPriority qp = QueueAndPriority.get("R2DQ".intern(), (short) 1);
+    Map<Short,TreeSet<TServerInstance>> m = coordinator.getQueues().get("R2DQ".intern());
     assertNotNull(m);
     assertEquals(1, m.size());
-    assertTrue(m.containsKey(1L));
-    Set<TServerInstance> t = m.get(1L);
+    assertTrue(m.containsKey((short) 1));
+    Set<TServerInstance> t = m.get((short) 1);
     assertNotNull(t);
     assertEquals(1, t.size());
     TServerInstance queuedTsi = t.iterator().next();
@@ -435,7 +435,7 @@ public class CompactionCoordinatorTest {
     EasyMock.expect(tsc.getCompactionQueueInfo(EasyMock.anyObject(), EasyMock.anyObject()))
         .andReturn(Collections.singletonList(queueSummary)).anyTimes();
     EasyMock.expect(queueSummary.getQueue()).andReturn("R2DQ").anyTimes();
-    EasyMock.expect(queueSummary.getPriority()).andReturn(1L).anyTimes();
+    EasyMock.expect(queueSummary.getPriority()).andReturn((short) 1).anyTimes();
 
     AuditedSecurityOperation security = PowerMock.createNiceMock(AuditedSecurityOperation.class);
 
@@ -449,12 +449,12 @@ public class CompactionCoordinatorTest {
     assertEquals(0, coordinator.getRunning().size());
     coordinator.run();
     assertEquals(1, coordinator.getQueues().size());
-    QueueAndPriority qp = QueueAndPriority.get("R2DQ".intern(), 1L);
-    Map<Long,TreeSet<TServerInstance>> m = coordinator.getQueues().get("R2DQ".intern());
+    QueueAndPriority qp = QueueAndPriority.get("R2DQ".intern(), (short) 1);
+    Map<Short,TreeSet<TServerInstance>> m = coordinator.getQueues().get("R2DQ".intern());
     assertNotNull(m);
     assertEquals(1, m.size());
-    assertTrue(m.containsKey(1L));
-    Set<TServerInstance> t = m.get(1L);
+    assertTrue(m.containsKey((short) 1));
+    Set<TServerInstance> t = m.get((short) 1);
     assertNotNull(t);
     assertEquals(1, t.size());
     TServerInstance queuedTsi = t.iterator().next();
@@ -508,7 +508,7 @@ public class CompactionCoordinatorTest {
     EasyMock.expect(tsc.getCompactionQueueInfo(EasyMock.anyObject(), EasyMock.anyObject()))
         .andReturn(Collections.singletonList(queueSummary)).anyTimes();
     EasyMock.expect(queueSummary.getQueue()).andReturn("R2DQ").anyTimes();
-    EasyMock.expect(queueSummary.getPriority()).andReturn(1L).anyTimes();
+    EasyMock.expect(queueSummary.getPriority()).andReturn((short) 1).anyTimes();
 
     ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
     TExternalCompactionJob job = PowerMock.createNiceMock(TExternalCompactionJob.class);
@@ -535,12 +535,12 @@ public class CompactionCoordinatorTest {
     coordinator.run();
 
     assertEquals(1, coordinator.getQueues().size());
-    QueueAndPriority qp = QueueAndPriority.get("R2DQ".intern(), 1L);
-    Map<Long,TreeSet<TServerInstance>> m = coordinator.getQueues().get("R2DQ".intern());
+    QueueAndPriority qp = QueueAndPriority.get("R2DQ".intern(), (short) 1);
+    Map<Short,TreeSet<TServerInstance>> m = coordinator.getQueues().get("R2DQ".intern());
     assertNotNull(m);
     assertEquals(1, m.size());
-    assertTrue(m.containsKey(1L));
-    Set<TServerInstance> t = m.get(1L);
+    assertTrue(m.containsKey((short) 1));
+    Set<TServerInstance> t = m.get((short) 1);
     assertNotNull(t);
     assertEquals(1, t.size());
     TServerInstance queuedTsi = t.iterator().next();

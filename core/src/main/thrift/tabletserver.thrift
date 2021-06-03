@@ -187,7 +187,7 @@ enum TCompactionKind {
 
 struct TCompactionQueueSummary {
   1:string queue
-  2:i64 priority
+  2:i16 priority
 }
 
 struct TCompactionStats{

@@ -45,7 +45,7 @@ public class ExternalCompactionMetadata {
   private final TabletFile newFile;
   private final String compactorId;
   private final CompactionKind kind;
-  private final long priority;
+  private final short priority;
   private final CompactionExecutorId ceid;
   private final boolean propagateDeletes;
   private final boolean initiallySelectedAll;
@@ -53,7 +53,7 @@ public class ExternalCompactionMetadata {
 
   public ExternalCompactionMetadata(Set<StoredTabletFile> jobFiles, Set<StoredTabletFile> nextFiles,
       TabletFile compactTmpName, TabletFile newFile, String compactorId, CompactionKind kind,
-      long priority, CompactionExecutorId ceid, boolean propagateDeletes,
+      short priority, CompactionExecutorId ceid, boolean propagateDeletes,
       boolean initiallySelectedAll, Long compactionId) {
     this.jobFiles = Objects.requireNonNull(jobFiles);
     this.nextFiles = Objects.requireNonNull(nextFiles);
@@ -92,7 +92,7 @@ public class ExternalCompactionMetadata {
     return kind;
   }
 
-  public long getPriority() {
+  public short getPriority() {
     return priority;
   }
 
@@ -122,7 +122,7 @@ public class ExternalCompactionMetadata {
     String compactor;
     String kind;
     String executorId;
-    long priority;
+    short priority;
     boolean propDels;
     boolean selectedAll;
     Long compactionId;
