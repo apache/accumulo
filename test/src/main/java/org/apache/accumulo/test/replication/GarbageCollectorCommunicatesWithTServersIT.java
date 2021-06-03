@@ -203,9 +203,6 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
         m.put(empty, empty, empty);
         bw.addMutation(m);
       }
-
-      log.info("Flushing mutations to the server");
-      bw.flush();
     }
 
     log.info(
