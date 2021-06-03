@@ -164,10 +164,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       // If not supplied, GSON will leave type null. Default to internal
       if (null == executorConfig.type) {
         executorConfig.type = "internal";
-      } else if (!("internal".equals(executorConfig.type)
-          || "external".equals(executorConfig.type))) {
-        throw new IllegalArgumentException("'type' must be 'internal' or 'external'");
       }
+
       switch (executorConfig.type) {
         case "internal":
           Preconditions.checkArgument(null == executorConfig.queue,
