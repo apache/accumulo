@@ -27,7 +27,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
@@ -71,7 +70,7 @@ public class ReplicationTable {
   public static BatchWriter getBatchWriter(AccumuloClient client)
       throws ReplicationTableOfflineException {
     try {
-      return client.createBatchWriter(NAME, new BatchWriterConfig());
+      return client.createBatchWriter(NAME);
     } catch (TableNotFoundException e) {
       throw new AssertionError(NAME + " should exist, but doesn't.");
     } catch (TableOfflineException e) {

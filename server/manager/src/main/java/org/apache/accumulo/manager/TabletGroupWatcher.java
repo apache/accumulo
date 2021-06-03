@@ -40,7 +40,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
@@ -482,7 +481,7 @@ abstract class TabletGroupWatcher extends Thread {
         TServerInstance alive = manager.tserverSet.find(entry.getValue().toString());
         if (alive == null) {
           Manager.log.info("Removing entry  {}", entry);
-          BatchWriter bw = manager.getContext().createBatchWriter(table, new BatchWriterConfig());
+          BatchWriter bw = manager.getContext().createBatchWriter(table);
           Mutation m = new Mutation(entry.getKey().getRow());
           m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
           bw.addMutation(m);
@@ -661,7 +660,7 @@ abstract class TabletGroupWatcher extends Thread {
         }
       }
       ample.putGcFileAndDirCandidates(extent.tableId(), datafiles);
-      BatchWriter bw = client.createBatchWriter(targetSystemTable, new BatchWriterConfig());
+      BatchWriter bw = client.createBatchWriter(targetSystemTable);
       try {
         deleteTablets(info, deleteRange, bw, client);
       } finally {
@@ -670,7 +669,7 @@ abstract class TabletGroupWatcher extends Thread {
 
       if (followingTablet != null) {
         Manager.log.debug("Updating prevRow of {} to {}", followingTablet, extent.prevEndRow());
-        bw = client.createBatchWriter(targetSystemTable, new BatchWriterConfig());
+        bw = client.createBatchWriter(targetSystemTable);
         try {
           Mutation m = new Mutation(followingTablet.toMetaRow());
           TabletColumnFamily.PREV_ROW_COLUMN.put(m,
@@ -712,7 +711,7 @@ abstract class TabletGroupWatcher extends Thread {
 
     AccumuloClient client = manager.getContext();
 
-    try (BatchWriter bw = client.createBatchWriter(targetSystemTable, new BatchWriterConfig())) {
+    try (BatchWriter bw = client.createBatchWriter(targetSystemTable)) {
       long fileCount = 0;
       // Make file entries in highest tablet
       Scanner scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);

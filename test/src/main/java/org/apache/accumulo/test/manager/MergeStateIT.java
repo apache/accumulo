@@ -28,7 +28,6 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
@@ -114,8 +113,7 @@ public class MergeStateIT extends ConfigurableMacBase {
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProperties()).build()) {
       accumuloClient.securityOperations().grantTablePermission(accumuloClient.whoami(),
           MetadataTable.NAME, TablePermission.WRITE);
-      BatchWriter bw =
-          accumuloClient.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+      BatchWriter bw = accumuloClient.createBatchWriter(MetadataTable.NAME);
 
       // Create a fake METADATA table with these splits
       String[] splits = {"a", "e", "j", "o", "t", "z"};
@@ -170,11 +168,12 @@ public class MergeStateIT extends ConfigurableMacBase {
       assertEquals(MergeState.WAITING_FOR_OFFLINE, newState);
 
       // unassign the tablets
-      BatchDeleter deleter = accumuloClient.createBatchDeleter(MetadataTable.NAME,
-          Authorizations.EMPTY, 1000, new BatchWriterConfig());
-      deleter.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
-      deleter.setRanges(Collections.singletonList(new Range()));
-      deleter.delete();
+      try (BatchDeleter deleter =
+          accumuloClient.createBatchDeleter(MetadataTable.NAME, Authorizations.EMPTY, 1000)) {
+        deleter.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
+        deleter.setRanges(Collections.singletonList(new Range()));
+        deleter.delete();
+      }
 
       // now we should be ready to merge but, we have inconsistent metadata
       stats = scan(state, metaDataStateStore);

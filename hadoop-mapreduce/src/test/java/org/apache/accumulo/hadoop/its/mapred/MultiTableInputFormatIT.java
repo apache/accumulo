@@ -27,7 +27,6 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -133,8 +132,8 @@ public class MultiTableInputFormatIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(table1);
       c.tableOperations().create(table2);
-      BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
-      BatchWriter bw2 = c.createBatchWriter(table2, new BatchWriterConfig());
+      BatchWriter bw = c.createBatchWriter(table1);
+      BatchWriter bw2 = c.createBatchWriter(table2);
       for (int i = 0; i < 100; i++) {
         Mutation t1m = new Mutation(new Text(String.format("%s_%09x", table1, i + 1)));
         t1m.put("", "", String.format("%s_%09x", table1, i));
