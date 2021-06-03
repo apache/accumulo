@@ -46,20 +46,20 @@ public class QueueSummaries {
   final Map<String,PrioTserver> LAST = new HashMap<>();
 
   /* Map of external queue name -> priority -> tservers */
-  final Map<String,TreeMap<Long,TreeSet<TServerInstance>>> QUEUES = new HashMap<>();
+  final Map<String,TreeMap<Short,TreeSet<TServerInstance>>> QUEUES = new HashMap<>();
   /* index of tserver to queue and priority, exists to provide O(1) lookup into QUEUES */
   final Map<TServerInstance,Set<QueueAndPriority>> INDEX = new HashMap<>();
 
-  private Entry<Long,TreeSet<TServerInstance>> getNextTserverEntry(String queue) {
-    TreeMap<Long,TreeSet<TServerInstance>> m = QUEUES.get(queue);
+  private Entry<Short,TreeSet<TServerInstance>> getNextTserverEntry(String queue) {
+    TreeMap<Short,TreeSet<TServerInstance>> m = QUEUES.get(queue);
     if (m == null) {
       return null;
     }
 
-    Iterator<Entry<Long,TreeSet<TServerInstance>>> iter = m.entrySet().iterator();
+    Iterator<Entry<Short,TreeSet<TServerInstance>>> iter = m.entrySet().iterator();
 
     if (iter.hasNext()) {
-      Entry<Long,TreeSet<TServerInstance>> next = iter.next();
+      Entry<Short,TreeSet<TServerInstance>> next = iter.next();
       if (next.getValue().isEmpty()) {
         throw new IllegalStateException(
             "Unexpected empty tserver set for queue " + queue + " and prio " + next.getKey());
@@ -72,9 +72,9 @@ public class QueueSummaries {
 
   static class PrioTserver {
     TServerInstance tserver;
-    final long prio;
+    final short prio;
 
-    public PrioTserver(TServerInstance t, long p) {
+    public PrioTserver(TServerInstance t, short p) {
       this.tserver = t;
       this.prio = p;
     }
@@ -102,7 +102,7 @@ public class QueueSummaries {
 
   synchronized PrioTserver getNextTserver(String queue) {
 
-    Entry<Long,TreeSet<TServerInstance>> entry = getNextTserverEntry(queue);
+    Entry<Short,TreeSet<TServerInstance>> entry = getNextTserverEntry(queue);
 
     if (entry == null) {
       // no tserver, so remove any last entry if it exists
@@ -110,7 +110,7 @@ public class QueueSummaries {
       return null;
     }
 
-    final Long priority = entry.getKey();
+    final Short priority = entry.getKey();
     final TreeSet<TServerInstance> tservers = entry.getValue();
 
     PrioTserver last = LAST.get(queue);
@@ -138,7 +138,7 @@ public class QueueSummaries {
   synchronized void update(TServerInstance tsi, List<TCompactionQueueSummary> summaries) {
 
     if (log.isTraceEnabled()) {
-      Map<String,List<Long>> summariesToLog = new TreeMap<>();
+      Map<String,List<Short>> summariesToLog = new TreeMap<>();
       summaries.forEach(summary -> summariesToLog
           .computeIfAbsent(summary.getQueue(), k -> new ArrayList<>()).add(summary.getPriority()));
       log.trace("Adding summaries from {} : {}", tsi, summariesToLog);
@@ -166,11 +166,11 @@ public class QueueSummaries {
     });
   }
 
-  synchronized void removeSummary(TServerInstance tsi, String queue, long priority) {
+  synchronized void removeSummary(TServerInstance tsi, String queue, short priority) {
 
     log.trace("Removing summary {} {} {}", tsi, queue, priority);
 
-    TreeMap<Long,TreeSet<TServerInstance>> m = QUEUES.get(queue);
+    TreeMap<Short,TreeSet<TServerInstance>> m = QUEUES.get(queue);
     if (m != null) {
       TreeSet<TServerInstance> s = m.get(priority);
       if (s != null) {
@@ -200,7 +200,7 @@ public class QueueSummaries {
 
     deleted.forEach(tsi -> {
       INDEX.getOrDefault(tsi, Set.of()).forEach(qp -> {
-        TreeMap<Long,TreeSet<TServerInstance>> m = QUEUES.get(qp.getQueue());
+        TreeMap<Short,TreeSet<TServerInstance>> m = QUEUES.get(qp.getQueue());
         if (null != m) {
           TreeSet<TServerInstance> tservers = m.get(qp.getPriority());
           if (null != tservers) {

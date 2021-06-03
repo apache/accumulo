@@ -298,7 +298,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     }
   }
 
-  private static long createPriority(PlanningParameters params) {
+  private static short createPriority(PlanningParameters params) {
     return CompactionJobPrioritizer.createPriority(params.getKind(), params.getAll().size());
   }
 

@@ -29,13 +29,13 @@ public class CompactionCoordinatorService {
 
   public interface Iface {
 
-    public void compactionCompleted(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.tabletserver.thrift.TCompactionStats stats) throws UnknownCompactionIdException, org.apache.thrift.TException;
+    public void compactionCompleted(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.tabletserver.thrift.TCompactionStats stats) throws org.apache.thrift.TException;
 
     public org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob getCompactionJob(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String queueName, java.lang.String compactor, java.lang.String externalCompactionId) throws org.apache.thrift.TException;
 
-    public void updateCompactionStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionState state, java.lang.String message, long timestamp) throws UnknownCompactionIdException, org.apache.thrift.TException;
+    public void updateCompactionStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionState state, java.lang.String message, long timestamp) throws org.apache.thrift.TException;
 
-    public void compactionFailed(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) throws UnknownCompactionIdException, org.apache.thrift.TException;
+    public void compactionFailed(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) throws org.apache.thrift.TException;
 
   }
 
@@ -71,7 +71,7 @@ public class CompactionCoordinatorService {
       super(iprot, oprot);
     }
 
-    public void compactionCompleted(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.tabletserver.thrift.TCompactionStats stats) throws UnknownCompactionIdException, org.apache.thrift.TException
+    public void compactionCompleted(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.tabletserver.thrift.TCompactionStats stats) throws org.apache.thrift.TException
     {
       send_compactionCompleted(tinfo, credentials, externalCompactionId, extent, stats);
       recv_compactionCompleted();
@@ -88,13 +88,10 @@ public class CompactionCoordinatorService {
       sendBase("compactionCompleted", args);
     }
 
-    public void recv_compactionCompleted() throws UnknownCompactionIdException, org.apache.thrift.TException
+    public void recv_compactionCompleted() throws org.apache.thrift.TException
     {
       compactionCompleted_result result = new compactionCompleted_result();
       receiveBase(result, "compactionCompleted");
-      if (result.e != null) {
-        throw result.e;
-      }
       return;
     }
 
@@ -125,7 +122,7 @@ public class CompactionCoordinatorService {
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getCompactionJob failed: unknown result");
     }
 
-    public void updateCompactionStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionState state, java.lang.String message, long timestamp) throws UnknownCompactionIdException, org.apache.thrift.TException
+    public void updateCompactionStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionState state, java.lang.String message, long timestamp) throws org.apache.thrift.TException
     {
       send_updateCompactionStatus(tinfo, credentials, externalCompactionId, state, message, timestamp);
       recv_updateCompactionStatus();
@@ -143,17 +140,14 @@ public class CompactionCoordinatorService {
       sendBase("updateCompactionStatus", args);
     }
 
-    public void recv_updateCompactionStatus() throws UnknownCompactionIdException, org.apache.thrift.TException
+    public void recv_updateCompactionStatus() throws org.apache.thrift.TException
     {
       updateCompactionStatus_result result = new updateCompactionStatus_result();
       receiveBase(result, "updateCompactionStatus");
-      if (result.e != null) {
-        throw result.e;
-      }
       return;
     }
 
-    public void compactionFailed(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) throws UnknownCompactionIdException, org.apache.thrift.TException
+    public void compactionFailed(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) throws org.apache.thrift.TException
     {
       send_compactionFailed(tinfo, credentials, externalCompactionId, extent);
       recv_compactionFailed();
@@ -169,13 +163,10 @@ public class CompactionCoordinatorService {
       sendBase("compactionFailed", args);
     }
 
-    public void recv_compactionFailed() throws UnknownCompactionIdException, org.apache.thrift.TException
+    public void recv_compactionFailed() throws org.apache.thrift.TException
     {
       compactionFailed_result result = new compactionFailed_result();
       receiveBase(result, "compactionFailed");
-      if (result.e != null) {
-        throw result.e;
-      }
       return;
     }
 
@@ -231,7 +222,7 @@ public class CompactionCoordinatorService {
         prot.writeMessageEnd();
       }
 
-      public Void getResult() throws UnknownCompactionIdException, org.apache.thrift.TException {
+      public Void getResult() throws org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -322,7 +313,7 @@ public class CompactionCoordinatorService {
         prot.writeMessageEnd();
       }
 
-      public Void getResult() throws UnknownCompactionIdException, org.apache.thrift.TException {
+      public Void getResult() throws org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -363,7 +354,7 @@ public class CompactionCoordinatorService {
         prot.writeMessageEnd();
       }
 
-      public Void getResult() throws UnknownCompactionIdException, org.apache.thrift.TException {
+      public Void getResult() throws org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -413,11 +404,7 @@ public class CompactionCoordinatorService {
 
       public compactionCompleted_result getResult(I iface, compactionCompleted_args args) throws org.apache.thrift.TException {
         compactionCompleted_result result = new compactionCompleted_result();
-        try {
-          iface.compactionCompleted(args.tinfo, args.credentials, args.externalCompactionId, args.extent, args.stats);
-        } catch (UnknownCompactionIdException e) {
-          result.e = e;
-        }
+        iface.compactionCompleted(args.tinfo, args.credentials, args.externalCompactionId, args.extent, args.stats);
         return result;
       }
     }
@@ -467,11 +454,7 @@ public class CompactionCoordinatorService {
 
       public updateCompactionStatus_result getResult(I iface, updateCompactionStatus_args args) throws org.apache.thrift.TException {
         updateCompactionStatus_result result = new updateCompactionStatus_result();
-        try {
-          iface.updateCompactionStatus(args.tinfo, args.credentials, args.externalCompactionId, args.state, args.message, args.timestamp);
-        } catch (UnknownCompactionIdException e) {
-          result.e = e;
-        }
+        iface.updateCompactionStatus(args.tinfo, args.credentials, args.externalCompactionId, args.state, args.message, args.timestamp);
         return result;
       }
     }
@@ -496,11 +479,7 @@ public class CompactionCoordinatorService {
 
       public compactionFailed_result getResult(I iface, compactionFailed_args args) throws org.apache.thrift.TException {
         compactionFailed_result result = new compactionFailed_result();
-        try {
-          iface.compactionFailed(args.tinfo, args.credentials, args.externalCompactionId, args.extent);
-        } catch (UnknownCompactionIdException e) {
-          result.e = e;
-        }
+        iface.compactionFailed(args.tinfo, args.credentials, args.externalCompactionId, args.extent);
         return result;
       }
     }
@@ -553,11 +532,7 @@ public class CompactionCoordinatorService {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
             compactionCompleted_result result = new compactionCompleted_result();
-            if (e instanceof UnknownCompactionIdException) {
-              result.e = (UnknownCompactionIdException) e;
-              result.setEIsSet(true);
-              msg = result;
-            } else if (e instanceof org.apache.thrift.transport.TTransportException) {
+            if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
               fb.close();
               return;
@@ -678,11 +653,7 @@ public class CompactionCoordinatorService {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
             updateCompactionStatus_result result = new updateCompactionStatus_result();
-            if (e instanceof UnknownCompactionIdException) {
-              result.e = (UnknownCompactionIdException) e;
-              result.setEIsSet(true);
-              msg = result;
-            } else if (e instanceof org.apache.thrift.transport.TTransportException) {
+            if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
               fb.close();
               return;
@@ -742,11 +713,7 @@ public class CompactionCoordinatorService {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
             compactionFailed_result result = new compactionFailed_result();
-            if (e instanceof UnknownCompactionIdException) {
-              result.e = (UnknownCompactionIdException) e;
-              result.setEIsSet(true);
-              msg = result;
-            } else if (e instanceof org.apache.thrift.transport.TTransportException) {
+            if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
               fb.close();
               return;
@@ -1590,16 +1557,14 @@ public class CompactionCoordinatorService {
   public static class compactionCompleted_result implements org.apache.thrift.TBase<compactionCompleted_result, compactionCompleted_result._Fields>, java.io.Serializable, Cloneable, Comparable<compactionCompleted_result>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("compactionCompleted_result");
 
-    private static final org.apache.thrift.protocol.TField E_FIELD_DESC = new org.apache.thrift.protocol.TField("e", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new compactionCompleted_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new compactionCompleted_resultTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable UnknownCompactionIdException e; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      E((short)1, "e");
+;
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -1615,8 +1580,6 @@ public class CompactionCoordinatorService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 1: // E
-            return E;
           default:
             return null;
         }
@@ -1656,13 +1619,9 @@ public class CompactionCoordinatorService {
         return _fieldName;
       }
     }
-
-    // isset id assignments
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.E, new org.apache.thrift.meta_data.FieldMetaData("e", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, UnknownCompactionIdException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(compactionCompleted_result.class, metaDataMap);
     }
@@ -1670,20 +1629,10 @@ public class CompactionCoordinatorService {
     public compactionCompleted_result() {
     }
 
-    public compactionCompleted_result(
-      UnknownCompactionIdException e)
-    {
-      this();
-      this.e = e;
-    }
-
     /**
      * Performs a deep copy on <i>other</i>.
      */
     public compactionCompleted_result(compactionCompleted_result other) {
-      if (other.isSetE()) {
-        this.e = new UnknownCompactionIdException(other.e);
-      }
     }
 
     public compactionCompleted_result deepCopy() {
@@ -1692,53 +1641,16 @@ public class CompactionCoordinatorService {
 
     @Override
     public void clear() {
-      this.e = null;
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public UnknownCompactionIdException getE() {
-      return this.e;
-    }
-
-    public compactionCompleted_result setE(@org.apache.thrift.annotation.Nullable UnknownCompactionIdException e) {
-      this.e = e;
-      return this;
-    }
-
-    public void unsetE() {
-      this.e = null;
-    }
-
-    /** Returns true if field e is set (has been assigned a value) and false otherwise */
-    public boolean isSetE() {
-      return this.e != null;
-    }
-
-    public void setEIsSet(boolean value) {
-      if (!value) {
-        this.e = null;
-      }
     }
 
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
-      case E:
-        if (value == null) {
-          unsetE();
-        } else {
-          setE((UnknownCompactionIdException)value);
-        }
-        break;
-
       }
     }
 
     @org.apache.thrift.annotation.Nullable
     public java.lang.Object getFieldValue(_Fields field) {
       switch (field) {
-      case E:
-        return getE();
-
       }
       throw new java.lang.IllegalStateException();
     }
@@ -1750,8 +1662,6 @@ public class CompactionCoordinatorService {
       }
 
       switch (field) {
-      case E:
-        return isSetE();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -1771,25 +1681,12 @@ public class CompactionCoordinatorService {
       if (this == that)
         return true;
 
-      boolean this_present_e = true && this.isSetE();
-      boolean that_present_e = true && that.isSetE();
-      if (this_present_e || that_present_e) {
-        if (!(this_present_e && that_present_e))
-          return false;
-        if (!this.e.equals(that.e))
-          return false;
-      }
-
       return true;
     }
 
     @Override
     public int hashCode() {
       int hashCode = 1;
-
-      hashCode = hashCode * 8191 + ((isSetE()) ? 131071 : 524287);
-      if (isSetE())
-        hashCode = hashCode * 8191 + e.hashCode();
 
       return hashCode;
     }
@@ -1802,16 +1699,6 @@ public class CompactionCoordinatorService {
 
       int lastComparison = 0;
 
-      lastComparison = java.lang.Boolean.valueOf(isSetE()).compareTo(other.isSetE());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetE()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.e, other.e);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
       return 0;
     }
 
@@ -1833,13 +1720,6 @@ public class CompactionCoordinatorService {
       java.lang.StringBuilder sb = new java.lang.StringBuilder("compactionCompleted_result(");
       boolean first = true;
 
-      sb.append("e:");
-      if (this.e == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.e);
-      }
-      first = false;
       sb.append(")");
       return sb.toString();
     }
@@ -1883,15 +1763,6 @@ public class CompactionCoordinatorService {
             break;
           }
           switch (schemeField.id) {
-            case 1: // E
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.e = new UnknownCompactionIdException();
-                struct.e.read(iprot);
-                struct.setEIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -1907,11 +1778,6 @@ public class CompactionCoordinatorService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.e != null) {
-          oprot.writeFieldBegin(E_FIELD_DESC);
-          struct.e.write(oprot);
-          oprot.writeFieldEnd();
-        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -1929,25 +1795,11 @@ public class CompactionCoordinatorService {
       @Override
       public void write(org.apache.thrift.protocol.TProtocol prot, compactionCompleted_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet optionals = new java.util.BitSet();
-        if (struct.isSetE()) {
-          optionals.set(0);
-        }
-        oprot.writeBitSet(optionals, 1);
-        if (struct.isSetE()) {
-          struct.e.write(oprot);
-        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, compactionCompleted_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(1);
-        if (incoming.get(0)) {
-          struct.e = new UnknownCompactionIdException();
-          struct.e.read(iprot);
-          struct.setEIsSet(true);
-        }
       }
     }
 
@@ -4041,16 +3893,14 @@ public class CompactionCoordinatorService {
   public static class updateCompactionStatus_result implements org.apache.thrift.TBase<updateCompactionStatus_result, updateCompactionStatus_result._Fields>, java.io.Serializable, Cloneable, Comparable<updateCompactionStatus_result>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("updateCompactionStatus_result");
 
-    private static final org.apache.thrift.protocol.TField E_FIELD_DESC = new org.apache.thrift.protocol.TField("e", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new updateCompactionStatus_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new updateCompactionStatus_resultTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable UnknownCompactionIdException e; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      E((short)1, "e");
+;
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -4066,8 +3916,6 @@ public class CompactionCoordinatorService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 1: // E
-            return E;
           default:
             return null;
         }
@@ -4107,13 +3955,9 @@ public class CompactionCoordinatorService {
         return _fieldName;
       }
     }
-
-    // isset id assignments
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.E, new org.apache.thrift.meta_data.FieldMetaData("e", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, UnknownCompactionIdException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(updateCompactionStatus_result.class, metaDataMap);
     }
@@ -4121,20 +3965,10 @@ public class CompactionCoordinatorService {
     public updateCompactionStatus_result() {
     }
 
-    public updateCompactionStatus_result(
-      UnknownCompactionIdException e)
-    {
-      this();
-      this.e = e;
-    }
-
     /**
      * Performs a deep copy on <i>other</i>.
      */
     public updateCompactionStatus_result(updateCompactionStatus_result other) {
-      if (other.isSetE()) {
-        this.e = new UnknownCompactionIdException(other.e);
-      }
     }
 
     public updateCompactionStatus_result deepCopy() {
@@ -4143,53 +3977,16 @@ public class CompactionCoordinatorService {
 
     @Override
     public void clear() {
-      this.e = null;
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public UnknownCompactionIdException getE() {
-      return this.e;
-    }
-
-    public updateCompactionStatus_result setE(@org.apache.thrift.annotation.Nullable UnknownCompactionIdException e) {
-      this.e = e;
-      return this;
-    }
-
-    public void unsetE() {
-      this.e = null;
-    }
-
-    /** Returns true if field e is set (has been assigned a value) and false otherwise */
-    public boolean isSetE() {
-      return this.e != null;
-    }
-
-    public void setEIsSet(boolean value) {
-      if (!value) {
-        this.e = null;
-      }
     }
 
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
-      case E:
-        if (value == null) {
-          unsetE();
-        } else {
-          setE((UnknownCompactionIdException)value);
-        }
-        break;
-
       }
     }
 
     @org.apache.thrift.annotation.Nullable
     public java.lang.Object getFieldValue(_Fields field) {
       switch (field) {
-      case E:
-        return getE();
-
       }
       throw new java.lang.IllegalStateException();
     }
@@ -4201,8 +3998,6 @@ public class CompactionCoordinatorService {
       }
 
       switch (field) {
-      case E:
-        return isSetE();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -4222,25 +4017,12 @@ public class CompactionCoordinatorService {
       if (this == that)
         return true;
 
-      boolean this_present_e = true && this.isSetE();
-      boolean that_present_e = true && that.isSetE();
-      if (this_present_e || that_present_e) {
-        if (!(this_present_e && that_present_e))
-          return false;
-        if (!this.e.equals(that.e))
-          return false;
-      }
-
       return true;
     }
 
     @Override
     public int hashCode() {
       int hashCode = 1;
-
-      hashCode = hashCode * 8191 + ((isSetE()) ? 131071 : 524287);
-      if (isSetE())
-        hashCode = hashCode * 8191 + e.hashCode();
 
       return hashCode;
     }
@@ -4253,16 +4035,6 @@ public class CompactionCoordinatorService {
 
       int lastComparison = 0;
 
-      lastComparison = java.lang.Boolean.valueOf(isSetE()).compareTo(other.isSetE());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetE()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.e, other.e);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
       return 0;
     }
 
@@ -4284,13 +4056,6 @@ public class CompactionCoordinatorService {
       java.lang.StringBuilder sb = new java.lang.StringBuilder("updateCompactionStatus_result(");
       boolean first = true;
 
-      sb.append("e:");
-      if (this.e == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.e);
-      }
-      first = false;
       sb.append(")");
       return sb.toString();
     }
@@ -4334,15 +4099,6 @@ public class CompactionCoordinatorService {
             break;
           }
           switch (schemeField.id) {
-            case 1: // E
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.e = new UnknownCompactionIdException();
-                struct.e.read(iprot);
-                struct.setEIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -4358,11 +4114,6 @@ public class CompactionCoordinatorService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.e != null) {
-          oprot.writeFieldBegin(E_FIELD_DESC);
-          struct.e.write(oprot);
-          oprot.writeFieldEnd();
-        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -4380,25 +4131,11 @@ public class CompactionCoordinatorService {
       @Override
       public void write(org.apache.thrift.protocol.TProtocol prot, updateCompactionStatus_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet optionals = new java.util.BitSet();
-        if (struct.isSetE()) {
-          optionals.set(0);
-        }
-        oprot.writeBitSet(optionals, 1);
-        if (struct.isSetE()) {
-          struct.e.write(oprot);
-        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, updateCompactionStatus_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(1);
-        if (incoming.get(0)) {
-          struct.e = new UnknownCompactionIdException();
-          struct.e.read(iprot);
-          struct.setEIsSet(true);
-        }
       }
     }
 
@@ -5107,16 +4844,14 @@ public class CompactionCoordinatorService {
   public static class compactionFailed_result implements org.apache.thrift.TBase<compactionFailed_result, compactionFailed_result._Fields>, java.io.Serializable, Cloneable, Comparable<compactionFailed_result>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("compactionFailed_result");
 
-    private static final org.apache.thrift.protocol.TField E_FIELD_DESC = new org.apache.thrift.protocol.TField("e", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new compactionFailed_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new compactionFailed_resultTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable UnknownCompactionIdException e; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      E((short)1, "e");
+;
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -5132,8 +4867,6 @@ public class CompactionCoordinatorService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 1: // E
-            return E;
           default:
             return null;
         }
@@ -5173,13 +4906,9 @@ public class CompactionCoordinatorService {
         return _fieldName;
       }
     }
-
-    // isset id assignments
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.E, new org.apache.thrift.meta_data.FieldMetaData("e", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, UnknownCompactionIdException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(compactionFailed_result.class, metaDataMap);
     }
@@ -5187,20 +4916,10 @@ public class CompactionCoordinatorService {
     public compactionFailed_result() {
     }
 
-    public compactionFailed_result(
-      UnknownCompactionIdException e)
-    {
-      this();
-      this.e = e;
-    }
-
     /**
      * Performs a deep copy on <i>other</i>.
      */
     public compactionFailed_result(compactionFailed_result other) {
-      if (other.isSetE()) {
-        this.e = new UnknownCompactionIdException(other.e);
-      }
     }
 
     public compactionFailed_result deepCopy() {
@@ -5209,53 +4928,16 @@ public class CompactionCoordinatorService {
 
     @Override
     public void clear() {
-      this.e = null;
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public UnknownCompactionIdException getE() {
-      return this.e;
-    }
-
-    public compactionFailed_result setE(@org.apache.thrift.annotation.Nullable UnknownCompactionIdException e) {
-      this.e = e;
-      return this;
-    }
-
-    public void unsetE() {
-      this.e = null;
-    }
-
-    /** Returns true if field e is set (has been assigned a value) and false otherwise */
-    public boolean isSetE() {
-      return this.e != null;
-    }
-
-    public void setEIsSet(boolean value) {
-      if (!value) {
-        this.e = null;
-      }
     }
 
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
-      case E:
-        if (value == null) {
-          unsetE();
-        } else {
-          setE((UnknownCompactionIdException)value);
-        }
-        break;
-
       }
     }
 
     @org.apache.thrift.annotation.Nullable
     public java.lang.Object getFieldValue(_Fields field) {
       switch (field) {
-      case E:
-        return getE();
-
       }
       throw new java.lang.IllegalStateException();
     }
@@ -5267,8 +4949,6 @@ public class CompactionCoordinatorService {
       }
 
       switch (field) {
-      case E:
-        return isSetE();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -5288,25 +4968,12 @@ public class CompactionCoordinatorService {
       if (this == that)
         return true;
 
-      boolean this_present_e = true && this.isSetE();
-      boolean that_present_e = true && that.isSetE();
-      if (this_present_e || that_present_e) {
-        if (!(this_present_e && that_present_e))
-          return false;
-        if (!this.e.equals(that.e))
-          return false;
-      }
-
       return true;
     }
 
     @Override
     public int hashCode() {
       int hashCode = 1;
-
-      hashCode = hashCode * 8191 + ((isSetE()) ? 131071 : 524287);
-      if (isSetE())
-        hashCode = hashCode * 8191 + e.hashCode();
 
       return hashCode;
     }
@@ -5319,16 +4986,6 @@ public class CompactionCoordinatorService {
 
       int lastComparison = 0;
 
-      lastComparison = java.lang.Boolean.valueOf(isSetE()).compareTo(other.isSetE());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetE()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.e, other.e);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
       return 0;
     }
 
@@ -5350,13 +5007,6 @@ public class CompactionCoordinatorService {
       java.lang.StringBuilder sb = new java.lang.StringBuilder("compactionFailed_result(");
       boolean first = true;
 
-      sb.append("e:");
-      if (this.e == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.e);
-      }
-      first = false;
       sb.append(")");
       return sb.toString();
     }
@@ -5400,15 +5050,6 @@ public class CompactionCoordinatorService {
             break;
           }
           switch (schemeField.id) {
-            case 1: // E
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.e = new UnknownCompactionIdException();
-                struct.e.read(iprot);
-                struct.setEIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -5424,11 +5065,6 @@ public class CompactionCoordinatorService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.e != null) {
-          oprot.writeFieldBegin(E_FIELD_DESC);
-          struct.e.write(oprot);
-          oprot.writeFieldEnd();
-        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -5446,25 +5082,11 @@ public class CompactionCoordinatorService {
       @Override
       public void write(org.apache.thrift.protocol.TProtocol prot, compactionFailed_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet optionals = new java.util.BitSet();
-        if (struct.isSetE()) {
-          optionals.set(0);
-        }
-        oprot.writeBitSet(optionals, 1);
-        if (struct.isSetE()) {
-          struct.e.write(oprot);
-        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, compactionFailed_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(1);
-        if (incoming.get(0)) {
-          struct.e = new UnknownCompactionIdException();
-          struct.e.read(iprot);
-          struct.setEIsSet(true);
-        }
       }
     }
 

@@ -237,8 +237,8 @@ public class DefaultCompactionPlannerTest {
   private CompactionJob createJob(CompactionKind kind, Set<CompactableFile> all,
       Set<CompactableFile> files) {
     return new CompactionPlanImpl.BuilderImpl(kind, all, all)
-        .addJob(all.size(), CompactionExecutorIdImpl.externalId("small"), files).build().getJobs()
-        .iterator().next();
+        .addJob((short) all.size(), CompactionExecutorIdImpl.externalId("small"), files).build()
+        .getJobs().iterator().next();
   }
 
   private static Set<CompactableFile> createCFs(String... namesSizePairs) {

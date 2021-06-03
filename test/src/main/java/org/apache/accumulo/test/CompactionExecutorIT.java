@@ -112,9 +112,8 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
     public CompactionPlan makePlan(PlanningParameters params) {
 
       if (Boolean.parseBoolean(params.getExecutionHints().getOrDefault("compact_all", "false"))) {
-        return params.createPlanBuilder()
-            .addJob(1, executorIds.get(rand.nextInt(executorIds.size())), params.getCandidates())
-            .build();
+        return params.createPlanBuilder().addJob((short) 1,
+            executorIds.get(rand.nextInt(executorIds.size())), params.getCandidates()).build();
       }
 
       if (kindsToProcess.contains(params.getKind())) {
@@ -126,7 +125,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
         params.getCandidates().stream().collect(Collectors.groupingBy(TestPlanner::getFirstChar))
             .values().forEach(files -> {
               for (int i = filesPerCompaction; i <= files.size(); i += filesPerCompaction) {
-                planBuilder.addJob(1, executorIds.get(rand.nextInt(executorIds.size())),
+                planBuilder.addJob((short) 1, executorIds.get(rand.nextInt(executorIds.size())),
                     files.subList(i - filesPerCompaction, i));
               }
             });

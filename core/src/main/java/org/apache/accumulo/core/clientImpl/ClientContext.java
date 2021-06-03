@@ -318,23 +318,28 @@ public class ClientContext implements AccumuloClient {
     return batchWriterConfig;
   }
 
+  static ConditionalWriterConfig getConditionalWriterConfig(Properties props) {
+    ConditionalWriterConfig conditionalWriterConfig = new ConditionalWriterConfig();
+
+    Long timeout = ClientProperty.CONDITIONAL_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
+    if (timeout != null) {
+      conditionalWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
+    }
+    String durability = ClientProperty.CONDITIONAL_WRITER_DURABILITY.getValue(props);
+    if (!durability.isEmpty()) {
+      conditionalWriterConfig.setDurability(Durability.valueOf(durability.toUpperCase()));
+    }
+    Integer maxThreads = ClientProperty.CONDITIONAL_WRITER_THREADS_MAX.getInteger(props);
+    if (maxThreads != null) {
+      conditionalWriterConfig.setMaxWriteThreads(maxThreads);
+    }
+    return conditionalWriterConfig;
+  }
+
   public synchronized ConditionalWriterConfig getConditionalWriterConfig() {
     ensureOpen();
     if (conditionalWriterConfig == null) {
-      Properties props = info.getProperties();
-      conditionalWriterConfig = new ConditionalWriterConfig();
-      Long timeout = ClientProperty.CONDITIONAL_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
-      if (timeout != null) {
-        conditionalWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
-      }
-      String durability = ClientProperty.CONDITIONAL_WRITER_DURABILITY.getValue(props);
-      if (!durability.isEmpty()) {
-        conditionalWriterConfig.setDurability(Durability.valueOf(durability.toUpperCase()));
-      }
-      Integer maxThreads = ClientProperty.CONDITIONAL_WRITER_THREADS_MAX.getInteger(props);
-      if (maxThreads != null) {
-        conditionalWriterConfig.setMaxWriteThreads(maxThreads);
-      }
+      conditionalWriterConfig = getConditionalWriterConfig(info.getProperties());
     }
     return conditionalWriterConfig;
   }
