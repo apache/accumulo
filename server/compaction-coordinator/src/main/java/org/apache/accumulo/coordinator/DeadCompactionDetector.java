@@ -117,7 +117,6 @@ public class DeadCompactionDetector {
 
     tabletCompactions.forEach((ecid, extent) -> {
       log.debug("Possible dead compaction detected {} {}", ecid, extent);
-      this.deadCompactions.putIfAbsent(ecid, System.currentTimeMillis());
       this.deadCompactions.merge(ecid, 1L, Long::sum);
     });
 
