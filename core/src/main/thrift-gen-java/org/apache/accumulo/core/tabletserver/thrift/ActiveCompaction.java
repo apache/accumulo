@@ -49,14 +49,14 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
   public @org.apache.thrift.annotation.Nullable java.lang.String outputFile; // required
   /**
    * 
-   * @see CompactionType
+   * @see TCompactionType
    */
-  public @org.apache.thrift.annotation.Nullable CompactionType type; // required
+  public @org.apache.thrift.annotation.Nullable TCompactionType type; // required
   /**
    * 
-   * @see CompactionReason
+   * @see TCompactionReason
    */
-  public @org.apache.thrift.annotation.Nullable CompactionReason reason; // required
+  public @org.apache.thrift.annotation.Nullable TCompactionReason reason; // required
   public @org.apache.thrift.annotation.Nullable java.lang.String localityGroup; // required
   public long entriesRead; // required
   public long entriesWritten; // required
@@ -71,12 +71,12 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
     OUTPUT_FILE((short)4, "outputFile"),
     /**
      * 
-     * @see CompactionType
+     * @see TCompactionType
      */
     TYPE((short)5, "type"),
     /**
      * 
-     * @see CompactionReason
+     * @see TCompactionReason
      */
     REASON((short)6, "reason"),
     LOCALITY_GROUP((short)7, "localityGroup"),
@@ -179,9 +179,9 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
     tmpMap.put(_Fields.OUTPUT_FILE, new org.apache.thrift.meta_data.FieldMetaData("outputFile", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.TYPE, new org.apache.thrift.meta_data.FieldMetaData("type", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, CompactionType.class)));
+        new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, TCompactionType.class)));
     tmpMap.put(_Fields.REASON, new org.apache.thrift.meta_data.FieldMetaData("reason", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, CompactionReason.class)));
+        new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, TCompactionReason.class)));
     tmpMap.put(_Fields.LOCALITY_GROUP, new org.apache.thrift.meta_data.FieldMetaData("localityGroup", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.ENTRIES_READ, new org.apache.thrift.meta_data.FieldMetaData("entriesRead", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -209,8 +209,8 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
     long age,
     java.util.List<java.lang.String> inputFiles,
     java.lang.String outputFile,
-    CompactionType type,
-    CompactionReason reason,
+    TCompactionType type,
+    TCompactionReason reason,
     java.lang.String localityGroup,
     long entriesRead,
     long entriesWritten,
@@ -423,18 +423,18 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
 
   /**
    * 
-   * @see CompactionType
+   * @see TCompactionType
    */
   @org.apache.thrift.annotation.Nullable
-  public CompactionType getType() {
+  public TCompactionType getType() {
     return this.type;
   }
 
   /**
    * 
-   * @see CompactionType
+   * @see TCompactionType
    */
-  public ActiveCompaction setType(@org.apache.thrift.annotation.Nullable CompactionType type) {
+  public ActiveCompaction setType(@org.apache.thrift.annotation.Nullable TCompactionType type) {
     this.type = type;
     return this;
   }
@@ -456,18 +456,18 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
 
   /**
    * 
-   * @see CompactionReason
+   * @see TCompactionReason
    */
   @org.apache.thrift.annotation.Nullable
-  public CompactionReason getReason() {
+  public TCompactionReason getReason() {
     return this.reason;
   }
 
   /**
    * 
-   * @see CompactionReason
+   * @see TCompactionReason
    */
-  public ActiveCompaction setReason(@org.apache.thrift.annotation.Nullable CompactionReason reason) {
+  public ActiveCompaction setReason(@org.apache.thrift.annotation.Nullable TCompactionReason reason) {
     this.reason = reason;
     return this;
   }
@@ -673,7 +673,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       if (value == null) {
         unsetType();
       } else {
-        setType((CompactionType)value);
+        setType((TCompactionType)value);
       }
       break;
 
@@ -681,7 +681,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       if (value == null) {
         unsetReason();
       } else {
-        setReason((CompactionReason)value);
+        setReason((TCompactionReason)value);
       }
       break;
 
@@ -1270,7 +1270,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
             break;
           case 5: // TYPE
             if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
-              struct.type = org.apache.accumulo.core.tabletserver.thrift.CompactionType.findByValue(iprot.readI32());
+              struct.type = org.apache.accumulo.core.tabletserver.thrift.TCompactionType.findByValue(iprot.readI32());
               struct.setTypeIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -1278,7 +1278,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
             break;
           case 6: // REASON
             if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
-              struct.reason = org.apache.accumulo.core.tabletserver.thrift.CompactionReason.findByValue(iprot.readI32());
+              struct.reason = org.apache.accumulo.core.tabletserver.thrift.TCompactionReason.findByValue(iprot.readI32());
               struct.setReasonIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -1597,11 +1597,11 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
         struct.setOutputFileIsSet(true);
       }
       if (incoming.get(4)) {
-        struct.type = org.apache.accumulo.core.tabletserver.thrift.CompactionType.findByValue(iprot.readI32());
+        struct.type = org.apache.accumulo.core.tabletserver.thrift.TCompactionType.findByValue(iprot.readI32());
         struct.setTypeIsSet(true);
       }
       if (incoming.get(5)) {
-        struct.reason = org.apache.accumulo.core.tabletserver.thrift.CompactionReason.findByValue(iprot.readI32());
+        struct.reason = org.apache.accumulo.core.tabletserver.thrift.TCompactionReason.findByValue(iprot.readI32());
         struct.setReasonIsSet(true);
       }
       if (incoming.get(6)) {

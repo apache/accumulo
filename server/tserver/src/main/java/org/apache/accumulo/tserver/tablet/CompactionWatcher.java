@@ -29,6 +29,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.server.compaction.CompactionInfo;
+import org.apache.accumulo.server.compaction.FileCompactor;
 import org.slf4j.LoggerFactory;
 
 public class CompactionWatcher implements Runnable {
@@ -53,7 +55,7 @@ public class CompactionWatcher implements Runnable {
 
   @Override
   public void run() {
-    List<CompactionInfo> runningCompactions = Compactor.getRunningCompactions();
+    List<CompactionInfo> runningCompactions = FileCompactor.getRunningCompactions();
 
     Set<List<Long>> newKeys = new HashSet<>();
 

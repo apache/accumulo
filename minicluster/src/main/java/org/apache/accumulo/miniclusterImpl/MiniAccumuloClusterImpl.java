@@ -751,7 +751,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return executor;
   }
 
-  int stopProcessWithTimeout(final Process proc, long timeout, TimeUnit unit)
+  public int stopProcessWithTimeout(final Process proc, long timeout, TimeUnit unit)
       throws InterruptedException, ExecutionException, TimeoutException {
     FutureTask<Integer> future = new FutureTask<>(() -> {
       proc.destroy();

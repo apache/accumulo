@@ -73,10 +73,19 @@ import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.SummarizerFactory;
 import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.summary.SummaryReader;
+import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
+import org.apache.accumulo.server.compaction.CompactionStats;
+import org.apache.accumulo.server.compaction.FileCompactor;
+import org.apache.accumulo.server.compaction.FileCompactor.CompactionCanceledException;
+import org.apache.accumulo.server.compaction.FileCompactor.CompactionEnv;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
+import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.CompactionStrategy;
@@ -85,8 +94,6 @@ import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.apache.accumulo.tserver.compaction.WriteParameters;
 import org.apache.accumulo.tserver.tablet.CompactableImpl.CompactionCheck;
 import org.apache.accumulo.tserver.tablet.CompactableImpl.CompactionHelper;
-import org.apache.accumulo.tserver.tablet.Compactor.CompactionCanceledException;
-import org.apache.accumulo.tserver.tablet.Compactor.CompactionEnv;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -183,46 +190,45 @@ public class CompactableUtils {
     return new CompactionPlan();
   }
 
-  static AccumuloConfiguration createCompactionConfiguration(AccumuloConfiguration base,
-      WriteParameters p) {
+  static Map<String,String> computeOverrides(WriteParameters p) {
     if (p == null)
-      return base;
+      return null;
 
-    ConfigurationCopy result = new ConfigurationCopy(base);
+    Map<String,String> result = new HashMap<>();
     if (p.getHdfsBlockSize() > 0) {
-      result.set(Property.TABLE_FILE_BLOCK_SIZE, "" + p.getHdfsBlockSize());
+      result.put(Property.TABLE_FILE_BLOCK_SIZE.getKey(), "" + p.getHdfsBlockSize());
     }
     if (p.getBlockSize() > 0) {
-      result.set(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE, "" + p.getBlockSize());
+      result.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "" + p.getBlockSize());
     }
     if (p.getIndexBlockSize() > 0) {
-      result.set(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX, "" + p.getIndexBlockSize());
+      result.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey(),
+          "" + p.getIndexBlockSize());
     }
     if (p.getCompressType() != null) {
-      result.set(Property.TABLE_FILE_COMPRESSION_TYPE, p.getCompressType());
+      result.put(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), p.getCompressType());
     }
     if (p.getReplication() != 0) {
-      result.set(Property.TABLE_FILE_REPLICATION, "" + p.getReplication());
+      result.put(Property.TABLE_FILE_REPLICATION.getKey(), "" + p.getReplication());
     }
     return result;
   }
 
-  static AccumuloConfiguration createCompactionConfiguration(Tablet tablet,
-      Set<CompactableFile> files) {
+  static Map<String,String> computeOverrides(Tablet tablet, Set<CompactableFile> files) {
     var tconf = tablet.getTableConfiguration();
 
     var configurorClass = tconf.get(Property.TABLE_COMPACTION_CONFIGURER);
     if (configurorClass == null || configurorClass.isBlank()) {
-      return tconf;
+      return null;
     }
 
     var opts = tconf.getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_CONFIGURER_OPTS);
 
-    return createCompactionConfiguration(tablet, files, new PluginConfig(configurorClass, opts));
+    return computeOverrides(tablet, files, new PluginConfig(configurorClass, opts));
   }
 
-  static AccumuloConfiguration createCompactionConfiguration(Tablet tablet,
-      Set<CompactableFile> files, PluginConfig cfg) {
+  static Map<String,String> computeOverrides(Tablet tablet, Set<CompactableFile> files,
+      PluginConfig cfg) {
     CompactionConfigurer configurer = CompactableUtils.newInstance(tablet.getTableConfiguration(),
         cfg.getClassName(), CompactionConfigurer.class);
 
@@ -263,12 +269,10 @@ public class CompactableUtils {
     });
 
     if (overrides.getOverrides().isEmpty()) {
-      return tablet.getTableConfiguration();
+      return null;
     }
 
-    ConfigurationCopy result = new ConfigurationCopy(tablet.getTableConfiguration());
-    overrides.getOverrides().forEach(result::set);
-    return result;
+    return overrides.getOverrides();
   }
 
   static <T> T newInstance(AccumuloConfiguration tableConfig, String className,
@@ -396,12 +400,8 @@ public class CompactableUtils {
     }
 
     @Override
-    public AccumuloConfiguration override(AccumuloConfiguration conf, Set<CompactableFile> files) {
-      if (wp != null) {
-        return createCompactionConfiguration(conf, wp);
-      }
-
-      return null;
+    public Map<String,String> getConfigOverrides(Set<CompactableFile> files) {
+      return computeOverrides(wp);
     }
 
     @Override
@@ -456,12 +456,12 @@ public class CompactableUtils {
     }
 
     @Override
-    public AccumuloConfiguration override(AccumuloConfiguration conf, Set<CompactableFile> files) {
+    public Map<String,String> getConfigOverrides(Set<CompactableFile> files) {
       if (!UserCompactionUtils.isDefault(compactionConfig.getConfigurer())) {
-        return createCompactionConfiguration(tablet, files, compactionConfig.getConfigurer());
+        return computeOverrides(tablet, files, compactionConfig.getConfigurer());
       } else if (!CompactionStrategyConfigUtil.isDefault(compactionConfig.getCompactionStrategy())
           && wp != null) {
-        return createCompactionConfiguration(conf, wp);
+        return computeOverrides(wp);
       }
 
       return null;
@@ -522,22 +522,41 @@ public class CompactableUtils {
     return null;
   }
 
-  public static AccumuloConfiguration getCompactionConfig(CompactionKind kind, Tablet tablet,
+  public static Map<String,String> getOverrides(CompactionKind kind, Tablet tablet,
       CompactionHelper driver, Set<CompactableFile> files) {
+
+    Map<String,String> overrides = null;
+
     if (kind == CompactionKind.USER || kind == CompactionKind.SELECTOR) {
-      var oconf = driver.override(tablet.getTableConfiguration(), files);
-      if (oconf != null)
-        return oconf;
+      overrides = driver.getConfigOverrides(files);
     }
 
-    return createCompactionConfiguration(tablet, files);
+    if (overrides == null) {
+      overrides = computeOverrides(tablet, files);
+    }
+
+    if (overrides == null)
+      return Map.of();
+
+    return overrides;
+  }
+
+  private static AccumuloConfiguration getCompactionConfig(TableConfiguration tableConfiguration,
+      Map<String,String> overrides) {
+    if (overrides.isEmpty())
+      return tableConfiguration;
+
+    ConfigurationCopy copy = new ConfigurationCopy(tableConfiguration);
+    overrides.forEach((k, v) -> copy.set(k, v));
+
+    return copy;
   }
 
   static StoredTabletFile compact(Tablet tablet, CompactionJob job, Set<StoredTabletFile> jobFiles,
-      Long compactionId, boolean propogateDeletes, CompactableImpl.CompactionHelper helper,
-      List<IteratorSetting> iters, CompactionCheck compactionCheck, RateLimiter readLimiter,
-      RateLimiter writeLimiter, CompactionStats stats)
-      throws IOException, CompactionCanceledException {
+      Long compactionId, Set<StoredTabletFile> selectedFiles, boolean propagateDeletes,
+      CompactableImpl.CompactionHelper helper, List<IteratorSetting> iters,
+      CompactionCheck compactionCheck, RateLimiter readLimiter, RateLimiter writeLimiter,
+      CompactionStats stats) throws IOException, CompactionCanceledException {
     StoredTabletFile metaFile;
     CompactionEnv cenv = new CompactionEnv() {
       @Override
@@ -559,22 +578,46 @@ public class CompactableUtils {
       public RateLimiter getWriteLimiter() {
         return writeLimiter;
       }
+
+      @Override
+      public SystemIteratorEnvironment createIteratorEnv(ServerContext context,
+          AccumuloConfiguration acuTableConf, TableId tableId) {
+        return new TabletIteratorEnvironment(context, IteratorScope.majc, !propagateDeletes,
+            acuTableConf, tableId, job.getKind());
+      }
+
+      @Override
+      public SortedKeyValueIterator<Key,Value> getMinCIterator() {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public TCompactionReason getReason() {
+        switch (job.getKind()) {
+          case USER:
+            return TCompactionReason.USER;
+          case CHOP:
+            return TCompactionReason.CHOP;
+          case SELECTOR:
+          case SYSTEM:
+          default:
+            return TCompactionReason.SYSTEM;
+        }
+      }
     };
 
-    int reason = job.getKind().ordinal();
-
-    AccumuloConfiguration tableConfig =
-        getCompactionConfig(job.getKind(), tablet, helper, job.getFiles());
+    AccumuloConfiguration compactionConfig = getCompactionConfig(tablet.getTableConfiguration(),
+        getOverrides(job.getKind(), tablet, helper, job.getFiles()));
 
     SortedMap<StoredTabletFile,DataFileValue> allFiles = tablet.getDatafiles();
     HashMap<StoredTabletFile,DataFileValue> compactFiles = new HashMap<>();
     jobFiles.forEach(file -> compactFiles.put(file, allFiles.get(file)));
 
-    TabletFile newFile = tablet.getNextMapFilename(!propogateDeletes ? "A" : "C");
+    TabletFile newFile = tablet.getNextMapFilename(!propagateDeletes ? "A" : "C");
     TabletFile compactTmpName = new TabletFile(new Path(newFile.getMetaInsert() + "_tmp"));
 
-    Compactor compactor = new Compactor(tablet.getContext(), tablet, compactFiles, null,
-        compactTmpName, propogateDeletes, cenv, iters, reason, tableConfig);
+    FileCompactor compactor = new FileCompactor(tablet.getContext(), tablet.getExtent(),
+        compactFiles, compactTmpName, propagateDeletes, cenv, iters, compactionConfig);
 
     var mcs = compactor.call();
 
@@ -589,8 +632,8 @@ public class CompactableUtils {
     stats.add(mcs);
 
     metaFile = tablet.getDatafileManager().bringMajorCompactionOnline(compactFiles.keySet(),
-        compactTmpName, newFile, compactionId,
-        new DataFileValue(mcs.getFileSize(), mcs.getEntriesWritten()));
+        compactTmpName, newFile, compactionId, selectedFiles,
+        new DataFileValue(mcs.getFileSize(), mcs.getEntriesWritten()), Optional.empty());
     return metaFile;
   }
 

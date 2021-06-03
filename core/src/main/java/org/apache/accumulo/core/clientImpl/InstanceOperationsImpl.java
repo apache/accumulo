@@ -20,6 +20,7 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createClient;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createTransport;
 import static org.apache.accumulo.core.rpc.ThriftUtil.getTServerClient;
@@ -30,12 +31,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
+import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
@@ -47,6 +52,8 @@ import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
@@ -191,7 +198,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
       List<ActiveCompaction> as = new ArrayList<>();
       for (var tac : client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds())) {
-        as.add(new ActiveCompactionImpl(context, tac));
+        as.add(new ActiveCompactionImpl(context, tac, parsedTserver, CompactionHost.Type.TSERVER));
       }
       return as;
     } catch (ThriftSecurityException e) {
@@ -201,6 +208,53 @@ public class InstanceOperationsImpl implements InstanceOperations {
     } finally {
       if (client != null)
         returnClient(client);
+    }
+  }
+
+  @Override
+  public List<ActiveCompaction> getActiveCompactions()
+      throws AccumuloException, AccumuloSecurityException {
+
+    List<HostAndPort> compactors = ExternalCompactionUtil.getCompactorAddrs(context);
+    List<String> tservers = getTabletServers();
+
+    int numThreads = Math.max(4, Math.min((tservers.size() + compactors.size()) / 10, 256));
+    var executorService =
+        ThreadPools.createFixedThreadPool(numThreads, "getactivecompactions", false);
+    try {
+      List<Future<List<ActiveCompaction>>> futures = new ArrayList<>();
+
+      for (String tserver : tservers) {
+        futures.add(executorService.submit(() -> getActiveCompactions(tserver)));
+      }
+
+      for (HostAndPort compactorAddr : compactors) {
+        Callable<List<ActiveCompaction>> task =
+            () -> ExternalCompactionUtil.getActiveCompaction(compactorAddr, context).stream()
+                .map(tac -> new ActiveCompactionImpl(context, tac, compactorAddr,
+                    CompactionHost.Type.COMPACTOR))
+                .collect(toList());
+
+        futures.add(executorService.submit(task));
+      }
+
+      List<ActiveCompaction> ret = new ArrayList<>();
+      for (Future<List<ActiveCompaction>> future : futures) {
+        try {
+          ret.addAll(future.get());
+        } catch (InterruptedException | ExecutionException e) {
+          if (e.getCause() instanceof ThriftSecurityException) {
+            ThriftSecurityException tse = (ThriftSecurityException) e.getCause();
+            throw new AccumuloSecurityException(tse.user, tse.code, e);
+          }
+          throw new AccumuloException(e);
+        }
+      }
+
+      return ret;
+
+    } finally {
+      executorService.shutdown();
     }
   }
 

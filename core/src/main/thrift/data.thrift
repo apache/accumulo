@@ -190,3 +190,4 @@ typedef map<TKeyExtent, list<TConditionalMutation>> CMBatch
 typedef map<TKeyExtent, list<TMutation>> UpdateBatch
 
 typedef map<TKeyExtent, map<string, MapFileInfo>> TabletFiles
+

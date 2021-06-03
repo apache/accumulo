@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.tablet;
+package org.apache.accumulo.server.compaction;
 
 public class CompactionStats {
   private long entriesRead;
   private long entriesWritten;
   private long fileSize;
 
-  CompactionStats(long er, long ew) {
+  public CompactionStats(long er, long ew) {
     this.setEntriesRead(er);
     this.setEntriesWritten(ew);
   }

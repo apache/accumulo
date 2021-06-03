@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
@@ -67,7 +68,7 @@ public class CompactionPlanImpl implements CompactionPlan {
     }
 
     @Override
-    public Builder addJob(long priority, CompactionExecutorId executor,
+    public Builder addJob(short priority, CompactionExecutorId executor,
         Collection<CompactableFile> files) {
       Set<CompactableFile> filesSet =
           files instanceof Set ? (Set<CompactableFile>) files : Set.copyOf(files);
@@ -79,8 +80,8 @@ public class CompactionPlanImpl implements CompactionPlan {
 
       seenFiles.addAll(filesSet);
 
-      jobs.add(
-          new CompactionJobImpl(priority, executor, filesSet, kind, filesSet.equals(allFiles)));
+      jobs.add(new CompactionJobImpl(priority, executor, filesSet, kind,
+          Optional.of(filesSet.equals(allFiles))));
       return this;
     }
 

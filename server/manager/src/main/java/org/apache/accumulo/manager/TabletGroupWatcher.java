@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +40,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
@@ -68,6 +68,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -480,7 +481,7 @@ abstract class TabletGroupWatcher extends Thread {
         TServerInstance alive = manager.tserverSet.find(entry.getValue().toString());
         if (alive == null) {
           Manager.log.info("Removing entry  {}", entry);
-          BatchWriter bw = manager.getContext().createBatchWriter(table, new BatchWriterConfig());
+          BatchWriter bw = manager.getContext().createBatchWriter(table);
           Mutation m = new Mutation(entry.getKey().getRow());
           m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
           bw.addMutation(m);
@@ -659,7 +660,7 @@ abstract class TabletGroupWatcher extends Thread {
         }
       }
       ample.putGcFileAndDirCandidates(extent.tableId(), datafiles);
-      BatchWriter bw = client.createBatchWriter(targetSystemTable, new BatchWriterConfig());
+      BatchWriter bw = client.createBatchWriter(targetSystemTable);
       try {
         deleteTablets(info, deleteRange, bw, client);
       } finally {
@@ -668,7 +669,7 @@ abstract class TabletGroupWatcher extends Thread {
 
       if (followingTablet != null) {
         Manager.log.debug("Updating prevRow of {} to {}", followingTablet, extent.prevEndRow());
-        bw = client.createBatchWriter(targetSystemTable, new BatchWriterConfig());
+        bw = client.createBatchWriter(targetSystemTable);
         try {
           Mutation m = new Mutation(followingTablet.toMetaRow());
           TabletColumnFamily.PREV_ROW_COLUMN.put(m,
@@ -710,7 +711,7 @@ abstract class TabletGroupWatcher extends Thread {
 
     AccumuloClient client = manager.getContext();
 
-    try (BatchWriter bw = client.createBatchWriter(targetSystemTable, new BatchWriterConfig())) {
+    try (BatchWriter bw = client.createBatchWriter(targetSystemTable)) {
       long fileCount = 0;
       // Make file entries in highest tablet
       Scanner scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
@@ -746,15 +747,23 @@ abstract class TabletGroupWatcher extends Thread {
       scanner = client.createScanner(targetSystemTable, Authorizations.EMPTY);
       scanner.setRange(new Range(stopRow));
       ServerColumnFamily.TIME_COLUMN.fetch(scanner);
+      scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
+      Set<String> extCompIds = new HashSet<>();
       for (Entry<Key,Value> entry : scanner) {
         if (ServerColumnFamily.TIME_COLUMN.hasColumns(entry.getKey())) {
           maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime,
               MetadataTime.parse(entry.getValue().toString()));
+        } else if (ExternalCompactionColumnFamily.NAME.equals(entry.getKey().getColumnFamily())) {
+          extCompIds.add(entry.getKey().getColumnQualifierData().toString());
         }
       }
 
       if (maxLogicalTime != null)
         ServerColumnFamily.TIME_COLUMN.put(m, new Value(maxLogicalTime.encode()));
+
+      // delete any entries for external compactions
+      extCompIds.stream()
+          .forEach(ecid -> m.putDelete(ExternalCompactionColumnFamily.STR_NAME, ecid));
 
       if (!m.getUpdates().isEmpty()) {
         bw.addMutation(m);
@@ -779,9 +788,9 @@ abstract class TabletGroupWatcher extends Thread {
       deleteTablets(info, scanRange, bw, client);
 
       // Clean-up the last chopped marker
-      m = new Mutation(stopRow);
-      ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
-      bw.addMutation(m);
+      var m2 = new Mutation(stopRow);
+      ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m2);
+      bw.addMutation(m2);
       bw.flush();
 
     } catch (Exception ex) {

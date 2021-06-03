@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -89,7 +88,7 @@ public class RowHashIT extends ConfigurableMacBase {
       AccumuloSecurityException, TableExistsException, TableNotFoundException,
       MutationsRejectedException, IOException, InterruptedException, NoSuchAlgorithmException {
     c.tableOperations().create(tablename);
-    BatchWriter bw = c.createBatchWriter(tablename, new BatchWriterConfig());
+    BatchWriter bw = c.createBatchWriter(tablename);
     for (int i = 0; i < 10; i++) {
       Mutation m = new Mutation("" + i);
       m.put(input_cf, input_cq, "row" + i);

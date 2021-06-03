@@ -49,7 +49,8 @@ public interface CompactionPlan {
      *          The files to compact.
      * @return this
      */
-    Builder addJob(long priority, CompactionExecutorId executor, Collection<CompactableFile> group);
+    Builder addJob(short priority, CompactionExecutorId executor,
+        Collection<CompactableFile> group);
 
     CompactionPlan build();
   }

@@ -31,7 +31,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -97,7 +96,7 @@ public class SlowOps {
       client.tableOperations().create(tableName);
       log.info("Created table id: {}, name \'{}\'",
           client.tableOperations().tableIdMap().get(tableName), tableName);
-      try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
         // populate
         for (int i = 0; i < NUM_DATA_ROWS; i++) {
           Mutation m = new Mutation(new Text(String.format("%05d", i)));

@@ -38,7 +38,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -130,7 +129,7 @@ public class SampleIT extends AccumuloClusterHarness {
 
       client.tableOperations().create(tableName, new NewTableConfiguration().enableSampling(SC1));
 
-      BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
+      BatchWriter bw = client.createBatchWriter(tableName);
 
       TreeMap<Key,Value> expected = new TreeMap<>();
       String someRow = writeData(bw, SC1, expected);
@@ -300,10 +299,10 @@ public class SampleIT extends AccumuloClusterHarness {
 
       client.tableOperations().create(tableName, new NewTableConfiguration().enableSampling(SC1));
 
-      BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig());
-
       TreeMap<Key,Value> expected = new TreeMap<>();
-      writeData(bw, SC1, expected);
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
+        writeData(bw, SC1, expected);
+      }
 
       ArrayList<Key> keys = new ArrayList<>(expected.keySet());
 
@@ -414,7 +413,7 @@ public class SampleIT extends AccumuloClusterHarness {
       client.tableOperations().create(tableName);
 
       TreeMap<Key,Value> expected = new TreeMap<>();
-      try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
         writeData(bw, SC1, expected);
       }
 

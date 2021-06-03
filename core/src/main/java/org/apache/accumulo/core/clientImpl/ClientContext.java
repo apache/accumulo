@@ -95,20 +95,21 @@ public class ClientContext implements AccumuloClient {
 
   private static final Logger log = LoggerFactory.getLogger(ClientContext.class);
 
-  private ClientInfo info;
+  private final ClientInfo info;
   private String instanceId;
   private final ZooCache zooCache;
 
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
-  private AccumuloConfiguration serverConf;
-  private Configuration hadoopConf;
+  private ConditionalWriterConfig conditionalWriterConfig;
+  private final AccumuloConfiguration serverConf;
+  private final Configuration hadoopConf;
 
   // These fields are very frequently accessed (each time a connection is created) and expensive to
   // compute, so cache them.
-  private Supplier<Long> timeoutSupplier;
-  private Supplier<SaslConnectionParams> saslSupplier;
-  private Supplier<SslConnectionParams> sslSupplier;
+  private final Supplier<Long> timeoutSupplier;
+  private final Supplier<SaslConnectionParams> saslSupplier;
+  private final Supplier<SslConnectionParams> sslSupplier;
   private TCredentials rpcCreds;
 
   private volatile boolean closed = false;
@@ -118,7 +119,7 @@ public class ClientContext implements AccumuloClient {
   private NamespaceOperations namespaceops = null;
   private InstanceOperations instanceops = null;
   private ReplicationOperations replicationops = null;
-  private SingletonReservation singletonReservation;
+  private final SingletonReservation singletonReservation;
 
   private void ensureOpen() {
     if (closed) {
@@ -283,29 +284,64 @@ public class ClientContext implements AccumuloClient {
     return saslSupplier.get();
   }
 
-  public BatchWriterConfig getBatchWriterConfig() {
-    ensureOpen();
-    if (batchWriterConfig == null) {
-      Properties props = info.getProperties();
-      batchWriterConfig = new BatchWriterConfig();
-      Long maxMemory = ClientProperty.BATCH_WRITER_MEMORY_MAX.getBytes(props);
-      if (maxMemory != null) {
-        batchWriterConfig.setMaxMemory(maxMemory);
-      }
-      Long maxLatency = ClientProperty.BATCH_WRITER_LATENCY_MAX.getTimeInMillis(props);
-      if (maxLatency != null) {
-        batchWriterConfig.setMaxLatency(maxLatency, TimeUnit.SECONDS);
-      }
-      Long timeout = ClientProperty.BATCH_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
-      if (timeout != null) {
-        batchWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
-      }
-      String durability = ClientProperty.BATCH_WRITER_DURABILITY.getValue(props);
-      if (!durability.isEmpty()) {
-        batchWriterConfig.setDurability(Durability.valueOf(durability.toUpperCase()));
-      }
+  static BatchWriterConfig getBatchWriterConfig(Properties props) {
+    BatchWriterConfig batchWriterConfig = new BatchWriterConfig();
+
+    Long maxMemory = ClientProperty.BATCH_WRITER_MEMORY_MAX.getBytes(props);
+    if (maxMemory != null) {
+      batchWriterConfig.setMaxMemory(maxMemory);
+    }
+    Long maxLatency = ClientProperty.BATCH_WRITER_LATENCY_MAX.getTimeInMillis(props);
+    if (maxLatency != null) {
+      batchWriterConfig.setMaxLatency(maxLatency, TimeUnit.SECONDS);
+    }
+    Long timeout = ClientProperty.BATCH_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
+    if (timeout != null) {
+      batchWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
+    }
+    Integer maxThreads = ClientProperty.BATCH_WRITER_THREADS_MAX.getInteger(props);
+    if (maxThreads != null) {
+      batchWriterConfig.setMaxWriteThreads(maxThreads);
+    }
+    String durability = ClientProperty.BATCH_WRITER_DURABILITY.getValue(props);
+    if (!durability.isEmpty()) {
+      batchWriterConfig.setDurability(Durability.valueOf(durability.toUpperCase()));
     }
     return batchWriterConfig;
+  }
+
+  public synchronized BatchWriterConfig getBatchWriterConfig() {
+    ensureOpen();
+    if (batchWriterConfig == null) {
+      batchWriterConfig = getBatchWriterConfig(info.getProperties());
+    }
+    return batchWriterConfig;
+  }
+
+  static ConditionalWriterConfig getConditionalWriterConfig(Properties props) {
+    ConditionalWriterConfig conditionalWriterConfig = new ConditionalWriterConfig();
+
+    Long timeout = ClientProperty.CONDITIONAL_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
+    if (timeout != null) {
+      conditionalWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
+    }
+    String durability = ClientProperty.CONDITIONAL_WRITER_DURABILITY.getValue(props);
+    if (!durability.isEmpty()) {
+      conditionalWriterConfig.setDurability(Durability.valueOf(durability.toUpperCase()));
+    }
+    Integer maxThreads = ClientProperty.CONDITIONAL_WRITER_THREADS_MAX.getInteger(props);
+    if (maxThreads != null) {
+      conditionalWriterConfig.setMaxWriteThreads(maxThreads);
+    }
+    return conditionalWriterConfig;
+  }
+
+  public synchronized ConditionalWriterConfig getConditionalWriterConfig() {
+    ensureOpen();
+    if (conditionalWriterConfig == null) {
+      conditionalWriterConfig = getConditionalWriterConfig(info.getProperties());
+    }
+    return conditionalWriterConfig;
   }
 
   /**
@@ -555,7 +591,17 @@ public class ClientContext implements AccumuloClient {
   public ConditionalWriter createConditionalWriter(String tableName, ConditionalWriterConfig config)
       throws TableNotFoundException {
     ensureOpen();
-    return new ConditionalWriterImpl(this, getTableId(tableName), config);
+    if (config == null) {
+      config = new ConditionalWriterConfig();
+    }
+    return new ConditionalWriterImpl(this, getTableId(tableName),
+        config.merge(getConditionalWriterConfig()));
+  }
+
+  @Override
+  public ConditionalWriter createConditionalWriter(String tableName) throws TableNotFoundException {
+    ensureOpen();
+    return new ConditionalWriterImpl(this, getTableId(tableName), new ConditionalWriterConfig());
   }
 
   @Override
@@ -654,7 +700,7 @@ public class ClientContext implements AccumuloClient {
 
     private Properties properties = new Properties();
     private AuthenticationToken token = null;
-    private Function<ClientBuilderImpl<T>,T> builderFunction;
+    private final Function<ClientBuilderImpl<T>,T> builderFunction;
 
     public ClientBuilderImpl(Function<ClientBuilderImpl<T>,T> builderFunction) {
       this.builderFunction = builderFunction;

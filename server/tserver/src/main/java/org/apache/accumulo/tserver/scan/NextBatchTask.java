@@ -23,8 +23,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
+import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.tserver.TabletServer;
-import org.apache.accumulo.tserver.TooManyFilesException;
 import org.apache.accumulo.tserver.session.SingleScanSession;
 import org.apache.accumulo.tserver.tablet.ScanBatch;
 import org.apache.accumulo.tserver.tablet.Tablet;

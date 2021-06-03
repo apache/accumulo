@@ -16,15 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver;
+package org.apache.accumulo.compactor;
 
-import java.io.IOException;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 
-public class TooManyFilesException extends IOException {
+import com.google.auto.service.AutoService;
 
-  private static final long serialVersionUID = 1L;
+@AutoService(KeywordExecutable.class)
+public class CompactorExecutable implements KeywordExecutable {
 
-  public TooManyFilesException(String msg) {
-    super(msg);
+  @Override
+  public String keyword() {
+    return "compactor";
   }
+
+  @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.PROCESS;
+  }
+
+  @Override
+  public String description() {
+    return "Starts Accumulo Compactor";
+  }
+
+  @Override
+  public void execute(final String[] args) throws Exception {
+    System.err.println("WARNING: External compaction processes are experimental");
+    Compactor.main(args);
+  }
+
 }

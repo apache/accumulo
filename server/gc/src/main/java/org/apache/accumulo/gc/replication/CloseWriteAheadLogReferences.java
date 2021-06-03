@@ -27,7 +27,6 @@ import java.util.Set;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -139,12 +138,10 @@ public class CloseWriteAheadLogReferences implements Runnable {
    *          {@link Set} of paths to WALs that marked as closed or unreferenced in zookeeper
    */
   protected long updateReplicationEntries(AccumuloClient client, Set<String> closedWals) {
-    BatchScanner bs = null;
-    BatchWriter bw = null;
     long recordsClosed = 0;
-    try {
-      bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-      bs = client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
+    try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME);
+        BatchScanner bs = client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4)) {
+
       bs.setRanges(Collections.singleton(Range.prefix(ReplicationSection.getRowPrefix())));
       bs.fetchColumnFamily(ReplicationSection.COLF);
 
@@ -177,18 +174,8 @@ public class CloseWriteAheadLogReferences implements Runnable {
       }
     } catch (TableNotFoundException e) {
       log.error("Replication table was deleted", e);
-    } finally {
-      if (bs != null) {
-        bs.close();
-      }
-
-      if (bw != null) {
-        try {
-          bw.close();
-        } catch (MutationsRejectedException e) {
-          log.error("Failed to write delete mutations for replication table", e);
-        }
-      }
+    } catch (MutationsRejectedException e) {
+      log.error("Failed to write delete mutations for replication table", e);
     }
 
     return recordsClosed;

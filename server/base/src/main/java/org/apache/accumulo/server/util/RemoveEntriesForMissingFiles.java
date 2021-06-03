@@ -28,7 +28,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Key;
@@ -138,7 +137,7 @@ public class RemoveEntriesForMissingFiles {
     BatchWriter writer = null;
 
     if (fix)
-      writer = context.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+      writer = context.createBatchWriter(MetadataTable.NAME);
 
     for (Entry<Key,Value> entry : metadata) {
       if (exceptionRef.get() != null)

@@ -35,7 +35,7 @@ import org.apache.accumulo.core.iterators.ServerWrappingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 public class DeletingIterator extends ServerWrappingIterator {
-  private boolean propogateDeletes;
+  private boolean propagateDeletes;
   private Key workKey = new Key();
 
   public enum Behavior {
@@ -49,12 +49,12 @@ public class DeletingIterator extends ServerWrappingIterator {
 
   private DeletingIterator(DeletingIterator other, IteratorEnvironment env) {
     super(other.source.deepCopy(env));
-    propogateDeletes = other.propogateDeletes;
+    propagateDeletes = other.propagateDeletes;
   }
 
-  private DeletingIterator(SortedKeyValueIterator<Key,Value> iterator, boolean propogateDeletes) {
+  private DeletingIterator(SortedKeyValueIterator<Key,Value> iterator, boolean propagateDeletes) {
     super(iterator);
-    this.propogateDeletes = propogateDeletes;
+    this.propagateDeletes = propagateDeletes;
   }
 
   @Override
@@ -88,7 +88,7 @@ public class DeletingIterator extends ServerWrappingIterator {
   }
 
   private void findTop() throws IOException {
-    if (!propogateDeletes) {
+    if (!propagateDeletes) {
       while (source.hasTop() && source.getTopKey().isDeleted()) {
         skipRowColumn();
       }
@@ -114,10 +114,10 @@ public class DeletingIterator extends ServerWrappingIterator {
   }
 
   public static SortedKeyValueIterator<Key,Value> wrap(SortedKeyValueIterator<Key,Value> source,
-      boolean propogateDeletes, Behavior behavior) {
+      boolean propagateDeletes, Behavior behavior) {
     switch (behavior) {
       case PROCESS:
-        return new DeletingIterator(source, propogateDeletes);
+        return new DeletingIterator(source, propagateDeletes);
       case FAIL:
         return new ServerWrappingIterator(source) {
           @Override
