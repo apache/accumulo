@@ -59,13 +59,13 @@ function verify_config {
 
   unset manager1
   if [[ -f "${conf}/$manager_file" ]]; then
-    manager1=$(grep -E -v '(^#|^\s*$)' "${conf}/$manager_file" | head -1)
+    manager1=$(grep -Ev '(^#|^\s*$)' "${conf}/$manager_file" | head -1)
   fi
 
   if [[ -z "${monitor}" ]] ; then
     monitor=$manager1
     if [[ -f "${conf}/monitor" ]]; then
-      monitor=$(grep -E -v '(^#|^\s*$)' "${conf}/monitor" | head -1)
+      monitor=$(grep -Ev '(^#|^\s*$)' "${conf}/monitor" | head -1)
     fi
     if [[ -z "${monitor}" ]] ; then
       echo "Could not infer a Monitor role. You need to either define \"${conf}/monitor\","
@@ -128,7 +128,7 @@ function start_service() {
 function start_tservers() {
   echo -n "Starting tablet servers ..."
   count=1
- grep -E -v '(^#|^\s*$)' < "${conf}/tservers" |  while read -r server; do
+  grep -Ev '(^#|^\s*$)' "${conf}/tservers" | while read -r server; do
     echo -n "."
     start_service "$server" tserver &
     if (( ++count % 72 == 0 )) ;
@@ -147,17 +147,17 @@ function start_all() {
     start_tservers
   fi
 
- grep -E -v '(^#|^\s*$)' < "${conf}/$manager_file" |  while read -r host; do
-  start_service "$host" manager
- done
+  grep -Ev '(^#|^\s*$)' "${conf}/$manager_file" | while read -r host; do
+    start_service "$host" manager
+  done
 
-  grep -E -v '(^#|^\s*$)' < "${conf}/gc" |  while read -r host; do
-  start_service "$host" gc
- done
+  grep -Ev '(^#|^\s*$)' "${conf}/gc" | while read -r host; do
+    start_service "$host" gc
+  done
 
-  grep -E -v '(^#|^\s*$)' < "${conf}/tracers" |  while read -r host; do
-  start_service "$host" tracer
- done
+  grep -Ev '(^#|^\s*$)' "${conf}/tracers" | while read -r host; do
+    start_service "$host" tracer
+  done
 
   start_service "$monitor" monitor
 }
@@ -214,7 +214,7 @@ function kill_service() {
 }
 
 function stop_tservers() {
-  tserver_hosts=$(grep -E -v '(^#|^\s*$)' "${conf}/tservers")
+  tserver_hosts=$(grep -Ev '(^#|^\s*$)' "${conf}/tservers")
 
   echo "Stopping unresponsive tablet servers (if any)..."
   for host in ${tserver_hosts}; do
@@ -235,21 +235,21 @@ function stop_tservers() {
 function kill_all() {
   echo "Killing Accumulo cluster..."
 
-  grep -v '^#'  < "${conf}/$manager_file" |  while read -r manager; do
+  grep -v '^#' "${conf}/$manager_file" | while read -r manager; do
     kill_service "$manager" manager
   done
 
-  grep -v '^#'  < "${conf}/gc" |  while read -r gc; do
+  grep -v '^#' "${conf}/gc" | while read -r gc; do
     kill_service "$gc" gc
   done
 
   kill_service "$monitor" monitor
 
-  grep -E -v '(^#|^\s*$)' < "${conf}/tracers" |  while read -r tracer; do
+  grep -Ev '(^#|^\s*$)' "${conf}/tracers" | while read -r tracer; do
     kill_service "$tracer" tracer
   done
 
-  grep -E -v '(^#|^\s*$)' < "${conf}/tservers" |  while read -r server; do
+  grep -Ev '(^#|^\s*$)' "${conf}/tservers" | while read -r server; do
     kill_service "$host" tserver
   done
 
@@ -275,17 +275,17 @@ function stop_all() {
 
   # Look for processes not killed by 'admin stopAll'
   for end_cmd in "stop" "kill" ; do
-    grep -v '^#'  < "${conf}/$manager_file" |  while read -r manager; do
+    grep -v '^#' "${conf}/$manager_file" | while read -r manager; do
       end_service "$manager" manager $end_cmd
     done
 
-    grep -v '^#'  < "${conf}/gc" |  while read -r gc; do
+    grep -v '^#' "${conf}/gc" | while read -r gc; do
       end_service "$gc" gc $end_cmd
     done
 
     end_service "$monitor" monitor $end_cmd
 
-    grep -E -v '(^#|^\s*$)' < "${conf}/tracers" |  while read -r tracer; do
+    grep -Ev '(^#|^\s*$)' "${conf}/tracers" | while read -r tracer; do
       end_service "$tracer" tracer $end_cmd
     done
   done
@@ -299,9 +299,9 @@ function stop_all() {
 
 function stop_here() {
   # Determine hostname without errors to user
-  hosts_to_check="$(hostname -a 2> /dev/null | head -1) $(hostname -f)"
+  hosts_to_check=("$(hostname -a 2> /dev/null | head -1)" "$(hostname -f)")
 
-  if grep -E -q localhost\|127.0.0.1 "${conf}/tservers"; then
+  if grep -Eq 'localhost|127[.]0[.]0[.]1' "${conf}/tservers"; then
     ${accumulo_cmd} admin stop localhost
   else
     for host in "${hosts_to_check[@]}"; do
