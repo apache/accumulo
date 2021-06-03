@@ -613,9 +613,7 @@ public class CompactableUtils {
     HashMap<StoredTabletFile,DataFileValue> compactFiles = new HashMap<>();
     jobFiles.forEach(file -> compactFiles.put(file, allFiles.get(file)));
 
-    String tmpFileName =
-        tablet.getNextMapFilename(!propagateDeletes ? "A" : "C").getMetaInsert() + "_tmp";
-    TabletFile compactTmpName = new TabletFile(new Path(tmpFileName));
+    TabletFile compactTmpName = tablet.getNextMapFilenameForMajc(propagateDeletes);
 
     FileCompactor compactor = new FileCompactor(tablet.getContext(), tablet.getExtent(),
         compactFiles, compactTmpName, propagateDeletes, cenv, iters, compactionConfig);
@@ -651,4 +649,17 @@ public class CompactableUtils {
         throw new IllegalArgumentException("Unknown kind " + ck);
     }
   }
+
+  public static TabletFile computeCompactionFileDest(TabletFile tmpFile) {
+    String newFilePath = tmpFile.getMetaInsert();
+    int idx = newFilePath.indexOf("_tmp");
+    if (idx > 0) {
+      newFilePath = newFilePath.substring(0, idx);
+    } else {
+      throw new RuntimeException(
+          "Expected compaction tmp file " + tmpFile.getMetaInsert() + " to have suffix '_tmp'");
+    }
+    return new TabletFile(new Path(newFilePath));
+  }
+
 }

@@ -74,7 +74,6 @@ import org.apache.accumulo.tserver.compactions.Compactable;
 import org.apache.accumulo.tserver.compactions.CompactionManager;
 import org.apache.accumulo.tserver.compactions.ExternalCompactionJob;
 import org.apache.accumulo.tserver.managermessage.TabletStatusMessage;
-import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -973,9 +972,7 @@ public class CompactableImpl implements Compactable {
       Map<String,String> overrides =
           CompactableUtils.getOverrides(job.getKind(), tablet, cInfo.localHelper, job.getFiles());
 
-      String tmpFileName =
-          tablet.getNextMapFilename(!cInfo.propagateDeletes ? "A" : "C").getMetaInsert() + "_tmp";
-      TabletFile compactTmpName = new TabletFile(new Path(tmpFileName));
+      TabletFile compactTmpName = tablet.getNextMapFilenameForMajc(cInfo.propagateDeletes);
 
       ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
 

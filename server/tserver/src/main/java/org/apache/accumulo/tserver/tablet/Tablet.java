@@ -273,6 +273,11 @@ public class Tablet {
         + context.getUniqueNameAllocator().getNextName() + "." + extension));
   }
 
+  TabletFile getNextMapFilenameForMajc(boolean propagateDeletes) throws IOException {
+    String tmpFileName = getNextMapFilename(!propagateDeletes ? "A" : "C").getMetaInsert() + "_tmp";
+    return new TabletFile(new Path(tmpFileName));
+  }
+
   private void checkTabletDir(Path path) throws IOException {
     if (!checkedTabletDirs.contains(path)) {
       FileStatus[] files = null;
