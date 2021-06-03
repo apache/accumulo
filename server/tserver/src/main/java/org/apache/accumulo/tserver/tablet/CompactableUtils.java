@@ -656,7 +656,7 @@ public class CompactableUtils {
     if (idx > 0) {
       newFilePath = newFilePath.substring(0, idx);
     } else {
-      throw new RuntimeException(
+      throw new IllegalArgumentException(
           "Expected compaction tmp file " + tmpFile.getMetaInsert() + " to have suffix '_tmp'");
     }
     return new TabletFile(new Path(newFilePath));
