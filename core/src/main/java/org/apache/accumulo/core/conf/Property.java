@@ -1045,44 +1045,44 @@ public enum Property {
       "The maximum size of a message that can be sent to a tablet server."),
   // CompactionCoordinator properties
   @Experimental
-  COMPACTION_COORDINATOR_PREFIX("compaction_coordinator.", null, PropertyType.PREFIX,
+  COMPACTION_COORDINATOR_PREFIX("compaction.coordinator.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo compaction coordinator server."),
   @Experimental
-  COMPACTION_COORDINATOR_THRIFTCLIENT_PORTSEARCH("compaction_coordinator.port.search", "false",
+  COMPACTION_COORDINATOR_THRIFTCLIENT_PORTSEARCH("compaction.coordinator.port.search", "false",
       PropertyType.BOOLEAN,
       "If the ports above are in use, search higher ports until one is available"),
   @Experimental
-  COMPACTION_COORDINATOR_CLIENTPORT("compaction_coordinator.port.client", "9132", PropertyType.PORT,
+  COMPACTION_COORDINATOR_CLIENTPORT("compaction.coordinator.port.client", "9132", PropertyType.PORT,
       "The port used for handling Thrift client connections on the compaction coordinator server"),
   @Experimental
-  COMPACTION_COORDINATOR_MINTHREADS("compaction_coordinator.threads.minimum", "1",
+  COMPACTION_COORDINATOR_MINTHREADS("compaction.coordinator.threads.minimum", "1",
       PropertyType.COUNT, "The minimum number of threads to use to handle incoming requests."),
   @Experimental
-  COMPACTION_COORDINATOR_MINTHREADS_TIMEOUT("compaction_coordinator.threads.timeout", "0s",
+  COMPACTION_COORDINATOR_MINTHREADS_TIMEOUT("compaction.coordinator.threads.timeout", "0s",
       PropertyType.TIMEDURATION,
       "The time after which incoming request threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely."),
   @Experimental
-  COMPACTION_COORDINATOR_THREADCHECK("compaction_coordinator.threadcheck.time", "1s",
+  COMPACTION_COORDINATOR_THREADCHECK("compaction.coordinator.threadcheck.time", "1s",
       PropertyType.TIMEDURATION, "The time between adjustments of the server thread pool."),
   @Experimental
-  COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE("compaction_coordinator.message.size.max", "10M",
+  COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE("compaction.coordinator.message.size.max", "10M",
       PropertyType.BYTES, "The maximum size of a message that can be sent to a tablet server."),
   @Experimental
   COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL(
-      "compaction_coordinator.compactor.dead.check.interval", "5m", PropertyType.TIMEDURATION,
+      "compaction.coordinator.compactor.dead.check.interval", "5m", PropertyType.TIMEDURATION,
       "The interval at which to check for dead compactors."),
   @Experimental
   COMPACTION_COORDINATOR_FINALIZER_TSERVER_NOTIFIER_MAXTHREADS(
-      "compaction_coordinator.compaction.finalizer.threads.maximum", "5", PropertyType.COUNT,
+      "compaction.coordinator.compaction.finalizer.threads.maximum", "5", PropertyType.COUNT,
       "The maximum number of threads to use for notifying tablet servers that an external compaction has completed."),
   @Experimental
   COMPACTION_COORDINATOR_FINALIZER_COMPLETION_CHECK_INTERVAL(
-      "compaction_coordinator.compaction.finalizer.check.interval", "60s",
+      "compaction.coordinator.compaction.finalizer.check.interval", "60s",
       PropertyType.TIMEDURATION,
       "The interval at which to check for external compaction final state markers in the metadata table."),
   @Experimental
   COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL(
-      "compaction_coordinator.tserver.check.interval", "1m", PropertyType.TIMEDURATION,
+      "compaction.coordinator.tserver.check.interval", "1m", PropertyType.TIMEDURATION,
       "The interval at which to check the tservers for external compactions."),
   // deprecated properties grouped at the end to reference property that replaces them
   @Deprecated(since = "1.6.0")
