@@ -106,6 +106,7 @@ class PopulateMetadataTable extends ManagerRepo {
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
         if (zipEntry.getName().equals(Constants.EXPORT_METADATA_FILE)) {
+          DataInputStream in = new DataInputStream(new BufferedInputStream(zis));
 
           Key key = new Key();
           Value val = new Value();
@@ -114,54 +115,52 @@ class PopulateMetadataTable extends ManagerRepo {
           Text currentRow = null;
           int dirCount = 0;
 
-          try (DataInputStream in = new DataInputStream(new BufferedInputStream(zis))) {
-            while (true) {
-              key.readFields(in);
-              val.readFields(in);
+          while (true) {
+            key.readFields(in);
+            val.readFields(in);
 
-              Text endRow = KeyExtent.fromMetaRow(key.getRow()).endRow();
-              Text metadataRow = new KeyExtent(tableInfo.tableId, endRow, null).toMetaRow();
+            Text endRow = KeyExtent.fromMetaRow(key.getRow()).endRow();
+            Text metadataRow = new KeyExtent(tableInfo.tableId, endRow, null).toMetaRow();
 
-              Text cq;
+            Text cq;
 
-              if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-                String oldName = new Path(key.getColumnQualifier().toString()).getName();
-                String newName = fileNameMappings.get(oldName);
+            if (key.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
+              String oldName = new Path(key.getColumnQualifier().toString()).getName();
+              String newName = fileNameMappings.get(oldName);
 
-                if (newName == null) {
-                  throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
-                      tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-                      "File " + oldName + " does not exist in import dir");
-                }
-
-                cq = new Text(newName);
-              } else {
-                cq = key.getColumnQualifier();
+              if (newName == null) {
+                throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
+                    tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
+                    "File " + oldName + " does not exist in import dir");
               }
 
-              if (m == null || !currentRow.equals(metadataRow)) {
+              cq = new Text(newName);
+            } else {
+              cq = key.getColumnQualifier();
+            }
 
-                if (m != null) {
-                  mbw.addMutation(m);
-                }
+            if (m == null || !currentRow.equals(metadataRow)) {
 
-                // Make a unique directory inside the table's dir. Cannot import multiple tables
-                // into one table, so don't need to use unique allocator
-                String tabletDir = new String(
-                    FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES),
-                    UTF_8);
-
-                m = new Mutation(metadataRow);
-                ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(tabletDir));
-                currentRow = metadataRow;
-              }
-
-              m.put(key.getColumnFamily(), cq, val);
-
-              if (endRow == null && TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
+              if (m != null) {
                 mbw.addMutation(m);
-                break; // its the last column in the last row
               }
+
+              // Make a unique directory inside the table's dir. Cannot import multiple tables
+              // into one table, so don't need to use unique allocator
+              String tabletDir = new String(
+                  FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES),
+                  UTF_8);
+
+              m = new Mutation(metadataRow);
+              ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(tabletDir));
+              currentRow = metadataRow;
+            }
+
+            m.put(key.getColumnFamily(), cq, val);
+
+            if (endRow == null && TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
+              mbw.addMutation(m);
+              break; // its the last column in the last row
             }
           }
           break;
