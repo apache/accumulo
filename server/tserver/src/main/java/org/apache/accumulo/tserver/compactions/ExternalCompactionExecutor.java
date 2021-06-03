@@ -190,14 +190,14 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
   }
 
   public Stream<TCompactionQueueSummary> summarize() {
-    HashSet<Long> uniqPrios = new HashSet<Long>();
+    HashSet<Short> uniqPrios = new HashSet<Short>();
     queuedTask.forEach(task -> uniqPrios.add(task.getJob().getPriority()));
 
-    Stream<Long> prioStream = uniqPrios.stream();
+    Stream<Short> prioStream = uniqPrios.stream();
 
     if (uniqPrios.size() > 100) {
-      // Until #2094 is addressed limit what is sent to the coordinator to avoid causing it run out
-      // of memory. Send the 100 highest prios.
+      // Send the 100 highest priorities to the
+      // coordinator to avoid causing it run out of memory
       prioStream = prioStream.sorted(Comparator.reverseOrder()).limit(100);
     }
 

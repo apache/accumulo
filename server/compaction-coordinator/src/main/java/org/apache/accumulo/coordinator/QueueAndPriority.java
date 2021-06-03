@@ -24,17 +24,17 @@ import org.apache.accumulo.core.util.Pair;
 
 public class QueueAndPriority implements Comparable<QueueAndPriority> {
 
-  private static WeakHashMap<Pair<String,Long>,QueueAndPriority> CACHE = new WeakHashMap<>();
+  private static WeakHashMap<Pair<String,Short>,QueueAndPriority> CACHE = new WeakHashMap<>();
 
-  public static QueueAndPriority get(String queue, Long priority) {
+  public static QueueAndPriority get(String queue, short priority) {
     return CACHE.computeIfAbsent(new Pair<>(queue, priority),
         k -> new QueueAndPriority(queue, priority));
   }
 
   private final String queue;
-  private final Long priority;
+  private final short priority;
 
-  private QueueAndPriority(String queue, Long priority) {
+  private QueueAndPriority(String queue, short priority) {
     super();
     this.queue = queue;
     this.priority = priority;
@@ -44,13 +44,13 @@ public class QueueAndPriority implements Comparable<QueueAndPriority> {
     return queue;
   }
 
-  public Long getPriority() {
+  public short getPriority() {
     return priority;
   }
 
   @Override
   public int hashCode() {
-    return queue.hashCode() + priority.hashCode();
+    return queue.hashCode() + ((Short) priority).hashCode();
   }
 
   @Override
@@ -71,7 +71,7 @@ public class QueueAndPriority implements Comparable<QueueAndPriority> {
       return false;
     } else {
       QueueAndPriority other = (QueueAndPriority) obj;
-      return this.queue.equals(other.queue) && this.priority.equals(other.priority);
+      return this.queue.equals(other.queue) && this.priority == other.priority;
     }
   }
 

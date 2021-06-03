@@ -68,7 +68,7 @@ public class CompactionPlanImpl implements CompactionPlan {
     }
 
     @Override
-    public Builder addJob(long priority, CompactionExecutorId executor,
+    public Builder addJob(short priority, CompactionExecutorId executor,
         Collection<CompactableFile> files) {
       Set<CompactableFile> filesSet =
           files instanceof Set ? (Set<CompactableFile>) files : Set.copyOf(files);
