@@ -27,6 +27,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.coordinator.ExternalCompactionMetrics;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -35,7 +36,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.rpc.ServerAddress;
-import org.apache.thrift.TException;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
@@ -118,7 +118,8 @@ public class TestCompactionCoordinator extends CompactionCoordinator
 
   @Override
   public TExternalCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
-      String queueName, String compactorAddress, String externalCompactionId) throws TException {
+      String queueName, String compactorAddress, String externalCompactionId)
+      throws ThriftSecurityException {
     TExternalCompactionJob job = super.getCompactionJob(tinfo, credentials, queueName,
         compactorAddress, externalCompactionId);
     if (null != job && null != job.getExternalCompactionId()) {
@@ -129,7 +130,8 @@ public class TestCompactionCoordinator extends CompactionCoordinator
 
   @Override
   public void compactionCompleted(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent textent, TCompactionStats stats) throws TException {
+      String externalCompactionId, TKeyExtent textent, TCompactionStats stats)
+      throws ThriftSecurityException {
     try {
       super.compactionCompleted(tinfo, credentials, externalCompactionId, textent, stats);
     } finally {
@@ -139,7 +141,7 @@ public class TestCompactionCoordinator extends CompactionCoordinator
 
   @Override
   public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-      TKeyExtent extent) throws TException {
+      TKeyExtent extent) throws ThriftSecurityException {
     try {
       super.compactionFailed(tinfo, credentials, externalCompactionId, extent);
     } finally {

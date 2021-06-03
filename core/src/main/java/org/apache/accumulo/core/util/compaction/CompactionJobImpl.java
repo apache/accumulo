@@ -36,7 +36,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
  */
 public class CompactionJobImpl implements CompactionJob {
 
-  private final long priority;
+  private final short priority;
   private final CompactionExecutorId executor;
   private final Set<CompactableFile> files;
   private final CompactionKind kind;
@@ -50,7 +50,7 @@ public class CompactionJobImpl implements CompactionJob {
    *          compaction. After a job is running, its not used. So when a job object is recreated
    *          for a running external compaction this parameter can be empty.
    */
-  public CompactionJobImpl(long priority, CompactionExecutorId executor,
+  public CompactionJobImpl(short priority, CompactionExecutorId executor,
       Collection<CompactableFile> files, CompactionKind kind, Optional<Boolean> jobSelectedAll) {
     this.priority = priority;
     this.executor = Objects.requireNonNull(executor);
@@ -60,7 +60,7 @@ public class CompactionJobImpl implements CompactionJob {
   }
 
   @Override
-  public long getPriority() {
+  public short getPriority() {
     return priority;
   }
 

@@ -146,6 +146,7 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
         "[{'name':'all', 'type': 'external','queue': 'DCQ2'}]");
     cfg.setProperty(Property.COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL.getKey(), "30s");
     cfg.setProperty(Property.COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL, "10s");
+    cfg.setProperty(Property.COMPACTOR_PORTSEARCH, "true");
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }

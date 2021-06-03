@@ -30,7 +30,7 @@ import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
  */
 public interface CompactionJob {
 
-  long getPriority();
+  short getPriority();
 
   /**
    * @return The executor to run the job.
