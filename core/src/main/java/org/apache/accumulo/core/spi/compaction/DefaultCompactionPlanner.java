@@ -162,7 +162,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       CompactionExecutorId ceid;
 
       // If not supplied, GSON will leave type null. Default to internal
-      if (null == executorConfig.type) {
+      if (executorConfig.type == null) {
         executorConfig.type = "internal";
       }
 
