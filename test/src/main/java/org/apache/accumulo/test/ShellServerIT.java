@@ -723,7 +723,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   protected void checkTableForProperty(TableOperations tops, String tableName, String expectedKey,
       String expectedValue) throws Exception {
     for (int i = 0; i < 5; i++) {
-      for (Entry<String,String> entry : tops.getConfiguration(tableName).entrySet()) {
+      for (Entry<String,String> entry : tops.getProperties(tableName)) {
         if (expectedKey.equals(entry.getKey())) {
           assertEquals(expectedValue, entry.getValue());
           return;

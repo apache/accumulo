@@ -64,8 +64,7 @@ public abstract class TableOperationsHelper implements TableOperations {
   @Override
   public void removeIterator(String tableName, String name, EnumSet<IteratorScope> scopes)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    Map<String,String> copy = new TreeMap<>();
-    this.getConfiguration(tableName).forEach(copy::put);
+    Map<String,String> copy = Map.copyOf(this.getConfiguration(tableName));
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), name);
@@ -89,7 +88,7 @@ public abstract class TableOperationsHelper implements TableOperations {
     String root =
         String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), name);
     String opt = root + ".opt.";
-    for (Entry<String,String> property : this.getConfiguration(tableName).entrySet()) {
+    for (Entry<String,String> property : this.getProperties(tableName)) {
       if (property.getKey().equals(root)) {
         String[] parts = property.getValue().split(",");
         if (parts.length != 2) {
@@ -111,7 +110,7 @@ public abstract class TableOperationsHelper implements TableOperations {
   public Map<String,EnumSet<IteratorScope>> listIterators(String tableName)
       throws AccumuloException, TableNotFoundException {
     Map<String,EnumSet<IteratorScope>> result = new TreeMap<>();
-    for (Entry<String,String> property : this.getConfiguration(tableName).entrySet()) {
+    for (Entry<String,String> property : this.getProperties(tableName)) {
       String name = property.getKey();
       String[] parts = name.split("\\.");
       if (parts.length == 4) {
@@ -169,8 +168,7 @@ public abstract class TableOperationsHelper implements TableOperations {
   public void checkIteratorConflicts(String tableName, IteratorSetting setting,
       EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
-    Map<String,String> iteratorProps = new HashMap<>();
-    this.getConfiguration(tableName).forEach(iteratorProps::put);
+    Map<String,String> iteratorProps = Map.copyOf(this.getConfiguration(tableName));
     checkIteratorConflicts(iteratorProps, setting, scopes);
   }
 
@@ -180,7 +178,7 @@ public abstract class TableOperationsHelper implements TableOperations {
     TreeSet<Integer> constraintNumbers = new TreeSet<>();
     TreeMap<String,Integer> constraintClasses = new TreeMap<>();
     int i;
-    for (Entry<String,String> property : this.getConfiguration(tableName).entrySet()) {
+    for (Entry<String,String> property : this.getProperties(tableName)) {
       if (property.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.toString())) {
         try {
           i = Integer.parseInt(
@@ -213,7 +211,7 @@ public abstract class TableOperationsHelper implements TableOperations {
   public Map<String,Integer> listConstraints(String tableName)
       throws AccumuloException, TableNotFoundException {
     Map<String,Integer> constraints = new TreeMap<>();
-    for (Entry<String,String> property : this.getConfiguration(tableName).entrySet()) {
+    for (Entry<String,String> property : this.getProperties(tableName)) {
       if (property.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.toString())) {
         if (constraints.containsKey(property.getValue()))
           throw new AccumuloException("Same constraint configured twice: " + property.getKey() + "="

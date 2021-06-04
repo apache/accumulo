@@ -263,7 +263,7 @@ public class ReplicationIT extends ConfigurableMacBase {
       boolean foundLocalityGroupDef2 = false;
       boolean foundFormatter = false;
       Joiner j = Joiner.on(",");
-      for (Entry<String,String> p : tops.getConfiguration(ReplicationTable.NAME).entrySet()) {
+      for (Entry<String,String> p : tops.getProperties(ReplicationTable.NAME)) {
         String key = p.getKey();
         String val = p.getValue();
         // STATUS_LG_NAME, STATUS_LG_COLFAMS, WORK_LG_NAME, WORK_LG_COLFAMS

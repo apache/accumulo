@@ -199,13 +199,6 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   }
 
   @Override
-  @Deprecated(since = "2.1.0")
-  public Iterable<Entry<String,String>> getProperties(final String namespace)
-      throws AccumuloException, NamespaceNotFoundException {
-    return getConfiguration(namespace).entrySet();
-  }
-
-  @Override
   public Map<String,String> getConfiguration(final String namespace)
       throws AccumuloException, NamespaceNotFoundException {
     checkArgument(namespace != null, "namespace is null");

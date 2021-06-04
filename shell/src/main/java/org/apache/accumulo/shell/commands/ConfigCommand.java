@@ -183,8 +183,7 @@ public class ConfigCommand extends Command {
       } else if (namespace != null) {
         acuconf = shellState.getAccumuloClient().namespaceOperations().getConfiguration(namespace);
       }
-      final TreeMap<String,String> sortedConf = new TreeMap<>();
-      acuconf.forEach(sortedConf::put);
+      final Map<String,String> sortedConf = Map.copyOf(acuconf);
 
       for (Entry<String,String> propEntry : acuconf.entrySet()) {
         final String key = propEntry.getKey();

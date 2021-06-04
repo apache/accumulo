@@ -609,7 +609,8 @@ public interface TableOperations {
    * Gets properties of a table. This operation is asynchronous and eventually consistent. It is not
    * guaranteed that all tablets in a table will return the same values. Within a few seconds
    * without another change, all tablets in a table should be consistent. The clone table feature
-   * can be used if consistency is required.
+   * can be used if consistency is required. Method calls getConfiguration and then calls
+   * .entrySet() on the map.
    *
    * @param tableName
    *          the name of the table
@@ -618,11 +619,11 @@ public interface TableOperations {
    * @throws TableNotFoundException
    *           if the table does not exist
    * @since 1.6.0
-   * @deprecated since 2.1.0; use {@link #getConfiguration(String)} (String)} instead.
    */
-  @Deprecated(since = "2.1.0")
-  Iterable<Entry<String,String>> getProperties(String tableName)
-      throws AccumuloException, TableNotFoundException;
+  default Iterable<Entry<String,String>> getProperties(String tableName)
+      throws AccumuloException, TableNotFoundException {
+    return getConfiguration(tableName).entrySet();
+  }
 
   /**
    * Gets properties of a table. This operation is asynchronous and eventually consistent. It is not

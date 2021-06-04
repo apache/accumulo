@@ -190,7 +190,8 @@ public interface NamespaceOperations {
 
   /**
    * Gets properties of a namespace, which are inherited by tables in this namespace. Note that
-   * recently changed properties may not be available immediately.
+   * recently changed properties may not be available immediately. Method calls getConfiguration and
+   * then calls .entrySet() on the map.
    *
    * @param namespace
    *          the name of the namespace
@@ -203,11 +204,11 @@ public interface NamespaceOperations {
    * @throws NamespaceNotFoundException
    *           if the specified namespace doesn't exist
    * @since 1.6.0
-   * @deprecated since 2.1.0; use {@link #getConfiguration(String)} (String)} instead.
    */
-  @Deprecated(since = "2.1.0")
-  Iterable<Entry<String,String>> getProperties(String namespace)
-      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
+  default Iterable<Entry<String,String>> getProperties(String namespace)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
+    return getConfiguration(namespace).entrySet();
+  }
 
   /**
    * Gets properties of a namespace, which are inherited by tables in this namespace. Note that

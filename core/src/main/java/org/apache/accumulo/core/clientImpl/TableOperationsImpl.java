@@ -1048,13 +1048,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  @Deprecated(since = "2.1.0")
-  public Iterable<Entry<String,String>> getProperties(final String tableName)
-      throws AccumuloException, TableNotFoundException {
-    return getConfiguration(tableName).entrySet();
-  }
-
-  @Override
   public Map<String,String> getConfiguration(final String tableName)
       throws AccumuloException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
@@ -1100,7 +1093,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     // remove anything extraneous
     String prefix = Property.TABLE_LOCALITY_GROUP_PREFIX.getKey();
-    for (Entry<String,String> entry : getConfiguration(tableName).entrySet()) {
+    for (Entry<String,String> entry : getProperties(tableName)) {
       String property = entry.getKey();
       if (property.startsWith(prefix)) {
         // this property configures a locality group, find out which
@@ -1717,7 +1710,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private void clearSamplerOptions(String tableName)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
     String prefix = Property.TABLE_SAMPLER_OPTS.getKey();
-    for (Entry<String,String> entry : getConfiguration(tableName).entrySet()) {
+    for (Entry<String,String> entry : getProperties(tableName)) {
       String property = entry.getKey();
       if (property.startsWith(prefix)) {
         removeProperty(tableName, property);
