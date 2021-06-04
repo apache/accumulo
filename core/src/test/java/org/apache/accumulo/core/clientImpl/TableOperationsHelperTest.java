@@ -29,7 +29,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -140,11 +139,6 @@ public class TableOperationsHelperTest {
       if (!settings.containsKey(tableName))
         return;
       settings.get(tableName).remove(property);
-    }
-
-    @Override
-    public Iterable<Entry<String,String>> getProperties(String tableName) {
-      return getConfiguration(tableName).entrySet();
     }
 
     @Override
