@@ -405,7 +405,7 @@ public class CompactionCoordinator extends AbstractServer
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
     final String queue = queueName.intern();
-    LOG.debug("getCompactionJob called for queue {} by compactor {}", queue, compactorAddress);
+    LOG.trace("getCompactionJob called for queue {} by compactor {}", queue, compactorAddress);
     TIME_COMPACTOR_LAST_CHECKED.put(queue, System.currentTimeMillis());
 
     TExternalCompactionJob result = null;
@@ -447,7 +447,7 @@ public class CompactionCoordinator extends AbstractServer
     }
 
     if (result == null) {
-      LOG.debug("No tservers found for queue {}, returning empty job to compactor {}", queue,
+      LOG.trace("No tservers found for queue {}, returning empty job to compactor {}", queue,
           compactorAddress);
       result = new TExternalCompactionJob();
     }
