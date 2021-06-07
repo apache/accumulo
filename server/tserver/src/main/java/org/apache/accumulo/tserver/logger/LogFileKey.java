@@ -259,7 +259,7 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
 
     logFileKey.tabletId = tabletId;
     logFileKey.seq = seq;
-    logFileKey.event = LogEvents.valueOf(key.getColumnFamily().toString());
+    logFileKey.event = LogEvents.valueOf(key.getColumnFamilyData().toString());
 
     // handle special cases of what is stored in the qualifier
     switch (logFileKey.event) {
