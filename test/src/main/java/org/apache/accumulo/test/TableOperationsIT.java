@@ -259,14 +259,6 @@ public class TableOperationsIT extends AccumuloClusterHarness {
         expectedSplits.isEmpty());
   }
 
-  private Map<String,String> propsToMap(Iterable<Map.Entry<String,String>> props) {
-    Map<String,String> map = new HashMap<>();
-    for (Map.Entry<String,String> prop : props) {
-      map.put(prop.getKey(), prop.getValue());
-    }
-    return map;
-  }
-
   /** Compare only the row, column family and column qualifier. */
   static class KeyRowColFColQComparator implements Comparator<Key> {
     @Override

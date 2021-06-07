@@ -21,9 +21,7 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -150,14 +148,6 @@ public class DurabilityIT extends ConfigurableMacBase {
       restartTServer();
       assertEquals(N, readSome(c, tableName));
     }
-  }
-
-  private static Map<String,String> map(Iterable<Entry<String,String>> entries) {
-    Map<String,String> result = new HashMap<>();
-    for (Entry<String,String> entry : entries) {
-      result.put(entry.getKey(), entry.getValue());
-    }
-    return result;
   }
 
   @Test
