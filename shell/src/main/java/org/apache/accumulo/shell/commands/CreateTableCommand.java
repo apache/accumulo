@@ -146,9 +146,9 @@ public class CreateTableCommand extends Command {
     // Copy options if flag was set
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
       if (shellState.getAccumuloClient().tableOperations().exists(tableName)) {
-        final Iterable<Entry<String,String>> configuration = shellState.getAccumuloClient()
-            .tableOperations().getProperties(cl.getOptionValue(createTableOptCopyConfig.getOpt()));
-        for (Entry<String,String> entry : configuration) {
+        final Map<String,String> configuration = shellState.getAccumuloClient().tableOperations()
+            .getConfiguration(cl.getOptionValue(createTableOptCopyConfig.getOpt()));
+        for (Entry<String,String> entry : configuration.entrySet()) {
           if (Property.isValidTablePropertyKey(entry.getKey())) {
             shellState.getAccumuloClient().tableOperations().setProperty(tableName, entry.getKey(),
                 entry.getValue());

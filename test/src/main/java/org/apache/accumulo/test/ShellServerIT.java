@@ -937,17 +937,16 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("scan", true, "value", true);
 
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
-      for (Entry<String,String> entry : accumuloClient.tableOperations().getProperties(table)) {
-        if (entry.getKey().equals("table.custom.description"))
-          assertEquals("Initial property was not set correctly", "description", entry.getValue());
+      accumuloClient.tableOperations().getConfiguration(table).forEach((key, value) -> {
+        if (key.equals("table.custom.description"))
+          assertEquals("Initial property was not set correctly", "description", value);
 
-        if (entry.getKey().equals("table.custom.testProp"))
-          assertEquals("Initial property was not set correctly", "testProp", entry.getValue());
+        if (key.equals("table.custom.testProp"))
+          assertEquals("Initial property was not set correctly", "testProp", value);
 
-        if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
-          assertEquals("Initial property was not set correctly", "10K", entry.getValue());
-
-      }
+        if (key.equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
+          assertEquals("Initial property was not set correctly", "10K", value);
+      });
     }
     ts.exec("deletetable -f " + table);
   }

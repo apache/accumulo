@@ -151,7 +151,7 @@ public class NewTableConfiguration {
     checkTableProperties(props);
 
     try {
-      LocalityGroupUtil.checkLocalityGroups(props.entrySet());
+      LocalityGroupUtil.checkLocalityGroups(props);
     } catch (LocalityGroupConfigurationError e) {
       throw new IllegalArgumentException(e);
     }

@@ -1033,7 +1033,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   void checkLocalityGroups(String tableName, String propChanged)
       throws AccumuloException, TableNotFoundException {
     if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
-      Iterable<Entry<String,String>> allProps = getProperties(tableName);
+      Map<String,String> allProps = getConfiguration(tableName);
       try {
         LocalityGroupUtil.checkLocalityGroups(allProps);
       } catch (LocalityGroupConfigurationError | RuntimeException e) {
@@ -1048,12 +1048,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public Iterable<Entry<String,String>> getProperties(final String tableName)
+  public Map<String,String> getConfiguration(final String tableName)
       throws AccumuloException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     try {
       return ServerClient.executeRaw(context, client -> client
-          .getTableConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), tableName)).entrySet();
+          .getTableConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
     } catch (ThriftTableOperationException e) {
       switch (e.getType()) {
         case NOTFOUND:
@@ -1068,7 +1068,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     } catch (Exception e) {
       throw new AccumuloException(e);
     }
-
   }
 
   @Override

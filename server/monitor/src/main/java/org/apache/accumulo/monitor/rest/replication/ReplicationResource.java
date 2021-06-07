@@ -131,23 +131,22 @@ public class ReplicationResource {
         continue;
       }
 
-      Iterable<Entry<String,String>> propertiesForTable;
+      Map<String,String> propertiesForTable;
       try {
-        propertiesForTable = tops.getProperties(table);
+        propertiesForTable = tops.getConfiguration(table);
       } catch (TableNotFoundException e) {
         log.warn("Could not fetch properties for {}", table, e);
         continue;
       }
-
-      for (Entry<String,String> prop : propertiesForTable) {
-        if (prop.getKey().startsWith(targetPrefix)) {
-          String peerName = prop.getKey().substring(targetPrefix.length());
-          String remoteIdentifier = prop.getValue();
+      propertiesForTable.forEach((key, value) -> {
+        if (key.startsWith(targetPrefix)) {
+          String peerName = key.substring(targetPrefix.length());
+          String remoteIdentifier = value;
           ReplicationTarget target = new ReplicationTarget(peerName, remoteIdentifier, localId);
 
           allConfiguredTargets.add(target);
         }
-      }
+      });
     }
 
     // Read over the queued work

@@ -87,7 +87,7 @@ public class LocalityGroupUtil {
         || prop.equals(Property.TABLE_LOCALITY_GROUPS.getKey());
   }
 
-  public static void checkLocalityGroups(Iterable<Entry<String,String>> config)
+  public static void checkLocalityGroups(Map<String,String> config)
       throws LocalityGroupConfigurationError {
     ConfigurationCopy cc = new ConfigurationCopy(config);
     if (cc.get(Property.TABLE_LOCALITY_GROUPS) != null) {

@@ -64,10 +64,7 @@ public abstract class TableOperationsHelper implements TableOperations {
   @Override
   public void removeIterator(String tableName, String name, EnumSet<IteratorScope> scopes)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    Map<String,String> copy = new TreeMap<>();
-    for (Entry<String,String> property : this.getProperties(tableName)) {
-      copy.put(property.getKey(), property.getValue());
-    }
+    Map<String,String> copy = Map.copyOf(this.getConfiguration(tableName));
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), name);
@@ -171,9 +168,7 @@ public abstract class TableOperationsHelper implements TableOperations {
   public void checkIteratorConflicts(String tableName, IteratorSetting setting,
       EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
-    Map<String,String> iteratorProps = new HashMap<>();
-    for (Entry<String,String> entry : this.getProperties(tableName))
-      iteratorProps.put(entry.getKey(), entry.getValue());
+    Map<String,String> iteratorProps = Map.copyOf(this.getConfiguration(tableName));
     checkIteratorConflicts(iteratorProps, setting, scopes);
   }
 

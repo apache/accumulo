@@ -1040,7 +1040,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
     assertNoTableNoNamespace(() -> ops.getLocalityGroups(tableName));
     assertNoTableNoNamespace(
         () -> ops.getMaxRow(tableName, Authorizations.EMPTY, a, true, z, true));
-    assertNoTableNoNamespace(() -> ops.getProperties(tableName));
+    assertNoTableNoNamespace(() -> ops.getConfiguration(tableName));
     assertNoTableNoNamespace(() -> ops.importDirectory("").to(tableName).load());
     assertNoTableNoNamespace(() -> ops.testClassLoad(tableName, VersioningIterator.class.getName(),
         SortedKeyValueIterator.class.getName()));
@@ -1071,7 +1071,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
         () -> ops.checkIteratorConflicts(namespace, setting, EnumSet.of(IteratorScope.scan)));
     assertNoNamespace(() -> ops.delete(namespace));
     assertNoNamespace(() -> ops.getIteratorSetting(namespace, "thing", IteratorScope.scan));
-    assertNoNamespace(() -> ops.getProperties(namespace));
+    assertNoNamespace(() -> ops.getConfiguration(namespace));
     assertNoNamespace(() -> ops.listConstraints(namespace));
     assertNoNamespace(() -> ops.listIterators(namespace));
     assertNoNamespace(() -> ops.removeConstraint(namespace, 1));
@@ -1106,9 +1106,9 @@ public class NamespacesIT extends SharedMiniClusterBase {
 
   private boolean checkHasProperty(String name, String propKey, String propVal, boolean nameIsTable)
       throws Exception {
-    Iterable<Entry<String,String>> iterable = nameIsTable ? c.tableOperations().getProperties(name)
-        : c.namespaceOperations().getProperties(name);
-    for (Entry<String,String> e : iterable)
+    Map<String,String> props = nameIsTable ? c.tableOperations().getConfiguration(name)
+        : c.namespaceOperations().getConfiguration(name);
+    for (Entry<String,String> e : props.entrySet())
       if (propKey.equals(e.getKey()))
         return propVal.equals(e.getValue());
     return false;

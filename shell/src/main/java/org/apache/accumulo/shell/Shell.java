@@ -454,18 +454,18 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
     boolean namespaces = cl.hasOption(OptUtil.namespaceOpt().getOpt());
 
-    Iterable<Entry<String,String>> tableProps;
+    Map<String,String> tableProps;
 
     if (namespaces) {
       try {
         tableProps = shellState.getAccumuloClient().namespaceOperations()
-            .getProperties(OptUtil.getNamespaceOpt(cl, shellState));
+            .getConfiguration(OptUtil.getNamespaceOpt(cl, shellState));
       } catch (NamespaceNotFoundException e) {
         throw new IllegalArgumentException(e);
       }
     } else if (tables) {
       tableProps = shellState.getAccumuloClient().tableOperations()
-          .getProperties(OptUtil.getTableOpt(cl, shellState));
+          .getConfiguration(OptUtil.getTableOpt(cl, shellState));
     } else {
       throw new IllegalArgumentException("No table or namespace specified");
     }
@@ -478,9 +478,9 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     return ClassLoaderUtil.getClassLoader(tableContext);
   }
 
-  private static String getTableContextFromProps(Iterable<Entry<String,String>> props) {
+  private static String getTableContextFromProps(Map<String,String> props) {
     String tableContext = null;
-    for (Entry<String,String> entry : props) {
+    for (Entry<String,String> entry : props.entrySet()) {
       // look for either the old property or the new one, but
       // if the new one is set, stop looking and let it take precedence
       if (entry.getKey().equals(Property.TABLE_CLASSLOADER_CONTEXT.getKey())

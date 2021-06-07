@@ -179,9 +179,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       AccumuloSecurityException, TableNotFoundException {
     String tableName = getUniqueNames(1)[0];
     accumuloClient.tableOperations().create(tableName);
-    Iterable<Map.Entry<String,String>> itrProps =
-        accumuloClient.tableOperations().getProperties(tableName);
-    Map<String,String> props = propsToMap(itrProps);
+    Map<String,String> props = accumuloClient.tableOperations().getConfiguration(tableName);
     assertEquals(DefaultKeySizeConstraint.class.getName(),
         props.get(Property.TABLE_CONSTRAINT_PREFIX + "1"));
     accumuloClient.tableOperations().delete(tableName);

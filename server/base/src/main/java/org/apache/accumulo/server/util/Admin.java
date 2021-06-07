@@ -528,10 +528,8 @@ public class Admin implements KeywordExecutable {
     File namespaceScript = new File(outputDirectory, namespace + NS_FILE_SUFFIX);
     try (BufferedWriter nsWriter = new BufferedWriter(new FileWriter(namespaceScript, UTF_8))) {
       nsWriter.write(createNsFormat.format(new String[] {namespace}));
-      TreeMap<String,String> props = new TreeMap<>();
-      for (Entry<String,String> p : accumuloClient.namespaceOperations().getProperties(namespace)) {
-        props.put(p.getKey(), p.getValue());
-      }
+      Map<String,String> props =
+          Map.copyOf(accumuloClient.namespaceOperations().getConfiguration(namespace));
       for (Entry<String,String> entry : props.entrySet()) {
         String defaultValue = getDefaultConfigValue(entry.getKey());
         if (defaultValue == null || !defaultValue.equals(entry.getValue())) {
@@ -607,10 +605,8 @@ public class Admin implements KeywordExecutable {
     File tableBackup = new File(outputDirectory, tableName + ".cfg");
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(tableBackup, UTF_8))) {
       writer.write(createTableFormat.format(new String[] {tableName}));
-      TreeMap<String,String> props = new TreeMap<>();
-      for (Entry<String,String> p : accumuloClient.tableOperations().getProperties(tableName)) {
-        props.put(p.getKey(), p.getValue());
-      }
+      Map<String,String> props =
+          Map.copyOf(accumuloClient.tableOperations().getConfiguration(tableName));
       for (Entry<String,String> prop : props.entrySet()) {
         if (prop.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
           String defaultValue = getDefaultConfigValue(prop.getKey());
