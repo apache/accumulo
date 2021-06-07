@@ -24,7 +24,6 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toSet;
-import static org.apache.accumulo.core.Constants.MAX_TABLE_NAME_LEN;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
@@ -156,6 +155,8 @@ import com.google.common.base.Preconditions;
 public class TableOperationsImpl extends TableOperationsHelper {
 
   public static final String CLONE_EXCLUDE_PREFIX = "!";
+  public static final String VALID_TABLENAME_REGEX = "^(\\w{1,1024}[.])?(\\w{1,1024})$";
+
   private static final Logger log = LoggerFactory.getLogger(TableOperations.class);
   private final ClientContext context;
 
@@ -188,6 +189,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public boolean exists(String tableName) {
     checkArgument(tableName != null, "tableName is null");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     if (tableName.equals(MetadataTable.NAME) || tableName.equals(RootTable.NAME))
       return true;
 
@@ -212,6 +217,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void create(String tableName)
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     create(tableName, new NewTableConfiguration());
   }
 
@@ -220,8 +229,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(ntc != null, "ntc is null");
-    checkArgument(tableName.length() <= MAX_TABLE_NAME_LEN,
-        "Table name is longer than " + MAX_TABLE_NAME_LEN + " characters");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     List<ByteBuffer> args = new ArrayList<>();
     args.add(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
@@ -269,8 +279,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  // This method is for retrying in the case of network failures; anything else it passes to the
-  // caller to deal with
+  // This method is for retrying in the case of network failures;
+  // anything else it passes to the caller to deal with
   private void executeFateOperation(long opid, FateOperation op, List<ByteBuffer> args,
       Map<String,String> opts, boolean autoCleanUp)
       throws ThriftSecurityException, TException, ThriftTableOperationException {
@@ -336,6 +346,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   public String doBulkFateOperation(List<ByteBuffer> args, String tableName)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     try {
       return doFateOperation(FateOperation.TABLE_BULK_IMPORT2, args, Collections.emptyMap(),
           tableName);
@@ -453,9 +467,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
         int mid = splits.size() / 2;
 
-        // split the middle split point to ensure that child task split different tablets and can
-        // therefore
-        // run in parallel
+        // split the middle split point to ensure that child task split
+        // different tablets and can therefore run in parallel
         addSplits(env.tableName, new TreeSet<>(splits.subList(mid, mid + 1)), env.tableId);
         env.latch.countDown();
 
@@ -472,13 +485,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void addSplits(String tableName, SortedSet<Text> partitionKeys)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     TableId tableId = Tables.getTableId(context, tableName);
-
     List<Text> splits = new ArrayList<>(partitionKeys);
-    // should be sorted because we copied from a sorted set, but that makes assumptions about
-    // how the copy was done so resort to be sure.
-    Collections.sort(splits);
 
+    // should be sorted because we copied from a sorted set, but that makes
+    // assumptions about how the copy was done so resort to be sure.
+    Collections.sort(splits);
     CountDownLatch latch = new CountDownLatch(splits.size());
     AtomicReference<Exception> exception = new AtomicReference<>(null);
 
@@ -526,8 +542,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private void addSplits(String tableName, SortedSet<Text> partitionKeys, TableId tableId)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       AccumuloServerException {
-    TabletLocator tabLocator = TabletLocator.getLocator(context, tableId);
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
+    TabletLocator tabLocator = TabletLocator.getLocator(context, tableId);
     for (Text split : partitionKeys) {
       boolean successful = false;
       int attempt = 0;
@@ -613,8 +632,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void merge(String tableName, Text start, Text end)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-
     checkArgument(tableName != null, "tableName is null");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
         start == null ? EMPTY : TextUtil.getByteBuffer(start),
@@ -632,8 +654,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void deleteRows(String tableName, Text start, Text end)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-
     checkArgument(tableName != null, "tableName is null");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
         start == null ? EMPTY : TextUtil.getByteBuffer(start),
@@ -651,17 +676,22 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public Collection<Text> listSplits(String tableName)
       throws TableNotFoundException, AccumuloSecurityException {
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     return _listSplits(tableName);
   }
 
   private List<Text> _listSplits(String tableName)
       throws TableNotFoundException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     TableId tableId = Tables.getTableId(context, tableName);
-
     TreeMap<KeyExtent,String> tabletLocations = new TreeMap<>();
-
     while (true) {
       try {
         tabletLocations.clear();
@@ -685,7 +715,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
 
     ArrayList<Text> endRows = new ArrayList<>(tabletLocations.size());
-
     for (KeyExtent ke : tabletLocations.keySet())
       if (ke.endRow() != null)
         endRows.add(ke.endRow());
@@ -697,16 +726,17 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public Collection<Text> listSplits(String tableName, int maxSplits)
       throws TableNotFoundException, AccumuloSecurityException {
-    List<Text> endRows = _listSplits(tableName);
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
+    List<Text> endRows = _listSplits(tableName);
     if (endRows.size() <= maxSplits)
       return endRows;
 
     double r = (maxSplits + 1) / (double) (endRows.size());
     double pos = 0;
-
     ArrayList<Text> subset = new ArrayList<>(maxSplits);
-
     int j = 0;
     for (int i = 0; i < endRows.size() && j < maxSplits; i++) {
       pos += r;
@@ -724,10 +754,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void delete(String tableName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
-
     try {
       doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_DELETE,
           args, opts);
@@ -755,8 +787,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     checkArgument(srcTableName != null, "srcTableName is null");
     checkArgument(newTableName != null, "newTableName is null");
-    checkArgument(newTableName.length() <= MAX_TABLE_NAME_LEN,
-        "Table name is longer than " + MAX_TABLE_NAME_LEN + " characters");
+    checkArgument(srcTableName.matches(VALID_TABLENAME_REGEX),
+        "srcTableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
+    checkArgument(newTableName.matches(VALID_TABLENAME_REGEX),
+        "newTableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     TableId srcTableId = Tables.getTableId(context, srcTableName);
 
@@ -792,8 +829,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void rename(String oldTableName, String newTableName) throws AccumuloSecurityException,
       TableNotFoundException, AccumuloException, TableExistsException {
-    checkArgument(newTableName.length() <= MAX_TABLE_NAME_LEN,
-        "Table name is longer than " + MAX_TABLE_NAME_LEN + " characters");
+    checkArgument(oldTableName.matches(VALID_TABLENAME_REGEX),
+        "oldTableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
+    checkArgument(newTableName.matches(VALID_TABLENAME_REGEX),
+        "newTableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldTableName.getBytes(UTF_8)),
         ByteBuffer.wrap(newTableName.getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
@@ -803,6 +846,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public void flush(String tableName) throws AccumuloException, AccumuloSecurityException {
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     try {
       flush(tableName, null, null, false);
     } catch (TableNotFoundException e) {
@@ -814,6 +861,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void flush(String tableName, Text start, Text end, boolean wait)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     TableId tableId = Tables.getTableId(context, tableName);
     _flush(tableId, start, end, wait);
@@ -837,6 +887,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void compact(String tableName, CompactionConfig config)
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
     checkArgument(tableName != null, "tableName is null");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     // Ensure compaction iterators exist on a tabletserver
     final String skviName = SortedKeyValueIterator.class.getName();
@@ -868,7 +921,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
 
     TableId tableId = Tables.getTableId(context, tableName);
-
     Text start = config.getStartRow();
     Text end = config.getEndRow();
 
@@ -877,8 +929,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)),
         ByteBuffer.wrap(UserCompactionUtils.encode(config)));
-
     Map<String,String> opts = new HashMap<>();
+
     try {
       doFateOperation(FateOperation.TABLE_COMPACT, args, opts, tableName, config.getWait());
     } catch (TableExistsException | NamespaceExistsException e) {
@@ -905,11 +957,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void cancelCompaction(String tableName)
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     TableId tableId = Tables.getTableId(context, tableName);
-
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)));
-
     Map<String,String> opts = new HashMap<>();
+
     try {
       doTableFateOperation(tableName, TableNotFoundException.class,
           FateOperation.TABLE_CANCEL_COMPACT, args, opts);
@@ -922,7 +977,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private void _flush(TableId tableId, Text start, Text end, boolean wait)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-
     try {
       long flushID;
 
@@ -994,6 +1048,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     try {
       setPropertyNoChecks(tableName, property, value);
 
@@ -1015,6 +1073,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(property != null, "property is null");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     try {
       removePropertyNoChecks(tableName, property);
 
@@ -1051,6 +1113,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public Map<String,String> getConfiguration(final String tableName)
       throws AccumuloException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     try {
       return ServerClient.executeRaw(context, client -> client
           .getTableConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
@@ -1111,10 +1177,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public Map<String,Set<Text>> getLocalityGroups(String tableName)
       throws AccumuloException, TableNotFoundException {
+
     AccumuloConfiguration conf = new ConfigurationCopy(this.getProperties(tableName));
     Map<String,Set<ByteSequence>> groups = LocalityGroupUtil.getLocalityGroups(conf);
-
     Map<String,Set<Text>> groups2 = new HashMap<>();
+
     for (Entry<String,Set<ByteSequence>> entry : groups.entrySet()) {
 
       HashSet<Text> colFams = new HashSet<>();
@@ -1134,6 +1201,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(range != null, "range is null");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     if (maxSplits < 1)
       throw new IllegalArgumentException("maximum splits must be >= 1");
     if (maxSplits == 1)
@@ -1225,9 +1296,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(dir != null, "dir is null");
     checkArgument(failureDir != null, "failureDir is null");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     // check for table existence
     Tables.getTableId(context, tableName);
-
     Path dirPath = checkPath(dir, "Bulk", "");
     Path failPath = checkPath(failureDir, "Bulk", "failure");
 
@@ -1248,12 +1322,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private void waitForTableStateTransition(TableId tableId, TableState expectedState)
       throws AccumuloException, TableNotFoundException {
-
     Text startRow = null;
     Text lastRow = null;
 
     while (true) {
-
       if (Tables.getTableState(context, tableId) != expectedState) {
         Tables.clearCache(context);
         TableState currentState = Tables.getTableState(context, tableId);
@@ -1286,7 +1358,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
       for (TabletMetadata tablet : tablets) {
         total++;
-
         Location loc = tablet.getLocation();
 
         if ((expectedState == TableState.ONLINE
@@ -1352,8 +1423,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void offline(String tableName, boolean wait)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-
     checkArgument(tableName != null, "tableName is null");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     TableId tableId = Tables.getTableId(context, tableName);
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
@@ -1373,9 +1447,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public boolean isOnline(String tableName) throws AccumuloException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     TableId tableId = Tables.getTableId(context, tableName);
-
     TableState expectedState = Tables.getTableState(context, tableId, true);
     return expectedState == TableState.ONLINE;
   }
@@ -1390,13 +1466,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void online(String tableName, boolean wait)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     TableId tableId = Tables.getTableId(context, tableName);
-
     /**
      * ACCUMULO-4574 if table is already online return without executing fate operation.
      */
-
     if (isOnline(tableName)) {
       if (wait)
         waitForTableStateTransition(tableId, TableState.ONLINE);
@@ -1421,6 +1498,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "Table name must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     TabletLocator tabLocator =
         TabletLocator.getLocator(context, Tables.getTableId(context, tableName));
     tabLocator.invalidateCache();
@@ -1438,7 +1519,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public Text getMaxRow(String tableName, Authorizations auths, Text startRow,
       boolean startInclusive, Text endRow, boolean endInclusive) throws TableNotFoundException {
     checkArgument(tableName != null, "tableName is null");
-    checkArgument(auths != null, "auths is null");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     Scanner scanner = context.createScanner(tableName, auths);
     return FindMax.findMax(scanner, startRow, startInclusive, endRow, endInclusive);
   }
@@ -1563,8 +1647,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws TableExistsException, AccumuloException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(importDirs != null, "importDir is null");
-    checkArgument(tableName.length() <= MAX_TABLE_NAME_LEN,
-        "Table name is longer than " + MAX_TABLE_NAME_LEN + " characters");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     Set<String> checkedImportDirs = new HashSet<>();
     try {
@@ -1623,10 +1708,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(exportDir != null, "exportDir is null");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)),
         ByteBuffer.wrap(exportDir.getBytes(UTF_8)));
-
     Map<String,String> opts = Collections.emptyMap();
 
     try {
@@ -1645,6 +1732,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(tableName != null, "tableName is null");
     checkArgument(className != null, "className is null");
     checkArgument(asTypeName != null, "asTypeName is null");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     try {
       return ServerClient.executeRaw(context,
@@ -1709,6 +1799,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private void clearSamplerOptions(String tableName)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     String prefix = Property.TABLE_SAMPLER_OPTS.getKey();
     for (Entry<String,String> entry : getProperties(tableName)) {
       String property = entry.getKey();
@@ -1721,8 +1815,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void setSamplerConfiguration(String tableName, SamplerConfiguration samplerConfiguration)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
-    clearSamplerOptions(tableName);
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
+    clearSamplerOptions(tableName);
     List<Pair<String,String>> props =
         new SamplerConfigurationImpl(samplerConfiguration).toTableProperties();
     for (Pair<String,String> pair : props) {
@@ -1733,6 +1830,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void clearSamplerConfiguration(String tableName)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     removeProperty(tableName, Property.TABLE_SAMPLER.getKey());
     clearSamplerOptions(tableName);
   }
@@ -1740,6 +1841,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public SamplerConfiguration getSamplerConfiguration(String tableName)
       throws TableNotFoundException, AccumuloException {
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     AccumuloConfiguration conf = new ConfigurationCopy(this.getProperties(tableName));
     SamplerConfigurationImpl sci = SamplerConfigurationImpl.newSamplerConfig(conf);
     if (sci == null) {
@@ -1810,6 +1915,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public Locations locate(String tableName, Collection<Range> ranges)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
     requireNonNull(tableName, "tableName must be non null");
     requireNonNull(ranges, "ranges must be non null");
 
@@ -1854,9 +1962,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public SummaryRetriever summaries(String tableName) {
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
 
     return new SummaryRetriever() {
-
       private Text startRow = null;
       private Text endRow = null;
       private List<TSummarizerConfiguration> summariesToFetch = Collections.emptyList();
@@ -1957,12 +2067,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void addSummarizers(String tableName, SummarizerConfiguration... newConfigs)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     HashSet<SummarizerConfiguration> currentConfigs =
         new HashSet<>(SummarizerConfiguration.fromTableProperties(getProperties(tableName)));
     HashSet<SummarizerConfiguration> newConfigSet = new HashSet<>(Arrays.asList(newConfigs));
 
     newConfigSet.removeIf(currentConfigs::contains);
-
     Set<String> newIds =
         newConfigSet.stream().map(SummarizerConfiguration::getPropertyId).collect(toSet());
 
@@ -1982,8 +2095,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void removeSummarizers(String tableName, Predicate<SummarizerConfiguration> predicate)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     Collection<SummarizerConfiguration> summarizerConfigs =
         SummarizerConfiguration.fromTableProperties(getProperties(tableName));
+
     for (SummarizerConfiguration sc : summarizerConfigs) {
       if (predicate.test(sc)) {
         Set<String> ks = sc.toTableProperties().keySet();
@@ -1997,6 +2115,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public List<SummarizerConfiguration> listSummarizers(String tableName)
       throws AccumuloException, TableNotFoundException {
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "tableName must only contain word characters (letters, digits, and underscores)"
+            + " and cannot exceed 1024 characters");
+
     return new ArrayList<>(SummarizerConfiguration.fromTableProperties(getProperties(tableName)));
   }
 

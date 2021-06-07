@@ -45,12 +45,12 @@ import com.google.common.cache.CacheBuilder;
 
 public class Tables {
 
-  public static final String VALID_NAME_REGEX = "^(\\w+\\.)?(\\w+)$";
+  public static final String VALID_TABLENAME_REGEX = "^(\\w{1,1024}[.])?(\\w{1,1024})$";
 
   private static final SecurityPermission TABLES_PERMISSION =
       new SecurityPermission("tablesPermission");
-  // Per instance cache will expire after 10 minutes in case we encounter an instance not used
-  // frequently
+  // Per instance cache will expire after 10 minutes in case we
+  // encounter an instance not used frequently
   private static Cache<String,TableMap> instanceToMapCache =
       CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).build();
 
@@ -114,9 +114,10 @@ public class Tables {
   public static TableId _getTableId(ClientContext context, String tableName)
       throws NamespaceNotFoundException, TableNotFoundException {
     TableId tableId = getNameToIdMap(context).get(tableName);
+
     if (tableId == null) {
-      // maybe the table exist, but the cache was not updated yet... so try to clear the cache and
-      // check again
+      // maybe the table exist, but the cache was not updated yet...
+      // so try to clear the cache and check again
       clearCache(context);
       tableId = getNameToIdMap(context).get(tableName);
       if (tableId == null) {
@@ -133,6 +134,7 @@ public class Tables {
   public static String getTableName(ClientContext context, TableId tableId)
       throws TableNotFoundException {
     String tableName = getIdToNameMap(context).get(tableId);
+
     if (tableName == null)
       throw new TableNotFoundException(tableId.canonical(), null, null);
     return tableName;
@@ -141,6 +143,7 @@ public class Tables {
   public static String getTableOfflineMsg(ClientContext context, TableId tableId) {
     if (tableId == null)
       return "Table <unknown table> is offline";
+
     try {
       String tableName = Tables.getTableName(context, tableId);
       return "Table " + tableName + " (" + tableId.canonical() + ") is offline";
@@ -163,9 +166,7 @@ public class Tables {
    */
   private static TableMap getTableMap(final ClientContext context) {
     TableMap map;
-
     final ZooCache zc = getZooCache(context);
-
     map = getTableMap(context, zc);
 
     if (!map.isCurrent(zc)) {
@@ -212,6 +213,7 @@ public class Tables {
 
   public static String getPrintableTableInfoFromId(ClientContext context, TableId tableId) {
     String tableName = null;
+
     try {
       tableName = getTableName(context, tableId);
     } catch (TableNotFoundException e) {
@@ -223,6 +225,7 @@ public class Tables {
 
   public static String getPrintableTableInfoFromName(ClientContext context, String tableName) {
     TableId tableId = null;
+
     try {
       tableId = getTableId(context, tableName);
     } catch (TableNotFoundException e) {
@@ -250,7 +253,6 @@ public class Tables {
    */
   public static TableState getTableState(ClientContext context, TableId tableId,
       boolean clearCachedState) {
-
     String statePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId.canonical()
         + Constants.ZTABLE_STATE;
 
@@ -273,6 +275,7 @@ public class Tables {
 
   public static String qualified(String tableName, String defaultNamespace) {
     Pair<String,String> qualifiedTableName = qualify(tableName, defaultNamespace);
+
     if (Namespace.DEFAULT.name().equals(qualifiedTableName.getFirst()))
       return qualifiedTableName.getSecond();
     else
@@ -284,8 +287,9 @@ public class Tables {
   }
 
   public static Pair<String,String> qualify(String tableName, String defaultNamespace) {
-    if (!tableName.matches(VALID_NAME_REGEX))
-      throw new IllegalArgumentException("Invalid table name '" + tableName + "'");
+    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
+        "Invalid table name '" + tableName + "'");
+
     if (MetadataTable.OLD_NAME.equals(tableName))
       tableName = MetadataTable.NAME;
     if (tableName.contains(".")) {

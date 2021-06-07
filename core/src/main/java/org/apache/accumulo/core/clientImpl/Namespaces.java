@@ -40,11 +40,11 @@ import org.slf4j.LoggerFactory;
 public class Namespaces {
   private static final Logger log = LoggerFactory.getLogger(Namespaces.class);
 
-  public static final String VALID_NAME_REGEX = "^\\w*$";
+  public static final String VALID_NAMESPACE_REGEX = "^\\w{0,1024}$";
   public static final Validator<String> VALID_NAME = new Validator<>() {
     @Override
     public boolean test(String namespace) {
-      return namespace != null && namespace.matches(VALID_NAME_REGEX);
+      return namespace != null && namespace.matches(VALID_NAMESPACE_REGEX);
     }
 
     @Override
@@ -55,7 +55,6 @@ public class Namespaces {
           + namespace;
     }
   };
-
   public static final Validator<String> NOT_DEFAULT = new Validator<>() {
     @Override
     public boolean test(String namespace) {

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.manager.util;
 
-import static org.apache.accumulo.core.clientImpl.Tables.VALID_NAME_REGEX;
+import static org.apache.accumulo.core.clientImpl.Tables.VALID_TABLENAME_REGEX;
 import static org.apache.accumulo.core.clientImpl.Tables.qualify;
 
 import java.util.Arrays;
@@ -39,7 +39,7 @@ public class TableValidators {
   public static final Validator<String> VALID_NAME = new Validator<>() {
     @Override
     public boolean test(String tableName) {
-      return tableName != null && tableName.matches(VALID_NAME_REGEX);
+      return tableName != null && tableName.matches(VALID_TABLENAME_REGEX);
     }
 
     @Override
