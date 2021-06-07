@@ -148,7 +148,7 @@ public class CompactionManager {
           Map<String,String> defaultServiceConfigs =
               Map.of(defaultServicePrefix + "planner", DefaultCompactionPlanner.class.getName(),
                   defaultServicePrefix + "planner.opts.executors",
-                  "[{'name':'deprecated','numThreads':" + numThreads + "}]");
+                  "[{'name':'deprecated', 'numThreads':" + numThreads + "}]");
 
           configsCopy.putAll(defaultServiceConfigs);
 
