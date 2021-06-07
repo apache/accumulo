@@ -277,6 +277,13 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
         logFileKey.tablet = KeyExtent.readFrom(buffer);
         buffer.close();
         break;
+	case COMPACTION_FINISH:
+	case MANY_MUTATIONS:
+	case MUTATION:
+	        // nothing to do
+		break;
+	default:
+		throw new AssertionError();
     }
 
     return logFileKey;
