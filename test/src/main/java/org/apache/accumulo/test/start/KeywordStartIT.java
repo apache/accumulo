@@ -34,6 +34,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+import org.apache.accumulo.compactor.CompactorExecutable;
+import org.apache.accumulo.coordinator.CoordinatorExecutable;
 import org.apache.accumulo.core.file.rfile.PrintInfo;
 import org.apache.accumulo.core.util.CreateToken;
 import org.apache.accumulo.core.util.Help;
@@ -60,6 +62,7 @@ import org.apache.accumulo.tracer.TraceServer;
 import org.apache.accumulo.tracer.TracerExecutable;
 import org.apache.accumulo.tserver.TServerExecutable;
 import org.apache.accumulo.tserver.TabletServer;
+import org.apache.accumulo.tserver.logger.LogReader;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
@@ -103,6 +106,8 @@ public class KeywordStartIT {
     TreeMap<String,Class<? extends KeywordExecutable>> expectSet = new TreeMap<>();
     expectSet.put("admin", Admin.class);
     expectSet.put("check-server-config", ConfigSanityCheck.class);
+    expectSet.put("compaction-coordinator", CoordinatorExecutable.class);
+    expectSet.put("compactor", CompactorExecutable.class);
     expectSet.put("convert-config", ConvertConfig.class);
     expectSet.put("create-token", CreateToken.class);
     expectSet.put("gc", GCExecutable.class);
@@ -115,6 +120,7 @@ public class KeywordStartIT {
     expectSet.put("minicluster", MiniClusterExecutable.class);
     expectSet.put("monitor", MonitorExecutable.class);
     expectSet.put("rfile-info", PrintInfo.class);
+    expectSet.put("wal-info", LogReader.class);
     expectSet.put("shell", Shell.class);
     expectSet.put("tracer", TracerExecutable.class);
     expectSet.put("tserver", TServerExecutable.class);
@@ -166,6 +172,7 @@ public class KeywordStartIT {
     expectSet.add(MiniAccumuloRunner.class);
     expectSet.add(Monitor.class);
     expectSet.add(PrintInfo.class);
+    expectSet.add(LogReader.class);
     expectSet.add(Shell.class);
     expectSet.add(SimpleGarbageCollector.class);
     expectSet.add(TabletServer.class);

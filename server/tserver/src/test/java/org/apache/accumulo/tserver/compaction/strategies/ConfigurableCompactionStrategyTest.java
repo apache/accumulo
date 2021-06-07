@@ -53,7 +53,7 @@ public class ConfigurableCompactionStrategyTest {
 
     Map<String,String> opts = new HashMap<>();
 
-    var initParams = new CompactionConfigurer.InitParamaters() {
+    var initParams = new CompactionConfigurer.InitParameters() {
 
       @Override
       public TableId getTableId() {

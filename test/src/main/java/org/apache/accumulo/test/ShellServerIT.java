@@ -285,6 +285,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
             output.get().contains(s));
       shell.resetExitCode();
     }
+
+    void writeToHistory(String cmd) {
+      input.set(cmd);
+      reader.readLine();
+    }
   }
 
   private static final NoOpErrorMessageCallback noop = new NoOpErrorMessageCallback();
@@ -932,17 +937,16 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("scan", true, "value", true);
 
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
-      for (Entry<String,String> entry : accumuloClient.tableOperations().getProperties(table)) {
-        if (entry.getKey().equals("table.custom.description"))
-          assertEquals("Initial property was not set correctly", "description", entry.getValue());
+      accumuloClient.tableOperations().getConfiguration(table).forEach((key, value) -> {
+        if (key.equals("table.custom.description"))
+          assertEquals("Initial property was not set correctly", "description", value);
 
-        if (entry.getKey().equals("table.custom.testProp"))
-          assertEquals("Initial property was not set correctly", "testProp", entry.getValue());
+        if (key.equals("table.custom.testProp"))
+          assertEquals("Initial property was not set correctly", "testProp", value);
 
-        if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
-          assertEquals("Initial property was not set correctly", "10K", entry.getValue());
-
-      }
+        if (key.equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
+          assertEquals("Initial property was not set correctly", "10K", value);
+      });
     }
     ts.exec("deletetable -f " + table);
   }
@@ -1431,18 +1435,27 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-  // TODO - evaluate this test is testing what is expected or history is working.
   @Test
   public void history() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
+    // test clear history command works
+    ts.writeToHistory("foo");
+    ts.exec("history", true, "foo", true);
     ts.exec("history -c", true);
-    ts.exec("createtable " + table);
-    ts.exec("deletetable -f " + table);
-    // TODO - this may be passing only because method name is history.
-    ts.exec("history", true, table, true);
-    // TODO - what is this testing?
-    ts.exec("history", true, "history", true);
+    ts.exec("history", true, "foo", false);
+
+    // Verify commands are not currently in history then write to history file. Does not execute
+    // table ops.
+    ts.exec("history", true, table, false);
+    ts.exec("history", true, "createtable", false);
+    ts.exec("history", true, "deletetable", false);
+    ts.writeToHistory("createtable " + table);
+    ts.writeToHistory("deletetable -f " + table);
+
+    // test that history command prints contents of history file
+    ts.exec("history", true, "createtable " + table, true);
+    ts.exec("history", true, "deletetable -f " + table, true);
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")

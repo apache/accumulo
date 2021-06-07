@@ -21,6 +21,7 @@ package org.apache.accumulo.core.clientImpl;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
@@ -40,6 +41,10 @@ public class ClientInfoImpl implements ClientInfo {
 
   public ClientInfoImpl(Path propertiesFile) {
     this(ClientInfoImpl.toProperties(propertiesFile));
+  }
+
+  public ClientInfoImpl(URL propertiesURL) {
+    this(ClientInfoImpl.toProperties(propertiesURL));
   }
 
   public ClientInfoImpl(Properties properties) {
@@ -111,6 +116,18 @@ public class ClientInfoImpl implements ClientInfo {
       properties.load(is);
     } catch (IOException e) {
       throw new IllegalArgumentException("Failed to load properties from " + propertiesFile, e);
+    }
+    return properties;
+  }
+
+  @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
+      justification = "code runs in same security context as user who provided propertiesURL")
+  public static Properties toProperties(URL propertiesURL) {
+    Properties properties = new Properties();
+    try (InputStream is = propertiesURL.openStream()) {
+      properties.load(is);
+    } catch (IOException e) {
+      throw new IllegalArgumentException("Failed to load properties from " + propertiesURL, e);
     }
     return properties;
   }

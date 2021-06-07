@@ -26,9 +26,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.junit.Test;
@@ -43,7 +43,25 @@ public class CompactionPrioritizerTest {
           .create(URI.create("hdfs://foonn/accumulo/tables/5/" + tablet + "/" + i + ".rf"), 4, 4));
     }
     return new CompactionJobImpl(CompactionJobPrioritizer.createPriority(kind, totalFiles),
-        CompactionExecutorId.of("test"), files, kind, false);
+        CompactionExecutorIdImpl.externalId("test"), files, kind, Optional.of(false));
+  }
+
+  @Test
+  public void testPrioritizer() throws Exception {
+    assertEquals((short) 0, CompactionJobPrioritizer.createPriority(CompactionKind.USER, 0));
+    assertEquals((short) 10000,
+        CompactionJobPrioritizer.createPriority(CompactionKind.USER, 10000));
+    assertEquals((short) 32767,
+        CompactionJobPrioritizer.createPriority(CompactionKind.USER, 32767));
+    assertEquals((short) 32767,
+        CompactionJobPrioritizer.createPriority(CompactionKind.USER, Integer.MAX_VALUE));
+
+    assertEquals((short) -32768, CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, 0));
+    assertEquals((short) -22768,
+        CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, 10000));
+    assertEquals((short) -1, CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, 32767));
+    assertEquals((short) -1,
+        CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, Integer.MAX_VALUE));
   }
 
   @Test
@@ -58,7 +76,7 @@ public class CompactionPrioritizerTest {
     var j8 = createJob(CompactionKind.SELECTOR, "t-014", 5, 21);
     var j9 = createJob(CompactionKind.SELECTOR, "t-015", 7, 21);
 
-    var expected = List.of(j2, j3, j1, j6, j7, j9, j8, j4, j5);
+    var expected = List.of(j6, j2, j3, j1, j7, j4, j9, j8, j5);
 
     var shuffled = new ArrayList<>(expected);
     Collections.shuffle(shuffled);

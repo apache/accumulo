@@ -71,10 +71,7 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
       throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
     if (!exists(namespace))
       throw new NamespaceNotFoundException(null, namespace, null);
-    Map<String,String> copy = new TreeMap<>();
-    for (Entry<String,String> property : this.getProperties(namespace)) {
-      copy.put(property.getKey(), property.getValue());
-    }
+    Map<String,String> copy = Map.copyOf(this.getConfiguration(namespace));
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), name);

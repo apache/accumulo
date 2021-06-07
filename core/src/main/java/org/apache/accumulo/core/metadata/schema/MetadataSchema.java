@@ -327,6 +327,11 @@ public class MetadataSchema {
       public static final Text NAME = new Text("chopped");
       public static final ColumnFQ CHOPPED_COLUMN = new ColumnFQ(NAME, new Text("chopped"));
     }
+
+    public static class ExternalCompactionColumnFamily {
+      public static final String STR_NAME = "ecomp";
+      public static final Text NAME = new Text(STR_NAME);
+    }
   }
 
   /**
@@ -449,4 +454,16 @@ public class MetadataSchema {
     }
   }
 
+  public static class ExternalCompactionSection {
+    private static final Section section =
+        new Section(RESERVED_PREFIX + "ecomp", true, RESERVED_PREFIX + "ecomq", false);
+
+    public static Range getRange() {
+      return section.getRange();
+    }
+
+    public static String getRowPrefix() {
+      return section.getRowPrefix();
+    }
+  }
 }

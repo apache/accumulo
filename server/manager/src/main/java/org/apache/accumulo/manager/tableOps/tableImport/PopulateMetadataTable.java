@@ -32,7 +32,6 @@ import java.util.zip.ZipInputStream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -60,7 +59,7 @@ class PopulateMetadataTable extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private ImportedTableInfo tableInfo;
+  private final ImportedTableInfo tableInfo;
 
   PopulateMetadataTable(ImportedTableInfo ti) {
     this.tableInfo = ti;
@@ -91,15 +90,10 @@ class PopulateMetadataTable extends ManagerRepo {
 
     Path path = new Path(tableInfo.exportFile);
 
-    BatchWriter mbw = null;
-    ZipInputStream zis = null;
+    VolumeManager fs = manager.getVolumeManager();
 
-    try {
-      VolumeManager fs = manager.getVolumeManager();
-
-      mbw = manager.getContext().createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-
-      zis = new ZipInputStream(fs.open(path));
+    try (BatchWriter mbw = manager.getContext().createBatchWriter(MetadataTable.NAME);
+        ZipInputStream zis = new ZipInputStream(fs.open(path))) {
 
       Map<String,String> fileNameMappings = new HashMap<>();
       for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
@@ -145,9 +139,14 @@ class PopulateMetadataTable extends ManagerRepo {
               cq = key.getColumnQualifier();
             }
 
-            if (m == null) {
-              // Make a unique directory inside the table's dir. Cannot import multiple tables into
-              // one table, so don't need to use unique allocator
+            if (m == null || !currentRow.equals(metadataRow)) {
+
+              if (m != null) {
+                mbw.addMutation(m);
+              }
+
+              // Make a unique directory inside the table's dir. Cannot import multiple tables
+              // into one table, so don't need to use unique allocator
               String tabletDir = new String(
                   FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES),
                   UTF_8);
@@ -157,19 +156,6 @@ class PopulateMetadataTable extends ManagerRepo {
               currentRow = metadataRow;
             }
 
-            if (!currentRow.equals(metadataRow)) {
-              mbw.addMutation(m);
-
-              // Make a unique directory inside the table's dir. Cannot import multiple tables into
-              // one table, so don't need to use unique allocator
-              String tabletDir = new String(
-                  FastFormat.toZeroPaddedString(dirCount++, 8, 16, Constants.CLONE_PREFIX_BYTES),
-                  UTF_8);
-
-              m = new Mutation(metadataRow);
-              ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value(tabletDir));
-            }
-
             m.put(key.getColumnFamily(), cq, val);
 
             if (endRow == null && TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
@@ -177,7 +163,6 @@ class PopulateMetadataTable extends ManagerRepo {
               break; // its the last column in the last row
             }
           }
-
           break;
         }
       }
@@ -188,18 +173,6 @@ class PopulateMetadataTable extends ManagerRepo {
       throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
           tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Error reading " + path + " " + ioe.getMessage());
-    } finally {
-      if (zis != null) {
-        try {
-          zis.close();
-        } catch (IOException ioe) {
-          log.warn("Failed to close zip file ", ioe);
-        }
-      }
-
-      if (mbw != null) {
-        mbw.close();
-      }
     }
   }
 

@@ -77,8 +77,11 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.security.Authorizations;
@@ -93,7 +96,9 @@ import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
@@ -115,7 +120,6 @@ import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.TabletStatsKeeper;
 import org.apache.accumulo.tserver.TabletStatsKeeper.Operation;
-import org.apache.accumulo.tserver.TooManyFilesException;
 import org.apache.accumulo.tserver.TservConstraintEnv;
 import org.apache.accumulo.tserver.compactions.Compactable;
 import org.apache.accumulo.tserver.constraints.ConstraintChecker;
@@ -267,6 +271,11 @@ public class Tablet {
     String extension = FileOperations.getNewFileExtension(tableConfiguration);
     return new TabletFile(new Path(chooseTabletDir() + "/" + prefix
         + context.getUniqueNameAllocator().getNextName() + "." + extension));
+  }
+
+  TabletFile getNextMapFilenameForMajc(boolean propagateDeletes) throws IOException {
+    String tmpFileName = getNextMapFilename(!propagateDeletes ? "A" : "C").getMetaInsert() + "_tmp";
+    return new TabletFile(new Path(tmpFileName));
   }
 
   private void checkTabletDir(Path path) throws IOException {
@@ -422,24 +431,35 @@ public class Tablet {
     // look for hints of a failure on the previous tablet server
     if (!logEntries.isEmpty()) {
       // look for any temp files hanging around
-      removeOldTemporaryFiles();
+      removeOldTemporaryFiles(data.getExternalCompactions());
     }
 
-    this.compactable = new CompactableImpl(this, tabletServer.getCompactionManager());
+    this.compactable = new CompactableImpl(this, tabletServer.getCompactionManager(),
+        data.getExternalCompactions());
   }
 
   public ServerContext getContext() {
     return context;
   }
 
-  private void removeOldTemporaryFiles() {
+  private void removeOldTemporaryFiles(
+      Map<ExternalCompactionId,ExternalCompactionMetadata> externalCompactions) {
     // remove any temporary files created by a previous tablet server
     try {
+
+      var extCompactionFiles = externalCompactions.values().stream()
+          .map(ecMeta -> ecMeta.getCompactTmpName().getPath()).collect(Collectors.toSet());
+
       for (Volume volume : getTabletServer().getVolumeManager().getVolumes()) {
         String dirUri = volume.getBasePath() + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
             + extent.tableId() + Path.SEPARATOR + dirName;
 
         for (FileStatus tmp : volume.getFileSystem().globStatus(new Path(dirUri, "*_tmp"))) {
+
+          if (extCompactionFiles.contains(tmp.getPath())) {
+            continue;
+          }
+
           try {
             log.debug("Removing old temp file {}", tmp.getPath());
             volume.getFileSystem().delete(tmp.getPath(), false);
@@ -1338,19 +1358,35 @@ public class Tablet {
     }
 
     try {
-      Pair<List<LogEntry>,SortedMap<StoredTabletFile,DataFileValue>> fileLog =
-          MetadataTableUtil.getFileAndLogEntries(context, extent);
+      var tabletMeta = context.getAmple().readTablet(extent, ColumnType.FILES, ColumnType.LOGS,
+          ColumnType.ECOMP, ColumnType.PREV_ROW);
 
-      if (!fileLog.getFirst().isEmpty()) {
-        String msg = "Closed tablet " + extent + " has walog entries in " + MetadataTable.NAME + " "
-            + fileLog.getFirst();
+      if (!tabletMeta.getExtent().equals(extent)) {
+        String msg = "Closed tablet " + extent + " does not match extent in metadata table "
+            + tabletMeta.getExtent();
         log.error(msg);
         throw new RuntimeException(msg);
       }
 
-      if (!fileLog.getSecond().equals(getDatafileManager().getDatafileSizes())) {
+      HashSet<ExternalCompactionId> ecids = new HashSet<>();
+      compactable.getExternalCompactionIds(ecids::add);
+      if (!tabletMeta.getExternalCompactions().keySet().equals(ecids)) {
+        String msg = "Closed tablet " + extent + " external compaction ids differ " + ecids + " != "
+            + tabletMeta.getExternalCompactions().keySet();
+        log.error(msg);
+        throw new RuntimeException(msg);
+      }
+
+      if (!tabletMeta.getLogs().isEmpty()) {
+        String msg = "Closed tablet " + extent + " has walog entries in " + MetadataTable.NAME + " "
+            + tabletMeta.getLogs();
+        log.error(msg);
+        throw new RuntimeException(msg);
+      }
+
+      if (!tabletMeta.getFilesMap().equals(getDatafileManager().getDatafileSizes())) {
         String msg = "Data files in differ from in memory data " + extent + "  "
-            + fileLog.getSecond() + "  " + getDatafileManager().getDatafileSizes();
+            + tabletMeta.getFilesMap() + "  " + getDatafileManager().getDatafileSizes();
         log.error(msg);
         throw new RuntimeException(msg);
       }
@@ -1691,8 +1727,11 @@ public class Tablet {
 
       MetadataTime time = tabletTime.getMetadataTime();
 
+      HashSet<ExternalCompactionId> ecids = new HashSet<>();
+      compactable.getExternalCompactionIds(ecids::add);
+
       MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio,
-          getTabletServer().getContext(), getTabletServer().getLock());
+          getTabletServer().getContext(), getTabletServer().getLock(), ecids);
       ManagerMetadataUtil.addNewTablet(getTabletServer().getContext(), low, lowDirectoryName,
           getTabletServer().getTabletSession(), lowDatafileSizes, bulkImported, time, lastFlushID,
           lastCompactID, getTabletServer().getLock());

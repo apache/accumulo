@@ -70,6 +70,7 @@ import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
@@ -77,6 +78,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ch
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -144,10 +146,11 @@ public class MetadataTableUtil {
   public static void update(ServerContext context, ServiceLock zooLock, Mutation m,
       KeyExtent extent) {
     Writer t = extent.isMeta() ? getRootTable(context) : getMetadataTable(context);
-    update(context, t, zooLock, m);
+    update(context, t, zooLock, m, extent);
   }
 
-  public static void update(ServerContext context, Writer t, ServiceLock zooLock, Mutation m) {
+  public static void update(ServerContext context, Writer t, ServiceLock zooLock, Mutation m,
+      KeyExtent extent) {
     if (zooLock != null)
       putLockID(context, zooLock, m);
     while (true) {
@@ -155,14 +158,18 @@ public class MetadataTableUtil {
         t.update(m);
         return;
       } catch (AccumuloException | TableNotFoundException | AccumuloSecurityException e) {
-        log.error("{}", e.getMessage(), e);
+        logUpdateFailure(m, extent, e);
       } catch (ConstraintViolationException e) {
-        log.error("{}", e.getMessage(), e);
+        logUpdateFailure(m, extent, e);
         // retrying when a CVE occurs is probably futile and can cause problems, see ACCUMULO-3096
         throw new RuntimeException(e);
       }
       sleepUninterruptibly(1, TimeUnit.SECONDS);
     }
+  }
+
+  private static void logUpdateFailure(Mutation m, KeyExtent extent, Exception e) {
+    log.error("Failed to write metadata updates for extent {} {}", extent, m.prettyPrint(), e);
   }
 
   public static void updateTabletFlushID(KeyExtent extent, long flushID, ServerContext context,
@@ -243,7 +250,7 @@ public class MetadataTableUtil {
   }
 
   public static void splitTablet(KeyExtent extent, Text oldPrevEndRow, double splitRatio,
-      ServerContext context, ServiceLock zooLock) {
+      ServerContext context, ServiceLock zooLock, Set<ExternalCompactionId> ecids) {
     Mutation m = TabletColumnFamily.createPrevRowMutation(extent);
 
     TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value(Double.toString(splitRatio)));
@@ -251,6 +258,9 @@ public class MetadataTableUtil {
     TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
         TabletColumnFamily.encodePrevEndRow(oldPrevEndRow));
     ChoppedColumnFamily.CHOPPED_COLUMN.putDelete(m);
+
+    ecids.forEach(ecid -> m.putDelete(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical()));
+
     update(context, zooLock, m, extent);
   }
 
@@ -578,7 +588,7 @@ public class MetadataTableUtil {
   public static void cloneTable(ServerContext context, TableId srcTableId, TableId tableId)
       throws Exception {
 
-    try (BatchWriter bw = context.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
+    try (BatchWriter bw = context.createBatchWriter(MetadataTable.NAME)) {
 
       while (true) {
 
@@ -644,7 +654,7 @@ public class MetadataTableUtil {
     try (
         Scanner mscanner =
             new IsolatedScanner(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-        BatchWriter bw = client.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig())) {
+        BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
       mscanner.fetchColumnFamily(BulkFileColumnFamily.NAME);
 

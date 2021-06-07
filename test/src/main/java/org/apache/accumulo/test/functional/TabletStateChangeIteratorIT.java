@@ -38,7 +38,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.RowIterator;
@@ -193,8 +192,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       throws TableNotFoundException, MutationsRejectedException {
     TableId tableIdToModify =
         TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
-    BatchDeleter deleter =
-        client.createBatchDeleter(table, Authorizations.EMPTY, 1, new BatchWriterConfig());
+    BatchDeleter deleter = client.createBatchDeleter(table, Authorizations.EMPTY, 1);
     deleter
         .setRanges(Collections.singleton(new KeyExtent(tableIdToModify, null, null).toMetaRange()));
     deleter.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
@@ -276,7 +274,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     assertEquals("Metadata should have 7 rows (1 repl + 2 for each table)", 7, mutations.size());
     client.tableOperations().create(copy);
 
-    try (BatchWriter writer = client.createBatchWriter(copy, new BatchWriterConfig())) {
+    try (BatchWriter writer = client.createBatchWriter(copy)) {
       for (Mutation m : mutations) {
         writer.addMutation(m);
       }

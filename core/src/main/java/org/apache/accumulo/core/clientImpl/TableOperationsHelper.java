@@ -78,10 +78,7 @@ public abstract class TableOperationsHelper implements TableOperations {
         "tableName must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
-    Map<String,String> copy = new TreeMap<>();
-    for (Entry<String,String> property : this.getProperties(tableName)) {
-      copy.put(property.getKey(), property.getValue());
-    }
+    Map<String,String> copy = Map.copyOf(this.getConfiguration(tableName));
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), name);
@@ -197,9 +194,7 @@ public abstract class TableOperationsHelper implements TableOperations {
         "tableName must only contain word characters (letters, digits, and underscores)"
             + " and cannot exceed 1024 characters");
 
-    Map<String,String> iteratorProps = new HashMap<>();
-    for (Entry<String,String> entry : this.getProperties(tableName))
-      iteratorProps.put(entry.getKey(), entry.getValue());
+    Map<String,String> iteratorProps = Map.copyOf(this.getConfiguration(tableName));
     checkIteratorConflicts(iteratorProps, setting, scopes);
   }
 

@@ -149,11 +149,12 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   private void conditionWriteSome(AccumuloClient c, String tableName, int n,
       ConditionalWriterConfig cfg) throws Exception {
-    ConditionalWriter cw = c.createConditionalWriter(tableName, cfg);
-    for (int i = 0; i < n; i++) {
-      ConditionalMutation m = new ConditionalMutation(i + "", new Condition("", ""));
-      m.put("", "", "X");
-      assertEquals(Status.ACCEPTED, cw.write(m).getStatus());
+    try (ConditionalWriter cw = c.createConditionalWriter(tableName, cfg)) {
+      for (int i = 0; i < n; i++) {
+        ConditionalMutation m = new ConditionalMutation(i + "", new Condition("", ""));
+        m.put("", "", "X");
+        assertEquals(Status.ACCEPTED, cw.write(m).getStatus());
+      }
     }
   }
 

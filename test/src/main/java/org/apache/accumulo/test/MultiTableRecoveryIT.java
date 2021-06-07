@@ -76,7 +76,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
       for (String tableName : tables) {
         c.tableOperations().create(tableName);
         values[i] = Integer.toString(i).getBytes();
-        writers[i] = c.createBatchWriter(tableName, null);
+        writers[i] = c.createBatchWriter(tableName);
         i++;
       }
       System.out.println("Creating agitator");

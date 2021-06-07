@@ -87,7 +87,7 @@ public class LocalityGroupUtil {
         || prop.equals(Property.TABLE_LOCALITY_GROUPS.getKey());
   }
 
-  public static void checkLocalityGroups(Iterable<Entry<String,String>> config)
+  public static void checkLocalityGroups(Map<String,String> config)
       throws LocalityGroupConfigurationError {
     ConfigurationCopy cc = new ConfigurationCopy(config);
     if (cc.get(Property.TABLE_LOCALITY_GROUPS) != null) {
@@ -377,11 +377,11 @@ public class LocalityGroupUtil {
     if (lgName == null) {
       // this is the default locality group, create a set of all families not in the default group
       Set<ByteSequence> nonDefaultFamilies = new HashSet<>();
-      for (Entry<String,ArrayList<ByteSequence>> entry : localityGroupCF.entrySet()) {
-        if (entry.getKey() != null) {
-          nonDefaultFamilies.addAll(entry.getValue());
+      localityGroupCF.forEach((k, v) -> {
+        if (k != null) {
+          nonDefaultFamilies.addAll(v);
         }
-      }
+      });
 
       families = nonDefaultFamilies;
       inclusive = false;

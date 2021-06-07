@@ -218,7 +218,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   }
 
   @Override
-  public Iterable<Entry<String,String>> getProperties(final String namespace)
+  public Map<String,String> getConfiguration(final String namespace)
       throws AccumuloException, NamespaceNotFoundException {
     checkArgument(namespace != null, "namespace is null");
     checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
@@ -227,8 +227,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     try {
       return ServerClient.executeRaw(context, client -> client
-          .getNamespaceConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), namespace))
-          .entrySet();
+          .getNamespaceConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
     } catch (ThriftTableOperationException e) {
       switch (e.getType()) {
         case NAMESPACE_NOTFOUND:
@@ -242,7 +241,6 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     } catch (Exception e) {
       throw new AccumuloException(e);
     }
-
   }
 
   @Override
@@ -329,7 +327,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
             + " and cannot exceed 1024 characters");
 
     if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
-      Iterable<Entry<String,String>> allProps = getProperties(namespace);
+      Map<String,String> allProps = getConfiguration(namespace);
       try {
         LocalityGroupUtil.checkLocalityGroups(allProps);
       } catch (LocalityGroupConfigurationError | RuntimeException e) {
