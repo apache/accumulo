@@ -609,8 +609,8 @@ public interface TableOperations {
    * Gets properties of a table. This operation is asynchronous and eventually consistent. It is not
    * guaranteed that all tablets in a table will return the same values. Within a few seconds
    * without another change, all tablets in a table should be consistent. The clone table feature
-   * can be used if consistency is required. Method calls getConfiguration and then calls
-   * .entrySet() on the map.
+   * can be used if consistency is required. Method calls {@link #getConfiguration(String)} and then
+   * calls .entrySet() on the map.
    *
    * @param tableName
    *          the name of the table

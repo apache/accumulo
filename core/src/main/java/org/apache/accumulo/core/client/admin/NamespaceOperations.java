@@ -190,8 +190,8 @@ public interface NamespaceOperations {
 
   /**
    * Gets properties of a namespace, which are inherited by tables in this namespace. Note that
-   * recently changed properties may not be available immediately. Method calls getConfiguration and
-   * then calls .entrySet() on the map.
+   * recently changed properties may not be available immediately. Method calls
+   * {@link #getConfiguration(String)} and then calls .entrySet() on the map.
    *
    * @param namespace
    *          the name of the namespace
