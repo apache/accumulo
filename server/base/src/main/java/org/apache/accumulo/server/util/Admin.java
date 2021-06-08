@@ -71,6 +71,7 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -528,8 +529,8 @@ public class Admin implements KeywordExecutable {
     File namespaceScript = new File(outputDirectory, namespace + NS_FILE_SUFFIX);
     try (BufferedWriter nsWriter = new BufferedWriter(new FileWriter(namespaceScript, UTF_8))) {
       nsWriter.write(createNsFormat.format(new String[] {namespace}));
-      Map<String,String> props =
-          Map.copyOf(accumuloClient.namespaceOperations().getConfiguration(namespace));
+      Map<String,String> props = ImmutableSortedMap
+          .copyOf(accumuloClient.namespaceOperations().getConfiguration(namespace));
       for (Entry<String,String> entry : props.entrySet()) {
         String defaultValue = getDefaultConfigValue(entry.getKey());
         if (defaultValue == null || !defaultValue.equals(entry.getValue())) {
@@ -606,7 +607,7 @@ public class Admin implements KeywordExecutable {
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(tableBackup, UTF_8))) {
       writer.write(createTableFormat.format(new String[] {tableName}));
       Map<String,String> props =
-          Map.copyOf(accumuloClient.tableOperations().getConfiguration(tableName));
+          ImmutableSortedMap.copyOf(accumuloClient.tableOperations().getConfiguration(tableName));
       for (Entry<String,String> prop : props.entrySet()) {
         if (prop.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
           String defaultValue = getDefaultConfigValue(prop.getKey());

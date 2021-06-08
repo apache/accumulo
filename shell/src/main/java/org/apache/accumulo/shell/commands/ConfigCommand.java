@@ -47,6 +47,8 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.jline.reader.LineReader;
 
+import com.google.common.collect.ImmutableSortedMap;
+
 public class ConfigCommand extends Command {
   private Option tableOpt, deleteOpt, setOpt, filterOpt, filterWithValuesOpt, disablePaginationOpt,
       outputFileOpt, namespaceOpt;
@@ -183,7 +185,7 @@ public class ConfigCommand extends Command {
       } else if (namespace != null) {
         acuconf = shellState.getAccumuloClient().namespaceOperations().getConfiguration(namespace);
       }
-      final Map<String,String> sortedConf = Map.copyOf(acuconf);
+      final Map<String,String> sortedConf = ImmutableSortedMap.copyOf(acuconf);
 
       for (Entry<String,String> propEntry : acuconf.entrySet()) {
         final String key = propEntry.getKey();
