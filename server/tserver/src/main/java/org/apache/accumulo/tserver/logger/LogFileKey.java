@@ -35,6 +35,8 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 
+import com.google.common.base.Preconditions;
+
 public class LogFileKey implements WritableComparable<LogFileKey> {
 
   public LogEvents event;
@@ -245,10 +247,11 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
    * Format the row using 13 bytes. 1 for event number + 4 for tabletId + 8 for sequence
    */
   private byte[] formatRow(byte eventNum, int tabletId, long seq) {
-    // These will not sort properly when encoded if negative.  Negative is not expected currently, defending against future changes and/or bugs.
-    Preconditions.checkArgument(eventNum >=0 && seq >= 0);
+    // These will not sort properly when encoded if negative. Negative is not expected currently,
+    // defending against future changes and/or bugs.
+    Preconditions.checkArgument(eventNum >= 0 && seq >= 0);
     byte[] row = new byte[13];
-    // encode the signed integer so negatives will sort properly
+    // encode the signed integer so negatives will sort properly for tabletId
     int encodedTabletId = tabletId ^ 0x80000000;
 
     row[0] = eventNum;
