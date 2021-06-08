@@ -78,6 +78,7 @@ public class SortedLogRecovery {
     key.tabletId = Integer.MAX_VALUE;
     key.seq = Long.MAX_VALUE;
     key.tablet = extent;
+    key.filename = "dummy_filename";
     return key;
   }
 
@@ -96,6 +97,7 @@ public class SortedLogRecovery {
     key.tabletId = -1;
     key.seq = 0;
     key.tablet = extent;
+    key.filename = "dummy_filename";
     return key;
   }
 
