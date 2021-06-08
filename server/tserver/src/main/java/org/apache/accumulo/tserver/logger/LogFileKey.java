@@ -245,6 +245,8 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
    * Format the row using 13 bytes. 1 for event number + 4 for tabletId + 8 for sequence
    */
   private byte[] formatRow(byte eventNum, int tabletId, long seq) {
+    // These will not sort properly when encoded if negative.  Negative is not expected currently, defending against future changes and/or bugs.
+    Preconditions.checkArgument(eventNum >=0 && seq >= 0);
     byte[] row = new byte[13];
     // encode the signed integer so negatives will sort properly
     int encodedTabletId = tabletId ^ 0x80000000;
