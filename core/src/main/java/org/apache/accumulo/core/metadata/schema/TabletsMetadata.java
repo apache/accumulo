@@ -129,7 +129,6 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         Iterable<TabletMetadata> tmi = TabletMetadata.convert(scanner, fetchedCols, saveKeyValues);
 
         return new TabletsMetadata(scanner, tmi);
-
       } catch (TableNotFoundException e) {
         throw new RuntimeException(e);
       }
@@ -357,7 +356,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     Options forTablet(KeyExtent extent);
 
     /**
-     * 
+     * Get the tablet metadata for the given extents. This will find tablets based on end row, so
+     * its possible the prev rows could differ for the tablets returned. If this matters then it
+     * must be checked.
      */
     Options forTablets(Collection<KeyExtent> extents);
 
