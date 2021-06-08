@@ -25,18 +25,22 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
@@ -87,6 +91,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private TableId tableId;
     private ReadConsistency readConsistency = ReadConsistency.IMMEDIATE;
     private AccumuloClient _client;
+    private Collection<KeyExtent> extents;
 
     Builder(AccumuloClient client) {
       this._client = client;
@@ -94,6 +99,12 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     @Override
     public TabletsMetadata build() {
+      if (extents != null) {
+        Preconditions.checkState(
+            range == null && table == null && level == DataLevel.USER && !checkConsistency);
+        return buildExtents(_client);
+      }
+
       Preconditions.checkState((level == null) != (table == null),
           "scanTable() cannot be used in conjunction with forLevel(), forTable() or forTablet()");
       if (level == DataLevel.ROOT) {
@@ -101,6 +112,26 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         return new TabletsMetadata(getRootMetadata(ctx, readConsistency));
       } else {
         return buildNonRoot(_client);
+      }
+    }
+
+    private TabletsMetadata buildExtents(AccumuloClient client) {
+
+      try {
+        BatchScanner scanner = client.createBatchScanner(level.metaTable(), Authorizations.EMPTY);
+
+        List<Range> ranges =
+            extents.stream().map(e -> e.toMetaRange()).collect(Collectors.toList());
+        scanner.setRanges(ranges);
+
+        configureColumns(scanner);
+
+        Iterable<TabletMetadata> tmi = TabletMetadata.convert(scanner, fetchedCols, saveKeyValues);
+
+        return new TabletsMetadata(scanner, tmi);
+
+      } catch (TableNotFoundException e) {
+        throw new RuntimeException(e);
       }
     }
 
@@ -117,17 +148,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           fetch(ColumnType.PREV_ROW);
         }
 
-        for (Text fam : families) {
-          scanner.fetchColumnFamily(fam);
-        }
-
-        for (ColumnFQ col : qualifiers) {
-          col.fetch(scanner);
-        }
-
-        if (families.isEmpty() && qualifiers.isEmpty()) {
-          fetchedCols = EnumSet.allOf(ColumnType.class);
-        }
+        configureColumns(scanner);
 
         Iterable<TabletMetadata> tmi =
             TabletMetadata.convert(scanner, fetchedCols, checkConsistency, saveKeyValues);
@@ -144,8 +165,24 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       }
     }
 
+    private void configureColumns(ScannerBase scanner) {
+      for (Text fam : families) {
+        scanner.fetchColumnFamily(fam);
+      }
+
+      for (ColumnFQ col : qualifiers) {
+        col.fetch(scanner);
+      }
+
+      if (families.isEmpty() && qualifiers.isEmpty()) {
+        fetchedCols = EnumSet.allOf(ColumnType.class);
+      }
+    }
+
     @Override
     public Options checkConsistency() {
+      Preconditions.checkState(extents == null,
+          "Unable to check consistency of non-contiguous tablets");
       this.checkConsistency = true;
       return this;
     }
@@ -234,6 +271,21 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     }
 
     @Override
+    public Options forTablets(Collection<KeyExtent> extents) {
+      // TODO sanity checks?
+
+      if (!extents.stream().map(e -> DataLevel.of(e.tableId()))
+          .allMatch(dl -> dl == DataLevel.USER)) {
+        throw new IllegalArgumentException(
+            "readTablets only supported for user tablet at this time.");
+      }
+
+      this.level = DataLevel.USER;
+      this.extents = extents;
+      return this;
+    }
+
+    @Override
     public Options overRange(Range range) {
       this.range = TabletsSection.getRange().clip(range);
       return this;
@@ -305,6 +357,11 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
      * tablet. No checking is done for prev row, so it could differ.
      */
     Options forTablet(KeyExtent extent);
+
+    /**
+     * 
+     */
+    Options forTablets(Collection<KeyExtent> extents);
 
     /**
      * This method automatically determines where the metadata for the passed in table ID resides.
@@ -406,7 +463,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         .convertToTabletMetadata();
   }
 
-  private Scanner scanner;
+  private ScannerBase scanner;
 
   private Iterable<TabletMetadata> tablets;
 
@@ -415,7 +472,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     this.tablets = Collections.singleton(tm);
   }
 
-  private TabletsMetadata(Scanner scanner, Iterable<TabletMetadata> tmi) {
+  private TabletsMetadata(ScannerBase scanner, Iterable<TabletMetadata> tmi) {
     this.scanner = scanner;
     this.tablets = tmi;
   }

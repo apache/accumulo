@@ -27,6 +27,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.SPLIT_RATIO_QUAL;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -40,8 +41,11 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -51,6 +55,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -427,6 +432,29 @@ public class TabletMetadata {
           + " endrow: " + endRow + " -- " + location + " " + qual + " " + val);
     }
     location = new Location(val, qual, lt);
+  }
+
+  static Iterable<TabletMetadata> convert(BatchScanner input, EnumSet<ColumnType> fetchedColumns,
+      boolean buildKeyValueMap) {
+
+    IteratorSetting iterSetting = new IteratorSetting(100, WholeRowIterator.class);
+    input.addScanIterator(iterSetting);
+
+    Supplier<Iterator<TabletMetadata>> iterFactory = () -> {
+      // TODO doe ranges, cols, or iters need to be set each time?
+
+      return Iterators.transform(input.iterator(), entry -> {
+        try {
+          return convertRow(
+              WholeRowIterator.decodeRow(entry.getKey(), entry.getValue()).entrySet().iterator(),
+              fetchedColumns, buildKeyValueMap);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      });
+    };
+
+    return () -> iterFactory.get();
   }
 
   static Iterable<TabletMetadata> convert(Scanner input, EnumSet<ColumnType> fetchedColumns,
