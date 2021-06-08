@@ -198,35 +198,35 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
   /**
    * Converts LogFileKey to Key. Creates a Key containing all of the LogFileKey fields. The fields
    * are stored so the Key sorts maintaining the legacy sort order. The row of the Key is composed
-   * of 3 fields: EventNum + tabletID + seq (separated by underscore). The EventNum is the integer
-   * returned by eventType(). The column family is always the event. The column qualifier is
-   * dependent of the type of event and could be empty.
+   * of 3 fields: EventNum + tabletID + seq. The EventNum is the byte returned by eventType(). The
+   * column family is always the event. The column qualifier is dependent of the type of event and
+   * could be empty.
    *
    * <pre>
    *     Key Schema:
-   *     Row = EventNum_tabletID_seq
+   *     Row = EventNum + tabletID + seq
    *     Family = event
    *     Qualifier = tserverSession OR filename OR KeyExtent
    * </pre>
    */
   public Key toKey() throws IOException {
-    int eventNum = eventType(event);
-    Text formattedRow;
+    byte[] formattedRow;
+    byte eventByte = getEventByte(eventType(event));
     Text family = new Text(event.name());
     var kb = Key.builder();
     switch (event) {
       case OPEN:
-        formattedRow = formatRow(eventNum, 0, 0);
+        formattedRow = formatRow(eventByte, 0, 0);
         return kb.row(formattedRow).family(family).qualifier(new Text(tserverSession)).build();
       case COMPACTION_START:
-        formattedRow = formatRow(eventNum, tabletId, seq);
+        formattedRow = formatRow(eventByte, tabletId, seq);
         return kb.row(formattedRow).family(family).qualifier(new Text(filename)).build();
       case MUTATION:
       case MANY_MUTATIONS:
       case COMPACTION_FINISH:
-        return kb.row(formatRow(eventNum, tabletId, seq)).family(family).build();
+        return kb.row(formatRow(eventByte, tabletId, seq)).family(family).build();
       case DEFINE_TABLET:
-        formattedRow = formatRow(eventNum, tabletId, seq);
+        formattedRow = formatRow(eventByte, tabletId, seq);
         DataOutputBuffer buffer = new DataOutputBuffer();
         tablet.writeTo(buffer);
         var q = copyOf(buffer.getData(), buffer.getLength());
@@ -237,9 +237,50 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     }
   }
 
-  // format row = 1_000001_0000000001
-  private Text formatRow(int eventNum, int tabletId, long seq) {
-    return new Text(String.format("%d_%06d_%010d", eventNum, tabletId, seq));
+  private byte getEventByte(int evenTypeInteger) {
+    return (byte) (evenTypeInteger & 0xff);
+  }
+
+  /**
+   * Format the row using 13 bytes. 1 for event number + 4 for tabletId + 8 for sequence
+   */
+  private byte[] formatRow(byte eventNum, int tabletId, long seq) {
+    byte[] row = new byte[13];
+    // encode the signed integer so negatives will sort properly
+    int encodedTabletId = tabletId ^ 0x80000000;
+
+    row[0] = eventNum;
+    row[1] = (byte) ((encodedTabletId >>> 24) & 0xff);
+    row[2] = (byte) ((encodedTabletId >>> 16) & 0xff);
+    row[3] = (byte) ((encodedTabletId >>> 8) & 0xff);
+    row[4] = (byte) (encodedTabletId & 0xff);
+    row[5] = (byte) (seq >>> 56);
+    row[6] = (byte) (seq >>> 48);
+    row[7] = (byte) (seq >>> 40);
+    row[8] = (byte) (seq >>> 32);
+    row[9] = (byte) (seq >>> 24);
+    row[10] = (byte) (seq >>> 16);
+    row[11] = (byte) (seq >>> 8);
+    row[12] = (byte) (seq); // >>> 0
+    return row;
+  }
+
+  private static int getTabletId(byte[] row) {
+    int encoded = ((row[1] << 24) + (row[2] << 16) + (row[3] << 8) + row[4]);
+    return encoded ^ 0x80000000;
+  }
+
+  private static long getSequence(byte[] row) {
+    // @formatter:off
+    return (((long) row[5] << 56) +
+            ((long) (row[6] & 255) << 48) +
+            ((long) (row[7] & 255) << 40) +
+            ((long) (row[8] & 255) << 32) +
+            ((long) (row[9] & 255) << 24) +
+            ((row[10] & 255) << 16) +
+            ((row[11] & 255) << 8) +
+            ((row[12] & 255)));
+    // @formatter:on
   }
 
   /**
@@ -247,13 +288,15 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
    */
   public static LogFileKey fromKey(Key key) throws IOException {
     var logFileKey = new LogFileKey();
-    String[] rowParts = key.getRow().toString().split("_");
-    int tabletId = Integer.parseInt(rowParts[1]);
-    long seq = Long.parseLong(rowParts[2]);
+    byte[] rowParts = key.getRow().getBytes();
 
-    logFileKey.tabletId = tabletId;
-    logFileKey.seq = seq;
+    logFileKey.tabletId = getTabletId(rowParts);
+    logFileKey.seq = getSequence(rowParts);
     logFileKey.event = LogEvents.valueOf(key.getColumnFamilyData().toString());
+    // verify event number in row matches column family
+    if (eventType(logFileKey.event) != rowParts[0]) {
+      throw new AssertionError("Event in row differs from column family. Key: " + key);
+    }
 
     // handle special cases of what is stored in the qualifier
     switch (logFileKey.event) {
