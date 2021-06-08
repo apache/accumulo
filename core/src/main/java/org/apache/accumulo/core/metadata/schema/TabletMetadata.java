@@ -441,8 +441,6 @@ public class TabletMetadata {
     input.addScanIterator(iterSetting);
 
     Supplier<Iterator<TabletMetadata>> iterFactory = () -> {
-      // TODO doe ranges, cols, or iters need to be set each time?
-
       return Iterators.transform(input.iterator(), entry -> {
         try {
           return convertRow(
