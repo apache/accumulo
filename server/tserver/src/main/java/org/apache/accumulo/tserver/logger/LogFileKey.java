@@ -27,7 +27,6 @@ import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.Base64;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -211,40 +210,39 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
    * </pre>
    */
   public Key toKey() throws IOException {
-    String row = "";
     int eventNum = eventType(event);
-    String family = event.name();
-    String qual = "";
+    Text formattedRow;
+    Text family = new Text(event.name());
+    var kb = Key.builder();
     switch (event) {
       case OPEN:
-        row = formatRow(eventNum, 0, 0);
-        qual = tserverSession;
-        break;
+        formattedRow = formatRow(eventNum, 0, 0);
+        return kb.row(formattedRow).family(family).qualifier(new Text(tserverSession)).build();
       case COMPACTION_START:
-        row = formatRow(eventNum, tabletId, seq);
+        formattedRow = formatRow(eventNum, tabletId, seq);
         if (filename != null)
-          qual = filename;
-        break;
+          return kb.row(formattedRow).family(family).qualifier(new Text(filename)).build();
+        else
+          return kb.row(formattedRow).family(family).build();
       case MUTATION:
       case MANY_MUTATIONS:
       case COMPACTION_FINISH:
-        row = formatRow(eventNum, tabletId, seq);
-        break;
+        return kb.row(formatRow(eventNum, tabletId, seq)).family(family).build();
       case DEFINE_TABLET:
-        row = formatRow(eventNum, tabletId, seq);
-        // Base64 encode KeyExtent
+        formattedRow = formatRow(eventNum, tabletId, seq);
         DataOutputBuffer buffer = new DataOutputBuffer();
         tablet.writeTo(buffer);
-        qual = Base64.getEncoder().encodeToString(copyOf(buffer.getData(), buffer.getLength()));
+        var q = copyOf(buffer.getData(), buffer.getLength());
         buffer.close();
-        break;
+        return kb.row(formattedRow).family(family).qualifier(q).build();
+      default:
+        throw new AssertionError("Invalid event type in LogFileKey: " + event);
     }
-    return new Key(new Text(row), new Text(family), new Text(qual));
   }
 
   // format row = 1_000001_0000000001
-  private String formatRow(int eventNum, int tabletId, long seq) {
-    return String.format("%d_%06d_%010d", eventNum, tabletId, seq);
+  private Text formatRow(int eventNum, int tabletId, long seq) {
+    return new Text(String.format("%d_%06d_%010d", eventNum, tabletId, seq));
   }
 
   /**
@@ -255,7 +253,6 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     String[] rowParts = key.getRow().toString().split("_");
     int tabletId = Integer.parseInt(rowParts[1]);
     long seq = Long.parseLong(rowParts[2]);
-    String qualifier = key.getColumnQualifier().toString();
 
     logFileKey.tabletId = tabletId;
     logFileKey.seq = seq;
@@ -264,26 +261,25 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     // handle special cases of what is stored in the qualifier
     switch (logFileKey.event) {
       case OPEN:
-        logFileKey.tserverSession = qualifier;
+        logFileKey.tserverSession = key.getColumnQualifier().toString();
         break;
       case COMPACTION_START:
-        logFileKey.filename = qualifier;
+        logFileKey.filename = key.getColumnQualifier().toString();
         break;
       case DEFINE_TABLET:
-        // decode Base64 KeyExtent
         DataInputBuffer buffer = new DataInputBuffer();
-        byte[] bytes = Base64.getDecoder().decode(qualifier);
+        byte[] bytes = key.getColumnQualifierData().toArray();
         buffer.reset(bytes, bytes.length);
         logFileKey.tablet = KeyExtent.readFrom(buffer);
         buffer.close();
         break;
-	case COMPACTION_FINISH:
-	case MANY_MUTATIONS:
-	case MUTATION:
-	        // nothing to do
-		break;
-	default:
-		throw new AssertionError();
+      case COMPACTION_FINISH:
+      case MANY_MUTATIONS:
+      case MUTATION:
+        // nothing to do
+        break;
+      default:
+        throw new AssertionError("Invalid event type in key: " + key);
     }
 
     return logFileKey;
