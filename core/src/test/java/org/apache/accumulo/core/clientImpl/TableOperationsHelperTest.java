@@ -50,8 +50,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableSortedMap;
-
 public class TableOperationsHelperTest {
 
   static class Tester extends TableOperationsHelper {
@@ -269,7 +267,7 @@ public class TableOperationsHelperTest {
       String[] parts = value.split("=", 2);
       expected.put(parts[0], parts[1]);
     }
-    Map<String,String> actual = ImmutableSortedMap.copyOf(t.getConfiguration(tablename));
+    Map<String,String> actual = Map.copyOf(t.getConfiguration(tablename));
     assertEquals(expected, actual);
   }
 
