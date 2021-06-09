@@ -440,19 +440,15 @@ public class TabletMetadata {
     IteratorSetting iterSetting = new IteratorSetting(100, WholeRowIterator.class);
     input.addScanIterator(iterSetting);
 
-    Supplier<Iterator<TabletMetadata>> iterFactory = () -> {
-      return Iterators.transform(input.iterator(), entry -> {
-        try {
-          return convertRow(
-              WholeRowIterator.decodeRow(entry.getKey(), entry.getValue()).entrySet().iterator(),
-              fetchedColumns, buildKeyValueMap);
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
-      });
-    };
-
-    return () -> iterFactory.get();
+    return () -> Iterators.transform(input.iterator(), entry -> {
+      try {
+        return convertRow(
+            WholeRowIterator.decodeRow(entry.getKey(), entry.getValue()).entrySet().iterator(),
+            fetchedColumns, buildKeyValueMap);
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    });
   }
 
   static Iterable<TabletMetadata> convert(Scanner input, EnumSet<ColumnType> fetchedColumns,
