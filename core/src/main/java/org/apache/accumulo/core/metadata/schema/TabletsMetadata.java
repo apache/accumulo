@@ -25,6 +25,8 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,12 +35,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -46,6 +51,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -70,6 +76,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterators;
 
 /**
  * An abstraction layer for reading tablet metadata from the accumulo.metadata and accumulo.root
@@ -127,8 +134,18 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         scanner.setRanges(ranges);
 
         configureColumns(scanner);
+        IteratorSetting iterSetting = new IteratorSetting(100, WholeRowIterator.class);
+        scanner.addScanIterator(iterSetting);
 
-        Iterable<TabletMetadata> tmi = TabletMetadata.convert(scanner, fetchedCols, saveKeyValues);
+        Iterable<TabletMetadata> tmi = () -> Iterators.transform(scanner.iterator(), entry -> {
+          try {
+            return TabletMetadata.convertRow(
+                WholeRowIterator.decodeRow(entry.getKey(), entry.getValue()).entrySet().iterator(),
+                fetchedCols, saveKeyValues);
+          } catch (IOException e) {
+            throw new UncheckedIOException(e);
+          }
+        });
 
         return new TabletsMetadata(scanner, tmi);
       } catch (TableNotFoundException e) {
@@ -150,9 +167,23 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         }
 
         configureColumns(scanner);
+        Range range1 = scanner.getRange();
 
-        Iterable<TabletMetadata> tmi =
-            TabletMetadata.convert(scanner, fetchedCols, checkConsistency, saveKeyValues);
+        Function<Range,Iterator<TabletMetadata>> iterFactory = r -> {
+          synchronized (scanner) {
+            scanner.setRange(r);
+            RowIterator rowIter = new RowIterator(scanner);
+            return Iterators.transform(rowIter,
+                ri -> TabletMetadata.convertRow(ri, fetchedCols, saveKeyValues));
+          }
+        };
+
+        Iterable<TabletMetadata> tmi;
+        if (checkConsistency) {
+          tmi = () -> new LinkingIterator(iterFactory, range1);
+        } else {
+          tmi = () -> iterFactory.apply(range1);
+        }
 
         if (endRow != null) {
           // create an iterable that will stop at the tablet which contains the endRow

@@ -27,8 +27,6 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.SPLIT_RATIO_QUAL;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -41,21 +39,14 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.RowIterator;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -88,7 +79,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Iterators;
 
 public class TabletMetadata {
   private static final Logger log = LoggerFactory.getLogger(TabletMetadata.class);
@@ -432,43 +422,6 @@ public class TabletMetadata {
           + " endrow: " + endRow + " -- " + location + " " + qual + " " + val);
     }
     location = new Location(val, qual, lt);
-  }
-
-  static Iterable<TabletMetadata> convert(BatchScanner input, EnumSet<ColumnType> fetchedColumns,
-      boolean buildKeyValueMap) {
-
-    IteratorSetting iterSetting = new IteratorSetting(100, WholeRowIterator.class);
-    input.addScanIterator(iterSetting);
-
-    return () -> Iterators.transform(input.iterator(), entry -> {
-      try {
-        return convertRow(
-            WholeRowIterator.decodeRow(entry.getKey(), entry.getValue()).entrySet().iterator(),
-            fetchedColumns, buildKeyValueMap);
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
-      }
-    });
-  }
-
-  static Iterable<TabletMetadata> convert(Scanner input, EnumSet<ColumnType> fetchedColumns,
-      boolean checkConsistency, boolean buildKeyValueMap) {
-
-    Range range = input.getRange();
-
-    Function<Range,Iterator<TabletMetadata>> iterFactory = r -> {
-      synchronized (input) {
-        input.setRange(r);
-        RowIterator rowIter = new RowIterator(input);
-        return Iterators.transform(rowIter, ri -> convertRow(ri, fetchedColumns, buildKeyValueMap));
-      }
-    };
-
-    if (checkConsistency) {
-      return () -> new LinkingIterator(iterFactory, range);
-    } else {
-      return () -> iterFactory.apply(range);
-    }
   }
 
   @VisibleForTesting
