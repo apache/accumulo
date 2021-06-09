@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.coordinator;
 
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -40,6 +44,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -148,16 +153,19 @@ public class CompactionFinalizer {
 
         List<ExternalCompactionId> statusesToDelete = new ArrayList<>();
 
-        for (ExternalCompactionFinalState ecfs : batch) {
-          // TODO: use #1974 for more efficient metadata reads
-          TabletMetadata tabletMetadata =
-              context.getAmple().readTablets().forTablet(ecfs.getExtent())
-                  .fetch(ColumnType.LOCATION, ColumnType.PREV_ROW, ColumnType.ECOMP).build()
-                  .stream().findFirst().orElse(null);
+        Map<KeyExtent,TabletMetadata> tabletsMetadata;
+        var extents = batch.stream().map(ExternalCompactionFinalState::getExtent).collect(toList());
+        try (TabletsMetadata tablets = context.getAmple().readTablets().forTablets(extents)
+            .fetch(ColumnType.LOCATION, ColumnType.PREV_ROW, ColumnType.ECOMP).build()) {
+          tabletsMetadata = tablets.stream().collect(toMap(TabletMetadata::getExtent, identity()));
+        }
 
-          if (tabletMetadata == null || !tabletMetadata.getExtent().equals(ecfs.getExtent())
-              || !tabletMetadata.getExternalCompactions().keySet()
-                  .contains(ecfs.getExternalCompactionId())) {
+        for (ExternalCompactionFinalState ecfs : batch) {
+
+          TabletMetadata tabletMetadata = tabletsMetadata.get(ecfs.getExtent());
+
+          if (tabletMetadata == null || !tabletMetadata.getExternalCompactions().keySet()
+              .contains(ecfs.getExternalCompactionId())) {
             // there is not per tablet external compaction entry, so delete its final state marker
             // from metadata table
             LOG.debug(
