@@ -70,22 +70,21 @@ public class SortedLogRecovery {
     this.context = context;
   }
 
-  static LogFileKey maxKey(LogEvents event, KeyExtent extent) {
+  static LogFileKey maxKey(LogEvents event) {
     LogFileKey key = new LogFileKey();
     key.event = event;
     key.tabletId = Integer.MAX_VALUE;
     key.seq = Long.MAX_VALUE;
-    key.tablet = extent;
     return key;
   }
 
   static LogFileKey maxKey(LogEvents event, int tabletId) {
-    LogFileKey key = maxKey(event, null);
+    LogFileKey key = maxKey(event);
     key.tabletId = tabletId;
     return key;
   }
 
-  static LogFileKey minKey(LogEvents event, KeyExtent extent) {
+  static LogFileKey minKey(LogEvents event) {
     LogFileKey key = new LogFileKey();
     key.event = event;
     // see GitHub issue #477. There was a bug that caused -1 to end up in tabletId. If this happens
@@ -93,12 +92,11 @@ public class SortedLogRecovery {
     // fail if the id is actually -1 in data.
     key.tabletId = -1;
     key.seq = 0;
-    key.tablet = extent;
     return key;
   }
 
   static LogFileKey minKey(LogEvents event, int tabletId) {
-    LogFileKey key = minKey(event, null);
+    LogFileKey key = minKey(event);
     key.tabletId = tabletId;
     return key;
   }
@@ -106,8 +104,8 @@ public class SortedLogRecovery {
   private int findMaxTabletId(KeyExtent extent, List<Path> recoveryLogDirs) throws IOException {
     int tabletId = -1;
 
-    try (var rli = new RecoveryLogsIterator(context, recoveryLogDirs, minKey(DEFINE_TABLET, extent),
-        maxKey(DEFINE_TABLET, extent), true, DEFINE_TABLET, OPEN)) {
+    try (var rli = new RecoveryLogsIterator(context, recoveryLogDirs, minKey(DEFINE_TABLET),
+        maxKey(DEFINE_TABLET), true, DEFINE_TABLET, OPEN)) {
 
       KeyExtent alternative = extent;
       if (extent.isRootTablet()) {
