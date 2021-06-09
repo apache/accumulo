@@ -150,14 +150,11 @@ public class CompactionFinalizer {
 
         List<ExternalCompactionId> statusesToDelete = new ArrayList<>();
 
-        Map<KeyExtent,TabletMetadata> tabletsMetadata = new HashMap<>();
-
-        List<KeyExtent> extents =
-            batch.stream().map(ecfs -> ecfs.getExtent()).collect(Collectors.toList());
-
+        Map<KeyExtent,TabletMetadata> tabletsMetadata;
+        var extents = batch.stream().map(ExternalCompactionFinalState::getExtent).collect(toList());
         try (TabletsMetadata tablets = context.getAmple().readTablets().forTablets(extents)
             .fetch(ColumnType.LOCATION, ColumnType.PREV_ROW, ColumnType.ECOMP).build()) {
-          tablets.forEach(tm -> tabletsMetadata.put(tm.getExtent(), tm));
+          tabletsMetadata = tablets.stream().collect(toMap(TabletMetadata::getExtent, identity()));
         }
 
         for (ExternalCompactionFinalState ecfs : batch) {
