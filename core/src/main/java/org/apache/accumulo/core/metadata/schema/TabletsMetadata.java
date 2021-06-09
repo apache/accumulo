@@ -108,9 +108,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     @Override
     public TabletsMetadata build() {
       if (extents != null) {
-        // its expected that things are not set for scanning a single range, so check that. It also
-        // expected that checkConsistency is not set as this check can not be done for
-        // non-contiguous tablets.
+        // setting multiple extents with forTablets(extents) is mutually exclusive with these single-tablet options
         checkState(range == null && table == null && level == DataLevel.USER && !checkConsistency);
         return buildExtents(_client);
       }
