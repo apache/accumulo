@@ -28,6 +28,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.SPLIT_RATIO_QUAL;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -41,7 +42,6 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
