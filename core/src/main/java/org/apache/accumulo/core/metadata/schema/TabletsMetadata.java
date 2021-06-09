@@ -264,8 +264,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     @Override
     public Options forTablets(Collection<KeyExtent> extents) {
-      if (!extents.stream().map(e -> DataLevel.of(e.tableId()))
-          .allMatch(dl -> dl == DataLevel.USER)) {
+      if (extents.stream().map(KeyExtent::tableId).map(DataLevel::of)
+          .anyMatch(dl -> dl != DataLevel.USER)) {
         throw new IllegalArgumentException(
             "readTablets only supported for user tablets at this time.");
       }
