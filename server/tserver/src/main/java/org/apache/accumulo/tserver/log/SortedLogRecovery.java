@@ -41,9 +41,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.server.ServerContext;
@@ -78,7 +76,6 @@ public class SortedLogRecovery {
     key.tabletId = Integer.MAX_VALUE;
     key.seq = Long.MAX_VALUE;
     key.tablet = extent;
-    key.filename = "dummy_filename";
     return key;
   }
 
@@ -97,7 +94,6 @@ public class SortedLogRecovery {
     key.tabletId = -1;
     key.seq = 0;
     key.tablet = extent;
-    key.filename = "dummy_filename";
     return key;
   }
 
@@ -119,7 +115,7 @@ public class SortedLogRecovery {
       }
 
       while (rli.hasNext()) {
-        LogFileKey key = LogFileKey.fromKey(rli.next().getKey());
+        LogFileKey key = rli.next().getKey();
 
         checkState(key.event == DEFINE_TABLET); // should only fail if bug elsewhere
 
@@ -175,11 +171,11 @@ public class SortedLogRecovery {
     return path.getParent().getName() + "/" + path.getName();
   }
 
-  static class DeduplicatingIterator implements Iterator<Entry<Key,Value>> {
+  static class DeduplicatingIterator implements Iterator<Entry<LogFileKey,LogFileValue>> {
 
-    private PeekingIterator<Entry<Key,Value>> source;
+    private PeekingIterator<Entry<LogFileKey,LogFileValue>> source;
 
-    public DeduplicatingIterator(Iterator<Entry<Key,Value>> source) {
+    public DeduplicatingIterator(Iterator<Entry<LogFileKey,LogFileValue>> source) {
       this.source = Iterators.peekingIterator(source);
     }
 
@@ -189,8 +185,8 @@ public class SortedLogRecovery {
     }
 
     @Override
-    public Entry<Key,Value> next() {
-      Entry<Key,Value> next = source.next();
+    public Entry<LogFileKey,LogFileValue> next() {
+      Entry<LogFileKey,LogFileValue> next = source.next();
 
       while (source.hasNext() && next.getKey().compareTo(source.peek().getKey()) == 0) {
         source.next();
@@ -221,7 +217,7 @@ public class SortedLogRecovery {
       LogEvents lastEvent = null;
 
       while (ddi.hasNext()) {
-        LogFileKey key = LogFileKey.fromKey(ddi.next().getKey());
+        LogFileKey key = ddi.next().getKey();
 
         checkState(key.seq >= 0, "Unexpected negative seq %s for tabletId %s", key.seq, tabletId);
         checkState(key.tabletId == tabletId); // should only fail if bug elsewhere
@@ -271,13 +267,13 @@ public class SortedLogRecovery {
     try (RecoveryLogsIterator rli = new RecoveryLogsIterator(context, recoveryLogs, start, end,
         false, MUTATION, MANY_MUTATIONS)) {
       while (rli.hasNext()) {
-        Entry<Key,Value> entry = rli.next();
-        LogFileKey logFileKey = LogFileKey.fromKey(entry.getKey());
+        Entry<LogFileKey,LogFileValue> entry = rli.next();
+        LogFileKey logFileKey = entry.getKey();
 
         checkState(logFileKey.tabletId == tabletId); // should only fail if bug elsewhere
         checkState(logFileKey.seq >= recoverySeq); // should only fail if bug elsewhere
 
-        LogFileValue val = LogFileValue.fromValue(entry.getValue());
+        LogFileValue val = entry.getValue();
         if (logFileKey.event == MUTATION || logFileKey.event == MANY_MUTATIONS) {
           log.debug("Recover {} mutation(s) for {}", val.mutations.size(), entry.getKey());
           for (Mutation m : val.mutations) {

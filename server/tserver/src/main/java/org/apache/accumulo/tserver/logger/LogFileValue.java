@@ -110,10 +110,13 @@ public class LogFileValue implements Writable {
   /**
    * Get the mutations from the Value
    */
-  public static LogFileValue fromValue(Value value) throws IOException {
+  public static LogFileValue fromValue(Value value) {
     LogFileValue logFileValue = new LogFileValue();
-    var bais = new ByteArrayInputStream(value.get());
-    logFileValue.readFields(new DataInputStream(bais));
+    try (var bais = new ByteArrayInputStream(value.get())) {
+      logFileValue.readFields(new DataInputStream(bais));
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
     return logFileValue;
   }
 

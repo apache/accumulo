@@ -213,22 +213,21 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
    */
   public Key toKey() throws IOException {
     byte[] formattedRow;
-    byte eventByte = getEventByte(eventType(event));
     Text family = new Text(event.name());
     var kb = Key.builder();
     switch (event) {
       case OPEN:
-        formattedRow = formatRow(eventByte, 0, 0);
+        formattedRow = formatRow(0, 0);
         return kb.row(formattedRow).family(family).qualifier(new Text(tserverSession)).build();
       case COMPACTION_START:
-        formattedRow = formatRow(eventByte, tabletId, seq);
+        formattedRow = formatRow(tabletId, seq);
         return kb.row(formattedRow).family(family).qualifier(new Text(filename)).build();
       case MUTATION:
       case MANY_MUTATIONS:
       case COMPACTION_FINISH:
-        return kb.row(formatRow(eventByte, tabletId, seq)).family(family).build();
+        return kb.row(formatRow(tabletId, seq)).family(family).build();
       case DEFINE_TABLET:
-        formattedRow = formatRow(eventByte, tabletId, seq);
+        formattedRow = formatRow(tabletId, seq);
         DataOutputBuffer buffer = new DataOutputBuffer();
         tablet.writeTo(buffer);
         var q = copyOf(buffer.getData(), buffer.getLength());
@@ -239,14 +238,28 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     }
   }
 
-  private byte getEventByte(int evenTypeInteger) {
+  /**
+   * Get the first byte for the event. The only possible values are 0-4. This is used as the highest
+   * byte in the row.
+   */
+  private byte getEventByte() {
+    int evenTypeInteger = eventType(event);
     return (byte) (evenTypeInteger & 0xff);
   }
 
   /**
-   * Format the row using 13 bytes. 1 for event number + 4 for tabletId + 8 for sequence
+   * Get the byte encoded row for this LogFileKey as a Text object.
    */
-  private byte[] formatRow(byte eventNum, int tabletId, long seq) {
+  public Text formatRow() {
+    return new Text(formatRow(tabletId, seq));
+  }
+
+  /**
+   * Format the row using 13 bytes encoded to allow proper sorting of the RFile Key. The highest
+   * byte is for the event number, 4 bytes for the tabletId and 8 bytes for the sequence long.
+   */
+  private byte[] formatRow(int tabletId, long seq) {
+    byte eventNum = getEventByte();
     // These will not sort properly when encoded if negative. Negative is not expected currently,
     // defending against future changes and/or bugs.
     Preconditions.checkArgument(eventNum >= 0 && seq >= 0);
@@ -270,11 +283,17 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     return row;
   }
 
+  /**
+   * Extract the tabletId integer from the byte encoded Row.
+   */
   private static int getTabletId(byte[] row) {
     int encoded = ((row[1] << 24) + (row[2] << 16) + (row[3] << 8) + row[4]);
     return encoded ^ 0x80000000;
   }
 
+  /**
+   * Extract the sequence long from the byte encoded Row.
+   */
   private static long getSequence(byte[] row) {
     // @formatter:off
     return (((long) row[5] << 56) +
@@ -291,7 +310,7 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
   /**
    * Create LogFileKey from row. Follows schema defined by {@link #toKey()}
    */
-  public static LogFileKey fromKey(Key key) throws IOException {
+  public static LogFileKey fromKey(Key key) {
     var logFileKey = new LogFileKey();
     byte[] rowParts = key.getRow().getBytes();
 
@@ -312,11 +331,13 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
         logFileKey.filename = key.getColumnQualifier().toString();
         break;
       case DEFINE_TABLET:
-        DataInputBuffer buffer = new DataInputBuffer();
-        byte[] bytes = key.getColumnQualifierData().toArray();
-        buffer.reset(bytes, bytes.length);
-        logFileKey.tablet = KeyExtent.readFrom(buffer);
-        buffer.close();
+        try (DataInputBuffer buffer = new DataInputBuffer()) {
+          byte[] bytes = key.getColumnQualifierData().toArray();
+          buffer.reset(bytes, bytes.length);
+          logFileKey.tablet = KeyExtent.readFrom(buffer);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
         break;
       case COMPACTION_FINISH:
       case MANY_MUTATIONS:

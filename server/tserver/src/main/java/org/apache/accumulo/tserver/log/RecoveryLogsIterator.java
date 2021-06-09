@@ -19,6 +19,7 @@
 package org.apache.accumulo.tserver.log;
 
 import java.io.IOException;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -35,6 +36,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
+import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -47,7 +49,8 @@ import com.google.common.collect.Iterators;
 /**
  * Iterates over multiple sorted recovery logs merging them into a single sorted stream.
  */
-public class RecoveryLogsIterator implements Iterator<Entry<Key,Value>>, AutoCloseable {
+public class RecoveryLogsIterator
+    implements Iterator<Entry<LogFileKey,LogFileValue>>, AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(RecoveryLogsIterator.class);
 
@@ -62,9 +65,7 @@ public class RecoveryLogsIterator implements Iterator<Entry<Key,Value>>, AutoClo
 
     List<Iterator<Entry<Key,Value>>> iterators = new ArrayList<>(recoveryLogDirs.size());
     scanners = new ArrayList<>();
-    Key startKey = start.toKey();
-    Key endKey = end.toKey();
-    Range range = new Range(startKey, endKey);
+    Range range = new Range(start.formatRow(), end.formatRow());
     var vm = context.getVolumeManager();
 
     for (Path logDir : recoveryLogDirs) {
@@ -107,8 +108,10 @@ public class RecoveryLogsIterator implements Iterator<Entry<Key,Value>>, AutoClo
   }
 
   @Override
-  public Entry<Key,Value> next() {
-    return iter.next();
+  public Entry<LogFileKey,LogFileValue> next() {
+    Entry<Key,Value> e = iter.next();
+    return new AbstractMap.SimpleImmutableEntry<>(LogFileKey.fromKey(e.getKey()),
+        LogFileValue.fromValue(e.getValue()));
   }
 
   @Override
