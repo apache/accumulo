@@ -108,7 +108,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     @Override
     public TabletsMetadata build() {
       if (extents != null) {
-        // setting multiple extents with forTablets(extents) is mutually exclusive with these single-tablet options
+        // setting multiple extents with forTablets(extents) is mutually exclusive with these
+        // single-tablet options
         checkState(range == null && table == null && level == DataLevel.USER && !checkConsistency);
         return buildExtents(_client);
       }
