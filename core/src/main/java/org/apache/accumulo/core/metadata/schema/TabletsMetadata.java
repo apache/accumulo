@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import static com.google.common.base.Preconditions.checkState;
 import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
@@ -110,12 +111,11 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         // its expected that things are not set for scanning a single range, so check that. It also
         // expected that checkConsistency is not set as this check can not be done for
         // non-contiguous tablets.
-        Preconditions.checkState(
-            range == null && table == null && level == DataLevel.USER && !checkConsistency);
+        checkState(range == null && table == null && level == DataLevel.USER && !checkConsistency);
         return buildExtents(_client);
       }
 
-      Preconditions.checkState((level == null) != (table == null),
+      checkState((level == null) != (table == null),
           "scanTable() cannot be used in conjunction with forLevel(), forTable() or forTablet()");
       if (level == DataLevel.ROOT) {
         ClientContext ctx = ((ClientContext) _client);
@@ -207,8 +207,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     @Override
     public Options checkConsistency() {
-      Preconditions.checkState(extents == null,
-          "Unable to check consistency of non-contiguous tablets");
+      checkState(extents == null, "Unable to check consistency of non-contiguous tablets");
       this.checkConsistency = true;
       return this;
     }
