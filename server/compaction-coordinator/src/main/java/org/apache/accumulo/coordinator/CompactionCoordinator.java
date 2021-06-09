@@ -217,13 +217,15 @@ public class CompactionCoordinator extends AbstractServer
     }
     final CompactionCoordinatorService.Processor<Iface> processor =
         new CompactionCoordinatorService.Processor<>(rpcProxy);
-    Property maxMessageSizeProperty = (aconf.get(Property.COORDINATOR_MAX_MESSAGE_SIZE) != null
-        ? Property.COORDINATOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
+    Property maxMessageSizeProperty =
+        (aconf.get(Property.COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE) != null
+            ? Property.COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getMetricsSystem(), getContext(), getHostname(),
-        Property.COORDINATOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
-        "Thrift Client Server", Property.COORDINATOR_THRIFTCLIENT_PORTSEARCH,
-        Property.COORDINATOR_MINTHREADS, Property.COORDINATOR_MINTHREADS_TIMEOUT,
-        Property.COORDINATOR_THREADCHECK, maxMessageSizeProperty);
+        Property.COMPACTION_COORDINATOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
+        "Thrift Client Server", Property.COMPACTION_COORDINATOR_THRIFTCLIENT_PORTSEARCH,
+        Property.COMPACTION_COORDINATOR_MINTHREADS,
+        Property.COMPACTION_COORDINATOR_MINTHREADS_TIMEOUT,
+        Property.COMPACTION_COORDINATOR_THREADCHECK, maxMessageSizeProperty);
     LOG.info("address = {}", sp.address);
     return sp;
   }
@@ -354,7 +356,8 @@ public class CompactionCoordinator extends AbstractServer
   }
 
   protected long getTServerCheckInterval() {
-    return this.aconf.getTimeInMillis(Property.COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL);
+    return this.aconf
+        .getTimeInMillis(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL);
   }
 
   protected TabletMetadata getMetadataEntryForExtent(KeyExtent extent) {

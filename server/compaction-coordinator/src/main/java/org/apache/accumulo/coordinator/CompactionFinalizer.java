@@ -64,9 +64,9 @@ public class CompactionFinalizer {
     this.pendingNotifications = new ArrayBlockingQueue<>(1000);
 
     tserverCheckInterval = this.context.getConfiguration()
-        .getTimeInMillis(Property.COORDINATOR_FINALIZER_COMPLETION_CHECK_INTERVAL);
+        .getTimeInMillis(Property.COMPACTION_COORDINATOR_FINALIZER_COMPLETION_CHECK_INTERVAL);
     int max = this.context.getConfiguration()
-        .getCount(Property.COORDINATOR_FINALIZER_TSERVER_NOTIFIER_MAXTHREADS);
+        .getCount(Property.COMPACTION_COORDINATOR_FINALIZER_TSERVER_NOTIFIER_MAXTHREADS);
 
     this.ntfyExecutor = ThreadPools.createThreadPool(3, max, 1, TimeUnit.MINUTES,
         "Compaction Finalizer Notifier", false);
