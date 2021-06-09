@@ -164,14 +164,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     }
 
     private void configureColumns(ScannerBase scanner) {
-      for (Text fam : families) {
-        scanner.fetchColumnFamily(fam);
-      }
-
-      for (ColumnFQ col : qualifiers) {
-        col.fetch(scanner);
-      }
-
+      families.forEach(scanner::fetchColumnFamily);
+      qualifiers.forEach(col -> col.fetch(scanner));
       if (families.isEmpty() && qualifiers.isEmpty()) {
         fetchedCols = EnumSet.allOf(ColumnType.class);
       }
