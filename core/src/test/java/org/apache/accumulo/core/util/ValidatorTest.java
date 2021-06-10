@@ -19,46 +19,27 @@
 package org.apache.accumulo.core.util;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertThrows;
 
+import java.util.Optional;
+
+import org.apache.hadoop.shaded.com.google.re2j.Pattern;
 import org.junit.Before;
 import org.junit.Test;
 
 public class ValidatorTest {
-  private static class TestValidator extends Validator<String> {
-    private final String s;
-
-    TestValidator(String s) {
-      this.s = s;
-    }
-
-    @Override
-    public boolean test(String argument) {
-      return s.equals(argument);
-    }
-  }
-
-  private static class Test2Validator extends Validator<String> {
-    private final String ps;
-
-    Test2Validator(String s) {
-      ps = s;
-    }
-
-    @Override
-    public boolean test(String argument) {
-      return (argument != null && argument.matches(ps));
-    }
-  }
 
   private Validator<String> v, v2, v3;
+  private static final Pattern STARTSWITH_C = Pattern.compile("c.*");
 
   @Before
   public void setUp() {
-    v = new TestValidator("correct");
-    v2 = new TestValidator("righto");
-    v3 = new Test2Validator("c.*");
+    v = new Validator<>(
+        arg -> "correct".equals(arg) ? Validator.OK : Optional.of("Invalid argument " + arg));
+    v2 = new Validator<>(arg -> "righto".equals(arg) ? Validator.OK
+        : Optional.of("Not a correct argument : " + arg + " : done"));
+    v3 = new Validator<>(s -> s != null && STARTSWITH_C.matcher(s).matches() ? Validator.OK
+        : Optional.of("Invalid argument " + s));
   }
 
   @Test
@@ -66,37 +47,41 @@ public class ValidatorTest {
     assertEquals("correct", v.validate("correct"));
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void testValidate_Failure() {
-    v.validate("incorrect");
-  }
-
   @Test
-  public void testInvalidMessage() {
-    assertEquals("Invalid argument incorrect", v.invalidMessage("incorrect"));
+  public void testValidate_Failure() {
+    // check default message maker
+    var e = assertThrows(IllegalArgumentException.class, () -> v.validate("incorrect"));
+    assertEquals("Invalid argument incorrect", e.getMessage());
+    // check custom message maker
+    e = assertThrows(IllegalArgumentException.class, () -> v2.validate("somethingwrong"));
+    assertEquals("Not a correct argument : somethingwrong : done", e.getMessage());
   }
 
   @Test
   public void testAnd() {
     Validator<String> vand = v3.and(v);
-    assertTrue(vand.test("correct"));
-    assertFalse(vand.test("righto"));
-    assertFalse(vand.test("coriander"));
+    assertEquals("correct", vand.validate("correct"));
+    assertThrows(IllegalArgumentException.class, () -> vand.validate("righto"));
+    assertThrows(IllegalArgumentException.class, () -> vand.validate("coriander"));
   }
 
   @Test
   public void testOr() {
     Validator<String> vor = v.or(v2);
-    assertTrue(vor.test("correct"));
-    assertTrue(vor.test("righto"));
-    assertFalse(vor.test("coriander"));
+    assertEquals("correct", vor.validate("correct"));
+    assertEquals("righto", vor.validate("righto"));
+    assertThrows(IllegalArgumentException.class, () -> vor.validate("coriander"));
   }
 
   @Test
   public void testNot() {
     Validator<String> vnot = v3.not();
-    assertFalse(vnot.test("correct"));
-    assertFalse(vnot.test("coriander"));
-    assertTrue(vnot.test("righto"));
+    var e = assertThrows(IllegalArgumentException.class, () -> vnot.validate("correct"));
+    assertEquals("Validation should have failed with: Invalid argument correct", e.getMessage());
+    e = assertThrows(IllegalArgumentException.class, () -> vnot.validate("coriander"));
+    assertEquals("Validation should have failed with: Invalid argument coriander", e.getMessage());
+    assertEquals("righto", vnot.validate("righto"));
+    assertEquals("anythingNotStartingWithLowercaseC",
+        vnot.validate("anythingNotStartingWithLowercaseC"));
   }
 }

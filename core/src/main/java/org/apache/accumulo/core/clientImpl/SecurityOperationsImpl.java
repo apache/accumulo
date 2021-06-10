@@ -20,6 +20,7 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.accumulo.core.client.security.SecurityErrorCode.NAMESPACE_DOESNT_EXIST;
+import static org.apache.accumulo.core.util.Validators.EXISTING_NAMESPACE_NAME;
 
 import java.nio.ByteBuffer;
 import java.util.Set;
@@ -49,7 +50,6 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 public class SecurityOperationsImpl implements SecurityOperations {
 
   private final ClientContext context;
-  private static final String VALID_NAMESPACE_REGEX = "^\\w{0,1024}$";
 
   private void executeVoid(ClientExec<ClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException {
@@ -202,11 +202,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
   public boolean hasNamespacePermission(final String principal, final String namespace,
       final NamespacePermission permission) throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
-    checkArgument(namespace != null, "namespace is null");
+    EXISTING_NAMESPACE_NAME.validate(namespace);
     checkArgument(permission != null, "permission is null");
-    checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
-        "namespace must only contain word characters (letters, digits, and underscores)"
-            + " and cannot exceed 1024 characters");
 
     return execute(client -> client.hasNamespacePermission(TraceUtil.traceInfo(),
         context.rpcCreds(), principal, namespace, permission.getId()));
@@ -244,11 +241,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
   public void grantNamespacePermission(final String principal, final String namespace,
       final NamespacePermission permission) throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
-    checkArgument(namespace != null, "namespace is null");
+    EXISTING_NAMESPACE_NAME.validate(namespace);
     checkArgument(permission != null, "permission is null");
-    checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
-        "namespace must only contain word characters (letters, digits, and underscores)"
-            + " and cannot exceed 1024 characters");
 
     executeVoid(client -> client.grantNamespacePermission(TraceUtil.traceInfo(), context.rpcCreds(),
         principal, namespace, permission.getId()));
@@ -286,11 +280,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
   public void revokeNamespacePermission(final String principal, final String namespace,
       final NamespacePermission permission) throws AccumuloException, AccumuloSecurityException {
     checkArgument(principal != null, "principal is null");
-    checkArgument(namespace != null, "namespace is null");
+    EXISTING_NAMESPACE_NAME.validate(namespace);
     checkArgument(permission != null, "permission is null");
-    checkArgument(namespace.matches(VALID_NAMESPACE_REGEX),
-        "namespace must only contain word characters (letters, digits, and underscores)"
-            + " and cannot exceed 1024 characters");
 
     executeVoid(client -> client.revokeNamespacePermission(TraceUtil.traceInfo(),
         context.rpcCreds(), principal, namespace, permission.getId()));

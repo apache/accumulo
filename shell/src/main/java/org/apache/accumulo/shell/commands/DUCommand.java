@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -60,11 +61,9 @@ public class DUCommand extends Command {
 
     // Add any patterns
     if (cl.hasOption(optTablePattern.getOpt())) {
-      for (String table : shellState.getAccumuloClient().tableOperations().list()) {
-        if (table.matches(cl.getOptionValue(optTablePattern.getOpt()))) {
-          tables.add(table);
-        }
-      }
+      shellState.getAccumuloClient().tableOperations().list().stream()
+          .filter(Pattern.compile(cl.getOptionValue(optTablePattern.getOpt())).asMatchPredicate())
+          .forEach(tables::add);
     }
 
     // If we didn't get any tables, and we have a table selected, add the current table

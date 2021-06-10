@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.commons.io.FileUtils;
@@ -148,8 +149,8 @@ public class AccumuloVFSClassLoader {
           pathsToMonitor.add(fo);
           break;
         case IMAGINARY:
-          // assume its a pattern
-          String pattern = fo.getName().getBaseName();
+          // assume it's a pattern
+          var pattern = Pattern.compile(fo.getName().getBaseName());
           if (fo.getParent() != null) {
             // still monitor the parent
             pathsToMonitor.add(fo.getParent());
@@ -157,7 +158,7 @@ public class AccumuloVFSClassLoader {
               FileObject[] children = fo.getParent().getChildren();
               for (FileObject child : children) {
                 if (child.getType() == FileType.FILE
-                    && child.getName().getBaseName().matches(pattern)) {
+                    && pattern.matcher(child.getName().getBaseName()).matches()) {
                   classpath.add(child);
                 }
               }

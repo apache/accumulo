@@ -153,8 +153,9 @@ public class AccumuloClassLoader {
         urls.add(extDir.toURI().toURL());
       else {
         if (extDir.getParentFile() != null) {
+          var pattern = Pattern.compile(extDir.getName());
           File[] extJars =
-              extDir.getParentFile().listFiles((dir, name) -> name.matches("^" + extDir.getName()));
+              extDir.getParentFile().listFiles((dir, name) -> pattern.matcher(name).matches());
           if (extJars != null && extJars.length > 0) {
             for (File jar : extJars)
               urls.add(jar.toURI().toURL());

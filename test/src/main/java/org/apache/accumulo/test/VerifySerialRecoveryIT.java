@@ -26,6 +26,7 @@ import java.security.SecureRandom;
 import java.util.Random;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -120,6 +121,8 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
       // time
       boolean started = false;
       int recoveries = 0;
+      var pattern =
+          Pattern.compile(".*recovered \\d+ mutations creating \\d+ entries from \\d+ walogs.*");
       for (String line : result.split("\n")) {
         // ignore metadata tables
         if (line.contains("!0") || line.contains("+r"))
@@ -129,7 +132,7 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
           started = true;
           recoveries++;
         }
-        if (line.matches(".*recovered \\d+ mutations creating \\d+ entries from \\d+ walogs.*")) {
+        if (pattern.matcher(line).matches()) {
           assertTrue(started);
           started = false;
         }

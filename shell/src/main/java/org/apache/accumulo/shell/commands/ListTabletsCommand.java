@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -129,9 +130,9 @@ public class ListTabletsCommand extends Command {
     Set<TableInfo> tableSet = new TreeSet<>();
 
     if (cl.hasOption(optTablePattern.getOpt())) {
-      String tablePattern = cl.getOptionValue(optTablePattern.getOpt());
+      Pattern tablePattern = Pattern.compile(cl.getOptionValue(optTablePattern.getOpt()));
       for (String table : tableOps.list()) {
-        if (table.matches(tablePattern)) {
+        if (tablePattern.matcher(table).matches()) {
           TableId id = TableId.of(tableIdMap.get(table));
           tableSet.add(new TableInfo(table, id));
         }

@@ -23,6 +23,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.stream.Collectors.groupingBy;
 import static org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.pathToCacheId;
+import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -249,7 +250,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
   @Override
   public ImportMappingOptions to(String tableName) {
-    this.tableName = Objects.requireNonNull(tableName);
+    this.tableName = EXISTING_TABLE_NAME.validate(tableName);
     return this;
   }
 
