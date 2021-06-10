@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -37,15 +38,9 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 
 public abstract class TableOperationsHelper implements TableOperations {
 
-  public static final String VALID_TABLENAME_REGEX = "^(\\w{1,1024}[.])?(\\w{1,1024})$";
-
   @Override
   public void attachIterator(String tableName, IteratorSetting setting)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
-        "tableName must only contain word characters (letters, digits, and underscores)"
-            + " and cannot exceed 1024 characters");
-
     attachIterator(tableName, setting, EnumSet.allOf(IteratorScope.class));
   }
 
@@ -53,12 +48,9 @@ public abstract class TableOperationsHelper implements TableOperations {
   public void attachIterator(String tableName, IteratorSetting setting,
       EnumSet<IteratorScope> scopes)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
+    EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(setting != null, "setting is null");
     checkArgument(scopes != null, "scopes is null");
-    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
-        "tableName must only contain word characters (letters, digits, and underscores)"
-            + " and cannot exceed 1024 characters");
     checkIteratorConflicts(tableName, setting, scopes);
 
     for (IteratorScope scope : scopes) {
@@ -74,9 +66,7 @@ public abstract class TableOperationsHelper implements TableOperations {
   @Override
   public void removeIterator(String tableName, String name, EnumSet<IteratorScope> scopes)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
-        "tableName must only contain word characters (letters, digits, and underscores)"
-            + " and cannot exceed 1024 characters");
+    EXISTING_TABLE_NAME.validate(tableName);
 
     Map<String,String> copy = Map.copyOf(this.getConfiguration(tableName));
     for (IteratorScope scope : scopes) {
@@ -92,12 +82,9 @@ public abstract class TableOperationsHelper implements TableOperations {
   @Override
   public IteratorSetting getIteratorSetting(String tableName, String name, IteratorScope scope)
       throws AccumuloException, TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
+    EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(name != null, "name is null");
     checkArgument(scope != null, "scope is null");
-    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
-        "tableName must only contain word characters (letters, digits, and underscores)"
-            + " and cannot exceed 1024 characters");
 
     int priority = -1;
     String classname = null;
@@ -127,9 +114,7 @@ public abstract class TableOperationsHelper implements TableOperations {
   @Override
   public Map<String,EnumSet<IteratorScope>> listIterators(String tableName)
       throws AccumuloException, TableNotFoundException {
-    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
-        "tableName must only contain word characters (letters, digits, and underscores)"
-            + " and cannot exceed 1024 characters");
+    EXISTING_TABLE_NAME.validate(tableName);
 
     Map<String,EnumSet<IteratorScope>> result = new TreeMap<>();
     for (Entry<String,String> property : this.getProperties(tableName)) {
@@ -189,10 +174,7 @@ public abstract class TableOperationsHelper implements TableOperations {
   @Override
   public void checkIteratorConflicts(String tableName, IteratorSetting setting,
       EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
-        "tableName must only contain word characters (letters, digits, and underscores)"
-            + " and cannot exceed 1024 characters");
+    EXISTING_TABLE_NAME.validate(tableName);
 
     Map<String,String> iteratorProps = Map.copyOf(this.getConfiguration(tableName));
     checkIteratorConflicts(iteratorProps, setting, scopes);
@@ -201,9 +183,7 @@ public abstract class TableOperationsHelper implements TableOperations {
   @Override
   public int addConstraint(String tableName, String constraintClassName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
-        "tableName must only contain word characters (letters, digits, and underscores)"
-            + " and cannot exceed 1024 characters");
+    EXISTING_TABLE_NAME.validate(tableName);
 
     TreeSet<Integer> constraintNumbers = new TreeSet<>();
     TreeMap<String,Integer> constraintClasses = new TreeMap<>();
@@ -234,19 +214,13 @@ public abstract class TableOperationsHelper implements TableOperations {
   @Override
   public void removeConstraint(String tableName, int number)
       throws AccumuloException, AccumuloSecurityException {
-    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
-        "tableName must only contain word characters (letters, digits, and underscores)"
-            + " and cannot exceed 1024 characters");
-
     this.removeProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX.toString() + number);
   }
 
   @Override
   public Map<String,Integer> listConstraints(String tableName)
       throws AccumuloException, TableNotFoundException {
-    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
-        "tableName must only contain word characters (letters, digits, and underscores)"
-            + " and cannot exceed 1024 characters");
+    EXISTING_TABLE_NAME.validate(tableName);
 
     Map<String,Integer> constraints = new TreeMap<>();
     for (Entry<String,String> property : this.getProperties(tableName)) {

@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.client.Accumulo;
@@ -147,6 +148,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
       Key k;
       Text cf = new Text(), cq = new Text();
       int itemsInspected = 0;
+      var pattern = Pattern.compile("[tc]-[0-9a-z]+");
       for (Entry<Key,Value> entry : s) {
         itemsInspected++;
         k = entry.getKey();
@@ -163,7 +165,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
           String dirName = entry.getValue().toString();
 
-          assertTrue("Bad dir name " + dirName, dirName.matches("[tc]-[0-9a-z]+"));
+          assertTrue("Bad dir name " + dirName, pattern.matcher(dirName).matches());
         } else {
           fail("Got unexpected key-value: " + entry);
           throw new RuntimeException();

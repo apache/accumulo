@@ -95,7 +95,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
   private AccumuloClient client;
 
   private static long findAuditMessage(ArrayList<String> input, String pattern) {
-    return input.stream().filter(s -> s.matches(".*" + pattern + ".*")).count();
+    return input.stream().filter(Pattern.compile(".*" + pattern + ".*").asMatchPredicate()).count();
   }
 
   /**
@@ -124,13 +124,13 @@ public class AuditMessageIT extends ConfigurableMacBase {
       // We want to grab the files called .out
       if (file.getName().contains(".out") && file.isFile() && file.canRead()) {
         try (java.util.Scanner it = new java.util.Scanner(file, UTF_8)) {
+          // strip off prefix, because log4j.properties does
+          final var pattern = Pattern.compile(".* \\["
+              + AuditedSecurityOperation.AUDITLOG.replace("org.apache.", "").replace(".", "[.]")
+              + "\\] .*");
           while (it.hasNext()) {
             String line = it.nextLine();
-            // strip off prefix, because log4j.properties does
-            String pattern = ".* \\["
-                + AuditedSecurityOperation.AUDITLOG.replace("org.apache.", "").replace(".", "[.]")
-                + "\\] .*";
-            if (line.matches(pattern)) {
+            if (pattern.matcher(line).matches()) {
               // Only include the message if startTimestamp is null. or the message occurred after
               // the startTimestamp value
               if ((lastAuditTimestamp == null)
@@ -330,9 +330,10 @@ public class AuditMessageIT extends ConfigurableMacBase {
     String filePrefix = "file:";
 
     try (java.util.Scanner it = new java.util.Scanner(distCpTxt, UTF_8)) {
+      var pattern = Pattern.compile(".*\\.rf");
       while (it.hasNext() && importFile == null) {
         String line = it.nextLine();
-        if (line.matches(".*\\.rf")) {
+        if (pattern.matcher(line).matches()) {
           importFile = new File(line.replaceFirst(filePrefix, ""));
         }
       }

@@ -20,6 +20,7 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 
 import java.security.SecurityPermission;
 import java.util.List;
@@ -33,7 +34,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
 import org.apache.accumulo.core.util.Pair;
@@ -45,10 +45,9 @@ import com.google.common.cache.CacheBuilder;
 
 public class Tables {
 
-  public static final String VALID_TABLENAME_REGEX = "^(\\w{1,1024}[.])?(\\w{1,1024})$";
-
   private static final SecurityPermission TABLES_PERMISSION =
       new SecurityPermission("tablesPermission");
+
   // Per instance cache will expire after 10 minutes in case we
   // encounter an instance not used frequently
   private static Cache<String,TableMap> instanceToMapCache =
@@ -275,7 +274,6 @@ public class Tables {
 
   public static String qualified(String tableName, String defaultNamespace) {
     Pair<String,String> qualifiedTableName = qualify(tableName, defaultNamespace);
-
     if (Namespace.DEFAULT.name().equals(qualifiedTableName.getFirst()))
       return qualifiedTableName.getSecond();
     else
@@ -286,12 +284,8 @@ public class Tables {
     return qualify(tableName, Namespace.DEFAULT.name());
   }
 
-  public static Pair<String,String> qualify(String tableName, String defaultNamespace) {
-    checkArgument(tableName.matches(VALID_TABLENAME_REGEX),
-        "Invalid table name '" + tableName + "'");
-
-    if (MetadataTable.OLD_NAME.equals(tableName))
-      tableName = MetadataTable.NAME;
+  private static Pair<String,String> qualify(String tableName, String defaultNamespace) {
+    EXISTING_TABLE_NAME.validate(tableName);
     if (tableName.contains(".")) {
       String[] s = tableName.split("\\.", 2);
       return new Pair<>(s[0], s[1]);

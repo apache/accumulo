@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -62,8 +63,8 @@ public class ListCompactionsCommand extends Command {
     }
 
     if (filterText != null) {
-      final String finalFilterText = filterText;
-      activeCompactionStream = activeCompactionStream.filter(t -> t.matches(finalFilterText));
+      activeCompactionStream =
+          activeCompactionStream.filter(Pattern.compile(filterText).asMatchPredicate());
     }
 
     activeCompactionStream = ActiveCompactionHelper.appendHeader(activeCompactionStream);

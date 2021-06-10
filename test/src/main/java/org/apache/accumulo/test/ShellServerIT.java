@@ -57,6 +57,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -518,8 +519,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.shell.execCommand("du -h", false, false);
     String o = ts.output.get();
     // for some reason, there's a bit of fluctuation
-    assertTrue("Output did not match regex: '" + o + "'",
-        o.matches(".*[1-9][0-9][0-9]\\s\\[" + table + "]\\n"));
+    assertMatches(o, ".*[1-9][0-9][0-9]\\s\\[" + table + "]\\n");
     ts.exec("deletetable -f " + table);
   }
 
@@ -1725,10 +1725,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
         // TODO: any way to tell if the client address is accurate? could be local IP, host,
         // loopback...?
         String hostPortPattern = ".+:\\d+";
-        assertTrue(tserver.matches(hostPortPattern));
+        assertMatches(tserver, hostPortPattern);
         assertTrue(accumuloClient.instanceOperations().getTabletServers().contains(tserver));
         String client = parts[1].trim();
-        assertTrue(client + " does not match " + hostPortPattern, client.matches(hostPortPattern));
+        assertMatches(client, hostPortPattern);
         // Scan ID should be a long (throwing an exception if it fails to parse)
         Long r = Long.parseLong(parts[11].trim());
         assertNotNull(r);
@@ -2225,7 +2225,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   private static void assertMatches(String output, String pattern) {
-    assertTrue("Pattern " + pattern + " did not match output : " + output, output.matches(pattern));
+    var p = Pattern.compile(pattern).asMatchPredicate();
+    assertTrue("Pattern " + pattern + " did not match output : " + output, p.test(output));
   }
 
   private static void assertNotContains(String output, String subsequence) {

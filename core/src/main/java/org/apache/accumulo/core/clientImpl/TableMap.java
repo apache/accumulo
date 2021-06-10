@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.clientImpl.Tables.qualified;
 
 import java.util.HashMap;
 import java.util.List;
@@ -93,7 +92,7 @@ public class TableMap {
         }
       }
       if (tableName != null && namespaceName != null) {
-        String tableNameStr = qualified(new String(tableName, UTF_8), namespaceName);
+        String tableNameStr = Tables.qualified(new String(tableName, UTF_8), namespaceName);
         TableId tableId = TableId.of(tableIdStr);
         tableNameToIdBuilder.put(tableNameStr, tableId);
         tableIdToNameBuilder.put(tableId, tableNameStr);
