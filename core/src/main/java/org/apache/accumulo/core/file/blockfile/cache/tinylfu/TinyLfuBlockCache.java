@@ -57,6 +57,7 @@ public final class TinyLfuBlockCache implements BlockCache {
 
   private final Cache<String,Block> cache;
   private final Policy.Eviction<String,Block> policy;
+  private final int maxSize;
   private final ScheduledExecutorService statsExecutor =
       ThreadPools.createScheduledExecutorService(1, "TinyLfuBlockCacheStatsExecutor", false);
 
@@ -68,6 +69,7 @@ public final class TinyLfuBlockCache implements BlockCache {
           return keyWeight + block.weight();
         }).maximumWeight(conf.getMaxSize(type)).recordStats().build();
     policy = cache.policy().eviction().get();
+    maxSize = (int) Math.min(Integer.MAX_VALUE, policy.getMaximum());
     statsExecutor.scheduleAtFixedRate(this::logStats, STATS_PERIOD_SEC, STATS_PERIOD_SEC,
         TimeUnit.SECONDS);
   }
@@ -79,7 +81,7 @@ public final class TinyLfuBlockCache implements BlockCache {
 
   @Override
   public long getMaxSize() {
-    return policy.getMaximum();
+    return maxSize;
   }
 
   @Override
@@ -200,12 +202,8 @@ public final class TinyLfuBlockCache implements BlockCache {
   }
 
   private Block load(Loader loader, Map<String,byte[]> resolvedDeps) {
-    byte[] data = loader.load((int) Math.min(Integer.MAX_VALUE, policy.getMaximum()), resolvedDeps);
-    if (data == null) {
-      return null;
-    }
-
-    return new Block(data);
+    byte[] data = loader.load(maxSize, resolvedDeps);
+    return data == null ? null : new Block(data);
   }
 
   private Map<String,byte[]> resolveDependencies(Map<String,Loader> deps) {
