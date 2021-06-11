@@ -93,9 +93,9 @@ class RFileSummariesRetriever implements SummaryInputArguments, SummaryFSOptions
     try {
       SummaryCollection all = new SummaryCollection();
       CryptoService cservice = CryptoServiceFactory.newInstance(acuconf, ClassloaderType.JAVA);
-      for (RFileSource source : sources) {
-        SummaryReader fileSummary = SummaryReader.load(in.getFileSystem().getConf(),
-            source.getInputStream(), source.getLength(), summarySelector, factory, cservice);
+      for (int i = 0; i < sources.length; i++) {
+        SummaryReader fileSummary = SummaryReader.load(in.getFileSystem().getConf(), sources[i],
+            in.getPaths()[i], summarySelector, factory, cservice);
         SummaryCollection sc = fileSummary
             .getSummaries(Collections.singletonList(new Gatherer.RowRange(startRow, endRow)));
         all.merge(sc, factory);

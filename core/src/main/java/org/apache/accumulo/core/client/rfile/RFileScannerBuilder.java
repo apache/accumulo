@@ -52,6 +52,10 @@ class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOption
       this.sources = sources;
     }
 
+    Path[] getPaths() {
+      return paths;
+    }
+
     RFileSource[] getSources() throws IOException {
       if (sources == null) {
         sources = new RFileSource[paths.length];

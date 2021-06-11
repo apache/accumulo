@@ -44,6 +44,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 
 public class MultiLevelIndexTest {
@@ -86,7 +87,8 @@ public class MultiLevelIndexTest {
     byte[] data = baos.toByteArray();
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in = new FSDataInputStream(bais);
-    CachableBuilder cb = new CachableBuilder().input(in).length(data.length).conf(hadoopConf)
+    CachableBuilder cb = new CachableBuilder().input(in).length(data.length)
+        .cacheId(new Path("file1")).conf(hadoopConf)
         .cryptoService(CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA));
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(cb);
 

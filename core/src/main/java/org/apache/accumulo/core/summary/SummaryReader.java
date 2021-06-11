@@ -21,7 +21,6 @@ package org.apache.accumulo.core.summary;
 import java.io.DataInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
@@ -30,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
+import org.apache.accumulo.core.client.rfile.RFileSource;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
@@ -174,11 +174,11 @@ public class SummaryReader {
     return fileSummaries;
   }
 
-  public static SummaryReader load(Configuration conf, InputStream inputStream, long length,
+  public static SummaryReader load(Configuration conf, RFileSource rFileSource, Path file,
       Predicate<SummarizerConfiguration> summarySelector, SummarizerFactory factory,
       CryptoService cryptoService) throws IOException {
-    CachableBuilder cb = new CachableBuilder().input(inputStream).length(length).conf(conf)
-        .cryptoService(cryptoService);
+    CachableBuilder cb = new CachableBuilder().input(rFileSource.getInputStream())
+        .length(rFileSource.getLength()).cacheId(file).conf(conf).cryptoService(cryptoService);
     return load(new CachableBlockFile.Reader(cb), summarySelector, factory);
   }
 
