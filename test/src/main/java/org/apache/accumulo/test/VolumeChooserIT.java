@@ -78,7 +78,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   }
 
   private static final Text EMPTY = new Text();
-  private static final Value EMPTY_VALUE = new Value(new byte[] {});
+  private static final Value EMPTY_VALUE = new Value();
   private File volDirBase;
   private Path v1, v2, v3;
   public static String[] alpha_rows =

@@ -99,7 +99,7 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator putScan(TabletFile path) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(ScanFileColumnFamily.NAME, path.getMetaInsertText(), new Value(new byte[0]));
+    mutation.put(ScanFileColumnFamily.NAME, path.getMetaInsertText(), new Value());
     return this;
   }
 

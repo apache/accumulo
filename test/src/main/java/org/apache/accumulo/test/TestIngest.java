@@ -313,7 +313,7 @@ public class TestIngest {
           bytesWritten += key.getSize();
 
           if (params.delete) {
-            writer.append(key, new Value(new byte[0]));
+            writer.append(key, new Value());
           } else {
             byte[] value;
             if (params.random != null) {

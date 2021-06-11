@@ -70,7 +70,7 @@ public class IndexedDocIteratorTest {
       Text[] negatedColumns) {
     StringBuilder sb = new StringBuilder();
     Random r = new SecureRandom();
-    Value v = new Value(new byte[0]);
+    Value v = new Value();
     TreeMap<Key,Value> map = new TreeMap<>();
     boolean[] negateMask = new boolean[columnFamilies.length];
 

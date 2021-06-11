@@ -119,7 +119,7 @@ public class BulkImporterTest {
         .forFile(file, fs, fs.getConf(), CryptoServiceFactory.newDefaultInstance())
         .withTableConfiguration(context.getConfiguration()).build();
     writer.startDefaultLocalityGroup();
-    Value empty = new Value(new byte[] {});
+    Value empty = new Value();
     writer.append(new Key("a", "cf", "cq"), empty);
     writer.append(new Key("a", "cf", "cq1"), empty);
     writer.append(new Key("a", "cf", "cq2"), empty);

@@ -249,7 +249,7 @@ public class CryptoTest {
     fs.delete(new Path(file), true);
     try (RFileWriter writer = RFile.newWriter().to(file).withFileSystem(fs)
         .withTableProperties(cryptoOnConf).withSummarizers(sumConf).build()) {
-      Value empty = new Value(new byte[] {});
+      Value empty = new Value();
       writer.startDefaultLocalityGroup();
       for (Key key : keys) {
         writer.append(key, empty);
@@ -284,7 +284,7 @@ public class CryptoTest {
     fs.delete(new Path(file), true);
     try (RFileWriter writer =
         RFile.newWriter().to(file).withFileSystem(fs).withTableProperties(cryptoOffConf).build()) {
-      Value empty = new Value(new byte[] {});
+      Value empty = new Value();
       writer.startDefaultLocalityGroup();
       for (Key key : keys) {
         writer.append(key, empty);
