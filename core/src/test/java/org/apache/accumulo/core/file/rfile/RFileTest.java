@@ -88,7 +88,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PositionedReadable;
 import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.io.Text;
@@ -310,8 +309,7 @@ public class RFileTest {
       LruBlockCache indexCache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
       LruBlockCache dataCache = (LruBlockCache) manager.getBlockCache(CacheType.DATA);
 
-      CachableBuilder cb = new CachableBuilder().cacheId(new Path("source-1")).input(in)
-          .length(fileLength).conf(conf)
+      CachableBuilder cb = new CachableBuilder().input(in, "source-1").length(fileLength).conf(conf)
           .cacheProvider(new BasicCacheProvider(indexCache, dataCache)).cryptoService(
               CryptoServiceFactory.newInstance(accumuloConfiguration, ClassloaderType.JAVA));
       reader = new RFile.Reader(cb);
@@ -1748,11 +1746,11 @@ public class RFileTest {
     aconf.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(100000000));
     BlockCacheManager manager = BlockCacheManagerFactory.getInstance(aconf);
     manager.start(new BlockCacheConfiguration(aconf));
-    CachableBuilder cb = new CachableBuilder().input(in2).length(data.length)
-        .cacheId(new Path("f1")).conf(hadoopConf)
-        .cryptoService(CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA))
-        .cacheProvider(new BasicCacheProvider(manager.getBlockCache(CacheType.INDEX),
-            manager.getBlockCache(CacheType.DATA)));
+    CachableBuilder cb =
+        new CachableBuilder().input(in2, "cache-1").length(data.length).conf(hadoopConf)
+            .cryptoService(CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA))
+            .cacheProvider(new BasicCacheProvider(manager.getBlockCache(CacheType.INDEX),
+                manager.getBlockCache(CacheType.DATA)));
     Reader reader = new RFile.Reader(cb);
     checkIndex(reader);
 

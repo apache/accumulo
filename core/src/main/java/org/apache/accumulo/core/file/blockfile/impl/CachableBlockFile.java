@@ -77,11 +77,6 @@ public class CachableBlockFile {
     Configuration hadoopConf = null;
     CryptoService cryptoService = null;
 
-    public CachableBuilder cacheId(Path path) {
-      this.cacheId = pathToCacheId(path);
-      return this;
-    }
-
     public CachableBuilder conf(Configuration hadoopConf) {
       this.hadoopConf = hadoopConf;
       return this;
@@ -94,7 +89,8 @@ public class CachableBlockFile {
       return this;
     }
 
-    public CachableBuilder input(InputStream is) {
+    public CachableBuilder input(InputStream is, String cacheId) {
+      this.cacheId = cacheId;
       this.inputSupplier = () -> is;
       return this;
     }

@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.rfile.RFile.SummaryFSOptions;
@@ -43,6 +44,8 @@ import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.summary.SummaryReader;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 class RFileSummariesRetriever implements SummaryInputArguments, SummaryFSOptions, SummaryOptions {
 
@@ -84,18 +87,21 @@ class RFileSummariesRetriever implements SummaryInputArguments, SummaryFSOptions
   }
 
   @Override
+  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
+      justification = "predictable random is okay for cache names")
   public Collection<Summary> read() throws IOException {
     SummarizerFactory factory = new SummarizerFactory();
     ConfigurationCopy acuconf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     config.forEach(acuconf::set);
 
     RFileSource[] sources = in.getSources();
+    int rand = new Random().nextInt(1000);
     try {
       SummaryCollection all = new SummaryCollection();
       CryptoService cservice = CryptoServiceFactory.newInstance(acuconf, ClassloaderType.JAVA);
       for (int i = 0; i < sources.length; i++) {
         SummaryReader fileSummary = SummaryReader.load(in.getFileSystem().getConf(), sources[i],
-            in.getPaths()[i], summarySelector, factory, cservice);
+            "cache-" + rand + i, summarySelector, factory, cservice);
         SummaryCollection sc = fileSummary
             .getSummaries(Collections.singletonList(new Gatherer.RowRange(startRow, endRow)));
         all.merge(sc, factory);

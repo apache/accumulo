@@ -26,6 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.function.Supplier;
@@ -73,6 +74,8 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 class RFileScanner extends ScannerOptions implements Scanner {
 
@@ -337,8 +340,11 @@ class RFileScanner extends ScannerOptions implements Scanner {
   }
 
   @Override
+  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
+      justification = "predictable random is okay for cache names")
   public Iterator<Entry<Key,Value>> iterator() {
     try {
+      int rand = new Random().nextInt(1000);
       RFileSource[] sources = opts.in.getSources();
       List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(sources.length);
 
@@ -347,7 +353,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
       for (int i = 0; i < sources.length; i++) {
         // TODO may have been a bug with multiple files and caching in older version...
         FSDataInputStream inputStream = (FSDataInputStream) sources[i].getInputStream();
-        CachableBuilder cb = new CachableBuilder().cacheId(opts.in.getPaths()[i]).input(inputStream)
+        CachableBuilder cb = new CachableBuilder().input(inputStream, "cache-" + rand + i)
             .length(sources[i].getLength()).conf(opts.in.getConf()).cacheProvider(cacheProvider)
             .cryptoService(cryptoService);
         readers.add(new RFile.Reader(cb));

@@ -174,11 +174,11 @@ public class SummaryReader {
     return fileSummaries;
   }
 
-  public static SummaryReader load(Configuration conf, RFileSource rFileSource, Path file,
+  public static SummaryReader load(Configuration conf, RFileSource source, String cacheId,
       Predicate<SummarizerConfiguration> summarySelector, SummarizerFactory factory,
       CryptoService cryptoService) throws IOException {
-    CachableBuilder cb = new CachableBuilder().input(rFileSource.getInputStream())
-        .length(rFileSource.getLength()).cacheId(file).conf(conf).cryptoService(cryptoService);
+    CachableBuilder cb = new CachableBuilder().input(source.getInputStream(), cacheId)
+        .length(source.getLength()).conf(conf).cryptoService(cryptoService);
     return load(new CachableBlockFile.Reader(cb), summarySelector, factory);
   }
 
