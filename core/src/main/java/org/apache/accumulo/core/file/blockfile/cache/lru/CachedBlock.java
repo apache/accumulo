@@ -86,7 +86,7 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
   @Override
   public long heapSize() {
     if (recordedSize < 0) {
-      throw new IllegalStateException("Block was evicted");
+      throw new IllegalStateException("Block was evicted: " + blockName);
     }
     return recordedSize;
   }
@@ -157,7 +157,7 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
       return _recordSize(totalSize);
     }
 
-    throw new IllegalStateException("Block was evicted");
+    throw new IllegalStateException("Block was evicted: " + blockName);
   }
 
   public synchronized long evicted(AtomicLong totalSize) {
@@ -169,6 +169,6 @@ public class CachedBlock implements HeapSize, Comparable<CachedBlock> {
       return tmp;
     }
 
-    throw new IllegalStateException("already evicted");
+    throw new IllegalStateException("Block was already evicted: " + blockName);
   }
 }
