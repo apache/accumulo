@@ -295,11 +295,11 @@ public class AccumuloReplicaSystemTest {
     value.mutations = new ArrayList<>();
 
     Mutation m = new Mutation("row");
-    m.put("", "", new Value(new byte[0]));
+    m.put("", "", new Value());
     value.mutations.add(m);
 
     m = new Mutation("row2");
-    m.put("", "", new Value(new byte[0]));
+    m.put("", "", new Value());
     m.addReplicationSource("peer");
     value.mutations.add(m);
 

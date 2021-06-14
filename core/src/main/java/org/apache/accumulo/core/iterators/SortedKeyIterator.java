@@ -24,7 +24,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 
 public class SortedKeyIterator extends WrappingIterator implements OptionDescriber {
-  private static final Value NOVALUE = new Value(new byte[0]);
+  private static final Value NOVALUE = new Value();
 
   public SortedKeyIterator() {}
 

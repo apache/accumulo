@@ -49,7 +49,7 @@ public class VisibilityFilterTest {
   private static final Text GOOD_VIS = new Text("abc|def");
   private static final Text HIDDEN_VIS = new Text("abc&def&ghi");
   private static final Text BAD_VIS = new Text("&");
-  private static final Value EMPTY_VALUE = new Value(new byte[0]);
+  private static final Value EMPTY_VALUE = new Value();
 
   private TreeMap<Key,Value> createUnprotectedSource(int numPublic, int numHidden) {
     TreeMap<Key,Value> source = new TreeMap<>();

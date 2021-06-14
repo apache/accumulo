@@ -41,7 +41,7 @@ public class VisibilityFilterTest {
   public void testBadVisibility() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<>();
 
-    tm.put(new Key("r1", "cf1", "cq1", "A&"), new Value(new byte[0]));
+    tm.put(new Key("r1", "cf1", "cq1", "A&"), new Value());
     SortedKeyValueIterator<Key,Value> filter =
         VisibilityFilter.wrap(new SortedMapIterator(tm), new Authorizations("A"), "".getBytes());
 
@@ -54,9 +54,9 @@ public class VisibilityFilterTest {
   public void testEmptyAuths() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<>();
 
-    tm.put(new Key("r1", "cf1", "cq1", ""), new Value(new byte[0]));
-    tm.put(new Key("r1", "cf1", "cq2", "C"), new Value(new byte[0]));
-    tm.put(new Key("r1", "cf1", "cq3", ""), new Value(new byte[0]));
+    tm.put(new Key("r1", "cf1", "cq1", ""), new Value());
+    tm.put(new Key("r1", "cf1", "cq2", "C"), new Value());
+    tm.put(new Key("r1", "cf1", "cq3", ""), new Value());
     SortedKeyValueIterator<Key,Value> filter =
         VisibilityFilter.wrap(new SortedMapIterator(tm), Authorizations.EMPTY, "".getBytes());
 

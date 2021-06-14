@@ -40,33 +40,33 @@ public class DefaultKeySizeConstraintTest {
 
     // pass constraints
     Mutation m = new Mutation("rowId");
-    m.put("colf", "colq", new Value(new byte[] {}));
+    m.put("colf", "colq", new Value());
     assertEquals(Collections.emptyList(), constraint.check(null, m));
 
     // test with row id > 1mb
     m = new Mutation(oversized);
-    m.put("colf", "colq", new Value(new byte[] {}));
+    m.put("colf", "colq", new Value());
     assertEquals(
         Collections.singletonList(DefaultKeySizeConstraint.MAX__KEY_SIZE_EXCEEDED_VIOLATION),
         constraint.check(null, m));
 
     // test with colf > 1mb
     m = new Mutation("rowid");
-    m.put(new Text(oversized), new Text("colq"), new Value(new byte[] {}));
+    m.put(new Text(oversized), new Text("colq"), new Value());
     assertEquals(
         Collections.singletonList(DefaultKeySizeConstraint.MAX__KEY_SIZE_EXCEEDED_VIOLATION),
         constraint.check(null, m));
 
     // test with colf > 1mb
     m = new Mutation("rowid");
-    m.put(new Text(oversized), new Text("colq"), new Value(new byte[] {}));
+    m.put(new Text(oversized), new Text("colq"), new Value());
     assertEquals(
         Collections.singletonList(DefaultKeySizeConstraint.MAX__KEY_SIZE_EXCEEDED_VIOLATION),
         constraint.check(null, m));
 
     // test sum of smaller sizes violates 1mb constraint
     m = new Mutation(large);
-    m.put(new Text(large), new Text(large), new Value(new byte[] {}));
+    m.put(new Text(large), new Text(large), new Value());
     assertEquals(
         Collections.singletonList(DefaultKeySizeConstraint.MAX__KEY_SIZE_EXCEEDED_VIOLATION),
         constraint.check(null, m));

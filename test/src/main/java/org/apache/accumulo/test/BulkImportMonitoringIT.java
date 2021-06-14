@@ -111,7 +111,7 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
                 .withTableConfiguration(DefaultConfiguration.getInstance()).build();
             writer.startDefaultLocalityGroup();
             for (int j = 0x100; j < 0xfff; j += 3) {
-              writer.append(new Key(Integer.toHexString(j)), new Value(new byte[0]));
+              writer.append(new Key(Integer.toHexString(j)), new Value());
             }
             writer.close();
           }

@@ -49,18 +49,18 @@ public class DeprecatedConstraintExtendTest {
 
     // pass constraints
     Mutation m = new Mutation(min);
-    m.put("colf", "colq", new Value(new byte[] {}));
+    m.put("colf", "colq", new Value());
     assertEquals(Collections.emptyList(), constraint.check(null, m));
 
     // test with row id < 1KB
     m = new Mutation("rowid");
-    m.put("colf", "colq", new Value(new byte[] {}));
+    m.put("colf", "colq", new Value());
     assertEquals(Collections.singletonList(MinKeySizeConstraint.MIN_KEY_SIZE_EXCEEDED_VIOLATION),
         constraint.check(null, m));
 
     // test with colf > 1mb
     m = new Mutation("rowid");
-    m.put(new Text(oversized), new Text("colq"), new Value(new byte[] {}));
+    m.put(new Text(oversized), new Text("colq"), new Value());
     assertEquals(
         Collections.singletonList(DefaultKeySizeConstraint.MAX__KEY_SIZE_EXCEEDED_VIOLATION),
         constraint.check(null, m));
@@ -71,12 +71,12 @@ public class DeprecatedConstraintExtendTest {
     FooConstraint fc = new FooConstraint();
     // pass constraints
     Mutation m = new Mutation("blah");
-    m.put("colf", "colq", new Value(new byte[] {}));
+    m.put("colf", "colq", new Value());
     assertEquals(null, fc.check(null, m));
 
     // test fail constraint
     m = new Mutation("foo");
-    m.put("colf", "colq", new Value(new byte[] {}));
+    m.put("colf", "colq", new Value());
     assertEquals(Collections.singletonList(Short.valueOf("1")), fc.check(null, m));
   }
 

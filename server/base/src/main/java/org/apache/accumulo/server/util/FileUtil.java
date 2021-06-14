@@ -164,7 +164,7 @@ public class FileUtil {
           boolean lteEndRow = endRow == null || key.compareRow(endRow) <= 0;
 
           if (gtPrevEndRow && lteEndRow)
-            writer.append(key, new Value(new byte[0]));
+            writer.append(key, new Value());
 
           if (!lteEndRow)
             break;
