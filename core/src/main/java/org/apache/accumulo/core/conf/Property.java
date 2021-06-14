@@ -1377,9 +1377,16 @@ public enum Property {
             || key.startsWith(TABLE_COMPACTION_SELECTOR_OPTS.getKey())));
   }
 
-  private static final EnumSet<Property> fixedProperties =
-      EnumSet.of(Property.TSERV_CLIENTPORT, Property.TSERV_NATIVEMAP_ENABLED,
-          Property.TSERV_SCAN_MAX_OPENFILES, Property.MANAGER_CLIENTPORT, Property.GC_PORT);
+  private static final EnumSet<Property> fixedProperties = EnumSet.of(
+      // port options
+      GC_PORT, MANAGER_CLIENTPORT, TSERV_CLIENTPORT,
+
+      // tserver cache options
+      TSERV_CACHE_MANAGER_IMPL, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,
+      TSERV_SUMMARYCACHE_SIZE,
+
+      // others
+      TSERV_NATIVEMAP_ENABLED, TSERV_SCAN_MAX_OPENFILES);
 
   /**
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart
