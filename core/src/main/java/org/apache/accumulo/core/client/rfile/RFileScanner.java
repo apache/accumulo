@@ -26,9 +26,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.SplittableRandom;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -74,8 +74,6 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 class RFileScanner extends ScannerOptions implements Scanner {
 
@@ -340,11 +338,9 @@ class RFileScanner extends ScannerOptions implements Scanner {
   }
 
   @Override
-  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
-      justification = "predictable random is okay for cache names")
   public Iterator<Entry<Key,Value>> iterator() {
     try {
-      int rand = new Random().nextInt(1000);
+      int rand = new SplittableRandom().nextInt(1_000_000);
       RFileSource[] sources = opts.in.getSources();
       List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(sources.length);
 
