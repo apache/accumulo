@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.SplittableRandom;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.rfile.RFile.SummaryFSOptions;
@@ -91,13 +90,12 @@ class RFileSummariesRetriever implements SummaryInputArguments, SummaryFSOptions
     config.forEach(acuconf::set);
 
     RFileSource[] sources = in.getSources();
-    int rand = new SplittableRandom().nextInt(1_000_000);
     try {
       SummaryCollection all = new SummaryCollection();
       CryptoService cservice = CryptoServiceFactory.newInstance(acuconf, ClassloaderType.JAVA);
       for (int i = 0; i < sources.length; i++) {
         SummaryReader fileSummary = SummaryReader.load(in.getFileSystem().getConf(), sources[i],
-            "cache-" + rand + i, summarySelector, factory, cservice);
+            "source-" + i, summarySelector, factory, cservice);
         SummaryCollection sc = fileSummary
             .getSummaries(Collections.singletonList(new Gatherer.RowRange(startRow, endRow)));
         all.merge(sc, factory);

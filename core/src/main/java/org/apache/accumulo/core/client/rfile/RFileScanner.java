@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.SplittableRandom;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -340,7 +339,6 @@ class RFileScanner extends ScannerOptions implements Scanner {
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
     try {
-      int rand = new SplittableRandom().nextInt(1_000_000);
       RFileSource[] sources = opts.in.getSources();
       List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(sources.length);
 
@@ -349,9 +347,9 @@ class RFileScanner extends ScannerOptions implements Scanner {
       for (int i = 0; i < sources.length; i++) {
         // TODO may have been a bug with multiple files and caching in older version...
         FSDataInputStream inputStream = (FSDataInputStream) sources[i].getInputStream();
-        CachableBuilder cb = new CachableBuilder().input(inputStream, "cache-" + rand + i)
-            .length(sources[i].getLength()).conf(opts.in.getConf()).cacheProvider(cacheProvider)
-            .cryptoService(cryptoService);
+        CachableBuilder cb =
+            new CachableBuilder().input(inputStream, "source-" + i).length(sources[i].getLength())
+                .conf(opts.in.getConf()).cacheProvider(cacheProvider).cryptoService(cryptoService);
         readers.add(new RFile.Reader(cb));
       }
 
