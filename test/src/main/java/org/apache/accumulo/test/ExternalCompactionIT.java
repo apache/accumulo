@@ -48,7 +48,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -95,17 +94,19 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.fate.util.UtilWaitThread;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
-import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.commons.io.input.Tailer;
 import org.apache.commons.io.input.TailerListenerAdapter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.bouncycastle.util.Arrays;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,7 +114,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 
-public class ExternalCompactionIT extends ConfigurableMacBase {
+public class ExternalCompactionIT extends SharedMiniClusterBase
+    implements MiniClusterConfigurationCallback {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExternalCompactionIT.class);
 
@@ -135,7 +137,7 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
   }
 
   @Override
-  protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
     cfg.setProperty("tserver.compaction.major.service.cs1.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs1.planner.opts.executors",
@@ -144,11 +146,11 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs2.planner.opts.executors",
         "[{'name':'all', 'type': 'external','queue': 'DCQ2'}]");
-    cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL.getKey(), "30s");
-    cfg.setProperty(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL, "10s");
+    cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL.getKey(), "5s");
+    cfg.setProperty(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL, "3s");
     cfg.setProperty(Property.COMPACTOR_PORTSEARCH, "true");
     // use raw local file system so walogs sync and flush will work
-    hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
+    coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
   public static class TestFilter extends Filter {
@@ -193,22 +195,55 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
 
   }
 
+  @Before
+  public void setUp() throws Exception {
+    if (SharedMiniClusterBase.getCluster() == null) {
+      SharedMiniClusterBase.startMiniClusterWithConfig(this);
+    }
+  }
+
+  private void stopProcess(Process process) throws Exception {
+    if (process.supportsNormalTermination()) {
+      process.destroyForcibly();
+    } else {
+      LOG.info("Stopping process manually");
+      new ProcessBuilder("kill", Long.toString(process.pid())).start();
+      process.waitFor();
+    }
+  }
+
+  private void cleanupTables(String... tables) {
+    try (AccumuloClient client = Accumulo.newClient()
+        .from(SharedMiniClusterBase.getCluster().getClientProperties()).build()) {
+      for (String table : tables) {
+        try {
+          client.tableOperations().delete(table);
+        } catch (Exception e) {
+          fail("Error deleting table: " + table + ", msg: " + e.getMessage());
+        }
+      }
+    }
+  }
+
   @Test
   public void testExternalCompaction() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    ProcessInfo c1 = null, c2 = null, coord = null;
+    String[] names = this.getUniqueNames(2);
+    try (AccumuloClient client = Accumulo.newClient()
+        .from(SharedMiniClusterBase.getCluster().getClientProperties()).build()) {
 
-      String table1 = "ectt1";
+      String table1 = names[0];
       createTable(client, table1, "cs1");
 
-      String table2 = "ectt2";
+      String table2 = names[1];
       createTable(client, table2, "cs2");
 
       writeData(client, table1);
       writeData(client, table2);
 
-      cluster.exec(Compactor.class, "-q", "DCQ1");
-      cluster.exec(Compactor.class, "-q", "DCQ2");
-      cluster.exec(CompactionCoordinator.class);
+      c1 = SharedMiniClusterBase.getCluster().exec(Compactor.class, "-q", "DCQ1");
+      c2 = SharedMiniClusterBase.getCluster().exec(Compactor.class, "-q", "DCQ2");
+      coord = SharedMiniClusterBase.getCluster().exec(CompactionCoordinator.class);
 
       compact(client, table1, 2, "DCQ1", true);
       verify(client, table1, 2);
@@ -220,19 +255,30 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
       compact(client, table2, 3, "DCQ2", true);
       verify(client, table2, 3);
 
+    } finally {
+      // Stop the Compactor and Coordinator that we started
+      if (c1 != null)
+        stopProcess(c1.getProcess());
+      if (c2 != null)
+        stopProcess(c2.getProcess());
+      if (coord != null)
+        stopProcess(coord.getProcess());
+      cleanupTables(names);
     }
   }
 
   @Test
   public void testSplitDuringExternalCompaction() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      String table1 = "ectt6";
+    ProcessInfo c1 = null, coord = null;
+    String table1 = this.getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient()
+        .from(SharedMiniClusterBase.getCluster().getClientProperties()).build()) {
       createTable(client, table1, "cs1");
       TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
       writeData(client, table1);
 
-      cluster.exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
-      cluster.exec(TestCompactionCoordinator.class);
+      c1 = SharedMiniClusterBase.getCluster().exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
+      coord = SharedMiniClusterBase.getCluster().exec(TestCompactionCoordinator.class);
       compact(client, table1, 2, "DCQ1", false);
 
       // Wait for the compaction to start by waiting for 1 external compaction column
@@ -276,18 +322,29 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
             .flatMap(t -> t.getExternalCompactions().keySet().stream()).collect(Collectors.toSet());
         assertTrue(Collections.disjoint(ecids, ecids2));
       }
+      // We did not wait for the compaction to finish in the compact call above. The compaction
+      // failed but it might take a few seconds for the compact FATE operation to cleanup. Cancel
+      // the compaction so we can delete the table
+      client.tableOperations().cancelCompaction(table1);
+    } finally {
+      if (c1 != null)
+        stopProcess(c1.getProcess());
+      if (coord != null)
+        stopProcess(coord.getProcess());
+      cleanupTables(table1);
     }
-
   }
 
   @Test
   public void testCoordinatorRestartsDuringCompaction() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      String table1 = "ectt9";
+    ProcessInfo c1 = null, coord = null;
+    String table1 = this.getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient()
+        .from(SharedMiniClusterBase.getCluster().getClientProperties()).build()) {
       createTable(client, table1, "cs1", 2);
       writeData(client, table1);
-      cluster.exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
-      ProcessInfo process = cluster.exec(CompactionCoordinator.class);
+      c1 = SharedMiniClusterBase.getCluster().exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
+      coord = SharedMiniClusterBase.getCluster().exec(CompactionCoordinator.class);
       compact(client, table1, 2, "DCQ1", false);
       TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
       // Wait for the compaction to start by waiting for 1 external compaction column
@@ -302,18 +359,11 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
       } while (ecids.isEmpty());
 
       // Stop the Coordinator
-      Process coord = process.getProcess();
-      if (coord.supportsNormalTermination()) {
-        cluster.stopProcessWithTimeout(coord, 60, TimeUnit.SECONDS);
-      } else {
-        LOG.info("Stopping tserver manually");
-        new ProcessBuilder("kill", Long.toString(coord.pid())).start();
-        coord.waitFor();
-      }
+      stopProcess(coord.getProcess());
 
       // Start the TestCompactionCoordinator so that we have
       // access to the metrics.
-      cluster.exec(TestCompactionCoordinator.class);
+      coord = SharedMiniClusterBase.getCluster().exec(TestCompactionCoordinator.class);
 
       // Wait for coordinator to start
       ExternalCompactionMetrics metrics = null;
@@ -331,15 +381,26 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
         UtilWaitThread.sleep(250);
         metrics = getCoordinatorMetrics();
       }
+      // We did not wait for the compaction to finish in the compact call above. The compaction
+      // failed but it might take a few seconds for the compact FATE operation to cleanup. Cancel
+      // the compaction so we can delete the table
+      client.tableOperations().cancelCompaction(table1);
 
+    } finally {
+      if (c1 != null)
+        stopProcess(c1.getProcess());
+      if (coord != null)
+        stopProcess(coord.getProcess());
+      cleanupTables(table1);
     }
   }
 
   @Test
   public void testCompactionAndCompactorDies() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      // Stop the TabletServer so that it does not commit the compaction and remove
-      // the final state from the metadata table.
+    String table1 = this.getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient()
+        .from(SharedMiniClusterBase.getCluster().getClientProperties()).build()) {
+      // Stop the TabletServer so that it does not commit the compaction
       getCluster().getProcesses().get(TABLET_SERVER).forEach(p -> {
         try {
           getCluster().killProcess(TABLET_SERVER, p);
@@ -348,19 +409,19 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
         }
       });
       // Start our TServer that will not commit the compaction
-      cluster.exec(ExternalCompactionTServer.class);
+      ProcessInfo tserv = SharedMiniClusterBase.getCluster().exec(ExternalCompactionTServer.class);
 
-      String table1 = "ectt8";
       createTable(client, table1, "cs1", 2);
       writeData(client, table1);
-      ProcessInfo process = cluster.exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
-      cluster.exec(CompactionCoordinator.class);
+      ProcessInfo c1 =
+          SharedMiniClusterBase.getCluster().exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
+      ProcessInfo coord = SharedMiniClusterBase.getCluster().exec(CompactionCoordinator.class);
       compact(client, table1, 2, "DCQ1", false);
       TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
       // Wait for the compaction to start by waiting for 1 external compaction column
       Set<ExternalCompactionId> ecids = new HashSet<>();
       do {
-        UtilWaitThread.sleep(50);
+        UtilWaitThread.sleep(250);
         try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
             .forTable(tid).fetch(ColumnType.ECOMP).build()) {
           tm.stream().flatMap(t -> t.getExternalCompactions().keySet().stream())
@@ -368,30 +429,39 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
         }
       } while (ecids.isEmpty());
 
-      // Stop the Compactor
-      Process comp = process.getProcess();
-      if (comp.supportsNormalTermination()) {
-        cluster.stopProcessWithTimeout(comp, 60, TimeUnit.SECONDS);
-      } else {
-        LOG.info("Stopping tserver manually");
-        new ProcessBuilder("kill", Long.toString(comp.pid())).start();
-        comp.waitFor();
+      // Kill the compactor
+      stopProcess(c1.getProcess());
+
+      // DeadCompactionDetector in the CompactionCoordinator should fail the compaction.
+      long count = 0;
+      while (count == 0) {
+        count = getCluster().getServerContext().getAmple().getExternalCompactionFinalStates()
+            .filter(state -> state.getFinalState().equals(FinalState.FAILED)).count();
+        UtilWaitThread.sleep(250);
       }
+
+      // We did not wait for the compaction to finish in the compact call above. The compaction
+      // failed but it might take a few seconds for the compact FATE operation to cleanup. Cancel
+      // the compaction so we can delete the table
+      client.tableOperations().cancelCompaction(table1);
+      cleanupTables(table1);
+
+      // Stop the processes we started
+      stopProcess(coord.getProcess());
+      stopProcess(tserv.getProcess());
+    } finally {
+      // We stopped the TServer and started our own, restart the original TabletServers
+      getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
     }
 
-    // DeadCompactionDetector in the CompactionCoordinator should fail the compaction.
-    long count = 0;
-    while (count == 0) {
-      count = getCluster().getServerContext().getAmple().getExternalCompactionFinalStates()
-          .filter(state -> state.getFinalState().equals(FinalState.FAILED)).count();
-      UtilWaitThread.sleep(250);
-    }
   }
 
   @Test
   public void testMergeDuringExternalCompaction() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      String table1 = "ectt7";
+    ProcessInfo c1 = null, coord = null;
+    String table1 = this.getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient()
+        .from(SharedMiniClusterBase.getCluster().getClientProperties()).build()) {
 
       createTable(client, table1, "cs1", 2);
       // set compaction ratio to 1 so that majc occurs naturally, not user compaction
@@ -405,8 +475,8 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
 
       TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
 
-      cluster.exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
-      cluster.exec(TestCompactionCoordinator.class);
+      c1 = SharedMiniClusterBase.getCluster().exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
+      coord = SharedMiniClusterBase.getCluster().exec(TestCompactionCoordinator.class);
 
       // Wait for the compaction to start by waiting for 1 external compaction column
       Set<ExternalCompactionId> ecids = new HashSet<>();
@@ -456,37 +526,61 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
           ecids2 = tm.stream().flatMap(t -> t.getExternalCompactions().keySet().stream())
               .collect(Collectors.toSet());
         }
+        // We did not wait for the compaction to finish in the compact call above. The compaction
+        // failed but it might take a few seconds for the compact FATE operation to cleanup. Cancel
+        // the compaction so we can delete the table
+        client.tableOperations().cancelCompaction(table1);
+      } finally {
+        if (c1 != null)
+          stopProcess(c1.getProcess());
+        if (coord != null)
+          stopProcess(coord.getProcess());
+        cleanupTables(table1);
       }
-
     }
-
   }
 
   @Test
   public void testManytablets() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      String table1 = "ectt4";
+    ProcessInfo c1 = null, c2 = null, c3 = null, c4 = null, coord = null;
+    String table1 = this.getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient()
+        .from(SharedMiniClusterBase.getCluster().getClientProperties()).build()) {
 
       createTable(client, table1, "cs1", 200);
 
       writeData(client, table1);
 
-      cluster.exec(Compactor.class, "-q", "DCQ1");
-      cluster.exec(Compactor.class, "-q", "DCQ1");
-      cluster.exec(Compactor.class, "-q", "DCQ1");
-      cluster.exec(Compactor.class, "-q", "DCQ1");
-      cluster.exec(CompactionCoordinator.class);
+      c1 = SharedMiniClusterBase.getCluster().exec(Compactor.class, "-q", "DCQ1");
+      c2 = SharedMiniClusterBase.getCluster().exec(Compactor.class, "-q", "DCQ1");
+      c3 = SharedMiniClusterBase.getCluster().exec(Compactor.class, "-q", "DCQ1");
+      c4 = SharedMiniClusterBase.getCluster().exec(Compactor.class, "-q", "DCQ1");
+      coord = SharedMiniClusterBase.getCluster().exec(CompactionCoordinator.class);
 
       compact(client, table1, 3, "DCQ1", true);
 
       verify(client, table1, 3);
+    } finally {
+      if (c1 != null)
+        stopProcess(c1.getProcess());
+      if (c2 != null)
+        stopProcess(c2.getProcess());
+      if (c3 != null)
+        stopProcess(c3.getProcess());
+      if (c4 != null)
+        stopProcess(c4.getProcess());
+      if (coord != null)
+        stopProcess(coord.getProcess());
+      cleanupTables(table1);
     }
   }
 
   @Test
   public void testExternalCompactionsRunWithTableOffline() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      String table1 = "ectt7";
+    ProcessInfo c1 = null, coord = null;
+    String table1 = this.getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient()
+        .from(SharedMiniClusterBase.getCluster().getClientProperties()).build()) {
       createTable(client, table1, "cs1");
       // set compaction ratio to 1 so that majc occurs naturally, not user compaction
       // user compaction blocks merge
@@ -497,7 +591,7 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
       writeData(client, table1);
       writeData(client, table1);
 
-      cluster.exec(TestCompactionCoordinatorForOfflineTable.class);
+      c1 = SharedMiniClusterBase.getCluster().exec(TestCompactionCoordinatorForOfflineTable.class);
 
       // Wait for coordinator to start
       ExternalCompactionMetrics metrics = null;
@@ -529,7 +623,7 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
           getCluster().getServerContext().getAmple().getExternalCompactionFinalStates().count());
 
       // Start the compactor
-      cluster.exec(Compactor.class, "-q", "DCQ1");
+      coord = SharedMiniClusterBase.getCluster().exec(Compactor.class, "-q", "DCQ1");
 
       t.join();
 
@@ -555,14 +649,22 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
         finalStateCount =
             getCluster().getServerContext().getAmple().getExternalCompactionFinalStates().count();
       }
+    } finally {
+      if (c1 != null)
+        stopProcess(c1.getProcess());
+      if (coord != null)
+        stopProcess(coord.getProcess());
+      cleanupTables(table1);
     }
   }
 
   @Test
   public void testUserCompactionCancellation() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    ProcessInfo c1 = null, coord = null;
+    String table1 = this.getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient()
+        .from(SharedMiniClusterBase.getCluster().getClientProperties()).build()) {
 
-      String table1 = "ectt6";
       createTable(client, table1, "cs1");
       writeData(client, table1);
 
@@ -570,19 +672,20 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
       // sleeps for 5 minutes.
       // Wait for the coordinator to insert the running compaction metadata
       // entry into the metadata table, then cancel the compaction
-      cluster.exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
-      cluster.exec(TestCompactionCoordinator.class);
+      c1 = SharedMiniClusterBase.getCluster().exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
+      coord = SharedMiniClusterBase.getCluster().exec(TestCompactionCoordinator.class);
 
       compact(client, table1, 2, "DCQ1", false);
 
+      TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
       List<TabletMetadata> md = new ArrayList<>();
-      TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
-          .forLevel(DataLevel.USER).fetch(ColumnType.ECOMP).build();
+      TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets().forTable(tid)
+          .fetch(ColumnType.ECOMP).build();
       tm.forEach(t -> md.add(t));
 
       while (md.size() == 0) {
         tm.close();
-        tm = getCluster().getServerContext().getAmple().readTablets().forLevel(DataLevel.USER)
+        tm = getCluster().getServerContext().getAmple().readTablets().forTable(tid)
             .fetch(ColumnType.ECOMP).build();
         tm.forEach(t -> md.add(t));
       }
@@ -602,14 +705,22 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
       assertEquals(0, metrics.getRunning());
       assertEquals(0, metrics.getCompleted());
       assertEquals(1, metrics.getFailed());
+    } finally {
+      if (c1 != null)
+        stopProcess(c1.getProcess());
+      if (coord != null)
+        stopProcess(coord.getProcess());
+      cleanupTables(table1);
     }
   }
 
   @Test
   public void testDeleteTableDuringExternalCompaction() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    ProcessInfo c1 = null, coord = null;
+    String table1 = this.getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient()
+        .from(SharedMiniClusterBase.getCluster().getClientProperties()).build()) {
 
-      String table1 = "ectt5";
       createTable(client, table1, "cs1");
       // set compaction ratio to 1 so that majc occurs naturally, not user compaction
       // user compaction blocks delete
@@ -624,17 +735,18 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
       // sleeps for 5 minutes. The compaction should occur naturally.
       // Wait for the coordinator to insert the running compaction metadata
       // entry into the metadata table, then delete the table.
-      cluster.exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
-      cluster.exec(TestCompactionCoordinator.class);
+      c1 = SharedMiniClusterBase.getCluster().exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
+      coord = SharedMiniClusterBase.getCluster().exec(TestCompactionCoordinator.class);
 
+      TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
       List<TabletMetadata> md = new ArrayList<>();
-      TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
-          .forLevel(DataLevel.USER).fetch(ColumnType.ECOMP).build();
+      TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets().forTable(tid)
+          .fetch(ColumnType.ECOMP).build();
       tm.forEach(t -> md.add(t));
 
       while (md.size() == 0) {
         tm.close();
-        tm = getCluster().getServerContext().getAmple().readTablets().forLevel(DataLevel.USER)
+        tm = getCluster().getServerContext().getAmple().readTablets().forTable(tid)
             .fetch(ColumnType.ECOMP).build();
         tm.forEach(t -> md.add(t));
       }
@@ -646,11 +758,11 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
       // wait for failure or test timeout
       ExternalCompactionMetrics metrics = getCoordinatorMetrics();
       while (metrics.getFailed() == 0) {
-        UtilWaitThread.sleep(250);
+        UtilWaitThread.sleep(50);
         metrics = getCoordinatorMetrics();
       }
 
-      tm = getCluster().getServerContext().getAmple().readTablets().forLevel(DataLevel.USER)
+      tm = getCluster().getServerContext().getAmple().readTablets().forTable(tid)
           .fetch(ColumnType.ECOMP).build();
       assertEquals(0, tm.stream().count());
       tm.close();
@@ -661,17 +773,23 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
       assertEquals(0, metrics.getRunning());
       assertEquals(0, metrics.getCompleted());
       assertEquals(1, metrics.getFailed());
+    } finally {
+      if (c1 != null)
+        stopProcess(c1.getProcess());
+      if (coord != null)
+        stopProcess(coord.getProcess());
     }
   }
 
   @Test
   public void testConfigurer() throws Exception {
-    String tableName = "tcc";
+    String tableName = this.getUniqueNames(1)[0];
 
-    cluster.exec(Compactor.class, "-q", "DCQ1");
-    cluster.exec(CompactionCoordinator.class);
+    ProcessInfo c1 = SharedMiniClusterBase.getCluster().exec(Compactor.class, "-q", "DCQ1");
+    ProcessInfo coord = SharedMiniClusterBase.getCluster().exec(CompactionCoordinator.class);
 
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    try (AccumuloClient client = Accumulo.newClient()
+        .from(SharedMiniClusterBase.getCluster().getClientProperties()).build()) {
 
       Map<String,String> props = Map.of("table.compaction.dispatcher",
           SimpleCompactionDispatcher.class.getName(), "table.compaction.dispatcher.opts.service",
@@ -713,6 +831,12 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
       assertTrue("Unexpected files sizes : " + sizes,
           sizes > data.length * 10 && sizes < data.length * 11);
 
+    } finally {
+      if (c1 != null)
+        stopProcess(c1.getProcess());
+      if (coord != null)
+        stopProcess(coord.getProcess());
+      cleanupTables(tableName);
     }
   }
 
@@ -734,12 +858,14 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
     // in addition to testing table configured iters w/ external compaction, this also tests an
     // external compaction that deletes everything
 
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      String table1 = "ectt9";
+    ProcessInfo c1 = null, coord = null;
+    String table1 = this.getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient()
+        .from(SharedMiniClusterBase.getCluster().getClientProperties()).build()) {
       createTable(client, table1, "cs1");
       writeData(client, table1);
-      cluster.exec(Compactor.class, "-q", "DCQ1");
-      cluster.exec(CompactionCoordinator.class);
+      c1 = SharedMiniClusterBase.getCluster().exec(Compactor.class, "-q", "DCQ1");
+      coord = SharedMiniClusterBase.getCluster().exec(CompactionCoordinator.class);
       compact(client, table1, 2, "DCQ1", true);
       verify(client, table1, 2);
 
@@ -750,6 +876,12 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
       try (Scanner s = client.createScanner(table1)) {
         assertFalse(s.iterator().hasNext());
       }
+    } finally {
+      if (c1 != null)
+        stopProcess(c1.getProcess());
+      if (coord != null)
+        stopProcess(coord.getProcess());
+      cleanupTables(table1);
     }
   }
 
@@ -764,14 +896,16 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
       }
     });
     // Start our TServer that will not commit the compaction
-    ProcessInfo process = cluster.exec(ExternalCompactionTServer.class);
+    ProcessInfo tserv = SharedMiniClusterBase.getCluster().exec(ExternalCompactionTServer.class);
 
-    final String table3 = "ectt3";
-    try (final AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    final String table3 = this.getUniqueNames(1)[0];
+    ProcessInfo c1 = null, coord = null;
+    try (final AccumuloClient client = Accumulo.newClient()
+        .from(SharedMiniClusterBase.getCluster().getClientProperties()).build()) {
       createTable(client, table3, "cs1");
       writeData(client, table3);
-      cluster.exec(Compactor.class, "-q", "DCQ1");
-      cluster.exec(CompactionCoordinator.class);
+      c1 = SharedMiniClusterBase.getCluster().exec(Compactor.class, "-q", "DCQ1");
+      coord = SharedMiniClusterBase.getCluster().exec(CompactionCoordinator.class);
       compact(client, table3, 2, "DCQ1", false);
 
       // ExternalCompactionTServer will not commit the compaction. Wait for the
@@ -781,13 +915,14 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
           getCluster().getServerContext().getAmple().getExternalCompactionFinalStates();
       while (fs.count() == 0) {
         LOG.info("Waiting for compaction completed marker to appear");
-        UtilWaitThread.sleep(1000);
+        UtilWaitThread.sleep(250);
         fs = getCluster().getServerContext().getAmple().getExternalCompactionFinalStates();
       }
 
       LOG.info("Validating metadata table contents.");
-      TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
-          .forLevel(DataLevel.USER).fetch(ColumnType.ECOMP).build();
+      TableId tid = Tables.getTableId(getCluster().getServerContext(), table3);
+      TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets().forTable(tid)
+          .fetch(ColumnType.ECOMP).build();
       List<TabletMetadata> md = new ArrayList<>();
       tm.forEach(t -> md.add(t));
       assertEquals(1, md.size());
@@ -803,36 +938,35 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
       tm.close();
 
       // Force a flush on the metadata table before killing our tserver
-      client.tableOperations().compact("accumulo.metadata", new CompactionConfig().setWait(true));
-    }
+      client.tableOperations().flush("accumulo.metadata");
 
-    // Stop our TabletServer. Need to perform a normal shutdown so that the WAL is closed normally.
-    LOG.info("Stopping our tablet server");
-    Process tsp = process.getProcess();
-    if (tsp.supportsNormalTermination()) {
-      cluster.stopProcessWithTimeout(tsp, 60, TimeUnit.SECONDS);
-    } else {
-      LOG.info("Stopping tserver manually");
-      new ProcessBuilder("kill", Long.toString(tsp.pid())).start();
-      tsp.waitFor();
-    }
+      // Stop our TabletServer. Need to perform a normal shutdown so that the WAL is closed
+      // normally.
+      LOG.info("Stopping our tablet server");
+      stopProcess(tserv.getProcess());
 
-    // Start a TabletServer to commit the compaction.
-    LOG.info("Starting normal tablet server");
-    getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
+      // Start a TabletServer to commit the compaction.
+      LOG.info("Starting normal tablet server");
+      getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
-    // Wait for the compaction to be committed.
-    LOG.info("Waiting for compaction completed marker to disappear");
-    Stream<ExternalCompactionFinalState> fs =
-        getCluster().getServerContext().getAmple().getExternalCompactionFinalStates();
-    while (fs.count() != 0) {
+      // Wait for the compaction to be committed.
       LOG.info("Waiting for compaction completed marker to disappear");
-      UtilWaitThread.sleep(500);
-      fs = getCluster().getServerContext().getAmple().getExternalCompactionFinalStates();
-    }
-    try (final AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      Stream<ExternalCompactionFinalState> fs2 =
+          getCluster().getServerContext().getAmple().getExternalCompactionFinalStates();
+      while (fs2.count() != 0) {
+        LOG.info("Waiting for compaction completed marker to disappear");
+        UtilWaitThread.sleep(500);
+        fs2 = getCluster().getServerContext().getAmple().getExternalCompactionFinalStates();
+      }
       verify(client, table3, 2);
+    } finally {
+      if (c1 != null)
+        stopProcess(c1.getProcess());
+      if (coord != null)
+        stopProcess(coord.getProcess());
+      cleanupTables(table3);
     }
+
   }
 
   public static class FSelector implements CompactionSelector {
@@ -851,11 +985,13 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
 
   @Test
   public void testPartialCompaction() throws Exception {
-    try (final AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      String tableName = getUniqueNames(1)[0];
+    ProcessInfo c1 = null, coord = null;
+    String tableName = getUniqueNames(1)[0];
+    try (final AccumuloClient client = Accumulo.newClient()
+        .from(SharedMiniClusterBase.getCluster().getClientProperties()).build()) {
 
-      cluster.exec(Compactor.class, "-q", "DCQ1");
-      cluster.exec(CompactionCoordinator.class);
+      c1 = SharedMiniClusterBase.getCluster().exec(Compactor.class, "-q", "DCQ1");
+      coord = SharedMiniClusterBase.getCluster().exec(CompactionCoordinator.class);
 
       createTable(client, tableName, "cs1");
 
@@ -908,6 +1044,12 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
         assertEquals(expectedCount, count);
       }
 
+    } finally {
+      if (c1 != null)
+        stopProcess(c1.getProcess());
+      if (coord != null)
+        stopProcess(coord.getProcess());
+      cleanupTables(tableName);
     }
   }
 
@@ -928,9 +1070,10 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
     assertEquals(2, tservers.size());
     // kill one tserver so that queue metrics are not spread across tservers
     getCluster().killProcess(TABLET_SERVER, tservers.iterator().next());
-
-    try (final AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      String[] names = getUniqueNames(2);
+    ProcessInfo c1 = null, c2 = null, coord = null;
+    String[] names = getUniqueNames(2);
+    try (final AccumuloClient client = Accumulo.newClient()
+        .from(SharedMiniClusterBase.getCluster().getClientProperties()).build()) {
       String table1 = names[0];
       createTable(client, table1, "cs1", 5);
 
@@ -965,9 +1108,9 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
       }
 
       // start compactors
-      cluster.exec(Compactor.class, "-q", "DCQ1");
-      cluster.exec(Compactor.class, "-q", "DCQ2");
-      cluster.exec(CompactionCoordinator.class);
+      c1 = SharedMiniClusterBase.getCluster().exec(Compactor.class, "-q", "DCQ1");
+      c2 = SharedMiniClusterBase.getCluster().exec(Compactor.class, "-q", "DCQ2");
+      coord = SharedMiniClusterBase.getCluster().exec(CompactionCoordinator.class);
 
       boolean sawDCQ1_0 = false;
       boolean sawDCQ2_0 = false;
@@ -994,6 +1137,16 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
       verify(client, table1, 7);
       verify(client, table2, 13);
 
+    } finally {
+      if (c1 != null)
+        stopProcess(c1.getProcess());
+      if (c2 != null)
+        stopProcess(c2.getProcess());
+      if (coord != null)
+        stopProcess(coord.getProcess());
+      // We stopped the TServer and started our own, restart the original TabletServers
+      getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
+      cleanupTables(names);
     }
   }
 
