@@ -100,17 +100,6 @@ service CompactionCoordinatorService {
 
 service CompactorService {
 
-  /*
-   * Called by Coordinator to instruct the Compactor to stop working on the compaction.
-   */
-  void cancel(
-    1:trace.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string externalCompactionId
-  ) throws (
-    1:UnknownCompactionIdException e
-  )
-
   tabletserver.TExternalCompactionJob getRunningCompaction(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials

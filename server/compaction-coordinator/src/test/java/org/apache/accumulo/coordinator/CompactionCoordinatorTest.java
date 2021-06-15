@@ -36,11 +36,9 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
@@ -175,21 +173,6 @@ public class CompactionCoordinatorTest {
       getQueues().clear();
       getIndex().clear();
       getRunning().clear();
-    }
-
-    @Override
-    protected TabletMetadata getMetadataEntryForExtent(KeyExtent extent) {
-      return new TabletMetadata() {
-        @Override
-        public Location getLocation() {
-          return new Location("localhost:9997", "", LocationType.CURRENT);
-        }
-
-        @Override
-        public KeyExtent getExtent() {
-          return extent;
-        }
-      };
     }
 
   }
