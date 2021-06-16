@@ -305,4 +305,15 @@ public class KeyBuilderTest {
     keyExpected.setDeleted(false);
     assertEquals(keyExpected, keyBuilt);
   }
+
+  /**
+   * Tests bug where an underscore passed as a CharSequence was being encoded incorrectly.
+   */
+  @Test
+  public void testUnderscoreBug() {
+    Key keyBuilt1 = Key.builder().row(rowText).family("underscore_bug").build();
+    Key keyBuilt2 = Key.builder().row(rowText).family(new Text("underscore_bug")).build();
+
+    assertEquals(keyBuilt1, keyBuilt2);
+  }
 }
