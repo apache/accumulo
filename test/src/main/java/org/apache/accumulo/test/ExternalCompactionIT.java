@@ -213,15 +213,16 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
     cleanupTables();
   }
 
-  private void stopProcesses(Process... processes) throws Exception {
-    for (Process p : processes) {
+  private void stopProcesses(ProcessInfo... processes) throws Exception {
+    for (ProcessInfo p : processes) {
       if (p != null) {
-        if (p.supportsNormalTermination()) {
-          p.destroyForcibly();
+        Process proc = p.getProcess();
+        if (proc.supportsNormalTermination()) {
+          proc.destroyForcibly();
         } else {
           LOG.info("Stopping process manually");
-          new ProcessBuilder("kill", Long.toString(p.pid())).start();
-          p.waitFor();
+          new ProcessBuilder("kill", Long.toString(proc.pid())).start();
+          proc.waitFor();
         }
       }
     }
@@ -280,7 +281,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
 
     } finally {
       // Stop the Compactor and Coordinator that we started
-      stopProcesses(c1.getProcess(), c2.getProcess(), coord.getProcess());
+      stopProcesses(c1, c2, coord);
     }
   }
 
@@ -340,7 +341,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
         assertTrue(Collections.disjoint(ecids, ecids2));
       }
     } finally {
-      stopProcesses(c1.getProcess(), coord.getProcess());
+      stopProcesses(c1, coord);
     }
   }
 
@@ -368,7 +369,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       } while (ecids.isEmpty());
 
       // Stop the Coordinator
-      stopProcesses(coord.getProcess());
+      stopProcesses(coord);
 
       // Start the TestCompactionCoordinator so that we have
       // access to the metrics.
@@ -391,7 +392,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
         metrics = getCoordinatorMetrics();
       }
     } finally {
-      stopProcesses(c1.getProcess(), coord.getProcess());
+      stopProcesses(c1, coord);
     }
   }
 
@@ -430,7 +431,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       } while (ecids.isEmpty());
 
       // Kill the compactor
-      stopProcesses(c1.getProcess());
+      stopProcesses(c1);
 
       // DeadCompactionDetector in the CompactionCoordinator should fail the compaction.
       long count = 0;
@@ -441,7 +442,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       }
 
       // Stop the processes we started
-      stopProcesses(tserv.getProcess(), coord.getProcess());
+      stopProcesses(tserv, coord);
     } finally {
       // We stopped the TServer and started our own, restart the original TabletServers
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
@@ -520,7 +521,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
               .collect(Collectors.toSet());
         }
       } finally {
-        stopProcesses(c1.getProcess(), coord.getProcess());
+        stopProcesses(c1, coord);
       }
     }
   }
@@ -546,8 +547,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
 
       verify(client, table1, 3);
     } finally {
-      stopProcesses(c1.getProcess(), c2.getProcess(), c3.getProcess(), c4.getProcess(),
-          coord.getProcess());
+      stopProcesses(c1, c2, c3, c4, coord);
     }
   }
 
@@ -623,7 +623,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
         finalStateCount = this.getFinalStatesForTable(tid).count();
       }
     } finally {
-      stopProcesses(c1.getProcess(), coord.getProcess());
+      stopProcesses(c1, coord);
     }
   }
 
@@ -675,7 +675,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       assertEquals(0, metrics.getCompleted());
       assertEquals(1, metrics.getFailed());
     } finally {
-      stopProcesses(c1.getProcess(), coord.getProcess());
+      stopProcesses(c1, coord);
     }
   }
 
@@ -741,7 +741,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       assertEquals(0, metrics.getCompleted());
       assertEquals(1, metrics.getFailed());
     } finally {
-      stopProcesses(c1.getProcess(), coord.getProcess());
+      stopProcesses(c1, coord);
     }
   }
 
@@ -796,7 +796,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
           sizes > data.length * 10 && sizes < data.length * 11);
 
     } finally {
-      stopProcesses(c1.getProcess(), coord.getProcess());
+      stopProcesses(c1, coord);
     }
   }
 
@@ -837,7 +837,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
         assertFalse(s.iterator().hasNext());
       }
     } finally {
-      stopProcesses(c1.getProcess(), coord.getProcess());
+      stopProcesses(c1, coord);
     }
   }
 
@@ -897,7 +897,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       // Stop our TabletServer. Need to perform a normal shutdown so that the WAL is closed
       // normally.
       LOG.info("Stopping our tablet server");
-      stopProcesses(tserv.getProcess());
+      stopProcesses(tserv);
 
       // Start a TabletServer to commit the compaction.
       LOG.info("Starting normal tablet server");
@@ -913,7 +913,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       }
       verify(client, table3, 2);
     } finally {
-      stopProcesses(c1.getProcess(), coord.getProcess());
+      stopProcesses(c1, coord);
     }
 
   }
@@ -994,7 +994,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       }
 
     } finally {
-      stopProcesses(c1.getProcess(), coord.getProcess());
+      stopProcesses(c1, coord);
     }
   }
 
@@ -1083,7 +1083,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       verify(client, table2, 13);
 
     } finally {
-      stopProcesses(c1.getProcess(), c2.getProcess(), coord.getProcess());
+      stopProcesses(c1, c2, coord);
       // We stopped the TServer and started our own, restart the original TabletServers
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
     }
