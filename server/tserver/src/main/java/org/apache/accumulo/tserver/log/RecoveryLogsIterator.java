@@ -65,7 +65,7 @@ public class RecoveryLogsIterator
 
     List<Iterator<Entry<Key,Value>>> iterators = new ArrayList<>(recoveryLogDirs.size());
     scanners = new ArrayList<>();
-    Range range = new Range(start.formatRow(), end.formatRow());
+    Range range = LogFileKey.toRange(start, end);
     var vm = context.getVolumeManager();
 
     for (Path logDir : recoveryLogDirs) {
@@ -75,10 +75,7 @@ public class RecoveryLogsIterator
 
       // only check the first key once to prevent extra iterator creation and seeking
       if (checkFirstKey) {
-        validateFirstKey(
-            RFile.newScanner().from(logFiles.stream().map(Path::toString).toArray(String[]::new))
-                .withFileSystem(fs).withTableProperties(context.getConfiguration()).build(),
-            logDir);
+        validateFirstKey(context, fs, logFiles, logDir);
       }
 
       for (Path log : logFiles) {
@@ -153,13 +150,18 @@ public class RecoveryLogsIterator
   /**
    * Check that the first entry in the WAL is OPEN. Only need to do this once.
    */
-  private void validateFirstKey(Scanner scanner, Path fullLogPath) throws IOException {
-    Iterator<Entry<Key,Value>> iterator = scanner.iterator();
-    if (iterator.hasNext()) {
-      Key firstKey = iterator.next().getKey();
-      LogFileKey key = LogFileKey.fromKey(firstKey);
-      if (key.event != LogEvents.OPEN) {
-        throw new IllegalStateException("First log entry is not OPEN " + fullLogPath);
+  private void validateFirstKey(ServerContext context, FileSystem fs, List<Path> logFiles,
+      Path fullLogPath) {
+    try (var scanner =
+        RFile.newScanner().from(logFiles.stream().map(Path::toString).toArray(String[]::new))
+            .withFileSystem(fs).withTableProperties(context.getConfiguration()).build()) {
+      Iterator<Entry<Key,Value>> iterator = scanner.iterator();
+      if (iterator.hasNext()) {
+        Key firstKey = iterator.next().getKey();
+        LogFileKey key = LogFileKey.fromKey(firstKey);
+        if (key.event != LogEvents.OPEN) {
+          throw new IllegalStateException("First log entry is not OPEN " + fullLogPath);
+        }
       }
     }
   }

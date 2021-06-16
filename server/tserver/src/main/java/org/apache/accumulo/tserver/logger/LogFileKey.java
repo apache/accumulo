@@ -29,6 +29,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -250,7 +251,7 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
   /**
    * Get the byte encoded row for this LogFileKey as a Text object.
    */
-  public Text formatRow() {
+  private Text formatRow() {
     return new Text(formatRow(tabletId, seq));
   }
 
@@ -305,6 +306,10 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
             ((row[11] & 255) << 8) +
             ((row[12] & 255)));
     // @formatter:on
+  }
+
+  public static Range toRange(LogFileKey start, LogFileKey end) {
+    return new Range(start.formatRow(), end.formatRow());
   }
 
   /**
