@@ -214,7 +214,7 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
    */
   public Key toKey() throws IOException {
     byte[] formattedRow;
-    Text family = new Text(event.name());
+    String family = event.name();
     var kb = Key.builder();
     switch (event) {
       case OPEN:
