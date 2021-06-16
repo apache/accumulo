@@ -606,6 +606,53 @@ public class ExternalCompactionIT extends ConfigurableMacBase {
   }
 
   @Test
+  public void testDeleteTableDuringUserExternalCompaction() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+
+      String table1 = "ectt6";
+      createTable(client, table1, "cs1");
+      writeData(client, table1);
+
+      // The ExternalDoNothingCompactor creates a compaction thread that
+      // sleeps for 5 minutes.
+      // Wait for the coordinator to insert the running compaction metadata
+      // entry into the metadata table, then cancel the compaction
+      cluster.exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
+      cluster.exec(TestCompactionCoordinator.class);
+
+      compact(client, table1, 2, "DCQ1", false);
+
+      List<TabletMetadata> md = new ArrayList<>();
+      TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
+          .forLevel(DataLevel.USER).fetch(ColumnType.ECOMP).build();
+      tm.forEach(t -> md.add(t));
+
+      while (md.size() == 0) {
+        tm.close();
+        tm = getCluster().getServerContext().getAmple().readTablets().forLevel(DataLevel.USER)
+            .fetch(ColumnType.ECOMP).build();
+        tm.forEach(t -> md.add(t));
+      }
+
+      assertEquals(0, getCoordinatorMetrics().getFailed());
+
+      client.tableOperations().delete(table1);
+
+      // wait for failure or test timeout
+      ExternalCompactionMetrics metrics = getCoordinatorMetrics();
+      while (metrics.getFailed() == 0) {
+        UtilWaitThread.sleep(250);
+        metrics = getCoordinatorMetrics();
+      }
+
+      assertEquals(1, metrics.getStarted());
+      assertEquals(0, metrics.getRunning());
+      assertEquals(0, metrics.getCompleted());
+      assertEquals(1, metrics.getFailed());
+    }
+  }
+
+  @Test
   public void testDeleteTableDuringExternalCompaction() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
