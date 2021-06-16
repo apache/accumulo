@@ -40,7 +40,6 @@ import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.Iface;
-import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -48,8 +47,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
@@ -360,11 +357,6 @@ public class CompactionCoordinator extends AbstractServer
         .getTimeInMillis(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL);
   }
 
-  protected TabletMetadata getMetadataEntryForExtent(KeyExtent extent) {
-    return getContext().getAmple().readTablets().forTablet(extent)
-        .fetch(ColumnType.LOCATION, ColumnType.PREV_ROW).build().stream().findFirst().orElse(null);
-  }
-
   /**
    * Callback for the LiveTServerSet object to update current set of tablet servers, including ones
    * that were deleted and added
@@ -474,22 +466,6 @@ public class CompactionCoordinator extends AbstractServer
     TTransport transport =
         ThriftTransportPool.getInstance().getTransport(connection.getAddress(), 0, getContext());
     return ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
-  }
-
-  /**
-   * Return the Thrift client for the Compactor
-   *
-   * @param compactorAddress
-   *          compactor address
-   * @return thrift client
-   * @throws TTransportException
-   *           thrift error
-   */
-  protected CompactorService.Client getCompactorConnection(HostAndPort compactorAddress)
-      throws TTransportException {
-    TTransport transport =
-        ThriftTransportPool.getInstance().getTransport(compactorAddress, 0, getContext());
-    return ThriftUtil.createClient(new CompactorService.Client.Factory(), transport);
   }
 
   /**
