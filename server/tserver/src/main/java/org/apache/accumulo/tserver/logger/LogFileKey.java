@@ -333,7 +333,7 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
         logFileKey.tserverSession = key.getColumnQualifierData().toString();
         break;
       case COMPACTION_START:
-        logFileKey.filename = key.getColumnQualifier().toString();
+        logFileKey.filename = key.getColumnQualifierData().toString();
         break;
       case DEFINE_TABLET:
         try (DataInputBuffer buffer = new DataInputBuffer()) {
