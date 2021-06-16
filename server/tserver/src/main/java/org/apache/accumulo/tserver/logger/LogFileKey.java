@@ -330,7 +330,7 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     // handle special cases of what is stored in the qualifier
     switch (logFileKey.event) {
       case OPEN:
-        logFileKey.tserverSession = key.getColumnQualifier().toString();
+        logFileKey.tserverSession = key.getColumnQualifierData().toString();
         break;
       case COMPACTION_START:
         logFileKey.filename = key.getColumnQualifier().toString();
