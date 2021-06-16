@@ -106,6 +106,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.bouncycastle.util.Arrays;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -202,27 +203,49 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
     }
   }
 
-  private void stopProcess(Process process) throws Exception {
-    if (process.supportsNormalTermination()) {
-      process.destroyForcibly();
-    } else {
-      LOG.info("Stopping process manually");
-      new ProcessBuilder("kill", Long.toString(process.pid())).start();
-      process.waitFor();
+  @After
+  public void tearDown() throws Exception {
+    // The tables need to be deleted between tests because MAC
+    // is not being restarted and it's possible that a test
+    // will not get the expected compaction. The compaction that
+    // is run during a test could be for a table from the previous
+    // test due to the way the previous test ended.
+    cleanupTables();
+  }
+
+  private void stopProcesses(Process... processes) throws Exception {
+    for (Process p : processes) {
+      if (p != null) {
+        if (p.supportsNormalTermination()) {
+          p.destroyForcibly();
+        } else {
+          LOG.info("Stopping process manually");
+          new ProcessBuilder("kill", Long.toString(p.pid())).start();
+          p.waitFor();
+        }
+      }
     }
   }
 
-  private void cleanupTables(String... tables) {
+  private void cleanupTables() {
     try (AccumuloClient client = Accumulo.newClient()
         .from(SharedMiniClusterBase.getCluster().getClientProperties()).build()) {
-      for (String table : tables) {
+      for (String table : client.tableOperations().list()) {
         try {
-          client.tableOperations().delete(table);
+          if (!table.startsWith("accumulo")) {
+            client.tableOperations().cancelCompaction(table);
+            client.tableOperations().delete(table);
+          }
         } catch (Exception e) {
           fail("Error deleting table: " + table + ", msg: " + e.getMessage());
         }
       }
     }
+  }
+
+  private Stream<ExternalCompactionFinalState> getFinalStatesForTable(TableId tid) {
+    return getCluster().getServerContext().getAmple().getExternalCompactionFinalStates()
+        .filter(state -> state.getExtent().tableId().equals(tid));
   }
 
   @Test
@@ -257,13 +280,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
 
     } finally {
       // Stop the Compactor and Coordinator that we started
-      if (c1 != null)
-        stopProcess(c1.getProcess());
-      if (c2 != null)
-        stopProcess(c2.getProcess());
-      if (coord != null)
-        stopProcess(coord.getProcess());
-      cleanupTables(names);
+      stopProcesses(c1.getProcess(), c2.getProcess(), coord.getProcess());
     }
   }
 
@@ -322,16 +339,8 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
             .flatMap(t -> t.getExternalCompactions().keySet().stream()).collect(Collectors.toSet());
         assertTrue(Collections.disjoint(ecids, ecids2));
       }
-      // We did not wait for the compaction to finish in the compact call above. The compaction
-      // failed but it might take a few seconds for the compact FATE operation to cleanup. Cancel
-      // the compaction so we can delete the table
-      client.tableOperations().cancelCompaction(table1);
     } finally {
-      if (c1 != null)
-        stopProcess(c1.getProcess());
-      if (coord != null)
-        stopProcess(coord.getProcess());
-      cleanupTables(table1);
+      stopProcesses(c1.getProcess(), coord.getProcess());
     }
   }
 
@@ -359,7 +368,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       } while (ecids.isEmpty());
 
       // Stop the Coordinator
-      stopProcess(coord.getProcess());
+      stopProcesses(coord.getProcess());
 
       // Start the TestCompactionCoordinator so that we have
       // access to the metrics.
@@ -381,17 +390,8 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
         UtilWaitThread.sleep(250);
         metrics = getCoordinatorMetrics();
       }
-      // We did not wait for the compaction to finish in the compact call above. The compaction
-      // failed but it might take a few seconds for the compact FATE operation to cleanup. Cancel
-      // the compaction so we can delete the table
-      client.tableOperations().cancelCompaction(table1);
-
     } finally {
-      if (c1 != null)
-        stopProcess(c1.getProcess());
-      if (coord != null)
-        stopProcess(coord.getProcess());
-      cleanupTables(table1);
+      stopProcesses(c1.getProcess(), coord.getProcess());
     }
   }
 
@@ -430,25 +430,18 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       } while (ecids.isEmpty());
 
       // Kill the compactor
-      stopProcess(c1.getProcess());
+      stopProcesses(c1.getProcess());
 
       // DeadCompactionDetector in the CompactionCoordinator should fail the compaction.
       long count = 0;
       while (count == 0) {
-        count = getCluster().getServerContext().getAmple().getExternalCompactionFinalStates()
+        count = this.getFinalStatesForTable(tid)
             .filter(state -> state.getFinalState().equals(FinalState.FAILED)).count();
         UtilWaitThread.sleep(250);
       }
 
-      // We did not wait for the compaction to finish in the compact call above. The compaction
-      // failed but it might take a few seconds for the compact FATE operation to cleanup. Cancel
-      // the compaction so we can delete the table
-      client.tableOperations().cancelCompaction(table1);
-      cleanupTables(table1);
-
       // Stop the processes we started
-      stopProcess(coord.getProcess());
-      stopProcess(tserv.getProcess());
+      stopProcesses(tserv.getProcess(), coord.getProcess());
     } finally {
       // We stopped the TServer and started our own, restart the original TabletServers
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
@@ -526,16 +519,8 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
           ecids2 = tm.stream().flatMap(t -> t.getExternalCompactions().keySet().stream())
               .collect(Collectors.toSet());
         }
-        // We did not wait for the compaction to finish in the compact call above. The compaction
-        // failed but it might take a few seconds for the compact FATE operation to cleanup. Cancel
-        // the compaction so we can delete the table
-        client.tableOperations().cancelCompaction(table1);
       } finally {
-        if (c1 != null)
-          stopProcess(c1.getProcess());
-        if (coord != null)
-          stopProcess(coord.getProcess());
-        cleanupTables(table1);
+        stopProcesses(c1.getProcess(), coord.getProcess());
       }
     }
   }
@@ -561,17 +546,8 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
 
       verify(client, table1, 3);
     } finally {
-      if (c1 != null)
-        stopProcess(c1.getProcess());
-      if (c2 != null)
-        stopProcess(c2.getProcess());
-      if (c3 != null)
-        stopProcess(c3.getProcess());
-      if (c4 != null)
-        stopProcess(c4.getProcess());
-      if (coord != null)
-        stopProcess(coord.getProcess());
-      cleanupTables(table1);
+      stopProcesses(c1.getProcess(), c2.getProcess(), c3.getProcess(), c4.getProcess(),
+          coord.getProcess());
     }
   }
 
@@ -618,9 +594,9 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       });
       t.start();
 
+      TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
       // Confirm that no final state is in the metadata table
-      assertEquals(0,
-          getCluster().getServerContext().getAmple().getExternalCompactionFinalStates().count());
+      assertEquals(0, this.getFinalStatesForTable(tid).count());
 
       // Start the compactor
       coord = SharedMiniClusterBase.getCluster().exec(Compactor.class, "-q", "DCQ1");
@@ -635,26 +611,19 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       }
 
       // Confirm that final state is in the metadata table
-      assertEquals(1,
-          getCluster().getServerContext().getAmple().getExternalCompactionFinalStates().count());
+      assertEquals(1, this.getFinalStatesForTable(tid).count());
 
       // Online the table
       client.tableOperations().online(table1);
 
       // wait for compaction to be committed by tserver or test timeout
-      long finalStateCount =
-          getCluster().getServerContext().getAmple().getExternalCompactionFinalStates().count();
+      long finalStateCount = this.getFinalStatesForTable(tid).count();
       while (finalStateCount > 0) {
         UtilWaitThread.sleep(250);
-        finalStateCount =
-            getCluster().getServerContext().getAmple().getExternalCompactionFinalStates().count();
+        finalStateCount = this.getFinalStatesForTable(tid).count();
       }
     } finally {
-      if (c1 != null)
-        stopProcess(c1.getProcess());
-      if (coord != null)
-        stopProcess(coord.getProcess());
-      cleanupTables(table1);
+      stopProcesses(c1.getProcess(), coord.getProcess());
     }
   }
 
@@ -706,11 +675,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       assertEquals(0, metrics.getCompleted());
       assertEquals(1, metrics.getFailed());
     } finally {
-      if (c1 != null)
-        stopProcess(c1.getProcess());
-      if (coord != null)
-        stopProcess(coord.getProcess());
-      cleanupTables(table1);
+      stopProcesses(c1.getProcess(), coord.getProcess());
     }
   }
 
@@ -739,6 +704,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       coord = SharedMiniClusterBase.getCluster().exec(TestCompactionCoordinator.class);
 
       TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
+      LOG.warn("Tid for Table {} is {}", table1, tid);
       List<TabletMetadata> md = new ArrayList<>();
       TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets().forTable(tid)
           .fetch(ColumnType.ECOMP).build();
@@ -749,6 +715,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
         tm = getCluster().getServerContext().getAmple().readTablets().forTable(tid)
             .fetch(ColumnType.ECOMP).build();
         tm.forEach(t -> md.add(t));
+        UtilWaitThread.sleep(250);
       }
 
       assertEquals(0, getCoordinatorMetrics().getFailed());
@@ -774,10 +741,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       assertEquals(0, metrics.getCompleted());
       assertEquals(1, metrics.getFailed());
     } finally {
-      if (c1 != null)
-        stopProcess(c1.getProcess());
-      if (coord != null)
-        stopProcess(coord.getProcess());
+      stopProcesses(c1.getProcess(), coord.getProcess());
     }
   }
 
@@ -832,11 +796,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
           sizes > data.length * 10 && sizes < data.length * 11);
 
     } finally {
-      if (c1 != null)
-        stopProcess(c1.getProcess());
-      if (coord != null)
-        stopProcess(coord.getProcess());
-      cleanupTables(tableName);
+      stopProcesses(c1.getProcess(), coord.getProcess());
     }
   }
 
@@ -877,11 +837,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
         assertFalse(s.iterator().hasNext());
       }
     } finally {
-      if (c1 != null)
-        stopProcess(c1.getProcess());
-      if (coord != null)
-        stopProcess(coord.getProcess());
-      cleanupTables(table1);
+      stopProcesses(c1.getProcess(), coord.getProcess());
     }
   }
 
@@ -911,16 +867,15 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       // ExternalCompactionTServer will not commit the compaction. Wait for the
       // metadata table entries to show up.
       LOG.info("Waiting for external compaction to complete.");
-      Stream<ExternalCompactionFinalState> fs =
-          getCluster().getServerContext().getAmple().getExternalCompactionFinalStates();
+      TableId tid = Tables.getTableId(getCluster().getServerContext(), table3);
+      Stream<ExternalCompactionFinalState> fs = this.getFinalStatesForTable(tid);
       while (fs.count() == 0) {
         LOG.info("Waiting for compaction completed marker to appear");
         UtilWaitThread.sleep(250);
-        fs = getCluster().getServerContext().getAmple().getExternalCompactionFinalStates();
+        fs = this.getFinalStatesForTable(tid);
       }
 
       LOG.info("Validating metadata table contents.");
-      TableId tid = Tables.getTableId(getCluster().getServerContext(), table3);
       TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets().forTable(tid)
           .fetch(ColumnType.ECOMP).build();
       List<TabletMetadata> md = new ArrayList<>();
@@ -930,8 +885,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       Map<ExternalCompactionId,ExternalCompactionMetadata> em = m.getExternalCompactions();
       assertEquals(1, em.size());
       List<ExternalCompactionFinalState> finished = new ArrayList<>();
-      getCluster().getServerContext().getAmple().getExternalCompactionFinalStates()
-          .forEach(f -> finished.add(f));
+      this.getFinalStatesForTable(tid).forEach(f -> finished.add(f));
       assertEquals(1, finished.size());
       assertEquals(em.entrySet().iterator().next().getKey(),
           finished.get(0).getExternalCompactionId());
@@ -943,7 +897,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       // Stop our TabletServer. Need to perform a normal shutdown so that the WAL is closed
       // normally.
       LOG.info("Stopping our tablet server");
-      stopProcess(tserv.getProcess());
+      stopProcesses(tserv.getProcess());
 
       // Start a TabletServer to commit the compaction.
       LOG.info("Starting normal tablet server");
@@ -951,20 +905,15 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
 
       // Wait for the compaction to be committed.
       LOG.info("Waiting for compaction completed marker to disappear");
-      Stream<ExternalCompactionFinalState> fs2 =
-          getCluster().getServerContext().getAmple().getExternalCompactionFinalStates();
+      Stream<ExternalCompactionFinalState> fs2 = this.getFinalStatesForTable(tid);
       while (fs2.count() != 0) {
         LOG.info("Waiting for compaction completed marker to disappear");
         UtilWaitThread.sleep(500);
-        fs2 = getCluster().getServerContext().getAmple().getExternalCompactionFinalStates();
+        fs2 = this.getFinalStatesForTable(tid);
       }
       verify(client, table3, 2);
     } finally {
-      if (c1 != null)
-        stopProcess(c1.getProcess());
-      if (coord != null)
-        stopProcess(coord.getProcess());
-      cleanupTables(table3);
+      stopProcesses(c1.getProcess(), coord.getProcess());
     }
 
   }
@@ -1045,11 +994,7 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       }
 
     } finally {
-      if (c1 != null)
-        stopProcess(c1.getProcess());
-      if (coord != null)
-        stopProcess(coord.getProcess());
-      cleanupTables(tableName);
+      stopProcesses(c1.getProcess(), coord.getProcess());
     }
   }
 
@@ -1138,15 +1083,9 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       verify(client, table2, 13);
 
     } finally {
-      if (c1 != null)
-        stopProcess(c1.getProcess());
-      if (c2 != null)
-        stopProcess(c2.getProcess());
-      if (coord != null)
-        stopProcess(coord.getProcess());
+      stopProcesses(c1.getProcess(), c2.getProcess(), coord.getProcess());
       // We stopped the TServer and started our own, restart the original TabletServers
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
-      cleanupTables(names);
     }
   }
 
