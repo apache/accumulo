@@ -222,7 +222,7 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
         return kb.row(formattedRow).family(family).qualifier(tserverSession).build();
       case COMPACTION_START:
         formattedRow = formatRow(tabletId, seq);
-        return kb.row(formattedRow).family(family).qualifier(new Text(filename)).build();
+        return kb.row(formattedRow).family(family).qualifier(filename).build();
       case MUTATION:
       case MANY_MUTATIONS:
       case COMPACTION_FINISH:
