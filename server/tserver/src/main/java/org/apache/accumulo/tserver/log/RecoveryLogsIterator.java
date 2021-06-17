@@ -141,7 +141,7 @@ public class RecoveryLogsIterator
     }
     if (!foundFinish)
       throw new IOException(
-          "Sort \"" + SortedLogState.FINISHED.getMarker() + "\" flag not found in " + directory);
+          "Sort '" + SortedLogState.FINISHED.getMarker() + "' flag not found in " + directory);
     return logFiles;
   }
 
