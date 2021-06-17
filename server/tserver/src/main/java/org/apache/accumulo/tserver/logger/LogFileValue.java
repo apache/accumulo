@@ -115,7 +115,7 @@ public class LogFileValue implements Writable {
     try (var bais = new ByteArrayInputStream(value.get())) {
       logFileValue.readFields(new DataInputStream(bais));
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
     return logFileValue;
   }
