@@ -40,7 +40,6 @@ import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +60,7 @@ public class RecoveryLogsIterator
    * Scans the files in each recoveryLogDir over the range [start,end].
    */
   RecoveryLogsIterator(ServerContext context, List<Path> recoveryLogDirs, LogFileKey start,
-      LogFileKey end, boolean checkFirstKey, LogEvents... colFamToFetch) throws IOException {
+      LogFileKey end, boolean checkFirstKey) throws IOException {
 
     List<Iterator<Entry<Key,Value>>> iterators = new ArrayList<>(recoveryLogDirs.size());
     scanners = new ArrayList<>();
@@ -81,8 +80,7 @@ public class RecoveryLogsIterator
       for (Path log : logFiles) {
         var scanner = RFile.newScanner().from(log.toString()).withFileSystem(fs)
             .withTableProperties(context.getConfiguration()).build();
-        for (var cf : colFamToFetch)
-          scanner.fetchColumnFamily(new Text(cf.name()));
+
         scanner.setRange(range);
         Iterator<Entry<Key,Value>> scanIter = scanner.iterator();
 

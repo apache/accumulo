@@ -25,7 +25,6 @@ import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
 import static org.apache.accumulo.tserver.logger.LogEvents.MANY_MUTATIONS;
 import static org.apache.accumulo.tserver.logger.LogEvents.MUTATION;
-import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 
 import java.io.IOException;
 import java.util.AbstractMap;
@@ -105,7 +104,7 @@ public class SortedLogRecovery {
     int tabletId = -1;
 
     try (var rli = new RecoveryLogsIterator(context, recoveryLogDirs, minKey(DEFINE_TABLET),
-        maxKey(DEFINE_TABLET), true, DEFINE_TABLET, OPEN)) {
+        maxKey(DEFINE_TABLET), true)) {
 
       KeyExtent alternative = extent;
       if (extent.isRootTablet()) {
@@ -205,9 +204,8 @@ public class SortedLogRecovery {
     long lastFinish = 0;
     long recoverySeq = 0;
 
-    try (RecoveryLogsIterator rli =
-        new RecoveryLogsIterator(context, recoveryLogs, minKey(COMPACTION_START, tabletId),
-            maxKey(COMPACTION_START, tabletId), false, COMPACTION_START, COMPACTION_FINISH)) {
+    try (RecoveryLogsIterator rli = new RecoveryLogsIterator(context, recoveryLogs,
+        minKey(COMPACTION_START, tabletId), maxKey(COMPACTION_START, tabletId), false)) {
 
       DeduplicatingIterator ddi = new DeduplicatingIterator(rli);
 
@@ -262,8 +260,7 @@ public class SortedLogRecovery {
 
     LogFileKey end = maxKey(MUTATION, tabletId);
 
-    try (RecoveryLogsIterator rli = new RecoveryLogsIterator(context, recoveryLogs, start, end,
-        false, MUTATION, MANY_MUTATIONS)) {
+    try (var rli = new RecoveryLogsIterator(context, recoveryLogs, start, end, false)) {
       while (rli.hasNext()) {
         Entry<LogFileKey,LogFileValue> entry = rli.next();
         LogFileKey logFileKey = entry.getKey();
