@@ -341,7 +341,7 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
           buffer.reset(bytes, bytes.length);
           logFileKey.tablet = KeyExtent.readFrom(buffer);
         } catch (IOException e) {
-          throw new RuntimeException(e);
+          throw new UncheckedIOException(e);
         }
         break;
       case COMPACTION_FINISH:
