@@ -26,6 +26,7 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
+import org.apache.accumulo.manager.tableOps.compact.cancel.CancelCompactions;
 
 public class DeleteTable extends ManagerRepo {
 
@@ -41,6 +42,19 @@ public class DeleteTable extends ManagerRepo {
 
   @Override
   public long isReady(long tid, Manager env) throws Exception {
+
+    // Before attempting to delete the table, cancel any running user
+    // compactions.
+    if (Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.COMPACT_CANCEL)
+        + Utils.reserveTable(env, tableId, tid, false, true, TableOperation.COMPACT_CANCEL) == 0) {
+      try {
+        CancelCompactions.mutateZooKeeper(tid, tableId, env);
+      } finally {
+        Utils.unreserveTable(env, tableId, tid, false);
+        Utils.unreserveNamespace(env, namespaceId, tid, false);
+      }
+    }
+
     return Utils.reserveNamespace(env, namespaceId, tid, false, false, TableOperation.DELETE)
         + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.DELETE);
   }

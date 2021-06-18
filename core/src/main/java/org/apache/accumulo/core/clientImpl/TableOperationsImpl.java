@@ -728,7 +728,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
     try {
-      cancelCompaction(tableName);
       doTableFateOperation(tableName, TableNotFoundException.class, FateOperation.TABLE_DELETE,
           args, opts);
     } catch (TableExistsException e) {

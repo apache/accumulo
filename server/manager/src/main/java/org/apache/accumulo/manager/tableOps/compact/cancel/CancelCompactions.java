@@ -54,6 +54,19 @@ public class CancelCompactions extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(long tid, Manager environment) throws Exception {
+
+    mutateZooKeeper(tid, tableId, environment);
+    return new FinishCancelCompaction(namespaceId, tableId);
+  }
+
+  @Override
+  public void undo(long tid, Manager env) {
+    Utils.unreserveTable(env, tableId, tid, false);
+    Utils.unreserveNamespace(env, namespaceId, tid, false);
+  }
+
+  public static void mutateZooKeeper(long tid, TableId tableId, Manager environment)
+      throws Exception {
     String zCompactID = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES
         + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
     String zCancelID = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES + "/"
@@ -80,13 +93,5 @@ public class CancelCompactions extends ManagerRepo {
         return Long.toString(cid).getBytes(UTF_8);
       }
     });
-
-    return new FinishCancelCompaction(namespaceId, tableId);
-  }
-
-  @Override
-  public void undo(long tid, Manager env) {
-    Utils.unreserveTable(env, tableId, tid, false);
-    Utils.unreserveNamespace(env, namespaceId, tid, false);
   }
 }
