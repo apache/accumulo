@@ -681,7 +681,9 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
 
   @Test
   public void testDeleteTableDuringUserExternalCompaction() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    ProcessInfo c1 = null, coord = null;
+    try (AccumuloClient client = Accumulo.newClient()
+        .from(SharedMiniClusterBase.getCluster().getClientProperties()).build()) {
 
       String table1 = "ectt6";
       createTable(client, table1, "cs1");
@@ -691,8 +693,8 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       // sleeps for 5 minutes.
       // Wait for the coordinator to insert the running compaction metadata
       // entry into the metadata table, then cancel the compaction
-      cluster.exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
-      cluster.exec(TestCompactionCoordinator.class);
+      c1 = SharedMiniClusterBase.getCluster().exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
+      coord = SharedMiniClusterBase.getCluster().exec(TestCompactionCoordinator.class);
 
       compact(client, table1, 2, "DCQ1", false);
 
@@ -723,6 +725,8 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
       assertEquals(0, metrics.getRunning());
       assertEquals(0, metrics.getCompleted());
       assertEquals(1, metrics.getFailed());
+    } finally {
+      stopProcesses(c1, coord);
     }
   }
 
