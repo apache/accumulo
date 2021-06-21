@@ -290,6 +290,11 @@ public enum Property {
   MANAGER_LEASE_RECOVERY_WAITING_PERIOD("manager.lease.recovery.interval", "5s",
       PropertyType.TIMEDURATION,
       "The amount of time to wait after requesting a write-ahead log to be recovered"),
+  MANAGER_WAL_CLOSER_IMPLEMENTATION("manager.wal.closer.implementation",
+      "org.apache.accumulo.server.manager.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
+      "A class that implements a mechanism to steal write access to a write-ahead log"),
+  @Deprecated(since = "2.1.0")
+  @ReplacedBy(property = Property.MANAGER_WAL_CLOSER_IMPLEMENTATION)
   MANAGER_WALOG_CLOSER_IMPLEMETATION("manager.walog.closer.implementation",
       "org.apache.accumulo.server.manager.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
       "A class that implements a mechanism to steal write access to a write-ahead log"),
@@ -360,25 +365,59 @@ public enum Property {
           + " When there are more RFiles than this setting multiple passes must be"
           + " made, which is slower. However opening too many RFiles at once can cause"
           + " problems."),
+  TSERV_WAL_MAX_REFERENCED("tserver.wal.max.referenced", "3", PropertyType.COUNT,
+      "When a tablet server has more than this many write ahead logs, any tablet referencing older "
+          + "logs over this threshold is minor compacted.  Also any tablet referencing this many "
+          + "logs or more will be compacted."),
+  @Deprecated(since = "2.1.0")
+  @ReplacedBy(property = Property.TSERV_WAL_MAX_REFERENCED)
   TSERV_WALOG_MAX_REFERENCED("tserver.walog.max.referenced", "3", PropertyType.COUNT,
       "When a tablet server has more than this many write ahead logs, any tablet referencing older "
           + "logs over this threshold is minor compacted.  Also any tablet referencing this many "
           + "logs or more will be compacted."),
+  TSERV_WAL_MAX_SIZE("tserver.wal.max.size", "1G", PropertyType.BYTES,
+      "The maximum size for each write-ahead log. See comment for property"
+          + " tserver.memory.maps.max"),
+  @Deprecated(since = "2.1.0")
+  @ReplacedBy(property = Property.TSERV_WAL_MAX_SIZE)
   TSERV_WALOG_MAX_SIZE("tserver.walog.max.size", "1G", PropertyType.BYTES,
       "The maximum size for each write-ahead log. See comment for property"
           + " tserver.memory.maps.max"),
+  TSERV_WAL_MAX_AGE("tserver.wal.max.age", "24h", PropertyType.TIMEDURATION,
+      "The maximum age for each write-ahead log."),
+  @Deprecated(since = "2.1.0")
+  @ReplacedBy(property = Property.TSERV_WAL_MAX_AGE)
   TSERV_WALOG_MAX_AGE("tserver.walog.max.age", "24h", PropertyType.TIMEDURATION,
       "The maximum age for each write-ahead log."),
+  TSERV_WAL_TOLERATED_CREATION_FAILURES("tserver.wal.tolerated.creation.failures", "50",
+      PropertyType.COUNT,
+      "The maximum number of failures tolerated when creating a new write-ahead"
+          + " log. Negative values will allow unlimited creation failures. Exceeding this"
+          + " number of failures consecutively trying to create a new write-ahead log"
+          + " causes the TabletServer to exit."),
+  @Deprecated(since = "2.1.0")
+  @ReplacedBy(property = Property.TSERV_WAL_TOLERATED_CREATION_FAILURES)
   TSERV_WALOG_TOLERATED_CREATION_FAILURES("tserver.walog.tolerated.creation.failures", "50",
       PropertyType.COUNT,
       "The maximum number of failures tolerated when creating a new write-ahead"
           + " log. Negative values will allow unlimited creation failures. Exceeding this"
           + " number of failures consecutively trying to create a new write-ahead log"
           + " causes the TabletServer to exit."),
+  TSERV_WAL_TOLERATED_WAIT_INCREMENT("tserver.wal.tolerated.wait.increment", "1000ms",
+      PropertyType.TIMEDURATION,
+      "The amount of time to wait between failures to create or write a write-ahead log."),
+  @Deprecated(since = "2.1.0")
+  @ReplacedBy(property = Property.TSERV_WAL_TOLERATED_WAIT_INCREMENT)
   TSERV_WALOG_TOLERATED_WAIT_INCREMENT("tserver.walog.tolerated.wait.increment", "1000ms",
       PropertyType.TIMEDURATION,
       "The amount of time to wait between failures to create or write a write-ahead log."),
   // Never wait longer than 5 mins for a retry
+  TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION("tserver.wal.maximum.wait.duration", "5m",
+      PropertyType.TIMEDURATION,
+      "The maximum amount of time to wait after a failure to create or write a write-ahead log."),
+  // Never wait longer than 5 mins for a retry
+  @Deprecated(since = "2.1.0")
+  @ReplacedBy(property = Property.TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION)
   TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION("tserver.walog.maximum.wait.duration", "5m",
       PropertyType.TIMEDURATION,
       "The maximum amount of time to wait after a failure to create or write a write-ahead log."),
@@ -395,8 +434,8 @@ public enum Property {
       "Maximum amount of memory that can be used to buffer data written to a"
           + " tablet server. There are two other properties that can effectively limit"
           + " memory usage table.compaction.minor.logs.threshold and"
-          + " tserver.walog.max.size. Ensure that table.compaction.minor.logs.threshold"
-          + " * tserver.walog.max.size >= this property."),
+          + " tserver.wal.max.size. Ensure that table.compaction.minor.logs.threshold"
+          + " * tserver.wal.max.size >= this property."),
   TSERV_SESSION_MAXIDLE("tserver.session.idle.max", "1m", PropertyType.TIMEDURATION,
       "When a tablet server's SimpleTimer thread triggers to check idle"
           + " sessions, this configurable option will be used to evaluate scan sessions"
@@ -546,7 +585,7 @@ public enum Property {
           + " is equivalent to forever."),
   TSERV_WAL_BLOCKSIZE("tserver.wal.blocksize", "0", PropertyType.BYTES,
       "The size of the HDFS blocks used to write to the Write-Ahead log. If"
-          + " zero, it will be 110% of tserver.walog.max.size (that is, try to use just"
+          + " zero, it will be 110% of tserver.wal.max.size (that is, try to use just"
           + " one block)"),
   TSERV_WAL_REPLICATION("tserver.wal.replication", "0", PropertyType.COUNT,
       "The replication to use when writing the Write-Ahead log to HDFS. If"
@@ -718,7 +757,7 @@ public enum Property {
   TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10k", PropertyType.BYTES,
       "Maximum size of end row"),
   @Deprecated(since = "2.0.0")
-  @ReplacedBy(property = Property.TSERV_WALOG_MAX_REFERENCED)
+  @ReplacedBy(property = Property.TSERV_WAL_MAX_REFERENCED)
   TABLE_MINC_LOGS_MAX("table.compaction.minor.logs.threshold", "3", PropertyType.COUNT,
       "This property is deprecated since 2.0.0."),
   TABLE_MINC_COMPACT_IDLETIME("table.compaction.minor.idle", "5m", PropertyType.TIMEDURATION,

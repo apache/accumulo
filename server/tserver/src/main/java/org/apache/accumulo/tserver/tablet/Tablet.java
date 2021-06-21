@@ -1926,7 +1926,7 @@ public class Tablet {
     // grab this outside of tablet lock.
     @SuppressWarnings("deprecation")
     int maxLogs = tableConfiguration.getCount(tableConfiguration
-        .resolve(Property.TSERV_WALOG_MAX_REFERENCED, Property.TABLE_MINC_LOGS_MAX));
+        .resolve(Property.TSERV_WAL_MAX_REFERENCED, Property.TSERV_WALOG_MAX_REFERENCED));
 
     String reason = null;
     synchronized (this) {

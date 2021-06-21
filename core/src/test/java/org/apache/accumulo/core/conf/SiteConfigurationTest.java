@@ -61,7 +61,9 @@ public class SiteConfigurationTest {
     assertEquals("DEFAULT", conf.get(Property.INSTANCE_SECRET));
     assertEquals("", conf.get(Property.INSTANCE_VOLUMES));
     assertEquals("120s", conf.get(Property.GENERAL_RPC_TIMEOUT));
-    assertEquals("1G", conf.get(Property.TSERV_WALOG_MAX_SIZE));
+    @SuppressWarnings("deprecation")
+    Property deprecatedProp = Property.TSERV_WALOG_MAX_SIZE;
+    assertEquals("1G", conf.get(conf.resolve(Property.TSERV_WAL_MAX_SIZE, deprecatedProp)));
     assertEquals("org.apache.accumulo.core.spi.crypto.NoCryptoService",
         conf.get(Property.INSTANCE_CRYPTO_SERVICE));
   }
@@ -75,7 +77,9 @@ public class SiteConfigurationTest {
     assertEquals("mysecret", conf.get(Property.INSTANCE_SECRET));
     assertEquals("hdfs://localhost:8020/accumulo123", conf.get(Property.INSTANCE_VOLUMES));
     assertEquals("123s", conf.get(Property.GENERAL_RPC_TIMEOUT));
-    assertEquals("256M", conf.get(Property.TSERV_WALOG_MAX_SIZE));
+    @SuppressWarnings("deprecation")
+    Property deprecatedProp = Property.TSERV_WALOG_MAX_SIZE;
+    assertEquals("256M", conf.get(conf.resolve(Property.TSERV_WAL_MAX_SIZE, deprecatedProp)));
     assertEquals("org.apache.accumulo.core.spi.crypto.AESCryptoService",
         conf.get(Property.INSTANCE_CRYPTO_SERVICE));
     assertEquals(System.getenv("USER"), conf.get("general.test.user.name"));

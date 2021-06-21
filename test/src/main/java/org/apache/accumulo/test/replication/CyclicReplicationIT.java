@@ -177,7 +177,7 @@ public class CyclicReplicationIT {
           ConfigurableMacBase.getSslDir(manager1Dir));
 
       manager1Cfg.setProperty(Property.REPLICATION_NAME, manager1Cfg.getInstanceName());
-      manager1Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
+      manager1Cfg.setProperty(Property.TSERV_WAL_MAX_SIZE, "5M");
       manager1Cfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
       manager1Cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
       manager1Cfg.setProperty(Property.MANAGER_REPLICATION_SCAN_INTERVAL, "1s");
@@ -203,7 +203,7 @@ public class CyclicReplicationIT {
       this.updatePeerConfigFromPrimary(manager1Cfg, manager2Cfg);
 
       manager2Cfg.setProperty(Property.REPLICATION_NAME, manager2Cfg.getInstanceName());
-      manager2Cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "5M");
+      manager2Cfg.setProperty(Property.TSERV_WAL_MAX_SIZE, "5M");
       manager2Cfg.setProperty(Property.REPLICATION_THREADCHECK, "5m");
       manager2Cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
       manager2Cfg.setProperty(Property.MANAGER_REPLICATION_SCAN_INTERVAL, "1s");

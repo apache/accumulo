@@ -21,7 +21,7 @@ package org.apache.accumulo.test.functional;
 import static org.apache.accumulo.core.conf.Property.GC_CYCLE_DELAY;
 import static org.apache.accumulo.core.conf.Property.GC_CYCLE_START;
 import static org.apache.accumulo.core.conf.Property.INSTANCE_ZK_TIMEOUT;
-import static org.apache.accumulo.core.conf.Property.TSERV_WALOG_MAX_SIZE;
+import static org.apache.accumulo.core.conf.Property.TSERV_WAL_MAX_SIZE;
 import static org.apache.accumulo.core.conf.Property.TSERV_WAL_REPLICATION;
 import static org.apache.accumulo.core.security.Authorizations.EMPTY;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
@@ -80,7 +80,7 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(GC_CYCLE_DELAY, "1s");
     cfg.setProperty(GC_CYCLE_START, "0s");
-    cfg.setProperty(TSERV_WALOG_MAX_SIZE, "1M");
+    cfg.setProperty(TSERV_WAL_MAX_SIZE, "1M");
     cfg.setProperty(TSERV_WAL_REPLICATION, "1");
     cfg.setProperty(INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setNumTservers(1);

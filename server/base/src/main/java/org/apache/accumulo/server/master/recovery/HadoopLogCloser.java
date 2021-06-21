@@ -36,7 +36,7 @@ public class HadoopLogCloser extends org.apache.accumulo.server.manager.recovery
 
   public HadoopLogCloser() {
     log.warn("{} has been deprecated. Please update property {} to {} instead.",
-        getClass().getName(), Property.MANAGER_WALOG_CLOSER_IMPLEMETATION.getKey(),
+        getClass().getName(), Property.MANAGER_WAL_CLOSER_IMPLEMENTATION.getKey(),
         org.apache.accumulo.server.manager.recovery.HadoopLogCloser.class.getName());
   }
 }
