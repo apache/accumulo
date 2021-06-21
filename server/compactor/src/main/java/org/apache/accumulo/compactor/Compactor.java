@@ -327,29 +327,6 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
   }
 
   /**
-   * Called by a CompactionCoordinator to cancel the currently running compaction
-   *
-   * @param tinfo
-   *          trace info
-   * @param credentials
-   *          caller credentials
-   * @param externalCompactionId
-   *          compaction id
-   * @throws UnknownCompactionIdException
-   *           if the externalCompactionId does not match the currently executing compaction
-   */
-  @Override
-  public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
-      throws TException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-    cancel(externalCompactionId);
-  }
-
-  /**
    * Cancel the compaction with this id.
    *
    * @param externalCompactionId
