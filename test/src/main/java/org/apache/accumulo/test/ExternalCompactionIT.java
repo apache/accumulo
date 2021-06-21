@@ -680,6 +680,57 @@ public class ExternalCompactionIT extends SharedMiniClusterBase
   }
 
   @Test
+  public void testDeleteTableDuringUserExternalCompaction() throws Exception {
+    ProcessInfo c1 = null, coord = null;
+    try (AccumuloClient client = Accumulo.newClient()
+        .from(SharedMiniClusterBase.getCluster().getClientProperties()).build()) {
+
+      String table1 = "ectt6";
+      createTable(client, table1, "cs1");
+      writeData(client, table1);
+
+      // The ExternalDoNothingCompactor creates a compaction thread that
+      // sleeps for 5 minutes.
+      // Wait for the coordinator to insert the running compaction metadata
+      // entry into the metadata table, then cancel the compaction
+      c1 = SharedMiniClusterBase.getCluster().exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
+      coord = SharedMiniClusterBase.getCluster().exec(TestCompactionCoordinator.class);
+
+      compact(client, table1, 2, "DCQ1", false);
+
+      List<TabletMetadata> md = new ArrayList<>();
+      TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
+          .forLevel(DataLevel.USER).fetch(ColumnType.ECOMP).build();
+      tm.forEach(t -> md.add(t));
+
+      while (md.size() == 0) {
+        tm.close();
+        tm = getCluster().getServerContext().getAmple().readTablets().forLevel(DataLevel.USER)
+            .fetch(ColumnType.ECOMP).build();
+        tm.forEach(t -> md.add(t));
+      }
+
+      assertEquals(0, getCoordinatorMetrics().getFailed());
+
+      client.tableOperations().delete(table1);
+
+      // wait for failure or test timeout
+      ExternalCompactionMetrics metrics = getCoordinatorMetrics();
+      while (metrics.getFailed() == 0) {
+        UtilWaitThread.sleep(250);
+        metrics = getCoordinatorMetrics();
+      }
+
+      assertEquals(1, metrics.getStarted());
+      assertEquals(0, metrics.getRunning());
+      assertEquals(0, metrics.getCompleted());
+      assertEquals(1, metrics.getFailed());
+    } finally {
+      stopProcesses(c1, coord);
+    }
+  }
+
+  @Test
   public void testDeleteTableDuringExternalCompaction() throws Exception {
     ProcessInfo c1 = null, coord = null;
     String table1 = this.getUniqueNames(1)[0];
