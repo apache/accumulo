@@ -1133,7 +1133,7 @@ public class TabletServer extends AbstractServer {
 
   public void recover(VolumeManager fs, KeyExtent extent, List<LogEntry> logEntries,
       Set<String> tabletFiles, MutationReceiver mutationReceiver) throws IOException {
-    List<Path> recoveryLogs = new ArrayList<>();
+    List<Path> recoveryDirs = new ArrayList<>();
     List<LogEntry> sorted = new ArrayList<>(logEntries);
     sorted.sort((e1, e2) -> (int) (e1.timestamp - e2.timestamp));
     for (LogEntry entry : sorted) {
@@ -1148,9 +1148,9 @@ public class TabletServer extends AbstractServer {
         throw new IOException(
             "Unable to find recovery files for extent " + extent + " logEntry: " + entry);
       }
-      recoveryLogs.add(recovery);
+      recoveryDirs.add(recovery);
     }
-    logger.recover(fs, extent, recoveryLogs, tabletFiles, mutationReceiver);
+    logger.recover(getContext(), extent, recoveryDirs, tabletFiles, mutationReceiver);
   }
 
   public int createLogId() {

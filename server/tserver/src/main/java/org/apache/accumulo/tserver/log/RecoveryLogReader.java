@@ -138,7 +138,7 @@ public class RecoveryLogReader implements CloseableIterator<Entry<LogFileKey,Log
     }
     if (!foundFinish)
       throw new IOException(
-          "Sort \"" + SortedLogState.FINISHED.getMarker() + "\" flag not found in " + directory);
+          "Sort '" + SortedLogState.FINISHED.getMarker() + "' flag not found in " + directory);
 
     iter = new SortCheckIterator(new RangeIterator(start, end));
   }
