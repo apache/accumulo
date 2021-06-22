@@ -43,8 +43,13 @@ public class DeleteTable extends ManagerRepo {
   @Override
   public long isReady(long tid, Manager env) throws Exception {
 
-    // Before attempting to delete the table, cancel any running user
-    // compactions.
+    // If we have the table write lock, then it's possible that we have
+    // already canceled the compactions and we can skip to deleting the tables.
+    if (Utils.hasNamespaceReadLock(env, namespaceId, tid)
+        && Utils.hasTableWriteLock(env, tableId, tid)) {
+      return 0;
+    }
+    // Cancel any running user compactions before deleting table
     if (Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.COMPACT_CANCEL)
         + Utils.reserveTable(env, tableId, tid, false, true, TableOperation.COMPACT_CANCEL) == 0) {
       try {
@@ -54,7 +59,6 @@ public class DeleteTable extends ManagerRepo {
         Utils.unreserveNamespace(env, namespaceId, tid, false);
       }
     }
-
     return Utils.reserveNamespace(env, namespaceId, tid, false, false, TableOperation.DELETE)
         + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.DELETE);
   }
