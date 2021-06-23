@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -88,13 +87,10 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
       Map<String,String> conf = iops.getSystemConfiguration();
-      AccumuloConfiguration aconf = getCluster().getSiteConfiguration();
-      @SuppressWarnings("deprecation")
-      Property deprecatedProp = Property.TSERV_WALOG_MAX_SIZE;
       majcDelay = conf.get(Property.TSERV_MAJC_DELAY.getKey());
-      walSize = conf.get(aconf.resolve(Property.TSERV_WAL_MAX_SIZE, deprecatedProp).getKey());
+      walSize = conf.get(Property.TSERV_WAL_MAX_SIZE.getKey());
       iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1");
-      iops.setProperty(aconf.resolve(Property.TSERV_WAL_MAX_SIZE, deprecatedProp).getKey(), "1M");
+      iops.setProperty(Property.TSERV_WAL_MAX_SIZE.getKey(), "1M");
 
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       getClusterControl().startAllServers(ServerType.TABLET_SERVER);
@@ -106,12 +102,8 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
     if (majcDelay != null) {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
         InstanceOperations iops = client.instanceOperations();
-        AccumuloConfiguration conf = getServerContext().getConfiguration();
-        @SuppressWarnings("deprecation")
-        Property deprecatedProp = Property.TSERV_WALOG_MAX_SIZE;
         iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
-        iops.setProperty(conf.resolve(Property.TSERV_WAL_MAX_SIZE, deprecatedProp).getKey(),
-            walSize);
+        iops.setProperty(Property.TSERV_WAL_MAX_SIZE.getKey(), walSize);
       }
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       getClusterControl().startAllServers(ServerType.TABLET_SERVER);

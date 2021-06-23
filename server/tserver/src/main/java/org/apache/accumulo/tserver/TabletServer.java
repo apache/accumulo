@@ -309,11 +309,9 @@ public class TabletServer extends AbstractServer {
     final long minBlockSize =
         context.getHadoopConf().getLong("dfs.namenode.fs-limits.min-block-size", 0);
     if (minBlockSize != 0 && minBlockSize > walMaxSize) {
-      @SuppressWarnings("deprecation")
-      Property deprecatedProp = Property.TSERV_WALOG_MAX_SIZE;
       throw new RuntimeException("Unable to start TabletServer. Logger is set to use blocksize "
           + walMaxSize + " but hdfs minimum block size is " + minBlockSize
-          + ". Either increase the " + aconf.resolve(Property.TSERV_WAL_MAX_SIZE, deprecatedProp)
+          + ". Either increase the " + Property.TSERV_WAL_MAX_SIZE
           + " or decrease dfs.namenode.fs-limits.min-block-size in hdfs-site.xml.");
     }
 
