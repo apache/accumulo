@@ -75,7 +75,7 @@ import org.apache.accumulo.manager.tableOps.clone.CloneTable;
 import org.apache.accumulo.manager.tableOps.compact.CompactRange;
 import org.apache.accumulo.manager.tableOps.compact.cancel.CancelCompactions;
 import org.apache.accumulo.manager.tableOps.create.CreateTable;
-import org.apache.accumulo.manager.tableOps.delete.DeleteTable;
+import org.apache.accumulo.manager.tableOps.delete.PreDeleteTable;
 import org.apache.accumulo.manager.tableOps.merge.TableRangeOp;
 import org.apache.accumulo.manager.tableOps.namespace.create.CreateNamespace;
 import org.apache.accumulo.manager.tableOps.namespace.delete.DeleteNamespace;
@@ -321,8 +321,8 @@ class FateServiceHandler implements FateService.Iface {
 
         if (!canDeleteTable)
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-        manager.fate.seedTransaction(opid, new TraceRepo<>(new DeleteTable(namespaceId, tableId)),
-            autoCleanup);
+        manager.fate.seedTransaction(opid,
+            new TraceRepo<>(new PreDeleteTable(namespaceId, tableId)), autoCleanup);
         break;
       }
       case TABLE_ONLINE: {

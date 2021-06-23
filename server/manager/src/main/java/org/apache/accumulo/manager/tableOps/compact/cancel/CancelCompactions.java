@@ -36,8 +36,8 @@ import org.slf4j.LoggerFactory;
 public class CancelCompactions extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
-  private TableId tableId;
-  private NamespaceId namespaceId;
+  protected TableId tableId;
+  protected NamespaceId namespaceId;
 
   private static final Logger log = LoggerFactory.getLogger(CancelCompactions.class);
 
