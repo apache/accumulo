@@ -20,12 +20,17 @@ package org.apache.accumulo.tserver.log;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
+import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class LogFileKeyTest {
@@ -97,5 +102,49 @@ public class LogFileKeyTest {
       assertEquals(keys, testList);
     }
 
+  }
+
+  private void testToFromKey(int tabletId, long seq) throws IOException {
+    var logFileKey = nk(LogEvents.DEFINE_TABLET, tabletId, seq);
+    logFileKey.tablet = new KeyExtent(TableId.of("5"), new Text("b"), null);
+    Key k = logFileKey.toKey();
+
+    var converted = LogFileKey.fromKey(k);
+    assertEquals("Failed to convert tabletId = " + tabletId + " seq = " + seq, logFileKey,
+        converted);
+  }
+
+  @Test
+  public void convertToKeyLargeTabletId() throws IOException {
+    // test continuous range of numbers to make sure all cases of signed bytes are covered
+    for (int i = -1_000; i < 1_000_000; i++) {
+      testToFromKey(i, 1);
+    }
+  }
+
+  @Test
+  public void convertToKeyLargeSeq() throws IOException {
+    // use numbers large enough to cover all bytes used
+    testToFromKey(1, 8); // 1 byte
+    testToFromKey(1, 1_000L); // 2 bytes
+    testToFromKey(1, 1_222_333L); // 3 bytes
+    testToFromKey(1, 100_000_000L); // 4 bytes
+    testToFromKey(1, 111_222_333_444L); // 5 bytes
+    testToFromKey(1, 1_000_222_333_777L); // 6 bytes
+    testToFromKey(1, 5_222_000_222_333_777L); // 7 bytes
+    testToFromKey(1, 500_222_333_444_555_666L); // 8 bytes
+
+    // test with more tabletId bytes
+    testToFromKey(-1000, 500_222_333_444_555_666L);
+    testToFromKey(10_000_000, 500_222_333_444_555_666L);
+    testToFromKey(Integer.MAX_VALUE, Long.MAX_VALUE);
+    testToFromKey(Integer.MIN_VALUE, Long.MAX_VALUE);
+    testToFromKey(Integer.MIN_VALUE, 0);
+    testToFromKey(Integer.MAX_VALUE, 0);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testNegativeSeq() throws IOException {
+    testToFromKey(1, -1);
   }
 }
