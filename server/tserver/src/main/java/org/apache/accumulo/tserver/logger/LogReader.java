@@ -23,6 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -35,14 +36,19 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.log.RecoveryLogReader;
+import org.apache.accumulo.tserver.log.RecoveryLogsIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.MapFile;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,7 +109,8 @@ public class LogReader implements KeywordExecutable {
     }
 
     var siteConfig = SiteConfiguration.auto();
-    try (var fs = VolumeManagerImpl.get(siteConfig, new Configuration())) {
+    ServerContext context = new ServerContext(siteConfig);
+    try (VolumeManager fs = VolumeManagerImpl.get(siteConfig, new Configuration())) {
 
       Matcher rowMatcher = null;
       KeyExtent ke = null;
@@ -123,33 +130,44 @@ public class LogReader implements KeywordExecutable {
       Set<Integer> tabletIds = new HashSet<>();
 
       for (String file : opts.files) {
-
         Path path = new Path(file);
         LogFileKey key = new LogFileKey();
         LogFileValue value = new LogFileValue();
 
-        if (fs.getFileStatus(path).isFile()) {
-          // read log entries from a simple hdfs file
-          try (final FSDataInputStream fsinput = fs.open(path);
-              DataInputStream input = DfsLogger.getDecryptingStream(fsinput, siteConfig)) {
-            while (true) {
-              try {
-                key.readFields(input);
-                value.readFields(input);
-              } catch (EOFException ex) {
-                break;
+        // read old style WALs
+        if (containsMapFile(fs, path)) {
+          if (fs.getFileStatus(path).isFile()) {
+            // read log entries from a simple hdfs file
+            try (final FSDataInputStream fsinput = fs.open(path);
+                DataInputStream input = DfsLogger.getDecryptingStream(fsinput, siteConfig)) {
+              while (true) {
+                try {
+                  key.readFields(input);
+                  value.readFields(input);
+                } catch (EOFException ex) {
+                  break;
+                }
+                printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
               }
-              printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
+            } catch (LogHeaderIncompleteException e) {
+              log.warn("Could not read header for {} . Ignoring...", path);
+              continue;
             }
-          } catch (LogHeaderIncompleteException e) {
-            log.warn("Could not read header for {} . Ignoring...", path);
-            continue;
+          } else {
+            // read the log entries sorted in a map file
+            try (RecoveryLogReader input = new RecoveryLogReader(fs, path)) {
+              while (input.hasNext()) {
+                Entry<LogFileKey,LogFileValue> entry = input.next();
+                printLogEvent(entry.getKey(), entry.getValue(), row, rowMatcher, ke, tabletIds,
+                    opts.maxMutations);
+              }
+            }
           }
         } else {
-          // read the log entries sorted in a map file
-          try (RecoveryLogReader input = new RecoveryLogReader(fs, path)) {
-            while (input.hasNext()) {
-              Entry<LogFileKey,LogFileValue> entry = input.next();
+          // read the log entries sorted in a RFile
+          try (var rli = new RecoveryLogsIterator(context, Collections.singletonList(path), true)) {
+            while (rli.hasNext()) {
+              Entry<LogFileKey,LogFileValue> entry = rli.next();
               printLogEvent(entry.getKey(), entry.getValue(), row, rowMatcher, ke, tabletIds,
                   opts.maxMutations);
             }
@@ -200,9 +218,19 @@ public class LogReader implements KeywordExecutable {
       }
 
     }
-
     System.out.println(key);
     System.out.println(LogFileValue.format(value, maxMutations));
   }
 
+  private boolean containsMapFile(VolumeManager fs, Path path) throws Exception {
+    FileStatus[] mapFiles =
+        fs.getFileStatus(path).isFile() ? fs.listStatus(path.getParent()) : fs.listStatus(path);
+    for (FileStatus status : mapFiles) {
+      if (status.isDirectory()) {
+        return fs.getFileStatus(new Path(status.getPath(), MapFile.DATA_FILE_NAME)).isFile()
+            || fs.getFileStatus(new Path(status.getPath(), MapFile.INDEX_FILE_NAME)).isFile();
+      }
+    }
+    return false;
+  }
 }
