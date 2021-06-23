@@ -28,6 +28,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Arrays;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -36,10 +37,13 @@ import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 public class LogFileKey implements WritableComparable<LogFileKey> {
+  private static final Logger log = LoggerFactory.getLogger(LogFileKey.class);
 
   public LogEvents event;
   public String filename = null;
@@ -258,7 +262,9 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
 
   /**
    * Format the row using 13 bytes encoded to allow proper sorting of the RFile Key. The highest
-   * byte is for the event number, 4 bytes for the tabletId and 8 bytes for the sequence long.
+   * byte is for the event number, 4 bytes for the tabletId and 8 bytes for the sequence long. The
+   * conversions of integer to byte[] and long to byte[] is similar to what DataOutputStream does
+   * for writeInt() and writeLong()
    */
   private byte[] formatRow(int tabletId, long seq) {
     byte eventNum = getEventByte();
@@ -282,14 +288,21 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     row[10] = (byte) (seq >>> 16);
     row[11] = (byte) (seq >>> 8);
     row[12] = (byte) (seq); // >>> 0
+
+    log.trace("Convert {} {} {} to row {}", event, tabletId, seq, Arrays.toString(row));
     return row;
   }
 
   /**
-   * Extract the tabletId integer from the byte encoded Row.
+   * Extract the tabletId integer from the byte encoded Row. Similar to what DataInputStream does
+   * for readInt()
    */
   private static int getTabletId(byte[] row) {
-    int encoded = ((row[1] << 24) + (row[2] << 16) + (row[3] << 8) + row[4]);
+    int ch1 = row[1] & 0xff;
+    int ch2 = row[2] & 0xff;
+    int ch3 = row[3] & 0xff;
+    int ch4 = row[4] & 0xff;
+    int encoded = ((ch1 << 24) + (ch2 << 16) + (ch3 << 8) + (ch4));
     return encoded ^ 0x80000000;
   }
 
@@ -327,6 +340,8 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     if (eventType(logFileKey.event) != rowParts[0]) {
       throw new AssertionError("Event in row differs from column family. Key: " + key);
     }
+    log.trace("From row {} get {} {} {}", Arrays.toString(rowParts), logFileKey.event,
+        logFileKey.tabletId, logFileKey.seq);
 
     // handle special cases of what is stored in the qualifier
     switch (logFileKey.event) {
