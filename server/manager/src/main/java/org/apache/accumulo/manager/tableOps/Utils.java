@@ -27,8 +27,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock.WriteLock;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
@@ -153,58 +151,6 @@ public class Utils {
         + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
     ZooReservation.release(env.getContext().getZooReaderWriter(), resvPath,
         String.format("%016x", tid));
-  }
-
-  private static boolean hasReadLock(ServerContext context, AbstractId<?> id, long tid)
-      throws KeeperException, InterruptedException {
-    byte[] lockData = String.format("%016x", tid).getBytes(UTF_8);
-    var fLockPath =
-        FateLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
-    FateLock qlock = new FateLock(context.getZooReaderWriter(), fLockPath);
-    Lock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
-    if (lock == null) {
-      return false;
-    } else if (lock instanceof ReadLock) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  public static boolean hasNamespaceReadLock(Manager env, NamespaceId nsId, long tid)
-      throws KeeperException, InterruptedException {
-    return hasReadLock(env.getContext(), nsId, tid);
-  }
-
-  public static boolean hasTableReadLock(Manager env, TableId tableId, long tid)
-      throws KeeperException, InterruptedException {
-    return hasReadLock(env.getContext(), tableId, tid);
-  }
-
-  private static boolean hasWriteLock(ServerContext context, AbstractId<?> id, long tid)
-      throws KeeperException, InterruptedException {
-    byte[] lockData = String.format("%016x", tid).getBytes(UTF_8);
-    var fLockPath =
-        FateLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
-    FateLock qlock = new FateLock(context.getZooReaderWriter(), fLockPath);
-    Lock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
-    if (lock == null) {
-      return false;
-    } else if (lock instanceof WriteLock) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  public static boolean hasNamespaceWriteLock(Manager env, NamespaceId nsId, long tid)
-      throws KeeperException, InterruptedException {
-    return hasWriteLock(env.getContext(), nsId, tid);
-  }
-
-  public static boolean hasTableWriteLock(Manager env, TableId tableId, long tid)
-      throws KeeperException, InterruptedException {
-    return hasWriteLock(env.getContext(), tableId, tid);
   }
 
   private static Lock getLock(ServerContext context, AbstractId<?> id, long tid,
