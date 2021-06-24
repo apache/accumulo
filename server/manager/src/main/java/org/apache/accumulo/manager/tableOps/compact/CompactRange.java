@@ -149,24 +149,27 @@ public class CompactRange extends ManagerRepo {
 
     ZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
 
-    zoo.mutateExisting(zTablePath, currentValue -> {
-      String cvs = new String(currentValue, UTF_8);
-      String[] tokens = cvs.split(",");
-      long flushID = Long.parseLong(tokens[0]);
+    try {
+      zoo.mutateExisting(zTablePath, currentValue -> {
+        String cvs = new String(currentValue, UTF_8);
+        String[] tokens = cvs.split(",");
+        long flushID = Long.parseLong(tokens[0]);
 
-      String txidString = String.format("%016x", txid);
+        String txidString = String.format("%016x", txid);
 
-      StringBuilder encodedIterators = new StringBuilder();
-      for (int i = 1; i < tokens.length; i++) {
-        if (tokens[i].startsWith(txidString))
-          continue;
-        encodedIterators.append(",");
-        encodedIterators.append(tokens[i]);
-      }
+        StringBuilder encodedIterators = new StringBuilder();
+        for (int i = 1; i < tokens.length; i++) {
+          if (tokens[i].startsWith(txidString))
+            continue;
+          encodedIterators.append(",");
+          encodedIterators.append(tokens[i]);
+        }
 
-      return (Long.toString(flushID) + encodedIterators).getBytes(UTF_8);
-    });
-
+        return (Long.toString(flushID) + encodedIterators).getBytes(UTF_8);
+      });
+    } catch (NoNodeException ke) {
+      log.debug("Node for {} no longer exists.", tableId, ke);
+    }
   }
 
   @Override
