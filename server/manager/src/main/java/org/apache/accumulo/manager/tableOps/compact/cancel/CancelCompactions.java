@@ -36,8 +36,8 @@ import org.slf4j.LoggerFactory;
 public class CancelCompactions extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
-  protected TableId tableId;
-  protected NamespaceId namespaceId;
+  private TableId tableId;
+  private NamespaceId namespaceId;
 
   private static final Logger log = LoggerFactory.getLogger(CancelCompactions.class);
 
@@ -54,7 +54,6 @@ public class CancelCompactions extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(long tid, Manager environment) throws Exception {
-
     mutateZooKeeper(tid, tableId, environment);
     return new FinishCancelCompaction(namespaceId, tableId);
   }

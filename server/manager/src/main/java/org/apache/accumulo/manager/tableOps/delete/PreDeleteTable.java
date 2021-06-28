@@ -18,24 +18,43 @@
  */
 package org.apache.accumulo.manager.tableOps.delete;
 
+import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.manager.tableOps.compact.cancel.CancelCompactions;
 
-public class PreDeleteTable extends CancelCompactions {
+public class PreDeleteTable extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
+  private TableId tableId;
+  private NamespaceId namespaceId;
+
   public PreDeleteTable(NamespaceId namespaceId, TableId tableId) {
-    super(namespaceId, tableId);
+    this.tableId = tableId;
+    this.namespaceId = namespaceId;
+  }
+
+  @Override
+  public long isReady(long tid, Manager env) throws Exception {
+    return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.DELETE)
+        + Utils.reserveTable(env, tableId, tid, false, true, TableOperation.DELETE);
   }
 
   @Override
   public Repo<Manager> call(long tid, Manager environment) throws Exception {
     CancelCompactions.mutateZooKeeper(tid, tableId, environment);
     return new DeleteTable(namespaceId, tableId);
+  }
+
+  @Override
+  public void undo(long tid, Manager env) {
+    Utils.unreserveTable(env, tableId, tid, false);
+    Utils.unreserveNamespace(env, namespaceId, tid, false);
   }
 
 }
