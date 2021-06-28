@@ -47,8 +47,13 @@ public class PreDeleteTable extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(long tid, Manager environment) throws Exception {
-    CancelCompactions.mutateZooKeeper(tid, tableId, environment);
-    return new DeleteTable(namespaceId, tableId);
+    try {
+      CancelCompactions.mutateZooKeeper(tid, tableId, environment);
+      return new DeleteTable(namespaceId, tableId);
+    } finally {
+      Utils.unreserveTable(environment, tableId, tid, false);
+      Utils.unreserveNamespace(environment, namespaceId, tid, false);
+    }
   }
 
   @Override
