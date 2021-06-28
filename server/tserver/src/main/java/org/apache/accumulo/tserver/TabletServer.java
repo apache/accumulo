@@ -300,23 +300,33 @@ public class TabletServer extends AbstractServer {
           }
         }), 5000, 5000, TimeUnit.MILLISECONDS);
 
-    final long walogMaxSize = aconf.getAsBytes(Property.TSERV_WALOG_MAX_SIZE);
-    final long walogMaxAge = aconf.getTimeInMillis(Property.TSERV_WALOG_MAX_AGE);
+    @SuppressWarnings("deprecation")
+    final long walMaxSize =
+        aconf.getAsBytes(aconf.resolve(Property.TSERV_WAL_MAX_SIZE, Property.TSERV_WALOG_MAX_SIZE));
+    @SuppressWarnings("deprecation")
+    final long walMaxAge = aconf
+        .getTimeInMillis(aconf.resolve(Property.TSERV_WAL_MAX_AGE, Property.TSERV_WALOG_MAX_AGE));
     final long minBlockSize =
         context.getHadoopConf().getLong("dfs.namenode.fs-limits.min-block-size", 0);
-    if (minBlockSize != 0 && minBlockSize > walogMaxSize) {
+    if (minBlockSize != 0 && minBlockSize > walMaxSize) {
       throw new RuntimeException("Unable to start TabletServer. Logger is set to use blocksize "
-          + walogMaxSize + " but hdfs minimum block size is " + minBlockSize
-          + ". Either increase the " + Property.TSERV_WALOG_MAX_SIZE
+          + walMaxSize + " but hdfs minimum block size is " + minBlockSize
+          + ". Either increase the " + Property.TSERV_WAL_MAX_SIZE
           + " or decrease dfs.namenode.fs-limits.min-block-size in hdfs-site.xml.");
     }
 
+    @SuppressWarnings("deprecation")
     final long toleratedWalCreationFailures =
-        aconf.getCount(Property.TSERV_WALOG_TOLERATED_CREATION_FAILURES);
+        aconf.getCount(aconf.resolve(Property.TSERV_WAL_TOLERATED_CREATION_FAILURES,
+            Property.TSERV_WALOG_TOLERATED_CREATION_FAILURES));
+    @SuppressWarnings("deprecation")
     final long walFailureRetryIncrement =
-        aconf.getTimeInMillis(Property.TSERV_WALOG_TOLERATED_WAIT_INCREMENT);
+        aconf.getTimeInMillis(aconf.resolve(Property.TSERV_WAL_TOLERATED_WAIT_INCREMENT,
+            Property.TSERV_WALOG_TOLERATED_WAIT_INCREMENT));
+    @SuppressWarnings("deprecation")
     final long walFailureRetryMax =
-        aconf.getTimeInMillis(Property.TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION);
+        aconf.getTimeInMillis(aconf.resolve(Property.TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION,
+            Property.TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION));
     final RetryFactory walCreationRetryFactory =
         Retry.builder().maxRetries(toleratedWalCreationFailures)
             .retryAfter(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
@@ -331,8 +341,8 @@ public class TabletServer extends AbstractServer {
         .maxWait(walFailureRetryMax, TimeUnit.MILLISECONDS).backOffFactor(1.5)
         .logInterval(3, TimeUnit.MINUTES).createFactory();
 
-    logger = new TabletServerLogger(this, walogMaxSize, syncCounter, flushCounter,
-        walCreationRetryFactory, walWritingRetryFactory, walogMaxAge);
+    logger = new TabletServerLogger(this, walMaxSize, syncCounter, flushCounter,
+        walCreationRetryFactory, walWritingRetryFactory, walMaxAge);
     this.resourceManager = new TabletServerResourceManager(context);
     this.security = AuditedSecurityOperation.getInstance(context);
 

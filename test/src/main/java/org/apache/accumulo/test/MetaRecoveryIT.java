@@ -52,7 +52,7 @@ public class MetaRecoveryIT extends ConfigurableMacBase {
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
-    cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1048576");
+    cfg.setProperty(Property.TSERV_WAL_MAX_SIZE, "1048576");
   }
 
   @Override

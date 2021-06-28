@@ -60,7 +60,7 @@ public class UnusedWALIT extends ConfigurableMacBase {
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     final long logSize = 1024 * 1024 * 10;
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
-    cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, Long.toString(logSize));
+    cfg.setProperty(Property.TSERV_WAL_MAX_SIZE, Long.toString(logSize));
     cfg.setNumTservers(1);
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
