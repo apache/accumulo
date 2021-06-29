@@ -30,6 +30,9 @@
   <artifactId>accumulo-tracer</artifactId>
   <name>Apache Accumulo Tracer Server</name>
   <description>The tracer server for Apache Accumulo to listen for, and store, distributed tracing messages.</description>
+  <properties>
+    <accumulo.module.name>org.apache.accumulo.tracer</accumulo.module.name>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>

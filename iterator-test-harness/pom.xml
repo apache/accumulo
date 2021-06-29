@@ -29,6 +29,9 @@
   <artifactId>accumulo-iterator-test-harness</artifactId>
   <name>Apache Accumulo Iterator Test Harness</name>
   <description>A library for testing Apache Accumulo Iterators.</description>
+  <properties>
+    <accumulo.module.name>org.apache.accumulo.iterator.test.harness</accumulo.module.name>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.google.guava</groupId>

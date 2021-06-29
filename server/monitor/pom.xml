@@ -30,6 +30,9 @@
   <artifactId>accumulo-monitor</artifactId>
   <name>Apache Accumulo Monitor Server</name>
   <description>A web server for monitoring Apache Accumulo.</description>
+  <properties>
+    <accumulo.module.name>org.apache.accumulo.monitor</accumulo.module.name>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>

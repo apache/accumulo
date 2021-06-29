@@ -30,6 +30,9 @@
   <artifactId>accumulo-gc</artifactId>
   <name>Apache Accumulo GC Server</name>
   <description>The garbage collecting server for Apache Accumulo to clean up unused files.</description>
+  <properties>
+    <accumulo.module.name>org.apache.accumulo.gc</accumulo.module.name>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.google.auto.service</groupId>

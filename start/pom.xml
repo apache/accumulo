@@ -29,6 +29,9 @@
   <artifactId>accumulo-start</artifactId>
   <name>Apache Accumulo Start</name>
   <description>A library for launching Apache Accumulo services.</description>
+  <properties>
+    <accumulo.module.name>org.apache.accumulo.start</accumulo.module.name>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>commons-io</groupId>

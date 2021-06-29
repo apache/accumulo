@@ -29,6 +29,9 @@
   <artifactId>accumulo-shell</artifactId>
   <name>Apache Accumulo Shell</name>
   <description>An interactive shell for accessing Apache Accumulo via a command line interface.</description>
+  <properties>
+    <accumulo.module.name>org.apache.accumulo.shell</accumulo.module.name>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>

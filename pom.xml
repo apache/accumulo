@@ -115,6 +115,7 @@
     <url>https://github.com/apache/accumulo/actions</url>
   </ciManagement>
   <properties>
+    <accumulo.module.name>org.apache.accumulo</accumulo.module.name>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- bouncycastle version for test dependencies -->
@@ -766,6 +767,7 @@
               <manifestEntries>
                 <Sealed>true</Sealed>
                 <Implementation-Build>${mvngit.commit.id}</Implementation-Build>
+                <Automatic-Module-Name>${accumulo.module.name}</Automatic-Module-Name>
               </manifestEntries>
             </archive>
           </configuration>

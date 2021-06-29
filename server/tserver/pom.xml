@@ -30,6 +30,9 @@
   <artifactId>accumulo-tserver</artifactId>
   <name>Apache Accumulo Tablet Server</name>
   <description>The tablet server for Apache Accumulo to host tablets of data tables.</description>
+  <properties>
+    <accumulo.module.name>org.apache.accumulo.tserver</accumulo.module.name>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>

@@ -29,6 +29,9 @@
   <artifactId>accumulo-hadoop-mapreduce</artifactId>
   <name>Apache Accumulo Hadoop MapReduce</name>
   <description>Apache Accumulo MapReduce bindings.</description>
+  <properties>
+    <accumulo.module.name>org.apache.accumulo.hadoop.mapreduce</accumulo.module.name>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>
