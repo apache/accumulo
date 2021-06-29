@@ -22,6 +22,11 @@ namespace cpp org.apache.accumulo.core.clientImpl.thrift
 include "security.thrift"
 include "trace.thrift"
 
+// Thrift Id, a wrapper for AbstractId over thrift
+struct Tid {
+  1:string canonical
+}
+
 enum TableOperation {
   CREATE
   DELETE
@@ -101,7 +106,7 @@ exception ThriftTableOperationException {
 exception ThriftNotActiveServiceException {}
 
 struct TDiskUsage {
-  1:list<string> tables
+  1:list<string> tableNames
   2:i64 usage
 }
 
@@ -139,7 +144,7 @@ service ClientService {
   )
 
   list<TDiskUsage> getDiskUsage(
-    2:set<string> tables
+    2:set<string> tableNames
     1:security.TCredentials credentials
   ) throws (
     1:ThriftSecurityException sec
@@ -239,7 +244,7 @@ service ClientService {
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
     3:string principal
-    4:string ns
+    4:string namespaceName
     5:i8 tblNspcPerm
   ) throws (
     1:ThriftSecurityException sec
@@ -290,7 +295,7 @@ service ClientService {
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
     3:string principal
-    4:string ns
+    4:string namespaceName
     5:i8 permission
   ) throws (
     1:ThriftSecurityException sec
@@ -301,7 +306,7 @@ service ClientService {
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
     3:string principal
-    4:string ns
+    4:string namespaceName
     5:i8 permission
   ) throws (
     1:ThriftSecurityException sec
@@ -326,7 +331,7 @@ service ClientService {
   map<string, string> getNamespaceConfiguration(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
-    3:string ns
+    3:string namespaceName
   ) throws (
     1:ThriftTableOperationException tope
   )

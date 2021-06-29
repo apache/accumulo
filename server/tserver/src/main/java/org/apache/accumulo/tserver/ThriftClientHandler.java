@@ -282,7 +282,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException,
       TSampleNotPresentException {
 
-    TableId tableId = TableId.of(new String(textent.getTable(), UTF_8));
+    TableId tableId = TableId.of(new String(textent.getTableId(), UTF_8));
     NamespaceId namespaceId;
     try {
       namespaceId = Tables.getNamespaceId(server.getContext(), tableId);
@@ -467,7 +467,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     // find all of the tables that need to be scanned
     final HashSet<TableId> tables = new HashSet<>();
     for (TKeyExtent keyExtent : tbatch.keySet()) {
-      tables.add(TableId.of(new String(keyExtent.getTable(), UTF_8)));
+      tables.add(TableId.of(new String(keyExtent.getTableId(), UTF_8)));
     }
 
     if (tables.size() != 1) {
@@ -927,7 +927,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       TMutation tmutation, TDurability tdurability)
       throws NotServingTabletException, ConstraintViolationException, ThriftSecurityException {
 
-    final TableId tableId = TableId.of(new String(tkeyExtent.getTable(), UTF_8));
+    final TableId tableId = TableId.of(new String(tkeyExtent.getTableId(), UTF_8));
     NamespaceId namespaceId = getNamespaceId(credentials, tableId);
     if (!security.canWrite(credentials, tableId, namespaceId)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
@@ -1277,7 +1277,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
   public void splitTablet(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent,
       ByteBuffer splitPoint) throws NotServingTabletException, ThriftSecurityException {
 
-    TableId tableId = TableId.of(new String(ByteBufferUtil.toBytes(tkeyExtent.table)));
+    TableId tableId = TableId.of(new String(ByteBufferUtil.toBytes(tkeyExtent.tableId)));
     NamespaceId namespaceId = getNamespaceId(credentials, tableId);
 
     if (!security.canSplitTablet(credentials, tableId, namespaceId)) {

@@ -116,7 +116,7 @@ public class KeyExtent implements Comparable<KeyExtent> {
    *          the KeyExtent in its Thrift object form
    */
   public static KeyExtent fromThrift(TKeyExtent tke) {
-    TableId tableId = TableId.of(new String(ByteBufferUtil.toBytes(tke.table), UTF_8));
+    TableId tableId = TableId.of(new String(ByteBufferUtil.toBytes(tke.tableId), UTF_8));
     Text endRow = tke.endRow == null ? null : new Text(ByteBufferUtil.toBytes(tke.endRow));
     Text prevEndRow =
         tke.prevEndRow == null ? null : new Text(ByteBufferUtil.toBytes(tke.prevEndRow));

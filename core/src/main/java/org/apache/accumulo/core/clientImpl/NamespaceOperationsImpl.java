@@ -48,6 +48,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.thrift.Tid;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -176,24 +177,25 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   @Override
   public void setProperty(final String namespace, final String property, final String value)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
-    EXISTING_NAMESPACE_NAME.validate(namespace);
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
+    final var namespaceId = context.getNamespaceId(namespace);
 
     ManagerClient.executeNamespace(context,
-        client -> client.setNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(), namespace,
-            property, value));
+        client -> client.setNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(),
+            new Tid(namespaceId.canonical()), property, value));
     checkLocalityGroups(namespace, property);
   }
 
   @Override
   public void removeProperty(final String namespace, final String property)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
-    EXISTING_NAMESPACE_NAME.validate(namespace);
     checkArgument(property != null, "property is null");
+    final var namespaceId = context.getNamespaceId(namespace);
 
-    ManagerClient.executeNamespace(context, client -> client
-        .removeNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(), namespace, property));
+    ManagerClient.executeNamespace(context,
+        client -> client.removeNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(),
+            new Tid(namespaceId.canonical()), property));
     checkLocalityGroups(namespace, property);
   }
 

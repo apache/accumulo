@@ -420,14 +420,14 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public List<TDiskUsage> getDiskUsage(Set<String> tables, TCredentials credentials)
+  public List<TDiskUsage> getDiskUsage(Set<String> tableNames, TCredentials credentials)
       throws ThriftTableOperationException, ThriftSecurityException, TException {
     try {
       HashSet<TableId> tableIds = new HashSet<>();
 
-      for (String table : tables) {
+      for (String tableName : tableNames) {
         // ensure that table table exists
-        TableId tableId = checkTableId(context, table, null);
+        TableId tableId = checkTableId(context, tableName, null);
         tableIds.add(tableId);
         NamespaceId namespaceId = Tables.getNamespaceId(context, tableId);
         if (!security.canScan(credentials, tableId, namespaceId))

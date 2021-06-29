@@ -152,7 +152,7 @@ service ManagerClientService extends FateService {
   i64 initiateFlush(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
-    3:string tableName
+    3:client.Tid tableId
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException tope
@@ -162,7 +162,7 @@ service ManagerClientService extends FateService {
   void waitForFlush(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
-    3:string tableName
+    3:client.Tid tableId
     4:binary startRow
     5:binary endRow
     6:i64 flushID
@@ -176,7 +176,7 @@ service ManagerClientService extends FateService {
   void setTableProperty(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
-    3:string tableName
+    3:client.Tid tableId
     4:string property
     5:string value
   ) throws (
@@ -188,7 +188,7 @@ service ManagerClientService extends FateService {
   void removeTableProperty(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
-    3:string tableName
+    3:client.Tid tableId
     4:string property
   ) throws (
     1:client.ThriftSecurityException sec
@@ -199,7 +199,7 @@ service ManagerClientService extends FateService {
   void setNamespaceProperty(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
-    3:string ns
+    3:client.Tid namespaceId
     4:string property
     5:string value
   ) throws (
@@ -211,7 +211,7 @@ service ManagerClientService extends FateService {
   void removeNamespaceProperty(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
-    3:string ns
+    3:client.Tid namespaceId
     4:string property
   ) throws (
     1:client.ThriftSecurityException sec
@@ -320,7 +320,7 @@ service ManagerClientService extends FateService {
   bool drainReplicationTable(
     1:trace.TInfo tfino
     2:security.TCredentials credentials
-    3:string tableName
+    3:client.Tid tableId
     4:set<string> logsToWatch
   ) throws (
     1:client.ThriftNotActiveServiceException tnase

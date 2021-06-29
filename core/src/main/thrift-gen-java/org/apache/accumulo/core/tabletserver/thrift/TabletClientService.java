@@ -49,7 +49,7 @@ public class TabletClientService {
 
     public void update(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, NotServingTabletException, ConstraintViolationException, org.apache.thrift.TException;
 
-    public org.apache.accumulo.core.dataImpl.thrift.TConditionalSession startConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public org.apache.accumulo.core.dataImpl.thrift.TConditionalSession startConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableId, TDurability durability, java.lang.String classLoaderContext) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
     public java.util.List<org.apache.accumulo.core.dataImpl.thrift.TCMResult> conditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation>> mutations, java.util.List<java.lang.String> symbols) throws NoSuchScanIDException, org.apache.thrift.TException;
 
@@ -133,7 +133,7 @@ public class TabletClientService {
 
     public void update(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void startConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.TConditionalSession> resultHandler) throws org.apache.thrift.TException;
+    public void startConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableId, TDurability durability, java.lang.String classLoaderContext, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.TConditionalSession> resultHandler) throws org.apache.thrift.TException;
 
     public void conditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, long sessID, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation>> mutations, java.util.List<java.lang.String> symbols, org.apache.thrift.async.AsyncMethodCallback<java.util.List<org.apache.accumulo.core.dataImpl.thrift.TCMResult>> resultHandler) throws org.apache.thrift.TException;
 
@@ -511,19 +511,19 @@ public class TabletClientService {
       return;
     }
 
-    public org.apache.accumulo.core.dataImpl.thrift.TConditionalSession startConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public org.apache.accumulo.core.dataImpl.thrift.TConditionalSession startConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableId, TDurability durability, java.lang.String classLoaderContext) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_startConditionalUpdate(tinfo, credentials, authorizations, tableID, durability, classLoaderContext);
+      send_startConditionalUpdate(tinfo, credentials, authorizations, tableId, durability, classLoaderContext);
       return recv_startConditionalUpdate();
     }
 
-    public void send_startConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext) throws org.apache.thrift.TException
+    public void send_startConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableId, TDurability durability, java.lang.String classLoaderContext) throws org.apache.thrift.TException
     {
       startConditionalUpdate_args args = new startConditionalUpdate_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setAuthorizations(authorizations);
-      args.setTableID(tableID);
+      args.setTableId(tableId);
       args.setDurability(durability);
       args.setClassLoaderContext(classLoaderContext);
       sendBase("startConditionalUpdate", args);
@@ -1655,9 +1655,9 @@ public class TabletClientService {
       }
     }
 
-    public void startConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.TConditionalSession> resultHandler) throws org.apache.thrift.TException {
+    public void startConditionalUpdate(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableId, TDurability durability, java.lang.String classLoaderContext, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.TConditionalSession> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      startConditionalUpdate_call method_call = new startConditionalUpdate_call(tinfo, credentials, authorizations, tableID, durability, classLoaderContext, resultHandler, this, ___protocolFactory, ___transport);
+      startConditionalUpdate_call method_call = new startConditionalUpdate_call(tinfo, credentials, authorizations, tableId, durability, classLoaderContext, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -1666,15 +1666,15 @@ public class TabletClientService {
       private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
       private java.util.List<java.nio.ByteBuffer> authorizations;
-      private java.lang.String tableID;
+      private java.lang.String tableId;
       private TDurability durability;
       private java.lang.String classLoaderContext;
-      public startConditionalUpdate_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.TConditionalSession> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public startConditionalUpdate_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableId, TDurability durability, java.lang.String classLoaderContext, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.TConditionalSession> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
         this.authorizations = authorizations;
-        this.tableID = tableID;
+        this.tableId = tableId;
         this.durability = durability;
         this.classLoaderContext = classLoaderContext;
       }
@@ -1685,7 +1685,7 @@ public class TabletClientService {
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setAuthorizations(authorizations);
-        args.setTableID(tableID);
+        args.setTableId(tableId);
         args.setDurability(durability);
         args.setClassLoaderContext(classLoaderContext);
         args.write(prot);
@@ -3242,7 +3242,7 @@ public class TabletClientService {
       public startConditionalUpdate_result getResult(I iface, startConditionalUpdate_args args) throws org.apache.thrift.TException {
         startConditionalUpdate_result result = new startConditionalUpdate_result();
         try {
-          result.success = iface.startConditionalUpdate(args.tinfo, args.credentials, args.authorizations, args.tableID, args.durability, args.classLoaderContext);
+          result.success = iface.startConditionalUpdate(args.tinfo, args.credentials, args.authorizations, args.tableId, args.durability, args.classLoaderContext);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         }
@@ -4771,7 +4771,7 @@ public class TabletClientService {
       }
 
       public void start(I iface, startConditionalUpdate_args args, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.TConditionalSession> resultHandler) throws org.apache.thrift.TException {
-        iface.startConditionalUpdate(args.tinfo, args.credentials, args.authorizations, args.tableID, args.durability, args.classLoaderContext,resultHandler);
+        iface.startConditionalUpdate(args.tinfo, args.credentials, args.authorizations, args.tableId, args.durability, args.classLoaderContext,resultHandler);
       }
     }
 
@@ -19674,7 +19674,7 @@ public class TabletClientService {
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField AUTHORIZATIONS_FIELD_DESC = new org.apache.thrift.protocol.TField("authorizations", org.apache.thrift.protocol.TType.LIST, (short)3);
-    private static final org.apache.thrift.protocol.TField TABLE_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("tableID", org.apache.thrift.protocol.TType.STRING, (short)4);
+    private static final org.apache.thrift.protocol.TField TABLE_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("tableId", org.apache.thrift.protocol.TType.STRING, (short)4);
     private static final org.apache.thrift.protocol.TField DURABILITY_FIELD_DESC = new org.apache.thrift.protocol.TField("durability", org.apache.thrift.protocol.TType.I32, (short)5);
     private static final org.apache.thrift.protocol.TField CLASS_LOADER_CONTEXT_FIELD_DESC = new org.apache.thrift.protocol.TField("classLoaderContext", org.apache.thrift.protocol.TType.STRING, (short)6);
 
@@ -19684,7 +19684,7 @@ public class TabletClientService {
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
     public @org.apache.thrift.annotation.Nullable java.util.List<java.nio.ByteBuffer> authorizations; // required
-    public @org.apache.thrift.annotation.Nullable java.lang.String tableID; // required
+    public @org.apache.thrift.annotation.Nullable java.lang.String tableId; // required
     /**
      * 
      * @see TDurability
@@ -19697,7 +19697,7 @@ public class TabletClientService {
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
       AUTHORIZATIONS((short)3, "authorizations"),
-      TABLE_ID((short)4, "tableID"),
+      TABLE_ID((short)4, "tableId"),
       /**
        * 
        * @see TDurability
@@ -19782,7 +19782,7 @@ public class TabletClientService {
       tmpMap.put(_Fields.AUTHORIZATIONS, new org.apache.thrift.meta_data.FieldMetaData("authorizations", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING              , true))));
-      tmpMap.put(_Fields.TABLE_ID, new org.apache.thrift.meta_data.FieldMetaData("tableID", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.TABLE_ID, new org.apache.thrift.meta_data.FieldMetaData("tableId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.DURABILITY, new org.apache.thrift.meta_data.FieldMetaData("durability", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, TDurability.class)));
@@ -19799,7 +19799,7 @@ public class TabletClientService {
       org.apache.accumulo.core.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
       java.util.List<java.nio.ByteBuffer> authorizations,
-      java.lang.String tableID,
+      java.lang.String tableId,
       TDurability durability,
       java.lang.String classLoaderContext)
     {
@@ -19807,7 +19807,7 @@ public class TabletClientService {
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.authorizations = authorizations;
-      this.tableID = tableID;
+      this.tableId = tableId;
       this.durability = durability;
       this.classLoaderContext = classLoaderContext;
     }
@@ -19826,8 +19826,8 @@ public class TabletClientService {
         java.util.List<java.nio.ByteBuffer> __this__authorizations = new java.util.ArrayList<java.nio.ByteBuffer>(other.authorizations);
         this.authorizations = __this__authorizations;
       }
-      if (other.isSetTableID()) {
-        this.tableID = other.tableID;
+      if (other.isSetTableId()) {
+        this.tableId = other.tableId;
       }
       if (other.isSetDurability()) {
         this.durability = other.durability;
@@ -19846,7 +19846,7 @@ public class TabletClientService {
       this.tinfo = null;
       this.credentials = null;
       this.authorizations = null;
-      this.tableID = null;
+      this.tableId = null;
       this.durability = null;
       this.classLoaderContext = null;
     }
@@ -19943,27 +19943,27 @@ public class TabletClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public java.lang.String getTableID() {
-      return this.tableID;
+    public java.lang.String getTableId() {
+      return this.tableId;
     }
 
-    public startConditionalUpdate_args setTableID(@org.apache.thrift.annotation.Nullable java.lang.String tableID) {
-      this.tableID = tableID;
+    public startConditionalUpdate_args setTableId(@org.apache.thrift.annotation.Nullable java.lang.String tableId) {
+      this.tableId = tableId;
       return this;
     }
 
-    public void unsetTableID() {
-      this.tableID = null;
+    public void unsetTableId() {
+      this.tableId = null;
     }
 
-    /** Returns true if field tableID is set (has been assigned a value) and false otherwise */
-    public boolean isSetTableID() {
-      return this.tableID != null;
+    /** Returns true if field tableId is set (has been assigned a value) and false otherwise */
+    public boolean isSetTableId() {
+      return this.tableId != null;
     }
 
-    public void setTableIDIsSet(boolean value) {
+    public void setTableIdIsSet(boolean value) {
       if (!value) {
-        this.tableID = null;
+        this.tableId = null;
       }
     }
 
@@ -20053,9 +20053,9 @@ public class TabletClientService {
 
       case TABLE_ID:
         if (value == null) {
-          unsetTableID();
+          unsetTableId();
         } else {
-          setTableID((java.lang.String)value);
+          setTableId((java.lang.String)value);
         }
         break;
 
@@ -20091,7 +20091,7 @@ public class TabletClientService {
         return getAuthorizations();
 
       case TABLE_ID:
-        return getTableID();
+        return getTableId();
 
       case DURABILITY:
         return getDurability();
@@ -20117,7 +20117,7 @@ public class TabletClientService {
       case AUTHORIZATIONS:
         return isSetAuthorizations();
       case TABLE_ID:
-        return isSetTableID();
+        return isSetTableId();
       case DURABILITY:
         return isSetDurability();
       case CLASS_LOADER_CONTEXT:
@@ -20168,12 +20168,12 @@ public class TabletClientService {
           return false;
       }
 
-      boolean this_present_tableID = true && this.isSetTableID();
-      boolean that_present_tableID = true && that.isSetTableID();
-      if (this_present_tableID || that_present_tableID) {
-        if (!(this_present_tableID && that_present_tableID))
+      boolean this_present_tableId = true && this.isSetTableId();
+      boolean that_present_tableId = true && that.isSetTableId();
+      if (this_present_tableId || that_present_tableId) {
+        if (!(this_present_tableId && that_present_tableId))
           return false;
-        if (!this.tableID.equals(that.tableID))
+        if (!this.tableId.equals(that.tableId))
           return false;
       }
 
@@ -20214,9 +20214,9 @@ public class TabletClientService {
       if (isSetAuthorizations())
         hashCode = hashCode * 8191 + authorizations.hashCode();
 
-      hashCode = hashCode * 8191 + ((isSetTableID()) ? 131071 : 524287);
-      if (isSetTableID())
-        hashCode = hashCode * 8191 + tableID.hashCode();
+      hashCode = hashCode * 8191 + ((isSetTableId()) ? 131071 : 524287);
+      if (isSetTableId())
+        hashCode = hashCode * 8191 + tableId.hashCode();
 
       hashCode = hashCode * 8191 + ((isSetDurability()) ? 131071 : 524287);
       if (isSetDurability())
@@ -20267,12 +20267,12 @@ public class TabletClientService {
           return lastComparison;
         }
       }
-      lastComparison = java.lang.Boolean.valueOf(isSetTableID()).compareTo(other.isSetTableID());
+      lastComparison = java.lang.Boolean.valueOf(isSetTableId()).compareTo(other.isSetTableId());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTableID()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tableID, other.tableID);
+      if (isSetTableId()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tableId, other.tableId);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -20342,11 +20342,11 @@ public class TabletClientService {
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("tableID:");
-      if (this.tableID == null) {
+      sb.append("tableId:");
+      if (this.tableId == null) {
         sb.append("null");
       } else {
-        sb.append(this.tableID);
+        sb.append(this.tableId);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -20452,8 +20452,8 @@ public class TabletClientService {
               break;
             case 4: // TABLE_ID
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.tableID = iprot.readString();
-                struct.setTableIDIsSet(true);
+                struct.tableId = iprot.readString();
+                struct.setTableIdIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -20511,9 +20511,9 @@ public class TabletClientService {
           }
           oprot.writeFieldEnd();
         }
-        if (struct.tableID != null) {
+        if (struct.tableId != null) {
           oprot.writeFieldBegin(TABLE_ID_FIELD_DESC);
-          oprot.writeString(struct.tableID);
+          oprot.writeString(struct.tableId);
           oprot.writeFieldEnd();
         }
         if (struct.durability != null) {
@@ -20553,7 +20553,7 @@ public class TabletClientService {
         if (struct.isSetAuthorizations()) {
           optionals.set(2);
         }
-        if (struct.isSetTableID()) {
+        if (struct.isSetTableId()) {
           optionals.set(3);
         }
         if (struct.isSetDurability()) {
@@ -20578,8 +20578,8 @@ public class TabletClientService {
             }
           }
         }
-        if (struct.isSetTableID()) {
-          oprot.writeString(struct.tableID);
+        if (struct.isSetTableId()) {
+          oprot.writeString(struct.tableId);
         }
         if (struct.isSetDurability()) {
           oprot.writeI32(struct.durability.getValue());
@@ -20617,8 +20617,8 @@ public class TabletClientService {
           struct.setAuthorizationsIsSet(true);
         }
         if (incoming.get(3)) {
-          struct.tableID = iprot.readString();
-          struct.setTableIDIsSet(true);
+          struct.tableId = iprot.readString();
+          struct.setTableIdIsSet(true);
         }
         if (incoming.get(4)) {
           struct.durability = org.apache.accumulo.core.tabletserver.thrift.TDurability.findByValue(iprot.readI32());

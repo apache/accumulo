@@ -400,7 +400,7 @@ public class CompactionCoordinatorTest {
     TExternalCompactionJob job = PowerMock.createNiceMock(TExternalCompactionJob.class);
     EasyMock.expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
     TKeyExtent extent = new TKeyExtent();
-    extent.setTable("1".getBytes());
+    extent.setTableId("1".getBytes());
     runningCompactions.put(tserverAddress, job);
     EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(ctx))
         .andReturn(runningCompactions);

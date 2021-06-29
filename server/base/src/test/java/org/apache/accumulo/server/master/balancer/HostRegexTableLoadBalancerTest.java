@@ -458,7 +458,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     if (tableId.equals(BAR.getId()) && tserver.getHost().equals("192.168.0.1")) {
       // Report that we have a bar tablet on this server
       TKeyExtent tke = new TKeyExtent();
-      tke.setTable(BAR.getId().canonical().getBytes(UTF_8));
+      tke.setTableId(BAR.getId().canonical().getBytes(UTF_8));
       tke.setEndRow("11".getBytes());
       tke.setPrevEndRow("10".getBytes());
       TabletStats ts = new TabletStats();
@@ -467,7 +467,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     } else if (tableId.equals(FOO.getId()) && tserver.getHost().equals("192.168.0.6")) {
       // Report that we have a foo tablet on this server
       TKeyExtent tke = new TKeyExtent();
-      tke.setTable(FOO.getId().canonical().getBytes(UTF_8));
+      tke.setTableId(FOO.getId().canonical().getBytes(UTF_8));
       tke.setEndRow("1".getBytes());
       tke.setPrevEndRow("0".getBytes());
       TabletStats ts = new TabletStats();

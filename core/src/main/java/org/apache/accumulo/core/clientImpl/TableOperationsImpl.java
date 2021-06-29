@@ -97,6 +97,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TDiskUsage;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.thrift.Tid;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -930,8 +931,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         ManagerClientService.Iface client = null;
         try {
           client = ManagerClient.getConnectionWithRetry(context);
-          flushID =
-              client.initiateFlush(TraceUtil.traceInfo(), context.rpcCreds(), tableId.canonical());
+          flushID = client.initiateFlush(TraceUtil.traceInfo(), context.rpcCreds(),
+              new Tid(tableId.canonical()));
           break;
         } catch (TTransportException tte) {
           log.debug("Failed to call initiateFlush, retrying ... ", tte);
@@ -949,9 +950,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
         ManagerClientService.Iface client = null;
         try {
           client = ManagerClient.getConnectionWithRetry(context);
-          client.waitForFlush(TraceUtil.traceInfo(), context.rpcCreds(), tableId.canonical(),
-              TextUtil.getByteBuffer(start), TextUtil.getByteBuffer(end), flushID,
-              wait ? Long.MAX_VALUE : 1);
+          client.waitForFlush(TraceUtil.traceInfo(), context.rpcCreds(),
+              new Tid(tableId.canonical()), TextUtil.getByteBuffer(start),
+              TextUtil.getByteBuffer(end), flushID, wait ? Long.MAX_VALUE : 1);
           break;
         } catch (TTransportException tte) {
           log.debug("Failed to call initiateFlush, retrying ... ", tte);
@@ -987,45 +988,38 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void setProperty(final String tableName, final String property, final String value)
       throws AccumuloException, AccumuloSecurityException {
-    EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
-
     try {
-      setPropertyNoChecks(tableName, property, value);
-
+      setPropertyNoChecks(context.getTableId(tableName), property, value);
       checkLocalityGroups(tableName, property);
     } catch (TableNotFoundException e) {
       throw new AccumuloException(e);
     }
   }
 
-  private void setPropertyNoChecks(final String tableName, final String property,
-      final String value)
+  private void setPropertyNoChecks(final TableId tableId, final String property, final String value)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     ManagerClient.executeTable(context, client -> client.setTableProperty(TraceUtil.traceInfo(),
-        context.rpcCreds(), tableName, property, value));
+        context.rpcCreds(), new Tid(tableId.canonical()), property, value));
   }
 
   @Override
   public void removeProperty(final String tableName, final String property)
       throws AccumuloException, AccumuloSecurityException {
-    EXISTING_TABLE_NAME.validate(tableName);
     checkArgument(property != null, "property is null");
-
     try {
-      removePropertyNoChecks(tableName, property);
-
+      removePropertyNoChecks(context.getTableId(tableName), property);
       checkLocalityGroups(tableName, property);
     } catch (TableNotFoundException e) {
       throw new AccumuloException(e);
     }
   }
 
-  private void removePropertyNoChecks(final String tableName, final String property)
+  private void removePropertyNoChecks(final TableId tableId, final String property)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     ManagerClient.executeTable(context, client -> client.removeTableProperty(TraceUtil.traceInfo(),
-        context.rpcCreds(), tableName, property));
+        context.rpcCreds(), new Tid(tableId.canonical()), property));
   }
 
   void checkLocalityGroups(String tableName, String propChanged)
@@ -1074,15 +1068,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     // ensure locality groups do not overlap
     LocalityGroupUtil.ensureNonOverlappingGroups(groups);
+    final var tableId = context.getTableId(tableName);
 
     for (Entry<String,Set<Text>> entry : groups.entrySet()) {
       Set<Text> colFams = entry.getValue();
       String value = LocalityGroupUtil.encodeColumnFamilies(colFams);
-      setPropertyNoChecks(tableName, Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
+      setPropertyNoChecks(tableId, Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
     }
 
     try {
-      setPropertyNoChecks(tableName, Property.TABLE_LOCALITY_GROUPS.getKey(),
+      setPropertyNoChecks(tableId, Property.TABLE_LOCALITY_GROUPS.getKey(),
           Joiner.on(",").join(groups.keySet()));
     } catch (AccumuloException e) {
       if (e.getCause() instanceof TableNotFoundException)
@@ -1101,7 +1096,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         String group = parts[parts.length - 1];
 
         if (!groups.containsKey(group)) {
-          removePropertyNoChecks(tableName, property);
+          removePropertyNoChecks(tableId, property);
         }
       }
     }
@@ -1483,7 +1478,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     List<DiskUsage> finalUsages = new ArrayList<>();
     for (TDiskUsage diskUsage : diskUsages) {
-      finalUsages.add(new DiskUsage(new TreeSet<>(diskUsage.getTables()), diskUsage.getUsage()));
+      finalUsages
+          .add(new DiskUsage(new TreeSet<>(diskUsage.getTableNames()), diskUsage.getUsage()));
     }
 
     return finalUsages;

@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.clientImpl.thrift.Tid;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -90,8 +91,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   @Override
   public void drain(final String tableName, final Set<String> wals)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    requireNonNull(tableName);
-
+    final var tableId = context.getTableId(tableName);
     final TInfo tinfo = TraceUtil.traceInfo();
     final TCredentials rpcCreds = context.rpcCreds();
 
@@ -99,7 +99,7 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     // manager
     boolean drained = false;
     while (!drained) {
-      drained = getManagerDrain(tinfo, rpcCreds, tableName, wals);
+      drained = getManagerDrain(tinfo, rpcCreds, tableId, wals);
 
       if (!drained) {
         try {
@@ -113,10 +113,10 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   }
 
   protected boolean getManagerDrain(final TInfo tinfo, final TCredentials rpcCreds,
-      final String tableName, final Set<String> wals)
+      final TableId tableId, final Set<String> wals)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    return ManagerClient.execute(context,
-        client -> client.drainReplicationTable(tinfo, rpcCreds, tableName, wals));
+    return ManagerClient.execute(context, client -> client.drainReplicationTable(tinfo, rpcCreds,
+        new Tid(tableId.canonical()), wals));
   }
 
   protected TableId getTableId(AccumuloClient client, String tableName)

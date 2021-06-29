@@ -35,6 +35,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientExec;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.clientImpl.ManagerClient;
+import org.apache.accumulo.core.clientImpl.thrift.Tid;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
@@ -119,7 +120,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
           TablePermission.ALTER_TABLE);
       tableId = client.tableOperations().tableIdMap().get(tableName);
     }
-    op = user -> client -> client.initiateFlush(null, user, tableId);
+    op = user -> client -> client.initiateFlush(null, user, new Tid(tableId));
     expectPermissionDenied(op, regularUser);
     // privileged users can grant themselves permission, but it's not default
     expectPermissionDenied(op, privilegedUser);
@@ -152,9 +153,9 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     }
     AtomicLong flushId = new AtomicLong();
     // initiateFlush as the root user to get the flushId, then test waitForFlush with other users
-    op = user -> client -> flushId.set(client.initiateFlush(null, user, tableId));
+    op = user -> client -> flushId.set(client.initiateFlush(null, user, new Tid(tableId)));
     expectPermissionSuccess(op, rootUser);
-    op = user -> client -> client.waitForFlush(null, user, tableId,
+    op = user -> client -> client.waitForFlush(null, user, new Tid(tableId),
         TextUtil.getByteBuffer(new Text("myrow")), TextUtil.getByteBuffer(new Text("myrow~")),
         flushId.get(), 1);
     expectPermissionDenied(op, regularUser);

@@ -28,20 +28,20 @@ package org.apache.accumulo.core.dataImpl.thrift;
 public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExtent._Fields>, java.io.Serializable, Cloneable, Comparable<TKeyExtent> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TKeyExtent");
 
-  private static final org.apache.thrift.protocol.TField TABLE_FIELD_DESC = new org.apache.thrift.protocol.TField("table", org.apache.thrift.protocol.TType.STRING, (short)1);
+  private static final org.apache.thrift.protocol.TField TABLE_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("tableId", org.apache.thrift.protocol.TType.STRING, (short)1);
   private static final org.apache.thrift.protocol.TField END_ROW_FIELD_DESC = new org.apache.thrift.protocol.TField("endRow", org.apache.thrift.protocol.TType.STRING, (short)2);
   private static final org.apache.thrift.protocol.TField PREV_END_ROW_FIELD_DESC = new org.apache.thrift.protocol.TField("prevEndRow", org.apache.thrift.protocol.TType.STRING, (short)3);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TKeyExtentStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TKeyExtentTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer table; // required
+  public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer tableId; // required
   public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer endRow; // required
   public @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer prevEndRow; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    TABLE((short)1, "table"),
+    TABLE_ID((short)1, "tableId"),
     END_ROW((short)2, "endRow"),
     PREV_END_ROW((short)3, "prevEndRow");
 
@@ -59,8 +59,8 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
     @org.apache.thrift.annotation.Nullable
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // TABLE
-          return TABLE;
+        case 1: // TABLE_ID
+          return TABLE_ID;
         case 2: // END_ROW
           return END_ROW;
         case 3: // PREV_END_ROW
@@ -109,7 +109,7 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.TABLE, new org.apache.thrift.meta_data.FieldMetaData("table", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.TABLE_ID, new org.apache.thrift.meta_data.FieldMetaData("tableId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING        , true)));
     tmpMap.put(_Fields.END_ROW, new org.apache.thrift.meta_data.FieldMetaData("endRow", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING        , true)));
@@ -123,12 +123,12 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
   }
 
   public TKeyExtent(
-    java.nio.ByteBuffer table,
+    java.nio.ByteBuffer tableId,
     java.nio.ByteBuffer endRow,
     java.nio.ByteBuffer prevEndRow)
   {
     this();
-    this.table = org.apache.thrift.TBaseHelper.copyBinary(table);
+    this.tableId = org.apache.thrift.TBaseHelper.copyBinary(tableId);
     this.endRow = org.apache.thrift.TBaseHelper.copyBinary(endRow);
     this.prevEndRow = org.apache.thrift.TBaseHelper.copyBinary(prevEndRow);
   }
@@ -137,8 +137,8 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
    * Performs a deep copy on <i>other</i>.
    */
   public TKeyExtent(TKeyExtent other) {
-    if (other.isSetTable()) {
-      this.table = org.apache.thrift.TBaseHelper.copyBinary(other.table);
+    if (other.isSetTableId()) {
+      this.tableId = org.apache.thrift.TBaseHelper.copyBinary(other.tableId);
     }
     if (other.isSetEndRow()) {
       this.endRow = org.apache.thrift.TBaseHelper.copyBinary(other.endRow);
@@ -154,42 +154,42 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
 
   @Override
   public void clear() {
-    this.table = null;
+    this.tableId = null;
     this.endRow = null;
     this.prevEndRow = null;
   }
 
-  public byte[] getTable() {
-    setTable(org.apache.thrift.TBaseHelper.rightSize(table));
-    return table == null ? null : table.array();
+  public byte[] getTableId() {
+    setTableId(org.apache.thrift.TBaseHelper.rightSize(tableId));
+    return tableId == null ? null : tableId.array();
   }
 
-  public java.nio.ByteBuffer bufferForTable() {
-    return org.apache.thrift.TBaseHelper.copyBinary(table);
+  public java.nio.ByteBuffer bufferForTableId() {
+    return org.apache.thrift.TBaseHelper.copyBinary(tableId);
   }
 
-  public TKeyExtent setTable(byte[] table) {
-    this.table = table == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(table.clone());
+  public TKeyExtent setTableId(byte[] tableId) {
+    this.tableId = tableId == null ? (java.nio.ByteBuffer)null   : java.nio.ByteBuffer.wrap(tableId.clone());
     return this;
   }
 
-  public TKeyExtent setTable(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer table) {
-    this.table = org.apache.thrift.TBaseHelper.copyBinary(table);
+  public TKeyExtent setTableId(@org.apache.thrift.annotation.Nullable java.nio.ByteBuffer tableId) {
+    this.tableId = org.apache.thrift.TBaseHelper.copyBinary(tableId);
     return this;
   }
 
-  public void unsetTable() {
-    this.table = null;
+  public void unsetTableId() {
+    this.tableId = null;
   }
 
-  /** Returns true if field table is set (has been assigned a value) and false otherwise */
-  public boolean isSetTable() {
-    return this.table != null;
+  /** Returns true if field tableId is set (has been assigned a value) and false otherwise */
+  public boolean isSetTableId() {
+    return this.tableId != null;
   }
 
-  public void setTableIsSet(boolean value) {
+  public void setTableIdIsSet(boolean value) {
     if (!value) {
-      this.table = null;
+      this.tableId = null;
     }
   }
 
@@ -263,14 +263,14 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
 
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
-    case TABLE:
+    case TABLE_ID:
       if (value == null) {
-        unsetTable();
+        unsetTableId();
       } else {
         if (value instanceof byte[]) {
-          setTable((byte[])value);
+          setTableId((byte[])value);
         } else {
-          setTable((java.nio.ByteBuffer)value);
+          setTableId((java.nio.ByteBuffer)value);
         }
       }
       break;
@@ -305,8 +305,8 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
   @org.apache.thrift.annotation.Nullable
   public java.lang.Object getFieldValue(_Fields field) {
     switch (field) {
-    case TABLE:
-      return getTable();
+    case TABLE_ID:
+      return getTableId();
 
     case END_ROW:
       return getEndRow();
@@ -325,8 +325,8 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
     }
 
     switch (field) {
-    case TABLE:
-      return isSetTable();
+    case TABLE_ID:
+      return isSetTableId();
     case END_ROW:
       return isSetEndRow();
     case PREV_END_ROW:
@@ -350,12 +350,12 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
     if (this == that)
       return true;
 
-    boolean this_present_table = true && this.isSetTable();
-    boolean that_present_table = true && that.isSetTable();
-    if (this_present_table || that_present_table) {
-      if (!(this_present_table && that_present_table))
+    boolean this_present_tableId = true && this.isSetTableId();
+    boolean that_present_tableId = true && that.isSetTableId();
+    if (this_present_tableId || that_present_tableId) {
+      if (!(this_present_tableId && that_present_tableId))
         return false;
-      if (!this.table.equals(that.table))
+      if (!this.tableId.equals(that.tableId))
         return false;
     }
 
@@ -384,9 +384,9 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
   public int hashCode() {
     int hashCode = 1;
 
-    hashCode = hashCode * 8191 + ((isSetTable()) ? 131071 : 524287);
-    if (isSetTable())
-      hashCode = hashCode * 8191 + table.hashCode();
+    hashCode = hashCode * 8191 + ((isSetTableId()) ? 131071 : 524287);
+    if (isSetTableId())
+      hashCode = hashCode * 8191 + tableId.hashCode();
 
     hashCode = hashCode * 8191 + ((isSetEndRow()) ? 131071 : 524287);
     if (isSetEndRow())
@@ -407,12 +407,12 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
 
     int lastComparison = 0;
 
-    lastComparison = java.lang.Boolean.valueOf(isSetTable()).compareTo(other.isSetTable());
+    lastComparison = java.lang.Boolean.valueOf(isSetTableId()).compareTo(other.isSetTableId());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetTable()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.table, other.table);
+    if (isSetTableId()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tableId, other.tableId);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -458,11 +458,11 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
     java.lang.StringBuilder sb = new java.lang.StringBuilder("TKeyExtent(");
     boolean first = true;
 
-    sb.append("table:");
-    if (this.table == null) {
+    sb.append("tableId:");
+    if (this.tableId == null) {
       sb.append("null");
     } else {
-      org.apache.thrift.TBaseHelper.toString(this.table, sb);
+      org.apache.thrift.TBaseHelper.toString(this.tableId, sb);
     }
     first = false;
     if (!first) sb.append(", ");
@@ -524,10 +524,10 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
           break;
         }
         switch (schemeField.id) {
-          case 1: // TABLE
+          case 1: // TABLE_ID
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-              struct.table = iprot.readBinary();
-              struct.setTableIsSet(true);
+              struct.tableId = iprot.readBinary();
+              struct.setTableIdIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -563,9 +563,9 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.table != null) {
-        oprot.writeFieldBegin(TABLE_FIELD_DESC);
-        oprot.writeBinary(struct.table);
+      if (struct.tableId != null) {
+        oprot.writeFieldBegin(TABLE_ID_FIELD_DESC);
+        oprot.writeBinary(struct.tableId);
         oprot.writeFieldEnd();
       }
       if (struct.endRow != null) {
@@ -596,7 +596,7 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
     public void write(org.apache.thrift.protocol.TProtocol prot, TKeyExtent struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet optionals = new java.util.BitSet();
-      if (struct.isSetTable()) {
+      if (struct.isSetTableId()) {
         optionals.set(0);
       }
       if (struct.isSetEndRow()) {
@@ -606,8 +606,8 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
         optionals.set(2);
       }
       oprot.writeBitSet(optionals, 3);
-      if (struct.isSetTable()) {
-        oprot.writeBinary(struct.table);
+      if (struct.isSetTableId()) {
+        oprot.writeBinary(struct.tableId);
       }
       if (struct.isSetEndRow()) {
         oprot.writeBinary(struct.endRow);
@@ -622,8 +622,8 @@ public class TKeyExtent implements org.apache.thrift.TBase<TKeyExtent, TKeyExten
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet incoming = iprot.readBitSet(3);
       if (incoming.get(0)) {
-        struct.table = iprot.readBinary();
-        struct.setTableIsSet(true);
+        struct.tableId = iprot.readBinary();
+        struct.setTableIdIsSet(true);
       }
       if (incoming.get(1)) {
         struct.endRow = iprot.readBinary();

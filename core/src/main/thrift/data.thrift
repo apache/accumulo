@@ -48,7 +48,7 @@ struct TMutation {
 }
 
 struct TKeyExtent {
-  1:binary table
+  1:binary tableId
   2:binary endRow
   3:binary prevEndRow
 }

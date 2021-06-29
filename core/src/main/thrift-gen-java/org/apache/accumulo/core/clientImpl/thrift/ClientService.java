@@ -41,7 +41,7 @@ public class ClientService {
 
     public void ping(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws ThriftSecurityException, org.apache.thrift.TException;
 
-    public java.util.List<TDiskUsage> getDiskUsage(java.util.Set<java.lang.String> tables, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
+    public java.util.List<TDiskUsage> getDiskUsage(java.util.Set<java.lang.String> tableNames, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
     public java.util.Set<java.lang.String> listLocalUsers(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws ThriftSecurityException, org.apache.thrift.TException;
 
@@ -63,7 +63,7 @@ public class ClientService {
 
     public boolean hasTablePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String tableName, byte tblPerm) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
-    public boolean hasNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String ns, byte tblNspcPerm) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
+    public boolean hasNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String namespaceName, byte tblNspcPerm) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
     public void grantSystemPermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, byte permission) throws ThriftSecurityException, org.apache.thrift.TException;
 
@@ -73,15 +73,15 @@ public class ClientService {
 
     public void revokeTablePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String tableName, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
-    public void grantNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String ns, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
+    public void grantNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String namespaceName, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
-    public void revokeNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String ns, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
+    public void revokeNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String namespaceName, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException;
 
     public java.util.Map<java.lang.String,java.lang.String> getConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, ConfigurationType type) throws org.apache.thrift.TException;
 
     public java.util.Map<java.lang.String,java.lang.String> getTableConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws ThriftTableOperationException, org.apache.thrift.TException;
 
-    public java.util.Map<java.lang.String,java.lang.String> getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftTableOperationException, org.apache.thrift.TException;
+    public java.util.Map<java.lang.String,java.lang.String> getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String namespaceName) throws ThriftTableOperationException, org.apache.thrift.TException;
 
     public boolean checkClass(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String className, java.lang.String interfaceMatch) throws org.apache.thrift.TException;
 
@@ -105,7 +105,7 @@ public class ClientService {
 
     public void ping(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void getDiskUsage(java.util.Set<java.lang.String> tables, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TDiskUsage>> resultHandler) throws org.apache.thrift.TException;
+    public void getDiskUsage(java.util.Set<java.lang.String> tableNames, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TDiskUsage>> resultHandler) throws org.apache.thrift.TException;
 
     public void listLocalUsers(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.util.Set<java.lang.String>> resultHandler) throws org.apache.thrift.TException;
 
@@ -127,7 +127,7 @@ public class ClientService {
 
     public void hasTablePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String tableName, byte tblPerm, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException;
 
-    public void hasNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String ns, byte tblNspcPerm, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException;
+    public void hasNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String namespaceName, byte tblNspcPerm, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException;
 
     public void grantSystemPermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, byte permission, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
@@ -137,15 +137,15 @@ public class ClientService {
 
     public void revokeTablePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String tableName, byte permission, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void grantNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String ns, byte permission, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void grantNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String namespaceName, byte permission, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void revokeNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String ns, byte permission, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void revokeNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String namespaceName, byte permission, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
     public void getConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, ConfigurationType type, org.apache.thrift.async.AsyncMethodCallback<java.util.Map<java.lang.String,java.lang.String>> resultHandler) throws org.apache.thrift.TException;
 
     public void getTableConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName, org.apache.thrift.async.AsyncMethodCallback<java.util.Map<java.lang.String,java.lang.String>> resultHandler) throws org.apache.thrift.TException;
 
-    public void getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns, org.apache.thrift.async.AsyncMethodCallback<java.util.Map<java.lang.String,java.lang.String>> resultHandler) throws org.apache.thrift.TException;
+    public void getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String namespaceName, org.apache.thrift.async.AsyncMethodCallback<java.util.Map<java.lang.String,java.lang.String>> resultHandler) throws org.apache.thrift.TException;
 
     public void checkClass(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String className, java.lang.String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException;
 
@@ -323,16 +323,16 @@ public class ClientService {
       return;
     }
 
-    public java.util.List<TDiskUsage> getDiskUsage(java.util.Set<java.lang.String> tables, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public java.util.List<TDiskUsage> getDiskUsage(java.util.Set<java.lang.String> tableNames, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
-      send_getDiskUsage(tables, credentials);
+      send_getDiskUsage(tableNames, credentials);
       return recv_getDiskUsage();
     }
 
-    public void send_getDiskUsage(java.util.Set<java.lang.String> tables, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException
+    public void send_getDiskUsage(java.util.Set<java.lang.String> tableNames, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.thrift.TException
     {
       getDiskUsage_args args = new getDiskUsage_args();
-      args.setTables(tables);
+      args.setTableNames(tableNames);
       args.setCredentials(credentials);
       sendBase("getDiskUsage", args);
     }
@@ -628,19 +628,19 @@ public class ClientService {
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "hasTablePermission failed: unknown result");
     }
 
-    public boolean hasNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String ns, byte tblNspcPerm) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public boolean hasNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String namespaceName, byte tblNspcPerm) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
-      send_hasNamespacePermission(tinfo, credentials, principal, ns, tblNspcPerm);
+      send_hasNamespacePermission(tinfo, credentials, principal, namespaceName, tblNspcPerm);
       return recv_hasNamespacePermission();
     }
 
-    public void send_hasNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String ns, byte tblNspcPerm) throws org.apache.thrift.TException
+    public void send_hasNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String namespaceName, byte tblNspcPerm) throws org.apache.thrift.TException
     {
       hasNamespacePermission_args args = new hasNamespacePermission_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setPrincipal(principal);
-      args.setNs(ns);
+      args.setNamespaceName(namespaceName);
       args.setTblNspcPerm(tblNspcPerm);
       sendBase("hasNamespacePermission", args);
     }
@@ -773,19 +773,19 @@ public class ClientService {
       return;
     }
 
-    public void grantNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String ns, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public void grantNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String namespaceName, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
-      send_grantNamespacePermission(tinfo, credentials, principal, ns, permission);
+      send_grantNamespacePermission(tinfo, credentials, principal, namespaceName, permission);
       recv_grantNamespacePermission();
     }
 
-    public void send_grantNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String ns, byte permission) throws org.apache.thrift.TException
+    public void send_grantNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String namespaceName, byte permission) throws org.apache.thrift.TException
     {
       grantNamespacePermission_args args = new grantNamespacePermission_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setPrincipal(principal);
-      args.setNs(ns);
+      args.setNamespaceName(namespaceName);
       args.setPermission(permission);
       sendBase("grantNamespacePermission", args);
     }
@@ -803,19 +803,19 @@ public class ClientService {
       return;
     }
 
-    public void revokeNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String ns, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
+    public void revokeNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String namespaceName, byte permission) throws ThriftSecurityException, ThriftTableOperationException, org.apache.thrift.TException
     {
-      send_revokeNamespacePermission(tinfo, credentials, principal, ns, permission);
+      send_revokeNamespacePermission(tinfo, credentials, principal, namespaceName, permission);
       recv_revokeNamespacePermission();
     }
 
-    public void send_revokeNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String ns, byte permission) throws org.apache.thrift.TException
+    public void send_revokeNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String namespaceName, byte permission) throws org.apache.thrift.TException
     {
       revokeNamespacePermission_args args = new revokeNamespacePermission_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setPrincipal(principal);
-      args.setNs(ns);
+      args.setNamespaceName(namespaceName);
       args.setPermission(permission);
       sendBase("revokeNamespacePermission", args);
     }
@@ -886,18 +886,18 @@ public class ClientService {
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getTableConfiguration failed: unknown result");
     }
 
-    public java.util.Map<java.lang.String,java.lang.String> getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftTableOperationException, org.apache.thrift.TException
+    public java.util.Map<java.lang.String,java.lang.String> getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String namespaceName) throws ThriftTableOperationException, org.apache.thrift.TException
     {
-      send_getNamespaceConfiguration(tinfo, credentials, ns);
+      send_getNamespaceConfiguration(tinfo, credentials, namespaceName);
       return recv_getNamespaceConfiguration();
     }
 
-    public void send_getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws org.apache.thrift.TException
+    public void send_getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String namespaceName) throws org.apache.thrift.TException
     {
       getNamespaceConfiguration_args args = new getNamespaceConfiguration_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
-      args.setNs(ns);
+      args.setNamespaceName(namespaceName);
       sendBase("getNamespaceConfiguration", args);
     }
 
@@ -1228,26 +1228,26 @@ public class ClientService {
       }
     }
 
-    public void getDiskUsage(java.util.Set<java.lang.String> tables, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TDiskUsage>> resultHandler) throws org.apache.thrift.TException {
+    public void getDiskUsage(java.util.Set<java.lang.String> tableNames, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TDiskUsage>> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getDiskUsage_call method_call = new getDiskUsage_call(tables, credentials, resultHandler, this, ___protocolFactory, ___transport);
+      getDiskUsage_call method_call = new getDiskUsage_call(tableNames, credentials, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class getDiskUsage_call extends org.apache.thrift.async.TAsyncMethodCall<java.util.List<TDiskUsage>> {
-      private java.util.Set<java.lang.String> tables;
+      private java.util.Set<java.lang.String> tableNames;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
-      public getDiskUsage_call(java.util.Set<java.lang.String> tables, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TDiskUsage>> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getDiskUsage_call(java.util.Set<java.lang.String> tableNames, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TDiskUsage>> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
-        this.tables = tables;
+        this.tableNames = tableNames;
         this.credentials = credentials;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getDiskUsage", org.apache.thrift.protocol.TMessageType.CALL, 0));
         getDiskUsage_args args = new getDiskUsage_args();
-        args.setTables(tables);
+        args.setTableNames(tableNames);
         args.setCredentials(credentials);
         args.write(prot);
         prot.writeMessageEnd();
@@ -1655,9 +1655,9 @@ public class ClientService {
       }
     }
 
-    public void hasNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String ns, byte tblNspcPerm, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException {
+    public void hasNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String namespaceName, byte tblNspcPerm, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      hasNamespacePermission_call method_call = new hasNamespacePermission_call(tinfo, credentials, principal, ns, tblNspcPerm, resultHandler, this, ___protocolFactory, ___transport);
+      hasNamespacePermission_call method_call = new hasNamespacePermission_call(tinfo, credentials, principal, namespaceName, tblNspcPerm, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -1666,14 +1666,14 @@ public class ClientService {
       private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
       private java.lang.String principal;
-      private java.lang.String ns;
+      private java.lang.String namespaceName;
       private byte tblNspcPerm;
-      public hasNamespacePermission_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String ns, byte tblNspcPerm, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public hasNamespacePermission_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String namespaceName, byte tblNspcPerm, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
         this.principal = principal;
-        this.ns = ns;
+        this.namespaceName = namespaceName;
         this.tblNspcPerm = tblNspcPerm;
       }
 
@@ -1683,7 +1683,7 @@ public class ClientService {
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setPrincipal(principal);
-        args.setNs(ns);
+        args.setNamespaceName(namespaceName);
         args.setTblNspcPerm(tblNspcPerm);
         args.write(prot);
         prot.writeMessageEnd();
@@ -1869,9 +1869,9 @@ public class ClientService {
       }
     }
 
-    public void grantNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String ns, byte permission, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void grantNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String namespaceName, byte permission, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      grantNamespacePermission_call method_call = new grantNamespacePermission_call(tinfo, credentials, principal, ns, permission, resultHandler, this, ___protocolFactory, ___transport);
+      grantNamespacePermission_call method_call = new grantNamespacePermission_call(tinfo, credentials, principal, namespaceName, permission, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -1880,14 +1880,14 @@ public class ClientService {
       private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
       private java.lang.String principal;
-      private java.lang.String ns;
+      private java.lang.String namespaceName;
       private byte permission;
-      public grantNamespacePermission_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String ns, byte permission, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public grantNamespacePermission_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String namespaceName, byte permission, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
         this.principal = principal;
-        this.ns = ns;
+        this.namespaceName = namespaceName;
         this.permission = permission;
       }
 
@@ -1897,7 +1897,7 @@ public class ClientService {
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setPrincipal(principal);
-        args.setNs(ns);
+        args.setNamespaceName(namespaceName);
         args.setPermission(permission);
         args.write(prot);
         prot.writeMessageEnd();
@@ -1913,9 +1913,9 @@ public class ClientService {
       }
     }
 
-    public void revokeNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String ns, byte permission, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void revokeNamespacePermission(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String namespaceName, byte permission, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      revokeNamespacePermission_call method_call = new revokeNamespacePermission_call(tinfo, credentials, principal, ns, permission, resultHandler, this, ___protocolFactory, ___transport);
+      revokeNamespacePermission_call method_call = new revokeNamespacePermission_call(tinfo, credentials, principal, namespaceName, permission, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -1924,14 +1924,14 @@ public class ClientService {
       private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
       private java.lang.String principal;
-      private java.lang.String ns;
+      private java.lang.String namespaceName;
       private byte permission;
-      public revokeNamespacePermission_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String ns, byte permission, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public revokeNamespacePermission_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String principal, java.lang.String namespaceName, byte permission, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
         this.principal = principal;
-        this.ns = ns;
+        this.namespaceName = namespaceName;
         this.permission = permission;
       }
 
@@ -1941,7 +1941,7 @@ public class ClientService {
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setPrincipal(principal);
-        args.setNs(ns);
+        args.setNamespaceName(namespaceName);
         args.setPermission(permission);
         args.write(prot);
         prot.writeMessageEnd();
@@ -2033,9 +2033,9 @@ public class ClientService {
       }
     }
 
-    public void getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns, org.apache.thrift.async.AsyncMethodCallback<java.util.Map<java.lang.String,java.lang.String>> resultHandler) throws org.apache.thrift.TException {
+    public void getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String namespaceName, org.apache.thrift.async.AsyncMethodCallback<java.util.Map<java.lang.String,java.lang.String>> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getNamespaceConfiguration_call method_call = new getNamespaceConfiguration_call(tinfo, credentials, ns, resultHandler, this, ___protocolFactory, ___transport);
+      getNamespaceConfiguration_call method_call = new getNamespaceConfiguration_call(tinfo, credentials, namespaceName, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -2043,12 +2043,12 @@ public class ClientService {
     public static class getNamespaceConfiguration_call extends org.apache.thrift.async.TAsyncMethodCall<java.util.Map<java.lang.String,java.lang.String>> {
       private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
-      private java.lang.String ns;
-      public getNamespaceConfiguration_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns, org.apache.thrift.async.AsyncMethodCallback<java.util.Map<java.lang.String,java.lang.String>> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private java.lang.String namespaceName;
+      public getNamespaceConfiguration_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String namespaceName, org.apache.thrift.async.AsyncMethodCallback<java.util.Map<java.lang.String,java.lang.String>> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
-        this.ns = ns;
+        this.namespaceName = namespaceName;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
@@ -2056,7 +2056,7 @@ public class ClientService {
         getNamespaceConfiguration_args args = new getNamespaceConfiguration_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
-        args.setNs(ns);
+        args.setNamespaceName(namespaceName);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -2428,7 +2428,7 @@ public class ClientService {
       public getDiskUsage_result getResult(I iface, getDiskUsage_args args) throws org.apache.thrift.TException {
         getDiskUsage_result result = new getDiskUsage_result();
         try {
-          result.success = iface.getDiskUsage(args.tables, args.credentials);
+          result.success = iface.getDiskUsage(args.tableNames, args.credentials);
         } catch (ThriftSecurityException sec) {
           result.sec = sec;
         } catch (ThriftTableOperationException toe) {
@@ -2755,7 +2755,7 @@ public class ClientService {
       public hasNamespacePermission_result getResult(I iface, hasNamespacePermission_args args) throws org.apache.thrift.TException {
         hasNamespacePermission_result result = new hasNamespacePermission_result();
         try {
-          result.success = iface.hasNamespacePermission(args.tinfo, args.credentials, args.principal, args.ns, args.tblNspcPerm);
+          result.success = iface.hasNamespacePermission(args.tinfo, args.credentials, args.principal, args.namespaceName, args.tblNspcPerm);
           result.setSuccessIsSet(true);
         } catch (ThriftSecurityException sec) {
           result.sec = sec;
@@ -2907,7 +2907,7 @@ public class ClientService {
       public grantNamespacePermission_result getResult(I iface, grantNamespacePermission_args args) throws org.apache.thrift.TException {
         grantNamespacePermission_result result = new grantNamespacePermission_result();
         try {
-          iface.grantNamespacePermission(args.tinfo, args.credentials, args.principal, args.ns, args.permission);
+          iface.grantNamespacePermission(args.tinfo, args.credentials, args.principal, args.namespaceName, args.permission);
         } catch (ThriftSecurityException sec) {
           result.sec = sec;
         } catch (ThriftTableOperationException tope) {
@@ -2938,7 +2938,7 @@ public class ClientService {
       public revokeNamespacePermission_result getResult(I iface, revokeNamespacePermission_args args) throws org.apache.thrift.TException {
         revokeNamespacePermission_result result = new revokeNamespacePermission_result();
         try {
-          iface.revokeNamespacePermission(args.tinfo, args.credentials, args.principal, args.ns, args.permission);
+          iface.revokeNamespacePermission(args.tinfo, args.credentials, args.principal, args.namespaceName, args.permission);
         } catch (ThriftSecurityException sec) {
           result.sec = sec;
         } catch (ThriftTableOperationException tope) {
@@ -3023,7 +3023,7 @@ public class ClientService {
       public getNamespaceConfiguration_result getResult(I iface, getNamespaceConfiguration_args args) throws org.apache.thrift.TException {
         getNamespaceConfiguration_result result = new getNamespaceConfiguration_result();
         try {
-          result.success = iface.getNamespaceConfiguration(args.tinfo, args.credentials, args.ns);
+          result.success = iface.getNamespaceConfiguration(args.tinfo, args.credentials, args.namespaceName);
         } catch (ThriftTableOperationException tope) {
           result.tope = tope;
         }
@@ -3610,7 +3610,7 @@ public class ClientService {
       }
 
       public void start(I iface, getDiskUsage_args args, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TDiskUsage>> resultHandler) throws org.apache.thrift.TException {
-        iface.getDiskUsage(args.tables, args.credentials,resultHandler);
+        iface.getDiskUsage(args.tableNames, args.credentials,resultHandler);
       }
     }
 
@@ -4334,7 +4334,7 @@ public class ClientService {
       }
 
       public void start(I iface, hasNamespacePermission_args args, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException {
-        iface.hasNamespacePermission(args.tinfo, args.credentials, args.principal, args.ns, args.tblNspcPerm,resultHandler);
+        iface.hasNamespacePermission(args.tinfo, args.credentials, args.principal, args.namespaceName, args.tblNspcPerm,resultHandler);
       }
     }
 
@@ -4666,7 +4666,7 @@ public class ClientService {
       }
 
       public void start(I iface, grantNamespacePermission_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
-        iface.grantNamespacePermission(args.tinfo, args.credentials, args.principal, args.ns, args.permission,resultHandler);
+        iface.grantNamespacePermission(args.tinfo, args.credentials, args.principal, args.namespaceName, args.permission,resultHandler);
       }
     }
 
@@ -4734,7 +4734,7 @@ public class ClientService {
       }
 
       public void start(I iface, revokeNamespacePermission_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
-        iface.revokeNamespacePermission(args.tinfo, args.credentials, args.principal, args.ns, args.permission,resultHandler);
+        iface.revokeNamespacePermission(args.tinfo, args.credentials, args.principal, args.namespaceName, args.permission,resultHandler);
       }
     }
 
@@ -4925,7 +4925,7 @@ public class ClientService {
       }
 
       public void start(I iface, getNamespaceConfiguration_args args, org.apache.thrift.async.AsyncMethodCallback<java.util.Map<java.lang.String,java.lang.String>> resultHandler) throws org.apache.thrift.TException {
-        iface.getNamespaceConfiguration(args.tinfo, args.credentials, args.ns,resultHandler);
+        iface.getNamespaceConfiguration(args.tinfo, args.credentials, args.namespaceName,resultHandler);
       }
     }
 
@@ -10250,18 +10250,18 @@ public class ClientService {
   public static class getDiskUsage_args implements org.apache.thrift.TBase<getDiskUsage_args, getDiskUsage_args._Fields>, java.io.Serializable, Cloneable, Comparable<getDiskUsage_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getDiskUsage_args");
 
-    private static final org.apache.thrift.protocol.TField TABLES_FIELD_DESC = new org.apache.thrift.protocol.TField("tables", org.apache.thrift.protocol.TType.SET, (short)2);
+    private static final org.apache.thrift.protocol.TField TABLE_NAMES_FIELD_DESC = new org.apache.thrift.protocol.TField("tableNames", org.apache.thrift.protocol.TType.SET, (short)2);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getDiskUsage_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getDiskUsage_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable java.util.Set<java.lang.String> tables; // required
+    public @org.apache.thrift.annotation.Nullable java.util.Set<java.lang.String> tableNames; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TABLES((short)2, "tables"),
+      TABLE_NAMES((short)2, "tableNames"),
       CREDENTIALS((short)1, "credentials");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
@@ -10278,8 +10278,8 @@ public class ClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 2: // TABLES
-            return TABLES;
+          case 2: // TABLE_NAMES
+            return TABLE_NAMES;
           case 1: // CREDENTIALS
             return CREDENTIALS;
           default:
@@ -10326,7 +10326,7 @@ public class ClientService {
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TABLES, new org.apache.thrift.meta_data.FieldMetaData("tables", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.TABLE_NAMES, new org.apache.thrift.meta_data.FieldMetaData("tableNames", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.SetMetaData(org.apache.thrift.protocol.TType.SET, 
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -10339,11 +10339,11 @@ public class ClientService {
     }
 
     public getDiskUsage_args(
-      java.util.Set<java.lang.String> tables,
+      java.util.Set<java.lang.String> tableNames,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials)
     {
       this();
-      this.tables = tables;
+      this.tableNames = tableNames;
       this.credentials = credentials;
     }
 
@@ -10351,9 +10351,9 @@ public class ClientService {
      * Performs a deep copy on <i>other</i>.
      */
     public getDiskUsage_args(getDiskUsage_args other) {
-      if (other.isSetTables()) {
-        java.util.Set<java.lang.String> __this__tables = new java.util.HashSet<java.lang.String>(other.tables);
-        this.tables = __this__tables;
+      if (other.isSetTableNames()) {
+        java.util.Set<java.lang.String> __this__tableNames = new java.util.HashSet<java.lang.String>(other.tableNames);
+        this.tableNames = __this__tableNames;
       }
       if (other.isSetCredentials()) {
         this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
@@ -10366,48 +10366,48 @@ public class ClientService {
 
     @Override
     public void clear() {
-      this.tables = null;
+      this.tableNames = null;
       this.credentials = null;
     }
 
-    public int getTablesSize() {
-      return (this.tables == null) ? 0 : this.tables.size();
+    public int getTableNamesSize() {
+      return (this.tableNames == null) ? 0 : this.tableNames.size();
     }
 
     @org.apache.thrift.annotation.Nullable
-    public java.util.Iterator<java.lang.String> getTablesIterator() {
-      return (this.tables == null) ? null : this.tables.iterator();
+    public java.util.Iterator<java.lang.String> getTableNamesIterator() {
+      return (this.tableNames == null) ? null : this.tableNames.iterator();
     }
 
-    public void addToTables(java.lang.String elem) {
-      if (this.tables == null) {
-        this.tables = new java.util.HashSet<java.lang.String>();
+    public void addToTableNames(java.lang.String elem) {
+      if (this.tableNames == null) {
+        this.tableNames = new java.util.HashSet<java.lang.String>();
       }
-      this.tables.add(elem);
+      this.tableNames.add(elem);
     }
 
     @org.apache.thrift.annotation.Nullable
-    public java.util.Set<java.lang.String> getTables() {
-      return this.tables;
+    public java.util.Set<java.lang.String> getTableNames() {
+      return this.tableNames;
     }
 
-    public getDiskUsage_args setTables(@org.apache.thrift.annotation.Nullable java.util.Set<java.lang.String> tables) {
-      this.tables = tables;
+    public getDiskUsage_args setTableNames(@org.apache.thrift.annotation.Nullable java.util.Set<java.lang.String> tableNames) {
+      this.tableNames = tableNames;
       return this;
     }
 
-    public void unsetTables() {
-      this.tables = null;
+    public void unsetTableNames() {
+      this.tableNames = null;
     }
 
-    /** Returns true if field tables is set (has been assigned a value) and false otherwise */
-    public boolean isSetTables() {
-      return this.tables != null;
+    /** Returns true if field tableNames is set (has been assigned a value) and false otherwise */
+    public boolean isSetTableNames() {
+      return this.tableNames != null;
     }
 
-    public void setTablesIsSet(boolean value) {
+    public void setTableNamesIsSet(boolean value) {
       if (!value) {
-        this.tables = null;
+        this.tableNames = null;
       }
     }
 
@@ -10438,11 +10438,11 @@ public class ClientService {
 
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
-      case TABLES:
+      case TABLE_NAMES:
         if (value == null) {
-          unsetTables();
+          unsetTableNames();
         } else {
-          setTables((java.util.Set<java.lang.String>)value);
+          setTableNames((java.util.Set<java.lang.String>)value);
         }
         break;
 
@@ -10460,8 +10460,8 @@ public class ClientService {
     @org.apache.thrift.annotation.Nullable
     public java.lang.Object getFieldValue(_Fields field) {
       switch (field) {
-      case TABLES:
-        return getTables();
+      case TABLE_NAMES:
+        return getTableNames();
 
       case CREDENTIALS:
         return getCredentials();
@@ -10477,8 +10477,8 @@ public class ClientService {
       }
 
       switch (field) {
-      case TABLES:
-        return isSetTables();
+      case TABLE_NAMES:
+        return isSetTableNames();
       case CREDENTIALS:
         return isSetCredentials();
       }
@@ -10500,12 +10500,12 @@ public class ClientService {
       if (this == that)
         return true;
 
-      boolean this_present_tables = true && this.isSetTables();
-      boolean that_present_tables = true && that.isSetTables();
-      if (this_present_tables || that_present_tables) {
-        if (!(this_present_tables && that_present_tables))
+      boolean this_present_tableNames = true && this.isSetTableNames();
+      boolean that_present_tableNames = true && that.isSetTableNames();
+      if (this_present_tableNames || that_present_tableNames) {
+        if (!(this_present_tableNames && that_present_tableNames))
           return false;
-        if (!this.tables.equals(that.tables))
+        if (!this.tableNames.equals(that.tableNames))
           return false;
       }
 
@@ -10525,9 +10525,9 @@ public class ClientService {
     public int hashCode() {
       int hashCode = 1;
 
-      hashCode = hashCode * 8191 + ((isSetTables()) ? 131071 : 524287);
-      if (isSetTables())
-        hashCode = hashCode * 8191 + tables.hashCode();
+      hashCode = hashCode * 8191 + ((isSetTableNames()) ? 131071 : 524287);
+      if (isSetTableNames())
+        hashCode = hashCode * 8191 + tableNames.hashCode();
 
       hashCode = hashCode * 8191 + ((isSetCredentials()) ? 131071 : 524287);
       if (isSetCredentials())
@@ -10544,12 +10544,12 @@ public class ClientService {
 
       int lastComparison = 0;
 
-      lastComparison = java.lang.Boolean.valueOf(isSetTables()).compareTo(other.isSetTables());
+      lastComparison = java.lang.Boolean.valueOf(isSetTableNames()).compareTo(other.isSetTableNames());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTables()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tables, other.tables);
+      if (isSetTableNames()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tableNames, other.tableNames);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -10585,11 +10585,11 @@ public class ClientService {
       java.lang.StringBuilder sb = new java.lang.StringBuilder("getDiskUsage_args(");
       boolean first = true;
 
-      sb.append("tables:");
-      if (this.tables == null) {
+      sb.append("tableNames:");
+      if (this.tableNames == null) {
         sb.append("null");
       } else {
-        sb.append(this.tables);
+        sb.append(this.tableNames);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -10646,20 +10646,20 @@ public class ClientService {
             break;
           }
           switch (schemeField.id) {
-            case 2: // TABLES
+            case 2: // TABLE_NAMES
               if (schemeField.type == org.apache.thrift.protocol.TType.SET) {
                 {
                   org.apache.thrift.protocol.TSet _set24 = iprot.readSetBegin();
-                  struct.tables = new java.util.HashSet<java.lang.String>(2*_set24.size);
+                  struct.tableNames = new java.util.HashSet<java.lang.String>(2*_set24.size);
                   @org.apache.thrift.annotation.Nullable java.lang.String _elem25;
                   for (int _i26 = 0; _i26 < _set24.size; ++_i26)
                   {
                     _elem25 = iprot.readString();
-                    struct.tables.add(_elem25);
+                    struct.tableNames.add(_elem25);
                   }
                   iprot.readSetEnd();
                 }
-                struct.setTablesIsSet(true);
+                struct.setTableNamesIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -10693,11 +10693,11 @@ public class ClientService {
           struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
-        if (struct.tables != null) {
-          oprot.writeFieldBegin(TABLES_FIELD_DESC);
+        if (struct.tableNames != null) {
+          oprot.writeFieldBegin(TABLE_NAMES_FIELD_DESC);
           {
-            oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, struct.tables.size()));
-            for (java.lang.String _iter27 : struct.tables)
+            oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, struct.tableNames.size()));
+            for (java.lang.String _iter27 : struct.tableNames)
             {
               oprot.writeString(_iter27);
             }
@@ -10723,17 +10723,17 @@ public class ClientService {
       public void write(org.apache.thrift.protocol.TProtocol prot, getDiskUsage_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet optionals = new java.util.BitSet();
-        if (struct.isSetTables()) {
+        if (struct.isSetTableNames()) {
           optionals.set(0);
         }
         if (struct.isSetCredentials()) {
           optionals.set(1);
         }
         oprot.writeBitSet(optionals, 2);
-        if (struct.isSetTables()) {
+        if (struct.isSetTableNames()) {
           {
-            oprot.writeI32(struct.tables.size());
-            for (java.lang.String _iter28 : struct.tables)
+            oprot.writeI32(struct.tableNames.size());
+            for (java.lang.String _iter28 : struct.tableNames)
             {
               oprot.writeString(_iter28);
             }
@@ -10751,15 +10751,15 @@ public class ClientService {
         if (incoming.get(0)) {
           {
             org.apache.thrift.protocol.TSet _set29 = new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.tables = new java.util.HashSet<java.lang.String>(2*_set29.size);
+            struct.tableNames = new java.util.HashSet<java.lang.String>(2*_set29.size);
             @org.apache.thrift.annotation.Nullable java.lang.String _elem30;
             for (int _i31 = 0; _i31 < _set29.size; ++_i31)
             {
               _elem30 = iprot.readString();
-              struct.tables.add(_elem30);
+              struct.tableNames.add(_elem30);
             }
           }
-          struct.setTablesIsSet(true);
+          struct.setTableNamesIsSet(true);
         }
         if (incoming.get(1)) {
           struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
@@ -22292,7 +22292,7 @@ public class ClientService {
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)3);
-    private static final org.apache.thrift.protocol.TField NS_FIELD_DESC = new org.apache.thrift.protocol.TField("ns", org.apache.thrift.protocol.TType.STRING, (short)4);
+    private static final org.apache.thrift.protocol.TField NAMESPACE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("namespaceName", org.apache.thrift.protocol.TType.STRING, (short)4);
     private static final org.apache.thrift.protocol.TField TBL_NSPC_PERM_FIELD_DESC = new org.apache.thrift.protocol.TField("tblNspcPerm", org.apache.thrift.protocol.TType.BYTE, (short)5);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new hasNamespacePermission_argsStandardSchemeFactory();
@@ -22301,7 +22301,7 @@ public class ClientService {
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
     public @org.apache.thrift.annotation.Nullable java.lang.String principal; // required
-    public @org.apache.thrift.annotation.Nullable java.lang.String ns; // required
+    public @org.apache.thrift.annotation.Nullable java.lang.String namespaceName; // required
     public byte tblNspcPerm; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -22309,7 +22309,7 @@ public class ClientService {
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
       PRINCIPAL((short)3, "principal"),
-      NS((short)4, "ns"),
+      NAMESPACE_NAME((short)4, "namespaceName"),
       TBL_NSPC_PERM((short)5, "tblNspcPerm");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
@@ -22332,8 +22332,8 @@ public class ClientService {
             return CREDENTIALS;
           case 3: // PRINCIPAL
             return PRINCIPAL;
-          case 4: // NS
-            return NS;
+          case 4: // NAMESPACE_NAME
+            return NAMESPACE_NAME;
           case 5: // TBL_NSPC_PERM
             return TBL_NSPC_PERM;
           default:
@@ -22388,7 +22388,7 @@ public class ClientService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-      tmpMap.put(_Fields.NS, new org.apache.thrift.meta_data.FieldMetaData("ns", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.NAMESPACE_NAME, new org.apache.thrift.meta_data.FieldMetaData("namespaceName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.TBL_NSPC_PERM, new org.apache.thrift.meta_data.FieldMetaData("tblNspcPerm", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BYTE)));
@@ -22403,14 +22403,14 @@ public class ClientService {
       org.apache.accumulo.core.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
       java.lang.String principal,
-      java.lang.String ns,
+      java.lang.String namespaceName,
       byte tblNspcPerm)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.principal = principal;
-      this.ns = ns;
+      this.namespaceName = namespaceName;
       this.tblNspcPerm = tblNspcPerm;
       setTblNspcPermIsSet(true);
     }
@@ -22429,8 +22429,8 @@ public class ClientService {
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
       }
-      if (other.isSetNs()) {
-        this.ns = other.ns;
+      if (other.isSetNamespaceName()) {
+        this.namespaceName = other.namespaceName;
       }
       this.tblNspcPerm = other.tblNspcPerm;
     }
@@ -22444,7 +22444,7 @@ public class ClientService {
       this.tinfo = null;
       this.credentials = null;
       this.principal = null;
-      this.ns = null;
+      this.namespaceName = null;
       setTblNspcPermIsSet(false);
       this.tblNspcPerm = 0;
     }
@@ -22525,27 +22525,27 @@ public class ClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public java.lang.String getNs() {
-      return this.ns;
+    public java.lang.String getNamespaceName() {
+      return this.namespaceName;
     }
 
-    public hasNamespacePermission_args setNs(@org.apache.thrift.annotation.Nullable java.lang.String ns) {
-      this.ns = ns;
+    public hasNamespacePermission_args setNamespaceName(@org.apache.thrift.annotation.Nullable java.lang.String namespaceName) {
+      this.namespaceName = namespaceName;
       return this;
     }
 
-    public void unsetNs() {
-      this.ns = null;
+    public void unsetNamespaceName() {
+      this.namespaceName = null;
     }
 
-    /** Returns true if field ns is set (has been assigned a value) and false otherwise */
-    public boolean isSetNs() {
-      return this.ns != null;
+    /** Returns true if field namespaceName is set (has been assigned a value) and false otherwise */
+    public boolean isSetNamespaceName() {
+      return this.namespaceName != null;
     }
 
-    public void setNsIsSet(boolean value) {
+    public void setNamespaceNameIsSet(boolean value) {
       if (!value) {
-        this.ns = null;
+        this.namespaceName = null;
       }
     }
 
@@ -22598,11 +22598,11 @@ public class ClientService {
         }
         break;
 
-      case NS:
+      case NAMESPACE_NAME:
         if (value == null) {
-          unsetNs();
+          unsetNamespaceName();
         } else {
-          setNs((java.lang.String)value);
+          setNamespaceName((java.lang.String)value);
         }
         break;
 
@@ -22629,8 +22629,8 @@ public class ClientService {
       case PRINCIPAL:
         return getPrincipal();
 
-      case NS:
-        return getNs();
+      case NAMESPACE_NAME:
+        return getNamespaceName();
 
       case TBL_NSPC_PERM:
         return getTblNspcPerm();
@@ -22652,8 +22652,8 @@ public class ClientService {
         return isSetCredentials();
       case PRINCIPAL:
         return isSetPrincipal();
-      case NS:
-        return isSetNs();
+      case NAMESPACE_NAME:
+        return isSetNamespaceName();
       case TBL_NSPC_PERM:
         return isSetTblNspcPerm();
       }
@@ -22702,12 +22702,12 @@ public class ClientService {
           return false;
       }
 
-      boolean this_present_ns = true && this.isSetNs();
-      boolean that_present_ns = true && that.isSetNs();
-      if (this_present_ns || that_present_ns) {
-        if (!(this_present_ns && that_present_ns))
+      boolean this_present_namespaceName = true && this.isSetNamespaceName();
+      boolean that_present_namespaceName = true && that.isSetNamespaceName();
+      if (this_present_namespaceName || that_present_namespaceName) {
+        if (!(this_present_namespaceName && that_present_namespaceName))
           return false;
-        if (!this.ns.equals(that.ns))
+        if (!this.namespaceName.equals(that.namespaceName))
           return false;
       }
 
@@ -22739,9 +22739,9 @@ public class ClientService {
       if (isSetPrincipal())
         hashCode = hashCode * 8191 + principal.hashCode();
 
-      hashCode = hashCode * 8191 + ((isSetNs()) ? 131071 : 524287);
-      if (isSetNs())
-        hashCode = hashCode * 8191 + ns.hashCode();
+      hashCode = hashCode * 8191 + ((isSetNamespaceName()) ? 131071 : 524287);
+      if (isSetNamespaceName())
+        hashCode = hashCode * 8191 + namespaceName.hashCode();
 
       hashCode = hashCode * 8191 + (int) (tblNspcPerm);
 
@@ -22786,12 +22786,12 @@ public class ClientService {
           return lastComparison;
         }
       }
-      lastComparison = java.lang.Boolean.valueOf(isSetNs()).compareTo(other.isSetNs());
+      lastComparison = java.lang.Boolean.valueOf(isSetNamespaceName()).compareTo(other.isSetNamespaceName());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetNs()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.ns, other.ns);
+      if (isSetNamespaceName()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.namespaceName, other.namespaceName);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -22851,11 +22851,11 @@ public class ClientService {
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("ns:");
-      if (this.ns == null) {
+      sb.append("namespaceName:");
+      if (this.namespaceName == null) {
         sb.append("null");
       } else {
-        sb.append(this.ns);
+        sb.append(this.namespaceName);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -22939,10 +22939,10 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 4: // NS
+            case 4: // NAMESPACE_NAME
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.ns = iprot.readString();
-                struct.setNsIsSet(true);
+                struct.namespaceName = iprot.readString();
+                struct.setNamespaceNameIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -22985,9 +22985,9 @@ public class ClientService {
           oprot.writeString(struct.principal);
           oprot.writeFieldEnd();
         }
-        if (struct.ns != null) {
-          oprot.writeFieldBegin(NS_FIELD_DESC);
-          oprot.writeString(struct.ns);
+        if (struct.namespaceName != null) {
+          oprot.writeFieldBegin(NAMESPACE_NAME_FIELD_DESC);
+          oprot.writeString(struct.namespaceName);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldBegin(TBL_NSPC_PERM_FIELD_DESC);
@@ -23020,7 +23020,7 @@ public class ClientService {
         if (struct.isSetPrincipal()) {
           optionals.set(2);
         }
-        if (struct.isSetNs()) {
+        if (struct.isSetNamespaceName()) {
           optionals.set(3);
         }
         if (struct.isSetTblNspcPerm()) {
@@ -23036,8 +23036,8 @@ public class ClientService {
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
         }
-        if (struct.isSetNs()) {
-          oprot.writeString(struct.ns);
+        if (struct.isSetNamespaceName()) {
+          oprot.writeString(struct.namespaceName);
         }
         if (struct.isSetTblNspcPerm()) {
           oprot.writeByte(struct.tblNspcPerm);
@@ -23063,8 +23063,8 @@ public class ClientService {
           struct.setPrincipalIsSet(true);
         }
         if (incoming.get(3)) {
-          struct.ns = iprot.readString();
-          struct.setNsIsSet(true);
+          struct.namespaceName = iprot.readString();
+          struct.setNamespaceNameIsSet(true);
         }
         if (incoming.get(4)) {
           struct.tblNspcPerm = iprot.readByte();
@@ -28310,7 +28310,7 @@ public class ClientService {
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)3);
-    private static final org.apache.thrift.protocol.TField NS_FIELD_DESC = new org.apache.thrift.protocol.TField("ns", org.apache.thrift.protocol.TType.STRING, (short)4);
+    private static final org.apache.thrift.protocol.TField NAMESPACE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("namespaceName", org.apache.thrift.protocol.TType.STRING, (short)4);
     private static final org.apache.thrift.protocol.TField PERMISSION_FIELD_DESC = new org.apache.thrift.protocol.TField("permission", org.apache.thrift.protocol.TType.BYTE, (short)5);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new grantNamespacePermission_argsStandardSchemeFactory();
@@ -28319,7 +28319,7 @@ public class ClientService {
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
     public @org.apache.thrift.annotation.Nullable java.lang.String principal; // required
-    public @org.apache.thrift.annotation.Nullable java.lang.String ns; // required
+    public @org.apache.thrift.annotation.Nullable java.lang.String namespaceName; // required
     public byte permission; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -28327,7 +28327,7 @@ public class ClientService {
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
       PRINCIPAL((short)3, "principal"),
-      NS((short)4, "ns"),
+      NAMESPACE_NAME((short)4, "namespaceName"),
       PERMISSION((short)5, "permission");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
@@ -28350,8 +28350,8 @@ public class ClientService {
             return CREDENTIALS;
           case 3: // PRINCIPAL
             return PRINCIPAL;
-          case 4: // NS
-            return NS;
+          case 4: // NAMESPACE_NAME
+            return NAMESPACE_NAME;
           case 5: // PERMISSION
             return PERMISSION;
           default:
@@ -28406,7 +28406,7 @@ public class ClientService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-      tmpMap.put(_Fields.NS, new org.apache.thrift.meta_data.FieldMetaData("ns", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.NAMESPACE_NAME, new org.apache.thrift.meta_data.FieldMetaData("namespaceName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.PERMISSION, new org.apache.thrift.meta_data.FieldMetaData("permission", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BYTE)));
@@ -28421,14 +28421,14 @@ public class ClientService {
       org.apache.accumulo.core.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
       java.lang.String principal,
-      java.lang.String ns,
+      java.lang.String namespaceName,
       byte permission)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.principal = principal;
-      this.ns = ns;
+      this.namespaceName = namespaceName;
       this.permission = permission;
       setPermissionIsSet(true);
     }
@@ -28447,8 +28447,8 @@ public class ClientService {
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
       }
-      if (other.isSetNs()) {
-        this.ns = other.ns;
+      if (other.isSetNamespaceName()) {
+        this.namespaceName = other.namespaceName;
       }
       this.permission = other.permission;
     }
@@ -28462,7 +28462,7 @@ public class ClientService {
       this.tinfo = null;
       this.credentials = null;
       this.principal = null;
-      this.ns = null;
+      this.namespaceName = null;
       setPermissionIsSet(false);
       this.permission = 0;
     }
@@ -28543,27 +28543,27 @@ public class ClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public java.lang.String getNs() {
-      return this.ns;
+    public java.lang.String getNamespaceName() {
+      return this.namespaceName;
     }
 
-    public grantNamespacePermission_args setNs(@org.apache.thrift.annotation.Nullable java.lang.String ns) {
-      this.ns = ns;
+    public grantNamespacePermission_args setNamespaceName(@org.apache.thrift.annotation.Nullable java.lang.String namespaceName) {
+      this.namespaceName = namespaceName;
       return this;
     }
 
-    public void unsetNs() {
-      this.ns = null;
+    public void unsetNamespaceName() {
+      this.namespaceName = null;
     }
 
-    /** Returns true if field ns is set (has been assigned a value) and false otherwise */
-    public boolean isSetNs() {
-      return this.ns != null;
+    /** Returns true if field namespaceName is set (has been assigned a value) and false otherwise */
+    public boolean isSetNamespaceName() {
+      return this.namespaceName != null;
     }
 
-    public void setNsIsSet(boolean value) {
+    public void setNamespaceNameIsSet(boolean value) {
       if (!value) {
-        this.ns = null;
+        this.namespaceName = null;
       }
     }
 
@@ -28616,11 +28616,11 @@ public class ClientService {
         }
         break;
 
-      case NS:
+      case NAMESPACE_NAME:
         if (value == null) {
-          unsetNs();
+          unsetNamespaceName();
         } else {
-          setNs((java.lang.String)value);
+          setNamespaceName((java.lang.String)value);
         }
         break;
 
@@ -28647,8 +28647,8 @@ public class ClientService {
       case PRINCIPAL:
         return getPrincipal();
 
-      case NS:
-        return getNs();
+      case NAMESPACE_NAME:
+        return getNamespaceName();
 
       case PERMISSION:
         return getPermission();
@@ -28670,8 +28670,8 @@ public class ClientService {
         return isSetCredentials();
       case PRINCIPAL:
         return isSetPrincipal();
-      case NS:
-        return isSetNs();
+      case NAMESPACE_NAME:
+        return isSetNamespaceName();
       case PERMISSION:
         return isSetPermission();
       }
@@ -28720,12 +28720,12 @@ public class ClientService {
           return false;
       }
 
-      boolean this_present_ns = true && this.isSetNs();
-      boolean that_present_ns = true && that.isSetNs();
-      if (this_present_ns || that_present_ns) {
-        if (!(this_present_ns && that_present_ns))
+      boolean this_present_namespaceName = true && this.isSetNamespaceName();
+      boolean that_present_namespaceName = true && that.isSetNamespaceName();
+      if (this_present_namespaceName || that_present_namespaceName) {
+        if (!(this_present_namespaceName && that_present_namespaceName))
           return false;
-        if (!this.ns.equals(that.ns))
+        if (!this.namespaceName.equals(that.namespaceName))
           return false;
       }
 
@@ -28757,9 +28757,9 @@ public class ClientService {
       if (isSetPrincipal())
         hashCode = hashCode * 8191 + principal.hashCode();
 
-      hashCode = hashCode * 8191 + ((isSetNs()) ? 131071 : 524287);
-      if (isSetNs())
-        hashCode = hashCode * 8191 + ns.hashCode();
+      hashCode = hashCode * 8191 + ((isSetNamespaceName()) ? 131071 : 524287);
+      if (isSetNamespaceName())
+        hashCode = hashCode * 8191 + namespaceName.hashCode();
 
       hashCode = hashCode * 8191 + (int) (permission);
 
@@ -28804,12 +28804,12 @@ public class ClientService {
           return lastComparison;
         }
       }
-      lastComparison = java.lang.Boolean.valueOf(isSetNs()).compareTo(other.isSetNs());
+      lastComparison = java.lang.Boolean.valueOf(isSetNamespaceName()).compareTo(other.isSetNamespaceName());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetNs()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.ns, other.ns);
+      if (isSetNamespaceName()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.namespaceName, other.namespaceName);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -28869,11 +28869,11 @@ public class ClientService {
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("ns:");
-      if (this.ns == null) {
+      sb.append("namespaceName:");
+      if (this.namespaceName == null) {
         sb.append("null");
       } else {
-        sb.append(this.ns);
+        sb.append(this.namespaceName);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -28957,10 +28957,10 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 4: // NS
+            case 4: // NAMESPACE_NAME
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.ns = iprot.readString();
-                struct.setNsIsSet(true);
+                struct.namespaceName = iprot.readString();
+                struct.setNamespaceNameIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -29003,9 +29003,9 @@ public class ClientService {
           oprot.writeString(struct.principal);
           oprot.writeFieldEnd();
         }
-        if (struct.ns != null) {
-          oprot.writeFieldBegin(NS_FIELD_DESC);
-          oprot.writeString(struct.ns);
+        if (struct.namespaceName != null) {
+          oprot.writeFieldBegin(NAMESPACE_NAME_FIELD_DESC);
+          oprot.writeString(struct.namespaceName);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldBegin(PERMISSION_FIELD_DESC);
@@ -29038,7 +29038,7 @@ public class ClientService {
         if (struct.isSetPrincipal()) {
           optionals.set(2);
         }
-        if (struct.isSetNs()) {
+        if (struct.isSetNamespaceName()) {
           optionals.set(3);
         }
         if (struct.isSetPermission()) {
@@ -29054,8 +29054,8 @@ public class ClientService {
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
         }
-        if (struct.isSetNs()) {
-          oprot.writeString(struct.ns);
+        if (struct.isSetNamespaceName()) {
+          oprot.writeString(struct.namespaceName);
         }
         if (struct.isSetPermission()) {
           oprot.writeByte(struct.permission);
@@ -29081,8 +29081,8 @@ public class ClientService {
           struct.setPrincipalIsSet(true);
         }
         if (incoming.get(3)) {
-          struct.ns = iprot.readString();
-          struct.setNsIsSet(true);
+          struct.namespaceName = iprot.readString();
+          struct.setNamespaceNameIsSet(true);
         }
         if (incoming.get(4)) {
           struct.permission = iprot.readByte();
@@ -29578,7 +29578,7 @@ public class ClientService {
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField PRINCIPAL_FIELD_DESC = new org.apache.thrift.protocol.TField("principal", org.apache.thrift.protocol.TType.STRING, (short)3);
-    private static final org.apache.thrift.protocol.TField NS_FIELD_DESC = new org.apache.thrift.protocol.TField("ns", org.apache.thrift.protocol.TType.STRING, (short)4);
+    private static final org.apache.thrift.protocol.TField NAMESPACE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("namespaceName", org.apache.thrift.protocol.TType.STRING, (short)4);
     private static final org.apache.thrift.protocol.TField PERMISSION_FIELD_DESC = new org.apache.thrift.protocol.TField("permission", org.apache.thrift.protocol.TType.BYTE, (short)5);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new revokeNamespacePermission_argsStandardSchemeFactory();
@@ -29587,7 +29587,7 @@ public class ClientService {
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
     public @org.apache.thrift.annotation.Nullable java.lang.String principal; // required
-    public @org.apache.thrift.annotation.Nullable java.lang.String ns; // required
+    public @org.apache.thrift.annotation.Nullable java.lang.String namespaceName; // required
     public byte permission; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -29595,7 +29595,7 @@ public class ClientService {
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
       PRINCIPAL((short)3, "principal"),
-      NS((short)4, "ns"),
+      NAMESPACE_NAME((short)4, "namespaceName"),
       PERMISSION((short)5, "permission");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
@@ -29618,8 +29618,8 @@ public class ClientService {
             return CREDENTIALS;
           case 3: // PRINCIPAL
             return PRINCIPAL;
-          case 4: // NS
-            return NS;
+          case 4: // NAMESPACE_NAME
+            return NAMESPACE_NAME;
           case 5: // PERMISSION
             return PERMISSION;
           default:
@@ -29674,7 +29674,7 @@ public class ClientService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.PRINCIPAL, new org.apache.thrift.meta_data.FieldMetaData("principal", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-      tmpMap.put(_Fields.NS, new org.apache.thrift.meta_data.FieldMetaData("ns", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.NAMESPACE_NAME, new org.apache.thrift.meta_data.FieldMetaData("namespaceName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.PERMISSION, new org.apache.thrift.meta_data.FieldMetaData("permission", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BYTE)));
@@ -29689,14 +29689,14 @@ public class ClientService {
       org.apache.accumulo.core.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
       java.lang.String principal,
-      java.lang.String ns,
+      java.lang.String namespaceName,
       byte permission)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.principal = principal;
-      this.ns = ns;
+      this.namespaceName = namespaceName;
       this.permission = permission;
       setPermissionIsSet(true);
     }
@@ -29715,8 +29715,8 @@ public class ClientService {
       if (other.isSetPrincipal()) {
         this.principal = other.principal;
       }
-      if (other.isSetNs()) {
-        this.ns = other.ns;
+      if (other.isSetNamespaceName()) {
+        this.namespaceName = other.namespaceName;
       }
       this.permission = other.permission;
     }
@@ -29730,7 +29730,7 @@ public class ClientService {
       this.tinfo = null;
       this.credentials = null;
       this.principal = null;
-      this.ns = null;
+      this.namespaceName = null;
       setPermissionIsSet(false);
       this.permission = 0;
     }
@@ -29811,27 +29811,27 @@ public class ClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public java.lang.String getNs() {
-      return this.ns;
+    public java.lang.String getNamespaceName() {
+      return this.namespaceName;
     }
 
-    public revokeNamespacePermission_args setNs(@org.apache.thrift.annotation.Nullable java.lang.String ns) {
-      this.ns = ns;
+    public revokeNamespacePermission_args setNamespaceName(@org.apache.thrift.annotation.Nullable java.lang.String namespaceName) {
+      this.namespaceName = namespaceName;
       return this;
     }
 
-    public void unsetNs() {
-      this.ns = null;
+    public void unsetNamespaceName() {
+      this.namespaceName = null;
     }
 
-    /** Returns true if field ns is set (has been assigned a value) and false otherwise */
-    public boolean isSetNs() {
-      return this.ns != null;
+    /** Returns true if field namespaceName is set (has been assigned a value) and false otherwise */
+    public boolean isSetNamespaceName() {
+      return this.namespaceName != null;
     }
 
-    public void setNsIsSet(boolean value) {
+    public void setNamespaceNameIsSet(boolean value) {
       if (!value) {
-        this.ns = null;
+        this.namespaceName = null;
       }
     }
 
@@ -29884,11 +29884,11 @@ public class ClientService {
         }
         break;
 
-      case NS:
+      case NAMESPACE_NAME:
         if (value == null) {
-          unsetNs();
+          unsetNamespaceName();
         } else {
-          setNs((java.lang.String)value);
+          setNamespaceName((java.lang.String)value);
         }
         break;
 
@@ -29915,8 +29915,8 @@ public class ClientService {
       case PRINCIPAL:
         return getPrincipal();
 
-      case NS:
-        return getNs();
+      case NAMESPACE_NAME:
+        return getNamespaceName();
 
       case PERMISSION:
         return getPermission();
@@ -29938,8 +29938,8 @@ public class ClientService {
         return isSetCredentials();
       case PRINCIPAL:
         return isSetPrincipal();
-      case NS:
-        return isSetNs();
+      case NAMESPACE_NAME:
+        return isSetNamespaceName();
       case PERMISSION:
         return isSetPermission();
       }
@@ -29988,12 +29988,12 @@ public class ClientService {
           return false;
       }
 
-      boolean this_present_ns = true && this.isSetNs();
-      boolean that_present_ns = true && that.isSetNs();
-      if (this_present_ns || that_present_ns) {
-        if (!(this_present_ns && that_present_ns))
+      boolean this_present_namespaceName = true && this.isSetNamespaceName();
+      boolean that_present_namespaceName = true && that.isSetNamespaceName();
+      if (this_present_namespaceName || that_present_namespaceName) {
+        if (!(this_present_namespaceName && that_present_namespaceName))
           return false;
-        if (!this.ns.equals(that.ns))
+        if (!this.namespaceName.equals(that.namespaceName))
           return false;
       }
 
@@ -30025,9 +30025,9 @@ public class ClientService {
       if (isSetPrincipal())
         hashCode = hashCode * 8191 + principal.hashCode();
 
-      hashCode = hashCode * 8191 + ((isSetNs()) ? 131071 : 524287);
-      if (isSetNs())
-        hashCode = hashCode * 8191 + ns.hashCode();
+      hashCode = hashCode * 8191 + ((isSetNamespaceName()) ? 131071 : 524287);
+      if (isSetNamespaceName())
+        hashCode = hashCode * 8191 + namespaceName.hashCode();
 
       hashCode = hashCode * 8191 + (int) (permission);
 
@@ -30072,12 +30072,12 @@ public class ClientService {
           return lastComparison;
         }
       }
-      lastComparison = java.lang.Boolean.valueOf(isSetNs()).compareTo(other.isSetNs());
+      lastComparison = java.lang.Boolean.valueOf(isSetNamespaceName()).compareTo(other.isSetNamespaceName());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetNs()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.ns, other.ns);
+      if (isSetNamespaceName()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.namespaceName, other.namespaceName);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -30137,11 +30137,11 @@ public class ClientService {
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("ns:");
-      if (this.ns == null) {
+      sb.append("namespaceName:");
+      if (this.namespaceName == null) {
         sb.append("null");
       } else {
-        sb.append(this.ns);
+        sb.append(this.namespaceName);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -30225,10 +30225,10 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 4: // NS
+            case 4: // NAMESPACE_NAME
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.ns = iprot.readString();
-                struct.setNsIsSet(true);
+                struct.namespaceName = iprot.readString();
+                struct.setNamespaceNameIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -30271,9 +30271,9 @@ public class ClientService {
           oprot.writeString(struct.principal);
           oprot.writeFieldEnd();
         }
-        if (struct.ns != null) {
-          oprot.writeFieldBegin(NS_FIELD_DESC);
-          oprot.writeString(struct.ns);
+        if (struct.namespaceName != null) {
+          oprot.writeFieldBegin(NAMESPACE_NAME_FIELD_DESC);
+          oprot.writeString(struct.namespaceName);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldBegin(PERMISSION_FIELD_DESC);
@@ -30306,7 +30306,7 @@ public class ClientService {
         if (struct.isSetPrincipal()) {
           optionals.set(2);
         }
-        if (struct.isSetNs()) {
+        if (struct.isSetNamespaceName()) {
           optionals.set(3);
         }
         if (struct.isSetPermission()) {
@@ -30322,8 +30322,8 @@ public class ClientService {
         if (struct.isSetPrincipal()) {
           oprot.writeString(struct.principal);
         }
-        if (struct.isSetNs()) {
-          oprot.writeString(struct.ns);
+        if (struct.isSetNamespaceName()) {
+          oprot.writeString(struct.namespaceName);
         }
         if (struct.isSetPermission()) {
           oprot.writeByte(struct.permission);
@@ -30349,8 +30349,8 @@ public class ClientService {
           struct.setPrincipalIsSet(true);
         }
         if (incoming.get(3)) {
-          struct.ns = iprot.readString();
-          struct.setNsIsSet(true);
+          struct.namespaceName = iprot.readString();
+          struct.setNamespaceNameIsSet(true);
         }
         if (incoming.get(4)) {
           struct.permission = iprot.readByte();
@@ -32980,20 +32980,20 @@ public class ClientService {
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField NS_FIELD_DESC = new org.apache.thrift.protocol.TField("ns", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField NAMESPACE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("namespaceName", org.apache.thrift.protocol.TType.STRING, (short)3);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getNamespaceConfiguration_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getNamespaceConfiguration_argsTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
-    public @org.apache.thrift.annotation.Nullable java.lang.String ns; // required
+    public @org.apache.thrift.annotation.Nullable java.lang.String namespaceName; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
-      NS((short)3, "ns");
+      NAMESPACE_NAME((short)3, "namespaceName");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -33013,8 +33013,8 @@ public class ClientService {
             return TINFO;
           case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 3: // NS
-            return NS;
+          case 3: // NAMESPACE_NAME
+            return NAMESPACE_NAME;
           default:
             return null;
         }
@@ -33063,7 +33063,7 @@ public class ClientService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.trace.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
-      tmpMap.put(_Fields.NS, new org.apache.thrift.meta_data.FieldMetaData("ns", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.NAMESPACE_NAME, new org.apache.thrift.meta_data.FieldMetaData("namespaceName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getNamespaceConfiguration_args.class, metaDataMap);
@@ -33075,12 +33075,12 @@ public class ClientService {
     public getNamespaceConfiguration_args(
       org.apache.accumulo.core.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
-      java.lang.String ns)
+      java.lang.String namespaceName)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
-      this.ns = ns;
+      this.namespaceName = namespaceName;
     }
 
     /**
@@ -33093,8 +33093,8 @@ public class ClientService {
       if (other.isSetCredentials()) {
         this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
       }
-      if (other.isSetNs()) {
-        this.ns = other.ns;
+      if (other.isSetNamespaceName()) {
+        this.namespaceName = other.namespaceName;
       }
     }
 
@@ -33106,7 +33106,7 @@ public class ClientService {
     public void clear() {
       this.tinfo = null;
       this.credentials = null;
-      this.ns = null;
+      this.namespaceName = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -33160,27 +33160,27 @@ public class ClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public java.lang.String getNs() {
-      return this.ns;
+    public java.lang.String getNamespaceName() {
+      return this.namespaceName;
     }
 
-    public getNamespaceConfiguration_args setNs(@org.apache.thrift.annotation.Nullable java.lang.String ns) {
-      this.ns = ns;
+    public getNamespaceConfiguration_args setNamespaceName(@org.apache.thrift.annotation.Nullable java.lang.String namespaceName) {
+      this.namespaceName = namespaceName;
       return this;
     }
 
-    public void unsetNs() {
-      this.ns = null;
+    public void unsetNamespaceName() {
+      this.namespaceName = null;
     }
 
-    /** Returns true if field ns is set (has been assigned a value) and false otherwise */
-    public boolean isSetNs() {
-      return this.ns != null;
+    /** Returns true if field namespaceName is set (has been assigned a value) and false otherwise */
+    public boolean isSetNamespaceName() {
+      return this.namespaceName != null;
     }
 
-    public void setNsIsSet(boolean value) {
+    public void setNamespaceNameIsSet(boolean value) {
       if (!value) {
-        this.ns = null;
+        this.namespaceName = null;
       }
     }
 
@@ -33202,11 +33202,11 @@ public class ClientService {
         }
         break;
 
-      case NS:
+      case NAMESPACE_NAME:
         if (value == null) {
-          unsetNs();
+          unsetNamespaceName();
         } else {
-          setNs((java.lang.String)value);
+          setNamespaceName((java.lang.String)value);
         }
         break;
 
@@ -33222,8 +33222,8 @@ public class ClientService {
       case CREDENTIALS:
         return getCredentials();
 
-      case NS:
-        return getNs();
+      case NAMESPACE_NAME:
+        return getNamespaceName();
 
       }
       throw new java.lang.IllegalStateException();
@@ -33240,8 +33240,8 @@ public class ClientService {
         return isSetTinfo();
       case CREDENTIALS:
         return isSetCredentials();
-      case NS:
-        return isSetNs();
+      case NAMESPACE_NAME:
+        return isSetNamespaceName();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -33279,12 +33279,12 @@ public class ClientService {
           return false;
       }
 
-      boolean this_present_ns = true && this.isSetNs();
-      boolean that_present_ns = true && that.isSetNs();
-      if (this_present_ns || that_present_ns) {
-        if (!(this_present_ns && that_present_ns))
+      boolean this_present_namespaceName = true && this.isSetNamespaceName();
+      boolean that_present_namespaceName = true && that.isSetNamespaceName();
+      if (this_present_namespaceName || that_present_namespaceName) {
+        if (!(this_present_namespaceName && that_present_namespaceName))
           return false;
-        if (!this.ns.equals(that.ns))
+        if (!this.namespaceName.equals(that.namespaceName))
           return false;
       }
 
@@ -33303,9 +33303,9 @@ public class ClientService {
       if (isSetCredentials())
         hashCode = hashCode * 8191 + credentials.hashCode();
 
-      hashCode = hashCode * 8191 + ((isSetNs()) ? 131071 : 524287);
-      if (isSetNs())
-        hashCode = hashCode * 8191 + ns.hashCode();
+      hashCode = hashCode * 8191 + ((isSetNamespaceName()) ? 131071 : 524287);
+      if (isSetNamespaceName())
+        hashCode = hashCode * 8191 + namespaceName.hashCode();
 
       return hashCode;
     }
@@ -33338,12 +33338,12 @@ public class ClientService {
           return lastComparison;
         }
       }
-      lastComparison = java.lang.Boolean.valueOf(isSetNs()).compareTo(other.isSetNs());
+      lastComparison = java.lang.Boolean.valueOf(isSetNamespaceName()).compareTo(other.isSetNamespaceName());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetNs()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.ns, other.ns);
+      if (isSetNamespaceName()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.namespaceName, other.namespaceName);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -33385,11 +33385,11 @@ public class ClientService {
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("ns:");
-      if (this.ns == null) {
+      sb.append("namespaceName:");
+      if (this.namespaceName == null) {
         sb.append("null");
       } else {
-        sb.append(this.ns);
+        sb.append(this.namespaceName);
       }
       first = false;
       sb.append(")");
@@ -33459,10 +33459,10 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 3: // NS
+            case 3: // NAMESPACE_NAME
               if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.ns = iprot.readString();
-                struct.setNsIsSet(true);
+                struct.namespaceName = iprot.readString();
+                struct.setNamespaceNameIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -33492,9 +33492,9 @@ public class ClientService {
           struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
-        if (struct.ns != null) {
-          oprot.writeFieldBegin(NS_FIELD_DESC);
-          oprot.writeString(struct.ns);
+        if (struct.namespaceName != null) {
+          oprot.writeFieldBegin(NAMESPACE_NAME_FIELD_DESC);
+          oprot.writeString(struct.namespaceName);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -33521,7 +33521,7 @@ public class ClientService {
         if (struct.isSetCredentials()) {
           optionals.set(1);
         }
-        if (struct.isSetNs()) {
+        if (struct.isSetNamespaceName()) {
           optionals.set(2);
         }
         oprot.writeBitSet(optionals, 3);
@@ -33531,8 +33531,8 @@ public class ClientService {
         if (struct.isSetCredentials()) {
           struct.credentials.write(oprot);
         }
-        if (struct.isSetNs()) {
-          oprot.writeString(struct.ns);
+        if (struct.isSetNamespaceName()) {
+          oprot.writeString(struct.namespaceName);
         }
       }
 
@@ -33551,8 +33551,8 @@ public class ClientService {
           struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
-          struct.ns = iprot.readString();
-          struct.setNsIsSet(true);
+          struct.namespaceName = iprot.readString();
+          struct.setNamespaceNameIsSet(true);
         }
       }
     }

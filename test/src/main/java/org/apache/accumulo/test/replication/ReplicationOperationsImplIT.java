@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ReplicationOperationsImpl;
+import org.apache.accumulo.core.clientImpl.thrift.Tid;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -89,24 +90,15 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
     EasyMock.expect(manager.getContext()).andReturn(serverContext).anyTimes();
     EasyMock.replay(manager);
 
-    final ManagerClientServiceHandler mcsh = new ManagerClientServiceHandler(manager) {
-      @Override
-      protected TableId getTableId(ClientContext context, String tableName) {
-        try {
-          return TableId.of(client.tableOperations().tableIdMap().get(tableName));
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-      }
-    };
+    final ManagerClientServiceHandler mcsh = new ManagerClientServiceHandler(manager) {};
 
     ClientContext context = (ClientContext) client;
     return new ReplicationOperationsImpl(context) {
       @Override
       protected boolean getManagerDrain(final TInfo tinfo, final TCredentials rpcCreds,
-          final String tableName, final Set<String> wals) {
+          final TableId tableId, final Set<String> wals) {
         try {
-          return mcsh.drainReplicationTable(tinfo, rpcCreds, tableName, wals);
+          return mcsh.drainReplicationTable(tinfo, rpcCreds, new Tid(tableId.canonical()), wals);
         } catch (TException e) {
           throw new RuntimeException(e);
         }

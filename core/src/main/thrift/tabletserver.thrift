@@ -314,7 +314,7 @@ service TabletClientService extends client.ClientService {
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
     3:list<binary> authorizations
-    4:string tableID
+    4:string tableId
     5:TDurability durability
     6:string classLoaderContext
   ) throws (

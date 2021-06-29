@@ -28,18 +28,18 @@ package org.apache.accumulo.core.clientImpl.thrift;
 public class TDiskUsage implements org.apache.thrift.TBase<TDiskUsage, TDiskUsage._Fields>, java.io.Serializable, Cloneable, Comparable<TDiskUsage> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TDiskUsage");
 
-  private static final org.apache.thrift.protocol.TField TABLES_FIELD_DESC = new org.apache.thrift.protocol.TField("tables", org.apache.thrift.protocol.TType.LIST, (short)1);
+  private static final org.apache.thrift.protocol.TField TABLE_NAMES_FIELD_DESC = new org.apache.thrift.protocol.TField("tableNames", org.apache.thrift.protocol.TType.LIST, (short)1);
   private static final org.apache.thrift.protocol.TField USAGE_FIELD_DESC = new org.apache.thrift.protocol.TField("usage", org.apache.thrift.protocol.TType.I64, (short)2);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TDiskUsageStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TDiskUsageTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> tables; // required
+  public @org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> tableNames; // required
   public long usage; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    TABLES((short)1, "tables"),
+    TABLE_NAMES((short)1, "tableNames"),
     USAGE((short)2, "usage");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
@@ -56,8 +56,8 @@ public class TDiskUsage implements org.apache.thrift.TBase<TDiskUsage, TDiskUsag
     @org.apache.thrift.annotation.Nullable
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // TABLES
-          return TABLES;
+        case 1: // TABLE_NAMES
+          return TABLE_NAMES;
         case 2: // USAGE
           return USAGE;
         default:
@@ -106,7 +106,7 @@ public class TDiskUsage implements org.apache.thrift.TBase<TDiskUsage, TDiskUsag
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.TABLES, new org.apache.thrift.meta_data.FieldMetaData("tables", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.TABLE_NAMES, new org.apache.thrift.meta_data.FieldMetaData("tableNames", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
     tmpMap.put(_Fields.USAGE, new org.apache.thrift.meta_data.FieldMetaData("usage", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -119,11 +119,11 @@ public class TDiskUsage implements org.apache.thrift.TBase<TDiskUsage, TDiskUsag
   }
 
   public TDiskUsage(
-    java.util.List<java.lang.String> tables,
+    java.util.List<java.lang.String> tableNames,
     long usage)
   {
     this();
-    this.tables = tables;
+    this.tableNames = tableNames;
     this.usage = usage;
     setUsageIsSet(true);
   }
@@ -133,9 +133,9 @@ public class TDiskUsage implements org.apache.thrift.TBase<TDiskUsage, TDiskUsag
    */
   public TDiskUsage(TDiskUsage other) {
     __isset_bitfield = other.__isset_bitfield;
-    if (other.isSetTables()) {
-      java.util.List<java.lang.String> __this__tables = new java.util.ArrayList<java.lang.String>(other.tables);
-      this.tables = __this__tables;
+    if (other.isSetTableNames()) {
+      java.util.List<java.lang.String> __this__tableNames = new java.util.ArrayList<java.lang.String>(other.tableNames);
+      this.tableNames = __this__tableNames;
     }
     this.usage = other.usage;
   }
@@ -146,49 +146,49 @@ public class TDiskUsage implements org.apache.thrift.TBase<TDiskUsage, TDiskUsag
 
   @Override
   public void clear() {
-    this.tables = null;
+    this.tableNames = null;
     setUsageIsSet(false);
     this.usage = 0;
   }
 
-  public int getTablesSize() {
-    return (this.tables == null) ? 0 : this.tables.size();
+  public int getTableNamesSize() {
+    return (this.tableNames == null) ? 0 : this.tableNames.size();
   }
 
   @org.apache.thrift.annotation.Nullable
-  public java.util.Iterator<java.lang.String> getTablesIterator() {
-    return (this.tables == null) ? null : this.tables.iterator();
+  public java.util.Iterator<java.lang.String> getTableNamesIterator() {
+    return (this.tableNames == null) ? null : this.tableNames.iterator();
   }
 
-  public void addToTables(java.lang.String elem) {
-    if (this.tables == null) {
-      this.tables = new java.util.ArrayList<java.lang.String>();
+  public void addToTableNames(java.lang.String elem) {
+    if (this.tableNames == null) {
+      this.tableNames = new java.util.ArrayList<java.lang.String>();
     }
-    this.tables.add(elem);
+    this.tableNames.add(elem);
   }
 
   @org.apache.thrift.annotation.Nullable
-  public java.util.List<java.lang.String> getTables() {
-    return this.tables;
+  public java.util.List<java.lang.String> getTableNames() {
+    return this.tableNames;
   }
 
-  public TDiskUsage setTables(@org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> tables) {
-    this.tables = tables;
+  public TDiskUsage setTableNames(@org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> tableNames) {
+    this.tableNames = tableNames;
     return this;
   }
 
-  public void unsetTables() {
-    this.tables = null;
+  public void unsetTableNames() {
+    this.tableNames = null;
   }
 
-  /** Returns true if field tables is set (has been assigned a value) and false otherwise */
-  public boolean isSetTables() {
-    return this.tables != null;
+  /** Returns true if field tableNames is set (has been assigned a value) and false otherwise */
+  public boolean isSetTableNames() {
+    return this.tableNames != null;
   }
 
-  public void setTablesIsSet(boolean value) {
+  public void setTableNamesIsSet(boolean value) {
     if (!value) {
-      this.tables = null;
+      this.tableNames = null;
     }
   }
 
@@ -217,11 +217,11 @@ public class TDiskUsage implements org.apache.thrift.TBase<TDiskUsage, TDiskUsag
 
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
-    case TABLES:
+    case TABLE_NAMES:
       if (value == null) {
-        unsetTables();
+        unsetTableNames();
       } else {
-        setTables((java.util.List<java.lang.String>)value);
+        setTableNames((java.util.List<java.lang.String>)value);
       }
       break;
 
@@ -239,8 +239,8 @@ public class TDiskUsage implements org.apache.thrift.TBase<TDiskUsage, TDiskUsag
   @org.apache.thrift.annotation.Nullable
   public java.lang.Object getFieldValue(_Fields field) {
     switch (field) {
-    case TABLES:
-      return getTables();
+    case TABLE_NAMES:
+      return getTableNames();
 
     case USAGE:
       return getUsage();
@@ -256,8 +256,8 @@ public class TDiskUsage implements org.apache.thrift.TBase<TDiskUsage, TDiskUsag
     }
 
     switch (field) {
-    case TABLES:
-      return isSetTables();
+    case TABLE_NAMES:
+      return isSetTableNames();
     case USAGE:
       return isSetUsage();
     }
@@ -279,12 +279,12 @@ public class TDiskUsage implements org.apache.thrift.TBase<TDiskUsage, TDiskUsag
     if (this == that)
       return true;
 
-    boolean this_present_tables = true && this.isSetTables();
-    boolean that_present_tables = true && that.isSetTables();
-    if (this_present_tables || that_present_tables) {
-      if (!(this_present_tables && that_present_tables))
+    boolean this_present_tableNames = true && this.isSetTableNames();
+    boolean that_present_tableNames = true && that.isSetTableNames();
+    if (this_present_tableNames || that_present_tableNames) {
+      if (!(this_present_tableNames && that_present_tableNames))
         return false;
-      if (!this.tables.equals(that.tables))
+      if (!this.tableNames.equals(that.tableNames))
         return false;
     }
 
@@ -304,9 +304,9 @@ public class TDiskUsage implements org.apache.thrift.TBase<TDiskUsage, TDiskUsag
   public int hashCode() {
     int hashCode = 1;
 
-    hashCode = hashCode * 8191 + ((isSetTables()) ? 131071 : 524287);
-    if (isSetTables())
-      hashCode = hashCode * 8191 + tables.hashCode();
+    hashCode = hashCode * 8191 + ((isSetTableNames()) ? 131071 : 524287);
+    if (isSetTableNames())
+      hashCode = hashCode * 8191 + tableNames.hashCode();
 
     hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(usage);
 
@@ -321,12 +321,12 @@ public class TDiskUsage implements org.apache.thrift.TBase<TDiskUsage, TDiskUsag
 
     int lastComparison = 0;
 
-    lastComparison = java.lang.Boolean.valueOf(isSetTables()).compareTo(other.isSetTables());
+    lastComparison = java.lang.Boolean.valueOf(isSetTableNames()).compareTo(other.isSetTableNames());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetTables()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tables, other.tables);
+    if (isSetTableNames()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tableNames, other.tableNames);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -362,11 +362,11 @@ public class TDiskUsage implements org.apache.thrift.TBase<TDiskUsage, TDiskUsag
     java.lang.StringBuilder sb = new java.lang.StringBuilder("TDiskUsage(");
     boolean first = true;
 
-    sb.append("tables:");
-    if (this.tables == null) {
+    sb.append("tableNames:");
+    if (this.tableNames == null) {
       sb.append("null");
     } else {
-      sb.append(this.tables);
+      sb.append(this.tableNames);
     }
     first = false;
     if (!first) sb.append(", ");
@@ -418,20 +418,20 @@ public class TDiskUsage implements org.apache.thrift.TBase<TDiskUsage, TDiskUsag
           break;
         }
         switch (schemeField.id) {
-          case 1: // TABLES
+          case 1: // TABLE_NAMES
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
                 org.apache.thrift.protocol.TList _list0 = iprot.readListBegin();
-                struct.tables = new java.util.ArrayList<java.lang.String>(_list0.size);
+                struct.tableNames = new java.util.ArrayList<java.lang.String>(_list0.size);
                 @org.apache.thrift.annotation.Nullable java.lang.String _elem1;
                 for (int _i2 = 0; _i2 < _list0.size; ++_i2)
                 {
                   _elem1 = iprot.readString();
-                  struct.tables.add(_elem1);
+                  struct.tableNames.add(_elem1);
                 }
                 iprot.readListEnd();
               }
-              struct.setTablesIsSet(true);
+              struct.setTableNamesIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -459,11 +459,11 @@ public class TDiskUsage implements org.apache.thrift.TBase<TDiskUsage, TDiskUsag
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.tables != null) {
-        oprot.writeFieldBegin(TABLES_FIELD_DESC);
+      if (struct.tableNames != null) {
+        oprot.writeFieldBegin(TABLE_NAMES_FIELD_DESC);
         {
-          oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.tables.size()));
-          for (java.lang.String _iter3 : struct.tables)
+          oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.tableNames.size()));
+          for (java.lang.String _iter3 : struct.tableNames)
           {
             oprot.writeString(_iter3);
           }
@@ -492,17 +492,17 @@ public class TDiskUsage implements org.apache.thrift.TBase<TDiskUsage, TDiskUsag
     public void write(org.apache.thrift.protocol.TProtocol prot, TDiskUsage struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet optionals = new java.util.BitSet();
-      if (struct.isSetTables()) {
+      if (struct.isSetTableNames()) {
         optionals.set(0);
       }
       if (struct.isSetUsage()) {
         optionals.set(1);
       }
       oprot.writeBitSet(optionals, 2);
-      if (struct.isSetTables()) {
+      if (struct.isSetTableNames()) {
         {
-          oprot.writeI32(struct.tables.size());
-          for (java.lang.String _iter4 : struct.tables)
+          oprot.writeI32(struct.tableNames.size());
+          for (java.lang.String _iter4 : struct.tableNames)
           {
             oprot.writeString(_iter4);
           }
@@ -520,15 +520,15 @@ public class TDiskUsage implements org.apache.thrift.TBase<TDiskUsage, TDiskUsag
       if (incoming.get(0)) {
         {
           org.apache.thrift.protocol.TList _list5 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-          struct.tables = new java.util.ArrayList<java.lang.String>(_list5.size);
+          struct.tableNames = new java.util.ArrayList<java.lang.String>(_list5.size);
           @org.apache.thrift.annotation.Nullable java.lang.String _elem6;
           for (int _i7 = 0; _i7 < _list5.size; ++_i7)
           {
             _elem6 = iprot.readString();
-            struct.tables.add(_elem6);
+            struct.tableNames.add(_elem6);
           }
         }
-        struct.setTablesIsSet(true);
+        struct.setTableNamesIsSet(true);
       }
       if (incoming.get(1)) {
         struct.usage = iprot.readI64();
