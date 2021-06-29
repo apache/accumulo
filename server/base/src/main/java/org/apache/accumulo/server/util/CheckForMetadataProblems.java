@@ -50,59 +50,60 @@ public class CheckForMetadataProblems {
   private static void checkTable(TableId tableId, TreeSet<KeyExtent> tablets) {
     // sanity check of metadata table entries
     // make sure tablets has no holes, and that it starts and ends w/ null
+    String tableName;
 
     try {
-      String tableName = Tables.getTableName(opts.getServerContext(), tableId);
-
-      if (tablets.isEmpty()) {
-        System.out.println(
-            "...No entries found in metadata table for table " + tableName + " (" + tableId + ")");
-        sawProblems = true;
-        return;
-      }
-
-      if (tablets.first().prevEndRow() != null) {
-        System.out.println("...First entry for table " + tableName + " (" + tableId + ") " + " - "
-            + tablets.first() + " - has non null prev end row");
-        sawProblems = true;
-        return;
-      }
-
-      if (tablets.last().endRow() != null) {
-        System.out.println("...Last entry for table " + tableName + " (" + tableId + ") - "
-            + tablets.last() + " - has non null end row");
-        sawProblems = true;
-        return;
-      }
-
-      Iterator<KeyExtent> tabIter = tablets.iterator();
-      Text lastEndRow = tabIter.next().endRow();
-      boolean everythingLooksGood = true;
-      while (tabIter.hasNext()) {
-        KeyExtent tabke = tabIter.next();
-        boolean broke = false;
-        if (tabke.prevEndRow() == null) {
-          System.out.println("Table " + tableName + " (" + tableId
-              + ") has null prev end row in middle of table " + tabke);
-          broke = true;
-        } else if (!tabke.prevEndRow().equals(lastEndRow)) {
-          System.out.println("...Table " + tableName + " (" + tableId + ") has a hole "
-              + tabke.prevEndRow() + " != " + lastEndRow);
-          broke = true;
-        }
-        if (broke) {
-          everythingLooksGood = false;
-        }
-
-        lastEndRow = tabke.endRow();
-      }
-      if (everythingLooksGood)
-        System.out.println("...All is well for table " + tableName + " (" + tableId + ")");
-      else
-        sawProblems = true;
+      tableName = Tables.getTableName(opts.getServerContext(), tableId);
     } catch (TableNotFoundException e) {
-      System.out.println("...Table name lookup failed. This table does not exist");
+      tableName = null;
     }
+
+    if (tablets.isEmpty()) {
+      System.out.println(
+          "...No entries found in metadata table for table " + tableName + " (" + tableId + ")");
+      sawProblems = true;
+      return;
+    }
+
+    if (tablets.first().prevEndRow() != null) {
+      System.out.println("...First entry for table " + tableName + " (" + tableId + ") " + " - "
+          + tablets.first() + " - has non null prev end row");
+      sawProblems = true;
+      return;
+    }
+
+    if (tablets.last().endRow() != null) {
+      System.out.println("...Last entry for table " + tableName + " (" + tableId + ") - "
+          + tablets.last() + " - has non null end row");
+      sawProblems = true;
+      return;
+    }
+
+    Iterator<KeyExtent> tabIter = tablets.iterator();
+    Text lastEndRow = tabIter.next().endRow();
+    boolean everythingLooksGood = true;
+    while (tabIter.hasNext()) {
+      KeyExtent tabke = tabIter.next();
+      boolean broke = false;
+      if (tabke.prevEndRow() == null) {
+        System.out.println("Table " + tableName + " (" + tableId
+            + ") has null prev end row in middle of table " + tabke);
+        broke = true;
+      } else if (!tabke.prevEndRow().equals(lastEndRow)) {
+        System.out.println("...Table " + tableName + " (" + tableId + ") has a hole "
+            + tabke.prevEndRow() + " != " + lastEndRow);
+        broke = true;
+      }
+      if (broke) {
+        everythingLooksGood = false;
+      }
+
+      lastEndRow = tabke.endRow();
+    }
+    if (everythingLooksGood)
+      System.out.println("...All is well for table " + tableName + " (" + tableId + ")");
+    else
+      sawProblems = true;
   }
 
   private static void checkMetadataAndRootTableEntries(String tableNameToCheck, ServerUtilOpts opts)
