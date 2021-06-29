@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.manager.EventCoordinator;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
@@ -69,6 +70,16 @@ public class UpgradeCoordinator {
         return extent.isMeta();
       }
     },
+
+    /**
+     * This signifies that only zookeeper, root and metadata table have been upgraded.
+     */
+    UPGRADED_METADATA {
+      @Override
+      public boolean isParentLevelUpgraded(KeyExtent extent) {
+        return !extent.isMeta();
+      }
+    },
     /**
      * This signifies that everything (zookeeper, root table, metadata table) is upgraded.
      */
@@ -98,7 +109,7 @@ public class UpgradeCoordinator {
   private static Logger log = LoggerFactory.getLogger(UpgradeCoordinator.class);
 
   private int currentVersion;
-  private Map<Integer,Upgrader> upgraders = Map.of(ServerConstants.SHORTEN_RFILE_KEYS,
+  private final Map<Integer,Upgrader> upgraders = Map.of(ServerConstants.SHORTEN_RFILE_KEYS,
       new Upgrader8to9(), ServerConstants.CRYPTO_CHANGES, new Upgrader9to10());
 
   private volatile UpgradeStatus status;
@@ -166,7 +177,7 @@ public class UpgradeCoordinator {
 
     if (currentVersion < ServerConstants.DATA_VERSION) {
       return ThreadPools.createThreadPool(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
-          "UpgradeMetadataThreads", new SynchronousQueue<Runnable>(), OptionalInt.empty(), false)
+          "UpgradeMetadataThreads", new SynchronousQueue<>(), OptionalInt.empty(), false)
           .submit(() -> {
             try {
               for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {
@@ -181,10 +192,7 @@ public class UpgradeCoordinator {
                 upgraders.get(v).upgradeMetadata(context);
               }
 
-              log.info("Updating persistent data version.");
-              ServerUtil.updateAccumuloVersion(context.getVolumeManager(), currentVersion);
-              log.info("Upgrade complete");
-              setStatus(UpgradeStatus.COMPLETE, eventCoordinator);
+              setStatus(UpgradeStatus.UPGRADED_METADATA, eventCoordinator);
             } catch (Exception e) {
               handleFailure(e);
             }
@@ -193,6 +201,44 @@ public class UpgradeCoordinator {
     } else {
       return CompletableFuture.completedFuture(null);
     }
+  }
+
+  public synchronized Future<Void> upgradeFiles(ServerContext context,
+      EventCoordinator eventCoordinator) {
+    if (status == UpgradeStatus.COMPLETE)
+      return CompletableFuture.completedFuture(null);
+
+    if (currentVersion < ServerConstants.DATA_VERSION) {
+      return ThreadPools.createThreadPool(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
+          "UpgradeFilesThreads", new SynchronousQueue<>(), OptionalInt.empty(), false)
+          .submit(() -> {
+            try {
+              for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {
+                log.info("Upgrading files from data version {}", v);
+                upgraders.get(v).upgradeFiles(context);
+              }
+
+              log.info("Upgrade files completed");
+              while (status != UpgradeStatus.UPGRADED_METADATA) {
+                log.info("Waiting for upgrade metadata to complete");
+                UtilWaitThread.sleepUninterruptibly(5, TimeUnit.SECONDS);
+              }
+              completeUpgrade(context, eventCoordinator);
+            } catch (Exception e) {
+              handleFailure(e);
+            }
+            return null;
+          });
+    } else {
+      return CompletableFuture.completedFuture(null);
+    }
+  }
+
+  private void completeUpgrade(ServerContext context, EventCoordinator eventCoordinator) {
+    log.info("Updating persistent data version.");
+    ServerUtil.updateAccumuloVersion(context.getVolumeManager(), currentVersion);
+    log.info("Upgrade complete");
+    setStatus(UpgradeStatus.COMPLETE, eventCoordinator);
   }
 
   public UpgradeStatus getStatus() {

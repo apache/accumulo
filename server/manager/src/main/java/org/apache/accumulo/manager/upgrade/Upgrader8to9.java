@@ -41,4 +41,9 @@ public class Upgrader8to9 implements Upgrader {
     // There is no action that needs to be taken for metadata
   }
 
+  @Override
+  public void upgradeFiles(ServerContext ctx) {
+    // There is no action that needs to be taken for the files
+  }
+
 }
