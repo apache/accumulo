@@ -223,14 +223,19 @@ public class LogReader implements KeywordExecutable {
   }
 
   private boolean containsMapFile(VolumeManager fs, Path path) throws Exception {
-    FileStatus[] mapFiles =
-        fs.getFileStatus(path).isFile() ? fs.listStatus(path.getParent()) : fs.listStatus(path);
-    for (FileStatus status : mapFiles) {
-      if (status.isDirectory()) {
-        return fs.getFileStatus(new Path(status.getPath(), MapFile.DATA_FILE_NAME)).isFile()
-            || fs.getFileStatus(new Path(status.getPath(), MapFile.INDEX_FILE_NAME)).isFile();
+    boolean containMapFile = false;
+    for (FileStatus child : fs.listStatus(path)) {
+      if (child.isDirectory()) {
+        containMapFile =
+            fs.getFileStatus(new Path(child.getPath(), MapFile.DATA_FILE_NAME)).isFile()
+                || fs.getFileStatus(new Path(child.getPath(), MapFile.INDEX_FILE_NAME)).isFile();
+      } else {
+        containMapFile = child.getPath().getName().equals(MapFile.DATA_FILE_NAME)
+            || child.getPath().getName().equals(MapFile.INDEX_FILE_NAME);
       }
+      if (containMapFile)
+        break;
     }
-    return false;
+    return containMapFile;
   }
 }
