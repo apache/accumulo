@@ -125,7 +125,7 @@ public class LogReader implements KeywordExecutable {
         Path path = new Path(file);
         if (!fs.getFileStatus(path).isDirectory()) {
           log.error("No directory was given. Please pass in a recovery directory");
-          System.exit(1);
+          continue;
         }
         // read the log entries sorted in a RFile
         try (var rli = new RecoveryLogsIterator(context, Collections.singletonList(path), true)) {
