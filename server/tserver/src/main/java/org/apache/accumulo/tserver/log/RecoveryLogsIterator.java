@@ -102,26 +102,6 @@ public class RecoveryLogsIterator
     iter = Iterators.mergeSorted(iterators, Entry.comparingByKey());
   }
 
-  public RecoveryLogsIterator(ServerContext context, Path recoveryLog) {
-    scanners = new ArrayList<>();
-    var vm = context.getVolumeManager();
-
-    LOG.debug("Opening recovery log dir {}", recoveryLog.getName());
-    var fs = vm.getFileSystemByPath(recoveryLog);
-
-    var scanner = RFile.newScanner().from(recoveryLog.toString()).withFileSystem(fs)
-        .withTableProperties(context.getConfiguration()).build();
-    Iterator<Entry<Key,Value>> scanIter = scanner.iterator();
-    if (scanIter.hasNext()) {
-      LOG.debug("Write ahead log {} has data in range", recoveryLog.getName());
-      scanners.add(scanner);
-    } else {
-      LOG.debug("Write ahead log {} has no data in range", recoveryLog.getName());
-      scanner.close();
-    }
-    iter = scanIter;
-  }
-
   @Override
   public boolean hasNext() {
     return iter.hasNext();
