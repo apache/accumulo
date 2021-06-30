@@ -74,8 +74,8 @@ public class RecoveryLogsIterator
 
     for (Path logDir : recoveryLogDirs) {
       LOG.debug("Opening recovery log dir {}", logDir.getName());
-      var fs = vm.getFileSystemByPath(logDir);
       List<Path> logFiles = getFiles(vm, logDir);
+      var fs = vm.getFileSystemByPath(logDir);
 
       // only check the first key once to prevent extra iterator creation and seeking
       if (checkFirstKey) {
