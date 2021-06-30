@@ -55,12 +55,12 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ManyWriteAheadLogsIT.class);
 
-  private String majcDelay, walogSize;
+  private String majcDelay, walSize;
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    // configure a smaller walog size so the walogs will roll frequently in the test
-    cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1M");
+    // configure a smaller wal size so the wals will roll frequently in the test
+    cfg.setProperty(Property.TSERV_WAL_MAX_SIZE, "1M");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
     cfg.setProperty(Property.GC_CYCLE_START, "1");
     cfg.setProperty(Property.MANAGER_RECOVERY_DELAY, "1s");
@@ -88,10 +88,9 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
       InstanceOperations iops = client.instanceOperations();
       Map<String,String> conf = iops.getSystemConfiguration();
       majcDelay = conf.get(Property.TSERV_MAJC_DELAY.getKey());
-      walogSize = conf.get(Property.TSERV_WALOG_MAX_SIZE.getKey());
-
+      walSize = conf.get(Property.TSERV_WAL_MAX_SIZE.getKey());
       iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1");
-      iops.setProperty(Property.TSERV_WALOG_MAX_SIZE.getKey(), "1M");
+      iops.setProperty(Property.TSERV_WAL_MAX_SIZE.getKey(), "1M");
 
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       getClusterControl().startAllServers(ServerType.TABLET_SERVER);
@@ -104,7 +103,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
         InstanceOperations iops = client.instanceOperations();
         iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
-        iops.setProperty(Property.TSERV_WALOG_MAX_SIZE.getKey(), walogSize);
+        iops.setProperty(Property.TSERV_WAL_MAX_SIZE.getKey(), walSize);
       }
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       getClusterControl().startAllServers(ServerType.TABLET_SERVER);

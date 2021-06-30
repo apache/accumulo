@@ -54,7 +54,6 @@ public class CancelCompactions extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(long tid, Manager environment) throws Exception {
-
     mutateZooKeeper(tid, tableId, environment);
     return new FinishCancelCompaction(namespaceId, tableId);
   }

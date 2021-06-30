@@ -28,6 +28,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Arrays;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -36,10 +37,13 @@ import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 public class LogFileKey implements WritableComparable<LogFileKey> {
+  private static final Logger log = LoggerFactory.getLogger(LogFileKey.class);
 
   public LogEvents event;
   public String filename = null;
@@ -245,8 +249,8 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
    * byte in the row.
    */
   private byte getEventByte() {
-    int evenTypeInteger = eventType(event);
-    return (byte) (evenTypeInteger & 0xff);
+    int eventTypeInteger = eventType(event);
+    return (byte) (eventTypeInteger & 0xff);
   }
 
   /**
@@ -258,7 +262,9 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
 
   /**
    * Format the row using 13 bytes encoded to allow proper sorting of the RFile Key. The highest
-   * byte is for the event number, 4 bytes for the tabletId and 8 bytes for the sequence long.
+   * byte is for the event number, 4 bytes for the tabletId and 8 bytes for the sequence long. The
+   * conversions of integer to byte[] and long to byte[] is similar to what DataOutputStream does
+   * for writeInt() and writeLong()
    */
   private byte[] formatRow(int tabletId, long seq) {
     byte eventNum = getEventByte();
@@ -269,27 +275,37 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     // encode the signed integer so negatives will sort properly for tabletId
     int encodedTabletId = tabletId ^ 0x80000000;
 
+    int mask = 0xff; // use a mask of int type to truncate the selected 8 bits
     row[0] = eventNum;
-    row[1] = (byte) ((encodedTabletId >>> 24) & 0xff);
-    row[2] = (byte) ((encodedTabletId >>> 16) & 0xff);
-    row[3] = (byte) ((encodedTabletId >>> 8) & 0xff);
-    row[4] = (byte) (encodedTabletId & 0xff);
-    row[5] = (byte) (seq >>> 56);
-    row[6] = (byte) (seq >>> 48);
-    row[7] = (byte) (seq >>> 40);
-    row[8] = (byte) (seq >>> 32);
-    row[9] = (byte) (seq >>> 24);
-    row[10] = (byte) (seq >>> 16);
-    row[11] = (byte) (seq >>> 8);
-    row[12] = (byte) (seq); // >>> 0
+    row[1] = (byte) ((encodedTabletId >>> 24) & mask);
+    row[2] = (byte) ((encodedTabletId >>> 16) & mask);
+    row[3] = (byte) ((encodedTabletId >>> 8) & mask);
+    row[4] = (byte) (encodedTabletId & mask);
+    row[5] = (byte) ((seq >>> 56) & mask);
+    row[6] = (byte) ((seq >>> 48) & mask);
+    row[7] = (byte) ((seq >>> 40) & mask);
+    row[8] = (byte) ((seq >>> 32) & mask);
+    row[9] = (byte) ((seq >>> 24) & mask);
+    row[10] = (byte) ((seq >>> 16) & mask);
+    row[11] = (byte) ((seq >>> 8) & mask);
+    row[12] = (byte) (seq & mask);
+
+    log.trace("Convert {} {} {} to row {}", event, tabletId, seq, Arrays.toString(row));
     return row;
   }
 
   /**
-   * Extract the tabletId integer from the byte encoded Row.
+   * Extract the tabletId integer from the byte encoded Row. Similar to what DataInputStream does
+   * for readInt()
    */
   private static int getTabletId(byte[] row) {
-    int encoded = ((row[1] << 24) + (row[2] << 16) + (row[3] << 8) + row[4]);
+    int mask = 0xff; // use a mask of int type to convert byte to int without sign extension
+    // @formatter:off
+    int encoded = (row[1] & mask) << 24 |
+                  (row[2] & mask) << 16 |
+                  (row[3] & mask) <<  8 |
+                  (row[4] & mask);
+    // @formatter:on
     return encoded ^ 0x80000000;
   }
 
@@ -297,15 +313,16 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
    * Extract the sequence long from the byte encoded Row.
    */
   private static long getSequence(byte[] row) {
+    long mask = 0xff; // use a mask of long type to convert byte to long without sign extension
     // @formatter:off
-    return (((long) row[5] << 56) +
-            ((long) (row[6] & 255) << 48) +
-            ((long) (row[7] & 255) << 40) +
-            ((long) (row[8] & 255) << 32) +
-            ((long) (row[9] & 255) << 24) +
-            ((row[10] & 255) << 16) +
-            ((row[11] & 255) << 8) +
-            ((row[12] & 255)));
+    return (row[5]  & mask) << 56 |
+           (row[6]  & mask) << 48 |
+           (row[7]  & mask) << 40 |
+           (row[8]  & mask) << 32 |
+           (row[9]  & mask) << 24 |
+           (row[10] & mask) << 16 |
+           (row[11] & mask) <<  8 |
+           (row[12] & mask);
     // @formatter:on
   }
 
@@ -327,6 +344,8 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     if (eventType(logFileKey.event) != rowParts[0]) {
       throw new AssertionError("Event in row differs from column family. Key: " + key);
     }
+    log.trace("From row {} get {} {} {}", Arrays.toString(rowParts), logFileKey.event,
+        logFileKey.tabletId, logFileKey.seq);
 
     // handle special cases of what is stored in the qualifier
     switch (logFileKey.event) {

@@ -104,7 +104,7 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     cfg.setProperty(Property.MANAGER_REPLICATION_SCAN_INTERVAL, "240s");
     cfg.setProperty(Property.REPLICATION_DRIVER_DELAY, "240s");
     // Pull down the maximum size of the wal so we can test close()'ing it.
-    cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1M");
+    cfg.setProperty(Property.TSERV_WAL_MAX_SIZE, "1M");
     coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 

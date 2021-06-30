@@ -469,10 +469,12 @@ public class DfsLogger implements Comparable<DfsLogger> {
     log.debug("Got new write-ahead log: {}", this);
   }
 
+  @SuppressWarnings("deprecation")
   static long getWalBlockSize(AccumuloConfiguration conf) {
     long blockSize = conf.getAsBytes(Property.TSERV_WAL_BLOCKSIZE);
     if (blockSize == 0)
-      blockSize = (long) (conf.getAsBytes(Property.TSERV_WALOG_MAX_SIZE) * 1.1);
+      blockSize = (long) (conf.getAsBytes(
+          conf.resolve(Property.TSERV_WAL_MAX_SIZE, Property.TSERV_WALOG_MAX_SIZE)) * 1.1);
     return blockSize;
   }
 
