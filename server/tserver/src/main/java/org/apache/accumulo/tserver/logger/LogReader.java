@@ -165,11 +165,22 @@ public class LogReader implements KeywordExecutable {
           }
         } else {
           // read the log entries sorted in a RFile
-          try (var rli = new RecoveryLogsIterator(context, Collections.singletonList(path), true)) {
-            while (rli.hasNext()) {
-              Entry<LogFileKey,LogFileValue> entry = rli.next();
-              printLogEvent(entry.getKey(), entry.getValue(), row, rowMatcher, ke, tabletIds,
-                  opts.maxMutations);
+          if (fs.getFileStatus(path).isFile()) {
+            try (var rli = new RecoveryLogsIterator(context, path)) {
+              while (rli.hasNext()) {
+                Entry<LogFileKey,LogFileValue> entry = rli.next();
+                printLogEvent(entry.getKey(), entry.getValue(), row, rowMatcher, ke, tabletIds,
+                    opts.maxMutations);
+              }
+            }
+          } else {
+            try (var rli =
+                new RecoveryLogsIterator(context, Collections.singletonList(path), true)) {
+              while (rli.hasNext()) {
+                Entry<LogFileKey,LogFileValue> entry = rli.next();
+                printLogEvent(entry.getKey(), entry.getValue(), row, rowMatcher, ke, tabletIds,
+                    opts.maxMutations);
+              }
             }
           }
         }

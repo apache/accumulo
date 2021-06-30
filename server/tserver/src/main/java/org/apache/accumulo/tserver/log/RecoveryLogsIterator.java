@@ -75,41 +75,51 @@ public class RecoveryLogsIterator
     for (Path logDir : recoveryLogDirs) {
       LOG.debug("Opening recovery log dir {}", logDir.getName());
       var fs = vm.getFileSystemByPath(logDir);
+      List<Path> logFiles = getFiles(vm, logDir);
 
-      // if path passed in is actually a file, read a single RFile
-      if (vm.getFileStatus(logDir).isFile()) {
-        Scanner scanner = createScanner(context, fs, logDir, range);
+      // only check the first key once to prevent extra iterator creation and seeking
+      if (checkFirstKey) {
+        validateFirstKey(context, fs, logFiles, logDir);
+      }
+
+      for (Path log : logFiles) {
+        var scanner = RFile.newScanner().from(log.toString()).withFileSystem(fs)
+            .withTableProperties(context.getConfiguration()).build();
+
+        scanner.setRange(range);
         Iterator<Entry<Key,Value>> scanIter = scanner.iterator();
+
         if (scanIter.hasNext()) {
-          LOG.debug("Write ahead log {} has data in range {} {}", logDir.getName(), start, end);
+          LOG.debug("Write ahead log {} has data in range {} {}", log.getName(), start, end);
           iterators.add(scanIter);
           scanners.add(scanner);
         } else {
-          LOG.debug("Write ahead log {} has no data in range {} {}", logDir.getName(), start, end);
+          LOG.debug("Write ahead log {} has no data in range {} {}", log.getName(), start, end);
           scanner.close();
-        }
-      } else {
-        List<Path> logFiles = getFiles(vm, logDir);
-        // only check the first key once to prevent extra iterator creation and seeking
-        if (checkFirstKey) {
-          validateFirstKey(context, fs, logFiles, logDir);
-        }
-
-        for (Path log : logFiles) {
-          Scanner scanner = createScanner(context, fs, log, range);
-          Iterator<Entry<Key,Value>> scanIter = scanner.iterator();
-          if (scanIter.hasNext()) {
-            LOG.debug("Write ahead log {} has data in range {} {}", log.getName(), start, end);
-            iterators.add(scanIter);
-            scanners.add(scanner);
-          } else {
-            LOG.debug("Write ahead log {} has no data in range {} {}", log.getName(), start, end);
-            scanner.close();
-          }
         }
       }
     }
     iter = Iterators.mergeSorted(iterators, Entry.comparingByKey());
+  }
+
+  public RecoveryLogsIterator(ServerContext context, Path recoveryLog) {
+    scanners = new ArrayList<>();
+    var vm = context.getVolumeManager();
+
+    LOG.debug("Opening recovery log dir {}", recoveryLog.getName());
+    var fs = vm.getFileSystemByPath(recoveryLog);
+
+    var scanner = RFile.newScanner().from(recoveryLog.toString()).withFileSystem(fs)
+        .withTableProperties(context.getConfiguration()).build();
+    Iterator<Entry<Key,Value>> scanIter = scanner.iterator();
+    if (scanIter.hasNext()) {
+      LOG.debug("Write ahead log {} has data in range", recoveryLog.getName());
+      scanners.add(scanner);
+    } else {
+      LOG.debug("Write ahead log {} has no data in range", recoveryLog.getName());
+      scanner.close();
+    }
+    iter = scanIter;
   }
 
   @Override
@@ -158,14 +168,6 @@ public class RecoveryLogsIterator
       throw new IOException(
           "Sort '" + SortedLogState.FINISHED.getMarker() + "' flag not found in " + directory);
     return logFiles;
-  }
-
-  private Scanner createScanner(ServerContext context, FileSystem fs, Path log, Range range) {
-    var scanner = RFile.newScanner().from(log.toString()).withFileSystem(fs)
-        .withTableProperties(context.getConfiguration()).build();
-    if (range != null)
-      scanner.setRange(range);
-    return scanner;
   }
 
   /**
