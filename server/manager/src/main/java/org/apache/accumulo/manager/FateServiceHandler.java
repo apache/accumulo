@@ -57,6 +57,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
@@ -85,7 +86,6 @@ import org.apache.accumulo.manager.tableOps.tableExport.ExportTable;
 import org.apache.accumulo.manager.tableOps.tableImport.ImportTable;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.manager.state.MergeInfo;
-import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -286,7 +286,7 @@ class FateServiceHandler implements FateService.Iface {
             continue;
           }
 
-          if (!TablePropUtil.isPropertyValid(entry.getKey(), entry.getValue())) {
+          if (!Property.isTablePropertyValid(entry.getKey(), entry.getValue())) {
             throw new ThriftTableOperationException(null, tableName, tableOp,
                 TableOperationExceptionType.OTHER,
                 "Property or value not valid " + entry.getKey() + "=" + entry.getValue());
@@ -694,8 +694,8 @@ class FateServiceHandler implements FateService.Iface {
       // Information provided by a client should generate a user-level exception, not a system-level
       // warning.
       log.debug(why);
-      throw new ThriftTableOperationException(tableId.canonical(), null, op,
-          TableOperationExceptionType.INVALID_NAME, why);
+      throw new ThriftTableOperationException((tableId == null ? "null" : tableId.canonical()),
+          null, op, TableOperationExceptionType.INVALID_NAME, why);
     }
   }
 
