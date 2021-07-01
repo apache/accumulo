@@ -200,49 +200,50 @@ public class PropertyTest {
     // Precomputing information here avoids :
     // * Computing it each time a method is called
     // * Using synch to compute the first time a method is called
+    Map<String,Property> propertiesByKeyOld = new HashMap<>();
+    HashSet<String> validPrefixesOld = new HashSet<>();
+    HashSet<String> validPropertiesOld = new HashSet<>();
+
+    for (Property p : Property.values()) {
+      if (p.getType().equals(PropertyType.PREFIX)) {
+        validPrefixesOld.add(p.getKey());
+      } else {
+        validPropertiesOld.add(p.getKey());
+      }
+      propertiesByKeyOld.put(p.getKey(), p);
+    }
+
+    HashSet<String> validTablePropertiesOld = new HashSet<>();
+    for (Property p : Property.values()) {
+      if (!p.getType().equals(PropertyType.PREFIX)
+          && p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
+        validTablePropertiesOld.add(p.getKey());
+      }
+    }
+
     Map<String,Property> propertiesByKey = new HashMap<>();
     HashSet<String> validPrefixes = new HashSet<>();
     HashSet<String> validProperties = new HashSet<>();
+    HashSet<String> validTableProperties = new HashSet<>();
 
     for (Property p : Property.values()) {
+      propertiesByKey.put(p.getKey(), p);
       if (p.getType().equals(PropertyType.PREFIX)) {
         validPrefixes.add(p.getKey());
       } else {
         validProperties.add(p.getKey());
       }
-      propertiesByKey.put(p.getKey(), p);
-    }
-
-    HashSet<String> validTableProperties = new HashSet<>();
-    for (Property p : Property.values()) {
+      // exclude prefix types (avoids being able to set things like table.custom or
+      // table.constraint)
       if (!p.getType().equals(PropertyType.PREFIX)
           && p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
         validTableProperties.add(p.getKey());
       }
     }
 
-    Map<String,Property> propertiesByKey2 = new HashMap<>();
-    HashSet<String> validPrefixes2 = new HashSet<>();
-    HashSet<String> validProperties2 = new HashSet<>();
-    HashSet<String> validTableProperties2 = new HashSet<>();
-
-    for (Property p : Property.values()) {
-      propertiesByKey2.put(p.getKey(), p);
-      if (p.getType().equals(PropertyType.PREFIX)) {
-        validPrefixes2.add(p.getKey());
-      } else {
-
-        validProperties2.add(p.getKey());
-
-        if (p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
-          validTableProperties2.add(p.getKey());
-        }
-      }
-    }
-
-    assertEquals(propertiesByKey, propertiesByKey2);
-    assertEquals(validPrefixes, validPrefixes2);
-    assertEquals(validProperties, validProperties2);
-    assertEquals(validTableProperties, validTableProperties2);
+    assertEquals(propertiesByKeyOld, propertiesByKey);
+    assertEquals(validPrefixesOld, validPrefixes);
+    assertEquals(validPropertiesOld, validProperties);
+    assertEquals(validTablePropertiesOld, validTableProperties);
   }
 }

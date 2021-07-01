@@ -1352,10 +1352,10 @@ public enum Property {
     return false;
   }
 
-  private static final HashSet<String> validTableProperties;
-  private static final HashSet<String> validProperties;
-  private static final HashSet<String> validPrefixes;
-  private static final HashMap<String,Property> propertiesByKey;
+  private static final HashSet<String> validTableProperties = new HashSet<>();
+  private static final HashSet<String> validProperties = new HashSet<>();
+  private static final HashSet<String> validPrefixes = new HashSet<>();
+  private static final HashMap<String,Property> propertiesByKey = new HashMap<>();
 
   private static boolean isKeyValidlyPrefixed(String key) {
     for (String prefix : validPrefixes) {
@@ -1541,25 +1541,23 @@ public enum Property {
   }
 
   static {
+
     // Precomputing information here avoids :
     // * Computing it each time a method is called
     // * Using synch to compute the first time a method is called
-    propertiesByKey = new HashMap<>();
-    validPrefixes = new HashSet<>();
-    validProperties = new HashSet<>();
-    validTableProperties = new HashSet<>();
 
     for (Property p : Property.values()) {
       propertiesByKey.put(p.getKey(), p);
       if (p.getType().equals(PropertyType.PREFIX)) {
         validPrefixes.add(p.getKey());
       } else {
-
         validProperties.add(p.getKey());
-
-        if (p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
-          validTableProperties.add(p.getKey());
-        }
+      }
+      // exclude prefix types (avoids being able to set things like table.custom or
+      // table.constraint)
+      if (!p.getType().equals(PropertyType.PREFIX)
+          && p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
+        validTableProperties.add(p.getKey());
       }
     }
 
