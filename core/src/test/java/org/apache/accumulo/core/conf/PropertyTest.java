@@ -24,7 +24,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.function.Predicate;
@@ -185,5 +187,62 @@ public class PropertyTest {
     }
 
     assertFalse(Property.isValidTablePropertyKey("abc.def"));
+  }
+
+  /**
+   * PR #2186 eliminated a loop in the computation - this test verifies the original methods and the
+   * refactor method produce the same result.
+   */
+  @Test
+  public void verifyRefactor() {
+
+    // original
+    // Precomputing information here avoids :
+    // * Computing it each time a method is called
+    // * Using synch to compute the first time a method is called
+    Map<String,Property> propertiesByKey = new HashMap<>();
+    HashSet<String> validPrefixes = new HashSet<>();
+    HashSet<String> validProperties = new HashSet<>();
+
+    for (Property p : Property.values()) {
+      if (p.getType().equals(PropertyType.PREFIX)) {
+        validPrefixes.add(p.getKey());
+      } else {
+        validProperties.add(p.getKey());
+      }
+      propertiesByKey.put(p.getKey(), p);
+    }
+
+    HashSet<String> validTableProperties = new HashSet<>();
+    for (Property p : Property.values()) {
+      if (!p.getType().equals(PropertyType.PREFIX)
+          && p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
+        validTableProperties.add(p.getKey());
+      }
+    }
+
+    Map<String,Property> propertiesByKey2 = new HashMap<>();
+    HashSet<String> validPrefixes2 = new HashSet<>();
+    HashSet<String> validProperties2 = new HashSet<>();
+    HashSet<String> validTableProperties2 = new HashSet<>();
+
+    for (Property p : Property.values()) {
+      propertiesByKey2.put(p.getKey(), p);
+      if (p.getType().equals(PropertyType.PREFIX)) {
+        validPrefixes2.add(p.getKey());
+      } else {
+
+        validProperties2.add(p.getKey());
+
+        if (p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
+          validTableProperties2.add(p.getKey());
+        }
+      }
+    }
+
+    assertEquals(propertiesByKey, propertiesByKey2);
+    assertEquals(validPrefixes, validPrefixes2);
+    assertEquals(validProperties, validProperties2);
+    assertEquals(validTableProperties, validTableProperties2);
   }
 }

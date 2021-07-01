@@ -163,7 +163,8 @@ public enum Property {
   INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION("instance.rpc.sasl.allowed.host.impersonation", "",
       PropertyType.STRING,
       "One-line configuration property controlling the network locations "
-          + "(hostnames) that are allowed to impersonate other users"), // Crypto-related properties
+          + "(hostnames) that are allowed to impersonate other users"),
+  // Crypto-related properties
   @Experimental
   INSTANCE_CRYPTO_PREFIX("instance.crypto.opts.", null, PropertyType.PREFIX,
       "Properties related to on-disk file encryption."),
@@ -220,22 +221,8 @@ public enum Property {
   GENERAL_MAX_MESSAGE_SIZE("general.server.message.size.max", "1G", PropertyType.BYTES,
       "The maximum size of a message that can be sent to a server."),
   GENERAL_SIMPLETIMER_THREADPOOL_SIZE("general.server.simpletimer.threadpool.size", "1",
-      PropertyType.COUNT, "The number of threads to use for " + "server-internal scheduled tasks"), // If
-                                                                                                    // you
-                                                                                                    // update
-                                                                                                    // the
-                                                                                                    // default
-                                                                                                    // type,
-                                                                                                    // be
-                                                                                                    // sure
-                                                                                                    // to
-                                                                                                    // update
-                                                                                                    // the
-                                                                                                    // default
-                                                                                                    // used
-                                                                                                    // for
-                                                                                                    // initialization
-                                                                                                    // failures
+      PropertyType.COUNT, "The number of threads to use for " + "server-internal scheduled tasks"),
+  // If you update the default type, be sure to update the default used for initialization failures
   // in VolumeManagerImpl
   @Experimental
   GENERAL_VOLUME_CHOOSER("general.volume.chooser", RandomVolumeChooser.class.getName(),
@@ -346,9 +333,8 @@ public enum Property {
       "Maximum time manager will wait for tserver available threshold "
           + "to be reached before continuing. When set to 0 or less, will block "
           + "indefinitely. Default is 0 to block indefinitely. Only valid when tserver available "
-          + "threshold is set greater than 0. Added with version 1.10"), // properties that are
-                                                                         // specific to tablet
-                                                                         // server behavior
+          + "threshold is set greater than 0. Added with version 1.10"),
+  // properties that are specific to tablet server behavior
   TSERV_PREFIX("tserver.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the tablet servers"),
   TSERV_CLIENT_TIMEOUT("tserver.client.timeout", "3s", PropertyType.TIMEDURATION,
@@ -424,25 +410,12 @@ public enum Property {
   @ReplacedBy(property = Property.TSERV_WAL_TOLERATED_WAIT_INCREMENT)
   TSERV_WALOG_TOLERATED_WAIT_INCREMENT("tserver.walog.tolerated.wait.increment", "1000ms",
       PropertyType.TIMEDURATION,
-      "The amount of time to wait between failures to create or write a write-ahead log."), // Never
-                                                                                            // wait
-                                                                                            // longer
-                                                                                            // than
-                                                                                            // 5
-                                                                                            // mins
-                                                                                            // for a
-                                                                                            // retry
+      "The amount of time to wait between failures to create or write a write-ahead log."),
+  // Never wait longer than 5 mins for a retry
   TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION("tserver.wal.maximum.wait.duration", "5m",
       PropertyType.TIMEDURATION,
-      "The maximum amount of time to wait after a failure to create or write a write-ahead log."), // Never
-                                                                                                   // wait
-                                                                                                   // longer
-                                                                                                   // than
-                                                                                                   // 5
-                                                                                                   // mins
-                                                                                                   // for
-                                                                                                   // a
-                                                                                                   // retry
+      "The maximum amount of time to wait after a failure to create or write a write-ahead log."),
+  // Never wait longer than 5 mins for a retry
   @Deprecated(since = "2.1.0")
   @ReplacedBy(property = Property.TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION)
   TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION("tserver.walog.maximum.wait.duration", "5m",
@@ -1086,7 +1059,8 @@ public enum Property {
       "The sampling percentage to use for replication traces"),
   REPLICATION_RPC_TIMEOUT("replication.rpc.timeout", "2m", PropertyType.TIMEDURATION,
       "Amount of time for a single replication RPC call to last before failing"
-          + " the attempt. See replication.work.attempts."), // Compactor properties
+          + " the attempt. See replication.work.attempts."),
+  // Compactor properties
   @Experimental
   COMPACTOR_PREFIX("compactor.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo compactor server."),
@@ -1107,8 +1081,8 @@ public enum Property {
       "The time between adjustments of the server thread pool."),
   @Experimental
   COMPACTOR_MAX_MESSAGE_SIZE("compactor.message.size.max", "10M", PropertyType.BYTES,
-      "The maximum size of a message that can be sent to a tablet server."), // CompactionCoordinator
-                                                                             // properties
+      "The maximum size of a message that can be sent to a tablet server."),
+  // CompactionCoordinator properties
   @Experimental
   COMPACTION_COORDINATOR_PREFIX("compaction.coordinator.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo compaction coordinator server."),
@@ -1148,12 +1122,8 @@ public enum Property {
   @Experimental
   COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL(
       "compaction.coordinator.tserver.check.interval", "1m", PropertyType.TIMEDURATION,
-      "The interval at which to check the tservers for external compactions."), // deprecated
-                                                                                // properties
-                                                                                // grouped at the
-                                                                                // end to reference
-                                                                                // property that
-                                                                                // replaces them
+      "The interval at which to check the tservers for external compactions."),
+  // deprecated properties grouped at the end to reference property that replaces them
   @Deprecated(since = "1.6.0")
   @ReplacedBy(property = INSTANCE_VOLUMES)
   INSTANCE_DFS_URI("instance.dfs.uri", "", PropertyType.URI,
@@ -1201,52 +1171,6 @@ public enum Property {
       "This property is deprecated since 2.0.0, use tserver.scan.executors.meta.threads instead. "
           + "The maximum number of concurrent metadata read ahead that will execute.");
 
-  private static final EnumSet<Property> fixedProperties = EnumSet.of(
-      // port options
-      GC_PORT, MANAGER_CLIENTPORT, TSERV_CLIENTPORT,
-
-      // tserver cache options
-      TSERV_CACHE_MANAGER_IMPL, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,
-      TSERV_SUMMARYCACHE_SIZE,
-
-      // others
-      TSERV_NATIVEMAP_ENABLED, TSERV_SCAN_MAX_OPENFILES);
-  private static final HashSet<String> validTableProperties;
-  private static final HashSet<String> validProperties;
-  private static final HashSet<String> validPrefixes;
-  private static final HashMap<String,Property> propertiesByKey;
-
-  static {
-    // Precomputing information here avoids :
-    // * Computing it each time a method is called
-    // * Using synch to compute the first time a method is called
-    propertiesByKey = new HashMap<>();
-    validPrefixes = new HashSet<>();
-    validProperties = new HashSet<>();
-
-    for (Property p : Property.values()) {
-      if (p.getType().equals(PropertyType.PREFIX)) {
-        validPrefixes.add(p.getKey());
-      } else {
-        validProperties.add(p.getKey());
-      }
-      propertiesByKey.put(p.getKey(), p);
-    }
-
-    validTableProperties = new HashSet<>();
-    for (Property p : Property.values()) {
-      if (!p.getType().equals(PropertyType.PREFIX)
-          && p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
-        validTableProperties.add(p.getKey());
-      }
-    }
-
-    // order is very important here the following code relies on the maps and sets populated above
-    for (Property p : Property.values()) {
-      p.precomputeAnnotations();
-    }
-  }
-
   private final String key;
   private final String defaultValue;
   private final String description;
@@ -1257,221 +1181,11 @@ public enum Property {
   private Property replacedBy = null;
   private final PropertyType type;
 
-  Property(final String name, final String defaultValue, final PropertyType type,
-      final String description) {
+  Property(String name, String defaultValue, PropertyType type, String description) {
     this.key = name;
     this.defaultValue = defaultValue;
     this.description = description;
     this.type = type;
-  }
-
-  /**
-   * Checks if a property with the given key is sensitive. The key must be for a valid property, and
-   * must either itself be annotated as sensitive or have a prefix annotated as sensitive.
-   *
-   * @param key
-   *          property key
-   * @return true if property is sensitive
-   */
-  public static boolean isSensitive(String key) {
-    Property prop = propertiesByKey.get(key);
-    if (prop != null) {
-      return prop.isSensitive();
-    } else {
-      for (String prefix : validPrefixes) {
-        if (key.startsWith(prefix)) {
-          if (propertiesByKey.get(prefix).isSensitive()) {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
-  }
-
-  private static <T extends Annotation> boolean hasPrefixWithAnnotation(String key,
-      Class<T> annotationType) {
-    for (String prefix : validPrefixes) {
-      if (key.startsWith(prefix)) {
-        if (propertiesByKey.get(prefix).hasAnnotation(annotationType)) {
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
-  private static boolean isKeyValidlyPrefixed(String key) {
-    for (String prefix : validPrefixes) {
-      if (key.startsWith(prefix)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Checks if the given property and value are valid. A property is valid if the property key is
-   * valid see {@link #isValidTablePropertyKey} and that the value is a valid format for the type
-   * see {@link PropertyType#isValidFormat}.
-   *
-   * @param key
-   *          property key
-   * @param value
-   *          property value
-   * @return true if key is valid (recognized, or has a recognized prefix)
-   */
-  public static boolean isTablePropertyValid(final String key, final String value) {
-    Property p = getPropertyByKey(key);
-    return (p == null || p.getType().isValidFormat(value)) && isValidTablePropertyKey(key);
-  }
-
-  /**
-   * Checks if the given property key is valid. A valid property key is either equal to the key of
-   * some defined property or has a prefix matching some prefix defined in this class.
-   *
-   * @param key
-   *          property key
-   * @return true if key is valid (recognized, or has a recognized prefix)
-   */
-  public static boolean isValidPropertyKey(final String key) {
-    return validProperties.contains(key) || isKeyValidlyPrefixed(key);
-  }
-
-  /**
-   * Checks if the given property key is a valid property and is of type boolean.
-   *
-   * @param key
-   *          property key
-   * @return true if key is valid and is of type boolean, false otherwise
-   */
-  public static boolean isValidBooleanPropertyKey(final String key) {
-    return validProperties.contains(key) && getPropertyByKey(key).getType() == PropertyType.BOOLEAN;
-  }
-
-  /**
-   * Checks if the given property key is for a valid table property. A valid table property key is
-   * either equal to the key of some defined table property (which each start with
-   * {@link #TABLE_PREFIX}) or has a prefix matching {@link #TABLE_CONSTRAINT_PREFIX},
-   * {@link #TABLE_ITERATOR_PREFIX}, or {@link #TABLE_LOCALITY_GROUP_PREFIX}.
-   *
-   * @param key
-   *          property key
-   * @return true if key is valid for a table property (recognized, or has a recognized prefix)
-   */
-  public static boolean isValidTablePropertyKey(final String key) {
-    return validTableProperties.contains(key) || (key.startsWith(Property.TABLE_PREFIX.getKey())
-        && (key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())
-            || key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey())
-            || key.startsWith(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey())
-            || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey())
-            || key.startsWith(Property.TABLE_REPLICATION_TARGET.getKey())
-            || key.startsWith(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey())
-            || key.startsWith(TABLE_SAMPLER_OPTS.getKey())
-            || key.startsWith(TABLE_SUMMARIZER_PREFIX.getKey())
-            || key.startsWith(TABLE_SCAN_DISPATCHER_OPTS.getKey())
-            || key.startsWith(TABLE_COMPACTION_DISPATCHER_OPTS.getKey())
-            || key.startsWith(TABLE_COMPACTION_CONFIGURER_OPTS.getKey())
-            || key.startsWith(TABLE_COMPACTION_SELECTOR_OPTS.getKey())));
-  }
-
-  /**
-   * Checks if the given property may be changed via Zookeeper, but not recognized until the restart
-   * of some relevant daemon.
-   *
-   * @param key
-   *          property key
-   * @return true if property may be changed via Zookeeper but only heeded upon some restart
-   */
-  public static boolean isFixedZooPropertyKey(final Property key) {
-    return fixedProperties.contains(key);
-  }
-
-  /**
-   * Checks if the given property key is valid for a property that may be changed via Zookeeper.
-   *
-   * @param key
-   *          property key
-   * @return true if key's property may be changed via Zookeeper
-   */
-  public static boolean isValidZooPropertyKey(final String key) {
-    // white list prefixes
-    return key.startsWith(Property.TABLE_PREFIX.getKey())
-        || key.startsWith(Property.TSERV_PREFIX.getKey())
-        || key.startsWith(Property.MANAGER_PREFIX.getKey())
-        || key.startsWith(Property.MASTER_PREFIX.getKey())
-        || key.startsWith(Property.GC_PREFIX.getKey())
-        || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
-        || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())
-        || key.startsWith(REPLICATION_PREFIX.getKey());
-  }
-
-  /**
-   * Gets a {@link Property} instance with the given key.
-   *
-   * @param key
-   *          property key
-   * @return property, or null if not found
-   */
-  public static Property getPropertyByKey(final String key) {
-    return propertiesByKey.get(key);
-  }
-
-  /**
-   * Checks if this property is expected to have a Java class as a value.
-   *
-   * @return true if this is property is a class property
-   */
-  public static boolean isClassProperty(final String key) {
-    return (key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())
-        && key.substring(Property.TABLE_CONSTRAINT_PREFIX.getKey().length()).split("\\.").length
-            == 1)
-        || (key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey())
-            && key.substring(Property.TABLE_ITERATOR_PREFIX.getKey().length()).split("\\.").length
-                == 2)
-        || key.equals(Property.TABLE_LOAD_BALANCER.getKey());
-  }
-
-  /**
-   * Creates a new instance of a class specified in a configuration property. The table classpath
-   * context is used if set.
-   *
-   * @param conf
-   *          configuration containing property
-   * @param property
-   *          property specifying class name
-   * @param base
-   *          base class of type
-   * @param defaultInstance
-   *          instance to use if creation fails
-   * @return new class instance, or default instance if creation failed
-   */
-  public static <T> T createTableInstanceFromPropertyName(final AccumuloConfiguration conf,
-      final Property property, final Class<T> base, final T defaultInstance) {
-    String clazzName = conf.get(property);
-    String context = ClassLoaderUtil.tableContext(conf);
-    return ConfigurationTypeHelper.getClassInstance(context, clazzName, base, defaultInstance);
-  }
-
-  /**
-   * Creates a new instance of a class specified in a configuration property.
-   *
-   * @param conf
-   *          configuration containing property
-   * @param property
-   *          property specifying class name
-   * @param base
-   *          base class of type
-   * @param defaultInstance
-   *          instance to use if creation fails
-   * @return new class instance, or default instance if creation failed
-   */
-  public static <T> T createInstanceFromPropertyName(final AccumuloConfiguration conf,
-      final Property property, final Class<T> base, final T defaultInstance) {
-    String clazzName = conf.get(property);
-    return ConfigurationTypeHelper.getClassInstance(null, clazzName, base, defaultInstance);
   }
 
   @Override
@@ -1571,7 +1285,31 @@ public enum Property {
     annotationsComputed = true;
   }
 
-  private <T extends Annotation> boolean hasAnnotation(final Class<T> annotationType) {
+  /**
+   * Checks if a property with the given key is sensitive. The key must be for a valid property, and
+   * must either itself be annotated as sensitive or have a prefix annotated as sensitive.
+   *
+   * @param key
+   *          property key
+   * @return true if property is sensitive
+   */
+  public static boolean isSensitive(String key) {
+    Property prop = propertiesByKey.get(key);
+    if (prop != null) {
+      return prop.isSensitive();
+    } else {
+      for (String prefix : validPrefixes) {
+        if (key.startsWith(prefix)) {
+          if (propertiesByKey.get(prefix).isSensitive()) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  private <T extends Annotation> boolean hasAnnotation(Class<T> annotationType) {
     Logger log = LoggerFactory.getLogger(getClass());
     try {
       for (Annotation a : getClass().getField(name()).getAnnotations()) {
@@ -1585,7 +1323,7 @@ public enum Property {
     return false;
   }
 
-  private <T extends Annotation> T getAnnotation(final Class<T> annotationType) {
+  private <T extends Annotation> T getAnnotation(Class<T> annotationType) {
     Logger log = LoggerFactory.getLogger(getClass());
     try {
       for (Annotation a : getClass().getField(name()).getAnnotations()) {
@@ -1599,5 +1337,235 @@ public enum Property {
       log.error("{}", e.getMessage(), e);
     }
     return null;
+  }
+
+  private static <T extends Annotation> boolean hasPrefixWithAnnotation(String key,
+      Class<T> annotationType) {
+    for (String prefix : validPrefixes) {
+      if (key.startsWith(prefix)) {
+        if (propertiesByKey.get(prefix).hasAnnotation(annotationType)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  private static final HashSet<String> validTableProperties;
+  private static final HashSet<String> validProperties;
+  private static final HashSet<String> validPrefixes;
+  private static final HashMap<String,Property> propertiesByKey;
+
+  private static boolean isKeyValidlyPrefixed(String key) {
+    for (String prefix : validPrefixes) {
+      if (key.startsWith(prefix)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Checks if the given property and value are valid. A property is valid if the property key is
+   * valid see {@link #isValidTablePropertyKey} and that the value is a valid format for the type
+   * see {@link PropertyType#isValidFormat}.
+   *
+   * @param key
+   *          property key
+   * @param value
+   *          property value
+   * @return true if key is valid (recognized, or has a recognized prefix)
+   */
+  public static boolean isTablePropertyValid(final String key, final String value) {
+    Property p = getPropertyByKey(key);
+    return (p == null || p.getType().isValidFormat(value)) && isValidTablePropertyKey(key);
+  }
+
+  /**
+   * Checks if the given property key is valid. A valid property key is either equal to the key of
+   * some defined property or has a prefix matching some prefix defined in this class.
+   *
+   * @param key
+   *          property key
+   * @return true if key is valid (recognized, or has a recognized prefix)
+   */
+  public static boolean isValidPropertyKey(String key) {
+    return validProperties.contains(key) || isKeyValidlyPrefixed(key);
+  }
+
+  /**
+   * Checks if the given property key is a valid property and is of type boolean.
+   *
+   * @param key
+   *          property key
+   * @return true if key is valid and is of type boolean, false otherwise
+   */
+  public static boolean isValidBooleanPropertyKey(String key) {
+    return validProperties.contains(key) && getPropertyByKey(key).getType() == PropertyType.BOOLEAN;
+  }
+
+  /**
+   * Checks if the given property key is for a valid table property. A valid table property key is
+   * either equal to the key of some defined table property (which each start with
+   * {@link #TABLE_PREFIX}) or has a prefix matching {@link #TABLE_CONSTRAINT_PREFIX},
+   * {@link #TABLE_ITERATOR_PREFIX}, or {@link #TABLE_LOCALITY_GROUP_PREFIX}.
+   *
+   * @param key
+   *          property key
+   * @return true if key is valid for a table property (recognized, or has a recognized prefix)
+   */
+  public static boolean isValidTablePropertyKey(String key) {
+    return validTableProperties.contains(key) || (key.startsWith(Property.TABLE_PREFIX.getKey())
+        && (key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())
+            || key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey())
+            || key.startsWith(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey())
+            || key.startsWith(Property.TABLE_COMPACTION_STRATEGY_PREFIX.getKey())
+            || key.startsWith(Property.TABLE_REPLICATION_TARGET.getKey())
+            || key.startsWith(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey())
+            || key.startsWith(TABLE_SAMPLER_OPTS.getKey())
+            || key.startsWith(TABLE_SUMMARIZER_PREFIX.getKey())
+            || key.startsWith(TABLE_SCAN_DISPATCHER_OPTS.getKey())
+            || key.startsWith(TABLE_COMPACTION_DISPATCHER_OPTS.getKey())
+            || key.startsWith(TABLE_COMPACTION_CONFIGURER_OPTS.getKey())
+            || key.startsWith(TABLE_COMPACTION_SELECTOR_OPTS.getKey())));
+  }
+
+  private static final EnumSet<Property> fixedProperties = EnumSet.of(
+      // port options
+      GC_PORT, MANAGER_CLIENTPORT, TSERV_CLIENTPORT,
+
+      // tserver cache options
+      TSERV_CACHE_MANAGER_IMPL, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,
+      TSERV_SUMMARYCACHE_SIZE,
+
+      // others
+      TSERV_NATIVEMAP_ENABLED, TSERV_SCAN_MAX_OPENFILES);
+
+  /**
+   * Checks if the given property may be changed via Zookeeper, but not recognized until the restart
+   * of some relevant daemon.
+   *
+   * @param key
+   *          property key
+   * @return true if property may be changed via Zookeeper but only heeded upon some restart
+   */
+  public static boolean isFixedZooPropertyKey(Property key) {
+    return fixedProperties.contains(key);
+  }
+
+  /**
+   * Checks if the given property key is valid for a property that may be changed via Zookeeper.
+   *
+   * @param key
+   *          property key
+   * @return true if key's property may be changed via Zookeeper
+   */
+  public static boolean isValidZooPropertyKey(String key) {
+    // white list prefixes
+    return key.startsWith(Property.TABLE_PREFIX.getKey())
+        || key.startsWith(Property.TSERV_PREFIX.getKey())
+        || key.startsWith(Property.MANAGER_PREFIX.getKey())
+        || key.startsWith(Property.MASTER_PREFIX.getKey())
+        || key.startsWith(Property.GC_PREFIX.getKey())
+        || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
+        || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())
+        || key.startsWith(REPLICATION_PREFIX.getKey());
+  }
+
+  /**
+   * Gets a {@link Property} instance with the given key.
+   *
+   * @param key
+   *          property key
+   * @return property, or null if not found
+   */
+  public static Property getPropertyByKey(String key) {
+    return propertiesByKey.get(key);
+  }
+
+  /**
+   * Checks if this property is expected to have a Java class as a value.
+   *
+   * @return true if this is property is a class property
+   */
+  public static boolean isClassProperty(String key) {
+    return (key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())
+        && key.substring(Property.TABLE_CONSTRAINT_PREFIX.getKey().length()).split("\\.").length
+            == 1)
+        || (key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey())
+            && key.substring(Property.TABLE_ITERATOR_PREFIX.getKey().length()).split("\\.").length
+                == 2)
+        || key.equals(Property.TABLE_LOAD_BALANCER.getKey());
+  }
+
+  /**
+   * Creates a new instance of a class specified in a configuration property. The table classpath
+   * context is used if set.
+   *
+   * @param conf
+   *          configuration containing property
+   * @param property
+   *          property specifying class name
+   * @param base
+   *          base class of type
+   * @param defaultInstance
+   *          instance to use if creation fails
+   * @return new class instance, or default instance if creation failed
+   */
+  public static <T> T createTableInstanceFromPropertyName(AccumuloConfiguration conf,
+      Property property, Class<T> base, T defaultInstance) {
+    String clazzName = conf.get(property);
+    String context = ClassLoaderUtil.tableContext(conf);
+    return ConfigurationTypeHelper.getClassInstance(context, clazzName, base, defaultInstance);
+  }
+
+  /**
+   * Creates a new instance of a class specified in a configuration property.
+   *
+   * @param conf
+   *          configuration containing property
+   * @param property
+   *          property specifying class name
+   * @param base
+   *          base class of type
+   * @param defaultInstance
+   *          instance to use if creation fails
+   * @return new class instance, or default instance if creation failed
+   */
+  public static <T> T createInstanceFromPropertyName(AccumuloConfiguration conf, Property property,
+      Class<T> base, T defaultInstance) {
+    String clazzName = conf.get(property);
+    return ConfigurationTypeHelper.getClassInstance(null, clazzName, base, defaultInstance);
+  }
+
+  static {
+    // Precomputing information here avoids :
+    // * Computing it each time a method is called
+    // * Using synch to compute the first time a method is called
+    propertiesByKey = new HashMap<>();
+    validPrefixes = new HashSet<>();
+    validProperties = new HashSet<>();
+    validTableProperties = new HashSet<>();
+
+    for (Property p : Property.values()) {
+      propertiesByKey.put(p.getKey(), p);
+      if (p.getType().equals(PropertyType.PREFIX)) {
+        validPrefixes.add(p.getKey());
+      } else {
+
+        validProperties.add(p.getKey());
+
+        if (p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
+          validTableProperties.add(p.getKey());
+        }
+      }
+    }
+
+    // order is very important here the following code relies on the maps and sets populated above
+    for (Property p : Property.values()) {
+      p.precomputeAnnotations();
+    }
   }
 }
