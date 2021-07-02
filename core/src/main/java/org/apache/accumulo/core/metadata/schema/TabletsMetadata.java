@@ -87,8 +87,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
   public static class Builder implements TableRangeOptions, TableOptions, RangeOptions, Options {
 
-    private List<Text> families = new ArrayList<>();
-    private List<ColumnFQ> qualifiers = new ArrayList<>();
+    private final List<Text> families = new ArrayList<>();
+    private final List<ColumnFQ> qualifiers = new ArrayList<>();
     private Ample.DataLevel level;
     private String table;
     private Range range;
@@ -98,8 +98,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private boolean saveKeyValues;
     private TableId tableId;
     private ReadConsistency readConsistency = ReadConsistency.IMMEDIATE;
-    private AccumuloClient _client;
-    private Collection<KeyExtent> extents;
+    private final AccumuloClient _client;
+    private Collection<KeyExtent> extents = null;
 
     Builder(AccumuloClient client) {
       this._client = client;
@@ -290,7 +290,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     @Override
     public Options forTablet(KeyExtent extent) {
       forTable(extent.tableId());
-      this.range = new Range(extent.toMetaRow());
+      // this.range = new Range(extent.toMetaRow());
+      this.range = new Range(extent.toMetaRange());
       return this;
     }
 
@@ -431,8 +432,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
   private static class TabletMetadataIterator implements Iterator<TabletMetadata> {
 
     private boolean sawLast = false;
-    private Iterator<TabletMetadata> iter;
-    private Text endRow;
+    private final Iterator<TabletMetadata> iter;
+    private final Text endRow;
 
     TabletMetadataIterator(Iterator<TabletMetadata> source, Text endRow) {
       this.iter = source;
@@ -487,9 +488,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         .convertToTabletMetadata();
   }
 
-  private ScannerBase scanner;
+  private final ScannerBase scanner;
 
-  private Iterable<TabletMetadata> tablets;
+  private final Iterable<TabletMetadata> tablets;
 
   private TabletsMetadata(TabletMetadata tm) {
     this.scanner = null;

@@ -24,6 +24,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata.Options;
+import org.apache.hadoop.io.Text;
 
 import com.google.common.collect.Iterables;
 
@@ -44,7 +45,20 @@ public class AmpleImpl implements Ample {
     builder.readConsistency(readConsistency);
 
     try (TabletsMetadata tablets = builder.build()) {
-      return Iterables.getOnlyElement(tablets);
+      TabletMetadata tmd = Iterables.getOnlyElement(tablets);
+      Text tmpExtent = extent.prevEndRow();
+      Text tmpTmd = tmd.getPrevEndRow();
+      boolean isEqual = false;
+      try {
+        isEqual = tmpExtent == tmpTmd || (tmpExtent.equals(tmpTmd));
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+      if (isEqual) {
+        return tmd;
+      } else {
+        return null;
+      }
     } catch (NoSuchElementException e) {
       return null;
     }
