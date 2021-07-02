@@ -1541,11 +1541,9 @@ public enum Property {
   }
 
   static {
-
     // Precomputing information here avoids :
     // * Computing it each time a method is called
     // * Using synch to compute the first time a method is called
-
     for (Property p : Property.values()) {
       propertiesByKey.put(p.getKey(), p);
       if (p.getType().equals(PropertyType.PREFIX)) {
@@ -1553,8 +1551,8 @@ public enum Property {
       } else {
         validProperties.add(p.getKey());
       }
-      // exclude prefix types (avoids being able to set things like table.custom or
-      // table.constraint)
+      // exclude prefix types (prevents setting a prefix type like table.custom or
+      // table.constraint, directly, since they aren't valid properties on their own)
       if (!p.getType().equals(PropertyType.PREFIX)
           && p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
         validTableProperties.add(p.getKey());
