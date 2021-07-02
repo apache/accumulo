@@ -745,7 +745,7 @@ public class Upgrader9to10 implements Upgrader {
     Path recoveryDir = new Path("/accumulo/recovery");
     try {
       if (!vm.exists(recoveryDir)) {
-        log.info("There are no recover files in /accumulo/recovery");
+        log.info("There are no recovery files in /accumulo/recovery");
         return;
       }
       List<Path> directoriesToDrop = new ArrayList<>();
