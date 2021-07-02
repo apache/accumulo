@@ -16,19 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.metrics;
+package org.apache.accumulo.server.metrics.service.prometheus;
 
-import org.apache.accumulo.server.metrics.Metrics;
-import org.apache.commons.lang3.StringUtils;
+import java.time.Duration;
+import java.time.Instant;
 
-abstract class TServerMetrics extends Metrics {
+public class ProcessReport {
 
-  protected TServerMetrics(String record) {
-    // this capitalization thing is just to preserve the capitalization difference between the
-    // "general" record and the "TabletServer,sub=General" metrics name that existed in 1.9 without
-    // duplicating too much code; the description, however, did change between 1.9 and 2.0
-    super("TabletServer,sub=" + StringUtils.capitalize(record),
-        "TabletServer " + StringUtils.capitalize(record) + " Metrics", "tserver", record);
+  public static class Record {
+    private final String name;
+    private final Instant lastReport;
+    private final int reportCount;
+
+    private Duration delta = Duration.ZERO;
+
+    public Record(final String name, final Instant lastReport, final int reportCount) {
+      this.name = name;
+      this.lastReport = lastReport;
+      this.reportCount = reportCount;
+    }
+
+    public Record(final String name) {
+      this(name, Instant.now(), 1);
+    }
+
   }
 
 }

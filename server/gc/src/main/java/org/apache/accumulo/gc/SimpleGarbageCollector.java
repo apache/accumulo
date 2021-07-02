@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
@@ -80,7 +81,7 @@ import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockWatcher;
 import org.apache.accumulo.gc.metrics.GcCycleMetrics;
-import org.apache.accumulo.gc.metrics.GcMetricsFactory;
+import org.apache.accumulo.gc.metrics.GcMetrics;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerConstants;
@@ -111,35 +112,27 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-// Could/Should implement HighlyAvaialbleService but the Thrift server is already started before
+// Could/Should implement HighlyAvailableService but the Thrift server is already started before
 // the ZK lock is acquired. The server is only for metrics, there are no concerns about clients
 // using the service before the lock is acquired.
 public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollector.class);
-
-  private ServiceLock lock;
-
-  private GCStatus status =
+  private final GCStatus status =
       new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
-
-  private GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
-
-  public static void main(String[] args) throws Exception {
-    try (SimpleGarbageCollector gc = new SimpleGarbageCollector(new ServerOpts(), args)) {
-      gc.runServer();
-    }
-  }
+  private final GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
+  private GcMetrics gcMetrics = null;
 
   SimpleGarbageCollector(ServerOpts opts, String[] args) {
     super("gc", opts, args);
 
     final AccumuloConfiguration conf = getConfiguration();
 
-    boolean gcMetricsRegistered = new GcMetricsFactory(conf).register(this);
-
-    if (gcMetricsRegistered) {
+    // boolean gcMetricsRegistered = new GcMetricsFactory(conf).register(this);
+    var enableMetrics = conf.getBoolean(Property.GC_METRICS_ENABLED);
+    if (enableMetrics) {
       log.info("gc metrics modules registered with metrics system");
+      gcMetrics = new GcMetrics(this);
     } else {
       log.info("Failed to register gc metrics module");
     }
@@ -153,6 +146,87 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     log.info("candidate batch size: {} bytes", getCandidateBatchSize());
     log.info("delete threads: {}", getNumDeleteThreads());
     log.info("gc post metadata action: {}", useFullCompaction);
+  }
+
+  public static void main(String[] args) throws Exception {
+    try (SimpleGarbageCollector gc = new SimpleGarbageCollector(new ServerOpts(), args)) {
+      gc.runServer();
+    }
+  }
+
+  /**
+   * Checks if the given string is a directory.
+   *
+   * @param delete
+   *          possible directory
+   * @return true if string is a directory
+   */
+  static boolean isDir(String delete) {
+    if (delete == null) {
+      return false;
+    }
+
+    int slashCount = 0;
+    for (int i = 0; i < delete.length(); i++) {
+      if (delete.charAt(i) == '/') {
+        slashCount++;
+      }
+    }
+    return slashCount == 1;
+  }
+
+  @VisibleForTesting
+  static void minimizeDeletes(SortedMap<String,String> confirmedDeletes,
+      List<String> processedDeletes, VolumeManager fs) {
+    Set<Path> seenVolumes = new HashSet<>();
+
+    // when deleting a dir and all files in that dir, only need to delete the dir
+    // the dir will sort right before the files... so remove the files in this case
+    // to minimize namenode ops
+    Iterator<Entry<String,String>> cdIter = confirmedDeletes.entrySet().iterator();
+
+    String lastDirRel = null;
+    Path lastDirAbs = null;
+    while (cdIter.hasNext()) {
+      Entry<String,String> entry = cdIter.next();
+      String relPath = entry.getKey();
+      Path absPath = new Path(entry.getValue());
+
+      if (isDir(relPath)) {
+        lastDirRel = relPath;
+        lastDirAbs = absPath;
+      } else if (lastDirRel != null) {
+        if (relPath.startsWith(lastDirRel)) {
+          Path vol = FileType.TABLE.getVolume(absPath);
+
+          boolean sameVol = false;
+
+          if (GcVolumeUtil.isAllVolumesUri(lastDirAbs)) {
+            if (seenVolumes.contains(vol)) {
+              sameVol = true;
+            } else {
+              for (Volume cvol : fs.getVolumes()) {
+                if (cvol.containsPath(vol)) {
+                  seenVolumes.add(vol);
+                  sameVol = true;
+                }
+              }
+            }
+          } else {
+            sameVol = FileType.TABLE.getVolume(lastDirAbs).equals(vol);
+          }
+
+          if (sameVol) {
+            log.info("Ignoring {} because {} exist", entry.getValue(), lastDirAbs);
+            processedDeletes.add(entry.getValue());
+            cdIter.remove();
+          }
+        } else {
+          lastDirRel = null;
+          lastDirAbs = null;
+        }
+      }
+    }
   }
 
   /**
@@ -198,261 +272,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
    */
   boolean inSafeMode() {
     return getConfiguration().getBoolean(Property.GC_SAFEMODE);
-  }
-
-  private class GCEnv implements GarbageCollectionEnvironment {
-
-    private DataLevel level;
-
-    GCEnv(Ample.DataLevel level) {
-      this.level = level;
-    }
-
-    @Override
-    public boolean getCandidates(String continuePoint, List<String> result)
-        throws TableNotFoundException {
-
-      Iterator<String> candidates = getContext().getAmple().getGcCandidates(level, continuePoint);
-      long candidateLength = 0;
-      // Converting the bytes to approximate number of characters for batch size.
-      long candidateBatchSize = getCandidateBatchSize() / 2;
-
-      result.clear();
-
-      while (candidates.hasNext()) {
-        String candidate = candidates.next();
-        candidateLength += candidate.length();
-        result.add(candidate);
-        if (candidateLength > candidateBatchSize) {
-          log.info(
-              "Candidate batch of size {} has exceeded the"
-                  + " threshold. Attempting to delete what has been gathered so far.",
-              candidateLength);
-          return true;
-        }
-      }
-      return false;
-    }
-
-    @Override
-    public Stream<String> getBlipPaths() throws TableNotFoundException {
-
-      if (level == DataLevel.ROOT) {
-        return Stream.empty();
-      }
-
-      int blipPrefixLen = BlipSection.getRowPrefix().length();
-      var scanner =
-          new IsolatedScanner(getContext().createScanner(level.metaTable(), Authorizations.EMPTY));
-      scanner.setRange(BlipSection.getRange());
-      return StreamSupport.stream(scanner.spliterator(), false)
-          .map(entry -> entry.getKey().getRow().toString().substring(blipPrefixLen))
-          .onClose(scanner::close);
-    }
-
-    @Override
-    public Stream<Reference> getReferences() {
-
-      Stream<TabletMetadata> tabletStream;
-
-      if (level == DataLevel.ROOT) {
-        tabletStream =
-            Stream.of(getContext().getAmple().readTablet(RootTable.EXTENT, DIR, FILES, SCANS));
-      } else {
-        tabletStream = TabletsMetadata.builder(getContext()).scanTable(level.metaTable())
-            .checkConsistency().fetch(DIR, FILES, SCANS).build().stream();
-      }
-
-      Stream<Reference> refStream = tabletStream.flatMap(tm -> {
-        Stream<Reference> refs = Stream.concat(tm.getFiles().stream(), tm.getScans().stream())
-            .map(f -> new Reference(tm.getTableId(), f.getMetaUpdateDelete(), false));
-        if (tm.getDirName() != null) {
-          refs =
-              Stream.concat(refs, Stream.of(new Reference(tm.getTableId(), tm.getDirName(), true)));
-        }
-        return refs;
-      });
-
-      return refStream;
-    }
-
-    @Override
-    public Set<TableId> getTableIDs() {
-      return Tables.getIdToNameMap(getContext()).keySet();
-    }
-
-    @Override
-    public void delete(SortedMap<String,String> confirmedDeletes) throws TableNotFoundException {
-      final VolumeManager fs = getContext().getVolumeManager();
-      var metadataLocation = level == DataLevel.ROOT
-          ? getContext().getZooKeeperRoot() + " for " + RootTable.NAME : level.metaTable();
-
-      if (inSafeMode()) {
-        System.out.println("SAFEMODE: There are " + confirmedDeletes.size()
-            + " data file candidates marked for deletion in " + metadataLocation + ".\n"
-            + "          Examine the log files to identify them.\n");
-        log.info("SAFEMODE: Listing all data file candidates for deletion");
-        for (String s : confirmedDeletes.values()) {
-          log.info("SAFEMODE: {}", s);
-        }
-        log.info("SAFEMODE: End candidates for deletion");
-        return;
-      }
-
-      List<String> processedDeletes = Collections.synchronizedList(new ArrayList<>());
-
-      minimizeDeletes(confirmedDeletes, processedDeletes, fs);
-
-      ExecutorService deleteThreadPool =
-          ThreadPools.createExecutorService(getConfiguration(), Property.GC_DELETE_THREADS);
-
-      final List<Pair<Path,Path>> replacements =
-          ServerConstants.getVolumeReplacements(getConfiguration(), getContext().getHadoopConf());
-
-      for (final String delete : confirmedDeletes.values()) {
-
-        Runnable deleteTask = () -> {
-          boolean removeFlag = false;
-
-          try {
-            Path fullPath;
-            Path switchedDelete = VolumeUtil.switchVolume(delete, FileType.TABLE, replacements);
-            if (switchedDelete != null) {
-              // actually replacing the volumes in the metadata table would be tricky because the
-              // entries would be different rows. So it could not be
-              // atomically in one mutation and extreme care would need to be taken that delete
-              // entry was not lost. Instead of doing that, just deal with
-              // volume switching when something needs to be deleted. Since the rest of the code
-              // uses suffixes to compare delete entries, there is no danger
-              // of deleting something that should not be deleted. Must not change value of delete
-              // variable because thats whats stored in metadata table.
-              log.debug("Volume replaced {} -> {}", delete, switchedDelete);
-              fullPath = TabletFileUtil.validate(switchedDelete);
-            } else {
-              fullPath = new Path(TabletFileUtil.validate(delete));
-            }
-
-            for (Path pathToDel : GcVolumeUtil.expandAllVolumesUri(fs, fullPath)) {
-              log.debug("Deleting {}", pathToDel);
-
-              if (moveToTrash(pathToDel) || fs.deleteRecursively(pathToDel)) {
-                // delete succeeded, still want to delete
-                removeFlag = true;
-                synchronized (SimpleGarbageCollector.this) {
-                  ++status.current.deleted;
-                }
-              } else if (fs.exists(pathToDel)) {
-                // leave the entry in the metadata; we'll try again later
-                removeFlag = false;
-                synchronized (SimpleGarbageCollector.this) {
-                  ++status.current.errors;
-                }
-                log.warn("File exists, but was not deleted for an unknown reason: {}", pathToDel);
-                break;
-              } else {
-                // this failure, we still want to remove the metadata entry
-                removeFlag = true;
-                synchronized (SimpleGarbageCollector.this) {
-                  ++status.current.errors;
-                }
-                String[] parts = pathToDel.toString().split(Constants.ZTABLES)[1].split("/");
-                if (parts.length > 2) {
-                  TableId tableId = TableId.of(parts[1]);
-                  String tabletDir = parts[2];
-                  getContext().getTableManager().updateTableStateCache(tableId);
-                  TableState tableState = getContext().getTableManager().getTableState(tableId);
-                  if (tableState != null && tableState != TableState.DELETING) {
-                    // clone directories don't always exist
-                    if (!tabletDir.startsWith(Constants.CLONE_PREFIX)) {
-                      log.debug("File doesn't exist: {}", pathToDel);
-                    }
-                  }
-                } else {
-                  log.warn("Very strange path name: {}", delete);
-                }
-              }
-            }
-
-            // proceed to clearing out the flags for successful deletes and
-            // non-existent files
-            if (removeFlag) {
-              processedDeletes.add(delete);
-            }
-          } catch (Exception e) {
-            log.error("{}", e.getMessage(), e);
-          }
-
-        };
-
-        deleteThreadPool.execute(deleteTask);
-      }
-
-      deleteThreadPool.shutdown();
-
-      try {
-        while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) {}
-      } catch (InterruptedException e1) {
-        log.error("{}", e1.getMessage(), e1);
-      }
-
-      getContext().getAmple().deleteGcCandidates(level, processedDeletes);
-    }
-
-    @Override
-    public void deleteTableDirIfEmpty(TableId tableID) throws IOException {
-      final VolumeManager fs = getContext().getVolumeManager();
-      // if dir exist and is empty, then empty list is returned...
-      // hadoop 2.0 will throw an exception if the file does not exist
-      for (String dir : ServerConstants.getTablesDirs(getContext())) {
-        FileStatus[] tabletDirs = null;
-        try {
-          tabletDirs = fs.listStatus(new Path(dir + "/" + tableID));
-        } catch (FileNotFoundException ex) {
-          continue;
-        }
-
-        if (tabletDirs.length == 0) {
-          Path p = new Path(dir + "/" + tableID);
-          log.debug("Removing table dir {}", p);
-          if (!moveToTrash(p)) {
-            fs.delete(p);
-          }
-        }
-      }
-    }
-
-    @Override
-    public void incrementCandidatesStat(long i) {
-      status.current.candidates += i;
-    }
-
-    @Override
-    public void incrementInUseStat(long i) {
-      status.current.inUse += i;
-    }
-
-    @Override
-    public Iterator<Entry<String,Status>> getReplicationNeededIterator() {
-      AccumuloClient client = getContext();
-      try {
-        Scanner s = ReplicationTable.getScanner(client);
-        StatusSection.limit(s);
-        return Iterators.transform(s.iterator(), input -> {
-          String file = input.getKey().getRow().toString();
-          Status stat;
-          try {
-            stat = Status.parseFrom(input.getValue().get());
-          } catch (InvalidProtocolBufferException e) {
-            log.warn("Could not deserialize protobuf for: {}", input.getKey());
-            stat = null;
-          }
-          return Maps.immutableEntry(file, stat);
-        });
-      } catch (ReplicationTableOfflineException e) {
-        // No elements that we need to preclude
-        return Collections.emptyIterator();
-      }
-    }
   }
 
   @Override
@@ -569,7 +388,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
               accumuloClient.tableOperations().flush(RootTable.NAME, null, null, true);
               break;
             default:
-              log.trace("\'none - no action\' or invalid value provided: {}", action);
+              log.trace("'none - no action' or invalid value provided: {}", action);
           }
 
           final long actionComplete = System.nanoTime();
@@ -584,7 +403,12 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         }
       }
       try {
+
         gcCycleMetrics.incrementRunCycleCount();
+        if (Objects.nonNull(gcMetrics)) {
+          gcMetrics.updateMetrics(gcCycleMetrics);
+        }
+
         long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
         log.debug("Sleeping for {} milliseconds", gcDelay);
         Thread.sleep(gcDelay);
@@ -635,7 +459,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
     UUID zooLockUUID = UUID.randomUUID();
     while (true) {
-      lock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, zooLockUUID);
+      ServiceLock lock =
+          new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, zooLockUUID);
       if (lock.tryLock(lockWatcher,
           new ServerServices(addr.toString(), Service.GC_CLIENT).toString().getBytes())) {
         log.debug("Got GC ZooKeeper lock");
@@ -672,81 +497,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     }
   }
 
-  /**
-   * Checks if the given string is a directory.
-   *
-   * @param delete
-   *          possible directory
-   * @return true if string is a directory
-   */
-  static boolean isDir(String delete) {
-    if (delete == null) {
-      return false;
-    }
-
-    int slashCount = 0;
-    for (int i = 0; i < delete.length(); i++) {
-      if (delete.charAt(i) == '/') {
-        slashCount++;
-      }
-    }
-    return slashCount == 1;
-  }
-
-  @VisibleForTesting
-  static void minimizeDeletes(SortedMap<String,String> confirmedDeletes,
-      List<String> processedDeletes, VolumeManager fs) {
-    Set<Path> seenVolumes = new HashSet<>();
-
-    // when deleting a dir and all files in that dir, only need to delete the dir
-    // the dir will sort right before the files... so remove the files in this case
-    // to minimize namenode ops
-    Iterator<Entry<String,String>> cdIter = confirmedDeletes.entrySet().iterator();
-
-    String lastDirRel = null;
-    Path lastDirAbs = null;
-    while (cdIter.hasNext()) {
-      Entry<String,String> entry = cdIter.next();
-      String relPath = entry.getKey();
-      Path absPath = new Path(entry.getValue());
-
-      if (isDir(relPath)) {
-        lastDirRel = relPath;
-        lastDirAbs = absPath;
-      } else if (lastDirRel != null) {
-        if (relPath.startsWith(lastDirRel)) {
-          Path vol = FileType.TABLE.getVolume(absPath);
-
-          boolean sameVol = false;
-
-          if (GcVolumeUtil.isAllVolumesUri(lastDirAbs)) {
-            if (seenVolumes.contains(vol)) {
-              sameVol = true;
-            } else {
-              for (Volume cvol : fs.getVolumes()) {
-                if (cvol.containsPath(vol)) {
-                  seenVolumes.add(vol);
-                  sameVol = true;
-                }
-              }
-            }
-          } else {
-            sameVol = FileType.TABLE.getVolume(lastDirAbs).equals(vol);
-          }
-
-          if (sameVol) {
-            log.info("Ignoring {} because {} exist", entry.getValue(), lastDirAbs);
-            processedDeletes.add(entry.getValue());
-            cdIter.remove();
-          }
-        } else {
-          lastDirRel = null;
-          lastDirAbs = null;
-        }
-      }
-    }
-  }
-
   @Override
   public GCStatus getStatus(TInfo info, TCredentials credentials) {
     return status;
@@ -755,4 +505,259 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   public GcCycleMetrics getGcCycleMetrics() {
     return gcCycleMetrics;
   }
+
+  private class GCEnv implements GarbageCollectionEnvironment {
+
+    private final DataLevel level;
+
+    GCEnv(Ample.DataLevel level) {
+      this.level = level;
+    }
+
+    @Override
+    public boolean getCandidates(String continuePoint, List<String> result)
+        throws TableNotFoundException {
+
+      Iterator<String> candidates = getContext().getAmple().getGcCandidates(level, continuePoint);
+      long candidateLength = 0;
+      // Converting the bytes to approximate number of characters for batch size.
+      long candidateBatchSize = getCandidateBatchSize() / 2;
+
+      result.clear();
+
+      while (candidates.hasNext()) {
+        String candidate = candidates.next();
+        candidateLength += candidate.length();
+        result.add(candidate);
+        if (candidateLength > candidateBatchSize) {
+          log.info(
+              "Candidate batch of size {} has exceeded the"
+                  + " threshold. Attempting to delete what has been gathered so far.",
+              candidateLength);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    @Override
+    public Stream<String> getBlipPaths() throws TableNotFoundException {
+
+      if (level == DataLevel.ROOT) {
+        return Stream.empty();
+      }
+
+      int blipPrefixLen = BlipSection.getRowPrefix().length();
+      var scanner =
+          new IsolatedScanner(getContext().createScanner(level.metaTable(), Authorizations.EMPTY));
+      scanner.setRange(BlipSection.getRange());
+      return StreamSupport.stream(scanner.spliterator(), false)
+          .map(entry -> entry.getKey().getRow().toString().substring(blipPrefixLen))
+          .onClose(scanner::close);
+    }
+
+    @Override
+    public Stream<Reference> getReferences() {
+
+      Stream<TabletMetadata> tabletStream;
+
+      if (level == DataLevel.ROOT) {
+        tabletStream =
+            Stream.of(getContext().getAmple().readTablet(RootTable.EXTENT, DIR, FILES, SCANS));
+      } else {
+        tabletStream = TabletsMetadata.builder(getContext()).scanTable(level.metaTable())
+            .checkConsistency().fetch(DIR, FILES, SCANS).build().stream();
+      }
+
+      return tabletStream.flatMap(tm -> {
+        Stream<Reference> refs = Stream.concat(tm.getFiles().stream(), tm.getScans().stream())
+            .map(f -> new Reference(tm.getTableId(), f.getMetaUpdateDelete(), false));
+        if (tm.getDirName() != null) {
+          refs =
+              Stream.concat(refs, Stream.of(new Reference(tm.getTableId(), tm.getDirName(), true)));
+        }
+        return refs;
+      });
+    }
+
+    @Override
+    public Set<TableId> getTableIDs() {
+      return Tables.getIdToNameMap(getContext()).keySet();
+    }
+
+    @Override
+    public void delete(SortedMap<String,String> confirmedDeletes) throws TableNotFoundException {
+      final VolumeManager fs = getContext().getVolumeManager();
+      var metadataLocation = level == DataLevel.ROOT
+          ? getContext().getZooKeeperRoot() + " for " + RootTable.NAME : level.metaTable();
+
+      if (inSafeMode()) {
+        System.out.println("SAFEMODE: There are " + confirmedDeletes.size()
+            + " data file candidates marked for deletion in " + metadataLocation + ".\n"
+            + "          Examine the log files to identify them.\n");
+        log.info("SAFEMODE: Listing all data file candidates for deletion");
+        for (String s : confirmedDeletes.values()) {
+          log.info("SAFEMODE: {}", s);
+        }
+        log.info("SAFEMODE: End candidates for deletion");
+        return;
+      }
+
+      List<String> processedDeletes = Collections.synchronizedList(new ArrayList<>());
+
+      minimizeDeletes(confirmedDeletes, processedDeletes, fs);
+
+      ExecutorService deleteThreadPool =
+          ThreadPools.createExecutorService(getConfiguration(), Property.GC_DELETE_THREADS);
+
+      final List<Pair<Path,Path>> replacements =
+          ServerConstants.getVolumeReplacements(getConfiguration(), getContext().getHadoopConf());
+
+      for (final String delete : confirmedDeletes.values()) {
+
+        Runnable deleteTask = () -> {
+          boolean removeFlag = false;
+
+          try {
+            Path fullPath;
+            Path switchedDelete = VolumeUtil.switchVolume(delete, FileType.TABLE, replacements);
+            if (switchedDelete != null) {
+              // actually replacing the volumes in the metadata table would be tricky because the
+              // entries would be different rows. So it could not be
+              // atomically in one mutation and extreme care would need to be taken that delete
+              // entry was not lost. Instead of doing that, just deal with
+              // volume switching when something needs to be deleted. Since the rest of the code
+              // uses suffixes to compare delete entries, there is no danger
+              // of deleting something that should not be deleted. Must not change value of delete
+              // variable because thats whats stored in metadata table.
+              log.debug("Volume replaced {} -> {}", delete, switchedDelete);
+              fullPath = TabletFileUtil.validate(switchedDelete);
+            } else {
+              fullPath = new Path(TabletFileUtil.validate(delete));
+            }
+
+            for (Path pathToDel : GcVolumeUtil.expandAllVolumesUri(fs, fullPath)) {
+              log.debug("Deleting {}", pathToDel);
+
+              if (moveToTrash(pathToDel) || fs.deleteRecursively(pathToDel)) {
+                // delete succeeded, still want to delete
+                removeFlag = true;
+                synchronized (SimpleGarbageCollector.this) {
+                  ++status.current.deleted;
+                }
+              } else if (fs.exists(pathToDel)) {
+                // leave the entry in the metadata; we'll try again later
+                removeFlag = false;
+                synchronized (SimpleGarbageCollector.this) {
+                  ++status.current.errors;
+                }
+                log.warn("File exists, but was not deleted for an unknown reason: {}", pathToDel);
+                break;
+              } else {
+                // this failure, we still want to remove the metadata entry
+                removeFlag = true;
+                synchronized (SimpleGarbageCollector.this) {
+                  ++status.current.errors;
+                }
+                String[] parts = pathToDel.toString().split(Constants.ZTABLES)[1].split("/");
+                if (parts.length > 2) {
+                  TableId tableId = TableId.of(parts[1]);
+                  String tabletDir = parts[2];
+                  getContext().getTableManager().updateTableStateCache(tableId);
+                  TableState tableState = getContext().getTableManager().getTableState(tableId);
+                  if (tableState != null && tableState != TableState.DELETING) {
+                    // clone directories don't always exist
+                    if (!tabletDir.startsWith(Constants.CLONE_PREFIX)) {
+                      log.debug("File doesn't exist: {}", pathToDel);
+                    }
+                  }
+                } else {
+                  log.warn("Very strange path name: {}", delete);
+                }
+              }
+            }
+
+            // proceed to clearing out the flags for successful deletes and
+            // non-existent files
+            if (removeFlag) {
+              processedDeletes.add(delete);
+            }
+          } catch (Exception e) {
+            log.error("{}", e.getMessage(), e);
+          }
+
+        };
+
+        deleteThreadPool.execute(deleteTask);
+      }
+
+      deleteThreadPool.shutdown();
+
+      try {
+        while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) { // empty
+        }
+      } catch (InterruptedException e1) {
+        log.error("{}", e1.getMessage(), e1);
+      }
+
+      getContext().getAmple().deleteGcCandidates(level, processedDeletes);
+    }
+
+    @Override
+    public void deleteTableDirIfEmpty(TableId tableID) throws IOException {
+      final VolumeManager fs = getContext().getVolumeManager();
+      // if dir exist and is empty, then empty list is returned...
+      // hadoop 2.0 will throw an exception if the file does not exist
+      for (String dir : ServerConstants.getTablesDirs(getContext())) {
+        FileStatus[] tabletDirs;
+        try {
+          tabletDirs = fs.listStatus(new Path(dir + "/" + tableID));
+        } catch (FileNotFoundException ex) {
+          continue;
+        }
+
+        if (tabletDirs.length == 0) {
+          Path p = new Path(dir + "/" + tableID);
+          log.debug("Removing table dir {}", p);
+          if (!moveToTrash(p)) {
+            fs.delete(p);
+          }
+        }
+      }
+    }
+
+    @Override
+    public void incrementCandidatesStat(long i) {
+      status.current.candidates += i;
+    }
+
+    @Override
+    public void incrementInUseStat(long i) {
+      status.current.inUse += i;
+    }
+
+    @Override
+    public Iterator<Entry<String,Status>> getReplicationNeededIterator() {
+      AccumuloClient client = getContext();
+      try {
+        Scanner s = ReplicationTable.getScanner(client);
+        StatusSection.limit(s);
+        return Iterators.transform(s.iterator(), input -> {
+          String file = input.getKey().getRow().toString();
+          Status stat;
+          try {
+            stat = Status.parseFrom(input.getValue().get());
+          } catch (InvalidProtocolBufferException e) {
+            log.warn("Could not deserialize protobuf for: {}", input.getKey());
+            stat = null;
+          }
+          return Maps.immutableEntry(file, stat);
+        });
+      } catch (ReplicationTableOfflineException e) {
+        // No elements that we need to preclude
+        return Collections.emptyIterator();
+      }
+    }
+  }
+
 }
