@@ -79,8 +79,11 @@ public class ConfigurationDocGen {
     doc.print("| <a name=\"" + prefix.getKey().replace(".", "_") + "prefix\" class=\"prop\"></a> **"
         + prefix.getKey() + "*** | ");
     doc.print(prefix.isExperimental() ? "**Experimental.** " : "");
-    doc.println(
-        (depr ? "**Deprecated.** " : "") + strike(sanitize(prefix.getDescription()), depr) + " |");
+    doc.println((depr
+        ? "**Deprecated since " + prefix.deprecatedSince() + ".** "
+            + (prefix.isReplaced() ? "**Replaced by " + prefix.replacedBy() + ".** " : "")
+        : "**Available since " + prefix.availableSince() + ".** ")
+        + strike(sanitize(prefix.getDescription()), depr) + " |");
   }
 
   void property(Property prop) {
@@ -88,8 +91,11 @@ public class ConfigurationDocGen {
     doc.print("| <a name=\"" + prop.getKey().replace(".", "_") + "\" class=\"prop\"></a> "
         + prop.getKey() + " | ");
     doc.print(prop.isExperimental() ? "**Experimental.** " : "");
-    doc.print(
-        (depr ? "**Deprecated.** " : "") + strike(sanitize(prop.getDescription()), depr) + "<br>");
+    doc.print((depr
+        ? "**Deprecated since " + prop.deprecatedSince() + ".** "
+            + (prop.isReplaced() ? "**Replaced by " + prop.replacedBy() + ".** " : "")
+        : "**Available since " + prop.availableSince() + ".** ")
+        + strike(sanitize(prop.getDescription()), depr) + "<br>");
     doc.print(strike("**type:** " + prop.getType().name(), depr) + ", ");
     doc.print(strike("**zk mutable:** " + isZooKeeperMutable(prop), depr) + ", ");
     String defaultValue = sanitize(prop.getDefaultValue()).trim();
