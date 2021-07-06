@@ -20,6 +20,8 @@ package org.apache.accumulo.tserver.logger;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.DataInputStream;
+import java.io.EOFException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -38,8 +40,10 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.RecoveryLogsIterator;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -123,16 +127,34 @@ public class LogReader implements KeywordExecutable {
 
       for (String file : opts.files) {
         Path path = new Path(file);
-        if (!fs.getFileStatus(path).isDirectory()) {
-          log.error("No directory was given. Please pass in a recovery directory");
-          continue;
-        }
-        // read the log entries sorted in a RFile
-        try (var rli = new RecoveryLogsIterator(context, Collections.singletonList(path), true)) {
-          while (rli.hasNext()) {
-            Entry<LogFileKey,LogFileValue> entry = rli.next();
-            printLogEvent(entry.getKey(), entry.getValue(), row, rowMatcher, ke, tabletIds,
-                opts.maxMutations);
+        LogFileKey key = new LogFileKey();
+        LogFileValue value = new LogFileValue();
+
+        if (fs.getFileStatus(path).isFile()) {
+          // read log entries from a simple hdfs file
+          try (final FSDataInputStream fsinput = fs.open(path);
+              DataInputStream input = DfsLogger.getDecryptingStream(fsinput, siteConfig)) {
+            while (true) {
+              try {
+                key.readFields(input);
+                value.readFields(input);
+              } catch (EOFException ex) {
+                break;
+              }
+              printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
+            }
+          } catch (DfsLogger.LogHeaderIncompleteException e) {
+            log.warn("Could not read header for {} . Ignoring...", path);
+            continue;
+          }
+        } else {
+          // read the log entries sorted in a RFile
+          try (var rli = new RecoveryLogsIterator(context, Collections.singletonList(path), true)) {
+            while (rli.hasNext()) {
+              Entry<LogFileKey,LogFileValue> entry = rli.next();
+              printLogEvent(entry.getKey(), entry.getValue(), row, rowMatcher, ke, tabletIds,
+                  opts.maxMutations);
+            }
           }
         }
       }
