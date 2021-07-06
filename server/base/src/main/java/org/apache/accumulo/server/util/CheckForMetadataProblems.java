@@ -86,7 +86,7 @@ public class CheckForMetadataProblems {
       KeyExtent tabke = tabIter.next();
       boolean broke = false;
       if (tabke.prevEndRow() == null) {
-        System.out.println("Table " + tableName + " (" + tableId
+        System.out.println("...Table " + tableName + " (" + tableId
             + ") has null prev end row in middle of table " + tabke);
         broke = true;
       } else if (!tabke.prevEndRow().equals(lastEndRow)) {
