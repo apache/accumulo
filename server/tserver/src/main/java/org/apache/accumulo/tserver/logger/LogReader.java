@@ -41,6 +41,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.tserver.log.DfsLogger;
+import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.log.RecoveryLogsIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -143,7 +144,7 @@ public class LogReader implements KeywordExecutable {
               }
               printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
             }
-          } catch (DfsLogger.LogHeaderIncompleteException e) {
+          } catch (LogHeaderIncompleteException e) {
             log.warn("Could not read header for {} . Ignoring...", path);
             continue;
           }
