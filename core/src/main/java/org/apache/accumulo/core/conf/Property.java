@@ -1333,7 +1333,7 @@ public enum Property {
   private final String key;
   private final String defaultValue;
   private final String description;
-  private final String deprecatedSince;
+  private String deprecatedSince;
   private final String availableSince;
   private boolean annotationsComputed = false;
   private boolean isSensitive;
