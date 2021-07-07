@@ -1171,15 +1171,15 @@ public enum Property {
       "This property is deprecated since 2.0.0, use tserver.scan.executors.meta.threads instead. "
           + "The maximum number of concurrent metadata read ahead that will execute.");
 
-  private String key;
-  private String defaultValue;
-  private String description;
+  private final String key;
+  private final String defaultValue;
+  private final String description;
   private boolean annotationsComputed = false;
   private boolean isSensitive;
   private boolean isDeprecated;
   private boolean isExperimental;
   private Property replacedBy = null;
-  private PropertyType type;
+  private final PropertyType type;
 
   Property(String name, String defaultValue, PropertyType type, String description) {
     this.key = name;
@@ -1352,10 +1352,10 @@ public enum Property {
     return false;
   }
 
-  private static HashSet<String> validTableProperties = null;
-  private static HashSet<String> validProperties = null;
-  private static HashSet<String> validPrefixes = null;
-  private static HashMap<String,Property> propertiesByKey = null;
+  private static final HashSet<String> validTableProperties = new HashSet<>();
+  private static final HashSet<String> validProperties = new HashSet<>();
+  private static final HashSet<String> validPrefixes = new HashSet<>();
+  private static final HashMap<String,Property> propertiesByKey = new HashMap<>();
 
   private static boolean isKeyValidlyPrefixed(String key) {
     for (String prefix : validPrefixes) {
@@ -1365,6 +1365,22 @@ public enum Property {
     }
 
     return false;
+  }
+
+  /**
+   * Checks if the given property and value are valid. A property is valid if the property key is
+   * valid see {@link #isValidTablePropertyKey} and that the value is a valid format for the type
+   * see {@link PropertyType#isValidFormat}.
+   *
+   * @param key
+   *          property key
+   * @param value
+   *          property value
+   * @return true if key is valid (recognized, or has a recognized prefix)
+   */
+  public static boolean isTablePropertyValid(final String key, final String value) {
+    Property p = getPropertyByKey(key);
+    return (p == null || p.getType().isValidFormat(value)) && isValidTablePropertyKey(key);
   }
 
   /**
@@ -1528,21 +1544,15 @@ public enum Property {
     // Precomputing information here avoids :
     // * Computing it each time a method is called
     // * Using synch to compute the first time a method is called
-    propertiesByKey = new HashMap<>();
-    validPrefixes = new HashSet<>();
-    validProperties = new HashSet<>();
-
     for (Property p : Property.values()) {
+      propertiesByKey.put(p.getKey(), p);
       if (p.getType().equals(PropertyType.PREFIX)) {
         validPrefixes.add(p.getKey());
       } else {
         validProperties.add(p.getKey());
       }
-      propertiesByKey.put(p.getKey(), p);
-    }
-
-    validTableProperties = new HashSet<>();
-    for (Property p : Property.values()) {
+      // exclude prefix types (prevents setting a prefix type like table.custom or
+      // table.constraint, directly, since they aren't valid properties on their own)
       if (!p.getType().equals(PropertyType.PREFIX)
           && p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
         validTableProperties.add(p.getKey());
