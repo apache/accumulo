@@ -27,6 +27,8 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -43,27 +45,36 @@ import org.apache.htrace.TraceScope;
 
 public class CheckForMetadataProblems {
   private static boolean sawProblems = false;
+  private static ServerUtilOpts opts;
 
   private static void checkTable(TableId tableId, TreeSet<KeyExtent> tablets) {
     // sanity check of metadata table entries
     // make sure tablets has no holes, and that it starts and ends w/ null
+    String tableName;
+
+    try {
+      tableName = Tables.getTableName(opts.getServerContext(), tableId);
+    } catch (TableNotFoundException e) {
+      tableName = null;
+    }
 
     if (tablets.isEmpty()) {
-      System.out.println("No entries found in metadata table for table " + tableId);
+      System.out.println(
+          "...No entries found in metadata table for table " + tableName + " (" + tableId + ")");
       sawProblems = true;
       return;
     }
 
     if (tablets.first().prevEndRow() != null) {
-      System.out.println("First entry for table " + tableId + "- " + tablets.first()
-          + " - has non null prev end row");
+      System.out.println("...First entry for table " + tableName + " (" + tableId + ") " + " - "
+          + tablets.first() + " - has non null prev end row");
       sawProblems = true;
       return;
     }
 
     if (tablets.last().endRow() != null) {
-      System.out.println(
-          "Last entry for table " + tableId + "- " + tablets.last() + " - has non null end row");
+      System.out.println("...Last entry for table " + tableName + " (" + tableId + ") - "
+          + tablets.last() + " - has non null end row");
       sawProblems = true;
       return;
     }
@@ -75,12 +86,12 @@ public class CheckForMetadataProblems {
       KeyExtent tabke = tabIter.next();
       boolean broke = false;
       if (tabke.prevEndRow() == null) {
-        System.out
-            .println("Table " + tableId + " has null prev end row in middle of table " + tabke);
+        System.out.println("...Table " + tableName + " (" + tableId
+            + ") has null prev end row in middle of table " + tabke);
         broke = true;
       } else if (!tabke.prevEndRow().equals(lastEndRow)) {
-        System.out.println(
-            "Table " + tableId + " has a hole " + tabke.prevEndRow() + " != " + lastEndRow);
+        System.out.println("...Table " + tableName + " (" + tableId + ") has a hole "
+            + tabke.prevEndRow() + " != " + lastEndRow);
         broke = true;
       }
       if (broke) {
@@ -90,19 +101,20 @@ public class CheckForMetadataProblems {
       lastEndRow = tabke.endRow();
     }
     if (everythingLooksGood)
-      System.out.println("All is well for table " + tableId);
+      System.out.println("...All is well for table " + tableName + " (" + tableId + ")");
     else
       sawProblems = true;
   }
 
   private static void checkMetadataAndRootTableEntries(String tableNameToCheck, ServerUtilOpts opts)
       throws Exception {
-    System.out.println("Checking table: " + tableNameToCheck);
+    TableId tableCheckId = Tables.getTableId(opts.getServerContext(), tableNameToCheck);
+    System.out.println("Checking tables whose metadata is found in: " + tableNameToCheck + " ("
+        + tableCheckId + ")");
     Map<TableId,TreeSet<KeyExtent>> tables = new HashMap<>();
 
-    try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
-
-      Scanner scanner = client.createScanner(tableNameToCheck, Authorizations.EMPTY);
+    try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build();
+        Scanner scanner = client.createScanner(tableNameToCheck, Authorizations.EMPTY)) {
 
       scanner.setRange(TabletsSection.getRange());
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
@@ -147,7 +159,8 @@ public class CheckForMetadataProblems {
       }
 
       if (count == 0) {
-        System.err.println("ERROR : " + tableNameToCheck + " table is empty");
+        System.err
+            .println("ERROR : table " + tableNameToCheck + " (" + tableCheckId + ") is empty");
         sawProblems = true;
       }
     }
@@ -155,17 +168,18 @@ public class CheckForMetadataProblems {
     tables.forEach(CheckForMetadataProblems::checkTable);
 
     if (!sawProblems) {
-      System.out.println("No problems found");
+      System.out.println("No problems found in " + tableNameToCheck + " (" + tableCheckId + ")");
     }
     // end METADATA table sanity check
   }
 
   public static void main(String[] args) throws Exception {
-    ServerUtilOpts opts = new ServerUtilOpts();
+    opts = new ServerUtilOpts();
     try (TraceScope clientSpan =
         opts.parseArgsAndTrace(CheckForMetadataProblems.class.getName(), args)) {
 
       checkMetadataAndRootTableEntries(RootTable.NAME, opts);
+      System.out.println();
       checkMetadataAndRootTableEntries(MetadataTable.NAME, opts);
       if (sawProblems)
         throw new RuntimeException();
