@@ -75,7 +75,7 @@ public class LogReader implements KeywordExecutable {
   }
 
   /**
-   * Dump a Log File (Map or Sequence) to stdout. Will read from HDFS or local file system.
+   * Dump a Log File to stdout. Will read from HDFS or local file system.
    *
    * @param args
    *          - first argument is the file to print
@@ -131,13 +131,14 @@ public class LogReader implements KeywordExecutable {
         LogFileKey key = new LogFileKey();
         LogFileValue value = new LogFileValue();
 
+        // read log entries from a single WAL file.
         if (fs.getFileStatus(path).isFile()) {
           if (file.endsWith(".rf")) {
             log.error(
                 "Can not read from a single rfile. Please pass in a directory for recovery logs.");
             continue;
           }
-          // read log entries from a simple hdfs file
+
           try (final FSDataInputStream fsinput = fs.open(path);
               DataInputStream input = DfsLogger.getDecryptingStream(fsinput, siteConfig)) {
             while (true) {
@@ -154,8 +155,10 @@ public class LogReader implements KeywordExecutable {
             continue;
           }
         } else {
-          // read the log entries sorted in a RFile
-          try (var rli = new RecoveryLogsIterator(context, Collections.singletonList(path), true)) {
+          // read the log entries in a sorted RFile. This has to be a directory that contains the
+          // finished file.
+          try (var rli = new RecoveryLogsIterator(context, Collections.singletonList(path), null,
+              null, false)) {
             while (rli.hasNext()) {
               Entry<LogFileKey,LogFileValue> entry = rli.next();
               printLogEvent(entry.getKey(), entry.getValue(), row, rowMatcher, ke, tabletIds,

@@ -56,11 +56,6 @@ public class RecoveryLogsIterator
   private final List<Scanner> scanners;
   private final Iterator<Entry<Key,Value>> iter;
 
-  public RecoveryLogsIterator(ServerContext context, List<Path> recoveryLogDirs,
-      boolean checkFirstKEy) throws IOException {
-    this(context, recoveryLogDirs, null, null, checkFirstKEy);
-  }
-
   /**
    * Scans the files in each recoveryLogDir over the range [start,end].
    */
