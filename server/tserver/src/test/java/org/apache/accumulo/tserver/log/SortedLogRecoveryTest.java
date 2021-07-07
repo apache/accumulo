@@ -79,6 +79,7 @@ public class SortedLogRecoveryTest {
   static final Text cq = new Text("cq");
   static final Value value = new Value("value");
   static ServerContext context;
+  static LogSorter logSorter;
 
   @Rule
   public TemporaryFolder tempFolder =
@@ -87,6 +88,7 @@ public class SortedLogRecoveryTest {
   @Before
   public void setup() {
     context = EasyMock.createMock(ServerContext.class);
+    logSorter = new LogSorter(context, DefaultConfiguration.getInstance());
   }
 
   static class KeyValue implements Comparable<KeyValue> {
@@ -179,11 +181,11 @@ public class SortedLogRecoveryTest {
         for (KeyValue pair : entry.getValue()) {
           buffer.add(new Pair<>(pair.key, pair.value));
           if (buffer.size() >= bufferSize) {
-            LogSorter.writeBuffer(context, destPath, buffer, parts++);
+            logSorter.writeBuffer(destPath, buffer, parts++);
             buffer.clear();
           }
         }
-        LogSorter.writeBuffer(context, destPath, buffer, parts);
+        logSorter.writeBuffer(destPath, buffer, parts);
 
         ns.create(SortedLogState.getFinishedMarkerPath(destPath)).close();
         dirs.add(new Path(destPath));
