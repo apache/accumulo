@@ -69,7 +69,7 @@ public class RecoveryLogsIterator
 
     List<Iterator<Entry<Key,Value>>> iterators = new ArrayList<>(recoveryLogDirs.size());
     scanners = new ArrayList<>();
-    Range range = start != null ? LogFileKey.toRange(start, end) : null;
+    Range range = start == null ? null : LogFileKey.toRange(start, end);
     var vm = context.getVolumeManager();
 
     for (Path logDir : recoveryLogDirs) {
