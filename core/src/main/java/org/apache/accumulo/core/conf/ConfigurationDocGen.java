@@ -79,11 +79,14 @@ public class ConfigurationDocGen {
     doc.print("| <a name=\"" + prefix.getKey().replace(".", "_") + "prefix\" class=\"prop\"></a> **"
         + prefix.getKey() + "*** | ");
     doc.print(prefix.isExperimental() ? "**Experimental.** " : "");
-    doc.println((depr
-        ? "**Deprecated since " + prefix.deprecatedSince() + ".** "
-            + (prefix.isReplaced() ? "**Replaced by " + prefix.replacedBy() + ".** " : "")
-        : "**Available since " + prefix.availableSince() + ".** ")
-        + strike(sanitize(prefix.getDescription()), depr) + " |");
+    doc.println(
+        (depr
+            ? "**Deprecated since " + prefix.deprecatedSince() + ".** "
+                + (prefix.isReplaced() ? "**Replaced by " + "<a href=\"#"
+                    + prefix.replacedBy().getKey().replace(".", "_") + "prefix\">"
+                    + prefix.replacedBy() + "" + "</a>.** " : "")
+            : "**Available since " + prefix.availableSince() + ".** ")
+            + strike(sanitize(prefix.getDescription()), depr) + " |");
   }
 
   void property(Property prop) {
@@ -93,7 +96,10 @@ public class ConfigurationDocGen {
     doc.print(prop.isExperimental() ? "**Experimental.** " : "");
     doc.print((depr
         ? "**Deprecated since " + prop.deprecatedSince() + ".** "
-            + (prop.isReplaced() ? "**Replaced by " + prop.replacedBy() + ".** " : "")
+            + (prop.isReplaced()
+                ? "**Replaced by " + "<a href=\"#" + prop.replacedBy().getKey().replace(".", "_")
+                    + "\">" + prop.replacedBy() + "" + "</a>.** "
+                : "")
         : "**Available since " + prop.availableSince() + ".** ")
         + strike(sanitize(prop.getDescription()), depr) + "<br>");
     doc.print(strike("**type:** " + prop.getType().name(), depr) + ", ");
