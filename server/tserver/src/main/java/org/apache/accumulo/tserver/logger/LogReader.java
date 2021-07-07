@@ -132,6 +132,11 @@ public class LogReader implements KeywordExecutable {
         LogFileValue value = new LogFileValue();
 
         if (fs.getFileStatus(path).isFile()) {
+          if (file.endsWith(".rf")) {
+            log.error(
+                "Can not read from a single rfile. Please pass in a directory for recovery logs.");
+            continue;
+          }
           // read log entries from a simple hdfs file
           try (final FSDataInputStream fsinput = fs.open(path);
               DataInputStream input = DfsLogger.getDecryptingStream(fsinput, siteConfig)) {
