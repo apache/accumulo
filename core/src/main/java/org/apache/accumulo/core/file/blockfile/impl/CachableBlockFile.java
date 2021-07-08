@@ -77,11 +77,6 @@ public class CachableBlockFile {
     Configuration hadoopConf = null;
     CryptoService cryptoService = null;
 
-    public CachableBuilder cacheId(String id) {
-      this.cacheId = id;
-      return this;
-    }
-
     public CachableBuilder conf(Configuration hadoopConf) {
       this.hadoopConf = hadoopConf;
       return this;
@@ -94,7 +89,8 @@ public class CachableBlockFile {
       return this;
     }
 
-    public CachableBuilder input(InputStream is) {
+    public CachableBuilder input(InputStream is, String cacheId) {
+      this.cacheId = cacheId;
       this.inputSupplier = () -> is;
       return this;
     }
@@ -359,7 +355,7 @@ public class CachableBlockFile {
     }
 
     public Reader(CachableBuilder b) {
-      this.cacheId = b.cacheId;
+      this.cacheId = Objects.requireNonNull(b.cacheId);
       this.inputSupplier = b.inputSupplier;
       this.lengthSupplier = b.lengthSupplier;
       this.fileLenCache = b.fileLenCache;
