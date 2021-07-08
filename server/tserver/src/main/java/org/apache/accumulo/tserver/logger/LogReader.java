@@ -131,11 +131,11 @@ public class LogReader implements KeywordExecutable {
         LogFileKey key = new LogFileKey();
         LogFileValue value = new LogFileValue();
 
-        // read log entries from a single WAL file.
+        // ensure it's a regular non-sorted WAL file, and not a single sorted WAL in RFile format
         if (fs.getFileStatus(path).isFile()) {
           if (file.endsWith(".rf")) {
-            log.error(
-                "Can not read from a single rfile. Please pass in a directory for recovery logs.");
+            log.error("Unable to read from a single RFile. A non-sorted WAL file was expected. "
+                + "To read sorted WALs, please pass in a directory containing the sorted recovery logs.");
             continue;
           }
 
