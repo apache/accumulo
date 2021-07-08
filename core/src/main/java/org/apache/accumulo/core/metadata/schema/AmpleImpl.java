@@ -48,13 +48,7 @@ public class AmpleImpl implements Ample {
       TabletMetadata tmd = Iterables.getOnlyElement(tablets);
       Text tmpExtent = extent.prevEndRow();
       Text tmpTmd = tmd.getPrevEndRow();
-      boolean isEqual = false;
-      try {
-        isEqual = tmpExtent == tmpTmd || (tmpExtent.equals(tmpTmd));
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-      if (isEqual) {
+      if (tmpExtent == tmpTmd || tmpExtent.equals(tmpTmd)) {
         return tmd;
       } else {
         return null;
