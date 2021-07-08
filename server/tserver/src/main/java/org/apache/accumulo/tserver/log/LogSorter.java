@@ -216,7 +216,7 @@ public class LogSorter {
   @VisibleForTesting
   void writeBuffer(String destPath, List<Pair<LogFileKey,LogFileValue>> buffer, int part)
       throws IOException {
-    String filename = String.format("part-r-%05d.rf", part);
+    String filename = getFilename(part);
     Path path = new Path(destPath, filename);
     FileSystem fs = context.getVolumeManager().getFileSystemByPath(path);
     Path fullPath = fs.makeQualified(path);
@@ -245,6 +245,27 @@ public class LogSorter {
         writer.append(entry.getKey(), val.toValue());
       }
     }
+  }
+
+  // faster replacement for String.format("part-r-%05d.rf", part);
+  private static final String prefix = "part-r-";
+  private static final String suffix = ".rf";
+
+  private String getFilename(int part) {
+    String pad;
+    if (part < 10) {
+      pad = "0000" + part;
+    } else if (part < 100) {
+      pad = "000" + part;
+    } else if (part < 1000) {
+      pad = "00" + part;
+    } else if (part < 10000) {
+      pad = "0" + part;
+    } else {
+      pad = "" + part;
+    }
+
+    return prefix + pad + suffix;
   }
 
   public void startWatchingForRecoveryLogs(ThreadPoolExecutor distWorkQThreadPool)
