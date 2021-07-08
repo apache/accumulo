@@ -78,30 +78,30 @@ public class ConfigurationDocGen {
     boolean depr = prefix.isDeprecated();
     doc.print("| <a name=\"" + prefix.getKey().replace(".", "_") + "prefix\" class=\"prop\"></a> **"
         + prefix.getKey() + "*** | ");
-    doc.print(prefix.isExperimental() ? "**Experimental.** " : "");
+    doc.print(prefix.isExperimental() ? "**Experimental.**<br>" : "");
+    doc.print("**Available since " + prefix.availableSince() + ".**<br>");
     doc.println(
         (depr
-            ? "**Deprecated since " + prefix.deprecatedSince() + ".** "
+            ? "**Deprecated since " + prefix.deprecatedSince() + ".**<br>"
                 + (prefix.isReplaced() ? "**Replaced by " + "<a href=\"#"
                     + prefix.replacedBy().getKey().replace(".", "_") + "prefix\">"
-                    + prefix.replacedBy() + "" + "</a>.** " : "")
-            : "**Available since " + prefix.availableSince() + ".** ")
-            + strike(sanitize(prefix.getDescription()), depr) + " |");
+                    + prefix.replacedBy() + "" + "</a>.**<br>" : "")
+            : "") + strike(sanitize(prefix.getDescription()), depr) + " |");
   }
 
   void property(Property prop) {
     boolean depr = prop.isDeprecated();
     doc.print("| <a name=\"" + prop.getKey().replace(".", "_") + "\" class=\"prop\"></a> "
         + prop.getKey() + " | ");
-    doc.print(prop.isExperimental() ? "**Experimental.** " : "");
-    doc.print((depr
-        ? "**Deprecated since " + prop.deprecatedSince() + ".** "
-            + (prop.isReplaced()
-                ? "**Replaced by " + "<a href=\"#" + prop.replacedBy().getKey().replace(".", "_")
-                    + "\">" + prop.replacedBy() + "" + "</a>.** "
-                : "")
-        : "**Available since " + prop.availableSince() + ".** ")
-        + strike(sanitize(prop.getDescription()), depr) + "<br>");
+    doc.print(prop.isExperimental() ? "**Experimental.**<br>" : "");
+    doc.print("**Available since " + prop.availableSince() + ".**<br>");
+    doc.print(
+        (depr
+            ? "**Deprecated since " + prop.deprecatedSince() + ".**<br>"
+                + (prop.isReplaced() ? "**Replaced by " + "<a href=\"#"
+                    + prop.replacedBy().getKey().replace(".", "_") + "\">" + prop.replacedBy() + ""
+                    + "</a>.**<br>" : "")
+            : "") + strike(sanitize(prop.getDescription()), depr) + "<br>");
     doc.print(strike("**type:** " + prop.getType().name(), depr) + ", ");
     doc.print(strike("**zk mutable:** " + isZooKeeperMutable(prop), depr) + ", ");
     String defaultValue = sanitize(prop.getDefaultValue()).trim();

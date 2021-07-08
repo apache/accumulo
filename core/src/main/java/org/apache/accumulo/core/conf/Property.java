@@ -79,9 +79,6 @@ public enum Property {
       "The protocol used to connect to a secure server, must be in the list of enabled protocols "
           + "on the server side (rpc.ssl.server.enabled.protocols)",
       "1.6.2"),
-  /**
-   * @since 1.7.0
-   */
   RPC_SASL_QOP("rpc.sasl.qop", "auth", PropertyType.STRING,
       "The quality of protection to be used with SASL. Valid values are 'auth', 'auth-int',"
           + " and 'auth-conf'",
@@ -165,9 +162,6 @@ public enum Property {
       "1.6.0"),
   INSTANCE_RPC_SSL_CLIENT_AUTH("instance.rpc.ssl.clientAuth", "false", PropertyType.BOOLEAN,
       "Require clients to present certs signed by a trusted root", "1.6.0"),
-  /**
-   * @since 1.7.0
-   */
   INSTANCE_RPC_SASL_ENABLED("instance.rpc.sasl.enabled", "false", PropertyType.BOOLEAN,
       "Configures Thrift RPCs to require SASL with GSSAPI which supports "
           + "Kerberos authentication. Mutually exclusive with SSL RPC configuration.",
@@ -276,7 +270,11 @@ public enum Property {
 
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
-      "Properties in this category affect the behavior of the manager server.", "2.1.0"),
+      "Properties in this category affect the behavior of the manager server. "
+          + "Since 2.1.0, all properties in this category replace the old `master.*` names. Properties "
+          + "within this category are marked with the `availableSince` value of the version "
+          + "in which the old `master.*` equivalent was first introduced.",
+      "2.1.0"),
   @Deprecated(since = "2.1.0")
   @ReplacedBy(property = Property.MANAGER_PREFIX)
   MASTER_PREFIX("master.", null, PropertyType.PREFIX,
