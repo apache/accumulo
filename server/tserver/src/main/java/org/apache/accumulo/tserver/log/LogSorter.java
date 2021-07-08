@@ -248,24 +248,23 @@ public class LogSorter {
   }
 
   // faster replacement for String.format("part-r-%05d.rf", part);
-  private static final String prefix = "part-r-";
   private static final String suffix = ".rf";
 
   private String getFilename(int part) {
-    String pad;
+    String prefix;
     if (part < 10) {
-      pad = "0000" + part;
+      prefix = "part-r-0000" + part;
     } else if (part < 100) {
-      pad = "000" + part;
+      prefix = "part-r-000" + part;
     } else if (part < 1000) {
-      pad = "00" + part;
+      prefix = "part-r-00" + part;
     } else if (part < 10000) {
-      pad = "0" + part;
+      prefix = "part-r-0" + part;
     } else {
-      pad = "" + part;
+      prefix = "part-r-" + part;
     }
 
-    return prefix + pad + suffix;
+    return prefix + suffix;
   }
 
   public void startWatchingForRecoveryLogs(ThreadPoolExecutor distWorkQThreadPool)
