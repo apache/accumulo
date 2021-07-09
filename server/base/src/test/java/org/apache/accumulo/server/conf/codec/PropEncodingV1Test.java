@@ -84,7 +84,7 @@ public class PropEncodingV1Test {
 
     int ver = props.getDataVersion();
 
-    var createdTs = props.getTimestamp();
+    Instant createdTs = props.getTimestamp();
 
     byte[] bytes = props.toBytes();
 
