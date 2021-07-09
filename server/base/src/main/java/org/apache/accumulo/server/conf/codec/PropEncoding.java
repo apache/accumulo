@@ -80,7 +80,7 @@ public interface PropEncoding {
   /**
    * The version is incremented with a call to toBytes() - this method returns the value that should
    * reflect the current version in the backing store. The expected usage is that the properties
-   * will be serialized inti a byte array with a call {@link #toBytes()} - that will increment the
+   * will be serialized into a byte array with a call {@link #toBytes()} - that will increment the
    * data version - then, the {@link #getExpectedVersion()} will reflect the value that is currently
    * in zookeeper and is the value passed to the zookeeper setData methods.
    *
