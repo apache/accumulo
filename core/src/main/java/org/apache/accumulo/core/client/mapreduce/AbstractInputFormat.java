@@ -41,9 +41,7 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -64,7 +62,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
@@ -729,11 +726,8 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
           tl.invalidateCache();
 
           while (!tl.binRanges(client, ranges, binnedRanges).isEmpty()) {
-            String tableIdStr = tableId.canonical();
-            if (!Tables.exists(client, tableId))
-              throw new TableDeletedException(tableIdStr);
-            if (Tables.getTableState(client, tableId) == TableState.OFFLINE)
-              throw new TableOfflineException(Tables.getTableOfflineMsg(client, tableId));
+            client.requireNotDeleted(tableId);
+            client.requireNotOffline(tableId, tableName);
             binnedRanges.clear();
             log.warn("Unable to locate bins for specified ranges. Retrying.");
             // sleep randomly between 100 and 200 ms

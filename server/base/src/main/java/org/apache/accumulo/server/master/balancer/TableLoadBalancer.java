@@ -70,9 +70,7 @@ public class TableLoadBalancer extends TabletBalancer {
 
   protected String getLoadBalancerClassNameForTable(TableId table) {
     TableState tableState = context.getTableManager().getTableState(table);
-    if (tableState == null)
-      return null;
-    if (tableState.equals(TableState.ONLINE))
+    if (tableState == TableState.ONLINE)
       return this.context.getTableConfiguration(table).get(Property.TABLE_LOAD_BALANCER);
     return null;
   }

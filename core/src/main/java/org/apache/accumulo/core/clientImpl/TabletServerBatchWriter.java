@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+
 import java.io.IOException;
 import java.lang.management.CompilationMXBean;
 import java.lang.management.GarbageCollectorMXBean;
@@ -38,7 +42,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -61,7 +64,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
-import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
@@ -486,26 +488,13 @@ public class TabletServerBatchWriter implements AutoCloseable {
     }
   }
 
-  private void updateAuthorizationFailures(Set<KeyExtent> keySet, SecurityErrorCode code) {
-    HashMap<KeyExtent,SecurityErrorCode> map = new HashMap<>();
-    for (KeyExtent ke : keySet)
-      map.put(ke, code);
-
-    updateAuthorizationFailures(map);
-  }
-
   private void updateAuthorizationFailures(Map<KeyExtent,SecurityErrorCode> authorizationFailures) {
     if (!authorizationFailures.isEmpty()) {
 
       // was a table deleted?
-      HashSet<TableId> tableIds = new HashSet<>();
-      for (KeyExtent ke : authorizationFailures.keySet())
-        tableIds.add(ke.tableId());
-
       Tables.clearCache(context);
-      for (TableId tableId : tableIds)
-        if (!Tables.exists(context, tableId))
-          throw new TableDeletedException(tableId.canonical());
+      authorizationFailures.keySet().stream().map(KeyExtent::tableId)
+          .forEach(context::requireNotDeleted);
 
       synchronized (this) {
         somethingFailed = true;
@@ -679,12 +668,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
             if (!tableFailures.isEmpty()) {
               failedMutations.add(tableId, tableFailures);
 
-              if (tableFailures.size() == tableMutations.size())
-                if (!Tables.exists(context, entry.getKey()))
-                  throw new TableDeletedException(entry.getKey().canonical());
-                else if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
-                  throw new TableOfflineException(
-                      Tables.getTableOfflineMsg(context, entry.getKey()));
+              if (tableFailures.size() == tableMutations.size()) {
+                context.requireNotDeleted(tableId);
+                context.requireNotOffline(tableId, null);
+              }
             }
           }
 
@@ -916,7 +903,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
               getLocator(entry.getKey().tableId()).invalidateCache(entry.getKey());
             } catch (ConstraintViolationException e) {
               updatedConstraintViolations(e.violationSummaries.stream()
-                  .map(ConstraintViolationSummary::new).collect(Collectors.toList()));
+                  .map(ConstraintViolationSummary::new).collect(toList()));
             }
             timeoutTracker.madeProgress();
           } else {
@@ -944,15 +931,15 @@ public class TabletServerBatchWriter implements AutoCloseable {
             UpdateErrors updateErrors = client.closeUpdate(tinfo, usid);
 
             // @formatter:off
-            Map<KeyExtent,Long> failures = updateErrors.failedExtents.entrySet().stream().collect(Collectors.toMap(
+            Map<KeyExtent,Long> failures = updateErrors.failedExtents.entrySet().stream().collect(toMap(
                             entry -> KeyExtent.fromThrift(entry.getKey()),
                             Entry::getValue
             ));
             // @formatter:on
             updatedConstraintViolations(updateErrors.violationSummaries.stream()
-                .map(ConstraintViolationSummary::new).collect(Collectors.toList()));
+                .map(ConstraintViolationSummary::new).collect(toList()));
             // @formatter:off
-            updateAuthorizationFailures(updateErrors.authorizationFailures.entrySet().stream().collect(Collectors.toMap(
+            updateAuthorizationFailures(updateErrors.authorizationFailures.entrySet().stream().collect(toMap(
                             entry -> KeyExtent.fromThrift(entry.getKey()),
                             Entry::getValue
             )));
@@ -991,7 +978,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
         updateServerErrors(location, tae);
         throw new AccumuloServerException(location, tae);
       } catch (ThriftSecurityException e) {
-        updateAuthorizationFailures(tabMuts.keySet(), e.code);
+        updateAuthorizationFailures(
+            tabMuts.keySet().stream().collect(toMap(identity(), ke -> e.code)));
         throw new AccumuloSecurityException(e.user, e.code, e);
       } catch (TException e) {
         throw new IOException(e);

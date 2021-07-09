@@ -40,9 +40,9 @@ public class TabletServerBatchDeleter extends TabletServerBatchReader implements
   private TableId tableId;
   private BatchWriterConfig bwConfig;
 
-  public TabletServerBatchDeleter(ClientContext context, TableId tableId,
+  public TabletServerBatchDeleter(ClientContext context, TableId tableId, String tableName,
       Authorizations authorizations, int numQueryThreads, BatchWriterConfig bwConfig) {
-    super(context, BatchDeleter.class, tableId, authorizations, numQueryThreads);
+    super(context, BatchDeleter.class, tableId, tableName, authorizations, numQueryThreads);
     this.context = context;
     this.tableId = tableId;
     this.bwConfig = bwConfig;

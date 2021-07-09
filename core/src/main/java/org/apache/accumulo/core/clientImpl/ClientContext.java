@@ -47,6 +47,7 @@ import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -511,9 +512,27 @@ public class ClientContext implements AccumuloClient {
 
   // this validates the table name for all callers
   TableId getTableId(String tableName) throws TableNotFoundException {
-    TableId tableId = Tables.getTableId(this, EXISTING_TABLE_NAME.validate(tableName));
+    return Tables.getTableId(this, EXISTING_TABLE_NAME.validate(tableName));
+  }
+
+  // use cases overlap with requireNotDeleted, but this throws a checked exception
+  public TableId requireTableExists(TableId tableId, String tableName)
+      throws TableNotFoundException {
+    if (!Tables.exists(this, tableId))
+      throw new TableNotFoundException(tableId.canonical(), tableName, "Table no longer exists");
+    return tableId;
+  }
+
+  // use cases overlap with requireTableExists, but this throws a runtime exception
+  public TableId requireNotDeleted(TableId tableId) {
+    if (!Tables.exists(this, tableId))
+      throw new TableDeletedException(tableId.canonical());
+    return tableId;
+  }
+
+  public TableId requireNotOffline(TableId tableId, String tableName) {
     if (Tables.getTableState(this, tableId) == TableState.OFFLINE)
-      throw new TableOfflineException(Tables.getTableOfflineMsg(this, tableId));
+      throw new TableOfflineException(tableId, tableName);
     return tableId;
   }
 
@@ -522,8 +541,8 @@ public class ClientContext implements AccumuloClient {
       int numQueryThreads) throws TableNotFoundException {
     ensureOpen();
     checkArgument(authorizations != null, "authorizations is null");
-    return new TabletServerBatchReader(this, getTableId(tableName), authorizations,
-        numQueryThreads);
+    return new TabletServerBatchReader(this, requireNotOffline(getTableId(tableName), tableName),
+        tableName, authorizations, numQueryThreads);
   }
 
   @Override
@@ -548,8 +567,8 @@ public class ClientContext implements AccumuloClient {
       int numQueryThreads, BatchWriterConfig config) throws TableNotFoundException {
     ensureOpen();
     checkArgument(authorizations != null, "authorizations is null");
-    return new TabletServerBatchDeleter(this, getTableId(tableName), authorizations,
-        numQueryThreads, config.merge(getBatchWriterConfig()));
+    return new TabletServerBatchDeleter(this, requireNotOffline(getTableId(tableName), tableName),
+        tableName, authorizations, numQueryThreads, config.merge(getBatchWriterConfig()));
   }
 
   @Override
@@ -567,7 +586,8 @@ public class ClientContext implements AccumuloClient {
     if (config == null) {
       config = new BatchWriterConfig();
     }
-    return new BatchWriterImpl(this, getTableId(tableName), config.merge(getBatchWriterConfig()));
+    return new BatchWriterImpl(this, requireNotOffline(getTableId(tableName), tableName),
+        config.merge(getBatchWriterConfig()));
   }
 
   @Override
@@ -593,14 +613,15 @@ public class ClientContext implements AccumuloClient {
     if (config == null) {
       config = new ConditionalWriterConfig();
     }
-    return new ConditionalWriterImpl(this, getTableId(tableName),
-        config.merge(getConditionalWriterConfig()));
+    return new ConditionalWriterImpl(this, requireNotOffline(getTableId(tableName), tableName),
+        tableName, config.merge(getConditionalWriterConfig()));
   }
 
   @Override
   public ConditionalWriter createConditionalWriter(String tableName) throws TableNotFoundException {
     ensureOpen();
-    return new ConditionalWriterImpl(this, getTableId(tableName), new ConditionalWriterConfig());
+    return new ConditionalWriterImpl(this, requireNotOffline(getTableId(tableName), tableName),
+        tableName, new ConditionalWriterConfig());
   }
 
   @Override
@@ -608,7 +629,8 @@ public class ClientContext implements AccumuloClient {
       throws TableNotFoundException {
     ensureOpen();
     checkArgument(authorizations != null, "authorizations is null");
-    Scanner scanner = new ScannerImpl(this, getTableId(tableName), authorizations);
+    Scanner scanner =
+        new ScannerImpl(this, requireNotOffline(getTableId(tableName), tableName), authorizations);
     Integer batchSize = ClientProperty.SCANNER_BATCH_SIZE.getInteger(getProperties());
     if (batchSize != null) {
       scanner.setBatchSize(batchSize);

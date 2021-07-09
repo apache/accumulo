@@ -46,6 +46,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
 
   private final int batchReaderInstance = nextBatchReaderInstance.getAndIncrement();
   private final TableId tableId;
+  private final String tableName;
   private final int numThreads;
   private final ThreadPoolExecutor queryThreadPool;
   private final ClientContext context;
@@ -55,19 +56,20 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
 
   private ArrayList<Range> ranges = null;
 
-  public TabletServerBatchReader(ClientContext context, TableId tableId,
+  public TabletServerBatchReader(ClientContext context, TableId tableId, String tableName,
       Authorizations authorizations, int numQueryThreads) {
-    this(context, BatchScanner.class, tableId, authorizations, numQueryThreads);
+    this(context, BatchScanner.class, tableId, tableName, authorizations, numQueryThreads);
   }
 
   protected TabletServerBatchReader(ClientContext context, Class<?> scopeClass, TableId tableId,
-      Authorizations authorizations, int numQueryThreads) {
+      String tableName, Authorizations authorizations, int numQueryThreads) {
     checkArgument(context != null, "context is null");
     checkArgument(tableId != null, "tableId is null");
     checkArgument(authorizations != null, "authorizations is null");
     this.context = context;
     this.authorizations = authorizations;
     this.tableId = tableId;
+    this.tableName = tableName;
     this.numThreads = numQueryThreads;
 
     queryThreadPool = ThreadPools.createFixedThreadPool(numQueryThreads,
@@ -114,7 +116,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
       throw new IllegalStateException("batch reader closed");
     }
 
-    return new TabletServerBatchReaderIterator(context, tableId, authorizations, ranges, numThreads,
-        queryThreadPool, this, timeOut);
+    return new TabletServerBatchReaderIterator(context, tableId, tableName, authorizations, ranges,
+        numThreads, queryThreadPool, this, timeOut);
   }
 }
