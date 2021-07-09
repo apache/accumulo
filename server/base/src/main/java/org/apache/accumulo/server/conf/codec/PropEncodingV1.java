@@ -244,11 +244,7 @@ public class PropEncodingV1 implements PropEncoding {
   }
 
   private void pretty(final boolean prettyPrint, final StringBuilder sb) {
-    if (prettyPrint) {
-      sb.append("\n");
-    } else {
-      sb.append(", ");
-    }
+    prettyPrint ? sb.append("\n") : sb.append(", ");
   }
 
   /**
