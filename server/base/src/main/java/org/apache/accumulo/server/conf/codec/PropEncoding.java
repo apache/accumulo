@@ -89,7 +89,7 @@ public interface PropEncoding {
   int getExpectedVersion();
 
   /**
-   * Serialize the version information an the properties.
+   * Serialize the version information and the properties.
    *
    * @return an array of bytes for storage.
    */
