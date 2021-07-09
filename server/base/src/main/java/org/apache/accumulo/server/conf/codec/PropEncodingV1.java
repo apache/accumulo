@@ -126,8 +126,7 @@ public class PropEncodingV1 implements PropEncoding {
 
   @Override
   public int getExpectedVersion() {
-    var version = getDataVersion();
-    return Math.max(0, version - 1);
+    return Math.max(0, getDataVersion() - 1);
   }
 
   @Override
@@ -244,7 +243,11 @@ public class PropEncodingV1 implements PropEncoding {
   }
 
   private void pretty(final boolean prettyPrint, final StringBuilder sb) {
-    prettyPrint ? sb.append("\n") : sb.append(", ");
+    if (prettyPrint) {
+      sb.append("\n");
+    } else {
+      sb.append(", ");
+    }
   }
 
   /**
