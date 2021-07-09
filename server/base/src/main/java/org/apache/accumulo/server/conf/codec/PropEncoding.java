@@ -70,7 +70,7 @@ public interface PropEncoding {
   /**
    * Properties are store with a data version for serialization. This allows for comparison of
    * properties and can be used to ensure that vales being written to the backend store have not
-   * changed. The data version is incremented when serialized with toBytes()) so that the instance
+   * changed. The data version is incremented when serialized with toBytes() so that the instance
    * value is consistent with the store value.
    *
    * @return the data version when the properties were serialized.
