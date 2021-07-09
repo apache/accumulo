@@ -44,7 +44,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Column;
@@ -58,7 +57,6 @@ import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
-import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
@@ -83,6 +81,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private final ClientContext context;
   private final TableId tableId;
+  private final String tableName;
   private Authorizations authorizations = Authorizations.EMPTY;
   private final int numThreads;
   private final ExecutorService queryThreadPool;
@@ -108,12 +107,13 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     void receive(List<Entry<Key,Value>> entries);
   }
 
-  public TabletServerBatchReaderIterator(ClientContext context, TableId tableId,
+  public TabletServerBatchReaderIterator(ClientContext context, TableId tableId, String tableName,
       Authorizations authorizations, ArrayList<Range> ranges, int numThreads,
       ExecutorService queryThreadPool, ScannerOptions scannerOptions, long timeout) {
 
     this.context = context;
     this.tableId = tableId;
+    this.tableName = tableName;
     this.authorizations = authorizations;
     this.numThreads = numThreads;
     this.queryThreadPool = queryThreadPool;
@@ -246,12 +246,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         // the table was deleted the tablet locator entries for the deleted table were not
         // cleared... so
         // need to always do the check when failures occur
-        if (failures.size() >= lastFailureSize)
-          if (!Tables.exists(context, tableId))
-            throw new TableDeletedException(tableId.canonical());
-          else if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
-            throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
-
+        if (failures.size() >= lastFailureSize) {
+          context.requireNotDeleted(tableId);
+          context.requireNotOffline(tableId, tableName);
+        }
         lastFailureSize = failures.size();
 
         if (log.isTraceEnabled())
