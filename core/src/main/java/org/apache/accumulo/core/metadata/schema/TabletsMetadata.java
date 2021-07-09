@@ -290,8 +290,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     @Override
     public Options forTablet(KeyExtent extent) {
       forTable(extent.tableId());
-      // this.range = new Range(extent.toMetaRow());
-      this.range = new Range(extent.toMetaRange());
+      this.range = extent.toMetaRange();
       return this;
     }
 

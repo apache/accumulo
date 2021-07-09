@@ -19,12 +19,12 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import java.util.NoSuchElementException;
+import java.util.Objects;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata.Options;
-import org.apache.hadoop.io.Text;
 
 import com.google.common.collect.Iterables;
 
@@ -46,13 +46,7 @@ public class AmpleImpl implements Ample {
 
     try (TabletsMetadata tablets = builder.build()) {
       TabletMetadata tmd = Iterables.getOnlyElement(tablets);
-      Text tmpExtent = extent.prevEndRow();
-      Text tmpTmd = tmd.getPrevEndRow();
-      if (tmpExtent == tmpTmd || tmpExtent.equals(tmpTmd)) {
-        return tmd;
-      } else {
-        return null;
-      }
+      return Objects.equals(extent.prevEndRow(), tmd.getPrevEndRow()) ? tmd : null;
     } catch (NoSuchElementException e) {
       return null;
     }
