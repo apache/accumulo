@@ -1832,14 +1832,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public SummaryRetriever summaries(String tableName) {
-    TableId tableId;
-    try {
-      tableId = context.getTableId(tableName);
-    } catch (TableNotFoundException e) {
-      // this has to be a runtime exception, because TableNotFoundException wasn't put on the
-      // interface in 2.0 and adding it now would break the API contract
-      throw new IllegalArgumentException(e);
-    }
+    EXISTING_TABLE_NAME.validate(tableName);
 
     return new SummaryRetriever() {
       private Text startRow = null;
@@ -1867,6 +1860,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       @Override
       public List<Summary> retrieve()
           throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+        TableId tableId = context.getTableId(tableName);
         context.requireNotOffline(tableId, tableName);
 
         TRowRange range =
