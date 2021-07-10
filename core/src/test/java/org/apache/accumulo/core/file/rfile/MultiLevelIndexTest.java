@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope.TABLE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
@@ -66,7 +67,7 @@ public class MultiLevelIndexTest {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     FSDataOutputStream dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
     BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", hadoopConf,
-        CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA));
+        CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA, TABLE));
 
     BufferedWriter mliw = new BufferedWriter(new Writer(_cbw, maxBlockSize));
 
@@ -87,7 +88,7 @@ public class MultiLevelIndexTest {
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in = new FSDataInputStream(bais);
     CachableBuilder cb = new CachableBuilder().input(in).length(data.length).conf(hadoopConf)
-        .cryptoService(CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA));
+        .cryptoService(CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA, TABLE));
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(cb);
 
     Reader reader = new Reader(_cbr, RFile.RINDEX_VER_8);

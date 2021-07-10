@@ -18,13 +18,15 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static org.apache.accumulo.core.crypto.CryptoServiceFactory.newInstance;
+import static org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType.JAVA;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -32,6 +34,7 @@ import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBu
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.RFile.Writer;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -60,11 +63,9 @@ public class SplitLarge {
 
     for (String file : opts.files) {
       AccumuloConfiguration aconf = opts.getSiteConfiguration();
-      CryptoService cryptoService =
-          CryptoServiceFactory.newInstance(aconf, CryptoServiceFactory.ClassloaderType.JAVA);
+      CryptoService cs = newInstance(aconf, JAVA, CryptoEnvironment.Scope.TABLE);
       Path path = new Path(file);
-      CachableBuilder cb =
-          new CachableBuilder().fsPath(fs, path).conf(conf).cryptoService(cryptoService);
+      CachableBuilder cb = new CachableBuilder().fsPath(fs, path).conf(conf).cryptoService(cs);
       try (Reader iter = new RFile.Reader(cb)) {
 
         if (!file.endsWith(".rf")) {
@@ -76,10 +77,9 @@ public class SplitLarge {
         int blockSize = (int) aconf.getAsBytes(Property.TABLE_FILE_BLOCK_SIZE);
         try (
             Writer small = new RFile.Writer(
-                new BCFile.Writer(fs.create(new Path(smallName)), null, "gz", conf, cryptoService),
-                blockSize);
+                new BCFile.Writer(fs.create(new Path(smallName)), null, "gz", conf, cs), blockSize);
             Writer large = new RFile.Writer(
-                new BCFile.Writer(fs.create(new Path(largeName)), null, "gz", conf, cryptoService),
+                new BCFile.Writer(fs.create(new Path(largeName)), null, "gz", conf, cs),
                 blockSize)) {
           small.startDefaultLocalityGroup();
           large.startDefaultLocalityGroup();

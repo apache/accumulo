@@ -310,7 +310,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     for (TabletFile file : absFiles) {
       FileSystem fs = VolumeConfiguration.fileSystemForPath(file.getPathStr(), conf);
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.getPathStr(), fs, conf, CryptoServiceFactory.newDefaultInstance())
+          .forFile(file.getPathStr(), fs, conf, CryptoServiceFactory.none())
           .withTableConfiguration(acuTableConf).build();
       if (scannerSamplerConfigImpl != null) {
         reader = reader.getSample(scannerSamplerConfigImpl);

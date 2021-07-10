@@ -359,7 +359,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
       input.readFully(magicBuffer);
       if (Arrays.equals(magicBuffer, magic4)) {
         CryptoService cryptoService =
-            CryptoServiceFactory.newInstance(conf, ClassloaderType.ACCUMULO);
+            CryptoServiceFactory.newInstance(conf, ClassloaderType.ACCUMULO, Scope.WAL);
         FileDecrypter decrypter = CryptoUtils.getFileDecrypter(cryptoService, Scope.WAL, input);
         log.debug("Using {} for decrypting WAL", cryptoService.getClass().getSimpleName());
         decryptingInput = cryptoService instanceof NoCryptoService ? input
@@ -428,7 +428,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
       }
 
       // Initialize the log file with a header and its encryption
-      CryptoService cryptoService = context.getCryptoService();
+      CryptoService cryptoService = context.getLogCryptoService();
       logFile.write(LOG_FILE_HEADER_V4.getBytes(UTF_8));
 
       log.debug("Using {} for encrypting WAL {}", cryptoService.getClass().getSimpleName(),

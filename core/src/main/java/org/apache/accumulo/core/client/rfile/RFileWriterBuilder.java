@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.client.rfile;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope.TABLE;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -101,7 +102,7 @@ class RFileWriterBuilder implements RFile.OutputArguments, RFile.WriterFSOptions
       acuconf = new ConfigurationCopy(Iterables.concat(acuconf, userProps.entrySet()));
     }
 
-    CryptoService cs = CryptoServiceFactory.newInstance(acuconf, ClassloaderType.JAVA);
+    CryptoService cs = CryptoServiceFactory.newInstance(acuconf, ClassloaderType.JAVA, TABLE);
 
     if (out.getOutputStream() != null) {
       FSDataOutputStream fsdo;

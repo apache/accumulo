@@ -326,7 +326,7 @@ public final class BCFile {
       metaIndex = new MetaIndex();
       fsOutputBuffer = new BytesWritable();
       Magic.write(this.out);
-      this.cryptoEnvironment = new CryptoEnvironmentImpl(Scope.RFILE, null);
+      this.cryptoEnvironment = new CryptoEnvironmentImpl(Scope.TABLE, null);
       this.encrypter = cryptoService.getFileEncrypter(this.cryptoEnvironment);
     }
 
@@ -642,7 +642,7 @@ public final class BCFile {
         // read crypto parameters and get decrypter
         this.in.seek(offsetCryptoParameters);
         decryptionParams = CryptoUtils.readParams(this.in);
-        cryptoEnvironment = new CryptoEnvironmentImpl(Scope.RFILE, decryptionParams);
+        cryptoEnvironment = new CryptoEnvironmentImpl(Scope.TABLE, decryptionParams);
         this.decrypter = cryptoService.getFileDecrypter(cryptoEnvironment);
       }
 
@@ -666,7 +666,7 @@ public final class BCFile {
       dataIndex = new DataIndex(dis);
 
       decryptionParams = CryptoUtils.readParams(dis);
-      CryptoEnvironmentImpl env = new CryptoEnvironmentImpl(Scope.RFILE, decryptionParams);
+      CryptoEnvironmentImpl env = new CryptoEnvironmentImpl(Scope.TABLE, decryptionParams);
       this.decrypter = cryptoService.getFileDecrypter(env);
     }
 

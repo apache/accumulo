@@ -18,6 +18,12 @@
  */
 package org.apache.accumulo.core.crypto;
 
+import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
+import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_SERVICE;
+import static org.apache.accumulo.core.conf.Property.TSERV_WAL_CRYPTO_PREFIX;
+import static org.apache.accumulo.core.conf.Property.TSERV_WAL_CRYPTO_SERVICE;
+import static org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope.TABLE;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -26,6 +32,7 @@ import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
 import java.util.Objects;
 
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
@@ -82,6 +89,14 @@ public class CryptoUtils {
     Objects.requireNonNull(out);
     out.writeInt(decryptionParams.length);
     out.write(decryptionParams);
+  }
+
+  public static Property getPropPerScope(CryptoEnvironment.Scope scope) {
+    return (scope == TABLE ? TABLE_CRYPTO_SERVICE : TSERV_WAL_CRYPTO_SERVICE);
+  }
+
+  public static Property getPrefixPerScope(CryptoEnvironment.Scope scope) {
+    return (scope == TABLE ? TABLE_CRYPTO_PREFIX : TSERV_WAL_CRYPTO_PREFIX);
   }
 
 }

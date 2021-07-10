@@ -31,6 +31,7 @@ import org.junit.Test;
  * All the methods are overridden just to make it easier to run individual tests from an IDE.
  */
 public class SslWithClientAuthIT extends SslIT {
+
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     super.configure(cfg, hadoopCoreSite);

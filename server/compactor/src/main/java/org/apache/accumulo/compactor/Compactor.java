@@ -87,6 +87,7 @@ import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.compaction.RetryableThriftCall;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
 import org.apache.accumulo.server.compaction.RetryableThriftFunction;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
@@ -166,7 +167,6 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
   }
 
   protected void setupSecurity() {
-    getContext().setupCrypto();
     security = AuditedSecurityOperation.getInstance(getContext());
   }
 
@@ -516,17 +516,16 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
         try {
           LOG.info("Starting up compaction runnable for job: {}", job);
           updateCompactionState(job, TCompactionState.STARTED, "Compaction started");
-
-          final AccumuloConfiguration tConfig;
-
           var extent = KeyExtent.fromThrift(job.getExtent());
+          final AccumuloConfiguration aConfig;
+          final TableConfiguration tConfig = getContext().getTableConfiguration(extent.tableId());
 
           if (!job.getOverrides().isEmpty()) {
-            tConfig = new ConfigurationCopy(getContext().getTableConfiguration(extent.tableId()));
-            job.getOverrides().forEach((k, v) -> ((ConfigurationCopy) tConfig).set(k, v));
+            aConfig = new ConfigurationCopy(tConfig);
+            job.getOverrides().forEach(((ConfigurationCopy) aConfig)::set);
             LOG.debug("Overriding table properties with {}", job.getOverrides());
           } else {
-            tConfig = getContext().getTableConfiguration(extent.tableId());
+            aConfig = tConfig;
           }
 
           final TabletFile outputFile = new TabletFile(new Path(job.getOutputFile()));
@@ -545,7 +544,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
 
           CompactionEnvironment cenv = new CompactionEnvironment(JOB_HOLDER, queueName);
           FileCompactor compactor = new FileCompactor(getContext(), extent, files, outputFile,
-              job.isPropagateDeletes(), cenv, iters, tConfig);
+              job.isPropagateDeletes(), cenv, iters, aConfig, tConfig.getCryptoService());
 
           LOG.trace("Starting compactor");
           started.countDown();

@@ -38,7 +38,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -74,8 +73,6 @@ public class DefaultCompactionStrategyTest {
 
   public static ServerContext getServerContext() {
     ServerContext context = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
-        .anyTimes();
     EasyMock.replay(context);
     return context;
   }

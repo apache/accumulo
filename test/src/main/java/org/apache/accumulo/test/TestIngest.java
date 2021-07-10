@@ -271,7 +271,7 @@ public class TestIngest {
       ClientContext cc = (ClientContext) accumuloClient;
       writer = FileOperations.getInstance().newWriterBuilder()
           .forFile(params.outputFile + "." + RFile.EXTENSION, fs, cc.getHadoopConf(),
-              CryptoServiceFactory.newDefaultInstance())
+              CryptoServiceFactory.none())
           .withTableConfiguration(DefaultConfiguration.getInstance()).build();
       writer.startDefaultLocalityGroup();
     } else {

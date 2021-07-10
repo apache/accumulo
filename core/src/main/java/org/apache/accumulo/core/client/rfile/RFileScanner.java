@@ -67,6 +67,7 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.spi.cache.CacheType;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -223,7 +224,8 @@ class RFileScanner extends ScannerOptions implements Scanner {
     if (this.dataCache == null) {
       this.dataCache = new NoopCache();
     }
-    this.cryptoService = CryptoServiceFactory.newInstance(tableConf, ClassloaderType.JAVA);
+    this.cryptoService = CryptoServiceFactory.newInstance(tableConf, ClassloaderType.JAVA,
+        CryptoEnvironment.Scope.TABLE);
   }
 
   @Override

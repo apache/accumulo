@@ -365,18 +365,18 @@ public class Upgrader9to10 implements Upgrader {
   MetadataTime computeRootTabletTime(ServerContext context, Collection<String> goodPaths) {
 
     try {
-      context.setupCrypto();
+      context.setupLogCrypto();
 
       long rtime = Long.MIN_VALUE;
       for (String good : goodPaths) {
         Path path = new Path(good);
 
         FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
+        var tableConf = context.getTableConfiguration(RootTable.ID);
         long maxTime = -1;
         try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-            .forFile(path.toString(), ns, ns.getConf(), context.getCryptoService())
-            .withTableConfiguration(context.getTableConfiguration(RootTable.ID)).seekToBeginning()
-            .build()) {
+            .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+            .withTableConfiguration(tableConf).seekToBeginning().build()) {
           while (reader.hasTop()) {
             maxTime = Math.max(maxTime, reader.getTopKey().getTimestamp());
             reader.next();

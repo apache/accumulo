@@ -166,7 +166,7 @@ public class MajorCompactionRequest implements Cloneable {
       Configuration conf = context.getHadoopConf();
       SummaryCollection fsc = SummaryReader
           .load(fs, conf, factory, file.getPath(), summarySelector, summaryCache, indexCache,
-              fileLenCache, context.getCryptoService())
+              fileLenCache, context.getTableConfiguration(extent.tableId()).getCryptoService())
           .getSummaries(Collections.singletonList(new Gatherer.RowRange(extent)));
       sc.merge(fsc, factory);
     }
@@ -187,7 +187,8 @@ public class MajorCompactionRequest implements Cloneable {
     FileOperations fileFactory = FileOperations.getInstance();
     FileSystem ns = volumeManager.getFileSystemByPath(tabletFile.getPath());
     return fileFactory.newReaderBuilder()
-        .forFile(tabletFile.getPathStr(), ns, ns.getConf(), context.getCryptoService())
+        .forFile(tabletFile.getPathStr(), ns, ns.getConf(),
+            context.getTableConfiguration(extent.tableId()).getCryptoService())
         .withTableConfiguration(tableConfig).seekToBeginning().build();
   }
 

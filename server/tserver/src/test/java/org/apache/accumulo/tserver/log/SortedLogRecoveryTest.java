@@ -51,6 +51,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.data.ServerMutation;
@@ -79,6 +80,7 @@ public class SortedLogRecoveryTest {
   static final Text cq = new Text("cq");
   static final Value value = new Value("value");
   static ServerContext context;
+  static CryptoService cs = CryptoServiceFactory.none();
   static LogSorter logSorter;
 
   @Rule
@@ -164,8 +166,6 @@ public class SortedLogRecoveryTest {
     final String workdir = tempFolder.newFolder().getAbsolutePath();
     try (var fs = VolumeManagerImpl.getLocalForTesting(workdir)) {
       expect(context.getVolumeManager()).andReturn(fs).anyTimes();
-      expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
-          .anyTimes();
       expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
       replay(context);
       final Path workdirPath = new Path("file://" + workdir);

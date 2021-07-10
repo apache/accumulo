@@ -63,7 +63,7 @@ public class SiteConfigurationTest {
     assertEquals("120s", conf.get(Property.GENERAL_RPC_TIMEOUT));
     assertEquals("1G", conf.get(Property.TSERV_WAL_MAX_SIZE));
     assertEquals("org.apache.accumulo.core.spi.crypto.NoCryptoService",
-        conf.get(Property.INSTANCE_CRYPTO_SERVICE));
+        conf.get(Property.TSERV_WAL_CRYPTO_SERVICE));
   }
 
   @Test
@@ -77,7 +77,7 @@ public class SiteConfigurationTest {
     assertEquals("123s", conf.get(Property.GENERAL_RPC_TIMEOUT));
     assertEquals("256M", conf.get(Property.TSERV_WAL_MAX_SIZE));
     assertEquals("org.apache.accumulo.core.spi.crypto.AESCryptoService",
-        conf.get(Property.INSTANCE_CRYPTO_SERVICE));
+        conf.get(Property.TSERV_WAL_CRYPTO_SERVICE));
     assertEquals(System.getenv("USER"), conf.get("general.test.user.name"));
     assertEquals("/tmp/test/dir", conf.get("general.test.user.dir"));
   }

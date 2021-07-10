@@ -25,7 +25,6 @@ import java.util.Properties;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.easymock.EasyMock;
 
 /**
@@ -38,7 +37,6 @@ public class MockServerContext {
     ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     conf.set(Property.INSTANCE_VOLUMES, "file:///");
     expect(sc.getConfiguration()).andReturn(conf).anyTimes();
-    expect(sc.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance()).anyTimes();
     expect(sc.getProperties()).andReturn(new Properties()).anyTimes();
     return sc;
   }

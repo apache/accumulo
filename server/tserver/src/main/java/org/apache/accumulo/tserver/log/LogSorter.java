@@ -33,10 +33,13 @@ import java.util.concurrent.ThreadPoolExecutor;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
@@ -203,6 +206,7 @@ public class LogSorter {
   ThreadPoolExecutor threadPool;
   private final ServerContext context;
   private double walBlockSize;
+  private final CryptoService cryptoService;
 
   public LogSorter(ServerContext context, AccumuloConfiguration conf) {
     this.context = context;
@@ -211,6 +215,8 @@ public class LogSorter {
     this.threadPool =
         ThreadPools.createFixedThreadPool(threadPoolSize, this.getClass().getName(), false);
     this.walBlockSize = DfsLogger.getWalBlockSize(conf);
+    this.cryptoService = CryptoServiceFactory.newInstance(conf,
+        CryptoServiceFactory.ClassloaderType.ACCUMULO, CryptoEnvironment.Scope.TABLE);
   }
 
   @VisibleForTesting
@@ -236,8 +242,8 @@ public class LogSorter {
     }
 
     try (var writer = FileOperations.getInstance().newWriterBuilder()
-        .forFile(fullPath.toString(), fs, fs.getConf(), context.getCryptoService())
-        .withTableConfiguration(conf).build()) {
+        .forFile(fullPath.toString(), fs, fs.getConf(), cryptoService).withTableConfiguration(conf)
+        .build()) {
       writer.startDefaultLocalityGroup();
       for (var entry : keyListMap.entrySet()) {
         LogFileValue val = new LogFileValue();

@@ -1518,12 +1518,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
     String odd = new File(importDir, "odd.rf").toString();
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     FileSKVWriter evenWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(even, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(aconf).build();
+        .forFile(even, fs, conf, CryptoServiceFactory.none()).withTableConfiguration(aconf).build();
     evenWriter.startDefaultLocalityGroup();
     FileSKVWriter oddWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(odd, fs, conf, CryptoServiceFactory.newDefaultInstance())
-        .withTableConfiguration(aconf).build();
+        .forFile(odd, fs, conf, CryptoServiceFactory.none()).withTableConfiguration(aconf).build();
     oddWriter.startDefaultLocalityGroup();
     long timestamp = System.currentTimeMillis();
     Text cf = new Text("cf");

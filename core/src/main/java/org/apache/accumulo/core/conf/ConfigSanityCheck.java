@@ -76,7 +76,8 @@ public class ConfigSanityCheck {
             + " must be greater than 0 and less than " + Integer.MAX_VALUE + " but was: " + bsize);
       }
 
-      if (key.equals(Property.INSTANCE_CRYPTO_SERVICE.getKey())) {
+      if (key.equals(Property.TABLE_CRYPTO_SERVICE.getKey())
+          || key.equals(Property.TSERV_WAL_CRYPTO_SERVICE.getKey())) {
         String cryptoStrategy = Objects.requireNonNull(value);
         verifyValidClassName(key, cryptoStrategy, CryptoService.class);
       }

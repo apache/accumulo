@@ -219,7 +219,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
       DefaultConfiguration acuconf = DefaultConfiguration.getInstance();
       FileSKVIterator sample = RFileOperations.getInstance().newReaderBuilder()
           .forFile(files[0].toString(), FileSystem.getLocal(conf), conf,
-              CryptoServiceFactory.newDefaultInstance())
+              CryptoServiceFactory.none())
           .withTableConfiguration(acuconf).build()
           .getSample(new SamplerConfigurationImpl(SAMPLER_CONFIG));
       assertNotNull(sample);

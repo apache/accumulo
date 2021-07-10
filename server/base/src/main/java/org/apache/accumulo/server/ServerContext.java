@@ -19,8 +19,10 @@
 package org.apache.accumulo.server;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope.WAL;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -65,7 +67,8 @@ public class ServerContext extends ClientContext {
   private DefaultConfiguration defaultConfig = null;
   private AccumuloConfiguration systemConfig = null;
   private AuthenticationTokenSecretManager secretManager;
-  private CryptoService cryptoService = null;
+  private CryptoService walCryptoService = null;
+  private Map<TableId,CryptoService> tableCryptoMap;
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(new ServerInfo(siteConfig));
@@ -102,14 +105,14 @@ public class ServerContext extends ClientContext {
   /**
    * Should only be called by the Tablet server
    */
-  public synchronized void setupCrypto() throws CryptoService.CryptoException {
-    if (cryptoService != null) {
-      throw new CryptoService.CryptoException("Crypto Service " + cryptoService.getClass().getName()
-          + " already exists and cannot be setup again");
+  public synchronized void setupLogCrypto() throws CryptoService.CryptoException {
+    if (walCryptoService != null) {
+      throw new CryptoService.CryptoException("Crypto Service "
+          + walCryptoService.getClass().getName() + " already exists and cannot be setup again");
     }
 
     AccumuloConfiguration acuConf = getConfiguration();
-    cryptoService = CryptoServiceFactory.newInstance(acuConf, ClassloaderType.ACCUMULO);
+    walCryptoService = CryptoServiceFactory.newInstance(acuConf, ClassloaderType.ACCUMULO, WAL);
   }
 
   public SiteConfiguration getSiteConfiguration() {
@@ -245,11 +248,11 @@ public class ServerContext extends ClientContext {
     return nameAllocator;
   }
 
-  public CryptoService getCryptoService() {
-    if (cryptoService == null) {
+  public CryptoService getLogCryptoService() {
+    if (walCryptoService == null) {
       throw new CryptoService.CryptoException("Crypto service not initialized.");
     }
-    return cryptoService;
+    return walCryptoService;
   }
 
   @Override

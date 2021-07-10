@@ -37,6 +37,7 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.NoFileEncrypter;
 import org.apache.accumulo.core.summary.SummaryReader;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -203,8 +204,9 @@ public class PrintInfo implements KeywordExecutable {
 
       printCryptoParams(path, fs);
 
-      CachableBuilder cb = new CachableBuilder().fsPath(fs, path).conf(conf)
-          .cryptoService(CryptoServiceFactory.newInstance(siteConfig, ClassloaderType.JAVA));
+      CachableBuilder cb =
+          new CachableBuilder().fsPath(fs, path).conf(conf).cryptoService(CryptoServiceFactory
+              .newInstance(siteConfig, ClassloaderType.JAVA, CryptoEnvironment.Scope.TABLE));
       Reader iter = new RFile.Reader(cb);
       MetricsGatherer<Map<String,ArrayList<VisibilityMetric>>> vmg = new VisMetricsGatherer();
 

@@ -112,7 +112,7 @@ public class MinorCompactor extends FileCompactor {
                 return TCompactionReason.SYSTEM;
             }
           }
-        }, Collections.emptyList(), tableConfig);
+        }, Collections.emptyList(), tableConfig, tableConfig.getCryptoService());
     this.tabletServer = tabletServer;
     this.mincReason = mincReason;
   }

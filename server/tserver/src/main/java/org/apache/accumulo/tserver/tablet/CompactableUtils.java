@@ -69,6 +69,7 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.SummarizerFactory;
 import org.apache.accumulo.core.summary.SummaryCollection;
@@ -118,11 +119,13 @@ public class CompactableUtils {
     final Map<StoredTabletFile,Pair<Key,Key>> result = new HashMap<>();
     final FileOperations fileFactory = FileOperations.getInstance();
     final VolumeManager fs = tablet.getTabletServer().getVolumeManager();
+    final TableConfiguration tableConf = tablet.getTableConfiguration();
+    final CryptoService cs = tableConf.getCryptoService();
     for (StoredTabletFile file : allFiles) {
       FileSystem ns = fs.getFileSystemByPath(file.getPath());
-      try (FileSKVIterator openReader = fileFactory.newReaderBuilder()
-          .forFile(file.getPathStr(), ns, ns.getConf(), tablet.getContext().getCryptoService())
-          .withTableConfiguration(tablet.getTableConfiguration()).seekToBeginning().build()) {
+      try (FileSKVIterator openReader =
+          fileFactory.newReaderBuilder().forFile(file.getPathStr(), ns, ns.getConf(), cs)
+              .withTableConfiguration(tableConf).seekToBeginning().build()) {
         Key first = openReader.getFirstKey();
         Key last = openReader.getLastKey();
         result.put(file, new Pair<>(first, last));
@@ -328,16 +331,17 @@ public class CompactableUtils {
 
         var context = tablet.getContext();
         var tsrm = tablet.getTabletResources().getTabletServerResourceManager();
+        var tableConf = tablet.getTableConfiguration();
 
         SummaryCollection sc = new SummaryCollection();
-        SummarizerFactory factory = new SummarizerFactory(tablet.getTableConfiguration());
+        SummarizerFactory factory = new SummarizerFactory(tableConf);
         for (CompactableFile cf : files) {
           var file = CompactableFileImpl.toStoredTabletFile(cf);
           FileSystem fs = context.getVolumeManager().getFileSystemByPath(file.getPath());
           Configuration conf = context.getHadoopConf();
           SummaryCollection fsc = SummaryReader
               .load(fs, conf, factory, file.getPath(), summarySelector, tsrm.getSummaryCache(),
-                  tsrm.getIndexCache(), tsrm.getFileLenCache(), context.getCryptoService())
+                  tsrm.getIndexCache(), tsrm.getFileLenCache(), tableConf.getCryptoService())
               .getSummaries(Collections.singletonList(new Gatherer.RowRange(tablet.getExtent())));
           sc.merge(fsc, factory);
         }
@@ -357,9 +361,10 @@ public class CompactableUtils {
           FileOperations fileFactory = FileOperations.getInstance();
           Path path = new Path(file.getUri());
           FileSystem ns = tablet.getTabletServer().getVolumeManager().getFileSystemByPath(path);
+          var tableConf = tablet.getTableConfiguration();
           var fiter = fileFactory.newReaderBuilder()
-              .forFile(path.toString(), ns, ns.getConf(), tablet.getContext().getCryptoService())
-              .withTableConfiguration(tablet.getTableConfiguration()).seekToBeginning().build();
+              .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
+              .withTableConfiguration(tableConf).seekToBeginning().build();
           return Optional.ofNullable(fiter.getSample(new SamplerConfigurationImpl(sc)));
         } catch (IOException e) {
           throw new UncheckedIOException(e);
@@ -605,9 +610,9 @@ public class CompactableUtils {
         }
       }
     };
-
-    AccumuloConfiguration compactionConfig = getCompactionConfig(tablet.getTableConfiguration(),
-        getOverrides(job.getKind(), tablet, helper, job.getFiles()));
+    TableConfiguration tableConf = tablet.getTableConfiguration();
+    AccumuloConfiguration compactionConfig =
+        getCompactionConfig(tableConf, getOverrides(job.getKind(), tablet, helper, job.getFiles()));
 
     SortedMap<StoredTabletFile,DataFileValue> allFiles = tablet.getDatafiles();
     HashMap<StoredTabletFile,DataFileValue> compactFiles = new HashMap<>();
@@ -615,8 +620,9 @@ public class CompactableUtils {
 
     TabletFile compactTmpName = tablet.getNextMapFilenameForMajc(propagateDeletes);
 
-    FileCompactor compactor = new FileCompactor(tablet.getContext(), tablet.getExtent(),
-        compactFiles, compactTmpName, propagateDeletes, cenv, iters, compactionConfig);
+    FileCompactor compactor =
+        new FileCompactor(tablet.getContext(), tablet.getExtent(), compactFiles, compactTmpName,
+            propagateDeletes, cenv, iters, compactionConfig, tableConf.getCryptoService());
 
     var mcs = compactor.call();
 

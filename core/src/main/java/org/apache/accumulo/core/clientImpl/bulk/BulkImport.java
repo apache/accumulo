@@ -537,7 +537,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
     List<CompletableFuture<Map<KeyExtent,Bulk.FileInfo>>> futures = new ArrayList<>();
 
-    CryptoService cs = CryptoServiceFactory.newDefaultInstance();
+    CryptoService cs = CryptoServiceFactory.none();
 
     for (FileStatus fileStatus : files) {
       Path filePath = fileStatus.getPath();

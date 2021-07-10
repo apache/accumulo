@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
+import static org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope.TABLE;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -541,7 +542,7 @@ public class Initialize implements KeywordExecutable {
     }
     FileSystem fs = volmanager.getFileSystemByPath(new Path(fileName));
 
-    CryptoService cs = CryptoServiceFactory.newInstance(conf, ClassloaderType.ACCUMULO);
+    CryptoService cs = CryptoServiceFactory.newInstance(conf, ClassloaderType.ACCUMULO, TABLE);
 
     FileSKVWriter tabletWriter = FileOperations.getInstance().newWriterBuilder()
         .forFile(fileName, fs, fs.getConf(), cs).withTableConfiguration(conf).build();

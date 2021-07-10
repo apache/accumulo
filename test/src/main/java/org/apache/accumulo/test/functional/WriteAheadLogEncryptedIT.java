@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_PREFIX;
 import static org.apache.accumulo.test.functional.WriteAheadLogIT.testWAL;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.spi.crypto.AESCryptoService;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -42,10 +42,8 @@ public class WriteAheadLogEncryptedIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     String keyPath =
         System.getProperty("user.dir") + "/target/mini-tests/WriteAheadLogEncryptedIT-testkeyfile";
-    cfg.setProperty(Property.INSTANCE_CRYPTO_SERVICE,
-        "org.apache.accumulo.core.spi.crypto.AESCryptoService");
-    cfg.setProperty(INSTANCE_CRYPTO_PREFIX.getKey() + "key.uri", keyPath);
-
+    cfg.setProperty(Property.TSERV_WAL_CRYPTO_SERVICE, AESCryptoService.class.getName());
+    cfg.setProperty(Property.TSERV_WAL_CRYPTO_PREFIX + AESCryptoService.KEY_URI, keyPath);
     WriteAheadLogIT.setupConfig(cfg, hadoopCoreSite);
 
     // setup key file

@@ -107,11 +107,9 @@ public class BulkOldIT extends AccumuloClusterHarness {
 
   private void writeData(Configuration conf, AccumuloConfiguration aconf, FileSystem fs, String dir,
       String file, int start, int end) throws IOException, Exception {
-    FileSKVWriter writer1 =
-        FileOperations
-            .getInstance().newWriterBuilder().forFile(dir + "/" + file + "." + RFile.EXTENSION, fs,
-                conf, CryptoServiceFactory.newDefaultInstance())
-            .withTableConfiguration(aconf).build();
+    FileSKVWriter writer1 = FileOperations.getInstance().newWriterBuilder()
+        .forFile(dir + "/" + file + "." + RFile.EXTENSION, fs, conf, CryptoServiceFactory.none())
+        .withTableConfiguration(aconf).build();
     writer1.startDefaultLocalityGroup();
     for (int i = start; i <= end; i++) {
       writer1.append(new Key(new Text(String.format("%04d", i))), new Value(Integer.toString(i)));

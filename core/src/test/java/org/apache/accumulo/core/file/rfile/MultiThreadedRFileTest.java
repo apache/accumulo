@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope.TABLE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -161,7 +162,7 @@ public class MultiThreadedRFileTest {
       Path path = new Path("file://" + rfile);
       dos = fs.create(path, true);
       BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf,
-          CryptoServiceFactory.newInstance(accumuloConfiguration, ClassloaderType.JAVA));
+          CryptoServiceFactory.newInstance(accumuloConfiguration, ClassloaderType.JAVA, TABLE));
       SamplerConfigurationImpl samplerConfig =
           SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);
       Sampler sampler = null;
@@ -191,8 +192,8 @@ public class MultiThreadedRFileTest {
       AccumuloConfiguration defaultConf = DefaultConfiguration.getInstance();
 
       // the caches used to obfuscate the multithreaded issues
-      CachableBuilder b = new CachableBuilder().fsPath(fs, path).conf(conf)
-          .cryptoService(CryptoServiceFactory.newInstance(defaultConf, ClassloaderType.JAVA));
+      CachableBuilder b = new CachableBuilder().fsPath(fs, path).conf(conf).cryptoService(
+          CryptoServiceFactory.newInstance(defaultConf, ClassloaderType.JAVA, TABLE));
       reader = new RFile.Reader(new CachableBlockFile.Reader(b));
       iter = new ColumnFamilySkippingIterator(reader);
 

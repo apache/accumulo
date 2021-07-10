@@ -40,6 +40,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -112,11 +113,15 @@ public class BulkImporterTest {
     MockTabletLocator locator = new MockTabletLocator();
     FileSystem fs = FileSystem.getLocal(new Configuration());
     ServerContext context = MockServerContext.get();
+    CryptoService cs = CryptoServiceFactory.none();
+    // TableConfiguration tableConf = EasyMock.createMock(TableConfiguration.class);
+    // expect(context.getTableConfiguration(tableId)).andReturn(tableConf).anyTimes();
+    // expect(tableConf.getCryptoService()).andReturn(CryptoServiceFactory.none()).anyTimes();
     EasyMock.replay(context);
     String file = "target/testFile.rf";
     fs.delete(new Path(file), true);
     FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-        .forFile(file, fs, fs.getConf(), CryptoServiceFactory.newDefaultInstance())
+        .forFile(file, fs, fs.getConf(), CryptoServiceFactory.none())
         .withTableConfiguration(context.getConfiguration()).build();
     writer.startDefaultLocalityGroup();
     Value empty = new Value();
@@ -143,7 +148,7 @@ public class BulkImporterTest {
     writer.close();
     try (var vm = VolumeManagerImpl.get(context.getConfiguration(), new Configuration())) {
       List<TabletLocation> overlaps =
-          BulkImporter.findOverlappingTablets(context, vm, locator, new Path(file));
+          BulkImporter.findOverlappingTablets(context, vm, locator, new Path(file), null, null, cs);
       assertEquals(5, overlaps.size());
       Collections.sort(overlaps);
       assertEquals(new KeyExtent(tableId, new Text("a"), null), overlaps.get(0).tablet_extent);
@@ -156,7 +161,7 @@ public class BulkImporterTest {
       assertEquals(new KeyExtent(tableId, null, new Text("l")), overlaps.get(4).tablet_extent);
 
       List<TabletLocation> overlaps2 = BulkImporter.findOverlappingTablets(context, vm, locator,
-          new Path(file), new KeyExtent(tableId, new Text("h"), new Text("b")));
+          new Path(file), new KeyExtent(tableId, new Text("h"), new Text("b")), cs);
       assertEquals(3, overlaps2.size());
       assertEquals(new KeyExtent(tableId, new Text("d"), new Text("cm")),
           overlaps2.get(0).tablet_extent);

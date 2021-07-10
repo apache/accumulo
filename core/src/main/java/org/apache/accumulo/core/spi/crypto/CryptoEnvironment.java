@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.spi.crypto;
 
+import java.util.Optional;
+
 /**
  * Useful information provided to the crypto implementation
  *
@@ -28,10 +30,10 @@ public interface CryptoEnvironment {
    * Where in Accumulo the on-disk file encryption takes place.
    */
   enum Scope {
-    WAL, RFILE
+    WAL, TABLE
   }
 
   Scope getScope();
 
-  byte[] getDecryptionParams();
+  Optional<byte[]> getDecryptionParams();
 }

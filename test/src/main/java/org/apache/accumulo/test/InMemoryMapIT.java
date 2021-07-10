@@ -36,7 +36,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -104,8 +103,6 @@ public class InMemoryMapIT {
 
   public static ServerContext getServerContext() {
     ServerContext context = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
-        .anyTimes();
     EasyMock.replay(context);
     return context;
   }

@@ -134,7 +134,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
           for (int i1 = 0; i1 < 100; i1++) {
             FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
                 .forFile(files + "/bulk_" + i1 + "." + RFile.EXTENSION, fs, fs.getConf(),
-                    CryptoServiceFactory.newDefaultInstance())
+                    CryptoServiceFactory.none())
                 .withTableConfiguration(DefaultConfiguration.getInstance()).build();
             writer.startDefaultLocalityGroup();
             for (int j = 0x100; j < 0xfff; j += 3) {

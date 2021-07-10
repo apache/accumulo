@@ -53,6 +53,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
@@ -104,6 +105,7 @@ public class FileCompactor implements Callable<CompactionStats> {
   private final VolumeManager fs;
   protected final KeyExtent extent;
   private final List<IteratorSetting> iterators;
+  private final CryptoService cryptoService;
 
   // things to report
   private String currentLocalityGroup = "";
@@ -152,7 +154,8 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   public FileCompactor(ServerContext context, KeyExtent extent,
       Map<StoredTabletFile,DataFileValue> files, TabletFile outputFile, boolean propagateDeletes,
-      CompactionEnv env, List<IteratorSetting> iterators, AccumuloConfiguration tableConfiguation) {
+      CompactionEnv env, List<IteratorSetting> iterators, AccumuloConfiguration tableConfiguation,
+      CryptoService cs) {
     this.context = context;
     this.extent = extent;
     this.fs = context.getVolumeManager();
@@ -162,6 +165,7 @@ public class FileCompactor implements Callable<CompactionStats> {
     this.propagateDeletes = propagateDeletes;
     this.env = env;
     this.iterators = iterators;
+    this.cryptoService = cs;
 
     startTime = System.currentTimeMillis();
   }
@@ -207,7 +211,7 @@ public class FileCompactor implements Callable<CompactionStats> {
       FileOperations fileFactory = FileOperations.getInstance();
       FileSystem ns = this.fs.getFileSystemByPath(outputFile.getPath());
       mfw = fileFactory.newWriterBuilder()
-          .forFile(outputFile.getMetaInsert(), ns, ns.getConf(), context.getCryptoService())
+          .forFile(outputFile.getMetaInsert(), ns, ns.getConf(), cryptoService)
           .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter()).build();
 
       Map<String,Set<ByteSequence>> lGroups = getLocalityGroups(acuTableConf);
@@ -292,7 +296,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         FileSKVIterator reader;
 
         reader = fileFactory.newReaderBuilder()
-            .forFile(mapFile.getPathStr(), fs, fs.getConf(), context.getCryptoService())
+            .forFile(mapFile.getPathStr(), fs, fs.getConf(), cryptoService)
             .withTableConfiguration(acuTableConf).withRateLimiter(env.getReadLimiter()).build();
 
         readers.add(reader);

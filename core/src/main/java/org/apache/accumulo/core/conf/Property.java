@@ -164,20 +164,6 @@ public enum Property {
       PropertyType.STRING,
       "One-line configuration property controlling the network locations "
           + "(hostnames) that are allowed to impersonate other users"),
-  // Crypto-related properties
-  @Experimental
-  INSTANCE_CRYPTO_PREFIX("instance.crypto.opts.", null, PropertyType.PREFIX,
-      "Properties related to on-disk file encryption."),
-  @Experimental
-  @Sensitive
-  INSTANCE_CRYPTO_SENSITIVE_PREFIX("instance.crypto.opts.sensitive.", null, PropertyType.PREFIX,
-      "Sensitive properties related to on-disk file encryption."),
-  @Experimental
-  INSTANCE_CRYPTO_SERVICE("instance.crypto.service",
-      "org.apache.accumulo.core.spi.crypto.NoCryptoService", PropertyType.CLASSNAME,
-      "The class which executes on-disk file encryption. The default does nothing. To enable "
-          + "encryption, replace this classname with an implementation of the"
-          + "org.apache.accumulo.core.spi.crypto.CryptoService interface."),
 
   // general properties
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
@@ -421,6 +407,20 @@ public enum Property {
   TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION("tserver.walog.maximum.wait.duration", "5m",
       PropertyType.TIMEDURATION,
       "The maximum amount of time to wait after a failure to create or write a write-ahead log."),
+  // Crypto-related properties
+  @Experimental
+  TSERV_WAL_CRYPTO_PREFIX("tserver.wal.crypto.opts.", null, PropertyType.PREFIX,
+      "Properties related to on-disk file encryption."),
+  @Experimental
+  @Sensitive
+  TSERV_WAL_CRYPTO_SENSITIVE_PREFIX("tserver.wal.crypto.opts.sensitive.", null, PropertyType.PREFIX,
+      "Sensitive properties related to on-disk file encryption."),
+  @Experimental
+  TSERV_WAL_CRYPTO_SERVICE("tserver.wal.crypto.service",
+      "org.apache.accumulo.core.spi.crypto.NoCryptoService", PropertyType.CLASSNAME,
+      "The class which executes on-disk write ahead log encryption/decryption. The default does "
+          + "nothing. This property must be a classname with an implementation of the "
+          + "org.apache.accumulo.core.spi.crypto.CryptoService interface."),
   TSERV_SCAN_MAX_OPENFILES("tserver.scan.files.open.max", "100", PropertyType.COUNT,
       "Maximum total RFiles that all tablets in a tablet server can open for scans. "),
   TSERV_MAX_IDLE("tserver.files.open.idle", "1m", PropertyType.TIMEDURATION,
@@ -788,6 +788,20 @@ public enum Property {
   TABLE_COMPACTION_STRATEGY_PREFIX("table.majc.compaction.strategy.opts.", null,
       PropertyType.PREFIX,
       "Properties in this category are used to configure the compaction strategy."),
+  // Crypto-related properties
+  @Experimental
+  TABLE_CRYPTO_PREFIX("table.crypto.opts.", null, PropertyType.PREFIX,
+      "Properties related to on-disk file encryption."),
+  @Experimental
+  @Sensitive
+  TABLE_CRYPTO_SENSITIVE_PREFIX("table.crypto.opts.sensitive.", null, PropertyType.PREFIX,
+      "Sensitive properties related to on-disk file encryption."),
+  @Experimental
+  TABLE_CRYPTO_SERVICE("table.crypto.service",
+      "org.apache.accumulo.core.spi.crypto.NoCryptoService", PropertyType.CLASSNAME,
+      "The class which executes on-disk table encryption/decryption. The default does "
+          + "nothing. This property must be a classname with an implementation of the "
+          + "org.apache.accumulo.core.spi.crypto.CryptoService interface."),
   TABLE_SCAN_DISPATCHER("table.scan.dispatcher", SimpleScanDispatcher.class.getName(),
       PropertyType.CLASSNAME,
       "This class is used to dynamically dispatch scans to configured scan executors.  Configured "
@@ -1429,7 +1443,8 @@ public enum Property {
             || key.startsWith(TABLE_SCAN_DISPATCHER_OPTS.getKey())
             || key.startsWith(TABLE_COMPACTION_DISPATCHER_OPTS.getKey())
             || key.startsWith(TABLE_COMPACTION_CONFIGURER_OPTS.getKey())
-            || key.startsWith(TABLE_COMPACTION_SELECTOR_OPTS.getKey())));
+            || key.startsWith(TABLE_COMPACTION_SELECTOR_OPTS.getKey())
+            || key.startsWith(TABLE_CRYPTO_PREFIX.getKey())));
   }
 
   private static final EnumSet<Property> fixedProperties = EnumSet.of(

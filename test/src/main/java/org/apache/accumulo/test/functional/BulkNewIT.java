@@ -582,7 +582,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
     FileSystem fs = getCluster().getFileSystem();
     String filename = file + RFile.EXTENSION;
     try (FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-        .forFile(filename, fs, fs.getConf(), CryptoServiceFactory.newDefaultInstance())
+        .forFile(filename, fs, fs.getConf(), CryptoServiceFactory.none())
         .withTableConfiguration(aconf).build()) {
       writer.startDefaultLocalityGroup();
       for (int i = s; i <= e; i++) {

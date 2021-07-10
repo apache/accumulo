@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.crypto;
 
+import java.util.Optional;
+
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 
 /**
@@ -25,8 +27,8 @@ import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
  */
 public class CryptoEnvironmentImpl implements CryptoEnvironment {
 
-  private Scope scope;
-  private byte[] decryptionParams;
+  private final Scope scope;
+  private final byte[] decryptionParams;
 
   public CryptoEnvironmentImpl(Scope scope, byte[] decryptionParams) {
     this.scope = scope;
@@ -35,12 +37,12 @@ public class CryptoEnvironmentImpl implements CryptoEnvironment {
 
   @Override
   public Scope getScope() {
-    return this.scope;
+    return scope;
   }
 
   @Override
-  public byte[] getDecryptionParams() {
-    return decryptionParams;
+  public Optional<byte[]> getDecryptionParams() {
+    return Optional.ofNullable(decryptionParams);
   }
 
 }

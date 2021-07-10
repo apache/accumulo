@@ -143,7 +143,6 @@ public class CompactionCoordinator extends AbstractServer
   }
 
   protected void setupSecurity() {
-    getContext().setupCrypto();
     security = AuditedSecurityOperation.getInstance(getContext());
   }
 

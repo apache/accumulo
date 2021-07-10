@@ -18,13 +18,16 @@
  */
 package org.apache.accumulo.core.crypto;
 
+import static org.apache.accumulo.core.crypto.CryptoUtils.getPrefixPerScope;
+
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.NoCryptoService;
 
 public class CryptoServiceFactory {
+  private static final CryptoService NONE = new NoCryptoService();
 
   public enum ClassloaderType {
     // Use the Accumulo custom classloader. Should only be used by Accumulo server side code.
@@ -33,17 +36,22 @@ public class CryptoServiceFactory {
     JAVA
   }
 
-  public static CryptoService newInstance(AccumuloConfiguration conf, ClassloaderType ct) {
+  public static CryptoService none() {
+    return NONE;
+  }
 
+  public static CryptoService newInstance(AccumuloConfiguration conf, ClassloaderType ct,
+      CryptoEnvironment.Scope scope) {
     CryptoService newCryptoService;
+    Property cryptoServiceProp = CryptoUtils.getPropPerScope(scope);
+    String clazzName = conf.get(cryptoServiceProp);
 
     if (ct == ClassloaderType.ACCUMULO) {
-      newCryptoService = Property.createInstanceFromPropertyName(conf,
-          Property.INSTANCE_CRYPTO_SERVICE, CryptoService.class, new NoCryptoService());
+      newCryptoService = Property.createInstanceFromPropertyName(conf, cryptoServiceProp,
+          CryptoService.class, new NoCryptoService());
     } else if (ct == ClassloaderType.JAVA) {
-      String clazzName = conf.get(Property.INSTANCE_CRYPTO_SERVICE);
       if (clazzName == null || clazzName.trim().isEmpty()) {
-        newCryptoService = new NoCryptoService();
+        newCryptoService = NONE;
       } else {
         try {
           newCryptoService = CryptoServiceFactory.class.getClassLoader().loadClass(clazzName)
@@ -56,11 +64,7 @@ public class CryptoServiceFactory {
       throw new IllegalArgumentException();
     }
 
-    newCryptoService.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
+    newCryptoService.init(conf.getAllPropertiesWithPrefixStripped(getPrefixPerScope(scope)));
     return newCryptoService;
-  }
-
-  public static CryptoService newDefaultInstance() {
-    return newInstance(DefaultConfiguration.getInstance(), ClassloaderType.JAVA);
   }
 }

@@ -61,7 +61,7 @@ public class GenerateSequentialRFile implements Runnable {
       Path p = new Path(opts.filePath);
       final FileSystem fs = p.getFileSystem(conf);
       FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-          .forFile(opts.filePath, fs, conf, CryptoServiceFactory.newDefaultInstance())
+          .forFile(opts.filePath, fs, conf, CryptoServiceFactory.none())
           .withTableConfiguration(DefaultConfiguration.getInstance()).build();
 
       writer.startDefaultLocalityGroup();
