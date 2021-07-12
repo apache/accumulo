@@ -70,38 +70,46 @@ public class ConfigurationDocGen {
         + " that is copied from Accumulo build (from core/target/generated-docs)" + " -->\n");
     doc.println("Below are properties set in `accumulo.properties` or the"
         + " Accumulo shell that configure Accumulo servers (i.e tablet server,"
-        + " manager, etc). Properties labeled 'Experimental' could be part of an incomplete"
-        + " feature or have a higher risk of changing in the future.\n");
+        + " manager, etc). Properties labeled 'Experimental' should not be considered stable"
+        + " and have a higher risk of changing in the future.\n");
   }
 
   void prefixSection(Property prefix) {
     boolean depr = prefix.isDeprecated();
-    doc.print("| <a name=\"" + prefix.getKey().replace(".", "_") + "prefix\" class=\"prop\"></a> **"
-        + prefix.getKey() + "*** | ");
-    doc.print(prefix.isExperimental() ? "**Experimental.**<br>" : "");
-    doc.print("**Available since " + prefix.availableSince() + ".**<br>");
+    doc.print("| " + strike("<a name=\"" + prefix.getKey().replace(".", "_")
+        + "prefix\" class=\"prop\"></a> **" + prefix.getKey() + "***", depr) + " | ");
+    doc.print(prefix.isExperimental() ? "**Experimental**<br>" : "");
+    doc.print("**Available since:** " + prefix.availableSince() + "<br>");
     doc.println(
         (depr
-            ? "**Deprecated since " + prefix.deprecatedSince() + ".**<br>"
-                + (prefix.isReplaced() ? "**Replaced by " + "<a href=\"#"
+            ? "*Deprecated since:* " + prefix.deprecatedSince() + "<br>"
+                + (prefix.isReplaced() ? "*Replaced by:* " + "<a href=\"#"
                     + prefix.replacedBy().getKey().replace(".", "_") + "prefix\">"
-                    + prefix.replacedBy() + "" + "</a>.**<br>" : "")
+                    + prefix.replacedBy() + "</a><br>" : "")
             : "") + strike(sanitize(prefix.getDescription()), depr) + " |");
   }
 
   void property(Property prop) {
     boolean depr = prop.isDeprecated();
-    doc.print("| <a name=\"" + prop.getKey().replace(".", "_") + "\" class=\"prop\"></a> "
-        + prop.getKey() + " | ");
-    doc.print(prop.isExperimental() ? "**Experimental.**<br>" : "");
-    doc.print("**Available since " + prop.availableSince() + ".**<br>");
-    doc.print(
-        (depr
-            ? "**Deprecated since " + prop.deprecatedSince() + ".**<br>"
-                + (prop.isReplaced() ? "**Replaced by " + "<a href=\"#"
-                    + prop.replacedBy().getKey().replace(".", "_") + "\">" + prop.replacedBy() + ""
-                    + "</a>.**<br>" : "")
-            : "") + strike(sanitize(prop.getDescription()), depr) + "<br>");
+    doc.print("| " + strike(
+        "<a name=\"" + prop.getKey().replace(".", "_") + "\" class=\"prop\"></a> " + prop.getKey(),
+        depr) + " | ");
+    doc.print(prop.isExperimental() ? "**Experimental**<br>" : "");
+    doc.print("**Available since:** ");
+    if (prop.getKey().startsWith("manager.")
+        && (prop.availableSince().startsWith("1.") || prop.availableSince().startsWith("2.0"))) {
+      doc.print("2.1.0 (since " + prop.availableSince() + " as *master."
+          + prop.getKey().substring(8) + "*)");
+    } else {
+      doc.print(prop.availableSince());
+    }
+    doc.print("<br>");
+    doc.print((depr ? "*Deprecated since:* " + prop.deprecatedSince() + "<br>"
+        + (prop.isReplaced() ? "*Replaced by:* " + "<a href=\"#"
+            + prop.replacedBy().getKey().replace(".", "_") + "\">" + prop.replacedBy() + "</a><br>"
+            : "")
+        : "") + strike(sanitize(prop.getDescription()), depr) + "<br>");
+
     doc.print(strike("**type:** " + prop.getType().name(), depr) + ", ");
     doc.print(strike("**zk mutable:** " + isZooKeeperMutable(prop), depr) + ", ");
     String defaultValue = sanitize(prop.getDefaultValue()).trim();

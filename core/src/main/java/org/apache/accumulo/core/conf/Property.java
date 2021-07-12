@@ -271,9 +271,7 @@ public enum Property {
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the manager server. "
-          + "Since 2.1.0, all properties in this category replace the old `master.*` names. Properties "
-          + "within this category are marked with the `availableSince` value of the version "
-          + "in which the old `master.*` equivalent was first introduced.",
+          + "Since 2.1.0, all properties in this category replace the old `master.*` names.",
       "2.1.0"),
   @Deprecated(since = "2.1.0")
   @ReplacedBy(property = Property.MANAGER_PREFIX)
