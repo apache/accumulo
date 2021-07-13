@@ -161,13 +161,7 @@ public class RecoveryLogsIteratorTest {
 
     createRecoveryDir(logs, dirs, false);
 
-    try (RecoveryLogsIterator rli = new RecoveryLogsIterator(context, dirs, null, null, false)) {
-      while (rli.hasNext()) {
-        fail("Finish marker should not be found. Exception should have been thrown.");
-      }
-    } catch (IOException e) {
-      // Expected exception
-    }
+    assertThrows("Finish marker should not be found", IOException.class, () -> new RecoveryLogsIterator(context, dirs, null, null, false));
   }
 
   @Test
