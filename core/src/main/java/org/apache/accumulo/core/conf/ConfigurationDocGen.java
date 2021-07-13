@@ -70,43 +70,63 @@ public class ConfigurationDocGen {
         + " that is copied from Accumulo build (from core/target/generated-docs)" + " -->\n");
     doc.println("Below are properties set in `accumulo.properties` or the"
         + " Accumulo shell that configure Accumulo servers (i.e tablet server,"
-        + " manager, etc). Properties labeled 'Experimental' could be part of an incomplete"
-        + " feature or have a higher risk of changing in the future.\n");
+        + " manager, etc). Properties labeled 'Experimental' should not be considered stable"
+        + " and have a higher risk of changing in the future.\n");
   }
 
   void prefixSection(Property prefix) {
     boolean depr = prefix.isDeprecated();
-    doc.print("| <a name=\"" + prefix.getKey().replace(".", "_") + "prefix\" class=\"prop\"></a> **"
-        + prefix.getKey() + "*** | ");
-    doc.print(prefix.isExperimental() ? "**Experimental.** " : "");
-    doc.println(
-        (depr ? "**Deprecated.** " : "") + strike(sanitize(prefix.getDescription()), depr) + " |");
+    String key = strike("<a name=\"" + prefix.getKey().replace(".", "_")
+        + "prefix\" class=\"prop\"></a> **" + prefix.getKey() + "***", depr);
+    String description = prefix.isExperimental() ? "**Experimental**<br>" : "";
+    description += "**Available since:** " + prefix.availableSince() + "<br>";
+    if (depr) {
+      description += "*Deprecated since:* " + prefix.deprecatedSince() + "<br>";
+      if (prefix.isReplaced())
+        description +=
+            "*Replaced by:* " + "<a href=\"#" + prefix.replacedBy().getKey().replace(".", "_")
+                + "prefix\">" + prefix.replacedBy() + "</a><br>";
+    }
+    description += strike(sanitize(prefix.getDescription()), depr);
+    doc.println("| " + key + " | " + description + " |");
   }
 
   void property(Property prop) {
     boolean depr = prop.isDeprecated();
-    doc.print("| <a name=\"" + prop.getKey().replace(".", "_") + "\" class=\"prop\"></a> "
-        + prop.getKey() + " | ");
-    doc.print(prop.isExperimental() ? "**Experimental.** " : "");
-    doc.print(
-        (depr ? "**Deprecated.** " : "") + strike(sanitize(prop.getDescription()), depr) + "<br>");
-    doc.print(strike("**type:** " + prop.getType().name(), depr) + ", ");
-    doc.print(strike("**zk mutable:** " + isZooKeeperMutable(prop), depr) + ", ");
+    String key = strike(
+        "<a name=\"" + prop.getKey().replace(".", "_") + "\" class=\"prop\"></a> " + prop.getKey(),
+        depr);
+    String description = prop.isExperimental() ? "**Experimental**<br>" : "";
+    description += "**Available since:** ";
+    if (prop.getKey().startsWith("manager.")
+        && (prop.availableSince().startsWith("1.") || prop.availableSince().startsWith("2.0"))) {
+      description += "2.1.0 (since " + prop.availableSince() + " as *master."
+          + prop.getKey().substring(8) + "*)" + "<br>";
+    } else {
+      description += prop.availableSince() + "<br>";
+    }
+    if (depr) {
+      description += "*Deprecated since:* " + prop.deprecatedSince() + "<br>";
+      if (prop.isReplaced())
+        description += "*Replaced by:* " + "<a href=\"#"
+            + prop.replacedBy().getKey().replace(".", "_") + "\">" + prop.replacedBy() + "</a><br>";
+    }
+    description += strike(sanitize(prop.getDescription()), depr) + "<br>"
+        + strike("**type:** " + prop.getType().name(), depr) + ", "
+        + strike("**zk mutable:** " + isZooKeeperMutable(prop), depr) + ", ";
     String defaultValue = sanitize(prop.getDefaultValue()).trim();
     if (defaultValue.isEmpty()) {
-      defaultValue = strike("**default value:** empty", depr);
+      description += strike("**default value:** empty", depr);
     } else if (defaultValue.contains("\n")) {
       // deal with multi-line values, skip strikethrough of value
-      defaultValue = strike("**default value:** ", depr) + "\n```\n" + defaultValue + "\n```\n";
+      description += strike("**default value:** ", depr) + "\n```\n" + defaultValue + "\n```\n";
+    } else if (prop.getType() == PropertyType.CLASSNAME
+        && defaultValue.startsWith("org.apache.accumulo")) {
+      description += strike("**default value:** " + "{% jlink -f " + defaultValue + " %}", depr);
     } else {
-      if (prop.getType() == PropertyType.CLASSNAME
-          && defaultValue.startsWith("org.apache.accumulo")) {
-        defaultValue = strike("**default value:** " + "{% jlink -f " + defaultValue + " %}", depr);
-      } else {
-        defaultValue = strike("**default value:** " + "`" + defaultValue + "`", depr);
-      }
+      description += strike("**default value:** " + "`" + defaultValue + "`", depr);
     }
-    doc.println(defaultValue + " |");
+    doc.println("| " + key + " | " + description + " |");
   }
 
   private String strike(String s, boolean isDeprecated) {
