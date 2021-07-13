@@ -66,6 +66,7 @@ public class RecoveryLogsIteratorTest {
   private File workDir;
   static final KeyExtent extent = new KeyExtent(TableId.of("table"), null, null);
   static ServerContext context;
+  static LogSorter logSorter;
 
   @Rule
   public TemporaryFolder tempFolder =
@@ -74,6 +75,7 @@ public class RecoveryLogsIteratorTest {
   @Before
   public void setUp() throws Exception {
     context = EasyMock.createMock(ServerContext.class);
+    logSorter = new LogSorter(context, DefaultConfiguration.getInstance());
 
     workDir = tempFolder.newFolder();
     String path = workDir.getAbsolutePath();
@@ -256,7 +258,7 @@ public class RecoveryLogsIteratorTest {
       for (KeyValue pair : entry.getValue()) {
         buffer.add(new Pair<>(pair.key, pair.value));
       }
-      LogSorter.writeBuffer(context, destPath, buffer, 0);
+      logSorter.writeBuffer(destPath, buffer, 0);
 
       if (FinishMarker)
         ns.create(SortedLogState.getFinishedMarkerPath(destPath));
