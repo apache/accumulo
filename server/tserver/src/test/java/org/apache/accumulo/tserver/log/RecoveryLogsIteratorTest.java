@@ -173,8 +173,6 @@ public class RecoveryLogsIteratorTest {
     assertThrows("Finish marker should not be found for a single file.", IOException.class,
         () -> new RecoveryLogsIterator(context, Collections.singletonList(new Path(destPath)), null,
             null, false));
-
-    fs.delete(new Path(destPath));
   }
 
   @Test
