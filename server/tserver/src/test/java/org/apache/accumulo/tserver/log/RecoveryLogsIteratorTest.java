@@ -25,8 +25,8 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -161,7 +161,8 @@ public class RecoveryLogsIteratorTest {
 
     createRecoveryDir(logs, dirs, false);
 
-    assertThrows("Finish marker should not be found", IOException.class, () -> new RecoveryLogsIterator(context, dirs, null, null, false));
+    assertThrows("Finish marker should not be found", IOException.class,
+        () -> new RecoveryLogsIterator(context, dirs, null, null, false));
   }
 
   @Test
@@ -169,16 +170,11 @@ public class RecoveryLogsIteratorTest {
     String destPath = workDir + "/test.rf";
     fs.create(new Path(destPath));
 
-    try (RecoveryLogsIterator rli = new RecoveryLogsIterator(context,
-        Collections.singletonList(new Path(destPath)), null, null, false)) {
-      while (rli.hasNext()) {
-        fail(
-            "Finish marker should not be found for a single file. Exception should have been thrown.");
-      }
-    } catch (IOException e) {
-      fs.delete(new Path(destPath));
-      // Expected exception
-    }
+    assertThrows("Finish marker should not be found for a single file.", IOException.class,
+        () -> new RecoveryLogsIterator(context, Collections.singletonList(new Path(destPath)), null,
+            null, false));
+
+    fs.delete(new Path(destPath));
   }
 
   @Test
@@ -198,13 +194,9 @@ public class RecoveryLogsIteratorTest {
 
     createRecoveryDir(logs, dirs, true);
 
-    try (RecoveryLogsIterator rli = new RecoveryLogsIterator(context, dirs, null, null, true)) {
-      while (rli.hasNext()) {
-        fail("First log entry is not OPEN so it should fail before getting here");
-      }
-    } catch (IllegalStateException e) {
-      // Expected exception
-    }
+    assertThrows("First log entry is not OPEN so exception should be thrown.",
+        IllegalStateException.class,
+        () -> new RecoveryLogsIterator(context, dirs, null, null, true));
   }
 
   @Test
