@@ -37,9 +37,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
-import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -56,7 +54,6 @@ import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.ScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
-import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
@@ -269,11 +266,8 @@ public class ThriftScanner {
                 scanState.startRow, scanState.skipStartRow, false);
 
             if (loc == null) {
-              if (!Tables.exists(context, scanState.tableId))
-                throw new TableDeletedException(scanState.tableId.canonical());
-              else if (Tables.getTableState(context, scanState.tableId) == TableState.OFFLINE)
-                throw new TableOfflineException(
-                    Tables.getTableOfflineMsg(context, scanState.tableId));
+              context.requireNotDeleted(scanState.tableId);
+              context.requireNotOffline(scanState.tableId, null);
 
               error = "Failed to locate tablet for table : " + scanState.tableId + " row : "
                   + scanState.startRow;
@@ -323,8 +317,7 @@ public class ThriftScanner {
           results = scan(loc, scanState, context);
         } catch (AccumuloSecurityException e) {
           Tables.clearCache(context);
-          if (!Tables.exists(context, scanState.tableId))
-            throw new TableDeletedException(scanState.tableId.canonical());
+          context.requireNotDeleted(scanState.tableId);
           e.setTableInfo(Tables.getPrintableTableInfoFromId(context, scanState.tableId));
           throw e;
         } catch (TApplicationException tae) {

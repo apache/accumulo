@@ -31,6 +31,7 @@ import static org.apache.accumulo.test.functional.BasicSummarizer.MAX_TIMESTAMP_
 import static org.apache.accumulo.test.functional.BasicSummarizer.MIN_TIMESTAMP_STAT;
 import static org.apache.accumulo.test.functional.BasicSummarizer.TOTAL_STAT;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -67,6 +68,7 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.PluginConfig;
+import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -86,14 +88,26 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-public class SummaryIT extends AccumuloClusterHarness {
+public class SummaryIT extends SharedMiniClusterBase {
+
+  @BeforeClass
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterClass
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 
   private LongSummaryStatistics getTimestampStats(final String table, AccumuloClient c)
       throws TableNotFoundException {
@@ -380,11 +394,9 @@ public class SummaryIT extends AccumuloClusterHarness {
       checkSummary(summaries, sc2, "len=14", 100_000L);
 
       // Ensure a bad regex fails fast.
-      try {
-        summaries = c.tableOperations().summaries(table)
-            .withMatchingConfiguration(".*KeySizeSummarizer {maxLen=256}.*").retrieve();
-        fail("Bad regex should have caused exception");
-      } catch (PatternSyntaxException e) {}
+      assertThrows("Bad regex should have caused exception", PatternSyntaxException.class,
+          () -> c.tableOperations().summaries(table)
+              .withMatchingConfiguration(".*KeySizeSummarizer {maxLen=256}.*").retrieve());
     }
   }
 
@@ -524,7 +536,7 @@ public class SummaryIT extends AccumuloClusterHarness {
     compactionTest(compactConfig);
   }
 
-  public void compactionTest(CompactionConfig compactConfig) throws Exception {
+  private void compactionTest(CompactionConfig compactConfig) throws Exception {
     final String table = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       NewTableConfiguration ntc = new NewTableConfiguration();
@@ -606,11 +618,8 @@ public class SummaryIT extends AccumuloClusterHarness {
       }
 
       c.tableOperations().flush(table, null, null, true);
-      try {
-        c.tableOperations().summaries(table).retrieve();
-        fail("Expected server side failure and did not see it");
-      } catch (AccumuloServerException ase) {}
-
+      assertThrows("Expected server side failure and did not see it", AccumuloServerException.class,
+          () -> c.tableOperations().summaries(table).retrieve());
     }
   }
 
@@ -636,12 +645,11 @@ public class SummaryIT extends AccumuloClusterHarness {
 
       try (AccumuloClient c2 =
           Accumulo.newClient().from(c.properties()).as("user1", passTok).build()) {
-        try {
-          c2.tableOperations().summaries(table).retrieve();
-          fail("Expected operation to fail because user does not have permssion to get summaries");
-        } catch (AccumuloSecurityException ase) {
-          assertEquals(SecurityErrorCode.PERMISSION_DENIED, ase.getSecurityErrorCode());
-        }
+        var e = assertThrows(
+            "Expected operation to fail because user does not have permssion to get summaries",
+            AccumuloSecurityException.class,
+            () -> c2.tableOperations().summaries(table).retrieve());
+        assertEquals(SecurityErrorCode.PERMISSION_DENIED, e.getSecurityErrorCode());
 
         c.securityOperations().grantTablePermission("user1", table, TablePermission.GET_SUMMARIES);
 
@@ -826,58 +834,42 @@ public class SummaryIT extends AccumuloClusterHarness {
 
   @Test
   public void testExceptions() throws Exception {
+    String testTableName = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
-      try {
-        c.tableOperations().summaries("foo").retrieve();
-        fail();
-      } catch (TableNotFoundException e) {}
-
-      try {
-        c.tableOperations().addSummarizers("foo",
-            SummarizerConfiguration.builder(VisibilitySummarizer.class).build());
-        fail();
-      } catch (TableNotFoundException e) {}
-
-      try {
-        c.tableOperations().listSummarizers("foo");
-        fail();
-      } catch (TableNotFoundException e) {}
-
-      try {
-        c.tableOperations().removeSummarizers("foo", sc -> true);
-        fail();
-      } catch (TableNotFoundException e) {}
+      SummaryRetriever summaryRetriever = c.tableOperations().summaries(testTableName);
+      assertThrows(TableNotFoundException.class, () -> summaryRetriever.retrieve());
+      var summarizerConf = SummarizerConfiguration.builder(VisibilitySummarizer.class).build();
+      assertThrows(TableNotFoundException.class,
+          () -> c.tableOperations().addSummarizers(testTableName, summarizerConf));
+      assertThrows(TableNotFoundException.class,
+          () -> c.tableOperations().listSummarizers(testTableName));
+      assertThrows(TableNotFoundException.class,
+          () -> c.tableOperations().removeSummarizers(testTableName, sc -> true));
 
       SummarizerConfiguration sc1 =
           SummarizerConfiguration.builder(FamilySummarizer.class).setPropertyId("p1").build();
       SummarizerConfiguration sc2 =
           SummarizerConfiguration.builder(VisibilitySummarizer.class).setPropertyId("p1").build();
 
-      c.tableOperations().create("foo");
-      c.tableOperations().addSummarizers("foo", sc1);
-      c.tableOperations().addSummarizers("foo", sc1);
-      try {
-        // adding second summarizer with same id should fail
-        c.tableOperations().addSummarizers("foo", sc2);
-        fail();
-      } catch (IllegalArgumentException e) {}
+      c.tableOperations().create(testTableName);
+      c.tableOperations().addSummarizers(testTableName, sc1);
+      c.tableOperations().addSummarizers(testTableName, sc1);
+      assertThrows("adding second summarizer with same id should fail",
+          IllegalArgumentException.class,
+          () -> c.tableOperations().addSummarizers(testTableName, sc2));
 
-      c.tableOperations().removeSummarizers("foo", sc -> true);
-      assertEquals(0, c.tableOperations().listSummarizers("foo").size());
+      c.tableOperations().removeSummarizers(testTableName, sc -> true);
+      assertEquals(0, c.tableOperations().listSummarizers(testTableName).size());
 
-      try {
-        // adding two summarizers at the same time with same id should fail
-        c.tableOperations().addSummarizers("foo", sc1, sc2);
-        fail();
-      } catch (IllegalArgumentException e) {}
-      assertEquals(0, c.tableOperations().listSummarizers("foo").size());
+      assertThrows("adding two summarizers at the same time with same id should fail",
+          IllegalArgumentException.class,
+          () -> c.tableOperations().addSummarizers(testTableName, sc1, sc2));
+      assertEquals(0, c.tableOperations().listSummarizers(testTableName).size());
 
-      c.tableOperations().offline("foo", true);
-      try {
-        c.tableOperations().summaries("foo").retrieve();
-        fail();
-      } catch (TableOfflineException e) {}
+      c.tableOperations().offline(testTableName, true);
+      assertThrows(TableOfflineException.class,
+          () -> c.tableOperations().summaries(testTableName).retrieve());
     }
   }
 

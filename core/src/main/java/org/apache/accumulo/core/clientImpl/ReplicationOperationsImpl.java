@@ -19,21 +19,17 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
-import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -58,33 +54,26 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
   private final ClientContext context;
 
   public ReplicationOperationsImpl(ClientContext context) {
-    requireNonNull(context);
-    this.context = context;
+    this.context = requireNonNull(context);
   }
 
   @Override
   public void addPeer(final String name, final String replicaType)
       throws AccumuloException, AccumuloSecurityException {
-    requireNonNull(name);
-    requireNonNull(replicaType);
-    context.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + name,
-        replicaType);
+    context.instanceOperations().setProperty(
+        Property.REPLICATION_PEERS.getKey() + requireNonNull(name), requireNonNull(replicaType));
   }
 
   @Override
   public void removePeer(final String name) throws AccumuloException, AccumuloSecurityException {
-    requireNonNull(name);
-    context.instanceOperations().removeProperty(Property.REPLICATION_PEERS.getKey() + name);
+    context.instanceOperations()
+        .removeProperty(Property.REPLICATION_PEERS.getKey() + requireNonNull(name));
   }
 
   @Override
   public void drain(String tableName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    requireNonNull(tableName);
-
-    Set<String> wals = referencedFiles(tableName);
-
-    drain(tableName, wals);
+    drain(tableName, referencedFiles(requireNonNull(tableName)));
   }
 
   @Override
@@ -119,33 +108,10 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
         client -> client.drainReplicationTable(tinfo, rpcCreds, tableName, wals));
   }
 
-  protected TableId getTableId(AccumuloClient client, String tableName)
-      throws TableNotFoundException {
-    TableOperations tops = client.tableOperations();
-
-    if (!client.tableOperations().exists(tableName)) {
-      throw new TableNotFoundException(null, tableName, null);
-    }
-
-    String tableId = null;
-    while (tableId == null) {
-      tableId = tops.tableIdMap().get(tableName);
-      if (tableId == null) {
-        sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
-      }
-    }
-
-    return TableId.of(tableId);
-  }
-
   @Override
   public Set<String> referencedFiles(String tableName) throws TableNotFoundException {
-    requireNonNull(tableName);
-
     log.debug("Collecting referenced files for replication of table {}", tableName);
-
-    TableId tableId = getTableId(context, tableName);
-
+    TableId tableId = context.getTableId(tableName);
     log.debug("Found id of {} for name {}", tableId, tableName);
 
     // Get the WALs currently referenced by the table

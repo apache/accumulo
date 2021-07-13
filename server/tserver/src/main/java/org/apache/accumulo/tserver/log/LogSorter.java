@@ -32,7 +32,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -146,7 +145,7 @@ public class LogSorter {
         // Creating a 'finished' marker will cause recovery to proceed normally and the
         // empty file will be correctly ignored downstream.
         fs.mkdirs(new Path(destPath));
-        writeBuffer(context, destPath, Collections.emptyList(), part++);
+        writeBuffer(destPath, Collections.emptyList(), part++);
         fs.create(SortedLogState.getFinishedMarkerPath(destPath)).close();
         return;
       }
@@ -164,10 +163,10 @@ public class LogSorter {
             value.readFields(decryptingInput);
             buffer.add(new Pair<>(key, value));
           }
-          writeBuffer(context, destPath, buffer, part++);
+          writeBuffer(destPath, buffer, part++);
           buffer.clear();
         } catch (EOFException ex) {
-          writeBuffer(context, destPath, buffer, part++);
+          writeBuffer(destPath, buffer, part++);
           break;
         }
       }
@@ -215,8 +214,8 @@ public class LogSorter {
   }
 
   @VisibleForTesting
-  public static void writeBuffer(ServerContext context, String destPath,
-      List<Pair<LogFileKey,LogFileValue>> buffer, int part) throws IOException {
+  void writeBuffer(String destPath, List<Pair<LogFileKey,LogFileValue>> buffer, int part)
+      throws IOException {
     String filename = String.format("part-r-%05d.rf", part);
     Path path = new Path(destPath, filename);
     FileSystem fs = context.getVolumeManager().getFileSystemByPath(path);
@@ -238,7 +237,7 @@ public class LogSorter {
 
     try (var writer = FileOperations.getInstance().newWriterBuilder()
         .forFile(fullPath.toString(), fs, fs.getConf(), context.getCryptoService())
-        .withTableConfiguration(DefaultConfiguration.getInstance()).build()) {
+        .withTableConfiguration(conf).build()) {
       writer.startDefaultLocalityGroup();
       for (var entry : keyListMap.entrySet()) {
         LogFileValue val = new LogFileValue();

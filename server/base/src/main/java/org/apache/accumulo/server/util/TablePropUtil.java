@@ -39,7 +39,7 @@ public class TablePropUtil {
 
   public static boolean setTableProperty(ZooReaderWriter zoo, String zkRoot, TableId tableId,
       String property, String value) throws KeeperException, InterruptedException {
-    if (!isPropertyValid(property, value))
+    if (!Property.isTablePropertyValid(property, value))
       return false;
 
     // create the zk node for per-table properties for this table if it doesn't already exist
@@ -51,12 +51,6 @@ public class TablePropUtil {
     zoo.putPersistentData(zPath, value.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
 
     return true;
-  }
-
-  public static boolean isPropertyValid(String property, String value) {
-    Property p = Property.getPropertyByKey(property);
-    return (p == null || p.getType().isValidFormat(value))
-        && Property.isValidTablePropertyKey(property);
   }
 
   public static void removeTableProperty(ServerContext context, TableId tableId, String property)

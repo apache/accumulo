@@ -46,8 +46,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
-import org.apache.accumulo.core.client.TableDeletedException;
-import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -63,7 +61,6 @@ import org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation;
 import org.apache.accumulo.core.dataImpl.thrift.TConditionalSession;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
-import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -106,6 +103,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private final ClientContext context;
   private TabletLocator locator;
   private final TableId tableId;
+  private final String tableName;
   private long timeout;
   private final Durability durability;
   private final String classLoaderContext;
@@ -287,11 +285,10 @@ class ConditionalWriterImpl implements ConditionalWriter {
     try {
       locator.binMutations(context, mutations, binnedMutations, failures);
 
-      if (failures.size() == mutations.size())
-        if (!Tables.exists(context, tableId))
-          throw new TableDeletedException(tableId.canonical());
-        else if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
-          throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
+      if (failures.size() == mutations.size()) {
+        context.requireNotDeleted(tableId);
+        context.requireNotOffline(tableId, tableName);
+      }
 
     } catch (Exception e) {
       mutations.forEach(qcm -> qcm.queueResult(new Result(e, qcm, null)));
@@ -364,7 +361,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
     }
   }
 
-  ConditionalWriterImpl(ClientContext context, TableId tableId, ConditionalWriterConfig config) {
+  ConditionalWriterImpl(ClientContext context, TableId tableId, String tableName,
+      ConditionalWriterConfig config) {
     this.context = context;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
@@ -373,6 +371,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.locator = new SyncingTabletLocator(context, tableId);
     this.serverQueues = new HashMap<>();
     this.tableId = tableId;
+    this.tableName = tableName;
     this.timeout = config.getTimeout(TimeUnit.MILLISECONDS);
     this.durability = config.getDurability();
     this.classLoaderContext = config.getClassLoaderContext();

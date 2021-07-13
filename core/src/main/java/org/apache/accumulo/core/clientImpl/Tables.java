@@ -139,18 +139,6 @@ public class Tables {
     return tableName;
   }
 
-  public static String getTableOfflineMsg(ClientContext context, TableId tableId) {
-    if (tableId == null)
-      return "Table <unknown table> is offline";
-
-    try {
-      String tableName = Tables.getTableName(context, tableId);
-      return "Table " + tableName + " (" + tableId.canonical() + ") is offline";
-    } catch (TableNotFoundException e) {
-      return "Table <unknown table> (" + tableId.canonical() + ") is offline";
-    }
-  }
-
   public static Map<String,TableId> getNameToIdMap(ClientContext context) {
     return getTableMap(context).getNameToIdMap();
   }
