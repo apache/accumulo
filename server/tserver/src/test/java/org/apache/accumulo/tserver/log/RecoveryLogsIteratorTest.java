@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver.log;
 
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
 import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
+import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
@@ -50,7 +51,6 @@ import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -74,7 +74,7 @@ public class RecoveryLogsIteratorTest {
 
   @Before
   public void setUp() throws Exception {
-    context = EasyMock.createMock(ServerContext.class);
+    context = createMock(ServerContext.class);
     logSorter = new LogSorter(context, DefaultConfiguration.getInstance());
 
     workDir = tempFolder.newFolder();
@@ -90,8 +90,6 @@ public class RecoveryLogsIteratorTest {
 
   @After
   public void tearDown() throws Exception {
-    final Path workdirPath = new Path("file://" + workDir);
-    fs.deleteRecursively(workdirPath);
     fs.close();
   }
 
@@ -128,7 +126,7 @@ public class RecoveryLogsIteratorTest {
     keyValue.key.tabletId = 1;
     keyValue.key.tablet = extent;
 
-    KeyValue[] keyValues = {keyValue,};
+    KeyValue[] keyValues = {keyValue};
 
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("keyValues", keyValues);
@@ -154,7 +152,7 @@ public class RecoveryLogsIteratorTest {
     keyValue.key.tabletId = 1;
     keyValue.key.tablet = extent;
 
-    KeyValue[] keyValues = {keyValue,};
+    KeyValue[] keyValues = {keyValue};
 
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("keyValues", keyValues);
@@ -197,7 +195,7 @@ public class RecoveryLogsIteratorTest {
     keyValue.key.tabletId = 1;
     keyValue.key.tablet = extent;
 
-    KeyValue[] keyValues = {keyValue,};
+    KeyValue[] keyValues = {keyValue};
 
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("keyValues", keyValues);
@@ -229,7 +227,7 @@ public class RecoveryLogsIteratorTest {
     keyValue2.key.tabletId = 1;
     keyValue2.key.tablet = extent;
 
-    KeyValue[] keyValues = {keyValue1, keyValue2,};
+    KeyValue[] keyValues = {keyValue1, keyValue2};
 
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("keyValues", keyValues);
@@ -262,7 +260,7 @@ public class RecoveryLogsIteratorTest {
 
       if (FinishMarker)
         ns.create(SortedLogState.getFinishedMarkerPath(destPath));
-      ns.close();
+
       dirs.add(new Path(destPath));
     }
   }
