@@ -24,11 +24,13 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.reset;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -49,6 +51,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -323,5 +326,44 @@ public class Upgrader9to10Test {
     }
 
     assertEquals("Replacements should have update for every delete", deleteCount, updateCount);
+  }
+
+  @Test
+  public void testDropSortedMapWALs() throws IOException {
+    Path recoveryDir = new Path("/accumulo/recovery");
+    VolumeManager fs = createMock(VolumeManager.class);
+    FileStatus[] dirs = new FileStatus[2];
+    dirs[0] = createMock(FileStatus.class);
+    Path dir0 = new Path("/accumulo/recovery/A123456789");
+    FileStatus[] dir0Files = new FileStatus[1];
+    dir0Files[0] = createMock(FileStatus.class);
+    dirs[1] = createMock(FileStatus.class);
+    Path dir1 = new Path("/accumulo/recovery/B123456789");
+    FileStatus[] dir1Files = new FileStatus[1];
+    dir1Files[0] = createMock(FileStatus.class);
+    Path part1Dir = new Path("/accumulo/recovery/B123456789/part-r-0000");
+
+    expect(fs.exists(recoveryDir)).andReturn(true).once();
+    expect(fs.listStatus(recoveryDir)).andReturn(dirs).once();
+    expect(dirs[0].getPath()).andReturn(dir0).once();
+    expect(fs.listStatus(dir0)).andReturn(dir0Files).once();
+    expect(dir0Files[0].isDirectory()).andReturn(false).once();
+
+    expect(dirs[1].getPath()).andReturn(dir1).once();
+    expect(fs.listStatus(dir1)).andReturn(dir1Files).once();
+    expect(dir1Files[0].isDirectory()).andReturn(true).once();
+    expect(dir1Files[0].getPath()).andReturn(part1Dir).once();
+
+    expect(fs.deleteRecursively(dir1)).andReturn(true).once();
+
+    replay(fs, dirs[0], dirs[1], dir0Files[0], dir1Files[0]);
+    Upgrader9to10.dropSortedMapWALFiles(fs);
+
+    reset(fs);
+
+    // test case where there is no recovery
+    expect(fs.exists(recoveryDir)).andReturn(false).once();
+    replay(fs);
+    Upgrader9to10.dropSortedMapWALFiles(fs);
   }
 }
