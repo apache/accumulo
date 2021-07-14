@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.client;
 
+import org.apache.accumulo.core.data.TableId;
+
 public class TableOfflineException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
@@ -35,6 +37,17 @@ public class TableOfflineException extends RuntimeException {
    */
   public TableOfflineException(String msg) {
     super(msg);
+  }
+
+  /**
+   * @since 2.1.0
+   */
+  public TableOfflineException(TableId tableId, String tableName) {
+    // @formatter:off
+    super(String.format("Table %s (%s) is offline",
+        tableName == null ? "<unknown table>" : tableName,
+        tableId == null ? "<unknown id>" : tableId));
+    // @formatter:on
   }
 
   /**

@@ -326,8 +326,7 @@ public class Manager extends AbstractServer
           for (Entry<TableId,TableCounts> entry : watcher.getStats().entrySet()) {
             TableId tableId = entry.getKey();
             TableCounts counts = entry.getValue();
-            TableState tableState = manager.getTableState(tableId);
-            if (tableState != null && tableState.equals(TableState.ONLINE)) {
+            if (manager.getTableState(tableId) == TableState.ONLINE) {
               result += counts.unassigned() + counts.assignedToDeadServers() + counts.assigned()
                   + counts.suspended();
             }
@@ -357,7 +356,7 @@ public class Manager extends AbstractServer
   public void mustBeOnline(final TableId tableId) throws ThriftTableOperationException {
     ServerContext context = getContext();
     Tables.clearCache(context);
-    if (!Tables.getTableState(context, tableId).equals(TableState.ONLINE)) {
+    if (Tables.getTableState(context, tableId) != TableState.ONLINE) {
       throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.MERGE,
           TableOperationExceptionType.OFFLINE, "table is not online");
     }
