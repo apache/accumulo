@@ -59,12 +59,12 @@ public class RecoveryLogsIterator
   /**
    * Scans the files in each recoveryLogDir over the range [start,end].
    */
-  RecoveryLogsIterator(ServerContext context, List<Path> recoveryLogDirs, LogFileKey start,
+  public RecoveryLogsIterator(ServerContext context, List<Path> recoveryLogDirs, LogFileKey start,
       LogFileKey end, boolean checkFirstKey) throws IOException {
 
     List<Iterator<Entry<Key,Value>>> iterators = new ArrayList<>(recoveryLogDirs.size());
     scanners = new ArrayList<>();
-    Range range = LogFileKey.toRange(start, end);
+    Range range = start == null ? null : LogFileKey.toRange(start, end);
     var vm = context.getVolumeManager();
 
     for (Path logDir : recoveryLogDirs) {

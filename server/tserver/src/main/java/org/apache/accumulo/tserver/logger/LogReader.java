@@ -23,6 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -35,11 +36,13 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
-import org.apache.accumulo.tserver.log.RecoveryLogReader;
+import org.apache.accumulo.tserver.log.RecoveryLogsIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
@@ -72,7 +75,7 @@ public class LogReader implements KeywordExecutable {
   }
 
   /**
-   * Dump a Log File (Map or Sequence) to stdout. Will read from HDFS or local file system.
+   * Dump a Log File to stdout. Will read from HDFS or local file system.
    *
    * @param args
    *          - first argument is the file to print
@@ -103,7 +106,8 @@ public class LogReader implements KeywordExecutable {
     }
 
     var siteConfig = SiteConfiguration.auto();
-    try (var fs = VolumeManagerImpl.get(siteConfig, new Configuration())) {
+    ServerContext context = new ServerContext(siteConfig);
+    try (VolumeManager fs = VolumeManagerImpl.get(siteConfig, new Configuration())) {
 
       Matcher rowMatcher = null;
       KeyExtent ke = null;
@@ -123,13 +127,18 @@ public class LogReader implements KeywordExecutable {
       Set<Integer> tabletIds = new HashSet<>();
 
       for (String file : opts.files) {
-
         Path path = new Path(file);
         LogFileKey key = new LogFileKey();
         LogFileValue value = new LogFileValue();
 
+        // ensure it's a regular non-sorted WAL file, and not a single sorted WAL in RFile format
         if (fs.getFileStatus(path).isFile()) {
-          // read log entries from a simple hdfs file
+          if (file.endsWith(".rf")) {
+            log.error("Unable to read from a single RFile. A non-sorted WAL file was expected. "
+                + "To read sorted WALs, please pass in a directory containing the sorted recovery logs.");
+            continue;
+          }
+
           try (final FSDataInputStream fsinput = fs.open(path);
               DataInputStream input = DfsLogger.getDecryptingStream(fsinput, siteConfig)) {
             while (true) {
@@ -146,10 +155,12 @@ public class LogReader implements KeywordExecutable {
             continue;
           }
         } else {
-          // read the log entries sorted in a map file
-          try (RecoveryLogReader input = new RecoveryLogReader(fs, path)) {
-            while (input.hasNext()) {
-              Entry<LogFileKey,LogFileValue> entry = input.next();
+          // read the log entries in a sorted RFile. This has to be a directory that contains the
+          // finished file.
+          try (var rli = new RecoveryLogsIterator(context, Collections.singletonList(path), null,
+              null, false)) {
+            while (rli.hasNext()) {
+              Entry<LogFileKey,LogFileValue> entry = rli.next();
               printLogEvent(entry.getKey(), entry.getValue(), row, rowMatcher, ke, tabletIds,
                   opts.maxMutations);
             }
@@ -200,9 +211,7 @@ public class LogReader implements KeywordExecutable {
       }
 
     }
-
     System.out.println(key);
     System.out.println(LogFileValue.format(value, maxMutations));
   }
-
 }
