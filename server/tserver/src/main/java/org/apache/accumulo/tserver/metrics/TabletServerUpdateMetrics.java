@@ -18,66 +18,141 @@
  */
 package org.apache.accumulo.tserver.metrics;
 
+import java.time.Duration;
+
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 import org.apache.hadoop.metrics2.lib.MutableCounterLong;
 import org.apache.hadoop.metrics2.lib.MutableStat;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+
 public class TabletServerUpdateMetrics extends TServerMetrics {
 
-  private final MutableCounterLong permissionErrorsCounter;
-  private final MutableCounterLong unknownTabletErrorsCounter;
-  private final MutableCounterLong constraintViolationsCounter;
+  private final Counter permissionErrorsCounter;
+  private final Counter unknownTabletErrorsCounter;
+  private final Counter constraintViolationsCounter;
 
-  private final MutableStat commitPrepStat;
-  private final MutableStat walogWriteTimeStat;
-  private final MutableStat commitTimeStat;
-  private final MutableStat mutationArraySizeStat;
+  private final Timer commitPrepStat;
+  private final Timer walogWriteTimeStat;
+  private final Timer commitTimeStat;
+  private final Timer mutationArraySizeStat;
 
-  public TabletServerUpdateMetrics() {
+  private final TabletServerUpdateMetricsHadoop hadoopMetrics;
+
+  public TabletServerUpdateMetrics(MeterRegistry meterRegistry) {
     super("Updates");
 
-    MetricsRegistry registry = super.getRegistry();
-    permissionErrorsCounter = registry.newCounter("permissionErrors", "Permission Errors", 0L);
-    unknownTabletErrorsCounter =
-        registry.newCounter("unknownTabletErrors", "Unknown Tablet Errors", 0L);
-    constraintViolationsCounter =
-        registry.newCounter("constraintViolations", "Table Constraint Violations", 0L);
+    permissionErrorsCounter = meterRegistry.counter("permissionErrors");
+    unknownTabletErrorsCounter = meterRegistry.counter("unknownTabletErrors");
+    constraintViolationsCounter = meterRegistry.counter("constraintViolations");
 
-    commitPrepStat =
-        registry.newStat("commitPrep", "preparing to commit mutations", "Ops", "Time", true);
-    walogWriteTimeStat =
-        registry.newStat("waLogWriteTime", "writing mutations to WAL", "Ops", "Time", true);
-    commitTimeStat = registry.newStat("commitTime", "committing mutations", "Ops", "Time", true);
+    commitPrepStat = Timer.builder("commitPrep").description("preparing to commit mutations")
+        .register(meterRegistry);
+    walogWriteTimeStat = Timer.builder("waLogWriteTime").description("writing mutations to WAL")
+        .register(meterRegistry);
+    commitTimeStat =
+        Timer.builder("commitTime").description("committing mutations").register(meterRegistry);
     mutationArraySizeStat =
-        registry.newStat("mutationArraysSize", "mutation array", "ops", "Size", true);
+        Timer.builder("mutationArraysSize").description("mutation array").register(meterRegistry);
+
+    hadoopMetrics = new TabletServerUpdateMetricsHadoop(super.getRegistry());
   }
 
   public void addPermissionErrors(long value) {
-    permissionErrorsCounter.incr(value);
+    permissionErrorsCounter.increment(value);
+    hadoopMetrics.addPermissionErrors(value);
   }
 
   public void addUnknownTabletErrors(long value) {
-    unknownTabletErrorsCounter.incr(value);
-  }
-
-  public void addMutationArraySize(long value) {
-    mutationArraySizeStat.add(value);
-  }
-
-  public void addCommitPrep(long value) {
-    commitPrepStat.add(value);
+    unknownTabletErrorsCounter.increment(value);
+    hadoopMetrics.addUnknownTabletErrors(value);
   }
 
   public void addConstraintViolations(long value) {
-    constraintViolationsCounter.incr(value);
+    constraintViolationsCounter.increment(value);
+    hadoopMetrics.addConstraintViolations(value);
+  }
+
+  public void addCommitPrep(long value) {
+    commitPrepStat.record(Duration.ofMillis(value));
+    hadoopMetrics.addCommitPrep(value);
   }
 
   public void addWalogWriteTime(long value) {
-    walogWriteTimeStat.add(value);
+    walogWriteTimeStat.record(Duration.ofMillis(value));
+    hadoopMetrics.addWalogWriteTime(value);
   }
 
   public void addCommitTime(long value) {
-    commitTimeStat.add(value);
+    commitTimeStat.record(Duration.ofMillis(value));
+    hadoopMetrics.addCommitTime(value);
+  }
+
+  public void addMutationArraySize(long value) {
+    mutationArraySizeStat.record(Duration.ofMillis(value));
+    hadoopMetrics.addMutationArraySize(value);
+  }
+
+  private static class TabletServerUpdateMetricsHadoop {
+
+    private final MutableCounterLong permissionErrorsCounter;
+    private final MutableCounterLong unknownTabletErrorsCounter;
+    private final MutableCounterLong constraintViolationsCounter;
+
+    private final MutableStat commitPrepStat;
+    private final MutableStat walogWriteTimeStat;
+    private final MutableStat commitTimeStat;
+    private final MutableStat mutationArraySizeStat;
+
+    TabletServerUpdateMetricsHadoop(MetricsRegistry metricsRegistry) {
+      permissionErrorsCounter =
+          metricsRegistry.newCounter("permissionErrors", "Permission Errors", 0L);
+      unknownTabletErrorsCounter =
+          metricsRegistry.newCounter("unknownTabletErrors", "Unknown Tablet Errors", 0L);
+      constraintViolationsCounter =
+          metricsRegistry.newCounter("constraintViolations", "Table Constraint Violations", 0L);
+
+      commitPrepStat = metricsRegistry.newStat("commitPrep", "preparing to commit mutations", "Ops",
+          "Time", true);
+      walogWriteTimeStat = metricsRegistry.newStat("waLogWriteTime", "writing mutations to WAL",
+          "Ops", "Time", true);
+      commitTimeStat =
+          metricsRegistry.newStat("commitTime", "committing mutations", "Ops", "Time", true);
+      mutationArraySizeStat =
+          metricsRegistry.newStat("mutationArraysSize", "mutation array", "ops", "Size", true);
+
+    }
+
+    private void addPermissionErrors(long value) {
+      permissionErrorsCounter.incr(value);
+    }
+
+    private void addUnknownTabletErrors(long value) {
+      unknownTabletErrorsCounter.incr(value);
+    }
+
+    private void addConstraintViolations(long value) {
+      constraintViolationsCounter.incr(value);
+    }
+
+    private void addCommitPrep(long value) {
+      commitPrepStat.add(value);
+    }
+
+    private void addWalogWriteTime(long value) {
+      walogWriteTimeStat.add(value);
+    }
+
+    private void addCommitTime(long value) {
+      commitTimeStat.add(value);
+    }
+
+    private void addMutationArraySize(long value) {
+      mutationArraySizeStat.add(value);
+    }
+
   }
 
 }
