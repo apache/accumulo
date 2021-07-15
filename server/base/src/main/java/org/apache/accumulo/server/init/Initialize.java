@@ -121,6 +121,8 @@ import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.InfoCmp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -143,12 +145,14 @@ public class Initialize implements KeywordExecutable {
   private static final String TABLE_TABLETS_TABLET_DIR = "table_info";
 
   private static LineReader reader = null;
+  private static Terminal terminal = null;
   private static ZooReaderWriter zoo = null;
 
   private static LineReader getLineReader() throws IOException {
-    if (reader == null) {
-      reader = LineReaderBuilder.builder().build();
-    }
+    if (terminal == null)
+      terminal = TerminalBuilder.builder().jansi(false).build();
+    if (reader == null)
+      reader = LineReaderBuilder.builder().terminal(terminal).build();
     return reader;
   }
 
