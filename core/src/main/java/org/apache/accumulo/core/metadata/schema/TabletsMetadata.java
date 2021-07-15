@@ -134,6 +134,11 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         var ranges = extents.stream().map(KeyExtent::toMetaRange).collect(toList());
         scanner.setRanges(ranges);
 
+        boolean extentsAreNull = extentsToFetch == null;
+
+        if (!extentsAreNull)
+          fetch(ColumnType.PREV_ROW);
+
         configureColumns(scanner);
         IteratorSetting iterSetting = new IteratorSetting(100, WholeRowIterator.class);
         scanner.addScanIterator(iterSetting);
@@ -149,8 +154,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             }
           });
 
-          if (extentsToFetch != null) {
-            fetch(ColumnType.PREV_ROW);
+          if (!extentsAreNull) {
             return Iterators.filter(iter,
                 tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent()));
           } else {
@@ -173,7 +177,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             new IsolatedScanner(client.createScanner(resolvedTable, Authorizations.EMPTY));
         scanner.setRange(range);
 
-        if (checkConsistency && !fetchedCols.contains(ColumnType.PREV_ROW)) {
+        boolean extentsAreNull = extentsToFetch == null;
+
+        if ((checkConsistency && !fetchedCols.contains(ColumnType.PREV_ROW)) || !extentsAreNull) {
           fetch(ColumnType.PREV_ROW);
         }
 
@@ -186,8 +192,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             RowIterator rowIter = new RowIterator(scanner);
             Iterator<TabletMetadata> iter = Iterators.transform(rowIter,
                 ri -> TabletMetadata.convertRow(ri, fetchedCols, saveKeyValues));
-            if (extentsToFetch != null) {
-              fetch(ColumnType.PREV_ROW);
+            if (!extentsAreNull) {
               return Iterators.filter(iter,
                   tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent()));
             } else {
