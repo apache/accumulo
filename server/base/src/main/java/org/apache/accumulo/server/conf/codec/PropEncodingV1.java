@@ -23,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -83,7 +84,7 @@ public class PropEncodingV1 implements PropEncoding {
       }
 
     } catch (IOException ex) {
-      throw new IllegalStateException("Encountered error deserializing properties", ex);
+      throw new UncheckedIOException("Encountered error deserializing properties", ex);
     }
   }
 
@@ -292,13 +293,15 @@ public class PropEncodingV1 implements PropEncoding {
     }
 
     /**
-     * Get the data version - -1 signals the data has not been written out.
+     * Get the data version - a negative value signals the data has not been written out. Avoids
+     * using -1 because that has significance in ZooKeeper - writing a ZooKeeper node with a version
+     * of -1 disables the ZooKeeper expected version checking and just over writes the node.
      *
-     * @return -1 if initial version, otherwise the current data version.
+     * @return negative value if initial version, otherwise the current data version.
      */
     public int getDataVersion() {
       if (dataVersion < 0) {
-        return -1;
+        return -2;
       }
       return dataVersion;
     }
