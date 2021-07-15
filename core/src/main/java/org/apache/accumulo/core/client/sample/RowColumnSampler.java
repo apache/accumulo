@@ -104,26 +104,26 @@ public class RowColumnSampler extends AbstractHashSampler {
     }
   }
 
-  private void putByteSquence(ByteSequence data, DataOutput hasher) throws IOException {
+  private void putByteSequence(ByteSequence data, DataOutput hasher) throws IOException {
     hasher.write(data.getBackingArray(), data.offset(), data.length());
   }
 
   @Override
   protected void hash(DataOutput hasher, Key k) throws IOException {
     if (row) {
-      putByteSquence(k.getRowData(), hasher);
+      putByteSequence(k.getRowData(), hasher);
     }
 
     if (family) {
-      putByteSquence(k.getColumnFamilyData(), hasher);
+      putByteSequence(k.getColumnFamilyData(), hasher);
     }
 
     if (qualifier) {
-      putByteSquence(k.getColumnQualifierData(), hasher);
+      putByteSequence(k.getColumnQualifierData(), hasher);
     }
 
     if (visibility) {
-      putByteSquence(k.getColumnVisibilityData(), hasher);
+      putByteSequence(k.getColumnVisibilityData(), hasher);
     }
   }
 }
