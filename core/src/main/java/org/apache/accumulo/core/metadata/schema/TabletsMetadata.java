@@ -36,6 +36,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -89,6 +90,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     private final List<Text> families = new ArrayList<>();
     private final List<ColumnFQ> qualifiers = new ArrayList<>();
+    private Set<KeyExtent> extentsToFetch = null;
     private Ample.DataLevel level;
     private String table;
     private Range range;
@@ -136,15 +138,25 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         IteratorSetting iterSetting = new IteratorSetting(100, WholeRowIterator.class);
         scanner.addScanIterator(iterSetting);
 
-        Iterable<TabletMetadata> tmi = () -> Iterators.transform(scanner.iterator(), entry -> {
-          try {
-            return TabletMetadata.convertRow(
-                WholeRowIterator.decodeRow(entry.getKey(), entry.getValue()).entrySet().iterator(),
-                fetchedCols, saveKeyValues);
-          } catch (IOException e) {
-            throw new UncheckedIOException(e);
+        Iterable<TabletMetadata> tmi = () -> {
+          Iterator<TabletMetadata> iter = Iterators.transform(scanner.iterator(), entry -> {
+            try {
+              return TabletMetadata.convertRow(WholeRowIterator
+                  .decodeRow(entry.getKey(), entry.getValue()).entrySet().iterator(), fetchedCols,
+                  saveKeyValues);
+            } catch (IOException e) {
+              throw new UncheckedIOException(e);
+            }
+          });
+
+          if (extentsToFetch != null) {
+            fetch(ColumnType.PREV_ROW);
+            return Iterators.filter(iter,
+                tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent()));
+          } else {
+            return iter;
           }
-        });
+        };
 
         return new TabletsMetadata(scanner, tmi);
       } catch (TableNotFoundException e) {
@@ -172,8 +184,15 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           synchronized (scanner) {
             scanner.setRange(r);
             RowIterator rowIter = new RowIterator(scanner);
-            return Iterators.transform(rowIter,
+            Iterator<TabletMetadata> iter = Iterators.transform(rowIter,
                 ri -> TabletMetadata.convertRow(ri, fetchedCols, saveKeyValues));
+            if (extentsToFetch != null) {
+              fetch(ColumnType.PREV_ROW);
+              return Iterators.filter(iter,
+                  tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent()));
+            } else {
+              return iter;
+            }
           }
         };
 
@@ -291,6 +310,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     public Options forTablet(KeyExtent extent) {
       forTable(extent.tableId());
       this.range = extent.toMetaRange();
+      this.extentsToFetch = Set.of(extent);
       return this;
     }
 
@@ -304,6 +324,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
       this.level = DataLevel.USER;
       this.extents = extents;
+      this.extentsToFetch = Set.copyOf(extents);
       return this;
     }
 
