@@ -418,9 +418,6 @@ public class MetadataTableUtil {
 
     TabletMetadata tablet = context.getAmple().readTablet(extent, FILES, LOGS, PREV_ROW, DIR);
 
-    if (!tablet.getExtent().equals(extent))
-      throw new RuntimeException("Unexpected extent " + tablet.getExtent() + " expected " + extent);
-
     result.addAll(tablet.getLogs());
 
     tablet.getFilesMap().forEach(sizes::put);

@@ -402,14 +402,12 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     /**
      * Get the tablet metadata for this extents end row. This should only ever return a single
-     * tablet. No checking is done for prev row, so it could differ.
+     * tablet.
      */
     Options forTablet(KeyExtent extent);
 
     /**
-     * Get the tablet metadata for the given extents. This will find tablets based on end row, so
-     * it's possible the prev rows could differ for the tablets returned. If this matters, then it
-     * must be checked.
+     * Get the tablet metadata for the given extents. This will find tablets based on end row.
      */
     Options forTablets(Collection<KeyExtent> extents);
 

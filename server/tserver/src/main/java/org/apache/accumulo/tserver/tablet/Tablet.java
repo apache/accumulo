@@ -1361,13 +1361,6 @@ public class Tablet {
       var tabletMeta = context.getAmple().readTablet(extent, ColumnType.FILES, ColumnType.LOGS,
           ColumnType.ECOMP, ColumnType.PREV_ROW);
 
-      if (!tabletMeta.getExtent().equals(extent)) {
-        String msg = "Closed tablet " + extent + " does not match extent in metadata table "
-            + tabletMeta.getExtent();
-        log.error(msg);
-        throw new RuntimeException(msg);
-      }
-
       HashSet<ExternalCompactionId> ecids = new HashSet<>();
       compactable.getExternalCompactionIds(ecids::add);
       if (!tabletMeta.getExternalCompactions().keySet().equals(ecids)) {
