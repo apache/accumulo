@@ -136,7 +136,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
         boolean extentsPresent = extentsToFetch != null;
 
-        if (!fetchedColumns.isEmpty() && !extentsAreNull)
+        if (!fetchedCols.isEmpty() && extentsPresent)
           fetch(ColumnType.PREV_ROW);
 
         configureColumns(scanner);
@@ -154,7 +154,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             }
           });
 
-          if (!extentsAreNull) {
+          if (extentsPresent) {
             return Iterators.filter(iter,
                 tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent()));
           } else {
@@ -177,9 +177,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             new IsolatedScanner(client.createScanner(resolvedTable, Authorizations.EMPTY));
         scanner.setRange(range);
 
-        boolean extentsAreNull = extentsToFetch == null;
+        boolean extentsPresent = extentsToFetch != null;
 
-        if (!fetchedCols.isEmpty() &&(checkConsistency || !extentsAreNull)) {
+        if (!fetchedCols.isEmpty() && (checkConsistency || extentsPresent)) {
           fetch(ColumnType.PREV_ROW);
         }
 
@@ -192,7 +192,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             RowIterator rowIter = new RowIterator(scanner);
             Iterator<TabletMetadata> iter = Iterators.transform(rowIter,
                 ri -> TabletMetadata.convertRow(ri, fetchedCols, saveKeyValues));
-            if (!extentsAreNull) {
+            if (extentsPresent) {
               return Iterators.filter(iter,
                   tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent()));
             } else {
@@ -407,7 +407,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     Options forTablet(KeyExtent extent);
 
     /**
-     * Get the tablet metadata for the given extents. This will only return tablets where the end row and prev end row exactly match the given extents.  
+     * Get the tablet metadata for the given extents. This will only return tablets where the end
+     * row and prev end row exactly match the given extents.
      */
     Options forTablets(Collection<KeyExtent> extents);
 
