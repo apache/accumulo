@@ -1361,6 +1361,12 @@ public class Tablet {
       var tabletMeta = context.getAmple().readTablet(extent, ColumnType.FILES, ColumnType.LOGS,
           ColumnType.ECOMP, ColumnType.PREV_ROW);
 
+      if (tabletMeta == null) {
+        String msg = "Closed tablet " + extent + " not found in metadata";
+        log.error(msg);
+        throw new RuntimeException(msg);
+      }
+
       HashSet<ExternalCompactionId> ecids = new HashSet<>();
       compactable.getExternalCompactionIds(ecids::add);
       if (!tabletMeta.getExternalCompactions().keySet().equals(ecids)) {

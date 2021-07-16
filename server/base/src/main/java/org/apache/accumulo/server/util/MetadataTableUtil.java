@@ -418,6 +418,10 @@ public class MetadataTableUtil {
 
     TabletMetadata tablet = context.getAmple().readTablet(extent, FILES, LOGS, PREV_ROW, DIR);
 
+    if (tablet == null) {
+      throw new RuntimeException("Tablet " + extent + " not found in metadata");
+    }
+
     result.addAll(tablet.getLogs());
 
     tablet.getFilesMap().forEach(sizes::put);
