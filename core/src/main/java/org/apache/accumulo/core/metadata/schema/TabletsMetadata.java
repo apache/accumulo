@@ -134,9 +134,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         var ranges = extents.stream().map(KeyExtent::toMetaRange).collect(toList());
         scanner.setRanges(ranges);
 
-        boolean extentsAreNull = extentsToFetch == null;
+        boolean extentsPresent = extentsToFetch != null;
 
-        if (!extentsAreNull)
+        if (!fetchedColumns.isEmpty() && !extentsAreNull)
           fetch(ColumnType.PREV_ROW);
 
         configureColumns(scanner);
@@ -179,7 +179,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
         boolean extentsAreNull = extentsToFetch == null;
 
-        if ((checkConsistency && !fetchedCols.contains(ColumnType.PREV_ROW)) || !extentsAreNull) {
+        if (!fetchedCols.isEmpty() &&(checkConsistency || !extentsAreNull)) {
           fetch(ColumnType.PREV_ROW);
         }
 
@@ -314,7 +314,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     @Override
     public Options forTablet(KeyExtent extent) {
       forTable(extent.tableId());
-      this.range = extent.toMetaRange();
+      this.range = new Range(extent.toMetaRow());
       this.extentsToFetch = Set.of(extent);
       return this;
     }
@@ -402,12 +402,12 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     /**
      * Get the tablet metadata for this extents end row. This should only ever return a single
-     * tablet.
+     * tablet where the end row and prev end row exactly match the given extent.
      */
     Options forTablet(KeyExtent extent);
 
     /**
-     * Get the tablet metadata for the given extents. This will find tablets based on end row.
+     * Get the tablet metadata for the given extents. This will only return tablets where the end row and prev end row exactly match the given extents.  
      */
     Options forTablets(Collection<KeyExtent> extents);
 
