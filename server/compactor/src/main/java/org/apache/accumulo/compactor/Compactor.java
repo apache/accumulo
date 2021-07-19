@@ -190,8 +190,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
 
         TabletMetadata tabletMeta =
             getContext().getAmple().readTablet(extent, ColumnType.ECOMP, ColumnType.PREV_ROW);
-        if (tabletMeta == null || !tabletMeta.getExtent().equals(extent)
-            || !tabletMeta.getExternalCompactions().containsKey(ecid)) {
+        if (tabletMeta == null || !tabletMeta.getExternalCompactions().containsKey(ecid)) {
           // table was deleted OR tablet was split or merged OR tablet no longer thinks compaction
           // is running for some reason
           LOG.info("Cancelling compaction {} that no longer has a metadata entry at {}", ecid,

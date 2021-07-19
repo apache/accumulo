@@ -1361,9 +1361,8 @@ public class Tablet {
       var tabletMeta = context.getAmple().readTablet(extent, ColumnType.FILES, ColumnType.LOGS,
           ColumnType.ECOMP, ColumnType.PREV_ROW);
 
-      if (!tabletMeta.getExtent().equals(extent)) {
-        String msg = "Closed tablet " + extent + " does not match extent in metadata table "
-            + tabletMeta.getExtent();
+      if (tabletMeta == null) {
+        String msg = "Closed tablet " + extent + " not found in metadata";
         log.error(msg);
         throw new RuntimeException(msg);
       }
