@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import java.util.NoSuchElementException;
-import java.util.Objects;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -45,8 +44,7 @@ public class AmpleImpl implements Ample {
     builder.readConsistency(readConsistency);
 
     try (TabletsMetadata tablets = builder.build()) {
-      TabletMetadata tmd = Iterables.getOnlyElement(tablets);
-      return Objects.equals(extent.prevEndRow(), tmd.getPrevEndRow()) ? tmd : null;
+      return Iterables.getOnlyElement(tablets);
     } catch (NoSuchElementException e) {
       return null;
     }
