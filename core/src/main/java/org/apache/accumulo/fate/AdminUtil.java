@@ -533,6 +533,8 @@ public class AdminUtil<T> {
     }
   }
 
+  // Follow on ticket to rework error messages and exception handling to
+  // coincide with changes to FateCommand
   @SuppressFBWarnings(value = "DM_EXIT",
       justification = "TODO - should probably avoid System.exit here; "
           + "this code is used by the fate admin shell command")

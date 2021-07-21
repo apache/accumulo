@@ -18,9 +18,15 @@
  */
 package org.apache.accumulo.server.client;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.EnumSet;
+import java.util.Formatter;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -29,6 +35,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
@@ -40,6 +47,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.clientImpl.thrift.AdminOperation;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
@@ -60,6 +68,14 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
+import org.apache.accumulo.fate.AdminUtil;
+import org.apache.accumulo.fate.FateTxId;
+import org.apache.accumulo.fate.ReadOnlyRepo;
+import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
+import org.apache.accumulo.fate.Repo;
+import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
@@ -67,8 +83,16 @@ import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableDiskUsage;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.thrift.TException;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 
 public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = LoggerFactory.getLogger(ClientServiceHandler.class);
@@ -446,6 +470,148 @@ public class ClientServiceHandler implements ClientService.Iface {
 
     } catch (TableNotFoundException | IOException e) {
       throw new TException(e);
+    }
+  }
+
+  @Override
+  public String executeAdminOperation(TInfo tInfo, TCredentials credentials, AdminOperation op,
+      List<String> arguments, Set<Long> filterTxid, List<String> filterStatuses, String secret)
+      throws ThriftSecurityException, TException {
+    try {
+      authenticate(tInfo, credentials);
+      AdminUtil<ClientServiceHandler> admin = new AdminUtil<>(false);
+      String path = context.getZooKeeperRoot() + Constants.ZFATE;
+      var managerLockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
+      ZooReaderWriter zk = secret == null ? context.getZooReaderWriter() : new ZooReaderWriter(
+          context.getZooKeepers(), context.getZooKeepersSessionTimeOut(), secret);
+      ZooStore<ClientServiceHandler> zs = new ZooStore<>(path, zk);
+      String[] args = arguments.toArray(new String[0]);
+      boolean failedCommand = false;
+
+      switch (op) {
+        case FAIL: {
+          if (ServiceLock.getLockData(zk.getZooKeeper(), managerLockPath) != null)
+            throw new TException("ERROR: Manager lock is held, not running");
+
+          for (int i = 1; i < args.length; i++) {
+            if (!admin.prepFail(zs, zk, managerLockPath, args[i])) {
+              log.error("Could not fail transaction: {}", args[i]);
+              failedCommand = true;
+            }
+          }
+          return Boolean.toString(failedCommand);
+        }
+        case DELETE: {
+          if (ServiceLock.getLockData(zk.getZooKeeper(), managerLockPath) != null)
+            throw new TException("ERROR: Manager lock is held, not running");
+
+          for (int i = 1; i < args.length; i++) {
+            if (admin.prepDelete(zs, zk, managerLockPath, args[i])) {
+              admin.deleteLocks(zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, args[i]);
+            } else {
+              log.error("Could not delete transaction: {}", args[i]);
+              failedCommand = true;
+            }
+          }
+          return Boolean.toString(failedCommand);
+        }
+        case PRINT: {
+          EnumSet<TStatus> fs = null;
+          if (!filterStatuses.isEmpty()) {
+            fs = EnumSet.noneOf(TStatus.class);
+            for (String element : filterStatuses) {
+              fs.add(TStatus.valueOf(element));
+            }
+          }
+
+          StringBuilder sb = new StringBuilder(8096);
+          Formatter formatter = new Formatter(sb);
+          admin.print(zs, zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, formatter,
+              filterTxid, fs);
+          return sb.toString();
+        }
+        case DUMP: {
+          List<Long> txids;
+
+          if (args.length == 1) {
+            txids = zs.list();
+          } else {
+            txids = new ArrayList<>();
+            for (int i = 1; i < args.length; i++) {
+              txids.add(parseTxid(args[i]));
+            }
+          }
+
+          Gson gson =
+              new GsonBuilder().registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
+                  .registerTypeAdapter(Repo.class, new InterfaceSerializer<>())
+                  .registerTypeAdapter(byte[].class, new ByteArraySerializer()).setPrettyPrinting()
+                  .create();
+
+          List<FateStack> txStacks = new ArrayList<>();
+
+          for (Long tid : txids) {
+            List<ReadOnlyRepo<ClientServiceHandler>> repoStack = zs.getStack(tid);
+            txStacks.add(new FateStack(tid, repoStack));
+          }
+
+          return gson.toJson(txStacks);
+        }
+        default:
+          throw new UnsupportedOperationException();
+      }
+
+    } catch (InterruptedException | KeeperException e) {
+      throw new TException(e);
+    }
+
+  }
+
+  // this class serializes references to interfaces with the concrete class name
+  private static class InterfaceSerializer<T> implements JsonSerializer<T> {
+    @Override
+    public JsonElement serialize(T link, Type type, JsonSerializationContext context) {
+      JsonElement je = context.serialize(link, link.getClass());
+      JsonObject jo = new JsonObject();
+      jo.add(link.getClass().getName(), je);
+      return jo;
+    }
+  }
+
+  public static class FateStack {
+    String txid;
+    List<ReadOnlyRepo<ClientServiceHandler>> stack;
+
+    FateStack(Long txid, List<ReadOnlyRepo<ClientServiceHandler>> stack) {
+      this.txid = String.format("%016x", txid);
+      this.stack = stack;
+    }
+  }
+
+  private long parseTxid(String s) {
+    if (FateTxId.isFormatedTid(s)) {
+      return FateTxId.fromString(s);
+    } else {
+      return Long.parseLong(s, 16);
+    }
+  }
+
+  // the purpose of this class is to be serialized as JSon for display
+  public static class ByteArrayContainer {
+    public String asUtf8;
+    public String asBase64;
+
+    ByteArrayContainer(byte[] ba) {
+      asUtf8 = new String(ba, UTF_8);
+      asBase64 = Base64.getUrlEncoder().encodeToString(ba);
+    }
+  }
+
+  // serialize byte arrays in human and machine readable ways
+  private static class ByteArraySerializer implements JsonSerializer<byte[]> {
+    @Override
+    public JsonElement serialize(byte[] link, Type type, JsonSerializationContext context) {
+      return context.serialize(new ByteArrayContainer(link));
     }
   }
 

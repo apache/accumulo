@@ -28,8 +28,10 @@ import static org.apache.accumulo.core.rpc.ThriftUtil.returnClient;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -43,6 +45,7 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.clientImpl.thrift.AdminOperation;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
@@ -54,6 +57,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
@@ -276,6 +280,51 @@ public class InstanceOperationsImpl implements InstanceOperations {
     } catch (AccumuloSecurityException ex) {
       // should never happen
       throw new RuntimeException("Unexpected exception thrown", ex);
+    }
+
+  }
+
+  @Override
+  public boolean fateFail(List<String> args, String secretOption) throws AccumuloException {
+    checkArgument(args != null, "args is null");
+    return Boolean
+        .parseBoolean(executeAdminOperation(AdminOperation.FAIL, args, null, null, secretOption));
+  }
+
+  @Override
+  public boolean fateDelete(List<String> args, String secretOption) throws AccumuloException {
+    checkArgument(args != null, "args is null");
+    return Boolean
+        .parseBoolean(executeAdminOperation(AdminOperation.DELETE, args, null, null, secretOption));
+  }
+
+  @Override
+  public String fatePrint(List<String> args, Set<Long> filterTxid, EnumSet<TStatus> filterStatus,
+      String secretOption) throws AccumuloException {
+    checkArgument(args != null, "args is null");
+    List<String> fs = new ArrayList<>();
+    if (filterStatus != null) {
+      for (TStatus tstatus : filterStatus) {
+        fs.add(tstatus.toString());
+      }
+    }
+    return executeAdminOperation(AdminOperation.PRINT, args, filterTxid, fs, secretOption);
+  }
+
+  @Override
+  public String fateDump(List<String> args, String secretOption) throws AccumuloException {
+    checkArgument(args != null, "args is null");
+    return executeAdminOperation(AdminOperation.DUMP, args, null, null, secretOption);
+  }
+
+  private String executeAdminOperation(AdminOperation op, List<String> arguments,
+      Set<Long> filterTxids, List<String> filterStatuses, String secret) throws AccumuloException {
+    try {
+      return ServerClient.execute(context,
+          client -> client.executeAdminOperation(TraceUtil.traceInfo(), context.rpcCreds(), op,
+              arguments, filterTxids, filterStatuses, secret));
+    } catch (AccumuloSecurityException e) {
+      throw new RuntimeException("Unexpected exception thrown", e);
     }
 
   }

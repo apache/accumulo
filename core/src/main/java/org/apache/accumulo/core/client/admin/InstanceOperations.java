@@ -18,11 +18,14 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 
 public interface InstanceOperations {
 
@@ -148,6 +151,59 @@ public interface InstanceOperations {
    * @since 1.7.0
    */
   void waitForBalance() throws AccumuloException;
+
+  /**
+   * Throws an exception if a tablet server can not be contacted.
+   *
+   * @param args
+   *          Command line arguments passed in from user command.
+   * @param secretOption
+   *          Specified instance secret to use for commands.
+   *
+   * @since 2.1.0
+   */
+  boolean fateFail(List<String> args, String secretOption) throws AccumuloException;
+
+  /**
+   * Throws an exception if a tablet server can not be contacted.
+   *
+   * @param args
+   *          Command line arguments passed in from user command.
+   * @param secretOption
+   *          Specified instance secret to use for commands.
+   *
+   * @since 2.1.0
+   */
+  boolean fateDelete(List<String> args, String secretOption) throws AccumuloException;
+
+  /**
+   * Throws an exception if a tablet server can not be contacted.
+   *
+   * @param args
+   *          Command line arguments passed in from user command.
+   * @param filterTxid
+   *          Parsed transaction IDs for print filter.
+   * @param filterStatus
+   *          Parsed TStatus for print filter.
+   * @param secretOption
+   *          Specified instance secret to use for commands.
+   *
+   * @since 2.1.0
+   */
+  String fatePrint(List<String> args, Set<Long> filterTxid, EnumSet<TStatus> filterStatus,
+      String secretOption) throws AccumuloException;
+
+  /**
+   * Throws an exception if a tablet server can not be contacted.
+   *
+   * @param args
+   *          Command line arguments passed in from user command.
+   * @param secretOption
+   *          Specified instance secret to use for commands.
+   *
+   * @since 2.1.0
+   */
+  String fateDump(List<String> args, String secretOption) throws AccumuloException;
 
   /**
    * Returns a unique string that identifies this instance of accumulo.
