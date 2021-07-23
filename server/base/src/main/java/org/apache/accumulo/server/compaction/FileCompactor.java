@@ -418,7 +418,7 @@ public class FileCompactor implements Callable<CompactionStats> {
     return env.getIteratorScope() == IteratorScope.minc;
   }
 
-  boolean willPropogateDeletes() {
+  boolean willPropagateDeletes() {
     return propagateDeletes;
   }
 

@@ -453,8 +453,8 @@ public class CompactableImpl implements Compactable {
       }
 
       if (propDel == null) {
-        propDel = ecMeta.getPropogateDeletes();
-      } else if (propDel != ecMeta.getPropogateDeletes()) {
+        propDel = ecMeta.getPropagateDeletes();
+      } else if (propDel != ecMeta.getPropagateDeletes()) {
         unexpectedExternal = true;
         reasons.add("Disagreement on propagateDeletes");
         break;
@@ -464,7 +464,7 @@ public class CompactableImpl implements Compactable {
 
     if (propDel != null && !propDel && count > 1) {
       unexpectedExternal = true;
-      reasons.add("Concurrent compactions not propogatingDeletes");
+      reasons.add("Concurrent compactions not propagatingDeletes");
     }
 
     Pair<Long,CompactionConfig> idAndCfg = null;
