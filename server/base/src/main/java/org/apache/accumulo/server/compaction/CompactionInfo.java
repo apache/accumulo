@@ -81,7 +81,7 @@ public class CompactionInfo {
         type = TCompactionType.MERGE;
       else
         type = TCompactionType.MINOR;
-    else if (!compactor.willPropogateDeletes())
+    else if (!compactor.willPropagateDeletes())
       type = TCompactionType.FULL;
     else
       type = TCompactionType.MAJOR;
