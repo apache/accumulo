@@ -198,7 +198,7 @@ public interface Ample {
     throw new UnsupportedOperationException();
   }
 
-  default Iterator<String> getGcCandidates(DataLevel level, String continuePoint) {
+  default Iterator<String> getGcCandidates(DataLevel level) {
     throw new UnsupportedOperationException();
   }
 

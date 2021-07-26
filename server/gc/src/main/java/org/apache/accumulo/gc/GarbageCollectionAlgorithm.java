@@ -267,10 +267,10 @@ public class GarbageCollectionAlgorithm {
 
   }
 
-  private boolean getCandidates(GarbageCollectionEnvironment gce, String lastCandidate,
-      List<String> candidates) throws TableNotFoundException {
-    try (TraceScope candidatesSpan = Trace.startSpan("getCandidates")) {
-      return gce.getCandidates(lastCandidate, candidates);
+  private void processCandidates(GarbageCollectionAlgorithm gca, GarbageCollectionEnvironment gce)
+      throws TableNotFoundException, IOException {
+    try (TraceScope candidatesSpan = Trace.startSpan("processCandidates")) {
+      gce.processCandidates();
     }
   }
 
@@ -290,30 +290,26 @@ public class GarbageCollectionAlgorithm {
     cleanUpDeletedTableDirs(gce, candidateMap);
   }
 
-  public void collect(GarbageCollectionEnvironment gce) throws TableNotFoundException, IOException {
+  /**
+   * Given a sub-list of possible delection candidates, process and remove valid deletion
+   * candidates.
+   */
+  public void collectBatch(GarbageCollectionEnvironment gce, List<String> currentBatch)
+      throws TableNotFoundException, IOException {
 
-    String lastCandidate = "";
+    long origSize = currentBatch.size();
+    gce.incrementCandidatesStat(origSize);
 
-    boolean outOfMemory = true;
-    while (outOfMemory) {
-      List<String> candidates = new ArrayList<>();
+    SortedMap<String,String> candidateMap = makeRelative(currentBatch);
 
-      outOfMemory = getCandidates(gce, lastCandidate, candidates);
+    confirmDeletesTrace(gce, candidateMap);
+    gce.incrementInUseStat(origSize - candidateMap.size());
 
-      if (candidates.isEmpty())
-        break;
-      else
-        lastCandidate = candidates.get(candidates.size() - 1);
-
-      long origSize = candidates.size();
-      gce.incrementCandidatesStat(origSize);
-
-      SortedMap<String,String> candidateMap = makeRelative(candidates);
-
-      confirmDeletesTrace(gce, candidateMap);
-      gce.incrementInUseStat(origSize - candidateMap.size());
-
-      deleteConfirmed(gce, candidateMap);
-    }
+    deleteConfirmed(gce, candidateMap);
   }
+
+  public void collect(GarbageCollectionEnvironment gce) throws TableNotFoundException, IOException {
+    processCandidates(this, gce);
+  }
+
 }
