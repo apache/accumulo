@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
+
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,8 +58,7 @@ public class GarbageCollectionTest {
     ArrayList<TableId> tablesDirsToDelete = new ArrayList<>();
     TreeMap<String,Status> filesToReplicate = new TreeMap<>();
 
-    @Override
-    public void processCandidates() throws TableNotFoundException, IOException {
+    @Override public void processCandidates() throws TableNotFoundException, IOException {
 
       Iterator<String> candidatesIter = candidates.iterator();
 
@@ -83,31 +83,26 @@ public class GarbageCollectionTest {
       return candidatesBatch;
     }
 
-    @Override
-    public Stream<String> getBlipPaths() {
+    @Override public Stream<String> getBlipPaths() {
       return blips.stream();
     }
 
-    @Override
-    public Stream<Reference> getReferences() {
+    @Override public Stream<Reference> getReferences() {
       return references.values().stream();
     }
 
-    @Override
-    public Set<TableId> getTableIDs() {
+    @Override public Set<TableId> getTableIDs() {
       return tableIds;
     }
 
-    @Override
-    public void delete(SortedMap<String,String> candidateMap) {
+    @Override public void delete(SortedMap<String,String> candidateMap) {
       // These collected deletes will actually be deleted at the end of the collect process.
       // Otherwise, a ConcurrentModificationException is thrown due to the candidates being updated
       // while an active iterator is tracking the candidates list.
       deletes.addAll(candidateMap.values());
     }
 
-    @Override
-    public void deleteTableDirIfEmpty(TableId tableID) {
+    @Override public void deleteTableDirIfEmpty(TableId tableID) {
       tablesDirsToDelete.add(tableID);
     }
 
@@ -128,14 +123,13 @@ public class GarbageCollectionTest {
       references.remove(tableId + ":" + endRow);
     }
 
-    @Override
-    public void incrementCandidatesStat(long i) {}
+    @Override public void incrementCandidatesStat(long i) {
+    }
 
-    @Override
-    public void incrementInUseStat(long i) {}
+    @Override public void incrementInUseStat(long i) {
+    }
 
-    @Override
-    public Iterator<Entry<String,Status>> getReplicationNeededIterator() {
+    @Override public Iterator<Entry<String,Status>> getReplicationNeededIterator() {
       return filesToReplicate.entrySet().iterator();
     }
   }
@@ -151,8 +145,7 @@ public class GarbageCollectionTest {
   // This test was created to help track down a ConcurrentModificationException error that was
   // occurring with the unit tests once the GC was refactored to use a single iterator for the
   // collect process. This was a minimal test case that would cause the exception to occur.
-  @Test
-  public void minimalDelete() throws Exception {
+  @Test public void minimalDelete() throws Exception {
     TestGCE gce = new TestGCE();
 
     gce.candidates.add("hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
@@ -170,8 +163,7 @@ public class GarbageCollectionTest {
     assertRemoved(gce, "hdfs://foo.com:6000/accumulo/tables/5/t0/F005.rf");
   }
 
-  @Test
-  public void testBasic() throws Exception {
+  @Test public void testBasic() throws Exception {
     TestGCE gce = new TestGCE();
 
     gce.candidates.add("hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
@@ -218,8 +210,7 @@ public class GarbageCollectionTest {
   the unit tests always return 3 candidates in a batch, some edge cases could be missed if
   that was always the case.
    */
-  @Test
-  public void testBasic2() throws Exception {
+  @Test public void testBasic2() throws Exception {
     TestGCE gce = new TestGCE();
 
     gce.candidates.add("hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
@@ -308,8 +299,7 @@ public class GarbageCollectionTest {
         "hdfs://foo.com:6000/accumulo/tables/4/t0/F004.rf");
   }
 
-  @Test
-  public void testRelative() throws Exception {
+  @Test public void testRelative() throws Exception {
     TestGCE gce = new TestGCE();
 
     gce.candidates.add("/4/t0/F000.rf");
@@ -363,8 +353,7 @@ public class GarbageCollectionTest {
 
   }
 
-  @Test
-  public void testBlip() throws Exception {
+  @Test public void testBlip() throws Exception {
     TestGCE gce = new TestGCE();
 
     gce.candidates.add("/4/b-0");
@@ -403,8 +392,7 @@ public class GarbageCollectionTest {
     assertRemoved(gce);
   }
 
-  @Test
-  public void testDirectories() throws Exception {
+  @Test public void testDirectories() throws Exception {
     TestGCE gce = new TestGCE();
 
     gce.candidates.add("/4/t-0");
@@ -467,8 +455,7 @@ public class GarbageCollectionTest {
     assertRemoved(gce);
   }
 
-  @Test
-  public void testCustomDirectories() throws Exception {
+  @Test public void testCustomDirectories() throws Exception {
     TestGCE gce = new TestGCE();
 
     gce.candidates.add("/4/t-0");
@@ -548,38 +535,31 @@ public class GarbageCollectionTest {
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void testBadFileRef1() {
+  @Test(expected = IllegalArgumentException.class) public void testBadFileRef1() {
     badRefTest("/F00.rf");
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void testBadFileRef2() {
+  @Test(expected = IllegalArgumentException.class) public void testBadFileRef2() {
     badRefTest("../F00.rf");
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void testBadFileRef3() {
+  @Test(expected = IllegalArgumentException.class) public void testBadFileRef3() {
     badRefTest("hdfs://foo.com:6000/accumulo/F00.rf");
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void testBadFileRef4() {
+  @Test(expected = IllegalArgumentException.class) public void testBadFileRef4() {
     badRefTest("hdfs://foo.com:6000/accumulo/tbls/5/F00.rf");
   }
 
-  @Test(expected = RuntimeException.class)
-  public void testBadFileRef5() {
+  @Test(expected = RuntimeException.class) public void testBadFileRef5() {
     badRefTest("F00.rf");
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void testBadFileRef6() {
+  @Test(expected = IllegalArgumentException.class) public void testBadFileRef6() {
     badRefTest("/accumulo/tbls/5/F00.rf");
   }
 
-  @Test
-  public void testBadDeletes() throws Exception {
+  @Test public void testBadDeletes() throws Exception {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     TestGCE gce = new TestGCE();
@@ -601,8 +581,7 @@ public class GarbageCollectionTest {
     assertRemoved(gce);
   }
 
-  @Test
-  public void test() throws Exception {
+  @Test public void test() throws Exception {
 
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
@@ -650,8 +629,7 @@ public class GarbageCollectionTest {
 
   }
 
-  @Test
-  public void testDeleteTableDir() throws Exception {
+  @Test public void testDeleteTableDir() throws Exception {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     TestGCE gce = new TestGCE();
@@ -677,8 +655,7 @@ public class GarbageCollectionTest {
 
   }
 
-  @Test
-  public void finishedReplicationRecordsDontPreventDeletion() throws Exception {
+  @Test public void finishedReplicationRecordsDontPreventDeletion() throws Exception {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     TestGCE gce = new TestGCE();
@@ -696,8 +673,7 @@ public class GarbageCollectionTest {
     assertEquals(2, gce.deletes.size());
   }
 
-  @Test
-  public void openReplicationRecordsPreventDeletion() throws Exception {
+  @Test public void openReplicationRecordsPreventDeletion() throws Exception {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     TestGCE gce = new TestGCE();
@@ -716,8 +692,7 @@ public class GarbageCollectionTest {
     assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf", gce.deletes.get(0));
   }
 
-  @Test
-  public void newReplicationRecordsPreventDeletion() throws Exception {
+  @Test public void newReplicationRecordsPreventDeletion() throws Exception {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     TestGCE gce = new TestGCE();
@@ -736,8 +711,7 @@ public class GarbageCollectionTest {
     assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf", gce.deletes.get(0));
   }
 
-  @Test
-  public void bulkImportReplicationRecordsPreventDeletion() throws Exception {
+  @Test public void bulkImportReplicationRecordsPreventDeletion() throws Exception {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     TestGCE gce = new TestGCE();
