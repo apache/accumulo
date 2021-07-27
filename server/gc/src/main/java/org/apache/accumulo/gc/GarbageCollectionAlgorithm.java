@@ -291,7 +291,7 @@ public class GarbageCollectionAlgorithm {
   }
 
   /**
-   * Given a sub-list of possible delection candidates, process and remove valid deletion
+   * Given a sub-list of possible deletion candidates, process and remove valid deletion
    * candidates.
    */
   public void collectBatch(GarbageCollectionEnvironment gce, List<String> currentBatch)
