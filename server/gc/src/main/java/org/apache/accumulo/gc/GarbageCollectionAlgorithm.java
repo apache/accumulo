@@ -291,8 +291,7 @@ public class GarbageCollectionAlgorithm {
   }
 
   /**
-   * Given a sub-list of possible deletion candidates, process and remove valid deletion
-   * candidates.
+   * Given a sub-list of possible deletion candidates, process and remove valid deletion candidates.
    */
   public void collectBatch(GarbageCollectionEnvironment gce, List<String> currentBatch)
       throws TableNotFoundException, IOException {
