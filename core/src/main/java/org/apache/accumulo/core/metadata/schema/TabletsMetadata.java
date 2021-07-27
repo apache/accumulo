@@ -36,6 +36,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -87,8 +88,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
   public static class Builder implements TableRangeOptions, TableOptions, RangeOptions, Options {
 
-    private List<Text> families = new ArrayList<>();
-    private List<ColumnFQ> qualifiers = new ArrayList<>();
+    private final List<Text> families = new ArrayList<>();
+    private final List<ColumnFQ> qualifiers = new ArrayList<>();
+    private Set<KeyExtent> extentsToFetch = null;
     private Ample.DataLevel level;
     private String table;
     private Range range;
@@ -98,8 +100,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private boolean saveKeyValues;
     private TableId tableId;
     private ReadConsistency readConsistency = ReadConsistency.IMMEDIATE;
-    private AccumuloClient _client;
-    private Collection<KeyExtent> extents;
+    private final AccumuloClient _client;
+    private Collection<KeyExtent> extents = null;
 
     Builder(AccumuloClient client) {
       this._client = client;
@@ -132,19 +134,33 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         var ranges = extents.stream().map(KeyExtent::toMetaRange).collect(toList());
         scanner.setRanges(ranges);
 
+        boolean extentsPresent = extentsToFetch != null;
+
+        if (!fetchedCols.isEmpty() && extentsPresent)
+          fetch(ColumnType.PREV_ROW);
+
         configureColumns(scanner);
         IteratorSetting iterSetting = new IteratorSetting(100, WholeRowIterator.class);
         scanner.addScanIterator(iterSetting);
 
-        Iterable<TabletMetadata> tmi = () -> Iterators.transform(scanner.iterator(), entry -> {
-          try {
-            return TabletMetadata.convertRow(
-                WholeRowIterator.decodeRow(entry.getKey(), entry.getValue()).entrySet().iterator(),
-                fetchedCols, saveKeyValues);
-          } catch (IOException e) {
-            throw new UncheckedIOException(e);
+        Iterable<TabletMetadata> tmi = () -> {
+          Iterator<TabletMetadata> iter = Iterators.transform(scanner.iterator(), entry -> {
+            try {
+              return TabletMetadata.convertRow(WholeRowIterator
+                  .decodeRow(entry.getKey(), entry.getValue()).entrySet().iterator(), fetchedCols,
+                  saveKeyValues);
+            } catch (IOException e) {
+              throw new UncheckedIOException(e);
+            }
+          });
+
+          if (extentsPresent) {
+            return Iterators.filter(iter,
+                tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent()));
+          } else {
+            return iter;
           }
-        });
+        };
 
         return new TabletsMetadata(scanner, tmi);
       } catch (TableNotFoundException e) {
@@ -161,7 +177,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             new IsolatedScanner(client.createScanner(resolvedTable, Authorizations.EMPTY));
         scanner.setRange(range);
 
-        if (checkConsistency && !fetchedCols.contains(ColumnType.PREV_ROW)) {
+        boolean extentsPresent = extentsToFetch != null;
+
+        if (!fetchedCols.isEmpty() && (checkConsistency || extentsPresent)) {
           fetch(ColumnType.PREV_ROW);
         }
 
@@ -172,8 +190,14 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           synchronized (scanner) {
             scanner.setRange(r);
             RowIterator rowIter = new RowIterator(scanner);
-            return Iterators.transform(rowIter,
+            Iterator<TabletMetadata> iter = Iterators.transform(rowIter,
                 ri -> TabletMetadata.convertRow(ri, fetchedCols, saveKeyValues));
+            if (extentsPresent) {
+              return Iterators.filter(iter,
+                  tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent()));
+            } else {
+              return iter;
+            }
           }
         };
 
@@ -291,6 +315,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     public Options forTablet(KeyExtent extent) {
       forTable(extent.tableId());
       this.range = new Range(extent.toMetaRow());
+      this.extentsToFetch = Set.of(extent);
       return this;
     }
 
@@ -304,6 +329,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
       this.level = DataLevel.USER;
       this.extents = extents;
+      this.extentsToFetch = Set.copyOf(extents);
       return this;
     }
 
@@ -376,14 +402,13 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     /**
      * Get the tablet metadata for this extents end row. This should only ever return a single
-     * tablet. No checking is done for prev row, so it could differ.
+     * tablet where the end row and prev end row exactly match the given extent.
      */
     Options forTablet(KeyExtent extent);
 
     /**
-     * Get the tablet metadata for the given extents. This will find tablets based on end row, so
-     * it's possible the prev rows could differ for the tablets returned. If this matters, then it
-     * must be checked.
+     * Get the tablet metadata for the given extents. This will only return tablets where the end
+     * row and prev end row exactly match the given extents.
      */
     Options forTablets(Collection<KeyExtent> extents);
 
@@ -431,8 +456,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
   private static class TabletMetadataIterator implements Iterator<TabletMetadata> {
 
     private boolean sawLast = false;
-    private Iterator<TabletMetadata> iter;
-    private Text endRow;
+    private final Iterator<TabletMetadata> iter;
+    private final Text endRow;
 
     TabletMetadataIterator(Iterator<TabletMetadata> source, Text endRow) {
       this.iter = source;
@@ -487,9 +512,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         .convertToTabletMetadata();
   }
 
-  private ScannerBase scanner;
+  private final ScannerBase scanner;
 
-  private Iterable<TabletMetadata> tablets;
+  private final Iterable<TabletMetadata> tablets;
 
   private TabletsMetadata(TabletMetadata tm) {
     this.scanner = null;

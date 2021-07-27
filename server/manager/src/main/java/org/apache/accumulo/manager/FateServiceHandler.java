@@ -201,6 +201,14 @@ class FateServiceHandler implements FateService.Iface {
         if (!manager.security.canCreateTable(c, tableName, namespaceId))
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
 
+        for (Map.Entry<String,String> entry : options.entrySet()) {
+          if (!Property.isTablePropertyValid(entry.getKey(), entry.getValue())) {
+            throw new ThriftTableOperationException(null, tableName, tableOp,
+                TableOperationExceptionType.OTHER,
+                "Property or value not valid " + entry.getKey() + "=" + entry.getValue());
+          }
+        }
+
         manager.fate.seedTransaction(opid,
             new TraceRepo<>(new CreateTable(c.getPrincipal(), tableName, timeType, options,
                 splitsPath, splitCount, splitsDirsPath, initialTableState, namespaceId)),

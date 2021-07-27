@@ -929,6 +929,11 @@ public class TabletServer extends AbstractServer {
   static boolean checkTabletMetadata(KeyExtent extent, TServerInstance instance,
       TabletMetadata meta) throws AccumuloException {
 
+    if (meta == null) {
+      log.info("Not loading tablet {}, its metadata was not found.", extent);
+      return false;
+    }
+
     if (!meta.sawPrevEndRow()) {
       throw new AccumuloException("Metadata entry does not have prev row (" + meta.getTableId()
           + " " + meta.getEndRow() + ")");
