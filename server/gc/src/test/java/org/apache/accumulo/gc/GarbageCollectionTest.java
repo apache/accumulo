@@ -68,7 +68,7 @@ public class GarbageCollectionTest {
       }
       // Remove all candidates that were tagged for deletion now that the processing of
       // candidates is complete for this round. This was removed from the 'delete' method
-      // due to that causing a ConcurrentModificationException. T
+      // due to that causing a ConcurrentModificationException.
       this.candidates.removeAll(deletes);
       return;
     }
