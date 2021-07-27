@@ -21,7 +21,6 @@ package org.apache.accumulo.gc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -58,25 +57,13 @@ public class GarbageCollectionTest {
     TreeMap<String,Status> filesToReplicate = new TreeMap<>();
 
     @Override
-    public void processCandidates() throws TableNotFoundException, IOException {
-
-      Iterator<String> candidatesIter = candidates.iterator();
-
-      while (candidatesIter.hasNext()) {
-        List<String> candidatesBatch = readCandidatesThatFitInMemory(candidatesIter);
-        new GarbageCollectionAlgorithm().collectBatch(this, candidatesBatch);
-      }
-      // Remove all candidates that were tagged for deletion now that the processing of
-      // candidates is complete for this round. This was removed from the 'delete' method
-      // due to that causing a ConcurrentModificationException.
-      this.candidates.removeAll(deletes);
-      return;
+    public Iterator<String> getCandidates() throws TableNotFoundException {
+      return List.copyOf(candidates).iterator();
     }
 
-    private List<String> readCandidatesThatFitInMemory(Iterator<String> candidatesIter) {
+    @Override
+    public List<String> readCandidatesThatFitInMemory(Iterator<String> candidatesIter) {
       List<String> candidatesBatch = new ArrayList<>();
-      candidatesBatch.clear();
-
       while (candidatesIter.hasNext() && candidatesBatch.size() < 3) {
         candidatesBatch.add(candidatesIter.next());
       }
@@ -100,10 +87,8 @@ public class GarbageCollectionTest {
 
     @Override
     public void delete(SortedMap<String,String> candidateMap) {
-      // These collected deletes will actually be deleted at the end of the collect process.
-      // Otherwise, a ConcurrentModificationException is thrown due to the candidates being updated
-      // while an active iterator is tracking the candidates list.
       deletes.addAll(candidateMap.values());
+      this.candidates.removeAll(candidateMap.values());
     }
 
     @Override

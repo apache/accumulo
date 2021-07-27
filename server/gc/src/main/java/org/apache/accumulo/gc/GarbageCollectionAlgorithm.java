@@ -267,10 +267,10 @@ public class GarbageCollectionAlgorithm {
 
   }
 
-  private void processCandidates(GarbageCollectionAlgorithm gca, GarbageCollectionEnvironment gce)
+  private Iterator<String> getCandidates(GarbageCollectionEnvironment gce)
       throws TableNotFoundException, IOException {
-    try (TraceScope candidatesSpan = Trace.startSpan("processCandidates")) {
-      gce.processCandidates();
+    try (TraceScope candidatesSpan = Trace.startSpan("getCandidates")) {
+      return gce.getCandidates();
     }
   }
 
@@ -290,6 +290,16 @@ public class GarbageCollectionAlgorithm {
     cleanUpDeletedTableDirs(gce, candidateMap);
   }
 
+  public void collect(GarbageCollectionEnvironment gce) throws TableNotFoundException, IOException {
+
+    Iterator<String> candidatesIter = getCandidates(gce);
+
+    while (candidatesIter.hasNext()) {
+      List<String> batchOfCandidates = gce.readCandidatesThatFitInMemory(candidatesIter);
+      collectBatch(gce, batchOfCandidates);
+    }
+  }
+
   /**
    * Given a sub-list of possible deletion candidates, process and remove valid deletion candidates.
    */
@@ -305,10 +315,6 @@ public class GarbageCollectionAlgorithm {
     gce.incrementInUseStat(origSize - candidateMap.size());
 
     deleteConfirmed(gce, candidateMap);
-  }
-
-  public void collect(GarbageCollectionEnvironment gce) throws TableNotFoundException, IOException {
-    processCandidates(this, gce);
   }
 
 }

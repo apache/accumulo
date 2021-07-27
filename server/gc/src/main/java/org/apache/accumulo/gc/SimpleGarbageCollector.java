@@ -209,18 +209,12 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     }
 
     @Override
-    public void processCandidates() throws TableNotFoundException, IOException {
-
-      Iterator<String> candidates = getContext().getAmple().getGcCandidates(level);
-
-      while (candidates.hasNext()) {
-        List<String> candidatesBatch = readCandidatesThatFitInMemory(candidates);
-        new GarbageCollectionAlgorithm().collectBatch(this, candidatesBatch);
-      }
-      return;
+    public Iterator<String> getCandidates() throws TableNotFoundException {
+      return getContext().getAmple().getGcCandidates(level);
     }
 
-    private List<String> readCandidatesThatFitInMemory(Iterator<String> candidates) {
+    @Override
+    public List<String> readCandidatesThatFitInMemory(Iterator<String> candidates) {
       long candidateLength = 0;
       // Converting the bytes to approximate number of characters for batch size.
       long candidateBatchSize = getCandidateBatchSize() / 2;

@@ -20,6 +20,7 @@ package org.apache.accumulo.gc;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -39,10 +40,22 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 public interface GarbageCollectionEnvironment {
 
   /**
-   * Process all possible deletion candidates for a given table, deleting candidates that meet all
-   * necessary conditions.
+   * Return an iterator which points to a list of paths to files and dirs which are candidates for
+   * deletion from a given table, {@link RootTable#NAME} or {@link MetadataTable#NAME}
+   *
+   * @return an iterator referencing a List containing deletion candidates
    */
-  void processCandidates() throws TableNotFoundException, IOException;
+  Iterator<String> getCandidates() throws TableNotFoundException;
+
+  /**
+   * Given an iterator to a deletion candidate list, return a sub-list of candidates which fit
+   * within provided memory constraints.
+   *
+   * @param candidatesIter
+   *          iterator referencing a List of possible deletion candidates
+   * @return a List of possible deletion candidates
+   */
+  List<String> readCandidatesThatFitInMemory(Iterator<String> candidatesIter);
 
   /**
    * Fetch a list of paths for all bulk loads in progress (blip) from a given table,
