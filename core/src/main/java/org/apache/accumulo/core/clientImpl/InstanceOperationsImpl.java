@@ -31,7 +31,6 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -285,42 +284,42 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public void fateFail(List<String> args) throws AccumuloException {
-    checkArgument(args != null, "args is null");
-    executeAdminOperation(AdminOperation.FAIL, args, null, null);
+  public void fateFail(List<String> txids) throws AccumuloException {
+    checkArgument(txids != null, "txids is null");
+    executeAdminOperation(AdminOperation.FAIL, txids, null);
   }
 
   @Override
-  public void fateDelete(List<String> args) throws AccumuloException {
-    checkArgument(args != null, "args is null");
-    executeAdminOperation(AdminOperation.DELETE, args, null, null);
+  public void fateDelete(List<String> txids) throws AccumuloException {
+    checkArgument(txids != null, "txids is null");
+    executeAdminOperation(AdminOperation.DELETE, txids, null);
   }
 
   @Override
-  public String fatePrint(List<String> args, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
+  public String fatePrint(List<String> txids, EnumSet<TStatus> filterStatus)
       throws AccumuloException {
-    checkArgument(args != null, "args is null");
+    checkArgument(txids != null, "txids is null");
     List<String> fs = new ArrayList<>();
     if (filterStatus != null) {
       for (TStatus tstatus : filterStatus) {
         fs.add(tstatus.toString());
       }
     }
-    return executeAdminOperation(AdminOperation.PRINT, args, filterTxid, fs);
+    return executeAdminOperation(AdminOperation.PRINT, txids, fs);
   }
 
   @Override
-  public String fateDump(List<String> args) throws AccumuloException {
-    checkArgument(args != null, "args is null");
-    return executeAdminOperation(AdminOperation.DUMP, args, null, null);
+  public String fateDump(List<String> txids) throws AccumuloException {
+    checkArgument(txids != null, "txids is null");
+    return executeAdminOperation(AdminOperation.DUMP, txids, null);
   }
 
-  private String executeAdminOperation(AdminOperation op, List<String> arguments,
-      Set<Long> filterTxids, List<String> filterStatuses) throws AccumuloException {
+  private String executeAdminOperation(AdminOperation op, List<String> txids,
+      List<String> filterStatuses) throws AccumuloException {
     try {
       return ServerClient.execute(context,
           client -> client.executeAdminOperation(TraceUtil.traceInfo(), context.rpcCreds(), op,
-              arguments, filterTxids, filterStatuses));
+              txids, filterStatuses));
     } catch (AccumuloSecurityException e) {
       throw new RuntimeException("Unexpected exception thrown", e);
     }

@@ -83,7 +83,7 @@ public class ClientService {
 
     public java.util.Map<java.lang.String,java.lang.String> getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns) throws ThriftTableOperationException, org.apache.thrift.TException;
 
-    public java.lang.String executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.List<java.lang.String> arguments, java.util.Set<java.lang.Long> filtertxids, java.util.List<java.lang.String> filterStatues) throws ThriftSecurityException, org.apache.thrift.TException;
+    public java.lang.String executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.List<java.lang.String> txids, java.util.List<java.lang.String> filterStatues) throws ThriftSecurityException, org.apache.thrift.TException;
 
     public boolean checkClass(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String className, java.lang.String interfaceMatch) throws org.apache.thrift.TException;
 
@@ -149,7 +149,7 @@ public class ClientService {
 
     public void getNamespaceConfiguration(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String ns, org.apache.thrift.async.AsyncMethodCallback<java.util.Map<java.lang.String,java.lang.String>> resultHandler) throws org.apache.thrift.TException;
 
-    public void executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.List<java.lang.String> arguments, java.util.Set<java.lang.Long> filtertxids, java.util.List<java.lang.String> filterStatues, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler) throws org.apache.thrift.TException;
+    public void executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.List<java.lang.String> txids, java.util.List<java.lang.String> filterStatues, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler) throws org.apache.thrift.TException;
 
     public void checkClass(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String className, java.lang.String interfaceMatch, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException;
 
@@ -918,20 +918,19 @@ public class ClientService {
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getNamespaceConfiguration failed: unknown result");
     }
 
-    public java.lang.String executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.List<java.lang.String> arguments, java.util.Set<java.lang.Long> filtertxids, java.util.List<java.lang.String> filterStatues) throws ThriftSecurityException, org.apache.thrift.TException
+    public java.lang.String executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.List<java.lang.String> txids, java.util.List<java.lang.String> filterStatues) throws ThriftSecurityException, org.apache.thrift.TException
     {
-      send_executeAdminOperation(tinfo, credentials, op, arguments, filtertxids, filterStatues);
+      send_executeAdminOperation(tinfo, credentials, op, txids, filterStatues);
       return recv_executeAdminOperation();
     }
 
-    public void send_executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.List<java.lang.String> arguments, java.util.Set<java.lang.Long> filtertxids, java.util.List<java.lang.String> filterStatues) throws org.apache.thrift.TException
+    public void send_executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.List<java.lang.String> txids, java.util.List<java.lang.String> filterStatues) throws org.apache.thrift.TException
     {
       executeAdminOperation_args args = new executeAdminOperation_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setOp(op);
-      args.setArguments(arguments);
-      args.setFiltertxids(filtertxids);
+      args.setTxids(txids);
       args.setFilterStatues(filterStatues);
       sendBase("executeAdminOperation", args);
     }
@@ -2106,9 +2105,9 @@ public class ClientService {
       }
     }
 
-    public void executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.List<java.lang.String> arguments, java.util.Set<java.lang.Long> filtertxids, java.util.List<java.lang.String> filterStatues, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler) throws org.apache.thrift.TException {
+    public void executeAdminOperation(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.List<java.lang.String> txids, java.util.List<java.lang.String> filterStatues, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      executeAdminOperation_call method_call = new executeAdminOperation_call(tinfo, credentials, op, arguments, filtertxids, filterStatues, resultHandler, this, ___protocolFactory, ___transport);
+      executeAdminOperation_call method_call = new executeAdminOperation_call(tinfo, credentials, op, txids, filterStatues, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -2117,16 +2116,14 @@ public class ClientService {
       private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
       private AdminOperation op;
-      private java.util.List<java.lang.String> arguments;
-      private java.util.Set<java.lang.Long> filtertxids;
+      private java.util.List<java.lang.String> txids;
       private java.util.List<java.lang.String> filterStatues;
-      public executeAdminOperation_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.List<java.lang.String> arguments, java.util.Set<java.lang.Long> filtertxids, java.util.List<java.lang.String> filterStatues, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public executeAdminOperation_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, AdminOperation op, java.util.List<java.lang.String> txids, java.util.List<java.lang.String> filterStatues, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
         this.op = op;
-        this.arguments = arguments;
-        this.filtertxids = filtertxids;
+        this.txids = txids;
         this.filterStatues = filterStatues;
       }
 
@@ -2136,8 +2133,7 @@ public class ClientService {
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setOp(op);
-        args.setArguments(arguments);
-        args.setFiltertxids(filtertxids);
+        args.setTxids(txids);
         args.setFilterStatues(filterStatues);
         args.write(prot);
         prot.writeMessageEnd();
@@ -3135,7 +3131,7 @@ public class ClientService {
       public executeAdminOperation_result getResult(I iface, executeAdminOperation_args args) throws org.apache.thrift.TException {
         executeAdminOperation_result result = new executeAdminOperation_result();
         try {
-          result.success = iface.executeAdminOperation(args.tinfo, args.credentials, args.op, args.arguments, args.filtertxids, args.filterStatues);
+          result.success = iface.executeAdminOperation(args.tinfo, args.credentials, args.op, args.txids, args.filterStatues);
         } catch (ThriftSecurityException sec) {
           result.sec = sec;
         }
@@ -5103,7 +5099,7 @@ public class ClientService {
       }
 
       public void start(I iface, executeAdminOperation_args args, org.apache.thrift.async.AsyncMethodCallback<java.lang.String> resultHandler) throws org.apache.thrift.TException {
-        iface.executeAdminOperation(args.tinfo, args.credentials, args.op, args.arguments, args.filtertxids, args.filterStatues,resultHandler);
+        iface.executeAdminOperation(args.tinfo, args.credentials, args.op, args.txids, args.filterStatues,resultHandler);
       }
     }
 
@@ -34272,9 +34268,8 @@ public class ClientService {
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)3);
     private static final org.apache.thrift.protocol.TField OP_FIELD_DESC = new org.apache.thrift.protocol.TField("op", org.apache.thrift.protocol.TType.I32, (short)4);
-    private static final org.apache.thrift.protocol.TField ARGUMENTS_FIELD_DESC = new org.apache.thrift.protocol.TField("arguments", org.apache.thrift.protocol.TType.LIST, (short)5);
-    private static final org.apache.thrift.protocol.TField FILTERTXIDS_FIELD_DESC = new org.apache.thrift.protocol.TField("filtertxids", org.apache.thrift.protocol.TType.SET, (short)6);
-    private static final org.apache.thrift.protocol.TField FILTER_STATUES_FIELD_DESC = new org.apache.thrift.protocol.TField("filterStatues", org.apache.thrift.protocol.TType.LIST, (short)7);
+    private static final org.apache.thrift.protocol.TField TXIDS_FIELD_DESC = new org.apache.thrift.protocol.TField("txids", org.apache.thrift.protocol.TType.LIST, (short)5);
+    private static final org.apache.thrift.protocol.TField FILTER_STATUES_FIELD_DESC = new org.apache.thrift.protocol.TField("filterStatues", org.apache.thrift.protocol.TType.LIST, (short)6);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new executeAdminOperation_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new executeAdminOperation_argsTupleSchemeFactory();
@@ -34286,8 +34281,7 @@ public class ClientService {
      * @see AdminOperation
      */
     public @org.apache.thrift.annotation.Nullable AdminOperation op; // required
-    public @org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> arguments; // required
-    public @org.apache.thrift.annotation.Nullable java.util.Set<java.lang.Long> filtertxids; // required
+    public @org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> txids; // required
     public @org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> filterStatues; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -34299,9 +34293,8 @@ public class ClientService {
        * @see AdminOperation
        */
       OP((short)4, "op"),
-      ARGUMENTS((short)5, "arguments"),
-      FILTERTXIDS((short)6, "filtertxids"),
-      FILTER_STATUES((short)7, "filterStatues");
+      TXIDS((short)5, "txids"),
+      FILTER_STATUES((short)6, "filterStatues");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -34323,11 +34316,9 @@ public class ClientService {
             return CREDENTIALS;
           case 4: // OP
             return OP;
-          case 5: // ARGUMENTS
-            return ARGUMENTS;
-          case 6: // FILTERTXIDS
-            return FILTERTXIDS;
-          case 7: // FILTER_STATUES
+          case 5: // TXIDS
+            return TXIDS;
+          case 6: // FILTER_STATUES
             return FILTER_STATUES;
           default:
             return null;
@@ -34379,12 +34370,9 @@ public class ClientService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.OP, new org.apache.thrift.meta_data.FieldMetaData("op", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, AdminOperation.class)));
-      tmpMap.put(_Fields.ARGUMENTS, new org.apache.thrift.meta_data.FieldMetaData("arguments", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+      tmpMap.put(_Fields.TXIDS, new org.apache.thrift.meta_data.FieldMetaData("txids", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
-      tmpMap.put(_Fields.FILTERTXIDS, new org.apache.thrift.meta_data.FieldMetaData("filtertxids", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.SetMetaData(org.apache.thrift.protocol.TType.SET, 
-              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64))));
       tmpMap.put(_Fields.FILTER_STATUES, new org.apache.thrift.meta_data.FieldMetaData("filterStatues", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
@@ -34399,16 +34387,14 @@ public class ClientService {
       org.apache.accumulo.core.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
       AdminOperation op,
-      java.util.List<java.lang.String> arguments,
-      java.util.Set<java.lang.Long> filtertxids,
+      java.util.List<java.lang.String> txids,
       java.util.List<java.lang.String> filterStatues)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.op = op;
-      this.arguments = arguments;
-      this.filtertxids = filtertxids;
+      this.txids = txids;
       this.filterStatues = filterStatues;
     }
 
@@ -34425,13 +34411,9 @@ public class ClientService {
       if (other.isSetOp()) {
         this.op = other.op;
       }
-      if (other.isSetArguments()) {
-        java.util.List<java.lang.String> __this__arguments = new java.util.ArrayList<java.lang.String>(other.arguments);
-        this.arguments = __this__arguments;
-      }
-      if (other.isSetFiltertxids()) {
-        java.util.Set<java.lang.Long> __this__filtertxids = new java.util.HashSet<java.lang.Long>(other.filtertxids);
-        this.filtertxids = __this__filtertxids;
+      if (other.isSetTxids()) {
+        java.util.List<java.lang.String> __this__txids = new java.util.ArrayList<java.lang.String>(other.txids);
+        this.txids = __this__txids;
       }
       if (other.isSetFilterStatues()) {
         java.util.List<java.lang.String> __this__filterStatues = new java.util.ArrayList<java.lang.String>(other.filterStatues);
@@ -34448,8 +34430,7 @@ public class ClientService {
       this.tinfo = null;
       this.credentials = null;
       this.op = null;
-      this.arguments = null;
-      this.filtertxids = null;
+      this.txids = null;
       this.filterStatues = null;
     }
 
@@ -34536,85 +34517,44 @@ public class ClientService {
       }
     }
 
-    public int getArgumentsSize() {
-      return (this.arguments == null) ? 0 : this.arguments.size();
+    public int getTxidsSize() {
+      return (this.txids == null) ? 0 : this.txids.size();
     }
 
     @org.apache.thrift.annotation.Nullable
-    public java.util.Iterator<java.lang.String> getArgumentsIterator() {
-      return (this.arguments == null) ? null : this.arguments.iterator();
+    public java.util.Iterator<java.lang.String> getTxidsIterator() {
+      return (this.txids == null) ? null : this.txids.iterator();
     }
 
-    public void addToArguments(java.lang.String elem) {
-      if (this.arguments == null) {
-        this.arguments = new java.util.ArrayList<java.lang.String>();
+    public void addToTxids(java.lang.String elem) {
+      if (this.txids == null) {
+        this.txids = new java.util.ArrayList<java.lang.String>();
       }
-      this.arguments.add(elem);
+      this.txids.add(elem);
     }
 
     @org.apache.thrift.annotation.Nullable
-    public java.util.List<java.lang.String> getArguments() {
-      return this.arguments;
+    public java.util.List<java.lang.String> getTxids() {
+      return this.txids;
     }
 
-    public executeAdminOperation_args setArguments(@org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> arguments) {
-      this.arguments = arguments;
+    public executeAdminOperation_args setTxids(@org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> txids) {
+      this.txids = txids;
       return this;
     }
 
-    public void unsetArguments() {
-      this.arguments = null;
+    public void unsetTxids() {
+      this.txids = null;
     }
 
-    /** Returns true if field arguments is set (has been assigned a value) and false otherwise */
-    public boolean isSetArguments() {
-      return this.arguments != null;
+    /** Returns true if field txids is set (has been assigned a value) and false otherwise */
+    public boolean isSetTxids() {
+      return this.txids != null;
     }
 
-    public void setArgumentsIsSet(boolean value) {
+    public void setTxidsIsSet(boolean value) {
       if (!value) {
-        this.arguments = null;
-      }
-    }
-
-    public int getFiltertxidsSize() {
-      return (this.filtertxids == null) ? 0 : this.filtertxids.size();
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public java.util.Iterator<java.lang.Long> getFiltertxidsIterator() {
-      return (this.filtertxids == null) ? null : this.filtertxids.iterator();
-    }
-
-    public void addToFiltertxids(long elem) {
-      if (this.filtertxids == null) {
-        this.filtertxids = new java.util.HashSet<java.lang.Long>();
-      }
-      this.filtertxids.add(elem);
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public java.util.Set<java.lang.Long> getFiltertxids() {
-      return this.filtertxids;
-    }
-
-    public executeAdminOperation_args setFiltertxids(@org.apache.thrift.annotation.Nullable java.util.Set<java.lang.Long> filtertxids) {
-      this.filtertxids = filtertxids;
-      return this;
-    }
-
-    public void unsetFiltertxids() {
-      this.filtertxids = null;
-    }
-
-    /** Returns true if field filtertxids is set (has been assigned a value) and false otherwise */
-    public boolean isSetFiltertxids() {
-      return this.filtertxids != null;
-    }
-
-    public void setFiltertxidsIsSet(boolean value) {
-      if (!value) {
-        this.filtertxids = null;
+        this.txids = null;
       }
     }
 
@@ -34685,19 +34625,11 @@ public class ClientService {
         }
         break;
 
-      case ARGUMENTS:
+      case TXIDS:
         if (value == null) {
-          unsetArguments();
+          unsetTxids();
         } else {
-          setArguments((java.util.List<java.lang.String>)value);
-        }
-        break;
-
-      case FILTERTXIDS:
-        if (value == null) {
-          unsetFiltertxids();
-        } else {
-          setFiltertxids((java.util.Set<java.lang.Long>)value);
+          setTxids((java.util.List<java.lang.String>)value);
         }
         break;
 
@@ -34724,11 +34656,8 @@ public class ClientService {
       case OP:
         return getOp();
 
-      case ARGUMENTS:
-        return getArguments();
-
-      case FILTERTXIDS:
-        return getFiltertxids();
+      case TXIDS:
+        return getTxids();
 
       case FILTER_STATUES:
         return getFilterStatues();
@@ -34750,10 +34679,8 @@ public class ClientService {
         return isSetCredentials();
       case OP:
         return isSetOp();
-      case ARGUMENTS:
-        return isSetArguments();
-      case FILTERTXIDS:
-        return isSetFiltertxids();
+      case TXIDS:
+        return isSetTxids();
       case FILTER_STATUES:
         return isSetFilterStatues();
       }
@@ -34802,21 +34729,12 @@ public class ClientService {
           return false;
       }
 
-      boolean this_present_arguments = true && this.isSetArguments();
-      boolean that_present_arguments = true && that.isSetArguments();
-      if (this_present_arguments || that_present_arguments) {
-        if (!(this_present_arguments && that_present_arguments))
+      boolean this_present_txids = true && this.isSetTxids();
+      boolean that_present_txids = true && that.isSetTxids();
+      if (this_present_txids || that_present_txids) {
+        if (!(this_present_txids && that_present_txids))
           return false;
-        if (!this.arguments.equals(that.arguments))
-          return false;
-      }
-
-      boolean this_present_filtertxids = true && this.isSetFiltertxids();
-      boolean that_present_filtertxids = true && that.isSetFiltertxids();
-      if (this_present_filtertxids || that_present_filtertxids) {
-        if (!(this_present_filtertxids && that_present_filtertxids))
-          return false;
-        if (!this.filtertxids.equals(that.filtertxids))
+        if (!this.txids.equals(that.txids))
           return false;
       }
 
@@ -34848,13 +34766,9 @@ public class ClientService {
       if (isSetOp())
         hashCode = hashCode * 8191 + op.getValue();
 
-      hashCode = hashCode * 8191 + ((isSetArguments()) ? 131071 : 524287);
-      if (isSetArguments())
-        hashCode = hashCode * 8191 + arguments.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetFiltertxids()) ? 131071 : 524287);
-      if (isSetFiltertxids())
-        hashCode = hashCode * 8191 + filtertxids.hashCode();
+      hashCode = hashCode * 8191 + ((isSetTxids()) ? 131071 : 524287);
+      if (isSetTxids())
+        hashCode = hashCode * 8191 + txids.hashCode();
 
       hashCode = hashCode * 8191 + ((isSetFilterStatues()) ? 131071 : 524287);
       if (isSetFilterStatues())
@@ -34901,22 +34815,12 @@ public class ClientService {
           return lastComparison;
         }
       }
-      lastComparison = java.lang.Boolean.valueOf(isSetArguments()).compareTo(other.isSetArguments());
+      lastComparison = java.lang.Boolean.valueOf(isSetTxids()).compareTo(other.isSetTxids());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetArguments()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.arguments, other.arguments);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.valueOf(isSetFiltertxids()).compareTo(other.isSetFiltertxids());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetFiltertxids()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.filtertxids, other.filtertxids);
+      if (isSetTxids()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.txids, other.txids);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -34976,19 +34880,11 @@ public class ClientService {
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("arguments:");
-      if (this.arguments == null) {
+      sb.append("txids:");
+      if (this.txids == null) {
         sb.append("null");
       } else {
-        sb.append(this.arguments);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("filtertxids:");
-      if (this.filtertxids == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.filtertxids);
+        sb.append(this.txids);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -35074,52 +34970,34 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 5: // ARGUMENTS
+            case 5: // TXIDS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
                   org.apache.thrift.protocol.TList _list94 = iprot.readListBegin();
-                  struct.arguments = new java.util.ArrayList<java.lang.String>(_list94.size);
+                  struct.txids = new java.util.ArrayList<java.lang.String>(_list94.size);
                   @org.apache.thrift.annotation.Nullable java.lang.String _elem95;
                   for (int _i96 = 0; _i96 < _list94.size; ++_i96)
                   {
                     _elem95 = iprot.readString();
-                    struct.arguments.add(_elem95);
+                    struct.txids.add(_elem95);
                   }
                   iprot.readListEnd();
                 }
-                struct.setArgumentsIsSet(true);
+                struct.setTxidsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 6: // FILTERTXIDS
-              if (schemeField.type == org.apache.thrift.protocol.TType.SET) {
-                {
-                  org.apache.thrift.protocol.TSet _set97 = iprot.readSetBegin();
-                  struct.filtertxids = new java.util.HashSet<java.lang.Long>(2*_set97.size);
-                  long _elem98;
-                  for (int _i99 = 0; _i99 < _set97.size; ++_i99)
-                  {
-                    _elem98 = iprot.readI64();
-                    struct.filtertxids.add(_elem98);
-                  }
-                  iprot.readSetEnd();
-                }
-                struct.setFiltertxidsIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 7: // FILTER_STATUES
+            case 6: // FILTER_STATUES
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list100 = iprot.readListBegin();
-                  struct.filterStatues = new java.util.ArrayList<java.lang.String>(_list100.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _elem101;
-                  for (int _i102 = 0; _i102 < _list100.size; ++_i102)
+                  org.apache.thrift.protocol.TList _list97 = iprot.readListBegin();
+                  struct.filterStatues = new java.util.ArrayList<java.lang.String>(_list97.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _elem98;
+                  for (int _i99 = 0; _i99 < _list97.size; ++_i99)
                   {
-                    _elem101 = iprot.readString();
-                    struct.filterStatues.add(_elem101);
+                    _elem98 = iprot.readString();
+                    struct.filterStatues.add(_elem98);
                   }
                   iprot.readListEnd();
                 }
@@ -35158,27 +35036,15 @@ public class ClientService {
           oprot.writeI32(struct.op.getValue());
           oprot.writeFieldEnd();
         }
-        if (struct.arguments != null) {
-          oprot.writeFieldBegin(ARGUMENTS_FIELD_DESC);
+        if (struct.txids != null) {
+          oprot.writeFieldBegin(TXIDS_FIELD_DESC);
           {
-            oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.arguments.size()));
-            for (java.lang.String _iter103 : struct.arguments)
+            oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.txids.size()));
+            for (java.lang.String _iter100 : struct.txids)
             {
-              oprot.writeString(_iter103);
+              oprot.writeString(_iter100);
             }
             oprot.writeListEnd();
-          }
-          oprot.writeFieldEnd();
-        }
-        if (struct.filtertxids != null) {
-          oprot.writeFieldBegin(FILTERTXIDS_FIELD_DESC);
-          {
-            oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.I64, struct.filtertxids.size()));
-            for (long _iter104 : struct.filtertxids)
-            {
-              oprot.writeI64(_iter104);
-            }
-            oprot.writeSetEnd();
           }
           oprot.writeFieldEnd();
         }
@@ -35186,9 +35052,9 @@ public class ClientService {
           oprot.writeFieldBegin(FILTER_STATUES_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.filterStatues.size()));
-            for (java.lang.String _iter105 : struct.filterStatues)
+            for (java.lang.String _iter101 : struct.filterStatues)
             {
-              oprot.writeString(_iter105);
+              oprot.writeString(_iter101);
             }
             oprot.writeListEnd();
           }
@@ -35221,16 +35087,13 @@ public class ClientService {
         if (struct.isSetOp()) {
           optionals.set(2);
         }
-        if (struct.isSetArguments()) {
+        if (struct.isSetTxids()) {
           optionals.set(3);
         }
-        if (struct.isSetFiltertxids()) {
+        if (struct.isSetFilterStatues()) {
           optionals.set(4);
         }
-        if (struct.isSetFilterStatues()) {
-          optionals.set(5);
-        }
-        oprot.writeBitSet(optionals, 6);
+        oprot.writeBitSet(optionals, 5);
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
@@ -35240,30 +35103,21 @@ public class ClientService {
         if (struct.isSetOp()) {
           oprot.writeI32(struct.op.getValue());
         }
-        if (struct.isSetArguments()) {
+        if (struct.isSetTxids()) {
           {
-            oprot.writeI32(struct.arguments.size());
-            for (java.lang.String _iter106 : struct.arguments)
+            oprot.writeI32(struct.txids.size());
+            for (java.lang.String _iter102 : struct.txids)
             {
-              oprot.writeString(_iter106);
-            }
-          }
-        }
-        if (struct.isSetFiltertxids()) {
-          {
-            oprot.writeI32(struct.filtertxids.size());
-            for (long _iter107 : struct.filtertxids)
-            {
-              oprot.writeI64(_iter107);
+              oprot.writeString(_iter102);
             }
           }
         }
         if (struct.isSetFilterStatues()) {
           {
             oprot.writeI32(struct.filterStatues.size());
-            for (java.lang.String _iter108 : struct.filterStatues)
+            for (java.lang.String _iter103 : struct.filterStatues)
             {
-              oprot.writeString(_iter108);
+              oprot.writeString(_iter103);
             }
           }
         }
@@ -35272,7 +35126,7 @@ public class ClientService {
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, executeAdminOperation_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(6);
+        java.util.BitSet incoming = iprot.readBitSet(5);
         if (incoming.get(0)) {
           struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
           struct.tinfo.read(iprot);
@@ -35289,39 +35143,26 @@ public class ClientService {
         }
         if (incoming.get(3)) {
           {
-            org.apache.thrift.protocol.TList _list109 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.arguments = new java.util.ArrayList<java.lang.String>(_list109.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _elem110;
-            for (int _i111 = 0; _i111 < _list109.size; ++_i111)
+            org.apache.thrift.protocol.TList _list104 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.txids = new java.util.ArrayList<java.lang.String>(_list104.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _elem105;
+            for (int _i106 = 0; _i106 < _list104.size; ++_i106)
             {
-              _elem110 = iprot.readString();
-              struct.arguments.add(_elem110);
+              _elem105 = iprot.readString();
+              struct.txids.add(_elem105);
             }
           }
-          struct.setArgumentsIsSet(true);
+          struct.setTxidsIsSet(true);
         }
         if (incoming.get(4)) {
           {
-            org.apache.thrift.protocol.TSet _set112 = new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.I64, iprot.readI32());
-            struct.filtertxids = new java.util.HashSet<java.lang.Long>(2*_set112.size);
-            long _elem113;
-            for (int _i114 = 0; _i114 < _set112.size; ++_i114)
+            org.apache.thrift.protocol.TList _list107 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.filterStatues = new java.util.ArrayList<java.lang.String>(_list107.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _elem108;
+            for (int _i109 = 0; _i109 < _list107.size; ++_i109)
             {
-              _elem113 = iprot.readI64();
-              struct.filtertxids.add(_elem113);
-            }
-          }
-          struct.setFiltertxidsIsSet(true);
-        }
-        if (incoming.get(5)) {
-          {
-            org.apache.thrift.protocol.TList _list115 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.filterStatues = new java.util.ArrayList<java.lang.String>(_list115.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _elem116;
-            for (int _i117 = 0; _i117 < _list115.size; ++_i117)
-            {
-              _elem116 = iprot.readString();
-              struct.filterStatues.add(_elem116);
+              _elem108 = iprot.readString();
+              struct.filterStatues.add(_elem108);
             }
           }
           struct.setFilterStatuesIsSet(true);

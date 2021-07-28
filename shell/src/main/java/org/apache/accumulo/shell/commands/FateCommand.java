@@ -19,14 +19,13 @@
 package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -44,55 +43,33 @@ public class FateCommand extends Command {
   private Option statusOption;
   private Option disablePaginationOpt;
 
-  private long parseTxid(String s) {
-    if (FateTxId.isFormatedTid(s)) {
-      return FateTxId.fromString(s);
-    } else {
-      return Long.parseLong(s, 16);
-    }
-  }
-
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, ParseException, KeeperException,
       InterruptedException, IOException {
 
     String[] args = cl.getArgs();
+
     if (args.length <= 0) {
       throw new ParseException("Must provide a command to execute");
     }
     String cmd = args[0];
+    // Only get the Transaction IDs passed in from the command line.
+    List<String> txids = new ArrayList<>(cl.getArgList().subList(1, args.length));
 
     if ("fail".equals(cmd)) {
-      if (args.length <= 1) {
+      if (txids.isEmpty()) {
         throw new ParseException("Must provide transaction ID");
       }
 
-      shellState.getAccumuloClient().instanceOperations().fateFail(cl.getArgList());
+      shellState.getAccumuloClient().instanceOperations().fateFail(txids);
     } else if ("delete".equals(cmd)) {
-      if (args.length <= 1) {
+      if (txids.isEmpty()) {
         throw new ParseException("Must provide transaction ID");
       }
 
-      shellState.getAccumuloClient().instanceOperations().fateDelete(cl.getArgList());
+      shellState.getAccumuloClient().instanceOperations().fateDelete(txids);
     } else if ("list".equals(cmd) || "print".equals(cmd)) {
-      // Parse transaction ID filters for print display
-      Set<Long> filterTxid = null;
-      if (args.length >= 2) {
-        filterTxid = new HashSet<>(args.length);
-        for (int i = 1; i < args.length; i++) {
-          try {
-            Long val = parseTxid(args[i]);
-            filterTxid.add(val);
-          } catch (NumberFormatException nfe) {
-            // Failed to parse, will exit instead of displaying everything since the intention was
-            // to potentially filter some data
-            shellState.getWriter().printf("Invalid transaction ID format: %s%n", args[i]);
-            return 1;
-          }
-        }
-      }
-
       // Parse TStatus filters for print display
       EnumSet<TStatus> filterStatus = null;
       if (cl.hasOption(statusOption.getOpt())) {
@@ -108,13 +85,13 @@ public class FateCommand extends Command {
         }
       }
 
-      String buffer = shellState.getAccumuloClient().instanceOperations().fatePrint(cl.getArgList(),
-          filterTxid, filterStatus);
+      String buffer =
+          shellState.getAccumuloClient().instanceOperations().fatePrint(txids, filterStatus);
       shellState.printLines(Collections.singletonList(buffer).iterator(),
           !cl.hasOption(disablePaginationOpt.getOpt()));
     } else if ("dump".equals(cmd)) {
       shellState.getWriter()
-          .println(shellState.getAccumuloClient().instanceOperations().fateDump(cl.getArgList()));
+          .println(shellState.getAccumuloClient().instanceOperations().fateDump(txids));
     } else {
       throw new ParseException("Invalid command option");
     }

@@ -21,7 +21,6 @@ package org.apache.accumulo.core.client.admin;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -155,45 +154,42 @@ public interface InstanceOperations {
   /**
    * Throws an exception if a tablet server can not be contacted.
    *
-   * @param args
-   *          Command line arguments passed in from user command.
+   * @param txids
+   *          Transaction IDs.
    * @since 2.1.0
    */
-  void fateFail(List<String> args) throws AccumuloException;
+  void fateFail(List<String> txids) throws AccumuloException;
 
   /**
    * Throws an exception if a tablet server can not be contacted.
    *
-   * @param args
-   *          Command line arguments passed in from user command.
+   * @param txids
+   *          Transaction IDs.
    * @since 2.1.0
    */
-  void fateDelete(List<String> args) throws AccumuloException;
+  void fateDelete(List<String> txids) throws AccumuloException;
 
   /**
    * Throws an exception if a tablet server can not be contacted.
    *
-   * @param args
-   *          Command line arguments passed in from user command.
-   * @param filterTxid
-   *          Parsed transaction IDs for print filter.
+   * @param txids
+   *          Transaction IDs.
    * @param filterStatus
    *          Parsed TStatus for print filter.
    * @return String containing the output to print to the shell.
    * @since 2.1.0
    */
-  String fatePrint(List<String> args, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
-      throws AccumuloException;
+  String fatePrint(List<String> txids, EnumSet<TStatus> filterStatus) throws AccumuloException;
 
   /**
    * Throws an exception if a tablet server can not be contacted.
    *
-   * @param args
-   *          Command line arguments passed in from user command.
+   * @param txids
+   *          Transaction IDs.
    * @return String containing the output to print to the shell.
    * @since 2.1.0
    */
-  String fateDump(List<String> args) throws AccumuloException;
+  String fateDump(List<String> txids) throws AccumuloException;
 
   /**
    * Returns a unique string that identifies this instance of accumulo.

@@ -475,8 +475,7 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   @Override
   public String executeAdminOperation(TInfo tInfo, TCredentials credentials, AdminOperation op,
-      List<String> arguments, Set<Long> filterTxid, List<String> filterStatuses)
-      throws ThriftSecurityException, TException {
+      List<String> txids, List<String> filterStatuses) throws ThriftSecurityException, TException {
     try {
       authenticate(tInfo, credentials);
       AdminUtil<ClientServiceHandler> admin = new AdminUtil<>(false);
@@ -484,28 +483,42 @@ public class ClientServiceHandler implements ClientService.Iface {
       var managerLockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
       ZooReaderWriter zk = context.getZooReaderWriter();
       ZooStore<ClientServiceHandler> zs = new ZooStore<>(path, zk);
-      String[] args = arguments.toArray(new String[0]);
 
       switch (op) {
         case FAIL: {
-          for (int i = 1; i < args.length; i++) {
-            if (!admin.prepFail(zs, zk, managerLockPath, args[i])) {
-              throw new TException("Could not fail transaction: " + args[i]);
+          for (String tid : txids) {
+            if (!admin.prepFail(zs, zk, managerLockPath, tid)) {
+              throw new TException("Could not fail transaction: " + tid);
             }
           }
           return "";
         }
         case DELETE: {
-          for (int i = 1; i < args.length; i++) {
-            if (admin.prepDelete(zs, zk, managerLockPath, args[i])) {
-              admin.deleteLocks(zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, args[i]);
+          for (String tid : txids) {
+            if (admin.prepDelete(zs, zk, managerLockPath, tid)) {
+              admin.deleteLocks(zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, tid);
             } else {
-              throw new TException("Could not delete transaction: " + args[i]);
+              throw new TException("Could not delete transaction: " + tid);
             }
           }
           return "";
         }
         case PRINT: {
+          // Parse transaction ID filters for print display
+          Set<Long> filterTxid = null;
+          if (txids.size() >= 1) {
+            filterTxid = new HashSet<>(txids.size());
+            for (String tid : txids) {
+              try {
+                Long val = parseTxid(tid);
+                filterTxid.add(val);
+              } catch (NumberFormatException nfe) {
+                // Failed to parse.
+                throw new TException("Invalid transaction ID format: %s%n" + tid, nfe);
+              }
+            }
+          }
+
           EnumSet<TStatus> fs = null;
           if (!filterStatuses.isEmpty()) {
             fs = EnumSet.noneOf(TStatus.class);
@@ -521,14 +534,14 @@ public class ClientServiceHandler implements ClientService.Iface {
           return sb.toString();
         }
         case DUMP: {
-          List<Long> txids;
+          List<Long> ids;
 
-          if (args.length == 1) {
-            txids = zs.list();
+          if (txids.isEmpty()) {
+            ids = zs.list();
           } else {
-            txids = new ArrayList<>();
-            for (int i = 1; i < args.length; i++) {
-              txids.add(parseTxid(args[i]));
+            ids = new ArrayList<>();
+            for (String tid : txids) {
+              ids.add(parseTxid(tid));
             }
           }
 
@@ -540,7 +553,7 @@ public class ClientServiceHandler implements ClientService.Iface {
 
           List<FateStack> txStacks = new ArrayList<>();
 
-          for (Long tid : txids) {
+          for (Long tid : ids) {
             List<ReadOnlyRepo<ClientServiceHandler>> repoStack = zs.getStack(tid);
             txStacks.add(new FateStack(tid, repoStack));
           }
