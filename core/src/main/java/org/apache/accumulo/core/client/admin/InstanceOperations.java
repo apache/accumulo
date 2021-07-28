@@ -157,22 +157,18 @@ public interface InstanceOperations {
    *
    * @param args
    *          Command line arguments passed in from user command.
-   * @param secretOption
-   *          Specified instance secret to use for commands.
    * @since 2.1.0
    */
-  void fateFail(List<String> args, String secretOption) throws AccumuloException;
+  void fateFail(List<String> args) throws AccumuloException;
 
   /**
    * Throws an exception if a tablet server can not be contacted.
    *
    * @param args
    *          Command line arguments passed in from user command.
-   * @param secretOption
-   *          Specified instance secret to use for commands.
    * @since 2.1.0
    */
-  void fateDelete(List<String> args, String secretOption) throws AccumuloException;
+  void fateDelete(List<String> args) throws AccumuloException;
 
   /**
    * Throws an exception if a tablet server can not be contacted.
@@ -183,25 +179,21 @@ public interface InstanceOperations {
    *          Parsed transaction IDs for print filter.
    * @param filterStatus
    *          Parsed TStatus for print filter.
-   * @param secretOption
-   *          Specified instance secret to use for commands.
    * @return String containing the output to print to the shell.
    * @since 2.1.0
    */
-  String fatePrint(List<String> args, Set<Long> filterTxid, EnumSet<TStatus> filterStatus,
-      String secretOption) throws AccumuloException;
+  String fatePrint(List<String> args, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
+      throws AccumuloException;
 
   /**
    * Throws an exception if a tablet server can not be contacted.
    *
    * @param args
    *          Command line arguments passed in from user command.
-   * @param secretOption
-   *          Specified instance secret to use for commands.
    * @return String containing the output to print to the shell.
    * @since 2.1.0
    */
-  String fateDump(List<String> args, String secretOption) throws AccumuloException;
+  String fateDump(List<String> args) throws AccumuloException;
 
   /**
    * Returns a unique string that identifies this instance of accumulo.

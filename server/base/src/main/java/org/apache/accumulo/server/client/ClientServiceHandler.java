@@ -475,15 +475,14 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   @Override
   public String executeAdminOperation(TInfo tInfo, TCredentials credentials, AdminOperation op,
-      List<String> arguments, Set<Long> filterTxid, List<String> filterStatuses, String secret)
+      List<String> arguments, Set<Long> filterTxid, List<String> filterStatuses)
       throws ThriftSecurityException, TException {
     try {
       authenticate(tInfo, credentials);
       AdminUtil<ClientServiceHandler> admin = new AdminUtil<>(false);
       String path = context.getZooKeeperRoot() + Constants.ZFATE;
       var managerLockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
-      ZooReaderWriter zk = secret == null ? context.getZooReaderWriter() : new ZooReaderWriter(
-          context.getZooKeepers(), context.getZooKeepersSessionTimeOut(), secret);
+      ZooReaderWriter zk = context.getZooReaderWriter();
       ZooStore<ClientServiceHandler> zs = new ZooStore<>(path, zk);
       String[] args = arguments.toArray(new String[0]);
 

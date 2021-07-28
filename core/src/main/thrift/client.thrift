@@ -345,7 +345,6 @@ service ClientService {
       5:list<string> arguments
       6:set<i64> filtertxids
       7:list<string> filterStatues
-      8:string secretOption
     ) throws (
       1:ThriftSecurityException sec
     )

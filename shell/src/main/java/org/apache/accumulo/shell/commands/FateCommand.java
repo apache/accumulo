@@ -41,7 +41,6 @@ import org.apache.zookeeper.KeeperException;
  */
 public class FateCommand extends Command {
 
-  private Option secretOption;
   private Option statusOption;
   private Option disablePaginationOpt;
 
@@ -63,20 +62,19 @@ public class FateCommand extends Command {
       throw new ParseException("Must provide a command to execute");
     }
     String cmd = args[0];
-    String secret = cl.getOptionValue(secretOption.getOpt());
 
     if ("fail".equals(cmd)) {
       if (args.length <= 1) {
         throw new ParseException("Must provide transaction ID");
       }
 
-      shellState.getAccumuloClient().instanceOperations().fateFail(cl.getArgList(), secret);
+      shellState.getAccumuloClient().instanceOperations().fateFail(cl.getArgList());
     } else if ("delete".equals(cmd)) {
       if (args.length <= 1) {
         throw new ParseException("Must provide transaction ID");
       }
 
-      shellState.getAccumuloClient().instanceOperations().fateDelete(cl.getArgList(), secret);
+      shellState.getAccumuloClient().instanceOperations().fateDelete(cl.getArgList());
     } else if ("list".equals(cmd) || "print".equals(cmd)) {
       // Parse transaction ID filters for print display
       Set<Long> filterTxid = null;
@@ -111,12 +109,12 @@ public class FateCommand extends Command {
       }
 
       String buffer = shellState.getAccumuloClient().instanceOperations().fatePrint(cl.getArgList(),
-          filterTxid, filterStatus, secret);
+          filterTxid, filterStatus);
       shellState.printLines(Collections.singletonList(buffer).iterator(),
           !cl.hasOption(disablePaginationOpt.getOpt()));
     } else if ("dump".equals(cmd)) {
-      shellState.getWriter().println(
-          shellState.getAccumuloClient().instanceOperations().fateDump(cl.getArgList(), secret));
+      shellState.getWriter()
+          .println(shellState.getAccumuloClient().instanceOperations().fateDump(cl.getArgList()));
     } else {
       throw new ParseException("Invalid command option");
     }
@@ -137,9 +135,6 @@ public class FateCommand extends Command {
   @Override
   public Options getOptions() {
     final Options o = new Options();
-    secretOption = new Option("s", "secret", true, "specify the instance secret to use");
-    secretOption.setOptionalArg(false);
-    o.addOption(secretOption);
     statusOption = new Option("t", "status-type", true,
         "filter 'print' on the transaction status type(s) {NEW, IN_PROGRESS,"
             + " FAILED_IN_PROGRESS, FAILED, SUCCESSFUL}");

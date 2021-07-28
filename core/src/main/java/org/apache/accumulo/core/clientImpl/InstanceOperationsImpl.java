@@ -285,20 +285,20 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public void fateFail(List<String> args, String secretOption) throws AccumuloException {
+  public void fateFail(List<String> args) throws AccumuloException {
     checkArgument(args != null, "args is null");
-    executeAdminOperation(AdminOperation.FAIL, args, null, null, secretOption);
+    executeAdminOperation(AdminOperation.FAIL, args, null, null);
   }
 
   @Override
-  public void fateDelete(List<String> args, String secretOption) throws AccumuloException {
+  public void fateDelete(List<String> args) throws AccumuloException {
     checkArgument(args != null, "args is null");
-    executeAdminOperation(AdminOperation.DELETE, args, null, null, secretOption);
+    executeAdminOperation(AdminOperation.DELETE, args, null, null);
   }
 
   @Override
-  public String fatePrint(List<String> args, Set<Long> filterTxid, EnumSet<TStatus> filterStatus,
-      String secretOption) throws AccumuloException {
+  public String fatePrint(List<String> args, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
+      throws AccumuloException {
     checkArgument(args != null, "args is null");
     List<String> fs = new ArrayList<>();
     if (filterStatus != null) {
@@ -306,21 +306,21 @@ public class InstanceOperationsImpl implements InstanceOperations {
         fs.add(tstatus.toString());
       }
     }
-    return executeAdminOperation(AdminOperation.PRINT, args, filterTxid, fs, secretOption);
+    return executeAdminOperation(AdminOperation.PRINT, args, filterTxid, fs);
   }
 
   @Override
-  public String fateDump(List<String> args, String secretOption) throws AccumuloException {
+  public String fateDump(List<String> args) throws AccumuloException {
     checkArgument(args != null, "args is null");
-    return executeAdminOperation(AdminOperation.DUMP, args, null, null, secretOption);
+    return executeAdminOperation(AdminOperation.DUMP, args, null, null);
   }
 
   private String executeAdminOperation(AdminOperation op, List<String> arguments,
-      Set<Long> filterTxids, List<String> filterStatuses, String secret) throws AccumuloException {
+      Set<Long> filterTxids, List<String> filterStatuses) throws AccumuloException {
     try {
       return ServerClient.execute(context,
           client -> client.executeAdminOperation(TraceUtil.traceInfo(), context.rpcCreds(), op,
-              arguments, filterTxids, filterStatuses, secret));
+              arguments, filterTxids, filterStatuses));
     } catch (AccumuloSecurityException e) {
       throw new RuntimeException("Unexpected exception thrown", e);
     }
