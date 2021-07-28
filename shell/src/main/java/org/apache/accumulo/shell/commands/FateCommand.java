@@ -20,13 +20,12 @@ package org.apache.accumulo.shell.commands;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -71,18 +70,9 @@ public class FateCommand extends Command {
       shellState.getAccumuloClient().instanceOperations().fateDelete(txids);
     } else if ("list".equals(cmd) || "print".equals(cmd)) {
       // Parse TStatus filters for print display
-      EnumSet<TStatus> filterStatus = null;
+      List<String> filterStatus = new ArrayList<>();
       if (cl.hasOption(statusOption.getOpt())) {
-        filterStatus = EnumSet.noneOf(TStatus.class);
-        String[] tstat = cl.getOptionValues(statusOption.getOpt());
-        for (String element : tstat) {
-          try {
-            filterStatus.add(TStatus.valueOf(element));
-          } catch (IllegalArgumentException iae) {
-            shellState.getWriter().printf("Invalid transaction status name: %s%n", element);
-            return 1;
-          }
-        }
+        filterStatus = Arrays.asList(cl.getOptionValues(statusOption.getOpt()));
       }
 
       String buffer =

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.client.admin;
 
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
@@ -174,12 +173,12 @@ public interface InstanceOperations {
    *
    * @param txids
    *          Transaction IDs.
-   * @param filterStatus
+   * @param tStatus
    *          Parsed TStatus for print filter.
    * @return String containing the output to print to the shell.
    * @since 2.1.0
    */
-  String fatePrint(List<String> txids, EnumSet<TStatus> filterStatus) throws AccumuloException;
+  String fatePrint(List<String> txids, List<String> tStatus) throws AccumuloException;
 
   /**
    * Throws an exception if a tablet server can not be contacted.

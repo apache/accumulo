@@ -28,7 +28,6 @@ import static org.apache.accumulo.core.rpc.ThriftUtil.returnClient;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -56,7 +55,6 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
@@ -296,16 +294,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public String fatePrint(List<String> txids, EnumSet<TStatus> filterStatus)
-      throws AccumuloException {
+  public String fatePrint(List<String> txids, List<String> tStatus) throws AccumuloException {
     checkArgument(txids != null, "txids is null");
-    List<String> fs = new ArrayList<>();
-    if (filterStatus != null) {
-      for (TStatus tstatus : filterStatus) {
-        fs.add(tstatus.toString());
-      }
-    }
-    return executeAdminOperation(AdminOperation.PRINT, txids, fs);
+    return executeAdminOperation(AdminOperation.PRINT, txids, tStatus);
   }
 
   @Override
