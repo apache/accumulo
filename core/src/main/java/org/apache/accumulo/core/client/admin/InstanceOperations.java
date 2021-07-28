@@ -159,10 +159,9 @@ public interface InstanceOperations {
    *          Command line arguments passed in from user command.
    * @param secretOption
    *          Specified instance secret to use for commands.
-   *
    * @since 2.1.0
    */
-  boolean fateFail(List<String> args, String secretOption) throws AccumuloException;
+  void fateFail(List<String> args, String secretOption) throws AccumuloException;
 
   /**
    * Throws an exception if a tablet server can not be contacted.
@@ -171,10 +170,9 @@ public interface InstanceOperations {
    *          Command line arguments passed in from user command.
    * @param secretOption
    *          Specified instance secret to use for commands.
-   *
    * @since 2.1.0
    */
-  boolean fateDelete(List<String> args, String secretOption) throws AccumuloException;
+  void fateDelete(List<String> args, String secretOption) throws AccumuloException;
 
   /**
    * Throws an exception if a tablet server can not be contacted.
@@ -187,7 +185,7 @@ public interface InstanceOperations {
    *          Parsed TStatus for print filter.
    * @param secretOption
    *          Specified instance secret to use for commands.
-   *
+   * @return String containing the output to print to the shell.
    * @since 2.1.0
    */
   String fatePrint(List<String> args, Set<Long> filterTxid, EnumSet<TStatus> filterStatus,
@@ -200,7 +198,7 @@ public interface InstanceOperations {
    *          Command line arguments passed in from user command.
    * @param secretOption
    *          Specified instance secret to use for commands.
-   *
+   * @return String containing the output to print to the shell.
    * @since 2.1.0
    */
   String fateDump(List<String> args, String secretOption) throws AccumuloException;

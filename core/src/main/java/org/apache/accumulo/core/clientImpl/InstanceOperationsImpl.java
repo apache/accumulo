@@ -285,17 +285,15 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public boolean fateFail(List<String> args, String secretOption) throws AccumuloException {
+  public void fateFail(List<String> args, String secretOption) throws AccumuloException {
     checkArgument(args != null, "args is null");
-    return Boolean
-        .parseBoolean(executeAdminOperation(AdminOperation.FAIL, args, null, null, secretOption));
+    executeAdminOperation(AdminOperation.FAIL, args, null, null, secretOption);
   }
 
   @Override
-  public boolean fateDelete(List<String> args, String secretOption) throws AccumuloException {
+  public void fateDelete(List<String> args, String secretOption) throws AccumuloException {
     checkArgument(args != null, "args is null");
-    return Boolean
-        .parseBoolean(executeAdminOperation(AdminOperation.DELETE, args, null, null, secretOption));
+    executeAdminOperation(AdminOperation.DELETE, args, null, null, secretOption);
   }
 
   @Override

@@ -542,20 +542,20 @@ public class AdminUtil<T> {
   public boolean checkGlobalLock(ZooReaderWriter zk, ServiceLockPath path) {
     try {
       if (ServiceLock.getLockData(zk.getZooKeeper(), path) != null) {
-        log.error("ERROR: Manager lock is held, not running");
+        log.error("Manager lock is held, not running");
         if (this.exitOnError)
           System.exit(1);
         else
           return false;
       }
     } catch (KeeperException e) {
-      log.error("ERROR: Could not read manager lock, not running " + e.getMessage());
+      log.error("Could not read manager lock, not running ", e);
       if (this.exitOnError)
         System.exit(1);
       else
         return false;
     } catch (InterruptedException e) {
-      log.error("ERROR: Could not read manager lock, not running" + e.getMessage());
+      log.error("Could not read manager lock, not running", e);
       if (this.exitOnError)
         System.exit(1);
       else

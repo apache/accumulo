@@ -63,7 +63,6 @@ public class FateCommand extends Command {
       throw new ParseException("Must provide a command to execute");
     }
     String cmd = args[0];
-    boolean failedCommand = false;
     String secret = cl.getOptionValue(secretOption.getOpt());
 
     if ("fail".equals(cmd)) {
@@ -71,15 +70,13 @@ public class FateCommand extends Command {
         throw new ParseException("Must provide transaction ID");
       }
 
-      failedCommand =
-          shellState.getAccumuloClient().instanceOperations().fateFail(cl.getArgList(), secret);
+      shellState.getAccumuloClient().instanceOperations().fateFail(cl.getArgList(), secret);
     } else if ("delete".equals(cmd)) {
       if (args.length <= 1) {
         throw new ParseException("Must provide transaction ID");
       }
 
-      failedCommand =
-          shellState.getAccumuloClient().instanceOperations().fateDelete(cl.getArgList(), secret);
+      shellState.getAccumuloClient().instanceOperations().fateDelete(cl.getArgList(), secret);
     } else if ("list".equals(cmd) || "print".equals(cmd)) {
       // Parse transaction ID filters for print display
       Set<Long> filterTxid = null;
@@ -124,7 +121,7 @@ public class FateCommand extends Command {
       throw new ParseException("Invalid command option");
     }
 
-    return failedCommand ? 1 : 0;
+    return 0;
   }
 
   @Override

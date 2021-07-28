@@ -339,9 +339,9 @@ service ClientService {
   )
 
   string executeAdminOperation(
-      3:trace.TInfo tinfo
-      4:security.TCredentials credentials
-      2:AdminOperation op
+      2:trace.TInfo tinfo
+      3:security.TCredentials credentials
+      4:AdminOperation op
       5:list<string> arguments
       6:set<i64> filtertxids
       7:list<string> filterStatues

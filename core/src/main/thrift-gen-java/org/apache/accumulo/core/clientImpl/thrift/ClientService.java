@@ -34273,9 +34273,9 @@ public class ClientService {
   public static class executeAdminOperation_args implements org.apache.thrift.TBase<executeAdminOperation_args, executeAdminOperation_args._Fields>, java.io.Serializable, Cloneable, Comparable<executeAdminOperation_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("executeAdminOperation_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)3);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)4);
-    private static final org.apache.thrift.protocol.TField OP_FIELD_DESC = new org.apache.thrift.protocol.TField("op", org.apache.thrift.protocol.TType.I32, (short)2);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+    private static final org.apache.thrift.protocol.TField OP_FIELD_DESC = new org.apache.thrift.protocol.TField("op", org.apache.thrift.protocol.TType.I32, (short)4);
     private static final org.apache.thrift.protocol.TField ARGUMENTS_FIELD_DESC = new org.apache.thrift.protocol.TField("arguments", org.apache.thrift.protocol.TType.LIST, (short)5);
     private static final org.apache.thrift.protocol.TField FILTERTXIDS_FIELD_DESC = new org.apache.thrift.protocol.TField("filtertxids", org.apache.thrift.protocol.TType.SET, (short)6);
     private static final org.apache.thrift.protocol.TField FILTER_STATUES_FIELD_DESC = new org.apache.thrift.protocol.TField("filterStatues", org.apache.thrift.protocol.TType.LIST, (short)7);
@@ -34298,13 +34298,13 @@ public class ClientService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)3, "tinfo"),
-      CREDENTIALS((short)4, "credentials"),
+      TINFO((short)2, "tinfo"),
+      CREDENTIALS((short)3, "credentials"),
       /**
        * 
        * @see AdminOperation
        */
-      OP((short)2, "op"),
+      OP((short)4, "op"),
       ARGUMENTS((short)5, "arguments"),
       FILTERTXIDS((short)6, "filtertxids"),
       FILTER_STATUES((short)7, "filterStatues"),
@@ -34324,11 +34324,11 @@ public class ClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 3: // TINFO
+          case 2: // TINFO
             return TINFO;
-          case 4: // CREDENTIALS
+          case 3: // CREDENTIALS
             return CREDENTIALS;
-          case 2: // OP
+          case 4: // OP
             return OP;
           case 5: // ARGUMENTS
             return ARGUMENTS;
@@ -35134,7 +35134,7 @@ public class ClientService {
             break;
           }
           switch (schemeField.id) {
-            case 3: // TINFO
+            case 2: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -35143,7 +35143,7 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 4: // CREDENTIALS
+            case 3: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -35152,7 +35152,7 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // OP
+            case 4: // OP
               if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
                 struct.op = org.apache.accumulo.core.clientImpl.thrift.AdminOperation.findByValue(iprot.readI32());
                 struct.setOpIsSet(true);
@@ -35237,11 +35237,6 @@ public class ClientService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.op != null) {
-          oprot.writeFieldBegin(OP_FIELD_DESC);
-          oprot.writeI32(struct.op.getValue());
-          oprot.writeFieldEnd();
-        }
         if (struct.tinfo != null) {
           oprot.writeFieldBegin(TINFO_FIELD_DESC);
           struct.tinfo.write(oprot);
@@ -35250,6 +35245,11 @@ public class ClientService {
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.op != null) {
+          oprot.writeFieldBegin(OP_FIELD_DESC);
+          oprot.writeI32(struct.op.getValue());
           oprot.writeFieldEnd();
         }
         if (struct.arguments != null) {

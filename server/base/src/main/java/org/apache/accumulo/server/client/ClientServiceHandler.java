@@ -486,28 +486,25 @@ public class ClientServiceHandler implements ClientService.Iface {
           context.getZooKeepers(), context.getZooKeepersSessionTimeOut(), secret);
       ZooStore<ClientServiceHandler> zs = new ZooStore<>(path, zk);
       String[] args = arguments.toArray(new String[0]);
-      boolean failedCommand = false;
 
       switch (op) {
         case FAIL: {
           for (int i = 1; i < args.length; i++) {
             if (!admin.prepFail(zs, zk, managerLockPath, args[i])) {
-              log.error("Could not fail transaction: {}", args[i]);
-              failedCommand = true;
+              throw new TException("Could not fail transaction: " + args[i]);
             }
           }
-          return Boolean.toString(failedCommand);
+          return "";
         }
         case DELETE: {
           for (int i = 1; i < args.length; i++) {
             if (admin.prepDelete(zs, zk, managerLockPath, args[i])) {
               admin.deleteLocks(zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, args[i]);
             } else {
-              log.error("Could not delete transaction: {}", args[i]);
-              failedCommand = true;
+              throw new TException("Could not delete transaction: " + args[i]);
             }
           }
-          return Boolean.toString(failedCommand);
+          return "";
         }
         case PRINT: {
           EnumSet<TStatus> fs = null;
