@@ -533,28 +533,29 @@ public class AdminUtil<T> {
     }
   }
 
-  // Follow on ticket to rework error messages and exception handling to
-  // coincide with changes to FateCommand
+  // Follow on ticket to rework exception handling to
+  // coincide with changes to FateCommand. At the moment, user has no feedback of why something
+  // failed without having to go check server logs.
   @SuppressFBWarnings(value = "DM_EXIT",
       justification = "TODO - should probably avoid System.exit here; "
           + "this code is used by the fate admin shell command")
   public boolean checkGlobalLock(ZooReaderWriter zk, ServiceLockPath path) {
     try {
       if (ServiceLock.getLockData(zk.getZooKeeper(), path) != null) {
-        System.err.println("ERROR: Manager lock is held, not running");
+        log.error("ERROR: Manager lock is held, not running");
         if (this.exitOnError)
           System.exit(1);
         else
           return false;
       }
     } catch (KeeperException e) {
-      System.err.println("ERROR: Could not read manager lock, not running " + e.getMessage());
+      log.error("ERROR: Could not read manager lock, not running " + e.getMessage());
       if (this.exitOnError)
         System.exit(1);
       else
         return false;
     } catch (InterruptedException e) {
-      System.err.println("ERROR: Could not read manager lock, not running" + e.getMessage());
+      log.error("ERROR: Could not read manager lock, not running" + e.getMessage());
       if (this.exitOnError)
         System.exit(1);
       else

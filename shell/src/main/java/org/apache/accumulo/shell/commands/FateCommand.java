@@ -92,7 +92,7 @@ public class FateCommand extends Command {
           } catch (NumberFormatException nfe) {
             // Failed to parse, will exit instead of displaying everything since the intention was
             // to potentially filter some data
-            System.out.printf("Invalid transaction ID format: %s%n", args[i]);
+            shellState.getWriter().printf("Invalid transaction ID format: %s%n", args[i]);
             return 1;
           }
         }
@@ -107,7 +107,7 @@ public class FateCommand extends Command {
           try {
             filterStatus.add(TStatus.valueOf(element));
           } catch (IllegalArgumentException iae) {
-            System.out.printf("Invalid transaction status name: %s%n", element);
+            shellState.getWriter().printf("Invalid transaction status name: %s%n", element);
             return 1;
           }
         }
@@ -118,7 +118,7 @@ public class FateCommand extends Command {
       shellState.printLines(Collections.singletonList(buffer).iterator(),
           !cl.hasOption(disablePaginationOpt.getOpt()));
     } else if ("dump".equals(cmd)) {
-      System.out.println(
+      shellState.getWriter().println(
           shellState.getAccumuloClient().instanceOperations().fateDump(cl.getArgList(), secret));
     } else {
       throw new ParseException("Invalid command option");

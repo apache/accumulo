@@ -490,9 +490,6 @@ public class ClientServiceHandler implements ClientService.Iface {
 
       switch (op) {
         case FAIL: {
-          if (ServiceLock.getLockData(zk.getZooKeeper(), managerLockPath) != null)
-            throw new TException("ERROR: Manager lock is held, not running");
-
           for (int i = 1; i < args.length; i++) {
             if (!admin.prepFail(zs, zk, managerLockPath, args[i])) {
               log.error("Could not fail transaction: {}", args[i]);
@@ -502,9 +499,6 @@ public class ClientServiceHandler implements ClientService.Iface {
           return Boolean.toString(failedCommand);
         }
         case DELETE: {
-          if (ServiceLock.getLockData(zk.getZooKeeper(), managerLockPath) != null)
-            throw new TException("ERROR: Manager lock is held, not running");
-
           for (int i = 1; i < args.length; i++) {
             if (admin.prepDelete(zs, zk, managerLockPath, args[i])) {
               admin.deleteLocks(zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, args[i]);
