@@ -296,14 +296,14 @@ public class GarbageCollectionAlgorithm {
 
     while (candidatesIter.hasNext()) {
       List<String> batchOfCandidates = gce.readCandidatesThatFitInMemory(candidatesIter);
-      collectBatch(gce, batchOfCandidates);
+      deleteBatch(gce, batchOfCandidates);
     }
   }
 
   /**
    * Given a sub-list of possible deletion candidates, process and remove valid deletion candidates.
    */
-  private void collectBatch(GarbageCollectionEnvironment gce, List<String> currentBatch)
+  private void deleteBatch(GarbageCollectionEnvironment gce, List<String> currentBatch)
       throws TableNotFoundException, IOException {
 
     long origSize = currentBatch.size();
