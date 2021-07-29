@@ -267,10 +267,10 @@ public class GarbageCollectionAlgorithm {
 
   }
 
-  private boolean getCandidates(GarbageCollectionEnvironment gce, String lastCandidate,
-      List<String> candidates) throws TableNotFoundException {
+  private Iterator<String> getCandidates(GarbageCollectionEnvironment gce)
+      throws TableNotFoundException, IOException {
     try (TraceScope candidatesSpan = Trace.startSpan("getCandidates")) {
-      return gce.getCandidates(lastCandidate, candidates);
+      return gce.getCandidates();
     }
   }
 
@@ -292,28 +292,29 @@ public class GarbageCollectionAlgorithm {
 
   public void collect(GarbageCollectionEnvironment gce) throws TableNotFoundException, IOException {
 
-    String lastCandidate = "";
+    Iterator<String> candidatesIter = getCandidates(gce);
 
-    boolean outOfMemory = true;
-    while (outOfMemory) {
-      List<String> candidates = new ArrayList<>();
-
-      outOfMemory = getCandidates(gce, lastCandidate, candidates);
-
-      if (candidates.isEmpty())
-        break;
-      else
-        lastCandidate = candidates.get(candidates.size() - 1);
-
-      long origSize = candidates.size();
-      gce.incrementCandidatesStat(origSize);
-
-      SortedMap<String,String> candidateMap = makeRelative(candidates);
-
-      confirmDeletesTrace(gce, candidateMap);
-      gce.incrementInUseStat(origSize - candidateMap.size());
-
-      deleteConfirmed(gce, candidateMap);
+    while (candidatesIter.hasNext()) {
+      List<String> batchOfCandidates = gce.readCandidatesThatFitInMemory(candidatesIter);
+      deleteBatch(gce, batchOfCandidates);
     }
   }
+
+  /**
+   * Given a sub-list of possible deletion candidates, process and remove valid deletion candidates.
+   */
+  private void deleteBatch(GarbageCollectionEnvironment gce, List<String> currentBatch)
+      throws TableNotFoundException, IOException {
+
+    long origSize = currentBatch.size();
+    gce.incrementCandidatesStat(origSize);
+
+    SortedMap<String,String> candidateMap = makeRelative(currentBatch);
+
+    confirmDeletesTrace(gce, candidateMap);
+    gce.incrementInUseStat(origSize - candidateMap.size());
+
+    deleteConfirmed(gce, candidateMap);
+  }
+
 }
