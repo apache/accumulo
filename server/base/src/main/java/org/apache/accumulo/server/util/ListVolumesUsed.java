@@ -78,7 +78,7 @@ public class ListVolumesUsed {
         + " deletes section (volume replacement occurs at deletion time)");
     volumes.clear();
 
-    Iterator<String> delPaths = context.getAmple().getGcCandidates(level, "");
+    Iterator<String> delPaths = context.getAmple().getGcCandidates(level);
     while (delPaths.hasNext()) {
       volumes.add(getTableURI(delPaths.next()));
     }

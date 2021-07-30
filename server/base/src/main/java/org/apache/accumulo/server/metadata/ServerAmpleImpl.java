@@ -32,9 +32,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -163,7 +161,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public Iterator<String> getGcCandidates(DataLevel level, String continuePoint) {
+  public Iterator<String> getGcCandidates(DataLevel level) {
     if (level == DataLevel.ROOT) {
       var zooReader = new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
       byte[] json;
@@ -173,19 +171,9 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         throw new RuntimeException(e);
       }
       Stream<String> candidates = RootGcCandidates.fromJson(json).stream().sorted();
-
-      if (continuePoint != null && !continuePoint.isEmpty()) {
-        candidates = candidates.dropWhile(candidate -> candidate.compareTo(continuePoint) <= 0);
-      }
-
       return candidates.iterator();
     } else if (level == DataLevel.METADATA || level == DataLevel.USER) {
       Range range = DeletesSection.getRange();
-      if (continuePoint != null && !continuePoint.isEmpty()) {
-        String continueRow = DeletesSection.encodeRow(continuePoint);
-        range = new Range(new Key(continueRow).followingKey(PartialKey.ROW), true,
-            range.getEndKey(), range.isEndKeyInclusive());
-      }
 
       Scanner scanner;
       try {

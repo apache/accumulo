@@ -22,6 +22,8 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -33,7 +35,7 @@ class PopulateZookeeper extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private TableInfo tableInfo;
+  private final TableInfo tableInfo;
 
   PopulateZookeeper(TableInfo ti) {
     this.tableInfo = ti;
@@ -58,9 +60,14 @@ class PopulateZookeeper extends ManagerRepo {
       manager.getTableManager().addTable(tableInfo.getTableId(), tableInfo.getNamespaceId(),
           tableInfo.getTableName());
 
-      for (Entry<String,String> entry : tableInfo.props.entrySet())
-        TablePropUtil.setTableProperty(manager.getContext(), tableInfo.getTableId(), entry.getKey(),
-            entry.getValue());
+      for (Entry<String,String> entry : tableInfo.props.entrySet()) {
+        if (!TablePropUtil.setTableProperty(manager.getContext(), tableInfo.getTableId(),
+            entry.getKey(), entry.getValue())) {
+          throw new ThriftTableOperationException(null, tableInfo.getTableName(),
+              TableOperation.CREATE, TableOperationExceptionType.OTHER,
+              "Property or value not valid " + entry.getKey() + "=" + entry.getValue());
+        }
+      }
 
       Tables.clearCache(manager.getContext());
       return new ChooseDir(tableInfo);

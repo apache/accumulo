@@ -94,7 +94,7 @@ public class ExternalCompactionMetadata {
     return ceid;
   }
 
-  public boolean getPropogateDeletes() {
+  public boolean getPropagateDeletes() {
     return propagateDeletes;
   }
 
