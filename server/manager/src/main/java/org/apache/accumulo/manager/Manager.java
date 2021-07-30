@@ -272,14 +272,12 @@ public class Manager extends AbstractServer
             + " all logs and file a bug.");
       }
       upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata(getContext(), nextEvent);
-      upgradeFilesFuture = upgradeCoordinator.upgradeFiles(getContext(), nextEvent);
     }
   }
 
   private final UpgradeCoordinator upgradeCoordinator = new UpgradeCoordinator();
 
   private Future<Void> upgradeMetadataFuture;
-  private Future<Void> upgradeFilesFuture;
 
   private ManagerClientServiceHandler clientHandler;
 
@@ -1120,9 +1118,6 @@ public class Manager extends AbstractServer
       // wait for metadata upgrade running in background to complete
       if (null != upgradeMetadataFuture) {
         upgradeMetadataFuture.get();
-      }
-      if (null != upgradeFilesFuture) {
-        upgradeFilesFuture.get();
       }
     } catch (ExecutionException | InterruptedException e) {
       throw new IllegalStateException("Metadata upgrade failed", e);

@@ -148,10 +148,7 @@ public class Upgrader9to10 implements Upgrader {
     upgradeRelativePaths(ctx, Ample.DataLevel.USER);
     upgradeDirColumns(ctx, Ample.DataLevel.USER);
     upgradeFileDeletes(ctx, Ample.DataLevel.USER);
-  }
-
-  @Override
-  public void upgradeFiles(ServerContext ctx) {
+    // special case where old files need to be deleted
     dropSortedMapWALFiles(ctx.getVolumeManager());
   }
 

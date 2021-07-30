@@ -35,6 +35,4 @@ public interface Upgrader {
   void upgradeRoot(ServerContext ctx);
 
   void upgradeMetadata(ServerContext ctx);
-
-  void upgradeFiles(ServerContext ctx);
 }
