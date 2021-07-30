@@ -34,12 +34,18 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GarbageCollectionTest {
+
+  private static final Logger log = LoggerFactory.getLogger(GarbageCollectionTest.class);
+
   static class TestGCE implements GarbageCollectionEnvironment {
     TreeSet<String> candidates = new TreeSet<>();
     ArrayList<String> blips = new ArrayList<>();
@@ -51,13 +57,17 @@ public class GarbageCollectionTest {
     TreeMap<String,Status> filesToReplicate = new TreeMap<>();
 
     @Override
-    public boolean getCandidates(String continuePoint, List<String> ret) {
-      Iterator<String> iter = candidates.tailSet(continuePoint, false).iterator();
-      while (iter.hasNext() && ret.size() < 3) {
-        ret.add(iter.next());
-      }
+    public Iterator<String> getCandidates() throws TableNotFoundException {
+      return List.copyOf(candidates).iterator();
+    }
 
-      return ret.size() == 3;
+    @Override
+    public List<String> readCandidatesThatFitInMemory(Iterator<String> candidatesIter) {
+      List<String> candidatesBatch = new ArrayList<>();
+      while (candidatesIter.hasNext() && candidatesBatch.size() < 3) {
+        candidatesBatch.add(candidatesIter.next());
+      }
+      return candidatesBatch;
     }
 
     @Override
@@ -123,6 +133,28 @@ public class GarbageCollectionTest {
     assertEquals(0, gce.deletes.size());
   }
 
+  // This test was created to help track down a ConcurrentModificationException error that was
+  // occurring with the unit tests once the GC was refactored to use a single iterator for the
+  // collect process. This was a minimal test case that would cause the exception to occur.
+  @Test
+  public void minimalDelete() throws Exception {
+    TestGCE gce = new TestGCE();
+
+    gce.candidates.add("hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/5/t0/F005.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/6/t0/F006.rf");
+
+    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
+    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
+    gce.addFileReference("6", null, "hdfs://foo.com:6000/accumulo/tables/6/t0/F006.rf");
+
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+    gca.collect(gce);
+
+    assertRemoved(gce, "hdfs://foo.com:6000/accumulo/tables/5/t0/F005.rf");
+  }
+
   @Test
   public void testBasic() throws Exception {
     TestGCE gce = new TestGCE();
@@ -164,6 +196,101 @@ public class GarbageCollectionTest {
     assertRemoved(gce, "hdfs://foo.com:6000/accumulo/tables/4/t0/F003.rf",
         "hdfs://foo.com:6000/accumulo/tables/4/t0/F004.rf");
 
+  }
+
+  /*
+   * Additional test with more candidates. Also, not a multiple of 3 as the test above. Since the
+   * unit tests always return 3 candidates in a batch, some edge cases could be missed if that was
+   * always the case.
+   */
+  @Test
+  public void testBasic2() throws Exception {
+    TestGCE gce = new TestGCE();
+
+    gce.candidates.add("hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/5/t0/F005.rf");
+
+    gce.candidates.add("hdfs://foo:6000/accumulo/tables/5/t0/F000.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/5/t0/F001.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/6/t1/F005.rf");
+
+    gce.candidates.add("hdfs://foo:6000/accumulo/tables/6/t0/F000.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/6/t0/F001.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/7/t0/F005.rf");
+
+    gce.candidates.add("hdfs://foo:6000/accumulo/tables/7/t0/F000.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/7/t0/F001.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/8/t0/F005.rf");
+
+    gce.candidates.add("hdfs://foo:6000/accumulo/tables/8/t0/F000.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/8/t0/F001.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/9/t0/F005.rf");
+
+    gce.candidates.add("hdfs://foo:6000/accumulo/tables/9/t0/F000.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/9/t0/F001.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/10/t0/F005.rf");
+
+    gce.candidates.add("hdfs://foo:6000/accumulo/tables/10/t0/F000.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/10/t0/F001.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/11/t0/F005.rf");
+
+    gce.candidates.add("hdfs://foo:6000/accumulo/tables/11/t0/F000.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/11/t0/F001.rf");
+
+    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
+    gce.addFileReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t0/F001.rf");
+    gce.addFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0//F002.rf");
+    gce.addFileReference("5", null, "hdfs://foo.com:6000/accumulo/tables/5/t0/F005.rf");
+
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+
+    gca.collect(gce);
+    // items to be removed from candidates
+    String[] toBeRemoved = {"hdfs://foo.com:6000/accumulo/tables/5/t0/F001.rf",
+        "hdfs://foo:6000/accumulo/tables/5/t0/F000.rf",
+        "hdfs://foo.com:6000/accumulo/tables/6/t1/F005.rf",
+        "hdfs://foo:6000/accumulo/tables/6/t0/F000.rf",
+        "hdfs://foo.com:6000/accumulo/tables/6/t0/F001.rf",
+        "hdfs://foo.com:6000/accumulo/tables/7/t0/F005.rf",
+        "hdfs://foo:6000/accumulo/tables/7/t0/F000.rf",
+        "hdfs://foo.com:6000/accumulo/tables/7/t0/F001.rf",
+        "hdfs://foo.com:6000/accumulo/tables/8/t0/F005.rf",
+        "hdfs://foo:6000/accumulo/tables/8/t0/F000.rf",
+        "hdfs://foo.com:6000/accumulo/tables/8/t0/F001.rf",
+        "hdfs://foo.com:6000/accumulo/tables/9/t0/F005.rf",
+        "hdfs://foo:6000/accumulo/tables/9/t0/F000.rf",
+        "hdfs://foo.com:6000/accumulo/tables/9/t0/F001.rf",
+        "hdfs://foo.com:6000/accumulo/tables/10/t0/F005.rf",
+        "hdfs://foo:6000/accumulo/tables/10/t0/F000.rf",
+        "hdfs://foo.com:6000/accumulo/tables/10/t0/F001.rf",
+        "hdfs://foo.com:6000/accumulo/tables/11/t0/F005.rf",
+        "hdfs://foo:6000/accumulo/tables/11/t0/F000.rf",
+        "hdfs://foo.com:6000/accumulo/tables/11/t0/F001.rf"};
+    assertRemoved(gce, toBeRemoved);
+
+    // Remove the reference to this flush file, run the GC which should not trim it from the
+    // candidates, and assert that it's gone
+    gce.removeFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F000.rf");
+    gca.collect(gce);
+    assertRemoved(gce, "hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
+
+    // Removing a reference to a file that wasn't in the candidates should do nothing
+    gce.removeFileReference("4", null, "hdfs://foo.com:6000/accumulo/tables/4/t0/F002.rf");
+    gca.collect(gce);
+    assertRemoved(gce);
+
+    // Remove the reference to a file in the candidates should cause it to be removed
+    gce.removeFileReference("4", null, "hdfs://foo:6000/accumulo/tables/4/t0/F001.rf");
+    gca.collect(gce);
+    assertRemoved(gce, "hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
+
+    // Adding more candidates which do no have references should be removed
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4/t0/F003.rf");
+    gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4/t0/F004.rf");
+    gca.collect(gce);
+    assertRemoved(gce, "hdfs://foo.com:6000/accumulo/tables/4/t0/F003.rf",
+        "hdfs://foo.com:6000/accumulo/tables/4/t0/F004.rf");
   }
 
   @Test

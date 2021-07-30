@@ -40,19 +40,22 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 public interface GarbageCollectionEnvironment {
 
   /**
-   * Return a list of paths to files and dirs which are candidates for deletion from a given table,
-   * {@link RootTable#NAME} or {@link MetadataTable#NAME}
+   * Return an iterator which points to a list of paths to files and dirs which are candidates for
+   * deletion from a given table, {@link RootTable#NAME} or {@link MetadataTable#NAME}
    *
-   * @param continuePoint
-   *          A row to resume from if a previous invocation was stopped due to finding an extremely
-   *          large number of candidates to remove which would have exceeded memory limitations
-   * @param candidates
-   *          A collection of candidates files for deletion, may not be the complete collection of
-   *          files for deletion at this point in time
-   * @return true if the results are short due to insufficient memory, otherwise false
+   * @return an iterator referencing a List containing deletion candidates
    */
-  boolean getCandidates(String continuePoint, List<String> candidates)
-      throws TableNotFoundException;
+  Iterator<String> getCandidates() throws TableNotFoundException;
+
+  /**
+   * Given an iterator to a deletion candidate list, return a sub-list of candidates which fit
+   * within provided memory constraints.
+   *
+   * @param candidatesIter
+   *          iterator referencing a List of possible deletion candidates
+   * @return a List of possible deletion candidates
+   */
+  List<String> readCandidatesThatFitInMemory(Iterator<String> candidatesIter);
 
   /**
    * Fetch a list of paths for all bulk loads in progress (blip) from a given table,
