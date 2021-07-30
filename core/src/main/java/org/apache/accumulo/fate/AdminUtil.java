@@ -448,7 +448,7 @@ public class AdminUtil<T> {
     try {
       txid = Long.parseLong(txidStr, 16);
     } catch (NumberFormatException nfe) {
-      System.out.printf("Invalid transaction ID format: %s%n", txidStr);
+      log.error("Invalid transaction ID format: {}", txidStr);
       return false;
     }
     boolean state = false;
@@ -456,7 +456,7 @@ public class AdminUtil<T> {
     TStatus ts = zs.getStatus(txid);
     switch (ts) {
       case UNKNOWN:
-        System.out.printf("Invalid transaction ID: %016x%n", txid);
+        log.error("Invalid transaction ID: {}", txid);
         break;
 
       case IN_PROGRESS:
@@ -464,7 +464,7 @@ public class AdminUtil<T> {
       case FAILED:
       case FAILED_IN_PROGRESS:
       case SUCCESSFUL:
-        System.out.printf("Deleting transaction: %016x (%s)%n", txid, ts);
+        log.info("Deleting transaction: {}, {}", txid, ts);
         zs.delete(txid);
         state = true;
         break;
@@ -483,7 +483,7 @@ public class AdminUtil<T> {
     try {
       txid = Long.parseLong(txidStr, 16);
     } catch (NumberFormatException nfe) {
-      System.out.printf("Invalid transaction ID format: %s%n", txidStr);
+      log.error("Invalid transaction ID format: {}", txidStr);
       return false;
     }
     boolean state = false;
@@ -491,23 +491,23 @@ public class AdminUtil<T> {
     TStatus ts = zs.getStatus(txid);
     switch (ts) {
       case UNKNOWN:
-        System.out.printf("Invalid transaction ID: %016x%n", txid);
+        log.error("Invalid transaction ID: {}", txid);
         break;
 
       case IN_PROGRESS:
       case NEW:
-        System.out.printf("Failing transaction: %016x (%s)%n", txid, ts);
+        log.info("Failing transaction: {}, {}", txid, ts);
         zs.setStatus(txid, TStatus.FAILED_IN_PROGRESS);
         state = true;
         break;
 
       case SUCCESSFUL:
-        System.out.printf("Transaction already completed: %016x (%s)%n", txid, ts);
+        log.info("Transaction already completed: {}, {}", txid, ts);
         break;
 
       case FAILED:
       case FAILED_IN_PROGRESS:
-        System.out.printf("Transaction already failed: %016x (%s)%n", txid, ts);
+        log.info("Transaction already failed: {}, {}", txid, ts);
         state = true;
         break;
     }
@@ -533,9 +533,6 @@ public class AdminUtil<T> {
     }
   }
 
-  // Follow on ticket to rework exception handling to
-  // coincide with changes to FateCommand. At the moment, user has no feedback of why something
-  // failed without having to go check server logs.
   @SuppressFBWarnings(value = "DM_EXIT",
       justification = "TODO - should probably avoid System.exit here; "
           + "this code is used by the fate admin shell command")
