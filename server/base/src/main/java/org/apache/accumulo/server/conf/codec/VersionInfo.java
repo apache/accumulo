@@ -29,18 +29,20 @@ import java.util.Objects;
 import java.util.StringJoiner;
 
 /**
- * Immutable class of serialization metadata. This data should be written / appear early in the
- * encoded bytes and be uncompressed so that decisions can be made that may make deserilization
- * unnecessary.
+ * Serialization metadata used to verify cached values match stored values. Storing the metadata
+ * with the properties allows for comparison of properties and can be used to ensure that vales
+ * being written to the backend store have not changed. This metadata should be written / appear
+ * early in the encoded bytes and be uncompressed so that decisions can be made that may make
+ * deserialization unnecessary.
  * <p>
- * The values are:
- * <ul>
- * <li>dataVersion - allows for quick comparison by comparing versions numbers</li>
- * <li>timestamp - could allow for deconfliction of concurrent updates</li>
- * </ul>
+ * Note: Avoid using -1 because that has significance in ZooKeeper - writing a ZooKeeper node with a
+ * version of -1 disables the ZooKeeper expected version checking and just overwrites the node.
+ * <p>
+ * Instances of this class are immutable.
  */
 public class VersionInfo {
 
+  // flag value for initialization - on store the version will be 0.
   public static final int NO_VERSION = -2;
 
   private static final DateTimeFormatter tsFormatter =
@@ -78,32 +80,29 @@ public class VersionInfo {
   }
 
   /**
-   * Properties are stored with a data version for serialization. This allows for comparison of
-   * properties and can be used to ensure that vales being written to the backend store have not
-   * changed. The data version should incremented when serialized so that the instance value is
-   * consistent with the stored value.
-   * <p>
-   * Avoids using -1 because that has significance in ZooKeeper - writing a ZooKeeper node with a
-   * version of -1 disables the ZooKeeper expected version checking and just over writes the node.
+   * Get the current data version. The version should match the node version of the stored data.
+   * This value returned should be used on data writes as the expected version. If the data write
+   * fails do to unexpected version, it signals that the node version has changed.
    *
-   * @return negative value if initial version, otherwise the data version when the properties were
-   *         serialized.
+   * @return 0 for initial version, otherwise the data version when the properties were serialized.
    */
   public int getDataVersion() {
-    if (dataVersion < 0) {
-      return 0;
-    }
-    return dataVersion;
+    return Math.max(dataVersion, 0);
   }
 
   /**
    * Calculates the version that should be stored when serialized. The serialized version, when
-   * stored, should match the version that will be assigned.
+   * stored, should match the version that will be assigned. This way, data reading the serialized
+   * version can compare the stored version with the node version at any time to detect if the node
+   * version has been updated.
+   * <p>
+   * The initialization of the data version to a negative value allows this value to be calculated
+   * correctly for the first serialization. On the first store, the expected version will be 0.
    *
    * @return the next version number that should be serialized, or 0 if this is the initial version.
    */
   public int getNextVersion() {
-    return Math.max(0, dataVersion + 1);
+    return Math.max(dataVersion + 1, 0);
   }
 
   /**
@@ -116,6 +115,11 @@ public class VersionInfo {
     return timestamp;
   }
 
+  /**
+   * Get a String formatted version of the timestamp.
+   *
+   * @return the timestamp formatted as an ISO time.
+   */
   public String getTimestampISO() {
     return tsFormatter.format(timestamp);
   }

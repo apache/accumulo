@@ -51,7 +51,7 @@ public interface VersionedProperties {
   String getProperty(String key);
 
   /**
-   * Get an unmodifiable map with all of the property, values.
+   * Get an unmodifiable map with all property, values.
    *
    * @return An unmodifiable view of the property key, values.
    */
@@ -75,10 +75,16 @@ public interface VersionedProperties {
    */
   int removeProperties(Collection<String> keys);
 
+  /**
+   * Get the versioning information for the instance.
+   *
+   * @return the versioning information.
+   */
   VersionInfo getVersionInfo();
 
   /**
-   * Provide user-friend display string.
+   * Provide user-friend display string of the version information and the property key / value
+   * pairs.
    *
    * @param prettyPrint
    *          if true, insert new lines to improve readability.

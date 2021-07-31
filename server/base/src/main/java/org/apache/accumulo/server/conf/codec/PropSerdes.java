@@ -33,10 +33,10 @@ public interface PropSerdes {
   byte[] toBytes(VersionedProperties versionedProps);
 
   /**
-   * Create versioned properties from a byte array.
+   * Deserialize a byte array amd create an instance of versioned properties.
    *
    * @param bytes
-   *          a byte array
+   *          a byte array of previously serialized versioned properties.
    * @return an instance of versioned properties.
    */
   VersionedProperties fromBytes(byte[] bytes);

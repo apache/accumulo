@@ -23,6 +23,13 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.StringJoiner;
 
+/**
+ * Serialization metadata to allow for evolution of the encoding used for property storage. This
+ * info is expected to be stored first in the serialization and uncompressed so that the handling of
+ * subsequent fields and data can be processed correctly.
+ * <p>
+ * Instances of this class are immutable.
+ */
 public class EncodingOptions {
 
   public static final EncodingOptions COMPRESSED_V1 =

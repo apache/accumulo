@@ -71,12 +71,7 @@ public class GzipPropEncoding implements PropSerdes {
 
       dos.flush();
 
-      byte[] bytes = bos.toByteArray();
-
-      // update version info on successful encoding.
-      // vProps.updateVersionInfo(versionInfo);
-
-      return bytes;
+      return bos.toByteArray();
 
     } catch (IOException ex) {
       throw new IllegalStateException("Encountered error serializing properties", ex);
