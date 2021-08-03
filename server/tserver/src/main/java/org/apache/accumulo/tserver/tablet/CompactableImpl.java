@@ -447,7 +447,7 @@ public class CompactableImpl implements Compactable {
      *
      * @return true if the files were reserved and false otherwise
      */
-    boolean reserveFiles(CompactionJob job, Set<StoredTabletFile> jobFiles) {
+    private boolean reserveFiles(CompactionJob job, Set<StoredTabletFile> jobFiles) {
 
       Preconditions.checkArgument(!jobFiles.isEmpty());
 
@@ -510,7 +510,8 @@ public class CompactableImpl implements Compactable {
      * @param newFile
      *          The file produced by a compaction. If the compaction failed, this can be null.
      */
-    void completed(CompactionJob job, Set<StoredTabletFile> jobFiles, StoredTabletFile newFile) {
+    private void completed(CompactionJob job, Set<StoredTabletFile> jobFiles,
+        StoredTabletFile newFile) {
       Preconditions.checkArgument(!jobFiles.isEmpty());
       Preconditions.checkState(allCompactingFiles.removeAll(jobFiles));
       if (newFile != null) {
@@ -652,7 +653,7 @@ public class CompactableImpl implements Compactable {
     return removed;
   }
 
-  private boolean noneRunning(CompactionKind kind) {
+  private synchronized boolean noneRunning(CompactionKind kind) {
     return runningJobs.stream().noneMatch(job -> job.getKind() == kind);
   }
 
