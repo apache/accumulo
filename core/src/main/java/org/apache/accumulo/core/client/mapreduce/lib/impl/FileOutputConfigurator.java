@@ -134,15 +134,15 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    * @param conf
    *          the Hadoop configuration object to configure
    * @param compressionType
-   *          one of "none", "gz", "lzo", "snappy", or "qat"
+   *          one of "none", "gz", "lzo", or "snappy"
    * @since 1.6.0
    */
   public static void setCompressionType(Class<?> implementingClass, Configuration conf,
       String compressionType) {
     if (compressionType == null
-        || !Arrays.asList("none", "gz", "lzo", "snappy", "qat").contains(compressionType))
+        || !Arrays.asList("none", "gz", "lzo", "snappy").contains(compressionType))
       throw new IllegalArgumentException(
-          "Compression type must be one of: none, gz, lzo, snappy, qat");
+          "Compression type must be one of: none, gz, lzo, or snappy");
     setAccumuloProperty(implementingClass, conf, Property.TABLE_FILE_COMPRESSION_TYPE,
         compressionType);
   }

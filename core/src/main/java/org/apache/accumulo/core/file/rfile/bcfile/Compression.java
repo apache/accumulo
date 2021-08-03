@@ -77,8 +77,6 @@ public final class Compression {
     }
   }
 
-  /** Intel® QuickAssist codec **/
-  public static final String COMPRESSION_QAT = "qat";
   /** snappy codec **/
   public static final String COMPRESSION_SNAPPY = "snappy";
   /** compression: gzip */
@@ -222,7 +220,21 @@ public final class Compression {
 
     GZ(COMPRESSION_GZ) {
 
-      private transient DefaultCodec codec = null;
+      private static final String USE_QAT_PROPERTY = "use.qat";
+
+      /** Intel® QuickAssist codec **/
+      private static final String DEFAULT_QAT_CLASS =
+          "org.apache.hadoop.io.compress.QatCodec.class";
+
+      /**
+       * QAT Buffer size option
+       */
+      private static final String QAT_BUFFER_SIZE_OPT = "io.compression.codec.qat.buffersize";
+
+      /**
+       * QAT Default buffer size value
+       */
+      private static final int QAT_DEFAULT_BUFFER_SIZE = 256 * 1024;
 
       /**
        * Configuration option for gz buffer size
@@ -234,6 +246,11 @@ public final class Compression {
        */
       private static final int DEFAULT_BUFFER_SIZE = 32 * 1024;
 
+      private final Boolean USE_QAT =
+          Boolean.valueOf(System.getProperty(USE_QAT_PROPERTY, "false"));
+      private final AtomicBoolean checkedQAT = new AtomicBoolean(false);
+      private transient CompressionCodec codec = null;
+
       @Override
       CompressionCodec getCodec() {
         return codec;
@@ -241,7 +258,14 @@ public final class Compression {
 
       @Override
       public void initializeDefaultCodec() {
-        codec = (DefaultCodec) createNewCodec(DEFAULT_BUFFER_SIZE);
+        if (USE_QAT) {
+          if (!checkedQAT.get()) {
+            checkedQAT.set(true);
+            codec = createNewCodec(QAT_DEFAULT_BUFFER_SIZE);
+          }
+        } else {
+          codec = createNewCodec(DEFAULT_BUFFER_SIZE);
+        }
       }
 
       /**
@@ -253,33 +277,71 @@ public final class Compression {
        */
       @Override
       protected CompressionCodec createNewCodec(final int bufferSize) {
-        DefaultCodec myCodec = new DefaultCodec();
-        Configuration myConf = new Configuration(conf);
-        // only use the buffersize if > 0, otherwise we'll use
-        // the default defined within the codec
-        if (bufferSize > 0)
-          myConf.setInt(BUFFER_SIZE_OPT, bufferSize);
-        myCodec.setConf(myConf);
-        return myCodec;
+        if (USE_QAT) {
+          String extClazz =
+              (conf.get(CONF_QAT_CLASS) == null ? System.getProperty(CONF_QAT_CLASS) : null);
+          String clazz = (extClazz != null) ? extClazz : DEFAULT_QAT_CLASS;
+          try {
+            LOG.info("Trying to load qat codec class: " + clazz);
+
+            Configuration myConf = new Configuration(conf);
+            // only use the buffersize if > 0, otherwise we'll use
+            // the default defined within the codec
+            if (bufferSize > 0)
+              myConf.setInt(QAT_BUFFER_SIZE_OPT, bufferSize);
+
+            CompressionCodec c =
+                (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+            if (c instanceof Configurable) {
+              ((Configurable) c).setConf(myConf);
+            }
+            return c;
+          } catch (ClassNotFoundException e) {
+            LOG.error("Unable to create QAT codec", e);
+          }
+          return null;
+        } else {
+          DefaultCodec myCodec = new DefaultCodec();
+          Configuration myConf = new Configuration(conf);
+          // only use the buffersize if > 0, otherwise we'll use
+          // the default defined within the codec
+          if (bufferSize > 0)
+            myConf.setInt(BUFFER_SIZE_OPT, bufferSize);
+          myCodec.setConf(myConf);
+          return myCodec;
+        }
       }
 
       @Override
       public InputStream createDecompressionStream(InputStream downStream,
           Decompressor decompressor, int downStreamBufferSize) throws IOException {
-        // Set the internal buffer size to read from down stream.
-        CompressionCodec decomCodec = codec;
-        // if we're not using the default, let's pull from the loading cache
-        if (DEFAULT_BUFFER_SIZE != downStreamBufferSize) {
-          Entry<Algorithm,Integer> sizeOpt = Maps.immutableEntry(GZ, downStreamBufferSize);
-          try {
-            decomCodec = codecCache.get(sizeOpt);
-          } catch (ExecutionException e) {
-            throw new IOException(e);
+
+        if (USE_QAT) {
+          InputStream bis1 = null;
+          if (downStreamBufferSize > 0) {
+            bis1 = new BufferedInputStream(downStream, downStreamBufferSize);
+          } else {
+            bis1 = downStream;
           }
+          CompressionInputStream cis = codec.createInputStream(bis1, decompressor);
+          BufferedInputStream bis2 = new BufferedInputStream(cis, DATA_IBUF_SIZE);
+          return bis2;
+        } else {
+          // Set the internal buffer size to read from down stream.
+          CompressionCodec decomCodec = codec;
+          // if we're not using the default, let's pull from the loading cache
+          if (DEFAULT_BUFFER_SIZE != downStreamBufferSize) {
+            Entry<Algorithm,Integer> sizeOpt = Maps.immutableEntry(GZ, downStreamBufferSize);
+            try {
+              decomCodec = codecCache.get(sizeOpt);
+            } catch (ExecutionException e) {
+              throw new IOException(e);
+            }
+          }
+          CompressionInputStream cis = decomCodec.createInputStream(downStream, decompressor);
+          BufferedInputStream bis2 = new BufferedInputStream(cis, DATA_IBUF_SIZE);
+          return bis2;
         }
-        CompressionInputStream cis = decomCodec.createInputStream(downStream, decompressor);
-        BufferedInputStream bis2 = new BufferedInputStream(cis, DATA_IBUF_SIZE);
-        return bis2;
       }
 
       @Override
@@ -300,7 +362,7 @@ public final class Compression {
 
       @Override
       public boolean isSupported() {
-        return true;
+        return codec != null;
       }
     },
 
@@ -343,108 +405,6 @@ public final class Compression {
       public boolean isSupported() {
         return true;
       }
-    },
-
-    QAT(COMPRESSION_QAT) {
-
-      private static final String DEFAULT_QAT_CLASS =
-          "org.apache.hadoop.io.compress.QatCodec.class";
-
-      private final AtomicBoolean checked = new AtomicBoolean(false);
-      private transient CompressionCodec codec = null;
-
-      /**
-       * Buffer size option
-       */
-      private static final String BUFFER_SIZE_OPT = "io.compression.codec.qat.buffersize";
-
-      /**
-       * Default buffer size value
-       */
-      private static final int DEFAULT_BUFFER_SIZE = 256 * 1024;
-
-      @Override
-      CompressionCodec getCodec() throws IOException {
-        return codec;
-      }
-
-      @Override
-      void initializeDefaultCodec() {
-        if (!checked.get()) {
-          checked.set(true);
-          codec = createNewCodec(DEFAULT_BUFFER_SIZE);
-        }
-      }
-
-      @Override
-      CompressionCodec createNewCodec(int bufferSize) {
-        String extClazz =
-            (conf.get(CONF_QAT_CLASS) == null ? System.getProperty(CONF_QAT_CLASS) : null);
-        String clazz = (extClazz != null) ? extClazz : DEFAULT_QAT_CLASS;
-        try {
-          LOG.info("Trying to load qat codec class: " + clazz);
-
-          Configuration myConf = new Configuration(conf);
-          // only use the buffersize if > 0, otherwise we'll use
-          // the default defined within the codec
-          if (bufferSize > 0)
-            myConf.setInt(BUFFER_SIZE_OPT, bufferSize);
-
-          CompressionCodec c =
-              (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
-          if (c instanceof Configurable) {
-            ((Configurable) c).setConf(conf);
-          }
-          return c;
-        } catch (ClassNotFoundException e) {
-          // that is okay
-        }
-
-        return null;
-      }
-
-      @Override
-      public InputStream createDecompressionStream(InputStream downStream,
-          Decompressor decompressor, int downStreamBufferSize) throws IOException {
-        if (!isSupported()) {
-          throw new IOException("QAT codec class not specified. Did you forget to set property "
-              + CONF_QAT_CLASS + "?");
-        }
-        InputStream bis1 = null;
-        if (downStreamBufferSize > 0) {
-          bis1 = new BufferedInputStream(downStream, downStreamBufferSize);
-        } else {
-          bis1 = downStream;
-        }
-        CompressionInputStream cis = codec.createInputStream(bis1, decompressor);
-        BufferedInputStream bis2 = new BufferedInputStream(cis, DATA_IBUF_SIZE);
-        return bis2;
-      }
-
-      @Override
-      public OutputStream createCompressionStream(OutputStream downStream, Compressor compressor,
-          int downStreamBufferSize) throws IOException {
-        if (!isSupported()) {
-          throw new IOException("QAT codec class not specified. Did you forget to set property "
-              + CONF_QAT_CLASS + "?");
-        }
-        OutputStream bos1 = null;
-        if (downStreamBufferSize > 0) {
-          bos1 = new BufferedOutputStream(downStream, downStreamBufferSize);
-        } else {
-          bos1 = downStream;
-        }
-        CompressionOutputStream cos = codec.createOutputStream(bos1, compressor);
-        BufferedOutputStream bos2 =
-            new BufferedOutputStream(new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
-        return bos2;
-      }
-
-      @Override
-      public boolean isSupported() {
-        return codec != null;
-      }
-
     },
 
     SNAPPY(COMPRESSION_SNAPPY) {
