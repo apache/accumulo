@@ -697,7 +697,7 @@ public enum Property {
       "This property can be set to allow the LoadBalanceByTable load balancer"
           + " to change the called Load Balancer for this table"),
   TABLE_FILE_COMPRESSION_TYPE("table.file.compress.type", "gz", PropertyType.STRING,
-      "One of gz,snappy,lzo,none"),
+      "One of gz,snappy,lzo,qat,none"),
   TABLE_FILE_COMPRESSED_BLOCK_SIZE("table.file.compress.blocksize", "100K", PropertyType.MEMORY,
       "Similar to the hadoop io.seqfile.compress.blocksize setting, so that"
           + " files have better query performance. The maximum value for this is "
