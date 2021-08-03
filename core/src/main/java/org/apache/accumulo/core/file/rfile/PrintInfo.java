@@ -106,10 +106,10 @@ public class PrintInfo implements KeywordExecutable {
     }
 
     public void print(String indent) {
-      System.out.println(indent + "Up to size      count      %-age");
+      System.out.println(indent + "Up to size      Count      %-age");
       for (int i = 1; i < countBuckets.length; i++) {
-        System.out.println(String.format("%s%11.0f : %10d %6.2f%%", indent, Math.pow(10, i),
-            countBuckets[i], sizeBuckets[i] * 100. / totalSize));
+        System.out.println(String.format("%s%11s : %10d %6.2f%%", indent, bigNumberForSize(Double.valueOf(Math.pow(10, i)).longValue()),
+                countBuckets[i], sizeBuckets[i] * 100. / totalSize));
       }
     }
   }
