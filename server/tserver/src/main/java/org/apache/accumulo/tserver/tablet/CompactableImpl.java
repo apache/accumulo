@@ -688,7 +688,6 @@ public class CompactableImpl implements Compactable {
     }
 
     if (completed) {
-      // TODO could be closed
       markChopped();
       TabletLogger.selected(getExtent(), CompactionKind.CHOP, Set.of());
     }
