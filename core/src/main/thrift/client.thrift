@@ -339,11 +339,11 @@ service ClientService {
   )
 
   string executeAdminOperation(
-      2:trace.TInfo tinfo
-      3:security.TCredentials credentials
-      4:AdminOperation op
-      5:list<string> txids
-      6:list<string> filterStatues
+      1:trace.TInfo tinfo
+      2:security.TCredentials credentials
+      3:AdminOperation op
+      4:list<string> txids
+      5:list<string> filterStatues
     ) throws (
       1:ThriftSecurityException sec
     )

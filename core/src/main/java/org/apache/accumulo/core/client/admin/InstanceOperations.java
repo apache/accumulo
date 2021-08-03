@@ -151,25 +151,25 @@ public interface InstanceOperations {
   void waitForBalance() throws AccumuloException;
 
   /**
-   * Throws an exception if a tablet server can not be contacted.
+   * Fails a fate transaction based on the given txID. At least one txID must be provided.
    *
    * @param txids
-   *          Transaction IDs.
+   *          Transaction IDs to fail.
    * @since 2.1.0
    */
   void fateFail(List<String> txids) throws AccumuloException;
 
   /**
-   * Throws an exception if a tablet server can not be contacted.
+   * Deletes a fate transaction based on the given txID. At least one txID must be provided.
    *
    * @param txids
-   *          Transaction IDs.
+   *          Transaction IDs to delete.
    * @since 2.1.0
    */
   void fateDelete(List<String> txids) throws AccumuloException;
 
   /**
-   * Throws an exception if a tablet server can not be contacted.
+   * Will consoldate these two functions below.
    *
    * @param txids
    *          Transaction IDs.
@@ -181,7 +181,7 @@ public interface InstanceOperations {
   String fatePrint(List<String> txids, List<String> tStatus) throws AccumuloException;
 
   /**
-   * Throws an exception if a tablet server can not be contacted.
+   *
    *
    * @param txids
    *          Transaction IDs.

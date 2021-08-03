@@ -34265,11 +34265,11 @@ public class ClientService {
   public static class executeAdminOperation_args implements org.apache.thrift.TBase<executeAdminOperation_args, executeAdminOperation_args._Fields>, java.io.Serializable, Cloneable, Comparable<executeAdminOperation_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("executeAdminOperation_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)3);
-    private static final org.apache.thrift.protocol.TField OP_FIELD_DESC = new org.apache.thrift.protocol.TField("op", org.apache.thrift.protocol.TType.I32, (short)4);
-    private static final org.apache.thrift.protocol.TField TXIDS_FIELD_DESC = new org.apache.thrift.protocol.TField("txids", org.apache.thrift.protocol.TType.LIST, (short)5);
-    private static final org.apache.thrift.protocol.TField FILTER_STATUES_FIELD_DESC = new org.apache.thrift.protocol.TField("filterStatues", org.apache.thrift.protocol.TType.LIST, (short)6);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField OP_FIELD_DESC = new org.apache.thrift.protocol.TField("op", org.apache.thrift.protocol.TType.I32, (short)3);
+    private static final org.apache.thrift.protocol.TField TXIDS_FIELD_DESC = new org.apache.thrift.protocol.TField("txids", org.apache.thrift.protocol.TType.LIST, (short)4);
+    private static final org.apache.thrift.protocol.TField FILTER_STATUES_FIELD_DESC = new org.apache.thrift.protocol.TField("filterStatues", org.apache.thrift.protocol.TType.LIST, (short)5);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new executeAdminOperation_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new executeAdminOperation_argsTupleSchemeFactory();
@@ -34286,15 +34286,15 @@ public class ClientService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)2, "tinfo"),
-      CREDENTIALS((short)3, "credentials"),
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
       /**
        * 
        * @see AdminOperation
        */
-      OP((short)4, "op"),
-      TXIDS((short)5, "txids"),
-      FILTER_STATUES((short)6, "filterStatues");
+      OP((short)3, "op"),
+      TXIDS((short)4, "txids"),
+      FILTER_STATUES((short)5, "filterStatues");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -34310,15 +34310,15 @@ public class ClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 2: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 3: // CREDENTIALS
+          case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 4: // OP
+          case 3: // OP
             return OP;
-          case 5: // TXIDS
+          case 4: // TXIDS
             return TXIDS;
-          case 6: // FILTER_STATUES
+          case 5: // FILTER_STATUES
             return FILTER_STATUES;
           default:
             return null;
@@ -34944,7 +34944,7 @@ public class ClientService {
             break;
           }
           switch (schemeField.id) {
-            case 2: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -34953,7 +34953,7 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 3: // CREDENTIALS
+            case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
                 struct.credentials.read(iprot);
@@ -34962,7 +34962,7 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 4: // OP
+            case 3: // OP
               if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
                 struct.op = org.apache.accumulo.core.clientImpl.thrift.AdminOperation.findByValue(iprot.readI32());
                 struct.setOpIsSet(true);
@@ -34970,7 +34970,7 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 5: // TXIDS
+            case 4: // TXIDS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
                   org.apache.thrift.protocol.TList _list94 = iprot.readListBegin();
@@ -34988,7 +34988,7 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 6: // FILTER_STATUES
+            case 5: // FILTER_STATUES
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
                   org.apache.thrift.protocol.TList _list97 = iprot.readListBegin();
