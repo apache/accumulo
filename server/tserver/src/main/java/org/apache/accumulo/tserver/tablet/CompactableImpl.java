@@ -168,7 +168,7 @@ public class CompactableImpl implements Compactable {
    *
    * <p>
    * The class is structured in such a way that the above functionality can be unit tested.
-   * 
+   *
    * <p>
    * This class does no synchronization of its own and relies on CompactableImpl to do all needed
    * synchronization. CompactableImpl must makes changes to files and other state like running jobs
