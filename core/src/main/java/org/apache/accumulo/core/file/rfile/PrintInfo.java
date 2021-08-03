@@ -40,6 +40,7 @@ import org.apache.accumulo.core.file.rfile.bcfile.Utils;
 import org.apache.accumulo.core.spi.crypto.NoFileEncrypter;
 import org.apache.accumulo.core.summary.SummaryReader;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
@@ -109,7 +110,7 @@ public class PrintInfo implements KeywordExecutable {
       System.out.println(indent + "Up to size      Count      %-age");
       for (int i = 1; i < countBuckets.length; i++) {
         System.out.println(String.format("%s%11s : %10d %6.2f%%", indent,
-            bigNumberForSize(Double.valueOf(Math.pow(10, i)).longValue()), countBuckets[i],
+            NumUtil.bigNumberForSize(Double.valueOf(Math.pow(10, i)).longValue()), countBuckets[i],
             sizeBuckets[i] * 100. / totalSize));
       }
     }
