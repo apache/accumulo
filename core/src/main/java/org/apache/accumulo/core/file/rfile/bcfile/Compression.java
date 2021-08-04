@@ -220,7 +220,7 @@ public final class Compression {
 
     GZ(COMPRESSION_GZ) {
 
-      private static final String USE_QAT_PROPERTY = "use.qat";
+      private static final String USE_QAT_PROPERTY = "accumulo.rfile.compression.quickassist.enabled";
 
       /** Intel® QuickAssist codec **/
       private static final String DEFAULT_QAT_CLASS =
