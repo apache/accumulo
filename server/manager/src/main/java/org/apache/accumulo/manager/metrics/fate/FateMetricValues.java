@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.admin.TransactionStatus;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.server.ServerContext;
@@ -112,8 +113,7 @@ class FateMetricValues {
 
     try {
 
-      List<AdminUtil.TransactionStatus> currFates =
-          admin.getTransactionStatus(zooStore, null, null);
+      List<TransactionStatus> currFates = admin.getTransactionStatus(zooStore, null, null);
 
       builder.withCurrentFateOps(currFates.size());
 
@@ -127,15 +127,16 @@ class FateMetricValues {
       // need to be handled by the caller - this is just the counts for current op types.
       Map<String,Long> opTypeCounters = new TreeMap<>();
 
-      for (AdminUtil.TransactionStatus tx : currFates) {
+      for (TransactionStatus tx : currFates) {
 
-        String stateName = tx.getStatus().name();
+        String stateName = ReadOnlyTStore.TStatus.valueOf(tx.getStatus()).name();
+        ReadOnlyTStore.TStatus tStatus = ReadOnlyTStore.TStatus.valueOf(tx.getStatus());
 
         // incr count for state
         states.merge(stateName, 1L, Long::sum);
 
         // incr count for op type for for in_progress transactions.
-        if (ReadOnlyTStore.TStatus.IN_PROGRESS.equals(tx.getStatus())) {
+        if (ReadOnlyTStore.TStatus.IN_PROGRESS.equals(tStatus)) {
           String opType = tx.getDebug();
           if (opType == null || opType.isEmpty()) {
             opType = "UNKNOWN";

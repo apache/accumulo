@@ -112,6 +112,16 @@ struct TDiskUsage {
   2:i64 usage
 }
 
+struct FateTransaction {
+  1:i64 txid
+  2:string tstatus
+  3:string debug
+  4:list<string> hlocks
+  5:list<string> wlocks
+  6:string top
+  7:i64 timecreated
+}
+
 service ClientService {
 
   // system management methods
@@ -338,7 +348,7 @@ service ClientService {
     1:ThriftTableOperationException tope
   )
 
-  string executeAdminOperation(
+  list<FateTransaction> executeAdminOperation(
       1:trace.TInfo tinfo
       2:security.TCredentials credentials
       3:AdminOperation op

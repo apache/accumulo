@@ -25,8 +25,8 @@ import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.EnumSet;
-import java.util.Formatter;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -40,6 +40,7 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TransactionStatus;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -50,6 +51,7 @@ import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.AdminOperation;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
+import org.apache.accumulo.core.clientImpl.thrift.FateTransaction;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TDiskUsage;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -69,6 +71,7 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.fate.AdminUtil;
+import org.apache.accumulo.fate.AdminUtil.FateStatus;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.ReadOnlyRepo;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
@@ -474,8 +477,9 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public String executeAdminOperation(TInfo tInfo, TCredentials credentials, AdminOperation op,
-      List<String> txids, List<String> filterStatuses) throws ThriftSecurityException, TException {
+  public List<FateTransaction> executeAdminOperation(TInfo tInfo, TCredentials credentials,
+      AdminOperation op, List<String> txids, List<String> filterStatuses)
+      throws ThriftSecurityException, TException {
     try {
       authenticate(tInfo, credentials);
       AdminUtil<ClientServiceHandler> admin = new AdminUtil<>(false);
@@ -491,7 +495,7 @@ public class ClientServiceHandler implements ClientService.Iface {
               throw new TException("Could not fail transaction: " + tid);
             }
           }
-          return "";
+          return Collections.emptyList();
         }
         case DELETE: {
           for (String tid : txids) {
@@ -501,7 +505,7 @@ public class ClientServiceHandler implements ClientService.Iface {
               throw new TException("Could not delete transaction: " + tid);
             }
           }
-          return "";
+          return Collections.emptyList();
         }
         case PRINT: {
           // Parse transaction ID filters for print display
@@ -527,11 +531,17 @@ public class ClientServiceHandler implements ClientService.Iface {
             }
           }
 
-          StringBuilder sb = new StringBuilder(8096);
-          Formatter formatter = new Formatter(sb);
-          admin.print(zs, zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, formatter,
-              filterTxid, fs);
-          return sb.toString();
+          FateStatus fateStatus = admin.getStatus(zs, zk,
+              context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, filterTxid, fs);
+
+          List<FateTransaction> result = new ArrayList<>();
+          for (TransactionStatus txStatus : fateStatus.getTransactions()) {
+            result.add(new FateTransaction(txStatus.getTxidLong(), txStatus.getStatus(),
+                txStatus.getDebug(), txStatus.getHeldLocks(), txStatus.getWaitingLocks(),
+                txStatus.getTop(), txStatus.getTimeCreated()));
+          }
+
+          return result;
         }
         case DUMP: {
           List<Long> ids;
@@ -557,8 +567,9 @@ public class ClientServiceHandler implements ClientService.Iface {
             List<ReadOnlyRepo<ClientServiceHandler>> repoStack = zs.getStack(tid);
             txStacks.add(new FateStack(tid, repoStack));
           }
+          return Collections.emptyList();
 
-          return gson.toJson(txStacks);
+          // return gson.toJson(txStacks);
         }
         default:
           throw new UnsupportedOperationException();

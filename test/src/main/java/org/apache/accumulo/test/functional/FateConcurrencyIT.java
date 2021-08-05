@@ -38,6 +38,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TransactionStatus;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
@@ -242,7 +243,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     slowOps.startCompactTask();
 
     AdminUtil.FateStatus withLocks = null;
-    List<AdminUtil.TransactionStatus> noLocks = null;
+    List<TransactionStatus> noLocks = null;
 
     int maxRetries = 3;
 
@@ -289,13 +290,13 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     int matchCount = 0;
 
-    for (AdminUtil.TransactionStatus tx : withLocks.getTransactions()) {
+    for (TransactionStatus tx : withLocks.getTransactions()) {
 
       if (isCompaction(tx)) {
 
         log.trace("Fate id: {}, status: {}", tx.getTxid(), tx.getStatus());
 
-        for (AdminUtil.TransactionStatus tx2 : noLocks) {
+        for (TransactionStatus tx2 : noLocks) {
           if (tx2.getTxid().equals(tx.getTxid())) {
             matchCount++;
           }
@@ -353,7 +354,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       log.trace("current fates: {}", fateStatus.getTransactions().size());
 
-      for (AdminUtil.TransactionStatus tx : fateStatus.getTransactions()) {
+      for (TransactionStatus tx : fateStatus.getTransactions()) {
 
         if (isCompaction(tx))
           return true;
@@ -375,7 +376,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    *          transaction status
    * @return true if tx top and debug have compaction messages.
    */
-  private boolean isCompaction(AdminUtil.TransactionStatus tx) {
+  private boolean isCompaction(TransactionStatus tx) {
 
     if (tx == null) {
       log.trace("Fate tx is null");

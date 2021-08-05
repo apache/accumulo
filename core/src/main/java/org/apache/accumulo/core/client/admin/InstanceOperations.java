@@ -23,7 +23,6 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 
 public interface InstanceOperations {
 
@@ -175,20 +174,21 @@ public interface InstanceOperations {
    *          Transaction IDs.
    * @param tStatus
    *          Parsed TStatus for print filter.
-   * @return String containing the output to print to the shell.
+   * @return A map containing the txid and that txid corresponding TStatus.
    * @since 2.1.0
    */
-  String fatePrint(List<String> txids, List<String> tStatus) throws AccumuloException;
+  List<TransactionStatus> fatePrint(List<String> txids, List<String> tStatus)
+      throws AccumuloException;
 
-  /**
-   *
-   *
-   * @param txids
-   *          Transaction IDs.
-   * @return String containing the output to print to the shell.
-   * @since 2.1.0
-   */
-  String fateDump(List<String> txids) throws AccumuloException;
+  // /**
+  // *
+  // *
+  // * @param txids
+  // * Transaction IDs.
+  // * @return String containing the output to print to the shell.
+  // * @since 2.1.0
+  // */
+  // String fateDump(List<String> txids) throws AccumuloException;
 
   /**
    * Returns a unique string that identifies this instance of accumulo.

@@ -20,11 +20,8 @@ package org.apache.accumulo.fate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.EnumSet;
 import java.util.Formatter;
 import java.util.HashMap;
@@ -33,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.admin.TransactionStatus;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.zookeeper.FateLock;
 import org.apache.accumulo.fate.zookeeper.FateLock.FateLockPath;
@@ -70,88 +68,6 @@ public class AdminUtil<T> {
    */
   public AdminUtil(boolean exitOnError) {
     this.exitOnError = exitOnError;
-  }
-
-  /**
-   * FATE transaction status, including lock information.
-   */
-  public static class TransactionStatus {
-
-    private final long txid;
-    private final TStatus status;
-    private final String debug;
-    private final List<String> hlocks;
-    private final List<String> wlocks;
-    private final String top;
-    private final long timeCreated;
-
-    private TransactionStatus(Long tid, TStatus status, String debug, List<String> hlocks,
-        List<String> wlocks, String top, Long timeCreated) {
-
-      this.txid = tid;
-      this.status = status;
-      this.debug = debug;
-      this.hlocks = Collections.unmodifiableList(hlocks);
-      this.wlocks = Collections.unmodifiableList(wlocks);
-      this.top = top;
-      this.timeCreated = timeCreated;
-
-    }
-
-    /**
-     * @return This fate operations transaction id, formatted in the same way as FATE transactions
-     *         are in the Accumulo logs.
-     */
-    public String getTxid() {
-      return String.format("%016x", txid);
-    }
-
-    public TStatus getStatus() {
-      return status;
-    }
-
-    /**
-     * @return The debug info for the operation on the top of the stack for this Fate operation.
-     */
-    public String getDebug() {
-      return debug;
-    }
-
-    /**
-     * @return list of namespace and table ids locked
-     */
-    public List<String> getHeldLocks() {
-      return hlocks;
-    }
-
-    /**
-     * @return list of namespace and table ids locked
-     */
-    public List<String> getWaitingLocks() {
-      return wlocks;
-    }
-
-    /**
-     * @return The operation on the top of the stack for this Fate operation.
-     */
-    public String getTop() {
-      return top;
-    }
-
-    /**
-     * @return The timestamp of when the operation was created in ISO format wiht UTC timezone.
-     */
-    public String getTimeCreatedFormatted() {
-      return timeCreated > 0 ? new Date(timeCreated).toInstant().atZone(ZoneOffset.UTC)
-          .format(DateTimeFormatter.ISO_DATE_TIME) : "ERROR";
-    }
-
-    /**
-     * @return The unformatted form of the timestamp.
-     */
-    public long getTimeCreated() {
-      return timeCreated;
-    }
   }
 
   public static class FateStatus {
@@ -401,7 +317,8 @@ public class AdminUtil<T> {
           || (filterStatus != null && !filterStatus.contains(status)))
         continue;
 
-      statuses.add(new TransactionStatus(tid, status, debug, hlocks, wlocks, top, timeCreated));
+      statuses.add(
+          new TransactionStatus(tid, status.toString(), debug, hlocks, wlocks, top, timeCreated));
     }
 
     return new FateStatus(statuses, heldLocks, waitingLocks);
@@ -436,6 +353,17 @@ public class AdminUtil<T> {
       for (Entry<String,List<String>> entry : fateStatus.getDanglingWaitingLocks().entrySet())
         fmt.format("txid: %s  locking: %s%n", entry.getKey(), entry.getValue());
     }
+  }
+
+  public void print(List<TransactionStatus> txStatuses, Formatter fmt) throws InterruptedException {
+
+    for (TransactionStatus txStatus : txStatuses) {
+      fmt.format(
+          "txid: %s  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %-15s created: %s%n",
+          txStatus.getTxid(), txStatus.getStatus(), txStatus.getDebug(), txStatus.getHeldLocks(),
+          txStatus.getWaitingLocks(), txStatus.getTop(), txStatus.getTimeCreatedFormatted());
+    }
+    fmt.format(" %s transactions", txStatuses.size());
   }
 
   public boolean prepDelete(TStore<T> zs, ZooReaderWriter zk, ServiceLockPath path,

@@ -43,8 +43,10 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.TransactionStatus;
 import org.apache.accumulo.core.clientImpl.thrift.AdminOperation;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
+import org.apache.accumulo.core.clientImpl.thrift.FateTransaction;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
@@ -294,18 +296,24 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public String fatePrint(List<String> txids, List<String> tStatus) throws AccumuloException {
+  public List<TransactionStatus> fatePrint(List<String> txids, List<String> tStatus)
+      throws AccumuloException {
     checkArgument(txids != null, "txids is null");
-    return executeAdminOperation(AdminOperation.PRINT, txids, tStatus);
+    List<TransactionStatus> txStatus = new ArrayList<>();
+    for (var tx : executeAdminOperation(AdminOperation.PRINT, txids, tStatus)) {
+      txStatus.add(new TransactionStatus(tx.txid, tx.tstatus, tx.debug, tx.hlocks, tx.wlocks,
+          tx.top, tx.timecreated));
+    }
+    return txStatus;
   }
 
-  @Override
-  public String fateDump(List<String> txids) throws AccumuloException {
-    checkArgument(txids != null, "txids is null");
-    return executeAdminOperation(AdminOperation.DUMP, txids, null);
-  }
+  // @Override
+  // public String fateDump(List<String> txids) throws AccumuloException {
+  // checkArgument(txids != null, "txids is null");
+  // return executeAdminOperation(AdminOperation.DUMP, txids, null);
+  // }
 
-  private String executeAdminOperation(AdminOperation op, List<String> txids,
+  private List<FateTransaction> executeAdminOperation(AdminOperation op, List<String> txids,
       List<String> filterStatuses) throws AccumuloException {
     try {
       return ServerClient.execute(context,

@@ -22,10 +22,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Formatter;
 import java.util.List;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.TransactionStatus;
+import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -46,7 +49,7 @@ public class FateCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, ParseException, KeeperException,
       InterruptedException, IOException {
-
+    AdminUtil<FateCommand> admin = new AdminUtil<>(false);
     String[] args = cl.getArgs();
 
     if (args.length <= 0) {
@@ -75,13 +78,22 @@ public class FateCommand extends Command {
         filterStatus = Arrays.asList(cl.getOptionValues(statusOption.getOpt()));
       }
 
-      String buffer =
+      StringBuilder sb = new StringBuilder(8096);
+      Formatter formatter = new Formatter(sb);
+      List<TransactionStatus> txStatuses =
           shellState.getAccumuloClient().instanceOperations().fatePrint(txids, filterStatus);
-      shellState.printLines(Collections.singletonList(buffer).iterator(),
+      admin.print(txStatuses, formatter);
+
+      shellState.printLines(Collections.singletonList(sb.toString()).iterator(),
           !cl.hasOption(disablePaginationOpt.getOpt()));
     } else if ("dump".equals(cmd)) {
-      shellState.getWriter()
-          .println(shellState.getAccumuloClient().instanceOperations().fateDump(txids));
+      List<TransactionStatus> txStatuses =
+          shellState.getAccumuloClient().instanceOperations().fatePrint(txids, null);
+      for (var tx : txStatuses) {
+        // shellState.getWriter()
+        // .println(tx.getJsonDump());
+      }
+
     } else {
       throw new ParseException("Invalid command option");
     }
