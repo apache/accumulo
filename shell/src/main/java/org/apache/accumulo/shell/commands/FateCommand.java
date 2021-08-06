@@ -28,7 +28,6 @@ import java.util.List;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.TransactionStatus;
-import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -49,7 +48,6 @@ public class FateCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, ParseException, KeeperException,
       InterruptedException, IOException {
-    AdminUtil<FateCommand> admin = new AdminUtil<>(false);
     String[] args = cl.getArgs();
 
     if (args.length <= 0) {
@@ -79,21 +77,30 @@ public class FateCommand extends Command {
       }
 
       StringBuilder sb = new StringBuilder(8096);
-      Formatter formatter = new Formatter(sb);
+      Formatter fmt = new Formatter(sb);
       List<TransactionStatus> txStatuses =
-          shellState.getAccumuloClient().instanceOperations().fatePrint(txids, filterStatus);
-      admin.print(txStatuses, formatter);
+          shellState.getAccumuloClient().instanceOperations().fateStatus(txids, filterStatus);
+
+      for (TransactionStatus txStatus : txStatuses) {
+        fmt.format(
+            "txid: %s  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %-15s created: %s%n",
+            txStatus.getTxid(), txStatus.getStatus(), txStatus.getDebug(), txStatus.getHeldLocks(),
+            txStatus.getWaitingLocks(), txStatus.getTop(), txStatus.getTimeCreatedFormatted());
+      }
+      fmt.format(" %s transactions", txStatuses.size());
 
       shellState.printLines(Collections.singletonList(sb.toString()).iterator(),
           !cl.hasOption(disablePaginationOpt.getOpt()));
     } else if ("dump".equals(cmd)) {
       List<TransactionStatus> txStatuses =
-          shellState.getAccumuloClient().instanceOperations().fatePrint(txids, null);
-      for (var tx : txStatuses) {
-        // shellState.getWriter()
-        // .println(tx.getJsonDump());
-      }
+          shellState.getAccumuloClient().instanceOperations().fateStatus(txids, null);
 
+      if (txStatuses.isEmpty())
+        shellState.getWriter().println(" No transactions to dump");
+
+      for (var tx : txStatuses) {
+        shellState.getWriter().println(tx.getStackInfo());
+      }
     } else {
       throw new ParseException("Invalid command option");
     }

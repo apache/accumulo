@@ -296,22 +296,16 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public List<TransactionStatus> fatePrint(List<String> txids, List<String> tStatus)
+  public List<TransactionStatus> fateStatus(List<String> txids, List<String> tStatus)
       throws AccumuloException {
     checkArgument(txids != null, "txids is null");
     List<TransactionStatus> txStatus = new ArrayList<>();
     for (var tx : executeAdminOperation(AdminOperation.PRINT, txids, tStatus)) {
-      txStatus.add(new TransactionStatus(tx.txid, tx.tstatus, tx.debug, tx.hlocks, tx.wlocks,
-          tx.top, tx.timecreated));
+      txStatus.add(new TransactionStatus(tx.getTxid(), tx.getTstatus(), tx.getDebug(),
+          tx.getHlocks(), tx.getWlocks(), tx.getTop(), tx.getTimecreated(), tx.getStackInfo()));
     }
     return txStatus;
   }
-
-  // @Override
-  // public String fateDump(List<String> txids) throws AccumuloException {
-  // checkArgument(txids != null, "txids is null");
-  // return executeAdminOperation(AdminOperation.DUMP, txids, null);
-  // }
 
   private List<FateTransaction> executeAdminOperation(AdminOperation op, List<String> txids,
       List<String> filterStatuses) throws AccumuloException {

@@ -18,13 +18,9 @@
  */
 package org.apache.accumulo.server.client;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -72,10 +68,7 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.AdminUtil.FateStatus;
-import org.apache.accumulo.fate.FateTxId;
-import org.apache.accumulo.fate.ReadOnlyRepo;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -89,13 +82,6 @@ import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSerializationContext;
-import com.google.gson.JsonSerializer;
 
 public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = LoggerFactory.getLogger(ClientServiceHandler.class);
@@ -514,7 +500,7 @@ public class ClientServiceHandler implements ClientService.Iface {
             filterTxid = new HashSet<>(txids.size());
             for (String tid : txids) {
               try {
-                Long val = parseTxid(tid);
+                Long val = Long.parseLong(tid, 16);
                 filterTxid.add(val);
               } catch (NumberFormatException nfe) {
                 // Failed to parse.
@@ -524,7 +510,7 @@ public class ClientServiceHandler implements ClientService.Iface {
           }
 
           EnumSet<TStatus> fs = null;
-          if (!filterStatuses.isEmpty()) {
+          if (filterStatuses != null && !filterStatuses.isEmpty()) {
             fs = EnumSet.noneOf(TStatus.class);
             for (String element : filterStatuses) {
               fs.add(TStatus.valueOf(element));
@@ -534,42 +520,14 @@ public class ClientServiceHandler implements ClientService.Iface {
           FateStatus fateStatus = admin.getStatus(zs, zk,
               context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, filterTxid, fs);
 
-          List<FateTransaction> result = new ArrayList<>();
+          List<FateTransaction> fateTxs = new ArrayList<>();
           for (TransactionStatus txStatus : fateStatus.getTransactions()) {
-            result.add(new FateTransaction(txStatus.getTxidLong(), txStatus.getStatus(),
+            fateTxs.add(new FateTransaction(txStatus.getTxidLong(), txStatus.getStatus(),
                 txStatus.getDebug(), txStatus.getHeldLocks(), txStatus.getWaitingLocks(),
-                txStatus.getTop(), txStatus.getTimeCreated()));
+                txStatus.getTop(), txStatus.getTimeCreated(), txStatus.getStackInfo()));
           }
 
-          return result;
-        }
-        case DUMP: {
-          List<Long> ids;
-
-          if (txids.isEmpty()) {
-            ids = zs.list();
-          } else {
-            ids = new ArrayList<>();
-            for (String tid : txids) {
-              ids.add(parseTxid(tid));
-            }
-          }
-
-          Gson gson =
-              new GsonBuilder().registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
-                  .registerTypeAdapter(Repo.class, new InterfaceSerializer<>())
-                  .registerTypeAdapter(byte[].class, new ByteArraySerializer()).setPrettyPrinting()
-                  .create();
-
-          List<FateStack> txStacks = new ArrayList<>();
-
-          for (Long tid : ids) {
-            List<ReadOnlyRepo<ClientServiceHandler>> repoStack = zs.getStack(tid);
-            txStacks.add(new FateStack(tid, repoStack));
-          }
-          return Collections.emptyList();
-
-          // return gson.toJson(txStacks);
+          return fateTxs;
         }
         default:
           throw new UnsupportedOperationException();
@@ -579,54 +537,6 @@ public class ClientServiceHandler implements ClientService.Iface {
       throw new TException(e);
     }
 
-  }
-
-  // this class serializes references to interfaces with the concrete class name
-  private static class InterfaceSerializer<T> implements JsonSerializer<T> {
-    @Override
-    public JsonElement serialize(T link, Type type, JsonSerializationContext context) {
-      JsonElement je = context.serialize(link, link.getClass());
-      JsonObject jo = new JsonObject();
-      jo.add(link.getClass().getName(), je);
-      return jo;
-    }
-  }
-
-  public static class FateStack {
-    String txid;
-    List<ReadOnlyRepo<ClientServiceHandler>> stack;
-
-    FateStack(Long txid, List<ReadOnlyRepo<ClientServiceHandler>> stack) {
-      this.txid = String.format("%016x", txid);
-      this.stack = stack;
-    }
-  }
-
-  private long parseTxid(String s) {
-    if (FateTxId.isFormatedTid(s)) {
-      return FateTxId.fromString(s);
-    } else {
-      return Long.parseLong(s, 16);
-    }
-  }
-
-  // the purpose of this class is to be serialized as JSon for display
-  public static class ByteArrayContainer {
-    public String asUtf8;
-    public String asBase64;
-
-    ByteArrayContainer(byte[] ba) {
-      asUtf8 = new String(ba, UTF_8);
-      asBase64 = Base64.getUrlEncoder().encodeToString(ba);
-    }
-  }
-
-  // serialize byte arrays in human and machine readable ways
-  private static class ByteArraySerializer implements JsonSerializer<byte[]> {
-    @Override
-    public JsonElement serialize(byte[] link, Type type, JsonSerializationContext context) {
-      return context.serialize(new ByteArrayContainer(link));
-    }
   }
 
   @Override

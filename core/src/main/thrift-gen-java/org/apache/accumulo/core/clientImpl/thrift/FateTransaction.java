@@ -35,6 +35,7 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
   private static final org.apache.thrift.protocol.TField WLOCKS_FIELD_DESC = new org.apache.thrift.protocol.TField("wlocks", org.apache.thrift.protocol.TType.LIST, (short)5);
   private static final org.apache.thrift.protocol.TField TOP_FIELD_DESC = new org.apache.thrift.protocol.TField("top", org.apache.thrift.protocol.TType.STRING, (short)6);
   private static final org.apache.thrift.protocol.TField TIMECREATED_FIELD_DESC = new org.apache.thrift.protocol.TField("timecreated", org.apache.thrift.protocol.TType.I64, (short)7);
+  private static final org.apache.thrift.protocol.TField STACK_INFO_FIELD_DESC = new org.apache.thrift.protocol.TField("stackInfo", org.apache.thrift.protocol.TType.STRING, (short)8);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new FateTransactionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new FateTransactionTupleSchemeFactory();
@@ -46,6 +47,7 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
   public @org.apache.thrift.annotation.Nullable java.util.List<java.lang.String> wlocks; // required
   public @org.apache.thrift.annotation.Nullable java.lang.String top; // required
   public long timecreated; // required
+  public @org.apache.thrift.annotation.Nullable java.lang.String stackInfo; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -55,7 +57,8 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
     HLOCKS((short)4, "hlocks"),
     WLOCKS((short)5, "wlocks"),
     TOP((short)6, "top"),
-    TIMECREATED((short)7, "timecreated");
+    TIMECREATED((short)7, "timecreated"),
+    STACK_INFO((short)8, "stackInfo");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -85,6 +88,8 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
           return TOP;
         case 7: // TIMECREATED
           return TIMECREATED;
+        case 8: // STACK_INFO
+          return STACK_INFO;
         default:
           return null;
       }
@@ -148,6 +153,8 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.TIMECREATED, new org.apache.thrift.meta_data.FieldMetaData("timecreated", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+    tmpMap.put(_Fields.STACK_INFO, new org.apache.thrift.meta_data.FieldMetaData("stackInfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(FateTransaction.class, metaDataMap);
   }
@@ -162,7 +169,8 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
     java.util.List<java.lang.String> hlocks,
     java.util.List<java.lang.String> wlocks,
     java.lang.String top,
-    long timecreated)
+    long timecreated,
+    java.lang.String stackInfo)
   {
     this();
     this.txid = txid;
@@ -174,6 +182,7 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
     this.top = top;
     this.timecreated = timecreated;
     setTimecreatedIsSet(true);
+    this.stackInfo = stackInfo;
   }
 
   /**
@@ -200,6 +209,9 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
       this.top = other.top;
     }
     this.timecreated = other.timecreated;
+    if (other.isSetStackInfo()) {
+      this.stackInfo = other.stackInfo;
+    }
   }
 
   public FateTransaction deepCopy() {
@@ -217,6 +229,7 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
     this.top = null;
     setTimecreatedIsSet(false);
     this.timecreated = 0;
+    this.stackInfo = null;
   }
 
   public long getTxid() {
@@ -422,6 +435,31 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
     __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __TIMECREATED_ISSET_ID, value);
   }
 
+  @org.apache.thrift.annotation.Nullable
+  public java.lang.String getStackInfo() {
+    return this.stackInfo;
+  }
+
+  public FateTransaction setStackInfo(@org.apache.thrift.annotation.Nullable java.lang.String stackInfo) {
+    this.stackInfo = stackInfo;
+    return this;
+  }
+
+  public void unsetStackInfo() {
+    this.stackInfo = null;
+  }
+
+  /** Returns true if field stackInfo is set (has been assigned a value) and false otherwise */
+  public boolean isSetStackInfo() {
+    return this.stackInfo != null;
+  }
+
+  public void setStackInfoIsSet(boolean value) {
+    if (!value) {
+      this.stackInfo = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
     case TXID:
@@ -480,6 +518,14 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
       }
       break;
 
+    case STACK_INFO:
+      if (value == null) {
+        unsetStackInfo();
+      } else {
+        setStackInfo((java.lang.String)value);
+      }
+      break;
+
     }
   }
 
@@ -507,6 +553,9 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
     case TIMECREATED:
       return getTimecreated();
 
+    case STACK_INFO:
+      return getStackInfo();
+
     }
     throw new java.lang.IllegalStateException();
   }
@@ -532,6 +581,8 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
       return isSetTop();
     case TIMECREATED:
       return isSetTimecreated();
+    case STACK_INFO:
+      return isSetStackInfo();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -614,6 +665,15 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
         return false;
     }
 
+    boolean this_present_stackInfo = true && this.isSetStackInfo();
+    boolean that_present_stackInfo = true && that.isSetStackInfo();
+    if (this_present_stackInfo || that_present_stackInfo) {
+      if (!(this_present_stackInfo && that_present_stackInfo))
+        return false;
+      if (!this.stackInfo.equals(that.stackInfo))
+        return false;
+    }
+
     return true;
   }
 
@@ -644,6 +704,10 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
       hashCode = hashCode * 8191 + top.hashCode();
 
     hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(timecreated);
+
+    hashCode = hashCode * 8191 + ((isSetStackInfo()) ? 131071 : 524287);
+    if (isSetStackInfo())
+      hashCode = hashCode * 8191 + stackInfo.hashCode();
 
     return hashCode;
   }
@@ -726,6 +790,16 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
         return lastComparison;
       }
     }
+    lastComparison = java.lang.Boolean.valueOf(isSetStackInfo()).compareTo(other.isSetStackInfo());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetStackInfo()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.stackInfo, other.stackInfo);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -793,6 +867,14 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
     if (!first) sb.append(", ");
     sb.append("timecreated:");
     sb.append(this.timecreated);
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("stackInfo:");
+    if (this.stackInfo == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.stackInfo);
+    }
     first = false;
     sb.append(")");
     return sb.toString();
@@ -915,6 +997,14 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 8: // STACK_INFO
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+              struct.stackInfo = iprot.readString();
+              struct.setStackInfoIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -975,6 +1065,11 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
       oprot.writeFieldBegin(TIMECREATED_FIELD_DESC);
       oprot.writeI64(struct.timecreated);
       oprot.writeFieldEnd();
+      if (struct.stackInfo != null) {
+        oprot.writeFieldBegin(STACK_INFO_FIELD_DESC);
+        oprot.writeString(struct.stackInfo);
+        oprot.writeFieldEnd();
+      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -1014,7 +1109,10 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
       if (struct.isSetTimecreated()) {
         optionals.set(6);
       }
-      oprot.writeBitSet(optionals, 7);
+      if (struct.isSetStackInfo()) {
+        optionals.set(7);
+      }
+      oprot.writeBitSet(optionals, 8);
       if (struct.isSetTxid()) {
         oprot.writeI64(struct.txid);
       }
@@ -1048,12 +1146,15 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
       if (struct.isSetTimecreated()) {
         oprot.writeI64(struct.timecreated);
       }
+      if (struct.isSetStackInfo()) {
+        oprot.writeString(struct.stackInfo);
+      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, FateTransaction struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(7);
+      java.util.BitSet incoming = iprot.readBitSet(8);
       if (incoming.get(0)) {
         struct.txid = iprot.readI64();
         struct.setTxidIsSet(true);
@@ -1099,6 +1200,10 @@ public class FateTransaction implements org.apache.thrift.TBase<FateTransaction,
       if (incoming.get(6)) {
         struct.timecreated = iprot.readI64();
         struct.setTimecreatedIsSet(true);
+      }
+      if (incoming.get(7)) {
+        struct.stackInfo = iprot.readString();
+        struct.setStackInfoIsSet(true);
       }
     }
   }

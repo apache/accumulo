@@ -46,7 +46,6 @@ enum AdminOperation {
   FAIL
   DELETE
   PRINT
-  DUMP
 }
 
 enum TableOperationExceptionType {
@@ -120,6 +119,7 @@ struct FateTransaction {
   5:list<string> wlocks
   6:string top
   7:i64 timecreated
+  8:string stackInfo
 }
 
 service ClientService {

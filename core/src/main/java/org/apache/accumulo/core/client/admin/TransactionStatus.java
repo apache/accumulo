@@ -36,9 +36,10 @@ public class TransactionStatus {
   private final List<String> wlocks;
   private final String top;
   private final long timeCreated;
+  private final String stackInfo;
 
   public TransactionStatus(Long tid, String status, String debug, List<String> hlocks,
-      List<String> wlocks, String top, Long timeCreated) {
+      List<String> wlocks, String top, Long timeCreated, String stackInfo) {
 
     this.txid = tid;
     this.status = status;
@@ -47,6 +48,7 @@ public class TransactionStatus {
     this.wlocks = Collections.unmodifiableList(wlocks);
     this.top = top;
     this.timeCreated = timeCreated;
+    this.stackInfo = stackInfo;
 
   }
 
@@ -58,6 +60,9 @@ public class TransactionStatus {
     return String.format("%016x", txid);
   }
 
+  /**
+   * @return This fate operations transaction id, in its original long form.
+   */
   public long getTxidLong() {
     return txid;
   }
@@ -109,5 +114,12 @@ public class TransactionStatus {
    */
   public long getTimeCreated() {
     return timeCreated;
+  }
+
+  /**
+   * @return The stackInfo for a transaction
+   */
+  public String getStackInfo() {
+    return stackInfo;
   }
 }

@@ -28,8 +28,7 @@ package org.apache.accumulo.core.clientImpl.thrift;
 public enum AdminOperation implements org.apache.thrift.TEnum {
   FAIL(0),
   DELETE(1),
-  PRINT(2),
-  DUMP(3);
+  PRINT(2);
 
   private final int value;
 
@@ -57,8 +56,6 @@ public enum AdminOperation implements org.apache.thrift.TEnum {
         return DELETE;
       case 2:
         return PRINT;
-      case 3:
-        return DUMP;
       default:
         return null;
     }

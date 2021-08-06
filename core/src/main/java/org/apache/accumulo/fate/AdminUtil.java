@@ -20,7 +20,9 @@ package org.apache.accumulo.fate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Formatter;
@@ -42,6 +44,13 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -283,6 +292,10 @@ public class AdminUtil<T> {
 
     List<Long> transactions = zs.list();
     List<TransactionStatus> statuses = new ArrayList<>(transactions.size());
+    Gson gson = new GsonBuilder()
+        .registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
+        .registerTypeAdapter(Repo.class, new InterfaceSerializer<>())
+        .registerTypeAdapter(byte[].class, new ByteArraySerializer()).setPrettyPrinting().create();
 
     for (Long tid : transactions) {
 
@@ -311,14 +324,17 @@ public class AdminUtil<T> {
 
       long timeCreated = zs.timeCreated(tid);
 
+      List<ReadOnlyRepo<T>> repoStack = zs.getStack(tid);
+      FateStack fateStack = new FateStack(tid, repoStack);
+
       zs.unreserve(tid, 0);
 
       if ((filterTxid != null && !filterTxid.contains(tid))
           || (filterStatus != null && !filterStatus.contains(status)))
         continue;
 
-      statuses.add(
-          new TransactionStatus(tid, status.toString(), debug, hlocks, wlocks, top, timeCreated));
+      statuses.add(new TransactionStatus(tid, status.toString(), debug, hlocks, wlocks, top,
+          timeCreated, gson.toJson(fateStack)));
     }
 
     return new FateStatus(statuses, heldLocks, waitingLocks);
@@ -353,17 +369,6 @@ public class AdminUtil<T> {
       for (Entry<String,List<String>> entry : fateStatus.getDanglingWaitingLocks().entrySet())
         fmt.format("txid: %s  locking: %s%n", entry.getKey(), entry.getValue());
     }
-  }
-
-  public void print(List<TransactionStatus> txStatuses, Formatter fmt) throws InterruptedException {
-
-    for (TransactionStatus txStatus : txStatuses) {
-      fmt.format(
-          "txid: %s  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %-15s created: %s%n",
-          txStatus.getTxid(), txStatus.getStatus(), txStatus.getDebug(), txStatus.getHeldLocks(),
-          txStatus.getWaitingLocks(), txStatus.getTop(), txStatus.getTimeCreatedFormatted());
-    }
-    fmt.format(" %s transactions", txStatuses.size());
   }
 
   public boolean prepDelete(TStore<T> zs, ZooReaderWriter zk, ServiceLockPath path,
@@ -487,5 +492,45 @@ public class AdminUtil<T> {
         return false;
     }
     return true;
+  }
+
+  public class FateStack {
+    String txid;
+    List<ReadOnlyRepo<T>> stack;
+
+    FateStack(Long txid, List<ReadOnlyRepo<T>> stack) {
+      this.txid = String.format("%016x", txid);
+      this.stack = stack;
+    }
+  }
+
+  // this class serializes references to interfaces with the concrete class name
+  private static class InterfaceSerializer<T> implements JsonSerializer<T> {
+    @Override
+    public JsonElement serialize(T link, Type type, JsonSerializationContext context) {
+      JsonElement je = context.serialize(link, link.getClass());
+      JsonObject jo = new JsonObject();
+      jo.add(link.getClass().getName(), je);
+      return jo;
+    }
+  }
+
+  // the purpose of this class is to be serialized as JSon for display
+  public static class ByteArrayContainer {
+    public String asUtf8;
+    public String asBase64;
+
+    ByteArrayContainer(byte[] ba) {
+      asUtf8 = new String(ba, UTF_8);
+      asBase64 = Base64.getUrlEncoder().encodeToString(ba);
+    }
+  }
+
+  // serialize byte arrays in human and machine readable ways
+  private static class ByteArraySerializer implements JsonSerializer<byte[]> {
+    @Override
+    public JsonElement serialize(byte[] link, Type type, JsonSerializationContext context) {
+      return context.serialize(new ByteArrayContainer(link));
+    }
   }
 }

@@ -168,27 +168,17 @@ public interface InstanceOperations {
   void fateDelete(List<String> txids) throws AccumuloException;
 
   /**
-   * Will consoldate these two functions below.
+   * Gathers Transaction status information for either all fate transactions or requested txIDs.
    *
    * @param txids
-   *          Transaction IDs.
+   *          Transaction IDs to use as a filter. Optional.
    * @param tStatus
-   *          Parsed TStatus for print filter.
-   * @return A map containing the txid and that txid corresponding TStatus.
+   *          Parsed TStatus for print filter. Optional.
+   * @return A list of TransactionStatues for corresponding txids
    * @since 2.1.0
    */
-  List<TransactionStatus> fatePrint(List<String> txids, List<String> tStatus)
+  List<TransactionStatus> fateStatus(List<String> txids, List<String> tStatus)
       throws AccumuloException;
-
-  // /**
-  // *
-  // *
-  // * @param txids
-  // * Transaction IDs.
-  // * @return String containing the output to print to the shell.
-  // * @since 2.1.0
-  // */
-  // String fateDump(List<String> txids) throws AccumuloException;
 
   /**
    * Returns a unique string that identifies this instance of accumulo.
