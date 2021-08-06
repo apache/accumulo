@@ -121,12 +121,8 @@ public class TabletIteratorTest {
     createTabletData(data1, "3", "c", null);
     createTabletData(data1, "3", "n", "c");
 
-    TreeMap<Key,Value> data2 = new TreeMap<>(data1);
-
-    createTabletData(data2, "3", null, "n");
-
     assertThrows(IllegalStateException.class,
-        () -> runTest(Arrays.asList(data1, data2), Arrays.asList("3;c", "3;n", "3<")));
+        () -> runTest(Arrays.asList(data1), Arrays.asList("3;c", "3;n")));
   }
 
   @Test
