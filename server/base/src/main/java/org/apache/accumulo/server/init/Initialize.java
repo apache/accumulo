@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -684,7 +685,7 @@ public class Initialize implements KeywordExecutable {
     boolean exists = true;
     do {
       if (opts.cliInstanceName == null) {
-        instanceName = getLineReader().readLine("Instance name : ");
+        instanceName = System.console().readLine("Instance name : ");
       } else {
         instanceName = opts.cliInstanceName;
       }
@@ -702,7 +703,7 @@ public class Initialize implements KeywordExecutable {
         // ACCUMULO-4401 setting exists=false is just as important as setting it to true
         exists = zoo.exists(instanceNamePath);
         if (exists) {
-          String decision = getLineReader().readLine("Instance name \"" + instanceName
+          String decision = System.console().readLine("Instance name \"" + instanceName
               + "\" exists. Delete existing entry from zookeeper? [Y/N] : ");
           if (decision == null) {
             System.exit(0);
@@ -748,24 +749,27 @@ public class Initialize implements KeywordExecutable {
     if (opts.cliPassword != null) {
       return opts.cliPassword.getBytes(UTF_8);
     }
-    String rootpass;
-    String confirmpass;
+    char[] rootpass;
+    char[] confirmpass;
+    String strrootpass;
+    String strconfirmpass;
     do {
-      rootpass = getLineReader().readLine(
-          "Enter initial password for " + rootUser + getInitialPasswordWarning(siteConfig), '*');
+      rootpass = System.console().readPassword(
+          "Enter initial password for " + rootUser + getInitialPasswordWarning(siteConfig));
       if (rootpass == null) {
         System.exit(0);
       }
-      confirmpass =
-          getLineReader().readLine("Confirm initial password for " + rootUser + ": ", '*');
+      confirmpass = System.console().readPassword("Confirm initial password for " + rootUser + ":");
       if (confirmpass == null) {
         System.exit(0);
       }
-      if (!rootpass.equals(confirmpass)) {
+      strrootpass = new String(rootpass);
+      strconfirmpass = new String(confirmpass);
+      if (!strrootpass.equals(strconfirmpass)) {
         log.error("Passwords do not match");
       }
     } while (!rootpass.equals(confirmpass));
-    return rootpass.getBytes(UTF_8);
+    return strrootpass.getBytes(Charset.forName("UTF-8"));
   }
 
   /**
@@ -848,7 +852,7 @@ public class Initialize implements KeywordExecutable {
   }
 
   private static void setMetadataReplication(int replication, String reason) throws IOException {
-    String rep = getLineReader()
+    String rep = System.console()
         .readLine("Your HDFS replication " + reason + " is not compatible with our default "
             + MetadataTable.NAME + " replication of 5. What do you want to set your "
             + MetadataTable.NAME + " replication to? (" + replication + ") ");
@@ -971,10 +975,10 @@ public class Initialize implements KeywordExecutable {
           try (ServerContext context = new ServerContext(siteConfig)) {
             if (isInitialized(fs, siteConfig)) {
               if (!opts.forceResetSecurity) {
-                LineReader c = getLineReader();
-                String userEnteredName = c.readLine("WARNING: This will remove all"
-                    + " users from Accumulo! If you wish to proceed enter the instance"
-                    + " name: ");
+                String userEnteredName = System.console()
+                    .readLine("WARNING: This will remove all"
+                        + " users from Accumulo! If you wish to proceed enter the instance"
+                        + " name: ");
                 if (userEnteredName != null && !context.getInstanceName().equals(userEnteredName)) {
                   log.error(
                       "Aborted reset security: Instance name did not match current instance.");

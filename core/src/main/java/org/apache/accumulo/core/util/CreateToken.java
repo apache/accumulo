@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.util;
 
+import java.io.Console;
 import java.io.IOException;
 
 import org.apache.accumulo.core.cli.ClientOpts.PasswordConverter;
@@ -28,8 +29,6 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Token
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.jline.reader.LineReader;
-import org.jline.reader.LineReaderBuilder;
 
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
@@ -37,12 +36,12 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class CreateToken implements KeywordExecutable {
 
-  private LineReader reader = null;
+  private Console reader = null;
 
-  private LineReader getConsoleReader() throws IOException {
+  private Console getConsoleReader() throws IOException {
 
     if (reader == null)
-      reader = LineReaderBuilder.builder().build();
+      reader = System.console();
     return reader;
   }
 
