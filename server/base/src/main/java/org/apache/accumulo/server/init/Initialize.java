@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 
+import java.io.Console;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -120,11 +121,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
-import org.jline.reader.LineReader;
-import org.jline.reader.LineReaderBuilder;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
-import org.jline.utils.InfoCmp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,16 +141,16 @@ public class Initialize implements KeywordExecutable {
   private static final String DEFAULT_ROOT_USER = "root";
   private static final String TABLE_TABLETS_TABLET_DIR = "table_info";
 
-  private static LineReader reader = null;
-  private static Terminal terminal = null;
   private static ZooReaderWriter zoo = null;
+  private static Console reader = null;
 
-  private static LineReader getLineReader() throws IOException {
-    if (terminal == null)
-      terminal = TerminalBuilder.builder().jansi(false).build();
+  private static Console getConsoleReader() throws IOException {
+
     if (reader == null)
-      reader = LineReaderBuilder.builder().terminal(terminal).build();
+      reader = System.console();
+
     return reader;
+
   }
 
   /**
@@ -280,9 +276,8 @@ public class Initialize implements KeywordExecutable {
       return false;
     }
     if (sconf.get(Property.INSTANCE_SECRET).equals(Property.INSTANCE_SECRET.getDefaultValue())) {
-      LineReader c = getLineReader();
-      var w = c.getTerminal().writer();
-      c.getTerminal().puts(InfoCmp.Capability.bell);
+      Console c = getConsoleReader();
+      var w = c.writer();
       w.println();
       w.println();
       w.println("Warning!!! Your instance secret is still set to the default,"
@@ -725,8 +720,8 @@ public class Initialize implements KeywordExecutable {
       return DEFAULT_ROOT_USER;
     }
 
-    LineReader c = getLineReader();
-    c.getTerminal().writer().println("Running against secured HDFS");
+    Console c = getConsoleReader();
+    c.writer().println("Running against secured HDFS");
 
     if (opts.rootUser != null) {
       return opts.rootUser;
