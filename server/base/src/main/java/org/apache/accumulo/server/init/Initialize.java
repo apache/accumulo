@@ -142,8 +142,6 @@ public class Initialize implements KeywordExecutable {
   private static final String TABLE_TABLETS_TABLET_DIR = "table_info";
 
   private static ZooReaderWriter zoo = null;
-  private static Console reader = null;
-
 
   /**
    * Sets this class's ZooKeeper reader/writer.
@@ -276,7 +274,8 @@ public class Initialize implements KeywordExecutable {
       System.out.println();
       System.out.println();
       System.out.println("You can change the instance secret in accumulo by using:");
-      System.out.println("   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName());
+      System.out.println(
+          "   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName());
       System.out.println("You will also need to edit your secret in your configuration"
           + " file by adding the property instance.secret to your"
           + " accumulo.properties. Without this accumulo will not operate" + " correctly");
