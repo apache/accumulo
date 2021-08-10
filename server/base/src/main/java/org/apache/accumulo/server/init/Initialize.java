@@ -144,6 +144,7 @@ public class Initialize implements KeywordExecutable {
   private static ZooReaderWriter zoo = null;
   private static Console reader = null;
 
+
   /**
    * Sets this class's ZooKeeper reader/writer.
    *
@@ -267,17 +268,16 @@ public class Initialize implements KeywordExecutable {
       return false;
     }
     if (sconf.get(Property.INSTANCE_SECRET).equals(Property.INSTANCE_SECRET.getDefaultValue())) {
-      Console c = System.console();
-      var w = c.writer();
-      w.println();
-      w.println();
-      w.println("Warning!!! Your instance secret is still set to the default,"
+
+      System.out.println();
+      System.out.println();
+      System.out.println("Warning!!! Your instance secret is still set to the default,"
           + " this is not secure. We highly recommend you change it.");
-      w.println();
-      w.println();
-      w.println("You can change the instance secret in accumulo by using:");
-      w.println("   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName());
-      w.println("You will also need to edit your secret in your configuration"
+      System.out.println();
+      System.out.println();
+      System.out.println("You can change the instance secret in accumulo by using:");
+      System.out.println("   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName());
+      System.out.println("You will also need to edit your secret in your configuration"
           + " file by adding the property instance.secret to your"
           + " accumulo.properties. Without this accumulo will not operate" + " correctly");
     }
@@ -712,7 +712,7 @@ public class Initialize implements KeywordExecutable {
     }
 
     Console c = System.console();
-    c.writer().println("Running against secured HDFS");
+    System.out.println("Running against secured HDFS");
 
     if (opts.rootUser != null) {
       return opts.rootUser;
@@ -754,7 +754,7 @@ public class Initialize implements KeywordExecutable {
       if (!strrootpass.equals(strconfirmpass)) {
         log.error("Passwords do not match");
       }
-    } while (!rootpass.equals(confirmpass));
+    } while (!strrootpass.equals(strconfirmpass));
     return strrootpass.getBytes(Charset.forName("UTF-8"));
   }
 
