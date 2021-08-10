@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.util;
 
 import java.io.Console;
-import java.io.IOException;
 
 import org.apache.accumulo.core.cli.ClientOpts.PasswordConverter;
 import org.apache.accumulo.core.cli.Help;
@@ -38,7 +37,7 @@ public class CreateToken implements KeywordExecutable {
 
   private Console reader = null;
 
-  private Console getConsoleReader() throws IOException {
+  private Console getConsoleReader() {
 
     if (reader == null)
       reader = System.console();
@@ -112,7 +111,7 @@ public class CreateToken implements KeywordExecutable {
       System.out.println("auth.type = " + opts.tokenClassName);
       System.out.println("auth.principal = " + principal);
       System.out.println("auth.token = " + ClientProperty.encodeToken(token));
-    } catch (IOException | ReflectiveOperationException e) {
+    } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
     }
   }

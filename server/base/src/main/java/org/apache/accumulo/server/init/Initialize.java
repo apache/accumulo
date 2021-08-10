@@ -144,15 +144,6 @@ public class Initialize implements KeywordExecutable {
   private static ZooReaderWriter zoo = null;
   private static Console reader = null;
 
-  private static Console getConsoleReader() throws IOException {
-
-    if (reader == null)
-      reader = System.console();
-
-    return reader;
-
-  }
-
   /**
    * Sets this class's ZooKeeper reader/writer.
    *
@@ -276,7 +267,7 @@ public class Initialize implements KeywordExecutable {
       return false;
     }
     if (sconf.get(Property.INSTANCE_SECRET).equals(Property.INSTANCE_SECRET.getDefaultValue())) {
-      Console c = getConsoleReader();
+      Console c = System.console();
       var w = c.writer();
       w.println();
       w.println();
@@ -720,7 +711,7 @@ public class Initialize implements KeywordExecutable {
       return DEFAULT_ROOT_USER;
     }
 
-    Console c = getConsoleReader();
+    Console c = System.console();
     c.writer().println("Running against secured HDFS");
 
     if (opts.rootUser != null) {
