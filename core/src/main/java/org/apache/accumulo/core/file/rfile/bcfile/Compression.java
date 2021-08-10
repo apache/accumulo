@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -220,16 +221,26 @@ public final class Compression {
 
     GZ(COMPRESSION_GZ) {
 
-      /** System property that if exists will attempt to load and use the QATCodec **/
-      private static final String USE_QAT_PROPERTY =
-          "accumulo.rfile.compression.quickassist.enabled";
+      /**
+       * Possible value for system property accumulo.rfile.compression.quickassist. If specified
+       * then we will try to set up and use the QuickAssist codec. If there is an issue setting it
+       * up then we will fail.
+       */
+      private static final String QAT_PROPERTY_USE_REQUIRED = "required";
 
       /**
-       * System property that if exists will fallback to default codec if QATCodec fails to load /
-       * initialize
-       **/
-      private static final String QAT_FALLBACK_PROPERTY =
-          "accumulo.rfile.compression.quickassist.fallback.on.failure";
+       * Possible value for system property accumulo.rfile.compression.quickassist. If specified
+       * then we will try to set up and use the QuickAssist codec. If there is an issue setting it
+       * up then we will fall back to the default codec.
+       */
+      private static final String QAT_PROPERTY_USE_IF_POSSIBLE = "bestEffort";
+
+      private static final int QAT_FALSE = 0;
+      private static final int QAT_BEST_EFFORT = 1;
+      private static final int QAT_REQUIRED = 2;
+
+      /** System property that if exists will attempt to load and use the QATCodec **/
+      private static final String USE_QAT_PROPERTY = "accumulo.rfile.compression.quickassist";
 
       /** Intel® QuickAssist codec **/
       private static final String DEFAULT_QAT_CLASS =
@@ -255,11 +266,26 @@ public final class Compression {
        */
       private static final int DEFAULT_BUFFER_SIZE = 32 * 1024;
 
-      private boolean tryToUseQAT = (null != System.getProperty(USE_QAT_PROPERTY));
-      private boolean fallbackToGZ = (null != System.getProperty(QAT_FALLBACK_PROPERTY));
-      private boolean usingQATCodec = false;
+      private volatile boolean createQATCodec = false;
+      private final AtomicBoolean usingQATCodec = new AtomicBoolean(false);
       private final AtomicBoolean checkedQAT = new AtomicBoolean(false);
       private transient CompressionCodec codec = null;
+
+      private int getQATPropertyValue() {
+        String propVal = System.getProperty(USE_QAT_PROPERTY);
+        if (Objects.isNull(propVal) || propVal.isEmpty() || "false".equalsIgnoreCase(propVal)) {
+          return QAT_FALSE;
+        }
+        if (QAT_PROPERTY_USE_IF_POSSIBLE.equalsIgnoreCase(propVal)) {
+          return QAT_BEST_EFFORT;
+        }
+        if (QAT_PROPERTY_USE_REQUIRED.equalsIgnoreCase(propVal)) {
+          return QAT_REQUIRED;
+        }
+        LOG.warn("Not attempting to use QuickAssist. Unhandled value for property: "
+            + "accumulo.rfile.compression.quickassist, value: " + propVal);
+        return QAT_FALSE;
+      }
 
       @Override
       CompressionCodec getCodec() {
@@ -268,25 +294,27 @@ public final class Compression {
 
       @Override
       public void initializeDefaultCodec() {
-        if (tryToUseQAT) {
+        int qat = getQATPropertyValue();
+        if (qat == QAT_FALSE) {
+          codec = createNewCodec(DEFAULT_BUFFER_SIZE);
+        } else {
           if (!checkedQAT.get()) {
+            createQATCodec = true;
             codec = createNewCodec(QAT_DEFAULT_BUFFER_SIZE);
-            if (codec == null) {
-              if (fallbackToGZ) {
-                // override
-                LOG.warn("Error setting up QAT codec, falling back to default GZ codec");
-                tryToUseQAT = false;
-                codec = createNewCodec(DEFAULT_BUFFER_SIZE);
-              } else {
-                LOG.error("Error setting up QAT codec");
-              }
-            } else {
-              usingQATCodec = true;
+            createQATCodec = false;
+            checkedQAT.set(true);
+            if (codec != null) {
+              usingQATCodec.set(true);
+              return;
+            }
+            if (qat == QAT_BEST_EFFORT) {
+              LOG.warn("Error setting up QAT codec, falling back to default GZ codec");
+              codec = createNewCodec(DEFAULT_BUFFER_SIZE);
+            }
+            if (qat == QAT_REQUIRED) {
+              throw new RuntimeException("Error setting up QAT codec.");
             }
           }
-          checkedQAT.set(true);
-        } else {
-          codec = createNewCodec(DEFAULT_BUFFER_SIZE);
         }
       }
 
@@ -299,7 +327,7 @@ public final class Compression {
        */
       @Override
       protected CompressionCodec createNewCodec(final int bufferSize) {
-        if (tryToUseQAT) {
+        if (createQATCodec) {
           String extClazz =
               (conf.get(CONF_QAT_CLASS) == null ? System.getProperty(CONF_QAT_CLASS) : null);
           String clazz = (extClazz != null) ? extClazz : DEFAULT_QAT_CLASS;
@@ -338,7 +366,7 @@ public final class Compression {
       public InputStream createDecompressionStream(InputStream downStream,
           Decompressor decompressor, int downStreamBufferSize) throws IOException {
 
-        if (usingQATCodec) {
+        if (usingQATCodec.get()) {
           InputStream bis1 = null;
           if (downStreamBufferSize > 0) {
             bis1 = new BufferedInputStream(downStream, downStreamBufferSize);
