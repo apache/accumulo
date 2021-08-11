@@ -799,7 +799,7 @@ public enum Property {
   MONITOR_SSL_INCLUDE_PROTOCOLS("monitor.ssl.include.protocols", "TLSv1.2", PropertyType.STRING,
       "A comma-separate list of allowed SSL protocols", "1.5.3"),
   MONITOR_LOCK_CHECK_INTERVAL("monitor.lock.check.interval", "5s", PropertyType.TIMEDURATION,
-      "The amount of time to sleep between checking for the Montior ZooKeeper lock", "1.5.1"),
+      "The amount of time to sleep between checking for the Monitor ZooKeeper lock", "1.5.1"),
   MONITOR_RESOURCES_EXTERNAL("monitor.resources.external", "", PropertyType.STRING,
       "A JSON Map of Strings. Each String should be an HTML tag of an external"
           + " resource (JS or CSS) to be imported by the Monitor. Be sure to wrap"
@@ -877,7 +877,8 @@ public enum Property {
       "1.3.5"),
   TABLE_COMPACTION_DISPATCHER("table.compaction.dispatcher",
       SimpleCompactionDispatcher.class.getName(), PropertyType.CLASSNAME,
-      "A configurable dispatcher that decides what comaction service a table should use.", "2.1.0"),
+      "A configurable dispatcher that decides what compaction service a table should use.",
+      "2.1.0"),
   TABLE_COMPACTION_DISPATCHER_OPTS("table.compaction.dispatcher.opts.", null, PropertyType.PREFIX,
       "Options for the table compaction dispatcher", "2.1.0"),
   TABLE_COMPACTION_SELECTOR("table.compaction.selector", "", PropertyType.CLASSNAME,
@@ -1109,7 +1110,7 @@ public enum Property {
       DeletingIterator.Behavior.PROCESS.name().toLowerCase(), PropertyType.STRING,
       "This determines what action to take when a delete marker is seen."
           + " Valid values are `process` and `fail` with `process` being the default.  When set to "
-          + "`process`, deletes will supress data.  When set to `fail`, any deletes seen will cause"
+          + "`process`, deletes will suppress data.  When set to `fail`, any deletes seen will cause"
           + " an exception. The purpose of `fail` is to support tables that never delete data and"
           + " need fast seeks within the timestamp range of a column. When setting this to fail, "
           + "also consider configuring the `" + NoDeleteConstraint.class.getName() + "` "

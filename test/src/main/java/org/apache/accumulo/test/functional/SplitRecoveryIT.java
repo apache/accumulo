@@ -215,7 +215,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     tabletMutator.mutate();
 
     if (steps >= 1) {
-      Map<Long,List<TabletFile>> bulkFiles = getBulkFilesLoaded(context, extent);
+      Map<Long,List<TabletFile>> bulkFiles = getBulkFilesLoaded(context, high);
 
       ManagerMetadataUtil.addNewTablet(context, low, "lowDir", instance, lowDatafileSizes,
           bulkFiles, new MetadataTime(0, TimeType.LOGICAL), -1L, -1L, zl);
