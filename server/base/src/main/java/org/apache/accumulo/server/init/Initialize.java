@@ -26,7 +26,6 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import java.io.Console;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -754,7 +753,7 @@ public class Initialize implements KeywordExecutable {
         log.error("Passwords do not match");
       }
     } while (!strrootpass.equals(strconfirmpass));
-    return strrootpass.getBytes(Charset.forName("UTF-8"));
+    return strrootpass.getBytes(UTF_8);
   }
 
   /**
