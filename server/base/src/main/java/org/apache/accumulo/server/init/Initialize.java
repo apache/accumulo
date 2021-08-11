@@ -23,7 +23,6 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 
-import java.io.Console;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Arrays;
@@ -662,8 +661,7 @@ public class Initialize implements KeywordExecutable {
     return Constants.ZROOT + Constants.ZINSTANCES + "/";
   }
 
-  private String getInstanceNamePath(Opts opts)
-      throws IOException, KeeperException, InterruptedException {
+  private String getInstanceNamePath(Opts opts) throws KeeperException, InterruptedException {
     // setup the instance name
     String instanceName, instanceNamePath = null;
     boolean exists = true;
@@ -702,14 +700,13 @@ public class Initialize implements KeywordExecutable {
     return instanceNamePath;
   }
 
-  private String getRootUserName(SiteConfiguration siteConfig, Opts opts) throws IOException {
+  private String getRootUserName(SiteConfiguration siteConfig, Opts opts) {
     final String keytab = siteConfig.get(Property.GENERAL_KERBEROS_KEYTAB);
     if (keytab.equals(Property.GENERAL_KERBEROS_KEYTAB.getDefaultValue())
         || !siteConfig.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       return DEFAULT_ROOT_USER;
     }
 
-    Console c = System.console();
     System.out.println("Running against secured HDFS");
 
     if (opts.rootUser != null) {
@@ -717,7 +714,8 @@ public class Initialize implements KeywordExecutable {
     }
 
     do {
-      String user = c.readLine("Principal (user) to grant administrative privileges to : ");
+      String user =
+          System.console().readLine("Principal (user) to grant administrative privileges to : ");
       if (user == null) {
         // should not happen
         System.exit(1);
@@ -728,22 +726,20 @@ public class Initialize implements KeywordExecutable {
     } while (true);
   }
 
-  private byte[] getRootPassword(SiteConfiguration siteConfig, Opts opts, String rootUser)
-      throws IOException {
+  private byte[] getRootPassword(SiteConfiguration siteConfig, Opts opts, String rootUser) {
     if (opts.cliPassword != null) {
       return opts.cliPassword.getBytes(UTF_8);
     }
-    char[] rootpass;
-    char[] confirmpass;
     String strrootpass;
     String strconfirmpass;
     do {
-      rootpass = System.console().readPassword(
+      var rootpass = System.console().readPassword(
           "Enter initial password for " + rootUser + getInitialPasswordWarning(siteConfig));
       if (rootpass == null) {
         System.exit(0);
       }
-      confirmpass = System.console().readPassword("Confirm initial password for " + rootUser + ":");
+      var confirmpass =
+          System.console().readPassword("Confirm initial password for " + rootUser + ":");
       if (confirmpass == null) {
         System.exit(0);
       }
@@ -835,7 +831,7 @@ public class Initialize implements KeywordExecutable {
     }
   }
 
-  private static void setMetadataReplication(int replication, String reason) throws IOException {
+  private static void setMetadataReplication(int replication, String reason) {
     String rep = System.console()
         .readLine("Your HDFS replication " + reason + " is not compatible with our default "
             + MetadataTable.NAME + " replication of 5. What do you want to set your "
