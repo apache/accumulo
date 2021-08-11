@@ -119,11 +119,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
-import org.jline.reader.LineReader;
-import org.jline.reader.LineReaderBuilder;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
-import org.jline.utils.InfoCmp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -144,17 +139,7 @@ public class Initialize implements KeywordExecutable {
   private static final String DEFAULT_ROOT_USER = "root";
   private static final String TABLE_TABLETS_TABLET_DIR = "table_info";
 
-  private static LineReader reader = null;
-  private static Terminal terminal = null;
   private static ZooReaderWriter zoo = null;
-
-  private static LineReader getLineReader() throws IOException {
-    if (terminal == null)
-      terminal = TerminalBuilder.builder().jansi(false).build();
-    if (reader == null)
-      reader = LineReaderBuilder.builder().terminal(terminal).build();
-    return reader;
-  }
 
   /**
    * Sets this class's ZooKeeper reader/writer.
@@ -279,18 +264,17 @@ public class Initialize implements KeywordExecutable {
       return false;
     }
     if (sconf.get(Property.INSTANCE_SECRET).equals(Property.INSTANCE_SECRET.getDefaultValue())) {
-      LineReader c = getLineReader();
-      var w = c.getTerminal().writer();
-      c.getTerminal().puts(InfoCmp.Capability.bell);
-      w.println();
-      w.println();
-      w.println("Warning!!! Your instance secret is still set to the default,"
+
+      System.out.println();
+      System.out.println();
+      System.out.println("Warning!!! Your instance secret is still set to the default,"
           + " this is not secure. We highly recommend you change it.");
-      w.println();
-      w.println();
-      w.println("You can change the instance secret in accumulo by using:");
-      w.println("   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName());
-      w.println("You will also need to edit your secret in your configuration"
+      System.out.println();
+      System.out.println();
+      System.out.println("You can change the instance secret in accumulo by using:");
+      System.out.println(
+          "   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName());
+      System.out.println("You will also need to edit your secret in your configuration"
           + " file by adding the property instance.secret to your"
           + " accumulo.properties. Without this accumulo will not operate" + " correctly");
     }
@@ -677,14 +661,13 @@ public class Initialize implements KeywordExecutable {
     return Constants.ZROOT + Constants.ZINSTANCES + "/";
   }
 
-  private String getInstanceNamePath(Opts opts)
-      throws IOException, KeeperException, InterruptedException {
+  private String getInstanceNamePath(Opts opts) throws KeeperException, InterruptedException {
     // setup the instance name
     String instanceName, instanceNamePath = null;
     boolean exists = true;
     do {
       if (opts.cliInstanceName == null) {
-        instanceName = getLineReader().readLine("Instance name : ");
+        instanceName = System.console().readLine("Instance name : ");
       } else {
         instanceName = opts.cliInstanceName;
       }
@@ -702,7 +685,7 @@ public class Initialize implements KeywordExecutable {
         // ACCUMULO-4401 setting exists=false is just as important as setting it to true
         exists = zoo.exists(instanceNamePath);
         if (exists) {
-          String decision = getLineReader().readLine("Instance name \"" + instanceName
+          String decision = System.console().readLine("Instance name \"" + instanceName
               + "\" exists. Delete existing entry from zookeeper? [Y/N] : ");
           if (decision == null) {
             System.exit(0);
@@ -717,22 +700,22 @@ public class Initialize implements KeywordExecutable {
     return instanceNamePath;
   }
 
-  private String getRootUserName(SiteConfiguration siteConfig, Opts opts) throws IOException {
+  private String getRootUserName(SiteConfiguration siteConfig, Opts opts) {
     final String keytab = siteConfig.get(Property.GENERAL_KERBEROS_KEYTAB);
     if (keytab.equals(Property.GENERAL_KERBEROS_KEYTAB.getDefaultValue())
         || !siteConfig.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       return DEFAULT_ROOT_USER;
     }
 
-    LineReader c = getLineReader();
-    c.getTerminal().writer().println("Running against secured HDFS");
+    System.out.println("Running against secured HDFS");
 
     if (opts.rootUser != null) {
       return opts.rootUser;
     }
 
     do {
-      String user = c.readLine("Principal (user) to grant administrative privileges to : ");
+      String user =
+          System.console().readLine("Principal (user) to grant administrative privileges to : ");
       if (user == null) {
         // should not happen
         System.exit(1);
@@ -743,29 +726,30 @@ public class Initialize implements KeywordExecutable {
     } while (true);
   }
 
-  private byte[] getRootPassword(SiteConfiguration siteConfig, Opts opts, String rootUser)
-      throws IOException {
+  private byte[] getRootPassword(SiteConfiguration siteConfig, Opts opts, String rootUser) {
     if (opts.cliPassword != null) {
       return opts.cliPassword.getBytes(UTF_8);
     }
-    String rootpass;
-    String confirmpass;
+    String strrootpass;
+    String strconfirmpass;
     do {
-      rootpass = getLineReader().readLine(
-          "Enter initial password for " + rootUser + getInitialPasswordWarning(siteConfig), '*');
+      var rootpass = System.console().readPassword(
+          "Enter initial password for " + rootUser + getInitialPasswordWarning(siteConfig));
       if (rootpass == null) {
         System.exit(0);
       }
-      confirmpass =
-          getLineReader().readLine("Confirm initial password for " + rootUser + ": ", '*');
+      var confirmpass =
+          System.console().readPassword("Confirm initial password for " + rootUser + ":");
       if (confirmpass == null) {
         System.exit(0);
       }
-      if (!rootpass.equals(confirmpass)) {
+      strrootpass = new String(rootpass);
+      strconfirmpass = new String(confirmpass);
+      if (!strrootpass.equals(strconfirmpass)) {
         log.error("Passwords do not match");
       }
-    } while (!rootpass.equals(confirmpass));
-    return rootpass.getBytes(UTF_8);
+    } while (!strrootpass.equals(strconfirmpass));
+    return strrootpass.getBytes(UTF_8);
   }
 
   /**
@@ -847,8 +831,8 @@ public class Initialize implements KeywordExecutable {
     }
   }
 
-  private static void setMetadataReplication(int replication, String reason) throws IOException {
-    String rep = getLineReader()
+  private static void setMetadataReplication(int replication, String reason) {
+    String rep = System.console()
         .readLine("Your HDFS replication " + reason + " is not compatible with our default "
             + MetadataTable.NAME + " replication of 5. What do you want to set your "
             + MetadataTable.NAME + " replication to? (" + replication + ") ");
@@ -971,10 +955,10 @@ public class Initialize implements KeywordExecutable {
           try (ServerContext context = new ServerContext(siteConfig)) {
             if (isInitialized(fs, siteConfig)) {
               if (!opts.forceResetSecurity) {
-                LineReader c = getLineReader();
-                String userEnteredName = c.readLine("WARNING: This will remove all"
-                    + " users from Accumulo! If you wish to proceed enter the instance"
-                    + " name: ");
+                String userEnteredName = System.console()
+                    .readLine("WARNING: This will remove all"
+                        + " users from Accumulo! If you wish to proceed enter the instance"
+                        + " name: ");
                 if (userEnteredName != null && !context.getInstanceName().equals(userEnteredName)) {
                   log.error(
                       "Aborted reset security: Instance name did not match current instance.");
