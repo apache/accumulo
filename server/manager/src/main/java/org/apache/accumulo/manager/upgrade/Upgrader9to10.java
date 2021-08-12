@@ -71,6 +71,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -108,7 +109,7 @@ import com.google.common.base.Preconditions;
  *
  * Sorted recovery was updated to use RFiles instead of map files. So to prevent issues during
  * tablet recovery, remove the old temporary map files and resort using RFiles. This is done in
- * {@link #dropSortedMapWALFiles(VolumeManager)}. For more information see the following issues:
+ * {@link #dropSortedMapWALFiles(ServerContext)}. For more information see the following issues:
  * <a href="https://github.com/apache/accumulo/issues/2117">#2117</a> and
  * <a href="https://github.com/apache/accumulo/issues/2179">#2179</a>
  */
@@ -134,6 +135,8 @@ public class Upgrader9to10 implements Upgrader {
     upgradeRootTabletMetadata(ctx);
     renameOldMasterPropsinZK(ctx);
     createExternalCompactionNodes(ctx);
+    // special case where old files need to be deleted
+    dropSortedMapWALFiles(ctx);
   }
 
   @Override
@@ -148,8 +151,6 @@ public class Upgrader9to10 implements Upgrader {
     upgradeRelativePaths(ctx, Ample.DataLevel.USER);
     upgradeDirColumns(ctx, Ample.DataLevel.USER);
     upgradeFileDeletes(ctx, Ample.DataLevel.USER);
-    // special case where old files need to be deleted
-    dropSortedMapWALFiles(ctx.getVolumeManager());
   }
 
   private void setMetaTableProps(ServerContext ctx) {
@@ -738,33 +739,36 @@ public class Upgrader9to10 implements Upgrader {
   /**
    * Remove old temporary map files to prevent problems during recovery.
    */
-  static void dropSortedMapWALFiles(VolumeManager vm) {
-    Path recoveryDir = new Path("/accumulo/recovery");
-    try {
-      if (!vm.exists(recoveryDir)) {
-        log.info("There are no recovery files in /accumulo/recovery");
-        return;
-      }
-      List<Path> directoriesToDrop = new ArrayList<>();
-      for (FileStatus walDir : vm.listStatus(recoveryDir)) {
-        // map files will be in a directory starting with "part"
-        Path walDirPath = walDir.getPath();
-        for (FileStatus dirOrFile : vm.listStatus(walDirPath)) {
-          if (dirOrFile.isDirectory()) {
-            directoriesToDrop.add(walDirPath);
-            break;
+  static void dropSortedMapWALFiles(ServerContext context) {
+    VolumeManager vm = context.getVolumeManager();
+    for (Volume volume : vm.getVolumes()) {
+      Path recoveryDir = volume.prefixChild("/accumulo/recovery");
+      try {
+        if (!vm.exists(recoveryDir)) {
+          log.info("There are no recovery files in /accumulo/recovery");
+          return;
+        }
+        List<Path> directoriesToDrop = new ArrayList<>();
+        for (FileStatus walDir : vm.listStatus(recoveryDir)) {
+          // map files will be in a directory starting with "part"
+          Path walDirPath = walDir.getPath();
+          for (FileStatus dirOrFile : vm.listStatus(walDirPath)) {
+            if (dirOrFile.isDirectory()) {
+              directoriesToDrop.add(walDirPath);
+              break;
+            }
           }
         }
-      }
-      if (!directoriesToDrop.isEmpty()) {
-        log.info("Found {} old sorted map directories to delete.", directoriesToDrop.size());
-        for (Path dir : directoriesToDrop) {
-          log.info("Deleting everything in old sorted map directory: {}", dir);
-          vm.deleteRecursively(dir);
+        if (!directoriesToDrop.isEmpty()) {
+          log.info("Found {} old sorted map directories to delete.", directoriesToDrop.size());
+          for (Path dir : directoriesToDrop) {
+            log.info("Deleting everything in old sorted map directory: {}", dir);
+            vm.deleteRecursively(dir);
+          }
         }
+      } catch (IOException ioe) {
+        throw new UncheckedIOException(ioe);
       }
-    } catch (IOException ioe) {
-      throw new UncheckedIOException(ioe);
     }
   }
 }
