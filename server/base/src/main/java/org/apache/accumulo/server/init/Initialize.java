@@ -862,8 +862,7 @@ public class Initialize implements KeywordExecutable {
 
     Set<String> volumeURIs = VolumeConfiguration.getVolumeUris(siteConfig);
 
-    Set<String> initializedDirs =
-        ServerConstants.checkBaseUris(siteConfig, hadoopConf, volumeURIs, true);
+    Set<String> initializedDirs = ServerConstants.checkBaseUris(hadoopConf, volumeURIs, true);
 
     HashSet<String> uinitializedDirs = new HashSet<>();
     uinitializedDirs.addAll(volumeURIs);

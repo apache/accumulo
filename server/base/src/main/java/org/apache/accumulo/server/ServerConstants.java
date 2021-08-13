@@ -95,14 +95,14 @@ public class ServerConstants {
       Configuration hadoopConf) {
     if (baseUris == null) {
       baseUris = Collections.unmodifiableSet(
-          checkBaseUris(conf, hadoopConf, VolumeConfiguration.getVolumeUris(conf), false));
+          checkBaseUris(hadoopConf, VolumeConfiguration.getVolumeUris(conf), false));
     }
 
     return baseUris;
   }
 
-  public static Set<String> checkBaseUris(AccumuloConfiguration conf, Configuration hadoopConf,
-      Set<String> configuredBaseDirs, boolean ignore) {
+  public static Set<String> checkBaseUris(Configuration hadoopConf, Set<String> configuredBaseDirs,
+      boolean ignore) {
     // all base dirs must have same instance id and data version, any dirs that have neither should
     // be ignored
     String firstDir = null;

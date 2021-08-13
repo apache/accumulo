@@ -78,15 +78,15 @@ public class ServerConstantsTest {
   }
 
   private void verifyAllPass(Set<String> paths) {
-    assertEquals(paths, ServerConstants.checkBaseUris(conf, hadoopConf, paths, true));
-    assertEquals(paths, ServerConstants.checkBaseUris(conf, hadoopConf, paths, false));
+    assertEquals(paths, ServerConstants.checkBaseUris(hadoopConf, paths, true));
+    assertEquals(paths, ServerConstants.checkBaseUris(hadoopConf, paths, false));
   }
 
   private void verifySomePass(Set<String> paths) {
     Set<String> subset = paths.stream().limit(2).collect(Collectors.toSet());
-    assertEquals(subset, ServerConstants.checkBaseUris(conf, hadoopConf, paths, true));
+    assertEquals(subset, ServerConstants.checkBaseUris(hadoopConf, paths, true));
     try {
-      ServerConstants.checkBaseUris(conf, hadoopConf, paths, false);
+      ServerConstants.checkBaseUris(hadoopConf, paths, false);
       fail();
     } catch (Exception e) {
       // ignored
@@ -95,14 +95,14 @@ public class ServerConstantsTest {
 
   private void verifyError(Set<String> paths) {
     try {
-      ServerConstants.checkBaseUris(conf, hadoopConf, paths, true);
+      ServerConstants.checkBaseUris(hadoopConf, paths, true);
       fail();
     } catch (Exception e) {
       // ignored
     }
 
     try {
-      ServerConstants.checkBaseUris(conf, hadoopConf, paths, false);
+      ServerConstants.checkBaseUris(hadoopConf, paths, false);
       fail();
     } catch (Exception e) {
       // ignored
