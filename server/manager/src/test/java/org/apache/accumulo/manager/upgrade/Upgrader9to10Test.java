@@ -35,6 +35,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -43,6 +44,8 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -53,6 +56,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeImpl;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
@@ -337,11 +341,15 @@ public class Upgrader9to10Test {
 
   @Test
   public void testDropSortedMapWALs() throws IOException {
-    FileSystem fs = new Path("file:///").getFileSystem(new Configuration(false));
+    Configuration hadoopConf = new Configuration();
+    ConfigurationCopy conf = new ConfigurationCopy();
+    FileSystem fs = new Path("file:///").getFileSystem(hadoopConf);
 
     List<String> volumes = Arrays.asList("/vol1/", "/vol2/");
     Collection<Volume> vols =
         volumes.stream().map(s -> new VolumeImpl(fs, s)).collect(Collectors.toList());
+    Set<String> fullyQualifiedVols = Set.of("file://vol1/", "file://vol2/");
+    conf.set(Property.INSTANCE_VOLUMES, String.join(",", fullyQualifiedVols));
 
     ServerContext context = createMock(ServerContext.class);
     Path recoveryDir1 = new Path("file:/vol1/accumulo/recovery");
@@ -359,7 +367,13 @@ public class Upgrader9to10Test {
     Path part1Dir = new Path("file:/vol1/accumulo/recovery/B123456789/part-r-0000");
 
     expect(context.getVolumeManager()).andReturn(volumeManager).once();
+    expect(context.getConfiguration()).andReturn(conf).once();
+    expect(context.getHadoopConf()).andReturn(hadoopConf).once();
     expect(volumeManager.getVolumes()).andReturn(vols).once();
+    // currentIid = VolumeManager.getInstanceIDFromHdfs(path, hadoopConf);
+    ServerConstants.checkBaseUris(hadoopConf, fullyQualifiedVols, false);
+    expectLastCall().andReturn(fullyQualifiedVols).once();
+    //expect(VolumeManager.getInstanceIDFromHdfs()).andReturn(vols).once();
     expect(volumeManager.exists(recoveryDir1)).andReturn(true).once();
     expect(volumeManager.exists(recoveryDir2)).andReturn(false).once();
     expect(volumeManager.listStatus(recoveryDir1)).andReturn(dirs).once();

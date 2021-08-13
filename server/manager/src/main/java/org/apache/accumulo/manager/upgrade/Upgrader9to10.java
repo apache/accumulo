@@ -71,10 +71,10 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ZooConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -741,15 +741,15 @@ public class Upgrader9to10 implements Upgrader {
    */
   static void dropSortedMapWALFiles(ServerContext context) {
     VolumeManager vm = context.getVolumeManager();
-    for (Volume volume : vm.getVolumes()) {
-      Path recoveryDir = volume.prefixChild("/accumulo/recovery");
+    for (String recoveryDir : ServerConstants.getRecoveryDirs(context)) {
+      Path recoveryDirPath = new Path(recoveryDir);
       try {
-        if (!vm.exists(recoveryDir)) {
-          log.info("There are no recovery files in /accumulo/recovery");
+        if (!vm.exists(recoveryDirPath)) {
+          log.info("There are no recovery files in {}", recoveryDir);
           return;
         }
         List<Path> directoriesToDrop = new ArrayList<>();
-        for (FileStatus walDir : vm.listStatus(recoveryDir)) {
+        for (FileStatus walDir : vm.listStatus(recoveryDirPath)) {
           // map files will be in a directory starting with "part"
           Path walDirPath = walDir.getPath();
           for (FileStatus dirOrFile : vm.listStatus(walDirPath)) {
