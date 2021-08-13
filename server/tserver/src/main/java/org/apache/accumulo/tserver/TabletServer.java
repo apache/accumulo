@@ -985,7 +985,7 @@ public class TabletServer extends AbstractServer {
     VolumeChooserEnvironment chooserEnv =
         new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.LOGGER, context);
     Set<String> prefixes;
-    var options = ServerConstants.getBaseUris(context);
+    var options = context.getBaseUris();
     try {
       prefixes = context.getVolumeManager().choosable(chooserEnv, options);
     } catch (RuntimeException e) {

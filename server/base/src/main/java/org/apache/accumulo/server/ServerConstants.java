@@ -82,26 +82,22 @@ public class ServerConstants {
       Set.of(SHORTEN_RFILE_KEYS, CRYPTO_CHANGES, DATA_VERSION);
   public static final Set<Integer> NEEDS_UPGRADE = Sets.difference(CAN_RUN, Set.of(DATA_VERSION));
 
-  private static Set<String> baseUris = null;
+  private final Set<String> baseUris;
+  private final List<Pair<Path,Path>> replacementsList;
 
-  private static List<Pair<Path,Path>> replacementsList = null;
-
-  public static Set<String> getBaseUris(ServerContext context) {
-    return getBaseUris(context.getConfiguration(), context.getHadoopConf());
+  public ServerConstants(AccumuloConfiguration conf, Configuration hadoopConf) {
+    this.baseUris = getBaseUris(conf, hadoopConf);
+    this.replacementsList = getVolumeReplacements(conf, hadoopConf);
   }
 
   // these are functions to delay loading the Accumulo configuration unless we must
-  public static synchronized Set<String> getBaseUris(AccumuloConfiguration conf,
+  private synchronized Set<String> getBaseUris(AccumuloConfiguration conf,
       Configuration hadoopConf) {
-    if (baseUris == null) {
-      baseUris = Collections.unmodifiableSet(
-          checkBaseUris(hadoopConf, VolumeConfiguration.getVolumeUris(conf), false));
-    }
-
-    return baseUris;
+    return Collections
+        .unmodifiableSet(checkBaseUris(hadoopConf, VolumeConfiguration.getVolumeUris(conf), false));
   }
 
-  public static Set<String> checkBaseUris(Configuration hadoopConf, Set<String> configuredBaseDirs,
+  public Set<String> checkBaseUris(Configuration hadoopConf, Set<String> configuredBaseDirs,
       boolean ignore) {
     // all base dirs must have same instance id and data version, any dirs that have neither should
     // be ignored
@@ -156,18 +152,18 @@ public class ServerConstants {
   public static final String RECOVERY_DIR = "recovery";
   public static final String WAL_DIR = "wal";
 
-  private static Set<String> prefix(Set<String> bases, String suffix) {
+  private Set<String> prefix(Set<String> bases, String suffix) {
     String actualSuffix = suffix.startsWith("/") ? suffix.substring(1) : suffix;
     return bases.stream().map(base -> base + (base.endsWith("/") ? "" : "/") + actualSuffix)
         .collect(Collectors.toCollection(LinkedHashSet::new));
   }
 
-  public static Set<String> getTablesDirs(ServerContext context) {
-    return prefix(getBaseUris(context), TABLE_DIR);
+  public Set<String> getTablesDirs() {
+    return prefix(this.baseUris, TABLE_DIR);
   }
 
-  public static Set<String> getRecoveryDirs(ServerContext context) {
-    return prefix(getBaseUris(context), RECOVERY_DIR);
+  public Set<String> getRecoveryDirs() {
+    return prefix(this.baseUris, RECOVERY_DIR);
   }
 
   public static Path getInstanceIdLocation(Volume v) {
@@ -180,72 +176,79 @@ public class ServerConstants {
     return v.prefixChild(VERSION_DIR);
   }
 
-  public static synchronized List<Pair<Path,Path>> getVolumeReplacements(AccumuloConfiguration conf,
+  private List<Pair<Path,Path>> getVolumeReplacements(AccumuloConfiguration conf,
       Configuration hadoopConf) {
 
-    if (replacementsList == null) {
-      String replacements = conf.get(Property.INSTANCE_VOLUMES_REPLACEMENTS);
+    List<Pair<Path,Path>> replacementsList;
+    String replacements = conf.get(Property.INSTANCE_VOLUMES_REPLACEMENTS);
 
-      replacements = replacements.trim();
-
-      if (replacements.isEmpty()) {
-        return Collections.emptyList();
-      }
-
-      String[] pairs = replacements.split(",");
-      List<Pair<Path,Path>> ret = new ArrayList<>();
-
-      for (String pair : pairs) {
-
-        String[] uris = pair.split("\\s+");
-        if (uris.length != 2) {
-          throw new IllegalArgumentException(
-              Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey() + " contains malformed pair " + pair);
-        }
-
-        Path p1, p2;
-        try {
-          // URI constructor handles hex escaping
-          p1 = new Path(new URI(VolumeUtil.removeTrailingSlash(uris[0].trim())));
-          if (p1.toUri().getScheme() == null) {
-            throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
-                + " contains " + uris[0] + " which is not fully qualified");
-          }
-        } catch (URISyntaxException e) {
-          throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
-              + " contains " + uris[0] + " which has a syntax error", e);
-        }
-
-        try {
-          p2 = new Path(new URI(VolumeUtil.removeTrailingSlash(uris[1].trim())));
-          if (p2.toUri().getScheme() == null) {
-            throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
-                + " contains " + uris[1] + " which is not fully qualified");
-          }
-        } catch (URISyntaxException e) {
-          throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
-              + " contains " + uris[1] + " which has a syntax error", e);
-        }
-
-        ret.add(new Pair<>(p1, p2));
-      }
-
-      HashSet<Path> baseDirs = new HashSet<>();
-      for (String baseDir : getBaseUris(conf, hadoopConf)) {
-        // normalize using path
-        baseDirs.add(new Path(baseDir));
-      }
-
-      for (Pair<Path,Path> pair : ret) {
-        if (!baseDirs.contains(pair.getSecond())) {
-          throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
-              + " contains " + pair.getSecond() + " which is not a configured volume");
-        }
-      }
-
-      // only set if get here w/o exception
-      replacementsList = ret;
+    if (replacements == null || replacements.trim().isEmpty()) {
+      return Collections.emptyList();
     }
+    replacements = replacements.trim();
+
+    String[] pairs = replacements.split(",");
+    List<Pair<Path,Path>> ret = new ArrayList<>();
+
+    for (String pair : pairs) {
+
+      String[] uris = pair.split("\\s+");
+      if (uris.length != 2) {
+        throw new IllegalArgumentException(
+            Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey() + " contains malformed pair " + pair);
+      }
+
+      Path p1, p2;
+      try {
+        // URI constructor handles hex escaping
+        p1 = new Path(new URI(VolumeUtil.removeTrailingSlash(uris[0].trim())));
+        if (p1.toUri().getScheme() == null) {
+          throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
+              + " contains " + uris[0] + " which is not fully qualified");
+        }
+      } catch (URISyntaxException e) {
+        throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
+            + " contains " + uris[0] + " which has a syntax error", e);
+      }
+
+      try {
+        p2 = new Path(new URI(VolumeUtil.removeTrailingSlash(uris[1].trim())));
+        if (p2.toUri().getScheme() == null) {
+          throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
+              + " contains " + uris[1] + " which is not fully qualified");
+        }
+      } catch (URISyntaxException e) {
+        throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
+            + " contains " + uris[1] + " which has a syntax error", e);
+      }
+
+      ret.add(new Pair<>(p1, p2));
+    }
+
+    HashSet<Path> baseDirs = new HashSet<>();
+    for (String baseDir : getBaseUris(conf, hadoopConf)) {
+      // normalize using path
+      baseDirs.add(new Path(baseDir));
+    }
+
+    for (Pair<Path,Path> pair : ret) {
+      if (!baseDirs.contains(pair.getSecond())) {
+        throw new IllegalArgumentException(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey()
+            + " contains " + pair.getSecond() + " which is not a configured volume");
+      }
+    }
+
+    // only set if get here w/o exception
+    replacementsList = ret;
+
     return replacementsList;
+  }
+
+  public List<Pair<Path,Path>> getVolumeReplacements() {
+    return this.replacementsList;
+  }
+
+  public Set<String> getBaseUris() {
+    return this.baseUris;
   }
 }

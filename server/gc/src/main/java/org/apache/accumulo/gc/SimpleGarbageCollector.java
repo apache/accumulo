@@ -83,7 +83,6 @@ import org.apache.accumulo.gc.metrics.GcCycleMetrics;
 import org.apache.accumulo.gc.metrics.GcMetricsFactory;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
 import org.apache.accumulo.server.AbstractServer;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
@@ -306,8 +305,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       ExecutorService deleteThreadPool =
           ThreadPools.createExecutorService(getConfiguration(), Property.GC_DELETE_THREADS);
 
-      final List<Pair<Path,Path>> replacements =
-          ServerConstants.getVolumeReplacements(getConfiguration(), getContext().getHadoopConf());
+      final List<Pair<Path,Path>> replacements = getContext().getVolumeReplacements();
 
       for (final String delete : confirmedDeletes.values()) {
 
@@ -403,7 +401,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       final VolumeManager fs = getContext().getVolumeManager();
       // if dir exist and is empty, then empty list is returned...
       // hadoop 2.0 will throw an exception if the file does not exist
-      for (String dir : ServerConstants.getTablesDirs(getContext())) {
+      for (String dir : getContext().getTablesDirs()) {
         FileStatus[] tabletDirs = null;
         try {
           tabletDirs = fs.listStatus(new Path(dir + "/" + tableID));

@@ -39,7 +39,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.log.SortedLogState;
@@ -155,9 +154,8 @@ public class RecoveryManager {
     for (Collection<String> logs : walogs) {
       for (String walog : logs) {
 
-        Path switchedWalog =
-            VolumeUtil.switchVolume(walog, FileType.WAL, ServerConstants.getVolumeReplacements(
-                manager.getConfiguration(), manager.getContext().getHadoopConf()));
+        Path switchedWalog = VolumeUtil.switchVolume(walog, FileType.WAL,
+            manager.getContext().getVolumeReplacements());
         if (switchedWalog != null) {
           // replaces the volume used for sorting, but do not change entry in metadata table. When
           // the tablet loads it will change the metadata table entry. If

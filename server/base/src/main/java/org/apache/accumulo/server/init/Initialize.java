@@ -466,23 +466,20 @@ public class Initialize implements KeywordExecutable {
         new VolumeChooserEnvironmentImpl(Scope.INIT, MetadataTable.ID, splitPoint, serverContext);
     String tableMetadataTabletDirName = TABLE_TABLETS_TABLET_DIR;
     String tableMetadataTabletDirUri =
-        fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig, hadoopConf))
-            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID + Path.SEPARATOR
-            + tableMetadataTabletDirName;
+        fs.choose(chooserEnv, serverContext.getBaseUris()) + Constants.HDFS_TABLES_DIR
+            + Path.SEPARATOR + MetadataTable.ID + Path.SEPARATOR + tableMetadataTabletDirName;
     chooserEnv =
         new VolumeChooserEnvironmentImpl(Scope.INIT, ReplicationTable.ID, null, serverContext);
     String replicationTableDefaultTabletDirName = ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
-    String replicationTableDefaultTabletDirUri =
-        fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig, hadoopConf))
-            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID + Path.SEPARATOR
-            + replicationTableDefaultTabletDirName;
+    String replicationTableDefaultTabletDirUri = fs.choose(chooserEnv, serverContext.getBaseUris())
+        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID + Path.SEPARATOR
+        + replicationTableDefaultTabletDirName;
     chooserEnv =
         new VolumeChooserEnvironmentImpl(Scope.INIT, MetadataTable.ID, null, serverContext);
     String defaultMetadataTabletDirName = ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
     String defaultMetadataTabletDirUri =
-        fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig, hadoopConf))
-            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID + Path.SEPARATOR
-            + defaultMetadataTabletDirName;
+        fs.choose(chooserEnv, serverContext.getBaseUris()) + Constants.HDFS_TABLES_DIR
+            + Path.SEPARATOR + MetadataTable.ID + Path.SEPARATOR + defaultMetadataTabletDirName;
 
     // create table and default tablets directories
     createDirectories(fs, rootTabletDirUri, tableMetadataTabletDirUri, defaultMetadataTabletDirUri,
@@ -858,11 +855,11 @@ public class Initialize implements KeywordExecutable {
   }
 
   private static void addVolumes(VolumeManager fs, SiteConfiguration siteConfig,
-      Configuration hadoopConf) throws IOException {
+      Configuration hadoopConf, ServerConstants serverConstants) throws IOException {
 
     Set<String> volumeURIs = VolumeConfiguration.getVolumeUris(siteConfig);
 
-    Set<String> initializedDirs = ServerConstants.checkBaseUris(hadoopConf, volumeURIs, true);
+    Set<String> initializedDirs = serverConstants.checkBaseUris(hadoopConf, volumeURIs, true);
 
     HashSet<String> uinitializedDirs = new HashSet<>();
     uinitializedDirs.addAll(volumeURIs);
@@ -873,8 +870,7 @@ public class Initialize implements KeywordExecutable {
     Path versionPath = new Path(aBasePath, ServerConstants.VERSION_DIR);
 
     UUID uuid = UUID.fromString(VolumeManager.getInstanceIDFromHdfs(iidPath, hadoopConf));
-    for (Pair<Path,Path> replacementVolume : ServerConstants.getVolumeReplacements(siteConfig,
-        hadoopConf)) {
+    for (Pair<Path,Path> replacementVolume : serverConstants.getVolumeReplacements()) {
       if (aBasePath.equals(replacementVolume.getFirst())) {
         log.error(
             "{} is set to be replaced in {} and should not appear in {}."
@@ -946,6 +942,7 @@ public class Initialize implements KeywordExecutable {
       setZooReaderWriter(new ZooReaderWriter(siteConfig));
       SecurityUtil.serverLogin(siteConfig);
       Configuration hadoopConfig = new Configuration();
+      ServerConstants serverConstants = new ServerConstants(siteConfig, hadoopConfig);
 
       try (var fs = VolumeManagerImpl.get(siteConfig, hadoopConfig)) {
 
@@ -975,7 +972,7 @@ public class Initialize implements KeywordExecutable {
         }
 
         if (opts.addVolumes) {
-          addVolumes(fs, siteConfig, hadoopConfig);
+          addVolumes(fs, siteConfig, hadoopConfig, serverConstants);
         }
 
         if (!opts.resetSecurity && !opts.addVolumes) {

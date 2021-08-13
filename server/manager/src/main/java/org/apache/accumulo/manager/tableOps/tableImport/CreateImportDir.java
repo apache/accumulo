@@ -25,7 +25,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -44,7 +43,7 @@ class CreateImportDir extends ManagerRepo {
   @Override
   public Repo<Manager> call(long tid, Manager manager) throws Exception {
 
-    Set<String> tableDirs = ServerConstants.getTablesDirs(manager.getContext());
+    Set<String> tableDirs = manager.getContext().getTablesDirs();
 
     create(tableDirs, manager);
 
