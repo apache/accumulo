@@ -82,19 +82,30 @@ public class ServerConstants {
       Set.of(SHORTEN_RFILE_KEYS, CRYPTO_CHANGES, DATA_VERSION);
   public static final Set<Integer> NEEDS_UPGRADE = Sets.difference(CAN_RUN, Set.of(DATA_VERSION));
 
-  private final Set<String> baseUris;
+  private Set<String> baseUris;
   private final List<Pair<Path,Path>> replacementsList;
+  private final AccumuloConfiguration conf;
+  private final Configuration hadoopConf;
 
   public ServerConstants(AccumuloConfiguration conf, Configuration hadoopConf) {
-    this.baseUris = getBaseUris(conf, hadoopConf);
+    this.conf = conf;
+    this.hadoopConf = hadoopConf;
     this.replacementsList = getVolumeReplacements(conf, hadoopConf);
   }
 
+  public Set<String> getBaseUris() {
+    return getBaseUris(conf, hadoopConf);
+  }
+
   // these are functions to delay loading the Accumulo configuration unless we must
-  private synchronized Set<String> getBaseUris(AccumuloConfiguration conf,
+  public synchronized Set<String> getBaseUris(AccumuloConfiguration conf,
       Configuration hadoopConf) {
-    return Collections
-        .unmodifiableSet(checkBaseUris(hadoopConf, VolumeConfiguration.getVolumeUris(conf), false));
+    if (baseUris == null) {
+      baseUris = Collections.unmodifiableSet(
+          checkBaseUris(hadoopConf, VolumeConfiguration.getVolumeUris(conf), false));
+    }
+
+    return baseUris;
   }
 
   public Set<String> checkBaseUris(Configuration hadoopConf, Set<String> configuredBaseDirs,
@@ -159,11 +170,11 @@ public class ServerConstants {
   }
 
   public Set<String> getTablesDirs() {
-    return prefix(this.baseUris, TABLE_DIR);
+    return prefix(getBaseUris(), TABLE_DIR);
   }
 
   public Set<String> getRecoveryDirs() {
-    return prefix(this.baseUris, RECOVERY_DIR);
+    return prefix(getBaseUris(), RECOVERY_DIR);
   }
 
   public static Path getInstanceIdLocation(Volume v) {
@@ -246,9 +257,5 @@ public class ServerConstants {
 
   public List<Pair<Path,Path>> getVolumeReplacements() {
     return this.replacementsList;
-  }
-
-  public Set<String> getBaseUris() {
-    return this.baseUris;
   }
 }
