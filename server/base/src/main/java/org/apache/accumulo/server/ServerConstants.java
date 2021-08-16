@@ -94,8 +94,8 @@ public class ServerConstants {
   private final Configuration hadoopConf;
 
   public ServerConstants(AccumuloConfiguration conf, Configuration hadoopConf) {
-this.conf = Objects.requireNonNull(conf, "Configuration cannot be null);
-this.hadoopConf = Objects.requireNonNull(hadoopConf, "Hadoop configuration cannot be null");
+    this.conf = Objects.requireNonNull(conf, "Configuration cannot be null");
+    this.hadoopConf = Objects.requireNonNull(hadoopConf, "Hadoop configuration cannot be null");
     this.replacementsList = loadVolumeReplacements();
   }
 
