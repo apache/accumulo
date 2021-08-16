@@ -49,7 +49,7 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
     context = new ServerContext(siteConfig);
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + context.getInstanceID());
-    ServerUtil.init(context, appName);
+    context.init(appName);
     ClassLoaderUtil.initContextFactory(context.getConfiguration());
     this.metricsSystem = Metrics.initSystem(getClass().getSimpleName());
     TraceUtil.enableServerTraces(hostname, appName, context.getConfiguration());
