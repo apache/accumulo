@@ -45,7 +45,6 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.util.ManagerMetadataUtil;
@@ -207,7 +206,7 @@ class DatafileManager {
     for (TabletFile tpath : paths.keySet()) {
       boolean inTheRightDirectory = false;
       Path parent = tpath.getPath().getParent().getParent();
-      for (String tablesDir : ServerConstants.getTablesDirs(tablet.getContext())) {
+      for (String tablesDir : tablet.getContext().getTablesDirs()) {
         if (parent.equals(new Path(tablesDir, tablet.getExtent().tableId().canonical()))) {
           inTheRightDirectory = true;
           break;

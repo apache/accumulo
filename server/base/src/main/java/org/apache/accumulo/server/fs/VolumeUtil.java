@@ -32,7 +32,6 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.replication.StatusUtil;
@@ -137,8 +136,7 @@ public class VolumeUtil {
    */
   public static TabletFiles updateTabletVolumes(ServerContext context, ServiceLock zooLock,
       KeyExtent extent, TabletFiles tabletFiles, boolean replicate) {
-    List<Pair<Path,Path>> replacements =
-        ServerConstants.getVolumeReplacements(context.getConfiguration(), context.getHadoopConf());
+    List<Pair<Path,Path>> replacements = context.getVolumeReplacements();
     if (replacements.isEmpty())
       return tabletFiles;
     log.trace("Using volume replacements: {}", replacements);

@@ -58,7 +58,7 @@ public class ServerUtil {
       try {
         if (getAccumuloPersistentVersion(volume) == oldVersion) {
           log.debug("Attempting to upgrade {}", volume);
-          Path dataVersionLocation = ServerConstants.getDataVersionLocation(volume);
+          Path dataVersionLocation = getDataVersionLocation(volume);
           fs.create(new Path(dataVersionLocation, Integer.toString(ServerConstants.DATA_VERSION)))
               .close();
           // TODO document failure mode & recovery if FS permissions cause above to work and below
@@ -91,7 +91,7 @@ public class ServerUtil {
   }
 
   public static synchronized int getAccumuloPersistentVersion(Volume v) {
-    Path path = ServerConstants.getDataVersionLocation(v);
+    Path path = getDataVersionLocation(v);
     return getAccumuloPersistentVersion(v.getFileSystem(), path);
   }
 
@@ -102,7 +102,17 @@ public class ServerUtil {
 
   public static synchronized Path getAccumuloInstanceIdPath(VolumeManager vm) {
     // It doesn't matter which Volume is used as they should all have the instance ID stored
-    return ServerConstants.getInstanceIdLocation(vm.getFirst());
+    return getInstanceIdLocation(vm.getFirst());
+  }
+
+  public static Path getInstanceIdLocation(Volume v) {
+    // all base dirs should have the same instance id, so can choose any one
+    return v.prefixChild(ServerConstants.INSTANCE_ID_DIR);
+  }
+
+  public static Path getDataVersionLocation(Volume v) {
+    // all base dirs should have the same version, so can choose any one
+    return v.prefixChild(ServerConstants.VERSION_DIR);
   }
 
   public static void init(ServerContext context, String application) {

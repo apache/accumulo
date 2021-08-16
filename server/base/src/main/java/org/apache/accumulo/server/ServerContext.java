@@ -21,6 +21,8 @@ package org.apache.accumulo.server;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -35,6 +37,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
@@ -49,6 +52,7 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 
 /**
@@ -59,6 +63,8 @@ public class ServerContext extends ClientContext {
 
   private final ServerInfo info;
   private final ZooReaderWriter zooReaderWriter;
+  private final ServerConstants serverConstants;
+
   private TableManager tableManager;
   private UniqueNameAllocator nameAllocator;
   private ServerConfigurationFactory serverConfFactory = null;
@@ -75,6 +81,7 @@ public class ServerContext extends ClientContext {
     super(SingletonReservation.noop(), info, info.getSiteConfiguration());
     this.info = info;
     zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
+    serverConstants = new ServerConstants(info.getSiteConfiguration(), info.getHadoopConf());
   }
 
   /**
@@ -257,4 +264,19 @@ public class ServerContext extends ClientContext {
     return new ServerAmpleImpl(this);
   }
 
+  public Set<String> getBaseUris() {
+    return serverConstants.getBaseUris();
+  }
+
+  public List<Pair<Path,Path>> getVolumeReplacements() {
+    return serverConstants.getVolumeReplacements();
+  }
+
+  public Set<String> getTablesDirs() {
+    return serverConstants.getTablesDirs();
+  }
+
+  public Set<String> getRecoveryDirs() {
+    return serverConstants.getRecoveryDirs();
+  }
 }

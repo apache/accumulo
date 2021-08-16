@@ -45,7 +45,6 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
@@ -159,8 +158,7 @@ public class BulkImport extends ManagerRepo {
 
   private static Path createNewBulkDir(ServerContext context, VolumeManager fs, String sourceDir,
       TableId tableId) throws IOException {
-    Path tableDir =
-        fs.matchingFileSystem(new Path(sourceDir), ServerConstants.getTablesDirs(context));
+    Path tableDir = fs.matchingFileSystem(new Path(sourceDir), context.getTablesDirs());
     if (tableDir == null)
       throw new IOException(
           sourceDir + " is not in the same file system as any volume configured for Accumulo");

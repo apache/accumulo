@@ -406,7 +406,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
     var chooserEnv = new VolumeChooserEnvironmentImpl(
         org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope.LOGGER, context);
-    logPath = fs.choose(chooserEnv, ServerConstants.getBaseUris(context)) + Path.SEPARATOR
+    logPath = fs.choose(chooserEnv, context.getBaseUris()) + Path.SEPARATOR
         + ServerConstants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
 
     metaReference = toString();

@@ -32,8 +32,8 @@ import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerUtil;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -163,7 +163,7 @@ public class ChangeSecret {
   private static void updateHdfs(VolumeManager fs, String newInstanceId) throws IOException {
     // Need to recreate the instanceId on all of them to keep consistency
     for (Volume v : fs.getVolumes()) {
-      final Path instanceId = ServerConstants.getInstanceIdLocation(v);
+      final Path instanceId = ServerUtil.getInstanceIdLocation(v);
       if (!v.getFileSystem().delete(instanceId, true)) {
         throw new IOException("Could not recursively delete " + instanceId);
       }
@@ -178,7 +178,7 @@ public class ChangeSecret {
 
   private static void verifyHdfsWritePermission(VolumeManager fs) throws Exception {
     for (Volume v : fs.getVolumes()) {
-      final Path instanceId = ServerConstants.getInstanceIdLocation(v);
+      final Path instanceId = ServerUtil.getInstanceIdLocation(v);
       FileStatus fileStatus = v.getFileSystem().getFileStatus(instanceId);
       checkHdfsAccessPermissions(fileStatus, FsAction.WRITE);
     }

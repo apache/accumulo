@@ -31,11 +31,13 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -45,8 +47,22 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class ServerConstantsTest {
 
-  AccumuloConfiguration conf = DefaultConfiguration.getInstance();
+  AccumuloConfiguration conf;
   Configuration hadoopConf = new Configuration();
+  ServerConstants constants;
+
+  @Before
+  public void setup() throws IOException {
+    String uuid = UUID.randomUUID().toString();
+
+    var vols =
+        init(folder.newFolder(), Arrays.asList(uuid), Arrays.asList(ServerConstants.DATA_VERSION));
+
+    ConfigurationCopy copy = new ConfigurationCopy();
+    copy.set(Property.INSTANCE_VOLUMES.getKey(), String.join(",", vols));
+    conf = copy;
+    constants = new ServerConstants(conf, hadoopConf);
+  }
 
   @Rule
   public TemporaryFolder folder =
@@ -78,15 +94,15 @@ public class ServerConstantsTest {
   }
 
   private void verifyAllPass(Set<String> paths) {
-    assertEquals(paths, ServerConstants.checkBaseUris(hadoopConf, paths, true));
-    assertEquals(paths, ServerConstants.checkBaseUris(hadoopConf, paths, false));
+    assertEquals(paths, constants.checkBaseUris(hadoopConf, paths, true));
+    assertEquals(paths, constants.checkBaseUris(hadoopConf, paths, false));
   }
 
   private void verifySomePass(Set<String> paths) {
     Set<String> subset = paths.stream().limit(2).collect(Collectors.toSet());
-    assertEquals(subset, ServerConstants.checkBaseUris(hadoopConf, paths, true));
+    assertEquals(subset, constants.checkBaseUris(hadoopConf, paths, true));
     try {
-      ServerConstants.checkBaseUris(hadoopConf, paths, false);
+      constants.checkBaseUris(hadoopConf, paths, false);
       fail();
     } catch (Exception e) {
       // ignored
@@ -95,14 +111,14 @@ public class ServerConstantsTest {
 
   private void verifyError(Set<String> paths) {
     try {
-      ServerConstants.checkBaseUris(hadoopConf, paths, true);
+      constants.checkBaseUris(hadoopConf, paths, true);
       fail();
     } catch (Exception e) {
       // ignored
     }
 
     try {
-      ServerConstants.checkBaseUris(hadoopConf, paths, false);
+      constants.checkBaseUris(hadoopConf, paths, false);
       fail();
     } catch (Exception e) {
       // ignored
