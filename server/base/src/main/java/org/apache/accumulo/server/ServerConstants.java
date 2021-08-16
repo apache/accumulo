@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -81,6 +82,9 @@ public class ServerConstants {
   public static final Set<Integer> CAN_RUN =
       Set.of(SHORTEN_RFILE_KEYS, CRYPTO_CHANGES, DATA_VERSION);
   public static final Set<Integer> NEEDS_UPGRADE = Sets.difference(CAN_RUN, Set.of(DATA_VERSION));
+  public static final String TABLE_DIR = "tables";
+  public static final String RECOVERY_DIR = "recovery";
+  public static final String WAL_DIR = "wal";
 
   private Set<String> baseUris;
   private final List<Pair<Path,Path>> replacementsList;
@@ -88,23 +92,16 @@ public class ServerConstants {
   private final Configuration hadoopConf;
 
   public ServerConstants(AccumuloConfiguration conf, Configuration hadoopConf) {
-    this.conf = conf;
-    this.hadoopConf = hadoopConf;
-    this.replacementsList = getVolumeReplacements(conf, hadoopConf);
+    this.conf = Objects.requireNonNull(conf);
+    this.hadoopConf = Objects.requireNonNull(hadoopConf);
+    this.replacementsList = loadVolumeReplacements();
   }
 
   public Set<String> getBaseUris() {
-    return getBaseUris(conf, hadoopConf);
-  }
-
-  // these are functions to delay loading the Accumulo configuration unless we must
-  public synchronized Set<String> getBaseUris(AccumuloConfiguration conf,
-      Configuration hadoopConf) {
     if (baseUris == null) {
       baseUris = Collections.unmodifiableSet(
           checkBaseUris(hadoopConf, VolumeConfiguration.getVolumeUris(conf), false));
     }
-
     return baseUris;
   }
 
@@ -159,10 +156,6 @@ public class ServerConstants {
     return baseDirsList;
   }
 
-  public static final String TABLE_DIR = "tables";
-  public static final String RECOVERY_DIR = "recovery";
-  public static final String WAL_DIR = "wal";
-
   private Set<String> prefix(Set<String> bases, String suffix) {
     String actualSuffix = suffix.startsWith("/") ? suffix.substring(1) : suffix;
     return bases.stream().map(base -> base + (base.endsWith("/") ? "" : "/") + actualSuffix)
@@ -187,8 +180,7 @@ public class ServerConstants {
     return v.prefixChild(VERSION_DIR);
   }
 
-  private List<Pair<Path,Path>> getVolumeReplacements(AccumuloConfiguration conf,
-      Configuration hadoopConf) {
+  private List<Pair<Path,Path>> loadVolumeReplacements() {
 
     List<Pair<Path,Path>> replacementsList;
     String replacements = conf.get(Property.INSTANCE_VOLUMES_REPLACEMENTS);
@@ -237,7 +229,7 @@ public class ServerConstants {
     }
 
     HashSet<Path> baseDirs = new HashSet<>();
-    for (String baseDir : getBaseUris(conf, hadoopConf)) {
+    for (String baseDir : getBaseUris()) {
       // normalize using path
       baseDirs.add(new Path(baseDir));
     }
