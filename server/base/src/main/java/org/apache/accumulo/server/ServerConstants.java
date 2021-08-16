@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeUtil;
@@ -87,6 +86,9 @@ public class ServerConstants {
   public static final String WAL_DIR = "wal";
 
   private Set<String> baseUris;
+  private Set<String> tablesDirs;
+  private Set<String> recoveryDirs;
+
   private final List<Pair<Path,Path>> replacementsList;
   private final AccumuloConfiguration conf;
   private final Configuration hadoopConf;
@@ -163,21 +165,17 @@ public class ServerConstants {
   }
 
   public Set<String> getTablesDirs() {
-    return prefix(getBaseUris(), TABLE_DIR);
+    if (tablesDirs == null) {
+      tablesDirs = prefix(getBaseUris(), TABLE_DIR);
+    }
+    return tablesDirs;
   }
 
   public Set<String> getRecoveryDirs() {
-    return prefix(getBaseUris(), RECOVERY_DIR);
-  }
-
-  public static Path getInstanceIdLocation(Volume v) {
-    // all base dirs should have the same instance id, so can choose any one
-    return v.prefixChild(INSTANCE_ID_DIR);
-  }
-
-  public static Path getDataVersionLocation(Volume v) {
-    // all base dirs should have the same version, so can choose any one
-    return v.prefixChild(VERSION_DIR);
+    if (recoveryDirs == null) {
+      recoveryDirs = prefix(getBaseUris(), RECOVERY_DIR);
+    }
+    return recoveryDirs;
   }
 
   private List<Pair<Path,Path>> loadVolumeReplacements() {
