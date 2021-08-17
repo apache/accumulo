@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -32,10 +33,13 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import com.google.common.collect.Sets;
@@ -124,8 +128,7 @@ public class ServerConstants {
       try {
         currentIid = VolumeManager.getInstanceIDFromHdfs(path, hadoopConf);
         Path vpath = new Path(baseDir, VERSION_DIR);
-        currentVersion =
-            ServerUtil.getAccumuloPersistentVersion(vpath.getFileSystem(hadoopConf), vpath);
+        currentVersion = getAccumuloPersistentVersion(vpath.getFileSystem(hadoopConf), vpath);
       } catch (Exception e) {
         if (ignore) {
           continue;
@@ -247,5 +250,35 @@ public class ServerConstants {
 
   public List<Pair<Path,Path>> getVolumeReplacements() {
     return this.replacementsList;
+  }
+
+  public Path getDataVersionLocation(Volume v) {
+    // all base dirs should have the same version, so can choose any one
+    return v.prefixChild(VERSION_DIR);
+  }
+
+  public int getAccumuloPersistentVersion(Volume v) {
+    Path path = getDataVersionLocation(v);
+    return getAccumuloPersistentVersion(v.getFileSystem(), path);
+  }
+
+  public int getAccumuloPersistentVersion(FileSystem fs, Path path) {
+    int dataVersion;
+    try {
+      FileStatus[] files = fs.listStatus(path);
+      if (files == null || files.length == 0) {
+        dataVersion = -1; // assume it is 0.5 or earlier
+      } else {
+        dataVersion = Integer.parseInt(files[0].getPath().getName());
+      }
+      return dataVersion;
+    } catch (IOException e) {
+      throw new RuntimeException("Unable to read accumulo version: an error occurred.", e);
+    }
+  }
+
+  public Path getInstanceIdLocation(Volume v) {
+    // all base dirs should have the same instance id, so can choose any one
+    return v.prefixChild(ServerConstants.INSTANCE_ID_DIR);
   }
 }

@@ -58,7 +58,6 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
-import org.apache.accumulo.server.ServerUtil;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.tracer.thrift.RemoteSpan;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Iface;
@@ -410,7 +409,7 @@ public class TraceServer implements Watcher, AutoCloseable {
     opts.parseArgs(app, args);
     ServerContext context = new ServerContext(opts.getSiteConfiguration());
     loginTracer(context.getConfiguration());
-    ServerUtil.init(context, app);
+    context.init(app);
     try (TraceServer server = new TraceServer(context, opts.getAddress())) {
       server.run();
     } finally {

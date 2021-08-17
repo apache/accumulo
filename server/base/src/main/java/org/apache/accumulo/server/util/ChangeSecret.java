@@ -32,8 +32,8 @@ import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServerUtil;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -63,8 +63,10 @@ public class ChangeSecret {
 
   public static void main(String[] args) throws Exception {
     var siteConfig = SiteConfiguration.auto();
-    try (var fs = VolumeManagerImpl.get(siteConfig, new Configuration())) {
-      verifyHdfsWritePermission(fs);
+    var hadoopConf = new Configuration();
+    try (var fs = VolumeManagerImpl.get(siteConfig, hadoopConf)) {
+      ServerConstants serverConstants = new ServerConstants(siteConfig, hadoopConf);
+      verifyHdfsWritePermission(serverConstants, fs);
 
       Opts opts = new Opts();
       List<String> argsList = new ArrayList<>(args.length + 2);
@@ -78,7 +80,7 @@ public class ChangeSecret {
         verifyAccumuloIsDown(context, opts.oldPass);
 
         final String newInstanceId = UUID.randomUUID().toString();
-        updateHdfs(fs, newInstanceId);
+        updateHdfs(serverConstants, fs, newInstanceId);
         rewriteZooKeeperInstance(context, newInstanceId, opts.oldPass, opts.newPass);
         if (opts.oldPass != null) {
           deleteInstance(context, opts.oldPass);
@@ -160,10 +162,11 @@ public class ChangeSecret {
     new_.putPersistentData(path, newInstanceId.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
   }
 
-  private static void updateHdfs(VolumeManager fs, String newInstanceId) throws IOException {
+  private static void updateHdfs(ServerConstants serverConstants, VolumeManager fs,
+      String newInstanceId) throws IOException {
     // Need to recreate the instanceId on all of them to keep consistency
     for (Volume v : fs.getVolumes()) {
-      final Path instanceId = ServerUtil.getInstanceIdLocation(v);
+      final Path instanceId = serverConstants.getInstanceIdLocation(v);
       if (!v.getFileSystem().delete(instanceId, true)) {
         throw new IOException("Could not recursively delete " + instanceId);
       }
@@ -176,9 +179,10 @@ public class ChangeSecret {
     }
   }
 
-  private static void verifyHdfsWritePermission(VolumeManager fs) throws Exception {
+  private static void verifyHdfsWritePermission(ServerConstants serverConstants, VolumeManager fs)
+      throws Exception {
     for (Volume v : fs.getVolumes()) {
-      final Path instanceId = ServerUtil.getInstanceIdLocation(v);
+      final Path instanceId = serverConstants.getInstanceIdLocation(v);
       FileStatus fileStatus = v.getFileSystem().getFileStatus(instanceId);
       checkHdfsAccessPermissions(fileStatus, FsAction.WRITE);
     }
