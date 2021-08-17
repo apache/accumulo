@@ -25,9 +25,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.apache.commons.codec.digest.Crypt;
 import org.junit.BeforeClass;
@@ -49,18 +50,18 @@ public class SystemCredentialsTest {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "input not from a user")
   @BeforeClass
   public static void setUp() throws IOException {
-    File testInstanceId = new File(
-        new File(new File(new File("target"), "instanceTest"), ServerConstants.INSTANCE_ID_DIR),
-        UUID.fromString("00000000-0000-0000-0000-000000000000").toString());
+    File testInstanceId =
+        new File(new File(new File(new File("target"), "instanceTest"), Constants.INSTANCE_ID_DIR),
+            UUID.fromString("00000000-0000-0000-0000-000000000000").toString());
     if (!testInstanceId.exists()) {
       assertTrue(
           testInstanceId.getParentFile().mkdirs() || testInstanceId.getParentFile().isDirectory());
       assertTrue(testInstanceId.createNewFile());
     }
 
-    File testInstanceVersion = new File(
-        new File(new File(new File("target"), "instanceTest"), ServerConstants.VERSION_DIR),
-        ServerConstants.DATA_VERSION + "");
+    File testInstanceVersion =
+        new File(new File(new File(new File("target"), "instanceTest"), Constants.VERSION_DIR),
+            AccumuloDataVersion.get() + "");
     if (!testInstanceVersion.exists()) {
       assertTrue(testInstanceVersion.getParentFile().mkdirs()
           || testInstanceVersion.getParentFile().isDirectory());

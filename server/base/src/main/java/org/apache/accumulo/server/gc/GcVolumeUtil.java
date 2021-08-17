@@ -22,9 +22,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 
@@ -34,8 +34,8 @@ public class GcVolumeUtil {
 
   public static String getDeleteTabletOnAllVolumesUri(TableId tableId, String dirName) {
     ServerColumnFamily.validateDirCol(dirName);
-    return ALL_VOLUMES_PREFIX + ServerConstants.TABLE_DIR + Path.SEPARATOR + tableId
-        + Path.SEPARATOR + dirName;
+    return ALL_VOLUMES_PREFIX + Constants.TABLE_DIR + Path.SEPARATOR + tableId + Path.SEPARATOR
+        + dirName;
   }
 
   public static Collection<Path> expandAllVolumesUri(VolumeManager fs, Path path) {

@@ -26,6 +26,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.util.UUID;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -41,7 +42,6 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.hadoop.conf.Configuration;
@@ -120,7 +120,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Fake out something that looks like host:port, it's irrelevant
       String fakeServer = "127.0.0.1:12345";
 
-      File walogs = new File(cluster.getConfig().getAccumuloDir(), ServerConstants.WAL_DIR);
+      File walogs = new File(cluster.getConfig().getAccumuloDir(), Constants.WAL_DIR);
       File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
       File emptyWalog = new File(walogServerDir, UUID.randomUUID().toString());
 
@@ -176,7 +176,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Fake out something that looks like host:port, it's irrelevant
       String fakeServer = "127.0.0.1:12345";
 
-      File walogs = new File(cluster.getConfig().getAccumuloDir(), ServerConstants.WAL_DIR);
+      File walogs = new File(cluster.getConfig().getAccumuloDir(), Constants.WAL_DIR);
       File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
       File partialHeaderWalog = new File(walogServerDir, UUID.randomUUID().toString());
 

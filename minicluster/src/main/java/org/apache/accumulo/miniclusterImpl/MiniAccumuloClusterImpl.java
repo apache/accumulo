@@ -78,8 +78,8 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.init.Initialize;
@@ -470,12 +470,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     if (config.useExistingInstance()) {
       AccumuloConfiguration acuConf = config.getAccumuloConfiguration();
       Configuration hadoopConf = config.getHadoopConfiguration();
-      ServerConstants serverConstants = new ServerConstants(acuConf, hadoopConf);
+      ServerDirs serverDirs = new ServerDirs(acuConf, hadoopConf);
 
       ConfigurationCopy cc = new ConfigurationCopy(acuConf);
       Path instanceIdPath;
       try (var fs = VolumeManagerImpl.get(cc, hadoopConf)) {
-        instanceIdPath = serverConstants.getInstanceIdLocation(fs.getFirst());
+        instanceIdPath = serverDirs.getInstanceIdLocation(fs.getFirst());
       } catch (IOException e) {
         throw new RuntimeException(e);
       }

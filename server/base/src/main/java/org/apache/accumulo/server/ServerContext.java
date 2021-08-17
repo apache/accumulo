@@ -80,7 +80,7 @@ public class ServerContext extends ClientContext {
 
   private final ServerInfo info;
   private final ZooReaderWriter zooReaderWriter;
-  private final ServerConstants serverConstants;
+  private final ServerDirs serverDirs;
 
   private TableManager tableManager;
   private UniqueNameAllocator nameAllocator;
@@ -98,7 +98,7 @@ public class ServerContext extends ClientContext {
     super(SingletonReservation.noop(), info, info.getSiteConfiguration());
     this.info = info;
     zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
-    serverConstants = info.getServerConstants();
+    serverDirs = info.getServerDirs();
   }
 
   /**
@@ -171,8 +171,8 @@ public class ServerContext extends ClientContext {
     return defaultConfig;
   }
 
-  public ServerConstants getServerConstants() {
-    return serverConstants;
+  public ServerDirs getServerDirs() {
+    return serverDirs;
   }
 
   /**
@@ -286,26 +286,26 @@ public class ServerContext extends ClientContext {
   }
 
   public Set<String> getBaseUris() {
-    return serverConstants.getBaseUris();
+    return serverDirs.getBaseUris();
   }
 
   public List<Pair<Path,Path>> getVolumeReplacements() {
-    return serverConstants.getVolumeReplacements();
+    return serverDirs.getVolumeReplacements();
   }
 
   public Set<String> getTablesDirs() {
-    return serverConstants.getTablesDirs();
+    return serverDirs.getTablesDirs();
   }
 
   public Set<String> getRecoveryDirs() {
-    return serverConstants.getRecoveryDirs();
+    return serverDirs.getRecoveryDirs();
   }
 
   /**
    * Check to see if this version of Accumulo can run against or upgrade the passed in data version.
    */
   public static void ensureDataVersionCompatible(int dataVersion) {
-    if (!(ServerConstants.CAN_RUN.contains(dataVersion))) {
+    if (!(AccumuloDataVersion.CAN_RUN.contains(dataVersion))) {
       throw new IllegalStateException("This version of accumulo (" + Constants.VERSION
           + ") is not compatible with files stored using data version " + dataVersion);
     }
@@ -370,7 +370,7 @@ public class ServerContext extends ClientContext {
     log.info("{} starting", application);
     log.info("Instance {}", getInstanceID());
     // It doesn't matter which Volume is used as they should all have the data version stored
-    int dataVersion = serverConstants.getAccumuloPersistentVersion(getVolumeManager().getFirst());
+    int dataVersion = serverDirs.getAccumuloPersistentVersion(getVolumeManager().getFirst());
     log.info("Data Version {}", dataVersion);
     waitForZookeeperAndHdfs();
 

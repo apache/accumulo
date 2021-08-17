@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.manager.upgrade;
 
-import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 
 /**
- * See {@link ServerConstants#CRYPTO_CHANGES}
+ * See {@link AccumuloDataVersion#CRYPTO_CHANGES}
  */
 public class Upgrader8to9 implements Upgrader {
 

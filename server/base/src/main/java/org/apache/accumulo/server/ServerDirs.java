@@ -30,6 +30,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Pair;
@@ -42,49 +43,11 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-public class ServerConstants {
-
-  public static final String VERSION_DIR = "version";
-
-  public static final String INSTANCE_ID_DIR = "instance_id";
-
-  /**
-   * version (10) reflects changes to how root tablet metadata is serialized in zookeeper starting
-   * with 2.1
-   */
-  public static final int ROOT_TABLET_META_CHANGES = 10;
-
-  /**
-   * version (9) reflects changes to crypto that resulted in RFiles and WALs being serialized
-   * differently in version 2.0.0. Also RFiles in 2.0.0 may have summary data.
-   */
-  public static final int CRYPTO_CHANGES = 9;
-
-  /**
-   * version (8) reflects changes to RFile index (ACCUMULO-1124) AND the change to WAL tracking in
-   * ZK in version 1.8.0
-   */
-  public static final int SHORTEN_RFILE_KEYS = 8;
-
-  /**
-   * Historic data versions
-   *
-   * <ul>
-   * <li>version (7) also reflects the addition of a replication table in 1.7.0
-   * <li>version (6) reflects the addition of a separate root table (ACCUMULO-1481) in 1.6.0 -
-   * <li>version (5) moves delete file markers for the metadata table into the root tablet
-   * <li>version (4) moves logging to HDFS in 1.5.0
-   * </ul>
-   *
-   *
-   */
-  public static final int DATA_VERSION = ROOT_TABLET_META_CHANGES;
-
-  public static final Set<Integer> CAN_RUN =
-      Set.of(SHORTEN_RFILE_KEYS, CRYPTO_CHANGES, DATA_VERSION);
-  public static final String TABLE_DIR = "tables";
-  public static final String RECOVERY_DIR = "recovery";
-  public static final String WAL_DIR = "wal";
+/**
+ * Class that holds important server Directories. These need to be separate from {@link ServerInfo}
+ * for bootstrapping during initialization.
+ */
+public class ServerDirs {
 
   private Set<String> baseUris;
   private Set<String> tablesDirs;
@@ -94,7 +57,7 @@ public class ServerConstants {
   private final AccumuloConfiguration conf;
   private final Configuration hadoopConf;
 
-  public ServerConstants(AccumuloConfiguration conf, Configuration hadoopConf) {
+  public ServerDirs(AccumuloConfiguration conf, Configuration hadoopConf) {
     this.conf = Objects.requireNonNull(conf, "Configuration cannot be null");
     this.hadoopConf = Objects.requireNonNull(hadoopConf, "Hadoop configuration cannot be null");
     this.replacementsList = loadVolumeReplacements();
@@ -119,12 +82,12 @@ public class ServerConstants {
     // user-implemented VolumeChoosers)
     LinkedHashSet<String> baseDirsList = new LinkedHashSet<>();
     for (String baseDir : configuredBaseDirs) {
-      Path path = new Path(baseDir, INSTANCE_ID_DIR);
+      Path path = new Path(baseDir, Constants.INSTANCE_ID_DIR);
       String currentIid;
       int currentVersion;
       try {
         currentIid = VolumeManager.getInstanceIDFromHdfs(path, hadoopConf);
-        Path vpath = new Path(baseDir, VERSION_DIR);
+        Path vpath = new Path(baseDir, Constants.VERSION_DIR);
         currentVersion = getAccumuloPersistentVersion(vpath.getFileSystem(hadoopConf), vpath);
       } catch (Exception e) {
         if (ignore) {
@@ -166,14 +129,14 @@ public class ServerConstants {
 
   public Set<String> getTablesDirs() {
     if (tablesDirs == null) {
-      tablesDirs = prefix(getBaseUris(), TABLE_DIR);
+      tablesDirs = prefix(getBaseUris(), Constants.TABLE_DIR);
     }
     return tablesDirs;
   }
 
   public Set<String> getRecoveryDirs() {
     if (recoveryDirs == null) {
-      recoveryDirs = prefix(getBaseUris(), RECOVERY_DIR);
+      recoveryDirs = prefix(getBaseUris(), Constants.RECOVERY_DIR);
     }
     return recoveryDirs;
   }
@@ -251,7 +214,7 @@ public class ServerConstants {
 
   public Path getDataVersionLocation(Volume v) {
     // all base dirs should have the same version, so can choose any one
-    return v.prefixChild(VERSION_DIR);
+    return v.prefixChild(Constants.VERSION_DIR);
   }
 
   public int getAccumuloPersistentVersion(Volume v) {
@@ -276,6 +239,6 @@ public class ServerConstants {
 
   public Path getInstanceIdLocation(Volume v) {
     // all base dirs should have the same instance id, so can choose any one
-    return v.prefixChild(ServerConstants.INSTANCE_ID_DIR);
+    return v.prefixChild(Constants.INSTANCE_ID_DIR);
   }
 }

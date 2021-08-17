@@ -25,9 +25,11 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.FileNotFoundException;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.volume.Volume;
-import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.AccumuloDataVersion;
+import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -42,13 +44,13 @@ import com.google.common.collect.Sets;
 public class AccumuloTest {
   private FileSystem fs;
   private Path path;
-  private ServerConstants serverConstants;
+  private ServerDirs serverDirs;
 
   @Before
   public void setUp() {
     fs = createMock(FileSystem.class);
     path = createMock(Path.class);
-    serverConstants = new ServerConstants(DefaultConfiguration.getInstance(), new Configuration());
+    serverDirs = new ServerDirs(DefaultConfiguration.getInstance(), new Configuration());
   }
 
   private FileStatus[] mockPersistentVersion(String s) {
@@ -68,7 +70,7 @@ public class AccumuloTest {
     expect(fs.listStatus(path)).andReturn(files);
     replay(fs);
 
-    assertEquals(42, serverConstants.getAccumuloPersistentVersion(fs, path));
+    assertEquals(42, serverDirs.getAccumuloPersistentVersion(fs, path));
   }
 
   @Test
@@ -76,7 +78,7 @@ public class AccumuloTest {
     expect(fs.listStatus(path)).andReturn(null);
     replay(fs);
 
-    assertEquals(-1, serverConstants.getAccumuloPersistentVersion(fs, path));
+    assertEquals(-1, serverDirs.getAccumuloPersistentVersion(fs, path));
   }
 
   @Test
@@ -84,7 +86,7 @@ public class AccumuloTest {
     expect(fs.listStatus(path)).andReturn(new FileStatus[0]);
     replay(fs);
 
-    assertEquals(-1, serverConstants.getAccumuloPersistentVersion(fs, path));
+    assertEquals(-1, serverDirs.getAccumuloPersistentVersion(fs, path));
   }
 
   @Test(expected = RuntimeException.class)
@@ -92,7 +94,7 @@ public class AccumuloTest {
     expect(fs.listStatus(path)).andThrow(new FileNotFoundException());
     replay(fs);
 
-    assertEquals(-1, serverConstants.getAccumuloPersistentVersion(fs, path));
+    assertEquals(-1, serverDirs.getAccumuloPersistentVersion(fs, path));
   }
 
   @Test
@@ -101,7 +103,7 @@ public class AccumuloTest {
     FileSystem fs1 = createMock(FileSystem.class);
     Path baseVersion1 = new Path("hdfs://volume1/accumulo/version");
     Path oldVersion1 = new Path("hdfs://volume1/accumulo/version/7");
-    Path newVersion1 = new Path("hdfs://volume1/accumulo/version/" + ServerConstants.DATA_VERSION);
+    Path newVersion1 = new Path("hdfs://volume1/accumulo/version/" + AccumuloDataVersion.get());
 
     FileStatus[] files1 = mockPersistentVersion("7");
     expect(fs1.listStatus(baseVersion1)).andReturn(files1);
@@ -109,7 +111,7 @@ public class AccumuloTest {
 
     FSDataOutputStream fsdos1 = createMock(FSDataOutputStream.class);
     expect(v1.getFileSystem()).andReturn(fs1);
-    expect(v1.prefixChild(ServerConstants.VERSION_DIR)).andReturn(baseVersion1).times(2);
+    expect(v1.prefixChild(Constants.VERSION_DIR)).andReturn(baseVersion1).times(2);
     replay(v1);
     fsdos1.close();
     replay(fsdos1);
@@ -118,7 +120,7 @@ public class AccumuloTest {
     FileSystem fs2 = createMock(FileSystem.class);
     Path baseVersion2 = new Path("hdfs://volume2/accumulo/version");
     Path oldVersion2 = new Path("hdfs://volume2/accumulo/version/7");
-    Path newVersion2 = new Path("hdfs://volume2/accumulo/version/" + ServerConstants.DATA_VERSION);
+    Path newVersion2 = new Path("hdfs://volume2/accumulo/version/" + AccumuloDataVersion.get());
 
     FileStatus[] files2 = mockPersistentVersion("7");
     expect(fs2.listStatus(baseVersion2)).andReturn(files2);
@@ -126,7 +128,7 @@ public class AccumuloTest {
 
     FSDataOutputStream fsdos2 = createMock(FSDataOutputStream.class);
     expect(v2.getFileSystem()).andReturn(fs2);
-    expect(v2.prefixChild(ServerConstants.VERSION_DIR)).andReturn(baseVersion2).times(2);
+    expect(v2.prefixChild(Constants.VERSION_DIR)).andReturn(baseVersion2).times(2);
     replay(v2);
     fsdos2.close();
     replay(fsdos2);
@@ -140,8 +142,7 @@ public class AccumuloTest {
     replay(vm);
 
     UpgradeCoordinator upgradeCoordinator = new UpgradeCoordinator();
-    ServerConstants constants =
-        new ServerConstants(DefaultConfiguration.getInstance(), new Configuration());
+    ServerDirs constants = new ServerDirs(DefaultConfiguration.getInstance(), new Configuration());
     upgradeCoordinator.updateAccumuloVersion(constants, vm, 7);
   }
 }

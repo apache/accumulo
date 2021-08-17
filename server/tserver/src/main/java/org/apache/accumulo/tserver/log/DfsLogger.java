@@ -43,6 +43,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -60,7 +61,6 @@ import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 import org.apache.accumulo.core.spi.crypto.NoCryptoService;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -406,8 +406,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
 
     var chooserEnv = new VolumeChooserEnvironmentImpl(
         org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope.LOGGER, context);
-    logPath = fs.choose(chooserEnv, context.getBaseUris()) + Path.SEPARATOR
-        + ServerConstants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
+    logPath = fs.choose(chooserEnv, context.getBaseUris()) + Path.SEPARATOR + Constants.WAL_DIR
+        + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
 
     metaReference = toString();
     LoggerOperation op = null;

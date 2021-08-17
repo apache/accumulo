@@ -62,7 +62,7 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
-import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -172,7 +172,7 @@ class WriteExportFiles extends ManagerRepo {
       osw.append("srcZookeepers:" + context.getZooKeepers() + "\n");
       osw.append("srcTableName:" + tableName + "\n");
       osw.append("srcTableID:" + tableID.canonical() + "\n");
-      osw.append(ExportTable.DATA_VERSION_PROP + ":" + ServerConstants.DATA_VERSION + "\n");
+      osw.append(ExportTable.DATA_VERSION_PROP + ":" + AccumuloDataVersion.get() + "\n");
       osw.append("srcCodeVersion:" + Constants.VERSION + "\n");
 
       osw.flush();
