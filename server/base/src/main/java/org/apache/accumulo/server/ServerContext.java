@@ -319,7 +319,7 @@ public class ServerContext extends ClientContext {
         break;
       } catch (InterruptedException e) {
         // ignored
-      } catch (KeeperException ex) {
+      } catch (InterruptedException | KeeperException ex) {
         log.info("Waiting for accumulo to be initialized");
         sleepUninterruptibly(1, TimeUnit.SECONDS);
       }
