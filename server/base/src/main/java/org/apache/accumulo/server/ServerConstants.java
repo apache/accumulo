@@ -42,8 +42,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-import com.google.common.collect.Sets;
-
 public class ServerConstants {
 
   public static final String VERSION_DIR = "version";
@@ -84,7 +82,6 @@ public class ServerConstants {
 
   public static final Set<Integer> CAN_RUN =
       Set.of(SHORTEN_RFILE_KEYS, CRYPTO_CHANGES, DATA_VERSION);
-  public static final Set<Integer> NEEDS_UPGRADE = Sets.difference(CAN_RUN, Set.of(DATA_VERSION));
   public static final String TABLE_DIR = "tables";
   public static final String RECOVERY_DIR = "recovery";
   public static final String WAL_DIR = "wal";
