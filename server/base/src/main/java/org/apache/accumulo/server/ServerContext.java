@@ -317,8 +317,6 @@ public class ServerContext extends ClientContext {
       try {
         getZooReaderWriter().getChildren(Constants.ZROOT);
         break;
-      } catch (InterruptedException e) {
-        // ignored
       } catch (InterruptedException | KeeperException ex) {
         log.info("Waiting for accumulo to be initialized");
         sleepUninterruptibly(1, TimeUnit.SECONDS);
