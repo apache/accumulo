@@ -45,12 +45,17 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.file.rfile.bcfile.Compression;
+import org.apache.accumulo.core.file.rfile.bcfile.Utils;
+import org.apache.accumulo.core.file.streams.SeekableDataInputStream;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.data.ServerMutation;
@@ -59,6 +64,7 @@ import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -1063,5 +1069,110 @@ public class SortedLogRecoveryTest {
 
     var e = assertThrows(IllegalStateException.class, () -> recover(logs, extent));
     assertTrue(e.getMessage().contains("not " + LogEvents.OPEN));
+  }
+
+  @Test
+  public void testInvalidLogSortedProperties() {
+    ConfigurationCopy testConfig = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    // test all the possible properties for tserver.sort.file. prefix
+    String prop = Property.TSERV_WAL_SORT_FILE_PREFIX + "invalid";
+    testConfig.set(prop, "snappy");
+    try {
+      new LogSorter(context, testConfig);
+      fail("Did not throw IllegalArgumentException for " + prop);
+    } catch (IllegalArgumentException e) {
+      // valid for test
+    }
+  }
+
+  @Test
+  public void testLogSortedProperties() throws Exception {
+    Mutation ignored = new ServerMutation(new Text("ignored"));
+    ignored.put(cf, cq, value);
+    Mutation m = new ServerMutation(new Text("row1"));
+    m.put(cf, cq, value);
+    ConfigurationCopy testConfig = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    String sortFileCompression = "none";
+    // test all the possible properties for tserver.sort.file. prefix
+    String prefix = Property.TSERV_WAL_SORT_FILE_PREFIX.toString();
+    testConfig.set(prefix + "compress.type", sortFileCompression);
+    testConfig.set(prefix + "compress.blocksize", "50K");
+    testConfig.set(prefix + "compress.blocksize.index", "56K");
+    testConfig.set(prefix + "blocksize", "256B");
+    testConfig.set(prefix + "replication", "3");
+    LogSorter sorter = new LogSorter(context, testConfig);
+
+    final String workdir = tempFolder.newFolder().getAbsolutePath();
+
+    try (var vm = VolumeManagerImpl.getLocalForTesting(workdir)) {
+      expect(context.getVolumeManager()).andReturn(vm).anyTimes();
+      expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
+          .anyTimes();
+      expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+      replay(context);
+      final Path workdirPath = new Path("file://" + workdir);
+      vm.deleteRecursively(workdirPath);
+
+      KeyValue[] events =
+          {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
+              createKeyValue(COMPACTION_FINISH, 2, 1, null),
+              createKeyValue(COMPACTION_START, 4, 1, "/t1/f1"),
+              createKeyValue(COMPACTION_FINISH, 5, 1, null),
+              createKeyValue(MUTATION, 3, 1, ignored), createKeyValue(MUTATION, 5, 1, m),};
+      String dest = workdir + "/testLogSortedProperties";
+
+      List<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
+      int parts = 0;
+      for (KeyValue pair : events) {
+        buffer.add(new Pair<>(pair.key, pair.value));
+        if (buffer.size() >= bufferSize) {
+          sorter.writeBuffer(dest, buffer, parts++);
+          buffer.clear();
+        }
+      }
+      sorter.writeBuffer(dest, buffer, parts);
+      FileSystem fs = vm.getFileSystemByPath(workdirPath);
+
+      // check contents of directory
+      for (var file : fs.listStatus(new Path(dest))) {
+        assertTrue(file.isFile());
+        try (var fileStream = fs.open(file.getPath())) {
+          var algo = getCompressionFromRFile(fileStream, file.getLen());
+          assertEquals(sortFileCompression, algo.getName());
+        }
+      }
+    }
+  }
+
+  /**
+   * Pulled from BCFile.Reader()
+   */
+  private final Utils.Version API_VERSION_3 = new Utils.Version((short) 3, (short) 0);
+  private final String defaultPrefix = "data:";
+
+  private Compression.Algorithm getCompressionFromRFile(FSDataInputStream fsin, long fileLength)
+      throws IOException {
+    var in = new SeekableDataInputStream(fsin);
+    int magicNumberSize = 16; // BCFile.Magic.size();
+    // Move the cursor to grab the version and the magic first
+    in.seek(fileLength - magicNumberSize - Utils.Version.size());
+    var version = new Utils.Version(in);
+    assertEquals(API_VERSION_3, version);
+    in.readFully(new byte[16]); // BCFile.Magic.readAndVerify(in); // 16 bytes
+    in.seek(fileLength - magicNumberSize - Utils.Version.size() - 16); // 2 * Long.BYTES = 16
+    long offsetIndexMeta = in.readLong();
+    long offsetCryptoParameters = in.readLong();
+    assertTrue(offsetCryptoParameters > 0);
+
+    // read meta index
+    in.seek(offsetIndexMeta);
+    int count = Utils.readVInt(in);
+    assertTrue(count > 0);
+
+    String fullMetaName = Utils.readString(in);
+    if (fullMetaName != null && !fullMetaName.startsWith(defaultPrefix)) {
+      throw new IOException("Corrupted Meta region Index");
+    }
+    return Compression.getCompressionAlgorithmByName(Utils.readString(in));
   }
 }
