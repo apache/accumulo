@@ -56,7 +56,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeImpl;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.gc.GcVolumeUtil;
@@ -349,31 +348,32 @@ public class Upgrader9to10Test {
     Collection<Volume> vols =
         volumes.stream().map(s -> new VolumeImpl(fs, s)).collect(Collectors.toList());
     Set<String> fullyQualifiedVols = Set.of("file://vol1/", "file://vol2/");
+    Set<String> recoveryDirs =
+        Set.of("file://vol1/accumulo/recovery", "file://vol2/accumulo/recovery");
     conf.set(Property.INSTANCE_VOLUMES, String.join(",", fullyQualifiedVols));
 
     ServerContext context = createMock(ServerContext.class);
-    Path recoveryDir1 = new Path("file:/vol1/accumulo/recovery");
-    Path recoveryDir2 = new Path("file:/vol2/accumulo/recovery");
+    Path recoveryDir1 = new Path("file://vol1/accumulo/recovery");
+    Path recoveryDir2 = new Path("file://vol2/accumulo/recovery");
     VolumeManager volumeManager = createMock(VolumeManager.class);
+
     FileStatus[] dirs = new FileStatus[2];
     dirs[0] = createMock(FileStatus.class);
-    Path dir0 = new Path("file:/vol1/accumulo/recovery/A123456789");
+    Path dir0 = new Path("file://vol1/accumulo/recovery/A123456789");
     FileStatus[] dir0Files = new FileStatus[1];
     dir0Files[0] = createMock(FileStatus.class);
     dirs[1] = createMock(FileStatus.class);
-    Path dir1 = new Path("file:/vol1/accumulo/recovery/B123456789");
+    Path dir1 = new Path("file://vol1/accumulo/recovery/B123456789");
     FileStatus[] dir1Files = new FileStatus[1];
     dir1Files[0] = createMock(FileStatus.class);
-    Path part1Dir = new Path("file:/vol1/accumulo/recovery/B123456789/part-r-0000");
+    Path part1Dir = new Path("file://vol1/accumulo/recovery/B123456789/part-r-0000");
 
     expect(context.getVolumeManager()).andReturn(volumeManager).once();
     expect(context.getConfiguration()).andReturn(conf).once();
     expect(context.getHadoopConf()).andReturn(hadoopConf).once();
+    expect(context.getRecoveryDirs()).andReturn(recoveryDirs).once();
     expect(volumeManager.getVolumes()).andReturn(vols).once();
-    // currentIid = VolumeManager.getInstanceIDFromHdfs(path, hadoopConf);
-    ServerConstants.checkBaseUris(hadoopConf, fullyQualifiedVols, false);
-    expectLastCall().andReturn(fullyQualifiedVols).once();
-    //expect(VolumeManager.getInstanceIDFromHdfs()).andReturn(vols).once();
+
     expect(volumeManager.exists(recoveryDir1)).andReturn(true).once();
     expect(volumeManager.exists(recoveryDir2)).andReturn(false).once();
     expect(volumeManager.listStatus(recoveryDir1)).andReturn(dirs).once();
@@ -385,7 +385,6 @@ public class Upgrader9to10Test {
     expect(volumeManager.listStatus(dir1)).andReturn(dir1Files).once();
     expect(dir1Files[0].isDirectory()).andReturn(true).once();
     expect(dir1Files[0].getPath()).andReturn(part1Dir).once();
-
     expect(volumeManager.deleteRecursively(dir1)).andReturn(true).once();
 
     replay(context, volumeManager, dirs[0], dirs[1], dir0Files[0], dir1Files[0]);

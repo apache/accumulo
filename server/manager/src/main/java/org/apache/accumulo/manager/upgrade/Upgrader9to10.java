@@ -74,7 +74,6 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ZooConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -741,12 +740,12 @@ public class Upgrader9to10 implements Upgrader {
    */
   static void dropSortedMapWALFiles(ServerContext context) {
     VolumeManager vm = context.getVolumeManager();
-    for (String recoveryDir : ServerConstants.getRecoveryDirs(context)) {
+    for (String recoveryDir : context.getRecoveryDirs()) {
       Path recoveryDirPath = new Path(recoveryDir);
       try {
         if (!vm.exists(recoveryDirPath)) {
           log.info("There are no recovery files in {}", recoveryDir);
-          return;
+          continue;
         }
         List<Path> directoriesToDrop = new ArrayList<>();
         for (FileStatus walDir : vm.listStatus(recoveryDirPath)) {
