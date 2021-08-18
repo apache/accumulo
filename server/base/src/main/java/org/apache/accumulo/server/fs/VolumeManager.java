@@ -25,9 +25,9 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -46,9 +46,7 @@ import org.slf4j.LoggerFactory;
 public interface VolumeManager extends AutoCloseable {
 
   enum FileType {
-    TABLE(ServerConstants.TABLE_DIR),
-    WAL(ServerConstants.WAL_DIR),
-    RECOVERY(ServerConstants.RECOVERY_DIR);
+    TABLE(Constants.TABLE_DIR), WAL(Constants.WAL_DIR), RECOVERY(Constants.RECOVERY_DIR);
 
     private String dir;
 

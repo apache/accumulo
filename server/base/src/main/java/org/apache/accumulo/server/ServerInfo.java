@@ -53,7 +53,7 @@ public class ServerInfo implements ClientInfo {
   private int zooKeepersSessionTimeOut;
   private VolumeManager volumeManager;
   private ZooCache zooCache;
-  private final ServerConstants serverConstants;
+  private final ServerDirs serverDirs;
 
   ServerInfo(SiteConfiguration siteConfig, String instanceName, String zooKeepers,
       int zooKeepersSessionTimeOut) {
@@ -83,7 +83,7 @@ public class ServerInfo implements ClientInfo {
       throw new RuntimeException("Instance id " + instanceID + " pointed to by the name "
           + instanceName + " does not exist in zookeeper");
     }
-    serverConstants = new ServerConstants(siteConfig, hadoopConf);
+    serverDirs = new ServerDirs(siteConfig, hadoopConf);
   }
 
   ServerInfo(SiteConfiguration config) {
@@ -95,8 +95,8 @@ public class ServerInfo implements ClientInfo {
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
-    serverConstants = new ServerConstants(siteConfig, hadoopConf);
-    Path instanceIdPath = serverConstants.getInstanceIdLocation(volumeManager.getFirst());
+    serverDirs = new ServerDirs(siteConfig, hadoopConf);
+    Path instanceIdPath = serverDirs.getInstanceIdLocation(volumeManager.getFirst());
     instanceID = VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
     zooKeepers = config.get(Property.INSTANCE_ZK_HOST);
     zooKeepersSessionTimeOut = (int) config.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
@@ -118,7 +118,7 @@ public class ServerInfo implements ClientInfo {
     zooKeepersSessionTimeOut = (int) config.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
     this.instanceName = instanceName;
-    serverConstants = new ServerConstants(siteConfig, hadoopConf);
+    serverDirs = new ServerDirs(siteConfig, hadoopConf);
   }
 
   public SiteConfiguration getSiteConfiguration() {
@@ -184,7 +184,7 @@ public class ServerInfo implements ClientInfo {
     return this.hadoopConf;
   }
 
-  public ServerConstants getServerConstants() {
-    return serverConstants;
+  public ServerDirs getServerDirs() {
+    return serverDirs;
   }
 }

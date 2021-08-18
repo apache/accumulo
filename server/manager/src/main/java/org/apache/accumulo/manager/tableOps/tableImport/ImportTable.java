@@ -44,7 +44,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.manager.tableOps.tableExport.ExportTable;
-import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -142,7 +142,7 @@ public class ImportTable extends ManagerRepo {
           TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Incompatible export version " + exportVersion);
 
-    if (dataVersion == null || dataVersion > ServerConstants.DATA_VERSION)
+    if (dataVersion == null || dataVersion > AccumuloDataVersion.get())
       throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER,
           "Incompatible data version " + dataVersion);

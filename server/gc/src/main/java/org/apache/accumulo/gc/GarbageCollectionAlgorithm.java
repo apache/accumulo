@@ -36,7 +36,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.gc.GarbageCollectionEnvironment.Reference;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.htrace.Trace;
@@ -86,11 +85,11 @@ public class GarbageCollectionAlgorithm {
     }
 
     if (tokens.length > 3 && path.contains(":")) {
-      if (tokens[tokens.length - 4].equals(ServerConstants.TABLE_DIR)
+      if (tokens[tokens.length - 4].equals(Constants.TABLE_DIR)
           && (expectedLen == 0 || expectedLen == 3)) {
         relPath = tokens[tokens.length - 3] + "/" + tokens[tokens.length - 2] + "/"
             + tokens[tokens.length - 1];
-      } else if (tokens[tokens.length - 3].equals(ServerConstants.TABLE_DIR)
+      } else if (tokens[tokens.length - 3].equals(Constants.TABLE_DIR)
           && (expectedLen == 0 || expectedLen == 2)) {
         relPath = tokens[tokens.length - 2] + "/" + tokens[tokens.length - 1];
       } else {

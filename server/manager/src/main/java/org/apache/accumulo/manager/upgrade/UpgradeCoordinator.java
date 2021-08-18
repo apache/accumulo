@@ -35,8 +35,9 @@ import org.apache.accumulo.fate.ReadOnlyStore;
 import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.manager.EventCoordinator;
-import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -106,8 +107,8 @@ public class UpgradeCoordinator {
   private static Logger log = LoggerFactory.getLogger(UpgradeCoordinator.class);
 
   private int currentVersion;
-  private Map<Integer,Upgrader> upgraders = Map.of(ServerConstants.SHORTEN_RFILE_KEYS,
-      new Upgrader8to9(), ServerConstants.CRYPTO_CHANGES, new Upgrader9to10());
+  private Map<Integer,Upgrader> upgraders = Map.of(AccumuloDataVersion.SHORTEN_RFILE_KEYS,
+      new Upgrader8to9(), AccumuloDataVersion.CRYPTO_CHANGES, new Upgrader9to10());
 
   private volatile UpgradeStatus status;
 
@@ -139,20 +140,20 @@ public class UpgradeCoordinator {
         "Not currently in a suitable state to do zookeeper upgrade %s", status);
 
     try {
-      int cv = context.getServerConstants()
+      int cv = context.getServerDirs()
           .getAccumuloPersistentVersion(context.getVolumeManager().getFirst());
       ServerContext.ensureDataVersionCompatible(cv);
       this.currentVersion = cv;
 
-      if (cv == ServerConstants.DATA_VERSION) {
+      if (cv == AccumuloDataVersion.get()) {
         status = UpgradeStatus.COMPLETE;
         return;
       }
 
-      if (currentVersion < ServerConstants.DATA_VERSION) {
+      if (currentVersion < AccumuloDataVersion.get()) {
         abortIfFateTransactions(context);
 
-        for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {
+        for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
           log.info("Upgrading Zookeeper from data version {}", v);
           upgraders.get(v).upgradeZookeeper(context);
         }
@@ -173,25 +174,25 @@ public class UpgradeCoordinator {
     Preconditions.checkState(status == UpgradeStatus.UPGRADED_ZOOKEEPER,
         "Not currently in a suitable state to do metadata upgrade %s", status);
 
-    if (currentVersion < ServerConstants.DATA_VERSION) {
+    if (currentVersion < AccumuloDataVersion.get()) {
       return ThreadPools.createThreadPool(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
           "UpgradeMetadataThreads", new SynchronousQueue<Runnable>(), OptionalInt.empty(), false)
           .submit(() -> {
             try {
-              for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {
+              for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
                 log.info("Upgrading Root from data version {}", v);
                 upgraders.get(v).upgradeRoot(context);
               }
 
               setStatus(UpgradeStatus.UPGRADED_ROOT, eventCoordinator);
 
-              for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {
+              for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
                 log.info("Upgrading Metadata from data version {}", v);
                 upgraders.get(v).upgradeMetadata(context);
               }
 
               log.info("Updating persistent data version.");
-              updateAccumuloVersion(context.getServerConstants(), context.getVolumeManager(),
+              updateAccumuloVersion(context.getServerDirs(), context.getVolumeManager(),
                   currentVersion);
               log.info("Upgrade complete");
               setStatus(UpgradeStatus.COMPLETE, eventCoordinator);
@@ -206,14 +207,13 @@ public class UpgradeCoordinator {
   }
 
   // visible for testing
-  synchronized void updateAccumuloVersion(ServerConstants constants, VolumeManager fs,
-      int oldVersion) {
+  synchronized void updateAccumuloVersion(ServerDirs serverDirs, VolumeManager fs, int oldVersion) {
     for (Volume volume : fs.getVolumes()) {
       try {
-        if (constants.getAccumuloPersistentVersion(volume) == oldVersion) {
+        if (serverDirs.getAccumuloPersistentVersion(volume) == oldVersion) {
           log.debug("Attempting to upgrade {}", volume);
-          Path dataVersionLocation = constants.getDataVersionLocation(volume);
-          fs.create(new Path(dataVersionLocation, Integer.toString(ServerConstants.DATA_VERSION)))
+          Path dataVersionLocation = serverDirs.getDataVersionLocation(volume);
+          fs.create(new Path(dataVersionLocation, Integer.toString(AccumuloDataVersion.get())))
               .close();
           // TODO document failure mode & recovery if FS permissions cause above to work and below
           // to fail ACCUMULO-2596

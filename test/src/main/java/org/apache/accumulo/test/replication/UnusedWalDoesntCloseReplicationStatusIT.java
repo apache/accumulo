@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.UUID;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -49,7 +50,6 @@ import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.replication.ReplicaSystemFactory;
 import org.apache.accumulo.server.replication.StatusUtil;
@@ -102,7 +102,7 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
 
     FileSystem fs = FileSystem.getLocal(new Configuration());
     File tserverWalDir =
-        new File(accumuloDir, ServerConstants.WAL_DIR + Path.SEPARATOR + "faketserver+port");
+        new File(accumuloDir, Constants.WAL_DIR + Path.SEPARATOR + "faketserver+port");
     File tserverWal = new File(tserverWalDir, UUID.randomUUID().toString());
     fs.mkdirs(new Path(tserverWalDir.getAbsolutePath()));
 

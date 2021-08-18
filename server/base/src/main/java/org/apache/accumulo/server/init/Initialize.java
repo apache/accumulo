@@ -90,8 +90,9 @@ import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -341,8 +342,8 @@ public class Initialize implements KeywordExecutable {
       String rootTabletDirName = RootTable.ROOT_TABLET_DIR_NAME;
       String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
       String rootTabletFileUri = new Path(fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR
-          + ServerConstants.TABLE_DIR + Path.SEPARATOR + RootTable.ID + Path.SEPARATOR
-          + rootTabletDirName + Path.SEPARATOR + "00000_00000." + ext).toString();
+          + Constants.TABLE_DIR + Path.SEPARATOR + RootTable.ID + Path.SEPARATOR + rootTabletDirName
+          + Path.SEPARATOR + "00000_00000." + ext).toString();
 
       try {
         initZooKeeper(opts, uuid.toString(), instanceNamePath, rootTabletDirName,
@@ -354,9 +355,8 @@ public class Initialize implements KeywordExecutable {
 
       try {
         initFileSystem(siteConfig, hadoopConf, fs, uuid,
-            new Path(fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR
-                + ServerConstants.TABLE_DIR + Path.SEPARATOR + RootTable.ID + rootTabletDirName)
-                    .toString(),
+            new Path(fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR + Constants.TABLE_DIR
+                + Path.SEPARATOR + RootTable.ID + rootTabletDirName).toString(),
             rootTabletFileUri, context);
       } catch (Exception e) {
         log.error("FATAL Failed to initialize filesystem", e);
@@ -438,11 +438,11 @@ public class Initialize implements KeywordExecutable {
   private static void initDirs(VolumeManager fs, UUID uuid, Set<String> baseDirs, boolean print)
       throws IOException {
     for (String baseDir : baseDirs) {
-      fs.mkdirs(new Path(new Path(baseDir, ServerConstants.VERSION_DIR),
-          "" + ServerConstants.DATA_VERSION), new FsPermission("700"));
+      fs.mkdirs(new Path(new Path(baseDir, Constants.VERSION_DIR), "" + AccumuloDataVersion.get()),
+          new FsPermission("700"));
 
       // create an instance id
-      Path iidLocation = new Path(baseDir, ServerConstants.INSTANCE_ID_DIR);
+      Path iidLocation = new Path(baseDir, Constants.INSTANCE_ID_DIR);
       fs.mkdirs(iidLocation);
       fs.createNewFile(new Path(iidLocation, uuid.toString()));
       if (print) {
@@ -844,8 +844,8 @@ public class Initialize implements KeywordExecutable {
   public static boolean isInitialized(VolumeManager fs, SiteConfiguration siteConfig)
       throws IOException {
     for (String baseDir : VolumeConfiguration.getVolumeUris(siteConfig)) {
-      if (fs.exists(new Path(baseDir, ServerConstants.INSTANCE_ID_DIR))
-          || fs.exists(new Path(baseDir, ServerConstants.VERSION_DIR))) {
+      if (fs.exists(new Path(baseDir, Constants.INSTANCE_ID_DIR))
+          || fs.exists(new Path(baseDir, Constants.VERSION_DIR))) {
         return true;
       }
     }
@@ -854,22 +854,22 @@ public class Initialize implements KeywordExecutable {
   }
 
   private static void addVolumes(VolumeManager fs, SiteConfiguration siteConfig,
-      Configuration hadoopConf, ServerConstants serverConstants) throws IOException {
+      Configuration hadoopConf, ServerDirs serverDirs) throws IOException {
 
     Set<String> volumeURIs = VolumeConfiguration.getVolumeUris(siteConfig);
 
-    Set<String> initializedDirs = serverConstants.checkBaseUris(hadoopConf, volumeURIs, true);
+    Set<String> initializedDirs = serverDirs.checkBaseUris(hadoopConf, volumeURIs, true);
 
     HashSet<String> uinitializedDirs = new HashSet<>();
     uinitializedDirs.addAll(volumeURIs);
     uinitializedDirs.removeAll(initializedDirs);
 
     Path aBasePath = new Path(initializedDirs.iterator().next());
-    Path iidPath = new Path(aBasePath, ServerConstants.INSTANCE_ID_DIR);
-    Path versionPath = new Path(aBasePath, ServerConstants.VERSION_DIR);
+    Path iidPath = new Path(aBasePath, Constants.INSTANCE_ID_DIR);
+    Path versionPath = new Path(aBasePath, Constants.VERSION_DIR);
 
     UUID uuid = UUID.fromString(VolumeManager.getInstanceIDFromHdfs(iidPath, hadoopConf));
-    for (Pair<Path,Path> replacementVolume : serverConstants.getVolumeReplacements()) {
+    for (Pair<Path,Path> replacementVolume : serverDirs.getVolumeReplacements()) {
       if (aBasePath.equals(replacementVolume.getFirst())) {
         log.error(
             "{} is set to be replaced in {} and should not appear in {}."
@@ -879,9 +879,9 @@ public class Initialize implements KeywordExecutable {
       }
     }
 
-    int persistentVersion = serverConstants
-        .getAccumuloPersistentVersion(versionPath.getFileSystem(hadoopConf), versionPath);
-    if (persistentVersion != ServerConstants.DATA_VERSION) {
+    int persistentVersion =
+        serverDirs.getAccumuloPersistentVersion(versionPath.getFileSystem(hadoopConf), versionPath);
+    if (persistentVersion != AccumuloDataVersion.get()) {
       throw new IOException(
           "Accumulo " + Constants.VERSION + " cannot initialize data version " + persistentVersion);
     }
@@ -942,7 +942,7 @@ public class Initialize implements KeywordExecutable {
       setZooReaderWriter(new ZooReaderWriter(siteConfig));
       SecurityUtil.serverLogin(siteConfig);
       Configuration hadoopConfig = new Configuration();
-      ServerConstants serverConstants = new ServerConstants(siteConfig, hadoopConfig);
+      ServerDirs serverDirs = new ServerDirs(siteConfig, hadoopConfig);
 
       try (var fs = VolumeManagerImpl.get(siteConfig, hadoopConfig)) {
 
@@ -972,7 +972,7 @@ public class Initialize implements KeywordExecutable {
         }
 
         if (opts.addVolumes) {
-          addVolumes(fs, siteConfig, hadoopConfig, serverConstants);
+          addVolumes(fs, siteConfig, hadoopConfig, serverDirs);
         }
 
         if (!opts.resetSecurity && !opts.addVolumes) {
