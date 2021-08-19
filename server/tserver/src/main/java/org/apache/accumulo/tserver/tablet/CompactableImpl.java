@@ -687,7 +687,7 @@ public class CompactableImpl implements Compactable {
       completed = fileMgr.finishChop(allFiles);
     }
 
-    if (completed) {
+    if (completed && !closed) {
       markChopped();
       TabletLogger.selected(getExtent(), CompactionKind.CHOP, Set.of());
     }
@@ -1378,7 +1378,7 @@ public class CompactableImpl implements Compactable {
   }
 
   /**
-   * Interrupts and waits for any running compactions. After this method returns no compactions
+   * Interrupts and waits for any running compactions. After this method returns, no compactions
    * should be running and none should be able to start.
    */
   public synchronized void close() {
@@ -1388,11 +1388,12 @@ public class CompactableImpl implements Compactable {
 
       closed = true;
 
-      // wait while internal jobs are running or external compactions are committing, but do not
-      // wait on external compactions that are running
+      // wait while internal jobs are running, external compactions are committing or the status of
+      // chops is active, but do not wait on external compactions that are running
       while (runningJobs.stream()
           .anyMatch(job -> !((CompactionExecutorIdImpl) job.getExecutor()).isExternalId())
-          || !externalCompactionsCommitting.isEmpty()) {
+          || !externalCompactionsCommitting.isEmpty()
+          || fileMgr.chopStatus != FileSelectionStatus.NOT_ACTIVE) {
         try {
           wait(50);
         } catch (InterruptedException e) {
