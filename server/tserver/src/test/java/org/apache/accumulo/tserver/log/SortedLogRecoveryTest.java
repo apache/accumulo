@@ -1118,7 +1118,7 @@ public class SortedLogRecoveryTest {
               createKeyValue(COMPACTION_FINISH, 2, 1, null),
               createKeyValue(COMPACTION_START, 4, 1, "/t1/f1"),
               createKeyValue(COMPACTION_FINISH, 5, 1, null),
-              createKeyValue(MUTATION, 3, 1, ignored), createKeyValue(MUTATION, 5, 1, m),};
+              createKeyValue(MUTATION, 3, 1, ignored), createKeyValue(MUTATION, 5, 1, m)};
       String dest = workdir + "/testLogSortedProperties";
 
       List<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
