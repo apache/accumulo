@@ -1152,27 +1152,28 @@ public class SortedLogRecoveryTest {
 
   private Compression.Algorithm getCompressionFromRFile(FSDataInputStream fsin, long fileLength)
       throws IOException {
-    var in = new SeekableDataInputStream(fsin);
-    int magicNumberSize = 16; // BCFile.Magic.size();
-    // Move the cursor to grab the version and the magic first
-    in.seek(fileLength - magicNumberSize - Utils.Version.size());
-    var version = new Utils.Version(in);
-    assertEquals(API_VERSION_3, version);
-    in.readFully(new byte[16]); // BCFile.Magic.readAndVerify(in); // 16 bytes
-    in.seek(fileLength - magicNumberSize - Utils.Version.size() - 16); // 2 * Long.BYTES = 16
-    long offsetIndexMeta = in.readLong();
-    long offsetCryptoParameters = in.readLong();
-    assertTrue(offsetCryptoParameters > 0);
+    try (var in = new SeekableDataInputStream(fsin)) {
+      int magicNumberSize = 16; // BCFile.Magic.size();
+      // Move the cursor to grab the version and the magic first
+      in.seek(fileLength - magicNumberSize - Utils.Version.size());
+      var version = new Utils.Version(in);
+      assertEquals(API_VERSION_3, version);
+      in.readFully(new byte[16]); // BCFile.Magic.readAndVerify(in); // 16 bytes
+      in.seek(fileLength - magicNumberSize - Utils.Version.size() - 16); // 2 * Long.BYTES = 16
+      long offsetIndexMeta = in.readLong();
+      long offsetCryptoParameters = in.readLong();
+      assertTrue(offsetCryptoParameters > 0);
 
-    // read meta index
-    in.seek(offsetIndexMeta);
-    int count = Utils.readVInt(in);
-    assertTrue(count > 0);
+      // read meta index
+      in.seek(offsetIndexMeta);
+      int count = Utils.readVInt(in);
+      assertTrue(count > 0);
 
-    String fullMetaName = Utils.readString(in);
-    if (fullMetaName != null && !fullMetaName.startsWith(defaultPrefix)) {
-      throw new IOException("Corrupted Meta region Index");
+      String fullMetaName = Utils.readString(in);
+      if (fullMetaName != null && !fullMetaName.startsWith(defaultPrefix)) {
+        throw new IOException("Corrupted Meta region Index");
+      }
+      return Compression.getCompressionAlgorithmByName(Utils.readString(in));
     }
-    return Compression.getCompressionAlgorithmByName(Utils.readString(in));
   }
 }
