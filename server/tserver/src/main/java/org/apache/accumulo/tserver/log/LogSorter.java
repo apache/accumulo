@@ -32,6 +32,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -59,7 +60,7 @@ import com.google.common.annotations.VisibleForTesting;
 public class LogSorter {
 
   private static final Logger log = LoggerFactory.getLogger(LogSorter.class);
-  AccumuloConfiguration conf;
+  AccumuloConfiguration sortedLogConf;
 
   private final Map<String,LogProcessor> currentWork = Collections.synchronizedMap(new HashMap<>());
 
@@ -139,7 +140,7 @@ public class LogSorter {
 
       input = fs.open(srcPath);
       try {
-        decryptingInput = DfsLogger.getDecryptingStream(input, conf);
+        decryptingInput = DfsLogger.getDecryptingStream(input, sortedLogConf);
       } catch (LogHeaderIncompleteException e) {
         log.warn("Could not read header from write-ahead log {}. Not sorting.", srcPath);
         // Creating a 'finished' marker will cause recovery to proceed normally and the
@@ -150,7 +151,7 @@ public class LogSorter {
         return;
       }
 
-      final long bufferSize = conf.getAsBytes(Property.TSERV_SORT_BUFFER_SIZE);
+      final long bufferSize = sortedLogConf.getAsBytes(Property.TSERV_SORT_BUFFER_SIZE);
       Thread.currentThread().setName("Sorting " + name + " for recovery");
       while (true) {
         final ArrayList<Pair<LogFileKey,LogFileValue>> buffer = new ArrayList<>();
@@ -206,11 +207,31 @@ public class LogSorter {
 
   public LogSorter(ServerContext context, AccumuloConfiguration conf) {
     this.context = context;
-    this.conf = conf;
+    this.sortedLogConf = extractSortedLogConfig(conf);
     int threadPoolSize = conf.getCount(Property.TSERV_RECOVERY_MAX_CONCURRENT);
     this.threadPool =
         ThreadPools.createFixedThreadPool(threadPoolSize, this.getClass().getName(), false);
     this.walBlockSize = DfsLogger.getWalBlockSize(conf);
+  }
+
+  /**
+   * Get the properties set with {@link Property#TSERV_WAL_SORT_FILE_PREFIX} and translate them to
+   * equivalent 'table.file' properties to be used when writing rfiles for sorted recovery.
+   */
+  private AccumuloConfiguration extractSortedLogConfig(AccumuloConfiguration conf) {
+    final String tablePrefix = "table.file.";
+    var props = conf.getAllPropertiesWithPrefixStripped(Property.TSERV_WAL_SORT_FILE_PREFIX);
+    ConfigurationCopy copy = new ConfigurationCopy(conf);
+    props.forEach((prop, val) -> {
+      String tableProp = tablePrefix + prop;
+      if (Property.isTablePropertyValid(tableProp, val)) {
+        log.debug("Using property for writing sorted files: {}={}", tableProp, val);
+        copy.set(tableProp, val);
+      } else {
+        throw new IllegalArgumentException("Invalid sort file property " + prop + "=" + val);
+      }
+    });
+    return copy;
   }
 
   @VisibleForTesting
@@ -237,7 +258,7 @@ public class LogSorter {
 
     try (var writer = FileOperations.getInstance().newWriterBuilder()
         .forFile(fullPath.toString(), fs, fs.getConf(), context.getCryptoService())
-        .withTableConfiguration(conf).build()) {
+        .withTableConfiguration(sortedLogConf).build()) {
       writer.startDefaultLocalityGroup();
       for (var entry : keyListMap.entrySet()) {
         LogFileValue val = new LogFileValue();
@@ -250,7 +271,7 @@ public class LogSorter {
   public void startWatchingForRecoveryLogs(ThreadPoolExecutor distWorkQThreadPool)
       throws KeeperException, InterruptedException {
     this.threadPool = distWorkQThreadPool;
-    new DistributedWorkQueue(context.getZooKeeperRoot() + Constants.ZRECOVERY, conf)
+    new DistributedWorkQueue(context.getZooKeeperRoot() + Constants.ZRECOVERY, sortedLogConf)
         .startProcessing(new LogProcessor(), this.threadPool);
   }
 
