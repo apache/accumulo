@@ -23,12 +23,14 @@ function print_usage {
 Usage: accumulo-service <service> <command>
 
 Services:
-  gc          Accumulo garbage collector
-  monitor     Accumulo monitor
-  manager     Accumulo manager
-  master      Accumulo master (Deprecated)
-  tserver     Accumulo tserver
-  tracer      Accumulo tracter
+  gc                     Accumulo garbage collector
+  monitor                Accumulo monitor
+  manager                Accumulo manager
+  master                 Accumulo master (Deprecated)
+  tserver                Accumulo tserver
+  tracer                 Accumulo tracer
+  compaction-coordinator Accumulo compaction coordinator (experimental)
+  compactor              Accumulo compactor (experimental)
 
 Commands:
   start       Starts service
@@ -77,7 +79,7 @@ function start_service() {
   rotate_log "$outfile"
   rotate_log "$errfile"
 
-  nohup "${bin}/accumulo" "$service" >"$outfile" 2>"$errfile" < /dev/null &
+  nohup "${bin}/accumulo" "$service" "${@:2}" >"$outfile" 2>"$errfile" < /dev/null &
   echo "$!" > "${pid_file}"
 
   # Check the max open files limit and selectively warn
@@ -146,7 +148,7 @@ function main() {
 
   pid_file="${ACCUMULO_PID_DIR}/accumulo-${service}${ACCUMULO_SERVICE_INSTANCE}.pid"
   case "$service" in
-    gc|manager|monitor|tserver|tracer)
+    gc|manager|monitor|tserver|tracer|coordinator|compactor)
       if [[ -z $2 ]]; then
         invalid_args "<command> cannot be empty"
       fi
