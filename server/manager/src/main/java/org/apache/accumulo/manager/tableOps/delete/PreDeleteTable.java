@@ -30,12 +30,9 @@ import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.manager.tableOps.compact.cancel.CancelCompactions;
 import org.apache.zookeeper.KeeperException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class PreDeleteTable extends ManagerRepo {
 
-  private static final Logger LOG = LoggerFactory.getLogger(PreDeleteTable.class);
   private static final long serialVersionUID = 1L;
 
   private TableId tableId;
