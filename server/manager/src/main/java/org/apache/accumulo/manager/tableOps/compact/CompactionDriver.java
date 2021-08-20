@@ -82,6 +82,14 @@ class CompactionDriver extends ManagerRepo {
           TableOperation.COMPACT, TableOperationExceptionType.OTHER, "Compaction canceled");
     }
 
+    String deleteMarkerPath = Constants.ZROOT + "/" + manager.getInstanceID() + Constants.ZTABLES
+        + "/" + tableId + Constants.ZTABLE_DELETE_MARKER;
+    if (zoo.exists(deleteMarkerPath, null)) {
+      // table is being deleted
+      throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
+          TableOperation.COMPACT, TableOperationExceptionType.OTHER, "Table is being deleted");
+    }
+
     MapCounter<TServerInstance> serversToFlush = new MapCounter<>();
     long t1 = System.currentTimeMillis();
 
