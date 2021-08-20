@@ -678,7 +678,7 @@ public enum Property {
   TSERV_WAL_SORT_FILE_PREFIX("tserver.wal.sort.file.", null, PropertyType.PREFIX,
       "The rfile properties to use when sorting logs during recovery. Most of the properties"
           + " that begin with 'table.file' can be used here. For example, to set the compression"
-          + " of the sorted recovery files to snappy use 'tserver.sort.file.compress.type=snappy'",
+          + " of the sorted recovery files to snappy use 'tserver.wal.sort.file.compress.type=snappy'",
       "2.1.0"),
   TSERV_WORKQ_THREADS("tserver.workq.threads", "2", PropertyType.COUNT,
       "The number of threads for the distributed work queue. These threads are"
