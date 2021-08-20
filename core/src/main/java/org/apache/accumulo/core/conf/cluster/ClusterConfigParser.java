@@ -29,8 +29,11 @@ import java.util.Map;
 
 import org.yaml.snakeyaml.Yaml;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ClusterConfigParser {
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
   public static Map<String,String> parseConfiguration(String configFile) throws IOException {
     Map<String,String> results = new HashMap<>();
     try (InputStream fis = Files.newInputStream(Paths.get(configFile), StandardOpenOption.READ)) {
@@ -48,7 +51,8 @@ public class ClusterConfigParser {
   @SuppressWarnings("unchecked")
   private static void flatten(String parentKey, String key, Object value,
       Map<String,String> results) {
-    String parent = (parentKey == null || parentKey == "") ? "" : parentKey + addTheDot(parentKey);
+    String parent =
+        (parentKey == null || parentKey.equals("")) ? "" : parentKey + addTheDot(parentKey);
     if (value instanceof String) {
       results.put(parent + key, (String) value);
       return;

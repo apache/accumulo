@@ -29,6 +29,9 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths provided by test")
 public class ClusterConfigParserTest {
 
   @Test
