@@ -148,7 +148,7 @@ function main() {
 
   pid_file="${ACCUMULO_PID_DIR}/accumulo-${service}${ACCUMULO_SERVICE_INSTANCE}.pid"
   case "$service" in
-    gc|manager|monitor|tserver|tracer|coordinator|compactor)
+    gc|manager|monitor|tserver|tracer|compaction-coordinator|compactor)
       if [[ -z $2 ]]; then
         invalid_args "<command> cannot be empty"
       fi

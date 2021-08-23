@@ -17,11 +17,11 @@
 # under the License.
 #
 
-managers:
+manager:
   - localhost1
   - localhost2
 
-monitors:
+monitor:
   - localhost1
   - localhost2
 
@@ -31,18 +31,18 @@ tracer:
 gc:
   - localhost
 
-tservers:
+tserver:
   - localhost1
   - localhost2
   - localhost3
   - localhost4
 
 #compaction:
-#  coordinators:
+#  coordinator:
 #    - localhost1
 #    - localhost2
-#  compactors:
-#    - queues:
+#  compactor:
+#    - queue:
 #      - q1
 #      - q2
 #    - q1:

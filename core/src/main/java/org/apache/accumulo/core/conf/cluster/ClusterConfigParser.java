@@ -20,6 +20,7 @@ package org.apache.accumulo.core.conf.cluster;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
@@ -27,11 +28,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.yaml.snakeyaml.Yaml;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ClusterConfigParser {
+
+  private static final String PROPERTY_FORMAT = "%s=\"%s\"";
+  private static final String[] SECTIONS =
+      new String[] {"manager", "monitor", "gc", "tracer", "tserver"};
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
   public static Map<String,String> parseConfiguration(String configFile) throws IOException {
@@ -61,7 +67,7 @@ public class ClusterConfigParser {
         if (l instanceof String) {
           // remove the [] at the ends of toString()
           String val = value.toString();
-          results.put(parent + key, val.substring(1, val.length() - 1).replace(", ", ","));
+          results.put(parent + key, val.substring(1, val.length() - 1).replace(", ", " "));
           return;
         } else {
           flatten(parent, key, l, results);
@@ -74,12 +80,40 @@ public class ClusterConfigParser {
     }
   }
 
+  public static void outputShellVariables(Map<String,String> config, PrintStream out) {
+    for (String section : SECTIONS) {
+      if (config.containsKey(section)) {
+        out.println(
+            String.format(PROPERTY_FORMAT, section.toUpperCase() + "_HOSTS", config.get(section)));
+      } else {
+        if (section.equals("manager") || section.equals("tserver")) {
+          throw new RuntimeException("Required configuration section is missing: " + section);
+        }
+        System.err.println("WARN: " + section + " is missing");
+      }
+    }
+
+    out.println(
+        String.format(PROPERTY_FORMAT, "COORDINATOR_HOSTS", config.get("compaction.coordinator")));
+    out.println(String.format(PROPERTY_FORMAT, "COMPACTION_QUEUES",
+        config.get("compaction.compactor.queue")));
+    String queues = config.get("compaction.compactor.queue");
+    if (StringUtils.isNotEmpty(queues)) {
+      String[] q = queues.split(" ");
+      for (int i = 0; i < q.length; i++) {
+        out.println(String.format(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + q[i],
+            config.get("compaction.compactor." + q[i])));
+      }
+    }
+    out.flush();
+  }
+
   public static void main(String[] args) throws IOException {
     if (args == null || args.length != 1) {
       System.err.println("Usage: ClusterConfigParser <configFile>");
       System.exit(1);
     }
-    parseConfiguration(args[0]).forEach((k, v) -> System.out.println(k + ":" + v));
+    outputShellVariables(parseConfiguration(args[0]), System.out);
   }
 
 }

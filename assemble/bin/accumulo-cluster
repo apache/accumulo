@@ -43,6 +43,11 @@ function invalid_args {
   exit 1
 }
 
+function parse_fail {
+  echo "Failed to parse ${conf}/cluster.yml"
+  exit 1
+}
+
 function parse_config {
   if [[ -f ${conf}/slaves ]]; then
     echo "ERROR: A 'slaves' file was found in ${conf}/"
@@ -57,60 +62,45 @@ function parse_config {
     exit 1
   fi
 
-  config=$(${accumulo_cmd} org.apache.accumulo.core.conf.cluster.ClusterConfigParser ${conf}/cluster.yml)
+  $(${accumulo_cmd} org.apache.accumulo.core.conf.cluster.ClusterConfigParser ${conf}/cluster.yml) > /tmp/cluster-conf || parse_fail
+  . /tmp/cluster-conf
 
-  declare -A HOSTS
-
-  HOSTS["MANAGERS"]=$(grep managers $config | awk -F':' '{ print $2 }')
-  HOSTS["MONITORS"]=$(grep monitors $config | awk -F':' '{ print $2 }')
-  HOSTS["GC"]=$(grep gc $config | awk -F':' '{ print $2 }')
-  HOSTS["TRACER"]=$(grep tracer $config | awk -F':' '{ print $2 }')
-  HOSTS["TSERVERS"]=$(grep tservers $config | awk -F':' '{ print $2 }')
-
-  grep "compaction" $config $2>1 > /dev/null
-  compaction_in_config=$?
-
-  if [[ $compaction_in_config -eq 0 ]]; then
-    HOSTS["COMPACTION_COORDINATORS"]=$(grep "compaction.coordinators" $file | awk -F':' '{ print $2 }')
-    HOSTS["COMPACTION_QUEUES"]=$(grep "compaction.compactors.queues" $file | awk -F':' '{ print $2 }')
-
-    IFS_ORIG=$IFS
-    IFS=","
-    for queue in ${HOSTS["COMPACTION_QUEUES"]}; do
-      HOSTS["COMPACTORS_$queue"]=$(grep "compaction.compactors.$queue" $file | awk -F':' '{ print $2 }')
-    done
-    IFS=$IFS_ORIG
-  fi
-
-  if [[ ${#HOSTS["MANAGERS"]} -eq 0 ]]; then
+  if [[ -z $MANAGER_HOSTS ]]; then
     echo "ERROR: managers not found in ${conf}/cluster.yml"
     exit 1
   fi
 
-  if [[ ${#HOSTS["TSERVERS"]} -eq 0 ]]; then
+  if [[ -z $TSERVER_HOSTS ]]; then
     echo "ERROR: tservers not found in ${conf}/cluster.yml"
     exit 1
   fi
 
+  if [[ ! -z $COMPACTION_QUEUES && -z $COORDINATOR_HOSTS ]]; then
+    echo "WARN: External compaction queues configured, but no coordinator configured"
+  fi
+
+  for queue in $COMPACTION_QUEUES; do
+    if [[ -z "${COMPACTOR_HOSTS_$queue}" ]]; then
+      echo "WARN: External compaction queue $queue configured, but no compactors configured for it"
+    fi
+  done
+
   unset manager1
-  manager1=$(echo "${HOSTS["MANAGERS"]}" | cut -d"," -f1)
+  manager1=$(echo "${MANAGER_HOSTS}" | cut -d" " -f1)
 
-  if [[ ${#HOSTS["MONITORS"]} -eq 0 ]]; then
+  if [[ -z $MONITOR_HOSTS ]]; then
     echo "WARN: monitors not found in ${conf}/cluster.yml, using first manager host $manager1"
-    HOSTS["MONITORS"]=$manager1
-    exit 1
+    MONITOR_HOSTS=$manager1
   fi
 
-  if [[ ${#HOSTS["GC"]} -eq 0 ]]; then
+  if [[ -z $GC_HOSTS ]]; then
     echo "WARN: gc not found in ${conf}/cluster.yml, using first manager host $manager1"
-    HOSTS["GC"]=$manager1
-    exit 1
+    GC_HOSTS=$manager1
   fi
 
-  if [[ ${#HOSTS["TRACER"]} -eq 0 ]]; then
+  if [[ -z $TRACER_HOSTS ]]; then
     echo "WARN: tracer not found in ${conf}/cluster.yml, using first manager host $manager1"
-    HOSTS["TRACER"]=$manager1
-    exit 1
+    TRACER_HOSTS=$manager1
   fi
 }
 
@@ -138,7 +128,7 @@ function control_service() {
     if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || $host == $(get_ip) ]] ; then
       ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd"
     else
-      $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"{$@:4}'"
+      $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"{$@:4}\"'"
     fi
   done
 }
@@ -150,9 +140,7 @@ function start_service() {
 function start_tservers() {
   echo -n "Starting tablet servers ..."
   count=1
-  IFS_ORIG=$IFS
-  IFS=","
-  for server in ${HOSTS["TSERVERS"]}; do
+  for server in $TSERVER_HOSTS; do
     echo -n "."
     start_service "$server" tserver &
     if (( ++count % 72 == 0 )) ;
@@ -162,7 +150,6 @@ function start_tservers() {
     fi
   done
   echo " done"
-  IFS=$IFS_ORIG
 }
 
 function start_all() {
@@ -172,36 +159,31 @@ function start_all() {
     start_tservers
   fi
 
-  IFS_ORIG=$IFS
-  IFS=","
-
-  for manager in ${HOSTS["MANAGERS"]}; do
+  for manager in $MANAGER_HOSTS; do
     start_service "$manager" manager
   done
 
-  for gc in "${HOSTS["GC"]}"; do
+  for gc in $GC_HOSTS; do
     start_service "$gc" gc
   done
 
-  for monitor in ${HOSTS["MONITORS"]}; do
+  for monitor in $MONITOR_HOSTS; do
     start_service "$monitor" monitor
   done
 
-  for tracer in ${HOSTS["TRACER"]}; do
+  for tracer in $TRACER_HOSTS; do
     start_service "$tracer" tracer
   done
 
-  for coordinator in ${HOSTS["COMPACTION_COORDINATORS"]}; do
+  for coordinator in $COORDINATOR_HOSTS; do
     start_service "$coordinator" compaction-coordinator
   done
 
-  for queue in ${HOSTS["COMPACTION_QUEUES"]}; do
-    for compactor in ${HOSTS["COMPACTORS_$queue"]}; do
-      start_service "$compactor" compactor "-q $queue"
+  for queue in $COMPACTION_QUEUES; do
+    for compactor in "${COMPACTOR_HOSTS_$queue}"; do
+      start_service "$compactor" compactor -q "$queue"
     done
   done
-
-  IFS=$IFS_ORIG
 
 }
 
@@ -209,11 +191,8 @@ function start_here() {
 
   local_hosts="$(hostname -a 2> /dev/null) $(hostname) localhost 127.0.0.1 $(get_ip)"
 
-  IFS_ORIG=$IFS
-  IFS=","
-
   for host in $local_hosts; do
-    for tserver in ${HOSTS["TSERVERS"]}; do
+    for tserver in $TSERVER_HOSTS; do
       if grep -q "^${host}\$" "$tserver"; then
         start_service "$host" tserver
         break
@@ -222,7 +201,7 @@ function start_here() {
   done
 
   for host in $local_hosts; do
-    for manager in ${HOSTS["MANAGERS"]}; do
+    for manager in $MANAGER_HOSTS; do
       if grep -q "^${host}\$" "$manager"; then
         start_service "$host" manager
         break
@@ -231,7 +210,7 @@ function start_here() {
   done
 
   for host in $local_hosts; do
-    for gc in ${HOSTS["GC"]}; do
+    for gc in $GC_HOSTS; do
       if grep -q "^${host}\$" "$gc"; then
         start_service "$host" gc
         break
@@ -240,7 +219,7 @@ function start_here() {
   done
 
   for host in $local_hosts; do
-    for monitor in ${HOSTS["MONITORS"]}; do
+    for monitor in $MONITOR_HOSTS; do
       if grep -q "^${host}\$" "$monitor"; then
         start_service "$host" monitor
         break
@@ -249,7 +228,7 @@ function start_here() {
   done
 
   for host in $local_hosts; do
-    for tracer in ${HOSTS["TRACER"]}; do
+    for tracer in $TRACER_HOSTS; do
       if grep -q "^${host}\$" "$tracer"; then
         start_service "$host" tracer
         break
@@ -258,24 +237,22 @@ function start_here() {
   done
 
   for host in $local_hosts; do
-    for coordinator in ${HOSTS["COMPACTION_COORDINATORS"]}; do
+    for coordinator in $COORDINATOR_HOSTS; do
       if grep -q "^${host}\$" "$coordinator"; then
         start_service "$coordinator" compaction-coordinator
       fi
     done
   done
 
-  for queue in ${HOSTS["COMPACTION_QUEUES"]}; do
+  for queue in $COMPACTION_QUEUES; do
     for host in $local_hosts; do
-      for compactor in ${HOSTS["COMPACTORS_$queue"]}; do
+      for compactor in "${COMPACTOR_HOSTS_$queue}"; do
         if grep -q "^${host}\$" "$compactor"; then
-          start_service "$compactor" compactor "-q $queue"
+          start_service "$compactor" compactor -q "$queue"
         fi
       done
     done
   done
-
-  IFS=$IFS_ORIG
 
 }
 
@@ -293,20 +270,17 @@ function kill_service() {
 
 function stop_tservers() {
 
-  IFS_ORIG=$IFS
-  IFS=","
   echo "Stopping unresponsive tablet servers (if any)..."
-  for host in ${HOSTS["TSERVERS"]}; do
+  for host in $TSERVER_HOSTS; do
     stop_service "$host" tserver &
   done
 
   sleep 10
 
   echo "Stopping unresponsive tablet servers hard (if any)..."
-  for host in ${HOSTS["TSERVERS"]}; do
+  for host in $TSERVER_HOSTS; do
     kill_service "$host" tserver &
   done
-  IFS=$IFS_ORIG
 
   echo "Cleaning tablet server entries from zookeeper"
   ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -tservers
@@ -315,39 +289,35 @@ function stop_tservers() {
 function kill_all() {
   echo "Killing Accumulo cluster..."
 
-  IFS_ORIG=$IFS
-  IFS=","
-  for manager in ${HOSTS["MANAGERS"]}; do
+  for manager in $MANAGER_HOSTS; do
     kill_service "$manager" manager
   done
 
-  for gc in "${HOSTS["GC"]}"; do
+  for gc in $GC_HOSTS; do
     kill_service "$gc" gc
   done
 
-  for monitor in ${HOSTS["MONITORS"]}; do
+  for monitor in $MONITOR_HOSTS; do
     kill_service "$monitor" monitor
   done
 
-  for tracer in ${HOSTS["TRACER"]}; do
+  for tracer in $TRACER_HOSTS; do
     kill_service "$tracer" tracer
   done
 
-  for host in ${HOSTS["TSERVER"]}; do
+  for host in $TSERVER_HOSTS; do
     kill_service "$host" tserver
   done
 
-  for coordinator in ${HOSTS["COMPACTION_COORDINATORS"]}; do
+  for coordinator in $COORDINATOR_HOSTS; do
     kill_service "$coordinator" compaction-coordinator
   done
 
-  for queue in ${HOSTS["COMPACTION_QUEUES"]}; do
-    for compactor in ${HOSTS["COMPACTORS_$queue"]}; do
+  for queue in $COMPACTION_QUEUES; do
+    for compactor in "${COMPACTOR_HOSTS_$queue}"; do
       kill_service "$compactor" compactor
     done
   done
-
-  IFS=$IFS_ORIG
 
   echo "Cleaning all server entries in ZooKeeper"
   ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -tracers -coordinators -compactors
@@ -370,38 +340,36 @@ function stop_all() {
   sleep 5
 
   # Look for processes not killed by 'admin stopAll'
-  IFS_ORIG=$IFS
-  IFS=","
+
   for end_cmd in "stop" "kill" ; do
 
-    for manager in ${HOSTS["MANAGERS"]}; do
+    for manager in $MANAGER_HOSTS; do
       end_service "$manager" manager $end_cmd
     done
 
-    for gc in "${HOSTS["GC"]}"; do
+    for gc in "$GC_HOSTS"; do
       end_service "$gc" gc $end_cmd
     done
 
-    for monitor in ${HOSTS["MONITORS"]}; do
+    for monitor in $MONITOR_HOSTS; do
       end_service "$monitor" monitor $end_cmd
     done
 
-    for tracer in ${HOSTS["TRACER"]}; do
+    for tracer in $TRACER_HOSTS; do
       end_service "$tracer" tracer $end_cmd
     done
 
-    for coordinator in ${HOSTS["COMPACTION_COORDINATORS"]}; do
+    for coordinator in $COORDINATOR_HOSTS; do
       end_service "$coordinator" compaction-coordinator
     done
 
-    for queue in ${HOSTS["COMPACTION_QUEUES"]}; do
-      for compactor in ${HOSTS["COMPACTORS_$queue"]}; do
+    for queue in $COMPACTION_QUEUES; do
+      for compactor in "${COMPACTOR_HOSTS_$queue}"; do
         end_service "$compactor" compactor
       done
     done
 
   done
-  IFS=$IFS_ORIG
 
   # stop tserver still running
   stop_tservers
@@ -417,16 +385,13 @@ function stop_here() {
   if grep -Eq 'localhost|127[.]0[.]0[.]1' "${conf}/tservers"; then
     ${accumulo_cmd} admin stop localhost
   else
-    IFS_ORIG=$IFS
-    IFS=","
     for host in "${hosts_to_check[@]}"; do
-      for tserver in ${HOSTS["TSERVERS"]}; do
+      for tserver in $TSERVER_HOSTS; do
         if grep -q "$host" "$tserver"; then
           ${accumulo_cmd} admin stop "$host"
         fi
       done
     done
-    IFS=$IFS_ORIG
   fi
 
   for host in "${hosts_to_check[@]}"; do
@@ -461,10 +426,10 @@ function main() {
   case "$1" in
     create-config)
       cat <<EOF > $conf/cluster.yml
-managers:
+manager:
   - localhost
 
-monitors:
+monitor:
   - localhost
 
 tracer:
@@ -473,21 +438,21 @@ tracer:
 gc:
   - localhost
 
-tservers:
+tserver:
   - localhost
 
 #compaction:
-#  coordinators:
+#  coordinator:
 #    - localhost
-#  compactors:
-#    - queues:
+#  compactor:
+#    - queue:
 #      - q1
 #      - q2
 #    - q1:
 #        - localhost
 #    - q2:
 #        - localhost
-      EOF
+EOF
       ;;
     restart)
       parse_config
