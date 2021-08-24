@@ -453,7 +453,7 @@ public class Initialize implements KeywordExecutable {
 
   private void initFileSystem(SiteConfiguration siteConfig, Configuration hadoopConf,
       VolumeManager fs, UUID uuid, String rootTabletDirUri, String rootTabletFileUri,
-      ServerContext serverContext) throws IOException {
+      ServerContext context) throws IOException {
     initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(siteConfig), false);
 
     // initialize initial system tables config in zookeeper
@@ -462,23 +462,21 @@ public class Initialize implements KeywordExecutable {
     Text splitPoint = TabletsSection.getRange().getEndKey().getRow();
 
     VolumeChooserEnvironment chooserEnv =
-        new VolumeChooserEnvironmentImpl(Scope.INIT, MetadataTable.ID, splitPoint, serverContext);
+        new VolumeChooserEnvironmentImpl(Scope.INIT, MetadataTable.ID, splitPoint, context);
     String tableMetadataTabletDirName = TABLE_TABLETS_TABLET_DIR;
     String tableMetadataTabletDirUri =
-        fs.choose(chooserEnv, serverContext.getBaseUris()) + Constants.HDFS_TABLES_DIR
-            + Path.SEPARATOR + MetadataTable.ID + Path.SEPARATOR + tableMetadataTabletDirName;
-    chooserEnv =
-        new VolumeChooserEnvironmentImpl(Scope.INIT, ReplicationTable.ID, null, serverContext);
+        fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+            + MetadataTable.ID + Path.SEPARATOR + tableMetadataTabletDirName;
+    chooserEnv = new VolumeChooserEnvironmentImpl(Scope.INIT, ReplicationTable.ID, null, context);
     String replicationTableDefaultTabletDirName = ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
-    String replicationTableDefaultTabletDirUri = fs.choose(chooserEnv, serverContext.getBaseUris())
-        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID + Path.SEPARATOR
-        + replicationTableDefaultTabletDirName;
-    chooserEnv =
-        new VolumeChooserEnvironmentImpl(Scope.INIT, MetadataTable.ID, null, serverContext);
+    String replicationTableDefaultTabletDirUri =
+        fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+            + ReplicationTable.ID + Path.SEPARATOR + replicationTableDefaultTabletDirName;
+    chooserEnv = new VolumeChooserEnvironmentImpl(Scope.INIT, MetadataTable.ID, null, context);
     String defaultMetadataTabletDirName = ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
     String defaultMetadataTabletDirUri =
-        fs.choose(chooserEnv, serverContext.getBaseUris()) + Constants.HDFS_TABLES_DIR
-            + Path.SEPARATOR + MetadataTable.ID + Path.SEPARATOR + defaultMetadataTabletDirName;
+        fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+            + MetadataTable.ID + Path.SEPARATOR + defaultMetadataTabletDirName;
 
     // create table and default tablets directories
     createDirectories(fs, rootTabletDirUri, tableMetadataTabletDirUri, defaultMetadataTabletDirUri,

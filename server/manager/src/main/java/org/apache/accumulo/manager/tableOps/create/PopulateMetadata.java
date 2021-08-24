@@ -81,7 +81,7 @@ class PopulateMetadata extends ManagerRepo {
     return new FinishCreateTable(tableInfo);
   }
 
-  private void writeSplitsToMetadataTable(ServerContext ctx, TableId tableId,
+  private void writeSplitsToMetadataTable(ServerContext context, TableId tableId,
       SortedSet<Text> splits, Map<Text,Text> data, TimeType timeType, ServiceLock lock,
       BatchWriter bw) throws MutationsRejectedException {
     Text prevSplit = null;
@@ -93,7 +93,7 @@ class PopulateMetadata extends ManagerRepo {
           : new Value(data.get(split));
       ServerColumnFamily.DIRECTORY_COLUMN.put(mut, dirValue);
       ServerColumnFamily.TIME_COLUMN.put(mut, new Value(new MetadataTime(0, timeType).encode()));
-      MetadataTableUtil.putLockID(ctx, lock, mut);
+      MetadataTableUtil.putLockID(context, lock, mut);
       prevSplit = split;
       bw.addMutation(mut);
     }

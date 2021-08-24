@@ -129,75 +129,77 @@ public class Upgrader9to10 implements Upgrader {
   public static final long CANDIDATE_BATCH_SIZE = 4_000_000;
 
   @Override
-  public void upgradeZookeeper(ServerContext ctx) {
-    setMetaTableProps(ctx);
-    upgradeRootTabletMetadata(ctx);
-    renameOldMasterPropsinZK(ctx);
-    createExternalCompactionNodes(ctx);
+  public void upgradeZookeeper(ServerContext context) {
+    setMetaTableProps(context);
+    upgradeRootTabletMetadata(context);
+    renameOldMasterPropsinZK(context);
+    createExternalCompactionNodes(context);
     // special case where old files need to be deleted
-    dropSortedMapWALFiles(ctx);
+    dropSortedMapWALFiles(context);
   }
 
   @Override
-  public void upgradeRoot(ServerContext ctx) {
-    upgradeRelativePaths(ctx, Ample.DataLevel.METADATA);
-    upgradeDirColumns(ctx, Ample.DataLevel.METADATA);
-    upgradeFileDeletes(ctx, Ample.DataLevel.METADATA);
+  public void upgradeRoot(ServerContext context) {
+    upgradeRelativePaths(context, Ample.DataLevel.METADATA);
+    upgradeDirColumns(context, Ample.DataLevel.METADATA);
+    upgradeFileDeletes(context, Ample.DataLevel.METADATA);
   }
 
   @Override
-  public void upgradeMetadata(ServerContext ctx) {
-    upgradeRelativePaths(ctx, Ample.DataLevel.USER);
-    upgradeDirColumns(ctx, Ample.DataLevel.USER);
-    upgradeFileDeletes(ctx, Ample.DataLevel.USER);
+  public void upgradeMetadata(ServerContext context) {
+    upgradeRelativePaths(context, Ample.DataLevel.USER);
+    upgradeDirColumns(context, Ample.DataLevel.USER);
+    upgradeFileDeletes(context, Ample.DataLevel.USER);
   }
 
-  private void setMetaTableProps(ServerContext ctx) {
+  private void setMetaTableProps(ServerContext context) {
     try {
-      TablePropUtil.setTableProperty(ctx, RootTable.ID,
+      TablePropUtil.setTableProperty(context, RootTable.ID,
           Property.TABLE_COMPACTION_DISPATCHER.getKey(),
           SimpleCompactionDispatcher.class.getName());
-      TablePropUtil.setTableProperty(ctx, RootTable.ID,
+      TablePropUtil.setTableProperty(context, RootTable.ID,
           Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "root");
 
-      TablePropUtil.setTableProperty(ctx, MetadataTable.ID,
+      TablePropUtil.setTableProperty(context, MetadataTable.ID,
           Property.TABLE_COMPACTION_DISPATCHER.getKey(),
           SimpleCompactionDispatcher.class.getName());
-      TablePropUtil.setTableProperty(ctx, MetadataTable.ID,
+      TablePropUtil.setTableProperty(context, MetadataTable.ID,
           Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta");
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Unable to set system table properties", e);
     }
   }
 
-  private void createExternalCompactionNodes(ServerContext ctx) {
+  private void createExternalCompactionNodes(ServerContext context) {
 
     final byte[] EMPTY_BYTE_ARRAY = new byte[0];
     try {
-      ctx.getZooReaderWriter().putPersistentData(ctx.getZooKeeperRoot() + Constants.ZCOORDINATOR,
-          EMPTY_BYTE_ARRAY, NodeExistsPolicy.SKIP);
-      ctx.getZooReaderWriter().putPersistentData(
-          ctx.getZooKeeperRoot() + Constants.ZCOORDINATOR_LOCK, EMPTY_BYTE_ARRAY,
+      context.getZooReaderWriter().putPersistentData(
+          context.getZooKeeperRoot() + Constants.ZCOORDINATOR, EMPTY_BYTE_ARRAY,
           NodeExistsPolicy.SKIP);
-      ctx.getZooReaderWriter().putPersistentData(ctx.getZooKeeperRoot() + Constants.ZCOMPACTORS,
-          EMPTY_BYTE_ARRAY, NodeExistsPolicy.SKIP);
+      context.getZooReaderWriter().putPersistentData(
+          context.getZooKeeperRoot() + Constants.ZCOORDINATOR_LOCK, EMPTY_BYTE_ARRAY,
+          NodeExistsPolicy.SKIP);
+      context.getZooReaderWriter().putPersistentData(
+          context.getZooKeeperRoot() + Constants.ZCOMPACTORS, EMPTY_BYTE_ARRAY,
+          NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Unable to create external compaction paths", e);
     }
   }
 
-  private void upgradeRootTabletMetadata(ServerContext ctx) {
-    String rootMetaSer = getFromZK(ctx, ZROOT_TABLET);
+  private void upgradeRootTabletMetadata(ServerContext context) {
+    String rootMetaSer = getFromZK(context, ZROOT_TABLET);
 
     if (rootMetaSer == null || rootMetaSer.isEmpty()) {
-      String dir = getFromZK(ctx, ZROOT_TABLET_PATH);
-      List<LogEntry> logs = getRootLogEntries(ctx);
+      String dir = getFromZK(context, ZROOT_TABLET_PATH);
+      List<LogEntry> logs = getRootLogEntries(context);
 
-      TServerInstance last = getLocation(ctx, ZROOT_TABLET_LAST_LOCATION);
-      TServerInstance future = getLocation(ctx, ZROOT_TABLET_FUTURE_LOCATION);
-      TServerInstance current = getLocation(ctx, ZROOT_TABLET_LOCATION);
+      TServerInstance last = getLocation(context, ZROOT_TABLET_LAST_LOCATION);
+      TServerInstance future = getLocation(context, ZROOT_TABLET_FUTURE_LOCATION);
+      TServerInstance current = getLocation(context, ZROOT_TABLET_LOCATION);
 
-      UpgradeMutator tabletMutator = new UpgradeMutator(ctx);
+      UpgradeMutator tabletMutator = new UpgradeMutator(context);
 
       tabletMutator.putPrevEndRow(RootTable.EXTENT.prevEndRow());
 
@@ -214,17 +216,17 @@ public class Upgrader9to10 implements Upgrader {
 
       logs.forEach(tabletMutator::putWal);
 
-      Map<String,DataFileValue> files = cleanupRootTabletFiles(ctx.getVolumeManager(), dir);
+      Map<String,DataFileValue> files = cleanupRootTabletFiles(context.getVolumeManager(), dir);
       files.forEach((path, dfv) -> tabletMutator.putFile(new TabletFile(new Path(path)), dfv));
 
-      tabletMutator.putTime(computeRootTabletTime(ctx, files.keySet()));
+      tabletMutator.putTime(computeRootTabletTime(context, files.keySet()));
 
       tabletMutator.mutate();
     }
 
     try {
-      ctx.getZooReaderWriter().putPersistentData(
-          ctx.getZooKeeperRoot() + ZROOT_TABLET_GC_CANDIDATES,
+      context.getZooReaderWriter().putPersistentData(
+          context.getZooKeeperRoot() + ZROOT_TABLET_GC_CANDIDATES,
           new RootGcCandidates().toJson().getBytes(UTF_8), NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
@@ -232,19 +234,20 @@ public class Upgrader9to10 implements Upgrader {
 
     // this operation must be idempotent, so deleting after updating is very important
 
-    delete(ctx, ZROOT_TABLET_CURRENT_LOGS);
-    delete(ctx, ZROOT_TABLET_FUTURE_LOCATION);
-    delete(ctx, ZROOT_TABLET_LAST_LOCATION);
-    delete(ctx, ZROOT_TABLET_LOCATION);
-    delete(ctx, ZROOT_TABLET_WALOGS);
-    delete(ctx, ZROOT_TABLET_PATH);
+    delete(context, ZROOT_TABLET_CURRENT_LOGS);
+    delete(context, ZROOT_TABLET_FUTURE_LOCATION);
+    delete(context, ZROOT_TABLET_LAST_LOCATION);
+    delete(context, ZROOT_TABLET_LOCATION);
+    delete(context, ZROOT_TABLET_WALOGS);
+    delete(context, ZROOT_TABLET_PATH);
   }
 
   @SuppressWarnings("deprecation")
-  private void renameOldMasterPropsinZK(ServerContext ctx) {
+  private void renameOldMasterPropsinZK(ServerContext context) {
     // Rename all of the properties only set in ZooKeeper that start with "master." to rename and
     // store them starting with "manager." instead.
-    var zooConfiguration = new ZooConfiguration(ctx, ctx.getZooCache(), new ConfigurationCopy());
+    var zooConfiguration =
+        new ZooConfiguration(context, context.getZooCache(), new ConfigurationCopy());
     zooConfiguration.getAllPropertiesWithPrefix(Property.MASTER_PREFIX)
         .forEach((original, value) -> {
           DeprecatedPropertyUtil.getReplacementName(original, (log, replacement) -> {
@@ -252,8 +255,8 @@ public class Upgrader9to10 implements Upgrader {
                 + " in ZooKeeper on upgrade.", original, replacement);
             try {
               // Set the property under the new name
-              SystemPropUtil.setSystemProperty(ctx, replacement, value);
-              SystemPropUtil.removePropWithoutDeprecationWarning(ctx, original);
+              SystemPropUtil.setSystemProperty(context, replacement, value);
+              SystemPropUtil.removePropWithoutDeprecationWarning(context, original);
             } catch (KeeperException | InterruptedException e) {
               throw new RuntimeException("Unable to upgrade system properties", e);
             }
@@ -298,8 +301,8 @@ public class Upgrader9to10 implements Upgrader {
 
   }
 
-  protected TServerInstance getLocation(ServerContext ctx, String relpath) {
-    String str = getFromZK(ctx, relpath);
+  protected TServerInstance getLocation(ServerContext context, String relpath) {
+    String str = getFromZK(context, relpath);
     if (str == null) {
       return null;
     }
@@ -347,9 +350,9 @@ public class Upgrader9to10 implements Upgrader {
     }
   }
 
-  private String getFromZK(ServerContext ctx, String relpath) {
+  private String getFromZK(ServerContext context, String relpath) {
     try {
-      byte[] data = ctx.getZooReaderWriter().getData(ctx.getZooKeeperRoot() + relpath);
+      byte[] data = context.getZooReaderWriter().getData(context.getZooKeeperRoot() + relpath);
       if (data == null)
         return null;
 
@@ -361,9 +364,9 @@ public class Upgrader9to10 implements Upgrader {
     }
   }
 
-  private void delete(ServerContext ctx, String relpath) {
+  private void delete(ServerContext context, String relpath) {
     try {
-      ctx.getZooReaderWriter().recursiveDelete(ctx.getZooKeeperRoot() + relpath,
+      context.getZooReaderWriter().recursiveDelete(context.getZooKeeperRoot() + relpath,
           NodeMissingPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
@@ -472,17 +475,18 @@ public class Upgrader9to10 implements Upgrader {
     }
   }
 
-  public void upgradeFileDeletes(ServerContext ctx, Ample.DataLevel level) {
+  public void upgradeFileDeletes(ServerContext context, Ample.DataLevel level) {
 
     String tableName = level.metaTable();
-    AccumuloClient c = ctx;
-    Ample ample = ctx.getAmple();
+    AccumuloClient c = context;
+    Ample ample = context.getAmple();
 
     // find all deletes
     try (BatchWriter writer = c.createBatchWriter(tableName)) {
       log.info("looking for candidates in table {}", tableName);
-      Iterator<String> oldCandidates = getOldCandidates(ctx, tableName);
-      String upgradeProp = ctx.getConfiguration().get(Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE);
+      Iterator<String> oldCandidates = getOldCandidates(context, tableName);
+      String upgradeProp =
+          context.getConfiguration().get(Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE);
 
       while (oldCandidates.hasNext()) {
         List<String> deletes = readCandidatesInBatch(oldCandidates);
@@ -534,10 +538,10 @@ public class Upgrader9to10 implements Upgrader {
   /**
    * Return path of the file from old delete markers
    */
-  private Iterator<String> getOldCandidates(ServerContext ctx, String tableName)
+  private Iterator<String> getOldCandidates(ServerContext context, String tableName)
       throws TableNotFoundException {
     Range range = DeletesSection.getRange();
-    Scanner scanner = ctx.createScanner(tableName, Authorizations.EMPTY);
+    Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
     scanner.setRange(range);
     return StreamSupport.stream(scanner.spliterator(), false)
         .filter(entry -> !entry.getValue().equals(UPGRADED))
@@ -567,9 +571,9 @@ public class Upgrader9to10 implements Upgrader {
     return m;
   }
 
-  public void upgradeDirColumns(ServerContext ctx, Ample.DataLevel level) {
+  public void upgradeDirColumns(ServerContext context, Ample.DataLevel level) {
     String tableName = level.metaTable();
-    AccumuloClient c = ctx;
+    AccumuloClient c = context;
 
     try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
         BatchWriter writer = c.createBatchWriter(tableName)) {
@@ -592,11 +596,11 @@ public class Upgrader9to10 implements Upgrader {
   /**
    * Remove all file entries containing relative paths and replace them with absolute URI paths.
    */
-  public static void upgradeRelativePaths(ServerContext ctx, Ample.DataLevel level) {
+  public static void upgradeRelativePaths(ServerContext context, Ample.DataLevel level) {
     String tableName = level.metaTable();
-    AccumuloClient c = ctx;
-    VolumeManager fs = ctx.getVolumeManager();
-    String upgradeProp = ctx.getConfiguration().get(Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE);
+    AccumuloClient c = context;
+    VolumeManager fs = context.getVolumeManager();
+    String upgradeProp = context.getConfiguration().get(Property.INSTANCE_VOLUMES_UPGRADE_RELATIVE);
 
     // first pass check for relative paths - if any, check existence of the file path
     // constructed from the upgrade property + relative path

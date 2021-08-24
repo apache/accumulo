@@ -114,7 +114,7 @@ public class TServerUtils {
   /**
    * Start a server, at the given port, or higher, if that port is not available.
    *
-   * @param service
+   * @param context
    *          RPC configuration
    * @param portHintProperty
    *          the port to attempt to open, can be zero, meaning "any available port"
@@ -136,12 +136,12 @@ public class TServerUtils {
    * @throws UnknownHostException
    *           when we don't know our own address
    */
-  public static ServerAddress startServer(MetricsSystem metricsSystem, ServerContext service,
+  public static ServerAddress startServer(MetricsSystem metricsSystem, ServerContext context,
       String hostname, Property portHintProperty, TProcessor processor, String serverName,
       String threadName, Property portSearchProperty, Property minThreadProperty,
       Property threadTimeOutProperty, Property timeBetweenThreadChecksProperty,
       Property maxMessageSizeProperty) throws UnknownHostException {
-    final AccumuloConfiguration config = service.getConfiguration();
+    final AccumuloConfiguration config = context.getConfiguration();
 
     final IntStream portHint = config.getPortStream(portHintProperty);
 
@@ -170,7 +170,7 @@ public class TServerUtils {
       portSearch = config.getBoolean(portSearchProperty);
     }
 
-    final ThriftServerType serverType = service.getThriftServerType();
+    final ThriftServerType serverType = context.getThriftServerType();
 
     if (serverType == ThriftServerType.SASL) {
       processor = updateSaslProcessor(serverType, processor);
@@ -186,7 +186,7 @@ public class TServerUtils {
     try {
       return TServerUtils.startTServer(serverType, timedProcessor, serverName, threadName,
           minThreads, threadTimeOut, config, timeBetweenThreadChecks, maxMessageSize,
-          service.getServerSslParams(), service.getSaslParams(), service.getClientTimeoutInMillis(),
+          context.getServerSslParams(), context.getSaslParams(), context.getClientTimeoutInMillis(),
           addresses);
     } catch (TTransportException e) {
       if (portSearch) {
@@ -211,8 +211,8 @@ public class TServerUtils {
             HostAndPort addr = HostAndPort.fromParts(hostname, port);
             return TServerUtils.startTServer(serverType, timedProcessor, serverName, threadName,
                 minThreads, threadTimeOut, config, timeBetweenThreadChecks, maxMessageSize,
-                service.getServerSslParams(), service.getSaslParams(),
-                service.getClientTimeoutInMillis(), addr);
+                context.getServerSslParams(), context.getSaslParams(),
+                context.getClientTimeoutInMillis(), addr);
           } catch (TTransportException tte) {
             log.info("Unable to use port {}, retrying. (Thread Name = {})", port, threadName);
           }

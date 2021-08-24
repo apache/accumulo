@@ -51,10 +51,10 @@ public class RenameMasterDirInZK {
     }
   }
 
-  public static boolean renameMasterDirInZK(ServerContext ctx) {
-    final ZooReaderWriter zoo = ctx.getZooReaderWriter();
-    final String mastersZooDir = ctx.getZooKeeperRoot() + "/masters";
-    final String managersZooDir = ctx.getZooKeeperRoot() + Constants.ZMANAGERS;
+  public static boolean renameMasterDirInZK(ServerContext context) {
+    final ZooReaderWriter zoo = context.getZooReaderWriter();
+    final String mastersZooDir = context.getZooKeeperRoot() + "/masters";
+    final String managersZooDir = context.getZooKeeperRoot() + Constants.ZMANAGERS;
     try {
       boolean mastersDirExists = zoo.exists(mastersZooDir);
       if (mastersDirExists) {

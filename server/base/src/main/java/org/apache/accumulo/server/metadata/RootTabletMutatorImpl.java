@@ -45,10 +45,10 @@ public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.Ta
   private static class RootEnv
       implements SystemEnvironment, org.apache.accumulo.core.constraints.Constraint.Environment {
 
-    private final ServerContext ctx;
+    private final ServerContext context;
 
-    RootEnv(ServerContext ctx) {
-      this.ctx = ctx;
+    RootEnv(ServerContext context) {
+      this.context = context;
     }
 
     @Override
@@ -73,7 +73,7 @@ public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.Ta
 
     @Override
     public ServerContext getServerContext() {
-      return ctx;
+      return context;
     }
   }
 

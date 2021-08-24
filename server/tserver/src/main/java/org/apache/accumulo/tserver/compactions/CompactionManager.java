@@ -65,7 +65,7 @@ public class CompactionManager {
 
   private long maxTimeBetweenChecks;
 
-  private ServerContext ctx;
+  private ServerContext context;
 
   private Config currentCfg;
 
@@ -310,13 +310,13 @@ public class CompactionManager {
     }
   }
 
-  public CompactionManager(Iterable<Compactable> compactables, ServerContext ctx,
+  public CompactionManager(Iterable<Compactable> compactables, ServerContext context,
       CompactionExecutorsMetrics ceMetrics) {
     this.compactables = compactables;
 
-    this.currentCfg = new Config(ctx.getConfiguration());
+    this.currentCfg = new Config(context.getConfiguration());
 
-    this.ctx = ctx;
+    this.context = context;
 
     this.ceMetrics = ceMetrics;
 
@@ -331,7 +331,7 @@ public class CompactionManager {
         tmpServices.put(CompactionServiceId.of(serviceName),
             new CompactionService(serviceName, plannerClassName,
                 currentCfg.getRateLimit(serviceName),
-                currentCfg.options.getOrDefault(serviceName, Map.of()), ctx, ceMetrics,
+                currentCfg.options.getOrDefault(serviceName, Map.of()), context, ceMetrics,
                 this::getExternalExecutor));
       } catch (RuntimeException e) {
         log.error("Failed to create compaction service {} with planner:{} options:{}", serviceName,
@@ -341,7 +341,8 @@ public class CompactionManager {
 
     this.services = Map.copyOf(tmpServices);
 
-    this.maxTimeBetweenChecks = ctx.getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY);
+    this.maxTimeBetweenChecks =
+        context.getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY);
 
     ceMetrics.setExternalMetricsSupplier(this::getExternalMetrics);
   }
@@ -358,7 +359,7 @@ public class CompactionManager {
 
       lastConfigCheckTime = System.nanoTime();
 
-      var tmpCfg = new Config(ctx.getConfiguration());
+      var tmpCfg = new Config(context.getConfiguration());
 
       if (!currentCfg.equals(tmpCfg)) {
         Map<CompactionServiceId,CompactionService> tmpServices = new HashMap<>();
@@ -372,7 +373,7 @@ public class CompactionManager {
               tmpServices.put(csid,
                   new CompactionService(serviceName, plannerClassName,
                       tmpCfg.getRateLimit(serviceName),
-                      tmpCfg.options.getOrDefault(serviceName, Map.of()), ctx, ceMetrics,
+                      tmpCfg.options.getOrDefault(serviceName, Map.of()), context, ceMetrics,
                       this::getExternalExecutor));
             } else {
               service.configurationChanged(plannerClassName, tmpCfg.getRateLimit(serviceName),
