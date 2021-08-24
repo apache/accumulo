@@ -76,8 +76,8 @@ public interface Compactable {
       var compactingFiles =
           compacting.stream().flatMap(job -> job.getFiles().stream()).collect(Collectors.toSet());
       Preconditions.checkArgument(this.allFiles.containsAll(compactingFiles),
-          "Compacting not in set of all files: %s, compacting files: %s", this.allFiles,
-          compactingFiles);
+          "Compacting files %s not in set of all files: %s", compactingFiles,
+          this.allFiles);
       Preconditions.checkArgument(Collections.disjoint(compactingFiles, this.candidates),
           "Compacting and candidates overlap %s %s", compactingFiles, this.candidates);
 
