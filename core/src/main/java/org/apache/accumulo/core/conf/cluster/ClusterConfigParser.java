@@ -93,16 +93,22 @@ public class ClusterConfigParser {
       }
     }
 
-    out.println(
-        String.format(PROPERTY_FORMAT, "COORDINATOR_HOSTS", config.get("compaction.coordinator")));
-    out.println(String.format(PROPERTY_FORMAT, "COMPACTION_QUEUES",
-        config.get("compaction.compactor.queue")));
+    if (config.containsKey("compaction.coordinator")) {
+      out.println(String.format(PROPERTY_FORMAT, "COORDINATOR_HOSTS",
+          config.get("compaction.coordinator")));
+    }
+    if (config.containsKey("compaction.compactor.queue")) {
+      out.println(String.format(PROPERTY_FORMAT, "COMPACTION_QUEUES",
+          config.get("compaction.compactor.queue")));
+    }
     String queues = config.get("compaction.compactor.queue");
     if (StringUtils.isNotEmpty(queues)) {
       String[] q = queues.split(" ");
       for (int i = 0; i < q.length; i++) {
-        out.println(String.format(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + q[i],
-            config.get("compaction.compactor." + q[i])));
+        if (config.containsKey("compaction.compactor." + q[i])) {
+          out.println(String.format(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + q[i],
+              config.get("compaction.compactor." + q[i])));
+        }
       }
     }
     out.flush();

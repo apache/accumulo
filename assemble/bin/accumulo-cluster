@@ -62,7 +62,7 @@ function parse_config {
     exit 1
   fi
 
-  $(${accumulo_cmd} org.apache.accumulo.core.conf.cluster.ClusterConfigParser ${conf}/cluster.yml) > /tmp/cluster-conf || parse_fail
+  ${accumulo_cmd} org.apache.accumulo.core.conf.cluster.ClusterConfigParser ${conf}/cluster.yml > /tmp/cluster-conf || parse_fail
   . /tmp/cluster-conf
 
   if [[ -z $MANAGER_HOSTS ]]; then
@@ -128,7 +128,7 @@ function control_service() {
     if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || $host == $(get_ip) ]] ; then
       ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd"
     else
-      $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"{$@:4}\"'"
+      $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" ${@:4}'"
     fi
   done
 }
@@ -193,7 +193,7 @@ function start_here() {
 
   for host in $local_hosts; do
     for tserver in $TSERVER_HOSTS; do
-      if grep -q "^${host}\$" "$tserver"; then
+      if echo "$tserver" | grep -q "^${host}\$"; then
         start_service "$host" tserver
         break
       fi
@@ -202,7 +202,7 @@ function start_here() {
 
   for host in $local_hosts; do
     for manager in $MANAGER_HOSTS; do
-      if grep -q "^${host}\$" "$manager"; then
+      if echo "$manager" | grep -q "^${host}\$"; then
         start_service "$host" manager
         break
       fi
@@ -211,7 +211,7 @@ function start_here() {
 
   for host in $local_hosts; do
     for gc in $GC_HOSTS; do
-      if grep -q "^${host}\$" "$gc"; then
+      if echo "$gc" | grep -q "^${host}\$"; then
         start_service "$host" gc
         break
       fi
@@ -220,7 +220,7 @@ function start_here() {
 
   for host in $local_hosts; do
     for monitor in $MONITOR_HOSTS; do
-      if grep -q "^${host}\$" "$monitor"; then
+      if echo "$monitor" | grep -q "^${host}\$"; then
         start_service "$host" monitor
         break
       fi
@@ -229,7 +229,7 @@ function start_here() {
 
   for host in $local_hosts; do
     for tracer in $TRACER_HOSTS; do
-      if grep -q "^${host}\$" "$tracer"; then
+      if echo "$tracer" | grep -q "^${host}\$"; then
         start_service "$host" tracer
         break
       fi
@@ -238,7 +238,7 @@ function start_here() {
 
   for host in $local_hosts; do
     for coordinator in $COORDINATOR_HOSTS; do
-      if grep -q "^${host}\$" "$coordinator"; then
+      if echo "$coordinator" | grep -q "^${host}\$"; then
         start_service "$coordinator" compaction-coordinator
       fi
     done
@@ -247,7 +247,7 @@ function start_here() {
   for queue in $COMPACTION_QUEUES; do
     for host in $local_hosts; do
       for compactor in "${COMPACTOR_HOSTS_$queue}"; do
-        if grep -q "^${host}\$" "$compactor"; then
+        if echo "$compactor" | grep -q "^${host}\$"; then
           start_service "$compactor" compactor -q "$queue"
         fi
       done
@@ -344,28 +344,28 @@ function stop_all() {
   for end_cmd in "stop" "kill" ; do
 
     for manager in $MANAGER_HOSTS; do
-      end_service "$manager" manager $end_cmd
+      end_service $end_cmd "$manager" manager
     done
 
     for gc in "$GC_HOSTS"; do
-      end_service "$gc" gc $end_cmd
+      end_service $end_cmd "$gc" gc
     done
 
     for monitor in $MONITOR_HOSTS; do
-      end_service "$monitor" monitor $end_cmd
+      end_service $end_cmd "$monitor" monitor
     done
 
     for tracer in $TRACER_HOSTS; do
-      end_service "$tracer" tracer $end_cmd
+      end_service $end_cmd "$tracer" tracer
     done
 
     for coordinator in $COORDINATOR_HOSTS; do
-      end_service "$coordinator" compaction-coordinator
+      end_service $end_cmd "$coordinator" compaction-coordinator
     done
 
     for queue in $COMPACTION_QUEUES; do
       for compactor in "${COMPACTOR_HOSTS_$queue}"; do
-        end_service "$compactor" compactor
+        end_service $end_cmd "$compactor" compactor
       done
     done
 
@@ -382,12 +382,12 @@ function stop_here() {
   # Determine hostname without errors to user
   hosts_to_check=("$(hostname -a 2> /dev/null | head -1)" "$(hostname -f)")
 
-  if grep -Eq 'localhost|127[.]0[.]0[.]1' "${conf}/tservers"; then
+  if echo "${TSERVER_HOSTS}" | grep -Eq 'localhost|127[.]0[.]0[.]1'; then
     ${accumulo_cmd} admin stop localhost
   else
     for host in "${hosts_to_check[@]}"; do
       for tserver in $TSERVER_HOSTS; do
-        if grep -q "$host" "$tserver"; then
+        if echo "$tserver" | grep -q "$host"; then
           ${accumulo_cmd} admin stop "$host"
         fi
       done
@@ -397,7 +397,7 @@ function stop_here() {
   for host in "${hosts_to_check[@]}"; do
     for end_cmd in "stop" "kill"; do
       for svc in tserver gc manager monitor tracer compaction-coordinator compactor; do
-        end_service "$host" $svc $end_cmd
+        end_service $end_cmd "$host" $svc
       done
     done
   done
