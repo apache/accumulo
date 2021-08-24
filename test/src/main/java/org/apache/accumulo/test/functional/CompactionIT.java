@@ -21,11 +21,14 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -33,8 +36,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.PluginConfig;
@@ -156,6 +162,77 @@ public class CompactionIT extends AccumuloClusterHarness {
       List<String> rows = new ArrayList<>();
       c.createScanner(tableName).forEach((k, v) -> rows.add(k.getRow().toString()));
       assertEquals(List.of("1", "2", "3", "4"), rows);
+    }
+  }
+
+  @Test
+  public void testDeleteTableAbortsCompaction() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      final String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "5.0");
+      FileSystem fs = getFileSystem();
+      Path root = new Path(cluster.getTemporaryPath(), getClass().getName());
+      fs.deleteOnExit(root);
+      Path testrf = new Path(root, "testrf");
+      fs.deleteOnExit(testrf);
+      FunctionalTestUtils.createRFiles(c, fs, testrf.toString(), 500000, 59, 4);
+      c.tableOperations().importDirectory(testrf.toString()).to(tableName).load();
+      int beforeCount = countFiles(c);
+
+      final AtomicBoolean fail = new AtomicBoolean(false);
+      final int THREADS = 5;
+      for (int count = 0; count < THREADS; count++) {
+        ExecutorService executor = Executors.newFixedThreadPool(THREADS);
+        final int span = 500000 / 59;
+        for (int i = 0; i < 500000; i += 500000 / 59) {
+          final int finalI = i;
+          Runnable r = () -> {
+            try {
+              VerifyParams params = new VerifyParams(getClientProps(), tableName, span);
+              params.startRow = finalI;
+              params.random = 56;
+              params.dataSize = 50;
+              params.cols = 1;
+              VerifyIngest.verifyIngest(c, params);
+            } catch (Exception ex) {
+              log.warn("Got exception verifying data", ex);
+              fail.set(true);
+            }
+          };
+          executor.execute(r);
+        }
+        executor.shutdown();
+        executor.awaitTermination(defaultTimeoutSeconds(), TimeUnit.SECONDS);
+        assertFalse("Failed to successfully run all threads, Check the test output for error",
+            fail.get());
+      }
+
+      final CyclicBarrier latch = new CyclicBarrier(2);
+      Thread t = new Thread(() -> {
+        try {
+          latch.await();
+          c.tableOperations().delete(tableName);
+        } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+          fail("Table not found");
+        } catch (InterruptedException | BrokenBarrierException e) {}
+      });
+      t.start();
+      latch.await();
+      c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+
+      int finalCount = countFiles(c);
+      assertTrue(finalCount < beforeCount);
+      try {
+        getClusterControl().adminStopAll();
+      } finally {
+        // Make sure the internal state in the cluster is reset (e.g. processes in MAC)
+        getCluster().stop();
+        if (getClusterType() == ClusterType.STANDALONE) {
+          // Then restart things for the next test if it's a standalone
+          getCluster().start();
+        }
+      }
     }
   }
 
