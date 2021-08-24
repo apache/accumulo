@@ -73,7 +73,7 @@ public class CompactionService {
   private Map<CompactionExecutorId,CompactionExecutor> executors;
   private final CompactionServiceId myId;
   private Map<KeyExtent,Collection<SubmittedJob>> submittedJobs = new ConcurrentHashMap<>();
-  private ServerContext serverCtx;
+  private ServerContext context;
   private String plannerClassName;
   private Map<String,String> plannerOpts;
   private CompactionExecutorsMetrics ceMetrics;
@@ -92,7 +92,7 @@ public class CompactionService {
     private final Map<String,String> plannerOpts;
     private final Map<CompactionExecutorId,Integer> requestedExecutors;
     private final Set<CompactionExecutorId> requestedExternalExecutors;
-    private final ServiceEnvironment senv = new ServiceEnvironmentImpl(serverCtx);
+    private final ServiceEnvironment senv = new ServiceEnvironmentImpl(context);
 
     CpInitParams(Map<String,String> plannerOpts) {
       this.plannerOpts = plannerOpts;
@@ -140,13 +140,14 @@ public class CompactionService {
   }
 
   public CompactionService(String serviceName, String plannerClass, Long maxRate,
-      Map<String,String> plannerOptions, ServerContext sctx, CompactionExecutorsMetrics ceMetrics,
+      Map<String,String> plannerOptions, ServerContext context,
+      CompactionExecutorsMetrics ceMetrics,
       Function<CompactionExecutorId,ExternalCompactionExecutor> externExecutorSupplier) {
 
     Preconditions.checkArgument(maxRate >= 0);
 
     this.myId = CompactionServiceId.of(serviceName);
-    this.serverCtx = sctx;
+    this.context = context;
     this.plannerClassName = plannerClass;
     this.plannerOpts = plannerOptions;
     this.ceMetrics = ceMetrics;
@@ -160,9 +161,9 @@ public class CompactionService {
 
     this.rateLimit.set(maxRate);
 
-    this.readLimiter = SharedRateLimiterFactory.getInstance(this.serverCtx.getConfiguration())
+    this.readLimiter = SharedRateLimiterFactory.getInstance(this.context.getConfiguration())
         .create("CS_" + serviceName + "_read", () -> rateLimit.get());
-    this.writeLimiter = SharedRateLimiterFactory.getInstance(this.serverCtx.getConfiguration())
+    this.writeLimiter = SharedRateLimiterFactory.getInstance(this.context.getConfiguration())
         .create("CS_" + serviceName + "_write", () -> rateLimit.get());
 
     initParams.requestedExecutors.forEach((ceid, numThreads) -> {
@@ -253,7 +254,7 @@ public class CompactionService {
 
     PlanningParameters params = new PlanningParameters() {
 
-      private final ServiceEnvironment senv = new ServiceEnvironmentImpl(serverCtx);
+      private final ServiceEnvironment senv = new ServiceEnvironmentImpl(context);
 
       @Override
       public TableId getTableId() {
