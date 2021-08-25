@@ -26,40 +26,78 @@ import java.util.StringJoiner;
 /**
  * Serialization metadata to allow for evolution of the encoding used for property storage. This
  * info is expected to be stored first in the serialization and uncompressed so that the handling of
- * subsequent fields and data can be processed correctly.
+ * subsequent fields and data can be processed correctly and without additional processing.
  * <p>
  * Instances of this class are immutable.
  */
 public class EncodingOptions {
 
-  public static final EncodingOptions COMPRESSED_V1 =
-      new EncodingOptions(EncodingOptions.EncodingVersion.V1_0, true);
+  // Adding an encoding version must be done as an addition. Do not change or delete previous
+  // version numbers
+  public static final int EncodingVersion_1_0 = 1;
+  public static final int EXPERIMENTAL_CIPHER_ENCODING_1_0 = 999;
 
-  public static final EncodingOptions UNCOMPRESSED_V1 =
-      new EncodingOptions(EncodingOptions.EncodingVersion.V1_0, false);
-
-  private final EncodingVersion encodingVersion;
+  private final int encodingVersion;
   private final boolean compress;
 
-  public EncodingOptions(EncodingVersion encodingVersion, final boolean compress) {
+  EncodingOptions(final int encodingVersion, final boolean compress) {
     this.encodingVersion = encodingVersion;
     this.compress = compress;
   }
 
+  /**
+   * Instantiate encoding options to use version 1.0 encoding settings.
+   *
+   * @param compress
+   *          when true compress the property map.
+   * @return the encoding options.
+   */
+  public static EncodingOptions V1_0(final boolean compress) {
+    return new EncodingOptions(EncodingVersion_1_0, compress);
+  }
+
+  /**
+   * Instantiate an instance of EncodingOptions reading the values from an input stream. Typically,
+   * the stream will be obtained from reading a byte array from a data store and then creating a
+   * stream the reads from that array,
+   *
+   * @param dis
+   *          a data input stream
+   * @throws IOException
+   *           if an exception occurs reading from the input stream.
+   */
   public EncodingOptions(final DataInputStream dis) throws IOException {
-    encodingVersion = EncodingVersion.byId(dis.readInt());
+    encodingVersion = dis.readInt();
     compress = dis.readBoolean();
   }
 
+  /**
+   * Write the values to a data stream.
+   *
+   * @param dos
+   *          a data output stream
+   * @throws IOException
+   *           if an exception occurs writing the data stream.
+   */
   public void encode(final DataOutputStream dos) throws IOException {
-    dos.writeInt(encodingVersion.id);
+    dos.writeInt(encodingVersion);
     dos.writeBoolean(compress);
   }
 
-  public EncodingVersion getEncodingVersion() {
+  /**
+   * get the encoding version of the instance,
+   *
+   * @return the encoding version
+   */
+  public int getEncodingVersion() {
     return encodingVersion;
   }
 
+  /**
+   * get if the compress is set.
+   *
+   * @return true if the payload is compressed, false if not.
+   */
   public boolean isCompressed() {
     return compress;
   }
@@ -67,42 +105,6 @@ public class EncodingOptions {
   @Override
   public String toString() {
     return new StringJoiner(", ", EncodingOptions.class.getSimpleName() + "[", "]")
-        .add("encodingVersion=" + encodingVersion).toString();
-  }
-
-  /**
-   * Provides a strong typing of the known encoding versions and allows the version id to be encoded
-   * as an integer. Adding an encoding type must be done as an addition and not change or delete
-   * previous versions or numbering to preserve compatibility.
-   */
-  public enum EncodingVersion {
-
-    INVALID(-1), V1_0(1);
-
-    // a unique id to identify the version
-    public final Integer id;
-
-    EncodingVersion(final Integer id) {
-      this.id = id;
-    }
-
-    /**
-     * An integer id for serialization so that version detection / selection on a serialized stream
-     * can be done with an integer comparison. If the name was used instead, a string comparison
-     * would be needed. This also provides independence from the enum declaration order (if enum
-     * ordinal was used.)
-     *
-     * @param id
-     *          the id used in serialization
-     * @return the EncodingVersion
-     */
-    static EncodingVersion byId(final Integer id) {
-      switch (id) {
-        case 1:
-          return V1_0;
-        default:
-          return INVALID;
-      }
-    }
+        .add("encodingVersion=" + encodingVersion).add("compress=" + compress).toString();
   }
 }

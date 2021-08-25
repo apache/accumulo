@@ -18,37 +18,40 @@
  */
 package org.apache.accumulo.server.conf.codec;
 
-import static org.apache.accumulo.server.conf.codec.EncodingOptions.COMPRESSED_V1;
-import static org.apache.accumulo.server.conf.codec.EncodingOptions.UNCOMPRESSED_V1;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Exercise the {@link PropSerdesEncoderFactory} and the {@link GzipPropEncoding}
+ * Exercise the {@link VersionedPropGzipCodec} class.
  */
-public class GzipPropEncodingTest {
+public class VersionedPropGzipCodecTest {
 
-  private static final Logger log = LoggerFactory.getLogger(GzipPropEncodingTest.class);
+  private static final Logger log = LoggerFactory.getLogger(VersionedPropGzipCodecTest.class);
 
   @Test
-  public void roundTripUncompressed() {
+  public void roundTripUncompressed() throws IOException {
 
-    VersionedProperties vProps = new VersionedPropertiesImpl();
-    vProps.addProperty("k1", "v1");
+    Map<String,String> p = new HashMap<>();
+    p.put("k1", "v1");
 
-    PropSerdesEncoderFactory encoderFactory = new PropSerdesEncoderFactory(UNCOMPRESSED_V1);
+    VersionedProperties vProps = new VersionedProperties(p);
 
-    byte[] encodedMapBytes = encoderFactory.getSerdes().toBytes(vProps);
+    VersionedPropCodec encoder = VersionedPropGzipCodec.codec(false);
 
-    VersionedProperties decodedProps = encoderFactory.getSerdes().fromBytes(encodedMapBytes);
+    byte[] encodedMapBytes = encoder.toBytes(vProps);
 
-    log.info("Decoded: {}", decodedProps.getAllProperties());
+    VersionedProperties decodedProps = encoder.fromBytes(encodedMapBytes);
+
+    log.debug("Decoded: {}", decodedProps.getProperties());
 
     // default - first write version should be 0
     assertEquals("default - first write version should be 0", 0, decodedProps.getDataVersion());
@@ -56,52 +59,55 @@ public class GzipPropEncodingTest {
         decodedProps.getNextVersion());
     assertTrue("timestamp should be now or earlier",
         vProps.getTimestamp().compareTo(Instant.now()) <= 0);
-    assertEquals(vProps.getAllProperties(), decodedProps.getAllProperties());
+    assertEquals(vProps.getProperties(), decodedProps.getProperties());
   }
 
   @Test
-  public void roundTripCompressed() {
+  public void roundTripCompressed() throws IOException {
 
-    VersionedProperties vProps = new VersionedPropertiesImpl();
-    vProps.addProperty("k1", "v1");
+    Map<String,String> p = new HashMap<>();
+    p.put("k1", "v1");
 
-    PropSerdesEncoderFactory encoderFactory = new PropSerdesEncoderFactory(COMPRESSED_V1);
+    VersionedProperties vProps = new VersionedProperties(p);
 
-    byte[] encodedMapBytes = encoderFactory.getSerdes().toBytes(vProps);
+    VersionedPropCodec codec = VersionedPropGzipCodec.codec(true);
 
-    VersionedProperties decodedProps = encoderFactory.getSerdes().fromBytes(encodedMapBytes);
+    byte[] encodedMapBytes = codec.toBytes(vProps);
 
-    log.info("Decoded: {}", decodedProps.getAllProperties());
+    VersionedProperties decodedProps = codec.fromBytes(encodedMapBytes);
+
+    log.debug("Decoded: {}", decodedProps.getProperties());
 
     assertEquals("default - first write version should be 0", 0, decodedProps.getDataVersion());
     assertEquals("default - first write next version should be 1", 1,
         decodedProps.getNextVersion());
     assertTrue("timestamp should be now or earlier",
         vProps.getTimestamp().compareTo(Instant.now()) <= 0);
-    assertEquals(vProps.getAllProperties(), decodedProps.getAllProperties());
+    assertEquals(vProps.getProperties(), decodedProps.getProperties());
   }
 
   /**
    * Validate versioning with something other than default.
    */
   @Test
-  public void roundTripVersioning() {
+  public void roundTripVersioning() throws IOException {
 
     int aVersion = 13;
     Instant now = Instant.now();
 
-    VersionedProperties vProps = new VersionedPropertiesImpl(aVersion, now);
-    vProps.addProperty("k1", "v1");
+    Map<String,String> p = new HashMap<>();
+    p.put("k1", "v1");
 
-    PropSerdesEncoderFactory encoderFactory = new PropSerdesEncoderFactory(COMPRESSED_V1);
+    VersionedProperties vProps = new VersionedProperties(aVersion, now, p);
 
-    byte[] encodedBytes = encoderFactory.getSerdes().toBytes(vProps);
+    VersionedPropCodec codec = VersionedPropGzipCodec.codec(true);
+    byte[] encodedBytes = codec.toBytes(vProps);
 
-    VersionedProperties decodedProps = encoderFactory.getSerdes().fromBytes(encodedBytes);
+    VersionedProperties decodedProps = codec.fromBytes(encodedBytes);
 
     log.trace("Decoded: {}", decodedProps.print(true));
 
-    assertEquals(vProps.getAllProperties(), decodedProps.getAllProperties());
+    assertEquals(vProps.getProperties(), decodedProps.getProperties());
 
     // validate that the expected node version matches original version.
     assertEquals(aVersion, vProps.getDataVersion());
@@ -117,5 +123,26 @@ public class GzipPropEncodingTest {
 
     assertTrue("timestamp should be now or earlier",
         vProps.getTimestamp().compareTo(Instant.now()) <= 0);
+  }
+
+  @Test
+  public void rt2() throws IOException {
+
+    int aVersion = 13;
+    Instant now = Instant.now();
+
+    Map<String,String> p = new HashMap<>();
+    p.put("k1", "v1");
+    VersionedProperties vProps = new VersionedProperties(aVersion, now, p);
+
+    VersionedPropCodec codec = VersionedPropGzipCodec.codec(true);
+    byte[] encodedBytes = codec.toBytes(vProps);
+
+    VersionedProperties decodedProps = codec.fromBytes(encodedBytes);
+
+    log.debug("Decoded: {}", decodedProps.print(true));
+
+    assertEquals(vProps.getProperties(), decodedProps.getProperties());
+
   }
 }

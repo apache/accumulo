@@ -23,78 +23,94 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
-public interface VersionedProperties {
+import com.google.common.collect.ImmutableMap;
 
-  // flag value for initialization - on store both the version and next version should be 0.
-  int NO_VERSION = -2;
+/**
+ * Version properties maintain a {@code Map<String,String>}; of property k,v pairs along with
+ * versioning information metadata.
+ * <p>
+ * The metadata used to verify cached values match stored values. Storing the metadata with the
+ * properties allows for comparison of properties and can be used to ensure that vales being written
+ * to the backend store have not changed. This metadata should be written / appear early in the
+ * encoded bytes and be uncompressed so that decisions can be made that may make deserialization
+ * unnecessary.
+ * <p>
+ * Note: Avoid using -1 because that has significance in ZooKeeper - writing a ZooKeeper node with a
+ * version of -1 disables the ZooKeeper expected version checking and just overwrites the node.
+ * <p>
+ * Instances of this class are immutable.
+ */
+public class VersionedProperties {
 
-  DateTimeFormatter tsFormatter =
+  public static final DateTimeFormatter tsFormatter =
       DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.from(ZoneOffset.UTC));
+  // flag value for initialization - on store both the version and next version should be 0.
+  private static final int NO_VERSION = -2;
+  private final int dataVersion;
+  private final Instant timestamp;
+  private final ImmutableMap<String,String> props;
 
   /**
-   * Add a property. If the property already exists it is overwritten.
-   *
-   * @param key
-   *          the name of the property
-   * @param value
-   *          the value of the property.
+   * Instantiate an initial instance with default version info and empty map.
    */
-  void addProperty(String key, String value);
+  public VersionedProperties() {
+    this(NO_VERSION, Instant.now(), Collections.emptyMap());
+  }
 
   /**
-   * Add multiple properties. If a property already exists it is overwritten.
+   * Instantiate an initial instance with default version info and provided property map.
    *
-   * @param properties
-   *          A map of key, value pairs.
+   * @param props
+   *          optional map of initial property key, value pairs. The properties are assumed to have
+   *          been previously validated (if required)
    */
-  void addProperties(Map<String,String> properties);
+  public VersionedProperties(Map<String,String> props) {
+    this(NO_VERSION, Instant.now(), props);
+  }
 
   /**
-   * Get a stored property or null if it does not exist.
+   * Instantiate an instance and set the initial properties to the provided values.
    *
-   * @param key
-   *          the name of the property.
-   * @return the property value.
+   * @param dataVersion
+   *          version info with data version and timestamp.
+   * @param timestamp
+   *          timestamp of this version.
+   * @param props
+   *          optional map of initial property key, value pairs. The properties are assumed to have
+   *          been previously validated (if required)
    */
-  String getProperty(String key);
+  public VersionedProperties(final int dataVersion, final Instant timestamp,
+      final Map<String,String> props) {
+    this.dataVersion = dataVersion;
+    this.timestamp = timestamp;
+    this.props = new ImmutableMap.Builder<String,String>().putAll(props).build();
+  }
 
   /**
-   * Get an unmodifiable map with all property, values.
+   * Get an unmodifiable map with all property key,value pairs.
    *
-   * @return An unmodifiable view of the property key, values.
+   * @return An unmodifiable view of the property key, value pairs.
    */
-  Map<String,String> getAllProperties();
+  public Map<String,String> getProperties() {
+    return props;
+  }
 
   /**
-   * Delete a property.
-   *
-   * @param key
-   *          the name of the property.
-   * @return the previous value if the property was present.
-   */
-  String removeProperty(String key);
-
-  /**
-   * Delete multiple properties provided as a collection of keys.
-   *
-   * @param keys
-   *          a collection of keys
-   * @return the number of properties actually removed.
-   */
-  int removeProperties(Collection<String> keys);
-
-  /**
-   * Get the current data version. The version should always match the node version of the stored
-   * data, and used as the expected version on write. If this version and the data version do not
-   * match, it signals that the node version has changed and the properties have changed. When
-   * serializing, use {@link #getNextVersion()} so that when the node is written, it will match the
-   * node version (the node version will increment on the store)
+   * Get the current data version. The version should match the node version of the stored data. The
+   * value should be used on data writes as the expected version. If the data write fails do to an
+   * unexpected version, it signals that the node version has changed since the instance was
+   * instantiated and encoded.
    *
    * @return 0 for initial version, otherwise the data version when the properties were serialized.
    */
-  int getDataVersion();
+  public int getDataVersion() {
+    return Math.max(dataVersion, 0);
+  }
 
   /**
    * Calculates the version that should be stored when serialized. The serialized version, when
@@ -107,31 +123,102 @@ public interface VersionedProperties {
    *
    * @return the next version number that should be serialized, or 0 if this is the initial version.
    */
-  int getNextVersion();
+  public int getNextVersion() {
+    return Math.max(dataVersion + 1, 0);
+  }
 
   /**
-   * Properties are timestamped when the properties are serialized for storage. This is to allow
-   * easy comparison of properties that could have been retrieved at different times.
+   * The timestamp of the instance when created or last modified.
    *
-   * @return the timestamp when the properties were serialized.
+   * @return the timestamp of the instance.
    */
-  Instant getTimestamp();
+  public Instant getTimestamp() {
+    return Instant.from(timestamp);
+  }
 
   /**
-   * Get a String formatted version of the timestamp.
+   * The timestamp formatted as an ISO 8601 string with format of
+   * {@code YYYY-MM-DDTHH:mm:ss.SSSSSSZ}
    *
-   * @return the timestamp formatted as an ISO time.
+   * @return a formatted timestamp string.
    */
-  String getTimestampISO();
+  public String getTimestampISO() {
+    return tsFormatter.format(timestamp);
+  }
 
   /**
-   * Provide user-friend display string of the version information and the property key / value
-   * pairs.
+   * Add or update multiple properties. If a property already exists it is overwritten.
+   * <p>
+   * Because instances of this class are immutable, the creates a new copy of the properties. Other
+   * processes will continue to see original values retrieved from the data store. Other processes
+   * will be updated when the instance is encoded and stored in the data store.
+   *
+   * @param updates
+   *          A map of key, values pairs.
+   * @return A new instance of this class.
+   */
+  public VersionedProperties update(final Map<String,String> updates) {
+    ImmutableMap<String,String> updated =
+        ImmutableMap.<String,String>builder().putAll(new HashMap<>() {
+          {
+            putAll(props);
+            putAll(updates);
+          }
+        }).build();
+    return new VersionedProperties(dataVersion, Instant.now(), updated);
+  }
+
+  /**
+   * Delete multiple properties provided as a collection of keys.
+   * <p>
+   * Because instances of this class are immutable, the creates a new copy of the properties. Other
+   * processes will continue to see original values retrieved from the data store. Other processes
+   * will be updated when the instance is encoded and stored in the data store.
+   *
+   * @param keys
+   *          a collection of the keys that if they exist, will be removed.
+   * @return A new instance of this class.
+   */
+  public VersionedProperties remove(Collection<String> keys) {
+
+    HashMap<String,String> orig = new HashMap<>(props);
+    keys.forEach(orig::remove);
+
+    ImmutableMap<String,String> updated =
+        ImmutableMap.<String,String>builder().putAll(orig).build();
+
+    return new VersionedProperties(dataVersion, Instant.now(), updated);
+  }
+
+  /**
+   * Generate a formatted string for debugging, either as a single line or human-friendly,
+   * multi-line format.
    *
    * @param prettyPrint
-   *          if true, insert new lines to improve readability.
-   * @return a formatted string, with optional new lines.
+   *          if true, generate human-friendly string
+   * @return a formatted string
    */
-  String print(boolean prettyPrint);
+  public String print(boolean prettyPrint) {
+    StringBuilder sb = new StringBuilder();
 
+    sb.append("dataVersion=").append(dataVersion).append(prettyPrint ? "\n" : ", ");
+
+    sb.append("timeStamp=").append(tsFormatter.format(timestamp)).append(prettyPrint ? "\n" : ", ");
+
+    Map<String,String> sorted = new TreeMap<>(props);
+    sorted.forEach((k, v) -> {
+      if (prettyPrint) {
+        // indent if pretty
+        sb.append("  ");
+      }
+      sb.append(k).append("=").append(v);
+      sb.append(prettyPrint ? "\n" : ", ");
+    });
+    return sb.toString();
+  }
+
+  @Override
+  public String toString() {
+    return print(false);
+  }
 }
