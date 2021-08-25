@@ -47,7 +47,7 @@ public interface InstanceOperations {
       throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * Sets a several system properties. Tablet servers will pull these settings and override the
+   * Sets several system properties. Tablet servers will pull these settings and override the
    * equivalent settings in accumulo.properties. Changes can be seen using
    * {@link #getSystemConfiguration()}.
    * <p>
