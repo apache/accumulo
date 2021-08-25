@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 
 import com.google.common.collect.ImmutableMap;
@@ -88,7 +89,11 @@ public class VersionedProperties {
       final Map<String,String> props) {
     this.dataVersion = dataVersion;
     this.timestamp = timestamp;
-    this.props = new ImmutableMap.Builder<String,String>().putAll(props).build();
+    if (Objects.nonNull(props)) {
+      this.props = new ImmutableMap.Builder<String,String>().putAll(props).build();
+    } else {
+      this.props = new ImmutableMap.Builder<String,String>().build();
+    }
   }
 
   /**
@@ -147,6 +152,31 @@ public class VersionedProperties {
   }
 
   /**
+   * Update a single property. If a property already exists it is overwritten.
+   * <p>
+   * It is much more efficient to add multiple properties at a time rather than one by one. Because
+   * instances of this class are immutable, the creates a new copy of the properties. Other
+   * processes will continue to see original values retrieved from the data store. Other processes
+   * will be updated when the instance is encoded and stored in the data store.
+   *
+   * @param key
+   *          the property name.
+   * @param value
+   *          the property value.
+   * @return A new instance of this class with the property added or updated.
+   */
+  public VersionedProperties update(final String key, final String value) {
+    ImmutableMap<String,String> updated =
+        ImmutableMap.<String,String>builder().putAll(new HashMap<>() {
+          {
+            putAll(props);
+            put(key, value);
+          }
+        }).build();
+    return new VersionedProperties(dataVersion, Instant.now(), updated);
+  }
+
+  /**
    * Add or update multiple properties. If a property already exists it is overwritten.
    * <p>
    * Because instances of this class are immutable, the creates a new copy of the properties. Other
@@ -155,7 +185,7 @@ public class VersionedProperties {
    *
    * @param updates
    *          A map of key, values pairs.
-   * @return A new instance of this class.
+   * @return A new instance of this class with the properties added or updated.
    */
   public VersionedProperties update(final Map<String,String> updates) {
     ImmutableMap<String,String> updated =

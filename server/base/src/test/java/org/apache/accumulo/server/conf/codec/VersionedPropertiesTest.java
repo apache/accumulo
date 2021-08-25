@@ -71,6 +71,12 @@ public class VersionedPropertiesTest {
   }
 
   @Test
+  public void nullProps() {
+    VersionedProperties vProps = new VersionedProperties(2, Instant.now(), null);
+    assertNotNull(vProps);
+  }
+
+  @Test
   public void initialProps() {
 
     Map<String,String> aMap = new HashMap<>();
@@ -84,6 +90,20 @@ public class VersionedPropertiesTest {
 
     assertThrows(UnsupportedOperationException.class, () -> rMap.put("k3", "v3"));
 
+  }
+
+  @Test
+  public void updateSingleProp() {
+
+    VersionedProperties vProps = new VersionedProperties();
+    vProps = vProps.update("k1", "v1");
+
+    assertEquals("v1", vProps.getProperties().get("k1"));
+    assertEquals(1, vProps.getProperties().size());
+
+    vProps = vProps.update("k1", "v1-2");
+
+    assertEquals("v1-2", vProps.getProperties().get("k1"));
   }
 
   @Test
