@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import static java.util.stream.Collectors.toUnmodifiableSet;
 import static org.apache.accumulo.tserver.TabletStatsKeeper.Operation.MAJOR;
 
 import java.io.IOException;
@@ -996,16 +997,38 @@ public class CompactableImpl implements Compactable {
       if (closed)
         return Optional.empty();
 
-      var runningJobsCopy = Set.copyOf(runningJobs);
+      var jobsCopy = Set.copyOf(runningJobs);
 
       Set<StoredTabletFile> candidates = fileMgr.getCandidates(
           Collections.unmodifiableSet(files.keySet()), kind, isCompactionStratConfigured());
 
+      // Do some sanity checks on sets of files
+      Set<CompactableFile> allFiles = files.entrySet().stream()
+          .map(entry -> new CompactableFileImpl(entry.getKey(), entry.getValue()))
+          .collect(toUnmodifiableSet());
+      Set<CompactableFile> candidateFiles = candidates.stream()
+          .map(stf -> new CompactableFileImpl(stf, files.get(stf))).collect(toUnmodifiableSet());
+      Set<CompactableFile> compactingFiles =
+          jobsCopy.stream().flatMap(job -> job.getFiles().stream()).collect(Collectors.toSet());
+
+      if (!allFiles.containsAll(candidateFiles)) {
+        log.debug("Candidates {} not in set of all files {}", candidateFiles, allFiles);
+        return Optional.empty();
+      }
+      if (!allFiles.containsAll(compactingFiles)) {
+        log.debug("Compacting files {} not in set of all files: {}", compactingFiles, allFiles);
+        return Optional.empty();
+      }
+      if (!Collections.disjoint(compactingFiles, candidateFiles)) {
+        log.debug("Compacting {} and candidates overlap {}", compactingFiles, candidateFiles);
+        return Optional.empty();
+      }
+
       if (kind == CompactionKind.USER && !candidates.isEmpty()) {
         Map<String,String> hints = compactionConfig.getExecutionHints();
-        return Optional.of(new Compactable.Files(files, candidates, runningJobsCopy, hints));
+        return Optional.of(new Compactable.Files(allFiles, candidateFiles, jobsCopy, hints));
       } else {
-        return Optional.of(new Compactable.Files(files, candidates, runningJobsCopy));
+        return Optional.of(new Compactable.Files(allFiles, candidateFiles, jobsCopy));
       }
     }
   }

@@ -19,27 +19,19 @@
 package org.apache.accumulo.tserver.compactions;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.CompactableFileImpl;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Interface between compaction service and tablet.
@@ -53,33 +45,16 @@ public interface Compactable {
     public final Collection<CompactionJob> compacting;
     public final Map<String,String> executionHints;
 
-    public Files(SortedMap<StoredTabletFile,DataFileValue> allFiles,
-        Set<StoredTabletFile> candidates, Collection<CompactionJob> running) {
-      this(allFiles, candidates, running, Map.of());
+    public Files(Set<CompactableFile> allFiles, Set<CompactableFile> candidates,
+        Collection<CompactionJob> runningJobsCopy) {
+      this(allFiles, candidates, runningJobsCopy, Map.of());
     }
 
-    public Files(SortedMap<StoredTabletFile,DataFileValue> allFiles,
-        Set<StoredTabletFile> candidates, Collection<CompactionJob> running,
-        Map<String,String> executionHints) {
-
-      this.allFiles = Collections.unmodifiableSet(allFiles.entrySet().stream()
-          .map(entry -> new CompactableFileImpl(entry.getKey(), entry.getValue()))
-          .collect(Collectors.toSet()));
-      this.candidates = Collections.unmodifiableSet(candidates.stream()
-          .map(stf -> new CompactableFileImpl(stf, allFiles.get(stf))).collect(Collectors.toSet()));
-
-      this.compacting = Set.copyOf(running);
-
-      // Do some sanity checks on sets of files
-      Preconditions.checkArgument(this.allFiles.containsAll(this.candidates),
-          "Candidates not in set of all files %s %s", this.allFiles, this.candidates);
-      var compactingFiles =
-          compacting.stream().flatMap(job -> job.getFiles().stream()).collect(Collectors.toSet());
-      Preconditions.checkArgument(this.allFiles.containsAll(compactingFiles),
-          "Compacting files %s not in set of all files: %s", compactingFiles, this.allFiles);
-      Preconditions.checkArgument(Collections.disjoint(compactingFiles, this.candidates),
-          "Compacting and candidates overlap %s %s", compactingFiles, this.candidates);
-
+    public Files(Set<CompactableFile> allFiles, Set<CompactableFile> candidates,
+        Collection<CompactionJob> runningJobsCopy, Map<String,String> executionHints) {
+      this.allFiles = allFiles;
+      this.candidates = candidates;
+      this.compacting = runningJobsCopy;
       this.executionHints = executionHints;
     }
 
@@ -88,7 +63,6 @@ public interface Compactable {
       return "Files [allFiles=" + allFiles + ", candidates=" + candidates + ", compacting="
           + compacting + ", hints=" + executionHints + "]";
     }
-
   }
 
   TableId getTableId();
