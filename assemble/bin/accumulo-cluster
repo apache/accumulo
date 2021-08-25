@@ -62,8 +62,11 @@ function parse_config {
     exit 1
   fi
 
-  ${accumulo_cmd} org.apache.accumulo.core.conf.cluster.ClusterConfigParser ${conf}/cluster.yml > /tmp/cluster-conf || parse_fail
-  . /tmp/cluster-conf
+  trap 'rm -f "$CONFIG_FILE"' EXIT
+  CONFIG_FILE=$(mktemp) || exit 1
+  ${accumulo_cmd} org.apache.accumulo.core.conf.cluster.ClusterConfigParser ${conf}/cluster.yml > $CONFIG_FILE || parse_fail
+  . $CONFIG_FILE
+  rm -f $CONFIG_FILE
 
   if [[ -z $MANAGER_HOSTS ]]; then
     echo "ERROR: managers not found in ${conf}/cluster.yml"
@@ -80,7 +83,8 @@ function parse_config {
   fi
 
   for queue in $COMPACTION_QUEUES; do
-    if [[ -z "${COMPACTOR_HOSTS_$queue}" ]]; then
+    Q="COMPACTOR_HOSTS_${queue}"
+    if [[ -z "${!Q}" ]]; then
       echo "WARN: External compaction queue $queue configured, but no compactors configured for it"
     fi
   done
@@ -124,11 +128,12 @@ function control_service() {
   do
     ACCUMULO_SERVICE_INSTANCE=""
     [[ "$service" == "tserver" && ${NUM_TSERVERS:-1} -gt 1 ]] && ACCUMULO_SERVICE_INSTANCE=${inst_id}
+    [[ "$service" == "compactor" ]] && ACCUMULO_SERVICE_INSTANCE="${inst_id}_${5}"
 
     if [[ $host == localhost || $host == "$(hostname -s)" || $host == "$(hostname -f)" || $host == $(get_ip) ]] ; then
-      ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd"
+      ACCUMULO_SERVICE_INSTANCE="${ACCUMULO_SERVICE_INSTANCE}" "${bin}/accumulo-service" "$service" "$control_cmd" "${@:4}"
     else
-      $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" ${@:4}'"
+      $SSH "$host" "bash -c 'ACCUMULO_SERVICE_INSTANCE=${ACCUMULO_SERVICE_INSTANCE} ${bin}/accumulo-service \"$service\" \"$control_cmd\" \"${@:4}\" '"
     fi
   done
 }
@@ -180,8 +185,9 @@ function start_all() {
   done
 
   for queue in $COMPACTION_QUEUES; do
-    for compactor in "${COMPACTOR_HOSTS_$queue}"; do
-      start_service "$compactor" compactor -q "$queue"
+    Q="COMPACTOR_HOSTS_${queue}"
+    for compactor in "${!Q}"; do
+      start_service "$compactor" compactor "-q" "$queue"
     done
   done
 
@@ -246,9 +252,10 @@ function start_here() {
 
   for queue in $COMPACTION_QUEUES; do
     for host in $local_hosts; do
-      for compactor in "${COMPACTOR_HOSTS_$queue}"; do
+      Q="COMPACTOR_HOSTS_${queue}"
+      for compactor in "${!Q}"; do
         if echo "$compactor" | grep -q "^${host}\$"; then
-          start_service "$compactor" compactor -q "$queue"
+          start_service "$compactor" compactor "-q" "$queue"
         fi
       done
     done
@@ -261,11 +268,11 @@ function end_service() {
 }
 
 function stop_service() {
-  end_service "stop" "$1" "$2"
+  end_service "stop" "$@"
 }
 
 function kill_service() {
-  end_service "kill" "$1" "$2"
+  end_service "kill" "$@"
 }
 
 function stop_tservers() {
@@ -314,8 +321,9 @@ function kill_all() {
   done
 
   for queue in $COMPACTION_QUEUES; do
-    for compactor in "${COMPACTOR_HOSTS_$queue}"; do
-      kill_service "$compactor" compactor
+    Q="COMPACTOR_HOSTS_${queue}"
+    for compactor in "${!Q}"; do
+      kill_service "$compactor" compactor "-q" "$queue"
     done
   done
 
@@ -364,8 +372,9 @@ function stop_all() {
     done
 
     for queue in $COMPACTION_QUEUES; do
-      for compactor in "${COMPACTOR_HOSTS_$queue}"; do
-        end_service $end_cmd "$compactor" compactor
+      Q="COMPACTOR_HOSTS_${queue}"
+      for compactor in "${!Q}"; do
+        end_service $end_cmd "$compactor" compactor "-q" "$queue"
       done
     done
 
@@ -396,8 +405,14 @@ function stop_here() {
 
   for host in "${hosts_to_check[@]}"; do
     for end_cmd in "stop" "kill"; do
-      for svc in tserver gc manager monitor tracer compaction-coordinator compactor; do
+      for svc in tserver gc manager monitor tracer compaction-coordinator; do
         end_service $end_cmd "$host" $svc
+      done
+      for queue in $COMPACTION_QUEUES; do
+        Q="COMPACTOR_HOSTS_${queue}"
+        for compactor in "${!Q}"; do
+          end_service $end_cmd "$host" compactor "-q" "$queue"
+        done
       done
     done
   done
