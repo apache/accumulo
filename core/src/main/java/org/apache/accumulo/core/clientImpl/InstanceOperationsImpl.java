@@ -87,6 +87,14 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
+  public void setProperties(final Map<String,String> properties)
+      throws AccumuloException, AccumuloSecurityException {
+    for (var property : properties.entrySet()) {
+      this.setProperty(property.getKey(), property.getValue());
+    }
+  }
+
+  @Override
   public void removeProperty(final String property)
       throws AccumuloException, AccumuloSecurityException {
     checkArgument(property != null, "property is null");

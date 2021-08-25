@@ -27,12 +27,12 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 public interface InstanceOperations {
 
   /**
-   * Sets an system property in zookeeper. Tablet servers will pull this setting and override the
+   * Sets a system property in zookeeper. Tablet servers will pull this setting and override the
    * equivalent setting in accumulo.properties. Changes can be seen using
    * {@link #getSystemConfiguration()}.
    * <p>
    * Only some properties can be changed by this method, an IllegalArgumentException will be thrown
-   * if a read-only property is set.
+   * if there is an attempt to set a read-only property.
    *
    * @param property
    *          the name of a per-table property
@@ -44,6 +44,24 @@ public interface InstanceOperations {
    *           if the user does not have permission
    */
   void setProperty(final String property, final String value)
+      throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * Sets a several system properties. Tablet servers will pull these settings and override the
+   * equivalent settings in accumulo.properties. Changes can be seen using
+   * {@link #getSystemConfiguration()}.
+   * <p>
+   * Only some properties can be changed by this method, an IllegalArgumentException will be thrown
+   * if there is an attempt to set a read-only property.
+   *
+   * @param properties
+   *          a map containing the name of a per-table property and its corresponding value to set
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   */
+  void setProperties(final Map<String,String> properties)
       throws AccumuloException, AccumuloSecurityException;
 
   /**
