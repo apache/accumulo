@@ -215,7 +215,9 @@ public class CompactionIT extends AccumuloClusterHarness {
           c.tableOperations().delete(tableName);
         } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
           fail("Table not found");
-        } catch (InterruptedException | BrokenBarrierException e) {}
+        } catch (InterruptedException | BrokenBarrierException e) {
+          fail("Interrupted or BrokenBarrierException: " + e.getMessage());
+        }
       });
       t.start();
       latch.await();
