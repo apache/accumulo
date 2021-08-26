@@ -32,13 +32,13 @@ import org.apache.accumulo.core.util.ConfigurationImpl;
 
 public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
-  private final ServerContext srvCtx;
+  private final ServerContext context;
   private final Configuration conf;
   private final Map<TableId,Configuration> tableConfigs = new ConcurrentHashMap<>();
 
-  public ServiceEnvironmentImpl(ServerContext ctx) {
-    this.srvCtx = ctx;
-    this.conf = new ConfigurationImpl(srvCtx.getConfiguration());
+  public ServiceEnvironmentImpl(ServerContext context) {
+    this.context = context;
+    this.conf = new ConfigurationImpl(this.context.getConfiguration());
   }
 
   @Override
@@ -49,12 +49,12 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
   @Override
   public Configuration getConfiguration(TableId tableId) {
     return tableConfigs.computeIfAbsent(tableId,
-        tid -> new ConfigurationImpl(srvCtx.getTableConfiguration(tid)));
+        tid -> new ConfigurationImpl(context.getTableConfiguration(tid)));
   }
 
   @Override
   public String getTableName(TableId tableId) throws TableNotFoundException {
-    return Tables.getTableName(srvCtx, tableId);
+    return Tables.getTableName(context, tableId);
   }
 
   @Override
@@ -66,11 +66,11 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
   @Override
   public <T> T instantiate(TableId tableId, String className, Class<T> base)
       throws ReflectiveOperationException, IOException {
-    String ctx = ClassLoaderUtil.tableContext(srvCtx.getTableConfiguration(tableId));
+    String ctx = ClassLoaderUtil.tableContext(context.getTableConfiguration(tableId));
     return ConfigurationTypeHelper.getClassInstance(ctx, className, base);
   }
 
   public ServerContext getContext() {
-    return srvCtx;
+    return context;
   }
 }

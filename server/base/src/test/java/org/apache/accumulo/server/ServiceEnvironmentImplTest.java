@@ -33,22 +33,22 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class ServiceEnvironmentImplTest {
-  private ServerContext srvCtx;
+  private ServerContext context;
   private AccumuloConfiguration acfg;
   private ServiceEnvironmentImpl serviceEnvironment;
 
   @Before
   public void setUp() {
-    srvCtx = createMock(ServerContext.class);
+    context = createMock(ServerContext.class);
     acfg = createMock(AccumuloConfiguration.class);
-    expect(srvCtx.getConfiguration()).andReturn(acfg);
-    replay(srvCtx);
-    serviceEnvironment = new ServiceEnvironmentImpl(srvCtx);
+    expect(context.getConfiguration()).andReturn(acfg);
+    replay(context);
+    serviceEnvironment = new ServiceEnvironmentImpl(context);
   }
 
   @After
   public void verifyMocks() {
-    verify(srvCtx, acfg);
+    verify(context, acfg);
   }
 
   @Test

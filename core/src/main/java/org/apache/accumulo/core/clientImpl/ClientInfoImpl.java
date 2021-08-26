@@ -35,9 +35,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ClientInfoImpl implements ClientInfo {
 
-  private Properties properties;
+  private final Properties properties;
   private AuthenticationToken token;
-  private Configuration hadoopConf;
+  private final Configuration hadoopConf;
 
   public ClientInfoImpl(Path propertiesFile) {
     this(ClientInfoImpl.toProperties(propertiesFile));
