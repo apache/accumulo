@@ -169,8 +169,9 @@ public class CompactionIT extends AccumuloClusterHarness {
   public void testDeleteTableAbortsCompaction() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
-      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "5.0");
+      NewTableConfiguration ntc = new NewTableConfiguration()
+          .setProperties(Map.of(Property.TABLE_MAJC_RATIO.getKey(), "5.0"));
+      c.tableOperations().create(tableName, ntc);
       FileSystem fs = getFileSystem();
       Path root = new Path(cluster.getTemporaryPath(), getClass().getName());
       fs.deleteOnExit(root);
