@@ -299,7 +299,7 @@ public class CompactionManager {
         service = services.get(csid);
         if (service == null) {
           log.error(
-              "Tablet {} returned non existant compaction service {} for compaction type {}.  Check"
+              "Tablet {} returned non-existent compaction service {} for compaction type {}.  Check"
                   + " the table compaction dispatcher configuration. Attempting to fall back to "
                   + "{} service.",
               compactable.getExtent(), csid, ctype, DEFAULT_SERVICE);
@@ -356,8 +356,9 @@ public class CompactionManager {
 
   private synchronized void checkForConfigChanges(boolean force) {
     try {
-      if (!force && (TimeUnit.SECONDS.convert(System.nanoTime() - lastConfigCheckTime,
-          TimeUnit.NANOSECONDS) < 1)) {
+      final long secondsSinceLastCheck =
+          TimeUnit.SECONDS.convert(System.nanoTime() - lastConfigCheckTime, TimeUnit.NANOSECONDS);
+      if (!force && (secondsSinceLastCheck < 1)) {
         return;
       }
 
