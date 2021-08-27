@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.upgrade;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.concurrent.CompletableFuture;
@@ -25,12 +26,20 @@ import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.volume.Volume;
+import org.apache.accumulo.fate.ReadOnlyStore;
+import org.apache.accumulo.fate.ReadOnlyTStore;
+import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.manager.EventCoordinator;
-import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServerUtil;
+import org.apache.accumulo.server.ServerDirs;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,8 +107,8 @@ public class UpgradeCoordinator {
   private static Logger log = LoggerFactory.getLogger(UpgradeCoordinator.class);
 
   private int currentVersion;
-  private Map<Integer,Upgrader> upgraders = Map.of(ServerConstants.SHORTEN_RFILE_KEYS,
-      new Upgrader8to9(), ServerConstants.CRYPTO_CHANGES, new Upgrader9to10());
+  private Map<Integer,Upgrader> upgraders = Map.of(AccumuloDataVersion.SHORTEN_RFILE_KEYS,
+      new Upgrader8to9(), AccumuloDataVersion.CRYPTO_CHANGES, new Upgrader9to10());
 
   private volatile UpgradeStatus status;
 
@@ -131,19 +140,20 @@ public class UpgradeCoordinator {
         "Not currently in a suitable state to do zookeeper upgrade %s", status);
 
     try {
-      int cv = ServerUtil.getAccumuloPersistentVersion(context.getVolumeManager());
-      ServerUtil.ensureDataVersionCompatible(cv);
+      int cv = context.getServerDirs()
+          .getAccumuloPersistentVersion(context.getVolumeManager().getFirst());
+      ServerContext.ensureDataVersionCompatible(cv);
       this.currentVersion = cv;
 
-      if (cv == ServerConstants.DATA_VERSION) {
+      if (cv == AccumuloDataVersion.get()) {
         status = UpgradeStatus.COMPLETE;
         return;
       }
 
-      if (currentVersion < ServerConstants.DATA_VERSION) {
-        ServerUtil.abortIfFateTransactions(context);
+      if (currentVersion < AccumuloDataVersion.get()) {
+        abortIfFateTransactions(context);
 
-        for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {
+        for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
           log.info("Upgrading Zookeeper from data version {}", v);
           upgraders.get(v).upgradeZookeeper(context);
         }
@@ -164,25 +174,26 @@ public class UpgradeCoordinator {
     Preconditions.checkState(status == UpgradeStatus.UPGRADED_ZOOKEEPER,
         "Not currently in a suitable state to do metadata upgrade %s", status);
 
-    if (currentVersion < ServerConstants.DATA_VERSION) {
+    if (currentVersion < AccumuloDataVersion.get()) {
       return ThreadPools.createThreadPool(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
           "UpgradeMetadataThreads", new SynchronousQueue<Runnable>(), OptionalInt.empty(), false)
           .submit(() -> {
             try {
-              for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {
+              for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
                 log.info("Upgrading Root from data version {}", v);
                 upgraders.get(v).upgradeRoot(context);
               }
 
               setStatus(UpgradeStatus.UPGRADED_ROOT, eventCoordinator);
 
-              for (int v = currentVersion; v < ServerConstants.DATA_VERSION; v++) {
+              for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
                 log.info("Upgrading Metadata from data version {}", v);
                 upgraders.get(v).upgradeMetadata(context);
               }
 
               log.info("Updating persistent data version.");
-              ServerUtil.updateAccumuloVersion(context.getVolumeManager(), currentVersion);
+              updateAccumuloVersion(context.getServerDirs(), context.getVolumeManager(),
+                  currentVersion);
               log.info("Upgrade complete");
               setStatus(UpgradeStatus.COMPLETE, eventCoordinator);
             } catch (Exception e) {
@@ -195,7 +206,65 @@ public class UpgradeCoordinator {
     }
   }
 
+  // visible for testing
+  synchronized void updateAccumuloVersion(ServerDirs serverDirs, VolumeManager fs, int oldVersion) {
+    for (Volume volume : fs.getVolumes()) {
+      try {
+        if (serverDirs.getAccumuloPersistentVersion(volume) == oldVersion) {
+          log.debug("Attempting to upgrade {}", volume);
+          Path dataVersionLocation = serverDirs.getDataVersionLocation(volume);
+          fs.create(new Path(dataVersionLocation, Integer.toString(AccumuloDataVersion.get())))
+              .close();
+          // TODO document failure mode & recovery if FS permissions cause above to work and below
+          // to fail ACCUMULO-2596
+          Path prevDataVersionLoc = new Path(dataVersionLocation, Integer.toString(oldVersion));
+          if (!fs.delete(prevDataVersionLoc)) {
+            throw new RuntimeException("Could not delete previous data version location ("
+                + prevDataVersionLoc + ") for " + volume);
+          }
+        }
+      } catch (IOException e) {
+        throw new RuntimeException("Unable to set accumulo version: an error occurred.", e);
+      }
+    }
+  }
+
   public UpgradeStatus getStatus() {
     return status;
+  }
+
+  /**
+   * Exit loudly if there are outstanding Fate operations. Since Fate serializes class names, we
+   * need to make sure there are no queued transactions from a previous version before continuing an
+   * upgrade. The status of the operations is irrelevant; those in SUCCESSFUL status cause the same
+   * problem as those just queued.
+   *
+   * Note that the Manager should not allow write access to Fate until after all upgrade steps are
+   * complete.
+   *
+   * Should be called as a guard before performing any upgrade steps, after determining that an
+   * upgrade is needed.
+   *
+   * see ACCUMULO-2519
+   */
+  @SuppressFBWarnings(value = "DM_EXIT",
+      justification = "Want to immediately stop all manager threads on upgrade error")
+  private void abortIfFateTransactions(ServerContext context) {
+    try {
+      final ReadOnlyTStore<UpgradeCoordinator> fate =
+          new ReadOnlyStore<>(new ZooStore<>(context.getZooKeeperRoot() + Constants.ZFATE,
+              context.getZooReaderWriter()));
+      if (!(fate.list().isEmpty())) {
+        throw new AccumuloException("Aborting upgrade because there are"
+            + " outstanding FATE transactions from a previous Accumulo version."
+            + " You can start the tservers and then use the shell to delete completed "
+            + " transactions. If there are uncomplete transactions, you will need to roll"
+            + " back and fix those issues. Please see the following page for more information: "
+            + " https://accumulo.apache.org/docs/2.x/troubleshooting/advanced#upgrade-issues");
+      }
+    } catch (Exception exception) {
+      log.error("Problem verifying Fate readiness", exception);
+      System.exit(1);
+    }
   }
 }

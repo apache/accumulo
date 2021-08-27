@@ -21,8 +21,15 @@ package org.apache.accumulo.core;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class Constants {
-
+  // defines Accumulo data version constants
   public static final String VERSION = FilteredConstants.VERSION;
+  public static final String VERSION_DIR = "version";
+
+  // important directories
+  public static final String INSTANCE_ID_DIR = "instance_id";
+  public static final String TABLE_DIR = "tables";
+  public static final String RECOVERY_DIR = "recovery";
+  public static final String WAL_DIR = "wal";
 
   // Zookeeper locations
   public static final String ZROOT = "/accumulo";
@@ -116,5 +123,4 @@ public class Constants {
   public static final String HDFS_TABLES_DIR = "/tables";
 
   public static final int DEFAULT_VISIBILITY_CACHE_SIZE = 1000;
-
 }

@@ -66,12 +66,12 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImplIT.class);
 
   private AccumuloClient client;
-  private ServerContext serverContext;
+  private ServerContext context;
 
   @Before
   public void configureInstance() throws Exception {
     client = Accumulo.newClient().from(getClientProperties()).build();
-    serverContext = getServerContext();
+    context = getServerContext();
     ReplicationTable.setOnline(client);
     client.securityOperations().grantTablePermission(client.whoami(), MetadataTable.NAME,
         TablePermission.WRITE);
@@ -86,7 +86,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
    */
   private ReplicationOperationsImpl getReplicationOperations() {
     Manager manager = EasyMock.createMock(Manager.class);
-    EasyMock.expect(manager.getContext()).andReturn(serverContext).anyTimes();
+    EasyMock.expect(manager.getContext()).andReturn(context).anyTimes();
     EasyMock.replay(manager);
 
     final ManagerClientServiceHandler mcsh = new ManagerClientServiceHandler(manager) {

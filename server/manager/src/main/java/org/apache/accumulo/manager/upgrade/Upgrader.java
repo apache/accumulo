@@ -30,9 +30,30 @@ import org.apache.accumulo.server.ServerContext;
  * complete and then be run again later.
  */
 public interface Upgrader {
-  void upgradeZookeeper(ServerContext ctx);
 
-  void upgradeRoot(ServerContext ctx);
+  /**
+   * Update entries in ZooKeeper - called before the root tablet is loaded.
+   *
+   * @param context
+   *          the server context.
+   */
+  void upgradeZookeeper(ServerContext context);
 
-  void upgradeMetadata(ServerContext ctx);
+  /**
+   * Update the root tablet - called after the root tablet is loaded and before the metadata table
+   * is loaded.
+   *
+   * @param context
+   *          the server context.
+   */
+  void upgradeRoot(ServerContext context);
+
+  /**
+   * Update the metadata table - called after the metadata table is loaded and before loading user
+   * tablets.
+   *
+   * @param context
+   *          the server context.
+   */
+  void upgradeMetadata(ServerContext context);
 }

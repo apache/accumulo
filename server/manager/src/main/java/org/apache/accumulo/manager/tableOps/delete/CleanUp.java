@@ -46,7 +46,6 @@ import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.apache.accumulo.server.problems.ProblemReports;
@@ -176,7 +175,7 @@ class CleanUp extends ManagerRepo {
       // delete the map files
       try {
         VolumeManager fs = manager.getVolumeManager();
-        for (String dir : ServerConstants.getTablesDirs(manager.getContext())) {
+        for (String dir : manager.getContext().getTablesDirs()) {
           fs.deleteRecursively(new Path(dir, tableId.canonical()));
         }
       } catch (IOException e) {

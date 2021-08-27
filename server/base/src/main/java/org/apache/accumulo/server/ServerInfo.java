@@ -45,14 +45,15 @@ import org.apache.hadoop.fs.Path;
 
 public class ServerInfo implements ClientInfo {
 
-  private SiteConfiguration siteConfig;
-  private Configuration hadoopConf;
-  private String instanceID;
-  private String instanceName;
-  private String zooKeepers;
-  private int zooKeepersSessionTimeOut;
-  private VolumeManager volumeManager;
-  private ZooCache zooCache;
+  private final SiteConfiguration siteConfig;
+  private final Configuration hadoopConf;
+  private final String instanceID;
+  private final String instanceName;
+  private final String zooKeepers;
+  private final int zooKeepersSessionTimeOut;
+  private final VolumeManager volumeManager;
+  private final ZooCache zooCache;
+  private final ServerDirs serverDirs;
 
   ServerInfo(SiteConfiguration siteConfig, String instanceName, String zooKeepers,
       int zooKeepersSessionTimeOut) {
@@ -82,6 +83,7 @@ public class ServerInfo implements ClientInfo {
       throw new RuntimeException("Instance id " + instanceID + " pointed to by the name "
           + instanceName + " does not exist in zookeeper");
     }
+    serverDirs = new ServerDirs(siteConfig, hadoopConf);
   }
 
   ServerInfo(SiteConfiguration config) {
@@ -93,7 +95,8 @@ public class ServerInfo implements ClientInfo {
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
-    Path instanceIdPath = ServerUtil.getAccumuloInstanceIdPath(volumeManager);
+    serverDirs = new ServerDirs(siteConfig, hadoopConf);
+    Path instanceIdPath = serverDirs.getInstanceIdLocation(volumeManager.getFirst());
     instanceID = VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
     zooKeepers = config.get(Property.INSTANCE_ZK_HOST);
     zooKeepersSessionTimeOut = (int) config.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
@@ -115,6 +118,7 @@ public class ServerInfo implements ClientInfo {
     zooKeepersSessionTimeOut = (int) config.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
     this.instanceName = instanceName;
+    serverDirs = new ServerDirs(siteConfig, hadoopConf);
   }
 
   public SiteConfiguration getSiteConfiguration() {
@@ -178,5 +182,9 @@ public class ServerInfo implements ClientInfo {
   @Override
   public Configuration getHadoopConf() {
     return this.hadoopConf;
+  }
+
+  public ServerDirs getServerDirs() {
+    return serverDirs;
   }
 }

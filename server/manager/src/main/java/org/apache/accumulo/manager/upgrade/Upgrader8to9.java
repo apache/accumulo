@@ -18,26 +18,26 @@
  */
 package org.apache.accumulo.manager.upgrade;
 
-import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 
 /**
- * See {@link ServerConstants#CRYPTO_CHANGES}
+ * See {@link AccumuloDataVersion#CRYPTO_CHANGES}
  */
 public class Upgrader8to9 implements Upgrader {
 
   @Override
-  public void upgradeZookeeper(ServerContext ctx) {
+  public void upgradeZookeeper(ServerContext context) {
     // There is no action that needs to be taken for zookeeper
   }
 
   @Override
-  public void upgradeRoot(ServerContext ctx) {
+  public void upgradeRoot(ServerContext context) {
     // There is no action that needs to be taken for metadata
   }
 
   @Override
-  public void upgradeMetadata(ServerContext ctx) {
+  public void upgradeMetadata(ServerContext context) {
     // There is no action that needs to be taken for metadata
   }
 

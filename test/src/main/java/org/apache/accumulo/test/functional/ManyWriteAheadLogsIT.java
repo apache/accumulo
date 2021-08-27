@@ -122,7 +122,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
       splits.add(new Text(String.format("%05x", i * 100)));
     }
 
-    ServerContext ctx = getServerContext();
+    ServerContext context = getServerContext();
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String[] tableNames = getUniqueNames(2);
@@ -139,7 +139,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
 
       Set<String> allWalsSeen = new HashSet<>();
 
-      addOpenWals(ctx, allWalsSeen);
+      addOpenWals(context, allWalsSeen);
 
       // This test creates the table manyWALsTable with a lot of tablets and writes a little bit to
       // each tablet. In between writing a little bit to each tablet a lot of data is written to
@@ -181,7 +181,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
 
           // keep track of the open WALs as the test runs. Should see a lot of open WALs over the
           // lifetime of the test, but never a lot at any one time.
-          addOpenWals(ctx, allWalsSeen);
+          addOpenWals(context, allWalsSeen);
         }
       }
 
@@ -189,11 +189,11 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
           allWalsSeen.size() >= 50);
 
       // the total number of closed write ahead logs should get small
-      int closedLogs = countClosedWals(ctx);
+      int closedLogs = countClosedWals(context);
       while (closedLogs > 3) {
         log.debug("Waiting for wals to shrink " + closedLogs);
         Thread.sleep(250);
-        closedLogs = countClosedWals(ctx);
+        closedLogs = countClosedWals(context);
       }
     }
   }

@@ -129,7 +129,7 @@ public class InMemoryMap {
     return pair.getSecond();
   }
 
-  public InMemoryMap(AccumuloConfiguration config, ServerContext serverContext, TableId tableId) {
+  public InMemoryMap(AccumuloConfiguration config, ServerContext context, TableId tableId) {
 
     boolean useNativeMap = config.getBoolean(Property.TSERV_NATIVEMAP_ENABLED);
 
@@ -137,7 +137,7 @@ public class InMemoryMap {
     this.lggroups = LocalityGroupUtil.getLocalityGroupsIgnoringErrors(config, tableId);
 
     this.config = config;
-    this.context = serverContext;
+    this.context = context;
 
     SimpleMap allMap;
     SimpleMap sampleMap;

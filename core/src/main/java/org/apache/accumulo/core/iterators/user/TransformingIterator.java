@@ -72,8 +72,7 @@ import org.slf4j.LoggerFactory;
  * fetch column families that are known to not transform at all).
  * <p>
  * If the implementing iterator is transforming column visibilities, then users must be careful NOT
- * to fetch column qualifiers from the scanner. The reason for this is due to ACCUMULO-??? (insert
- * issue number).
+ * to fetch column qualifiers from the scanner.
  * <p>
  * If the implementing iterator is transforming column visibilities, then the user should be sure to
  * supply authorizations via the {@link #AUTH_OPT} iterator option (note that this is only necessary

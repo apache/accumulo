@@ -671,10 +671,23 @@ public enum Property {
       "The replication to use when writing the Write-Ahead log to HDFS. If"
           + " zero, it will use the HDFS default replication setting.",
       "1.5.0"),
+  TSERV_WAL_SORT_MAX_CONCURRENT("tserver.wal.sort.concurrent.max", "2", PropertyType.COUNT,
+      "The maximum number of threads to use to sort logs during recovery", "2.1.0"),
+  @Deprecated(since = "2.1.0")
+  @ReplacedBy(property = Property.TSERV_WAL_SORT_MAX_CONCURRENT)
   TSERV_RECOVERY_MAX_CONCURRENT("tserver.recovery.concurrent.max", "2", PropertyType.COUNT,
-      "The maximum number of threads to use to sort logs during" + " recovery", "1.5.0"),
+      "The maximum number of threads to use to sort logs during recovery", "1.5.0"),
+  TSERV_WAL_SORT_BUFFER_SIZE("tserver.wal.sort.buffer.size", "10%", PropertyType.MEMORY,
+      "The amount of memory to use when sorting logs during recovery.", "2.1.0"),
+  @Deprecated(since = "2.1.0")
+  @ReplacedBy(property = Property.TSERV_WAL_SORT_BUFFER_SIZE)
   TSERV_SORT_BUFFER_SIZE("tserver.sort.buffer.size", "10%", PropertyType.MEMORY,
       "The amount of memory to use when sorting logs during recovery.", "1.5.0"),
+  TSERV_WAL_SORT_FILE_PREFIX("tserver.wal.sort.file.", null, PropertyType.PREFIX,
+      "The rfile properties to use when sorting logs during recovery. Most of the properties"
+          + " that begin with 'table.file' can be used here. For example, to set the compression"
+          + " of the sorted recovery files to snappy use 'tserver.wal.sort.file.compress.type=snappy'",
+      "2.1.0"),
   TSERV_WORKQ_THREADS("tserver.workq.threads", "2", PropertyType.COUNT,
       "The number of threads for the distributed work queue. These threads are"
           + " used for copying failed bulk import RFiles.",
@@ -792,7 +805,7 @@ public enum Property {
   MONITOR_SSL_INCLUDE_PROTOCOLS("monitor.ssl.include.protocols", "TLSv1.2", PropertyType.STRING,
       "A comma-separate list of allowed SSL protocols", "1.5.3"),
   MONITOR_LOCK_CHECK_INTERVAL("monitor.lock.check.interval", "5s", PropertyType.TIMEDURATION,
-      "The amount of time to sleep between checking for the Montior ZooKeeper lock", "1.5.1"),
+      "The amount of time to sleep between checking for the Monitor ZooKeeper lock", "1.5.1"),
   MONITOR_RESOURCES_EXTERNAL("monitor.resources.external", "", PropertyType.STRING,
       "A JSON Map of Strings. Each String should be an HTML tag of an external"
           + " resource (JS or CSS) to be imported by the Monitor. Be sure to wrap"
@@ -870,7 +883,8 @@ public enum Property {
       "1.3.5"),
   TABLE_COMPACTION_DISPATCHER("table.compaction.dispatcher",
       SimpleCompactionDispatcher.class.getName(), PropertyType.CLASSNAME,
-      "A configurable dispatcher that decides what comaction service a table should use.", "2.1.0"),
+      "A configurable dispatcher that decides what compaction service a table should use.",
+      "2.1.0"),
   TABLE_COMPACTION_DISPATCHER_OPTS("table.compaction.dispatcher.opts.", null, PropertyType.PREFIX,
       "Options for the table compaction dispatcher", "2.1.0"),
   TABLE_COMPACTION_SELECTOR("table.compaction.selector", "", PropertyType.CLASSNAME,
@@ -1102,7 +1116,7 @@ public enum Property {
       DeletingIterator.Behavior.PROCESS.name().toLowerCase(), PropertyType.STRING,
       "This determines what action to take when a delete marker is seen."
           + " Valid values are `process` and `fail` with `process` being the default.  When set to "
-          + "`process`, deletes will supress data.  When set to `fail`, any deletes seen will cause"
+          + "`process`, deletes will suppress data.  When set to `fail`, any deletes seen will cause"
           + " an exception. The purpose of `fail` is to support tables that never delete data and"
           + " need fast seeks within the timestamp range of a column. When setting this to fail, "
           + "also consider configuring the `" + NoDeleteConstraint.class.getName() + "` "

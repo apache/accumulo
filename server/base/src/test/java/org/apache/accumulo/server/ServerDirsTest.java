@@ -30,12 +30,15 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -43,10 +46,24 @@ import org.junit.rules.TemporaryFolder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class ServerConstantsTest {
+public class ServerDirsTest {
 
-  AccumuloConfiguration conf = DefaultConfiguration.getInstance();
+  AccumuloConfiguration conf;
   Configuration hadoopConf = new Configuration();
+  ServerDirs constants;
+
+  @Before
+  public void setup() throws IOException {
+    String uuid = UUID.randomUUID().toString();
+
+    var vols =
+        init(folder.newFolder(), Arrays.asList(uuid), Arrays.asList(AccumuloDataVersion.get()));
+
+    ConfigurationCopy copy = new ConfigurationCopy();
+    copy.set(Property.INSTANCE_VOLUMES.getKey(), String.join(",", vols));
+    conf = copy;
+    constants = new ServerDirs(conf, hadoopConf);
+  }
 
   @Rule
   public TemporaryFolder folder =
@@ -57,36 +74,36 @@ public class ServerConstantsTest {
     String uuid1 = UUID.randomUUID().toString();
     String uuid2 = UUID.randomUUID().toString();
 
-    verifyAllPass(init(folder.newFolder(), Arrays.asList(uuid1),
-        Arrays.asList(ServerConstants.DATA_VERSION)));
+    verifyAllPass(
+        init(folder.newFolder(), Arrays.asList(uuid1), Arrays.asList(AccumuloDataVersion.get())));
     verifyAllPass(init(folder.newFolder(), Arrays.asList(uuid1, uuid1),
-        Arrays.asList(ServerConstants.DATA_VERSION, ServerConstants.DATA_VERSION)));
+        Arrays.asList(AccumuloDataVersion.get(), AccumuloDataVersion.get())));
 
     verifyError(
         init(folder.newFolder(), Arrays.asList((String) null), Arrays.asList((Integer) null)));
     verifyError(init(folder.newFolder(), Arrays.asList(uuid1, uuid2),
-        Arrays.asList(ServerConstants.DATA_VERSION, ServerConstants.DATA_VERSION)));
+        Arrays.asList(AccumuloDataVersion.get(), AccumuloDataVersion.get())));
     verifyError(init(folder.newFolder(), Arrays.asList(uuid1, uuid1),
-        Arrays.asList(ServerConstants.DATA_VERSION, ServerConstants.DATA_VERSION - 1)));
+        Arrays.asList(AccumuloDataVersion.get(), AccumuloDataVersion.get() - 1)));
     verifyError(init(folder.newFolder(), Arrays.asList(uuid1, uuid2),
-        Arrays.asList(ServerConstants.DATA_VERSION, ServerConstants.DATA_VERSION - 1)));
-    verifyError(init(folder.newFolder(), Arrays.asList(uuid1, uuid2, null), Arrays.asList(
-        ServerConstants.DATA_VERSION, ServerConstants.DATA_VERSION, ServerConstants.DATA_VERSION)));
+        Arrays.asList(AccumuloDataVersion.get(), AccumuloDataVersion.get() - 1)));
+    verifyError(init(folder.newFolder(), Arrays.asList(uuid1, uuid2, null), Arrays
+        .asList(AccumuloDataVersion.get(), AccumuloDataVersion.get(), AccumuloDataVersion.get())));
 
     verifySomePass(init(folder.newFolder(), Arrays.asList(uuid1, uuid1, null),
-        Arrays.asList(ServerConstants.DATA_VERSION, ServerConstants.DATA_VERSION, null)));
+        Arrays.asList(AccumuloDataVersion.get(), AccumuloDataVersion.get(), null)));
   }
 
   private void verifyAllPass(Set<String> paths) {
-    assertEquals(paths, ServerConstants.checkBaseUris(conf, hadoopConf, paths, true));
-    assertEquals(paths, ServerConstants.checkBaseUris(conf, hadoopConf, paths, false));
+    assertEquals(paths, constants.checkBaseUris(hadoopConf, paths, true));
+    assertEquals(paths, constants.checkBaseUris(hadoopConf, paths, false));
   }
 
   private void verifySomePass(Set<String> paths) {
     Set<String> subset = paths.stream().limit(2).collect(Collectors.toSet());
-    assertEquals(subset, ServerConstants.checkBaseUris(conf, hadoopConf, paths, true));
+    assertEquals(subset, constants.checkBaseUris(hadoopConf, paths, true));
     try {
-      ServerConstants.checkBaseUris(conf, hadoopConf, paths, false);
+      constants.checkBaseUris(hadoopConf, paths, false);
       fail();
     } catch (Exception e) {
       // ignored
@@ -95,14 +112,14 @@ public class ServerConstantsTest {
 
   private void verifyError(Set<String> paths) {
     try {
-      ServerConstants.checkBaseUris(conf, hadoopConf, paths, true);
+      constants.checkBaseUris(hadoopConf, paths, true);
       fail();
     } catch (Exception e) {
       // ignored
     }
 
     try {
-      ServerConstants.checkBaseUris(conf, hadoopConf, paths, false);
+      constants.checkBaseUris(hadoopConf, paths, false);
       fail();
     } catch (Exception e) {
       // ignored
@@ -124,15 +141,15 @@ public class ServerConstantsTest {
       accumuloPaths.add(accumuloPath);
 
       if (uuids.get(i) != null) {
-        fs.mkdirs(new Path(accumuloPath + "/" + ServerConstants.INSTANCE_ID_DIR));
+        fs.mkdirs(new Path(accumuloPath + "/" + Constants.INSTANCE_ID_DIR));
         fs.createNewFile(
-            new Path(accumuloPath + "/" + ServerConstants.INSTANCE_ID_DIR + "/" + uuids.get(i)));
+            new Path(accumuloPath + "/" + Constants.INSTANCE_ID_DIR + "/" + uuids.get(i)));
       }
 
       if (dataVersions.get(i) != null) {
-        fs.mkdirs(new Path(accumuloPath + "/" + ServerConstants.VERSION_DIR));
+        fs.mkdirs(new Path(accumuloPath + "/" + Constants.VERSION_DIR));
         fs.createNewFile(
-            new Path(accumuloPath + "/" + ServerConstants.VERSION_DIR + "/" + dataVersions.get(i)));
+            new Path(accumuloPath + "/" + Constants.VERSION_DIR + "/" + dataVersions.get(i)));
       }
     }
 

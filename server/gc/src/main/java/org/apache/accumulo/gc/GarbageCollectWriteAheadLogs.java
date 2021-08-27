@@ -46,7 +46,6 @@ import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.WalStateManager;
@@ -393,7 +392,7 @@ public class GarbageCollectWriteAheadLogs {
   protected Map<UUID,Path> getSortedWALogs() throws IOException {
     Map<UUID,Path> result = new HashMap<>();
 
-    for (String dir : ServerConstants.getRecoveryDirs(context)) {
+    for (String dir : context.getRecoveryDirs()) {
       Path recoveryDir = new Path(dir);
       if (fs.exists(recoveryDir)) {
         for (FileStatus status : fs.listStatus(recoveryDir)) {

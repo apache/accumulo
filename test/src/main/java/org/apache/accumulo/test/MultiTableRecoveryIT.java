@@ -57,6 +57,8 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
 
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
+    // test sorted rfile recovery options
+    cfg.setProperty(Property.TSERV_WAL_SORT_FILE_PREFIX + "compress.type", "none");
   }
 
   @Override

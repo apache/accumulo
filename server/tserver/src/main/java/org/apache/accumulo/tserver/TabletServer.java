@@ -101,7 +101,6 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.GarbageCollectionLogger;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.TabletLevel;
@@ -985,7 +984,7 @@ public class TabletServer extends AbstractServer {
     VolumeChooserEnvironment chooserEnv =
         new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.LOGGER, context);
     Set<String> prefixes;
-    var options = ServerConstants.getBaseUris(context);
+    var options = context.getBaseUris();
     try {
       prefixes = context.getVolumeManager().choosable(chooserEnv, options);
     } catch (RuntimeException e) {
@@ -996,7 +995,7 @@ public class TabletServer extends AbstractServer {
 
     boolean warned = false;
     for (String prefix : prefixes) {
-      String logPath = prefix + Path.SEPARATOR + ServerConstants.WAL_DIR;
+      String logPath = prefix + Path.SEPARATOR + Constants.WAL_DIR;
       if (!context.getVolumeManager().canSyncAndFlush(new Path(logPath))) {
         // sleep a few seconds in case this is at cluster start...give monitor
         // time to start so the warning will be more visible

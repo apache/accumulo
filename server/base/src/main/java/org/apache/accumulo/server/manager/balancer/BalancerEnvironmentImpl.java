@@ -55,8 +55,8 @@ import org.slf4j.LoggerFactory;
 public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements BalancerEnvironment {
   private static final Logger log = LoggerFactory.getLogger(BalancerEnvironmentImpl.class);
 
-  public BalancerEnvironmentImpl(ServerContext ctx) {
-    super(ctx);
+  public BalancerEnvironmentImpl(ServerContext context) {
+    super(context);
   }
 
   @Override

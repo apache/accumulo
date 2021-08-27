@@ -36,7 +36,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.gc.GarbageCollectionEnvironment.Reference;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.htrace.Trace;
@@ -86,11 +85,11 @@ public class GarbageCollectionAlgorithm {
     }
 
     if (tokens.length > 3 && path.contains(":")) {
-      if (tokens[tokens.length - 4].equals(ServerConstants.TABLE_DIR)
+      if (tokens[tokens.length - 4].equals(Constants.TABLE_DIR)
           && (expectedLen == 0 || expectedLen == 3)) {
         relPath = tokens[tokens.length - 3] + "/" + tokens[tokens.length - 2] + "/"
             + tokens[tokens.length - 1];
-      } else if (tokens[tokens.length - 3].equals(ServerConstants.TABLE_DIR)
+      } else if (tokens[tokens.length - 3].equals(Constants.TABLE_DIR)
           && (expectedLen == 0 || expectedLen == 2)) {
         relPath = tokens[tokens.length - 2] + "/" + tokens[tokens.length - 1];
       } else {
@@ -264,14 +263,6 @@ public class GarbageCollectionAlgorithm {
     for (TableId delTableId : tableIdsWithDeletes) {
       gce.deleteTableDirIfEmpty(delTableId);
     }
-
-  }
-
-  private Iterator<String> getCandidates(GarbageCollectionEnvironment gce)
-      throws TableNotFoundException, IOException {
-    try (TraceScope candidatesSpan = Trace.startSpan("getCandidates")) {
-      return gce.getCandidates();
-    }
   }
 
   private void confirmDeletesTrace(GarbageCollectionEnvironment gce,
@@ -292,10 +283,13 @@ public class GarbageCollectionAlgorithm {
 
   public void collect(GarbageCollectionEnvironment gce) throws TableNotFoundException, IOException {
 
-    Iterator<String> candidatesIter = getCandidates(gce);
+    Iterator<String> candidatesIter = gce.getCandidates();
 
     while (candidatesIter.hasNext()) {
-      List<String> batchOfCandidates = gce.readCandidatesThatFitInMemory(candidatesIter);
+      List<String> batchOfCandidates;
+      try (TraceScope candidatesSpan = Trace.startSpan("getCandidates")) {
+        batchOfCandidates = gce.readCandidatesThatFitInMemory(candidatesIter);
+      }
       deleteBatch(gce, batchOfCandidates);
     }
   }

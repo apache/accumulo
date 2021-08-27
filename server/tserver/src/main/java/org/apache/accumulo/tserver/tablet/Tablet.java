@@ -94,7 +94,6 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.core.volume.Volume;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -259,10 +258,8 @@ public class Tablet {
   private String chooseTabletDir() throws IOException {
     VolumeChooserEnvironment chooserEnv =
         new VolumeChooserEnvironmentImpl(extent.tableId(), extent.endRow(), context);
-    String dirUri =
-        tabletServer.getVolumeManager().choose(chooserEnv, ServerConstants.getBaseUris(context))
-            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + extent.tableId() + Path.SEPARATOR
-            + dirName;
+    String dirUri = tabletServer.getVolumeManager().choose(chooserEnv, context.getBaseUris())
+        + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + extent.tableId() + Path.SEPARATOR + dirName;
     checkTabletDir(new Path(dirUri));
     return dirUri;
   }

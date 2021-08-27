@@ -68,7 +68,6 @@ import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.util.ManagerMetadataUtil;
@@ -159,8 +158,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       KeyExtent extent = extents[i];
 
       String dirName = "dir_" + i;
-      String tdir = ServerConstants.getTablesDirs(context).iterator().next() + "/"
-          + extent.tableId() + "/" + dirName;
+      String tdir =
+          context.getTablesDirs().iterator().next() + "/" + extent.tableId() + "/" + dirName;
       MetadataTableUtil.addTablet(extent, dirName, context, TimeType.LOGICAL, zl);
       SortedMap<TabletFile,DataFileValue> mapFiles = new TreeMap<>();
       mapFiles.put(new TabletFile(new Path(tdir + "/" + RFile.EXTENSION + "_000_000")),
@@ -215,7 +214,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     tabletMutator.mutate();
 
     if (steps >= 1) {
-      Map<Long,List<TabletFile>> bulkFiles = getBulkFilesLoaded(context, extent);
+      Map<Long,List<TabletFile>> bulkFiles = getBulkFilesLoaded(context, high);
 
       ManagerMetadataUtil.addNewTablet(context, low, "lowDir", instance, lowDatafileSizes,
           bulkFiles, new MetadataTime(0, TimeType.LOGICAL), -1L, -1L, zl);

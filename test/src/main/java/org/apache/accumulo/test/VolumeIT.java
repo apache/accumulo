@@ -38,6 +38,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -65,7 +66,6 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -249,7 +249,7 @@ public class VolumeIT extends ConfigurableMacBase {
   private void checkVolumesInitialized(List<Path> volumes, String uuid) throws Exception {
     for (Path volumePath : volumes) {
       FileSystem fs = volumePath.getFileSystem(cluster.getServerContext().getHadoopConf());
-      Path vp = new Path(volumePath, ServerConstants.INSTANCE_ID_DIR);
+      Path vp = new Path(volumePath, Constants.INSTANCE_ID_DIR);
       FileStatus[] iids = fs.listStatus(vp);
       assertEquals(1, iids.length);
       assertEquals(uuid, iids[0].getPath().getName());

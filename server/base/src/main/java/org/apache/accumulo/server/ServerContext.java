@@ -19,9 +19,22 @@
 package org.apache.accumulo.server;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -35,6 +48,9 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
@@ -49,16 +65,23 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Provides a server context for Accumulo server components that operate with the system credentials
  * and have access to the system files and configuration.
  */
 public class ServerContext extends ClientContext {
+  private static final Logger log = LoggerFactory.getLogger(ServerContext.class);
 
   private final ServerInfo info;
   private final ZooReaderWriter zooReaderWriter;
+  private final ServerDirs serverDirs;
+
   private TableManager tableManager;
   private UniqueNameAllocator nameAllocator;
   private ServerConfigurationFactory serverConfFactory = null;
@@ -75,6 +98,7 @@ public class ServerContext extends ClientContext {
     super(SingletonReservation.noop(), info, info.getSiteConfiguration());
     this.info = info;
     zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
+    serverDirs = info.getServerDirs();
   }
 
   /**
@@ -145,6 +169,10 @@ public class ServerContext extends ClientContext {
       defaultConfig = DefaultConfiguration.getInstance();
     }
     return defaultConfig;
+  }
+
+  public ServerDirs getServerDirs() {
+    return serverDirs;
   }
 
   /**
@@ -257,4 +285,152 @@ public class ServerContext extends ClientContext {
     return new ServerAmpleImpl(this);
   }
 
+  public Set<String> getBaseUris() {
+    return serverDirs.getBaseUris();
+  }
+
+  public List<Pair<Path,Path>> getVolumeReplacements() {
+    return serverDirs.getVolumeReplacements();
+  }
+
+  public Set<String> getTablesDirs() {
+    return serverDirs.getTablesDirs();
+  }
+
+  public Set<String> getRecoveryDirs() {
+    return serverDirs.getRecoveryDirs();
+  }
+
+  /**
+   * Check to see if this version of Accumulo can run against or upgrade the passed in data version.
+   */
+  public static void ensureDataVersionCompatible(int dataVersion) {
+    if (!(AccumuloDataVersion.CAN_RUN.contains(dataVersion))) {
+      throw new IllegalStateException("This version of accumulo (" + Constants.VERSION
+          + ") is not compatible with files stored using data version " + dataVersion);
+    }
+  }
+
+  public void waitForZookeeperAndHdfs() {
+    log.info("Attempting to talk to zookeeper");
+    while (true) {
+      try {
+        getZooReaderWriter().getChildren(Constants.ZROOT);
+        break;
+      } catch (InterruptedException | KeeperException ex) {
+        log.info("Waiting for accumulo to be initialized");
+        sleepUninterruptibly(1, TimeUnit.SECONDS);
+      }
+    }
+    log.info("ZooKeeper connected and initialized, attempting to talk to HDFS");
+    long sleep = 1000;
+    int unknownHostTries = 3;
+    while (true) {
+      try {
+        if (getVolumeManager().isReady())
+          break;
+        log.warn("Waiting for the NameNode to leave safemode");
+      } catch (IOException ex) {
+        log.warn("Unable to connect to HDFS", ex);
+      } catch (IllegalArgumentException e) {
+        /* Unwrap the UnknownHostException so we can deal with it directly */
+        if (e.getCause() instanceof UnknownHostException) {
+          if (unknownHostTries > 0) {
+            log.warn("Unable to connect to HDFS, will retry. cause: {}", e.getCause());
+            /*
+             * We need to make sure our sleep period is long enough to avoid getting a cached
+             * failure of the host lookup.
+             */
+            int ttl = AddressUtil.getAddressCacheNegativeTtl((UnknownHostException) e.getCause());
+            sleep = Math.max(sleep, (ttl + 1) * 1000L);
+          } else {
+            log.error("Unable to connect to HDFS and exceeded the maximum number of retries.", e);
+            throw e;
+          }
+          unknownHostTries--;
+        } else {
+          throw e;
+        }
+      }
+      log.info("Backing off due to failure; current sleep period is {} seconds", sleep / 1000.);
+      sleepUninterruptibly(sleep, TimeUnit.MILLISECONDS);
+      /* Back off to give transient failures more time to clear. */
+      sleep = Math.min(60 * 1000, sleep * 2);
+    }
+    log.info("Connected to HDFS");
+  }
+
+  /**
+   * Wait for ZK and hdfs, check data version and some properties, and start thread to monitor
+   * swappiness. Should only be called once during server start up.
+   */
+  public void init(String application) {
+    final AccumuloConfiguration conf = getConfiguration();
+
+    log.info("{} starting", application);
+    log.info("Instance {}", getInstanceID());
+    // It doesn't matter which Volume is used as they should all have the data version stored
+    int dataVersion = serverDirs.getAccumuloPersistentVersion(getVolumeManager().getFirst());
+    log.info("Data Version {}", dataVersion);
+    waitForZookeeperAndHdfs();
+
+    ensureDataVersionCompatible(dataVersion);
+
+    TreeMap<String,String> sortedProps = new TreeMap<>();
+    for (Map.Entry<String,String> entry : conf)
+      sortedProps.put(entry.getKey(), entry.getValue());
+
+    for (Map.Entry<String,String> entry : sortedProps.entrySet()) {
+      String key = entry.getKey();
+      log.info("{} = {}", key, (Property.isSensitive(key) ? "<hidden>" : entry.getValue()));
+      Property prop = Property.getPropertyByKey(key);
+      if (prop != null && conf.isPropertySet(prop, false)) {
+        if (prop.isDeprecated()) {
+          Property replacedBy = prop.replacedBy();
+          if (replacedBy != null) {
+            log.warn("{} is deprecated, use {} instead.", prop.getKey(), replacedBy.getKey());
+          } else {
+            log.warn("{} is deprecated", prop.getKey());
+          }
+        }
+      }
+    }
+
+    monitorSwappiness(conf);
+
+    // Encourage users to configure TLS
+    final String SSL = "SSL";
+    for (Property sslProtocolProperty : Arrays.asList(Property.RPC_SSL_CLIENT_PROTOCOL,
+        Property.RPC_SSL_ENABLED_PROTOCOLS, Property.MONITOR_SSL_INCLUDE_PROTOCOLS)) {
+      String value = conf.get(sslProtocolProperty);
+      if (value.contains(SSL)) {
+        log.warn("It is recommended that {} only allow TLS", sslProtocolProperty);
+      }
+    }
+  }
+
+  private void monitorSwappiness(AccumuloConfiguration config) {
+    ThreadPools.createGeneralScheduledExecutorService(config).scheduleWithFixedDelay(() -> {
+      try {
+        String procFile = "/proc/sys/vm/swappiness";
+        File swappiness = new File(procFile);
+        if (swappiness.exists() && swappiness.canRead()) {
+          try (InputStream is = new FileInputStream(procFile)) {
+            byte[] buffer = new byte[10];
+            int bytes = is.read(buffer);
+            String setting = new String(buffer, 0, bytes, UTF_8);
+            setting = setting.trim();
+            if (bytes > 0 && Integer.parseInt(setting) > 10) {
+              log.warn("System swappiness setting is greater than ten ({})"
+                  + " which can cause time-sensitive operations to be delayed."
+                  + " Accumulo is time sensitive because it needs to maintain"
+                  + " distributed lock agreement.", setting);
+            }
+          }
+        }
+      } catch (Exception t) {
+        log.error("", t);
+      }
+    }, 1000, 10 * 60 * 1000, TimeUnit.MILLISECONDS);
+  }
 }

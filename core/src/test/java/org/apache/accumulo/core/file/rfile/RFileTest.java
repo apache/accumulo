@@ -2324,14 +2324,6 @@ public class RFileTest {
     // This tests that the normal set of operations used to populate a root tablet
     conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
 
-    // populate the root tablet with info about the default tablet
-    // the root tablet contains the key extent and locations of all the
-    // metadata tablets
-    // String initRootTabFile = ServerConstants.getMetadataTableDir() + "/root_tablet/00000_00000."
-    // + FileOperations.getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
-    // FileSKVWriter mfw = FileOperations.getInstance().openWriter(initRootTabFile, fs, conf,
-    // AccumuloConfiguration.getDefaultConfiguration());
-
     TestRFile testRfile = new TestRFile(conf);
     testRfile.openWriter();
 
