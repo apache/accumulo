@@ -275,7 +275,7 @@ public class CompactionManager {
         if (retry.hasRetried())
           retry = retryFactory.createRetry();
 
-        checkForConfigChanges();
+        checkForConfigChanges(false);
 
       } catch (Exception e) {
         var extent = last == null ? null : last.getExtent();
@@ -295,13 +295,16 @@ public class CompactionManager {
       var csid = compactable.getConfiguredService(ctype);
       var service = services.get(csid);
       if (service == null) {
-        log.error(
-            "Tablet {} returned non existant compaction service {} for compaction type {}.  Check"
-                + " the table compaction dispatcher configuration. Attempting to fall back to "
-                + "{} service.",
-            compactable.getExtent(), csid, ctype, DEFAULT_SERVICE);
-
-        service = services.get(DEFAULT_SERVICE);
+        checkForConfigChanges(true);
+        service = services.get(csid);
+        if (service == null) {
+          log.error(
+              "Tablet {} returned non-existent compaction service {} for compaction type {}.  Check"
+                  + " the table compaction dispatcher configuration. Attempting to fall back to "
+                  + "{} service.",
+              compactable.getExtent(), csid, ctype, DEFAULT_SERVICE);
+          service = services.get(DEFAULT_SERVICE);
+        }
       }
 
       if (service != null) {
@@ -351,11 +354,13 @@ public class CompactionManager {
     compactablesToCheck.add(compactable);
   }
 
-  private void checkForConfigChanges() {
+  private synchronized void checkForConfigChanges(boolean force) {
     try {
-      if (TimeUnit.SECONDS.convert(System.nanoTime() - lastConfigCheckTime, TimeUnit.NANOSECONDS)
-          < 1)
+      final long secondsSinceLastCheck =
+          TimeUnit.SECONDS.convert(System.nanoTime() - lastConfigCheckTime, TimeUnit.NANOSECONDS);
+      if (!force && (secondsSinceLastCheck < 1)) {
         return;
+      }
 
       lastConfigCheckTime = System.nanoTime();
 
