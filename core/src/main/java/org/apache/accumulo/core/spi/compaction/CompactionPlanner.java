@@ -34,7 +34,7 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
  */
 public interface CompactionPlanner {
 
-  /*
+  /**
    * This interface exists so the API can evolve and additional parameters can be passed to the
    * method in the future.
    *
