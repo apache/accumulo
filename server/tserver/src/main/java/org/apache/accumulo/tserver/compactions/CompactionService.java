@@ -319,9 +319,9 @@ public class CompactionService {
     }
 
     plan = convertPlan(plan, kind, files.get().allFiles, files.get().candidates);
-
-    if (compactable.getExtent().isMeta() && plan.getJobs().stream().map(cj -> cj.getExecutor())
-        .anyMatch(ceid -> ((CompactionExecutorIdImpl) ceid).isExternalId())) {
+    // log error if tablet is metadata and compaction is external
+    var execIds = plan.getJobs().stream().map(cj -> (CompactionExecutorIdImpl) cj.getExecutor());
+    if (compactable.getExtent().isMeta() && execIds.anyMatch(ceid -> ceid.isExternalId())) {
       log.error(
           "Compacting metadata tablets on external compactors is not supported, please change "
               + "config for compaction service ({}) and/or table ASAP.  {} is not compacting, "
@@ -344,11 +344,11 @@ public class CompactionService {
 
     if (reconcile(jobs, submitted)) {
       for (CompactionJob job : jobs) {
-        var sjob =
-            executors.get(job.getExecutor()).submit(myId, job, compactable, completionCallback);
+        CompactionExecutor executor = executors.get(job.getExecutor());
+        var submittedJob = executor.submit(myId, job, compactable, completionCallback);
         // its important that the collection created in computeIfAbsent supports concurrency
         submittedJobs.computeIfAbsent(compactable.getExtent(), k -> new ConcurrentLinkedQueue<>())
-            .add(sjob);
+            .add(submittedJob);
       }
 
       if (!jobs.isEmpty()) {
