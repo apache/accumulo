@@ -243,6 +243,68 @@ public class CompactionService {
     }
   }
 
+  private class CpPlanParams implements PlanningParameters {
+    private final CompactionKind kind;
+    private final Compactable comp;
+    private final Compactable.Files files;
+
+    public CpPlanParams(CompactionKind kind, Compactable comp, Compactable.Files files) {
+      this.kind = kind;
+      this.comp = comp;
+      this.files = files;
+    }
+
+    private final ServiceEnvironment senv = new ServiceEnvironmentImpl(context);
+
+    @Override
+    public TableId getTableId() {
+      return comp.getTableId();
+    }
+
+    @Override
+    public ServiceEnvironment getServiceEnvironment() {
+      return senv;
+    }
+
+    @Override
+    public double getRatio() {
+      return comp.getCompactionRatio();
+    }
+
+    @Override
+    public CompactionKind getKind() {
+      return kind;
+    }
+
+    @Override
+    public Collection<CompactionJob> getRunningCompactions() {
+      return files.compacting;
+    }
+
+    @Override
+    public Collection<CompactableFile> getCandidates() {
+      return files.candidates;
+    }
+
+    @Override
+    public Collection<CompactableFile> getAll() {
+      return files.allFiles;
+    }
+
+    @Override
+    public Map<String,String> getExecutionHints() {
+      if (kind == CompactionKind.USER)
+        return files.executionHints;
+      else
+        return Map.of();
+    }
+
+    @Override
+    public CompactionPlan.Builder createPlanBuilder() {
+      return new CompactionPlanImpl.BuilderImpl(kind, files.allFiles, files.candidates);
+    }
+  }
+
   private void planCompaction(CompactionKind kind, Compactable compactable,
       Consumer<Compactable> completionCallback) {
     var files = compactable.getFiles(myId, kind);
@@ -252,59 +314,7 @@ public class CompactionService {
       return;
     }
 
-    PlanningParameters params = new PlanningParameters() {
-
-      private final ServiceEnvironment senv = new ServiceEnvironmentImpl(context);
-
-      @Override
-      public TableId getTableId() {
-        return compactable.getTableId();
-      }
-
-      @Override
-      public ServiceEnvironment getServiceEnvironment() {
-        return senv;
-      }
-
-      @Override
-      public double getRatio() {
-        return compactable.getCompactionRatio();
-      }
-
-      @Override
-      public CompactionKind getKind() {
-        return kind;
-      }
-
-      @Override
-      public Collection<CompactionJob> getRunningCompactions() {
-        return files.get().compacting;
-      }
-
-      @Override
-      public Collection<CompactableFile> getCandidates() {
-        return files.get().candidates;
-      }
-
-      @Override
-      public Collection<CompactableFile> getAll() {
-        return files.get().allFiles;
-      }
-
-      @Override
-      public Map<String,String> getExecutionHints() {
-        if (kind == CompactionKind.USER)
-          return files.get().executionHints;
-        else
-          return Map.of();
-      }
-
-      @Override
-      public CompactionPlan.Builder createPlanBuilder() {
-        return new CompactionPlanImpl.BuilderImpl(kind, files.get().allFiles,
-            files.get().candidates);
-      }
-    };
+    PlanningParameters params = new CpPlanParams(kind, compactable, files.get());
 
     log.trace("Planning compactions {} {} {} {}", planner.getClass().getName(),
         compactable.getExtent(), kind, files);
