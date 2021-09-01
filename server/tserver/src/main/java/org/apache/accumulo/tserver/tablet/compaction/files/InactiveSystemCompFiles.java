@@ -36,8 +36,6 @@ public class InactiveSystemCompFiles implements CompactionFiles {
 
   @Override
   public Set<StoredTabletFile> getCandidates(Set<StoredTabletFile> currFiles, CompactionKind kind) {
-    Set<StoredTabletFile> candidates = new HashSet<>(currFiles);
-    candidates.removeAll(allCompactingFiles);
-    return Collections.unmodifiableSet(candidates);
+    return Collections.unmodifiableSet(Sets.difference(currFiles, allCompactingFiles));
   }
 }
