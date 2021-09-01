@@ -58,7 +58,7 @@ function parse_config {
 
   if [[ ! -f ${conf}/cluster.yml ]]; then
     echo "ERROR: A 'cluster.yml' file was not found at ${conf}/cluster.yml"
-    echo "Please make sure it exists and is configured with the host information. Run 'create-config' to create an example configuration."
+    echo "Please make sure it exists and is configured with the host information. Run 'accumulo-cluster create-config' to create an example configuration."
     exit 1
   fi
 
