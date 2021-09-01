@@ -1001,7 +1001,9 @@ public class CompactableImpl implements Compactable {
       Set<StoredTabletFile> candidates = fileMgr.getCandidates(
           Collections.unmodifiableSet(files.keySet()), kind, isCompactionStratConfigured());
 
-      if (kind == CompactionKind.USER && !candidates.isEmpty()) {
+      if (candidates.isEmpty()) {
+        return Optional.empty();
+      } else if (kind == CompactionKind.USER) {
         Map<String,String> hints = compactionConfig.getExecutionHints();
         return Optional.of(new Compactable.Files(files, candidates, runningJobsCopy, hints));
       } else {
