@@ -671,10 +671,23 @@ public enum Property {
       "The replication to use when writing the Write-Ahead log to HDFS. If"
           + " zero, it will use the HDFS default replication setting.",
       "1.5.0"),
+  TSERV_WAL_SORT_MAX_CONCURRENT("tserver.wal.sort.concurrent.max", "2", PropertyType.COUNT,
+      "The maximum number of threads to use to sort logs during recovery", "2.1.0"),
+  @Deprecated(since = "2.1.0")
+  @ReplacedBy(property = Property.TSERV_WAL_SORT_MAX_CONCURRENT)
   TSERV_RECOVERY_MAX_CONCURRENT("tserver.recovery.concurrent.max", "2", PropertyType.COUNT,
-      "The maximum number of threads to use to sort logs during" + " recovery", "1.5.0"),
+      "The maximum number of threads to use to sort logs during recovery", "1.5.0"),
+  TSERV_WAL_SORT_BUFFER_SIZE("tserver.wal.sort.buffer.size", "10%", PropertyType.MEMORY,
+      "The amount of memory to use when sorting logs during recovery.", "2.1.0"),
+  @Deprecated(since = "2.1.0")
+  @ReplacedBy(property = Property.TSERV_WAL_SORT_BUFFER_SIZE)
   TSERV_SORT_BUFFER_SIZE("tserver.sort.buffer.size", "10%", PropertyType.MEMORY,
       "The amount of memory to use when sorting logs during recovery.", "1.5.0"),
+  TSERV_WAL_SORT_FILE_PREFIX("tserver.wal.sort.file.", null, PropertyType.PREFIX,
+      "The rfile properties to use when sorting logs during recovery. Most of the properties"
+          + " that begin with 'table.file' can be used here. For example, to set the compression"
+          + " of the sorted recovery files to snappy use 'tserver.wal.sort.file.compress.type=snappy'",
+      "2.1.0"),
   TSERV_WORKQ_THREADS("tserver.workq.threads", "2", PropertyType.COUNT,
       "The number of threads for the distributed work queue. These threads are"
           + " used for copying failed bulk import RFiles.",

@@ -212,7 +212,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
             var cancelId = Long.parseLong(new String(id, UTF_8));
 
             if (cancelId >= job.getUserCompactionId()) {
-              LOG.info("Cancelling compaction {} because user compaction was canceled");
+              LOG.info("Cancelling compaction {} because user compaction was canceled", ecid);
               JOB_HOLDER.cancel(job.getExternalCompactionId());
               return;
             }

@@ -45,14 +45,14 @@ import org.apache.hadoop.fs.Path;
 
 public class ServerInfo implements ClientInfo {
 
-  private SiteConfiguration siteConfig;
-  private Configuration hadoopConf;
-  private String instanceID;
-  private String instanceName;
-  private String zooKeepers;
-  private int zooKeepersSessionTimeOut;
-  private VolumeManager volumeManager;
-  private ZooCache zooCache;
+  private final SiteConfiguration siteConfig;
+  private final Configuration hadoopConf;
+  private final String instanceID;
+  private final String instanceName;
+  private final String zooKeepers;
+  private final int zooKeepersSessionTimeOut;
+  private final VolumeManager volumeManager;
+  private final ZooCache zooCache;
   private final ServerDirs serverDirs;
 
   ServerInfo(SiteConfiguration siteConfig, String instanceName, String zooKeepers,

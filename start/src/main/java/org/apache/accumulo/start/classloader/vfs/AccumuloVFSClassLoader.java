@@ -414,12 +414,12 @@ public class AccumuloVFSClassLoader {
     }
   }
 
-  public static ClassLoader getContextClassLoader(String context) {
+  public static ClassLoader getContextClassLoader(String contextName) {
     try {
-      return getContextManager().getClassLoader(context);
+      return getContextManager().getClassLoader(contextName);
     } catch (IOException e) {
-      throw new UncheckedIOException("Error getting context class loader for context: " + context,
-          e);
+      throw new UncheckedIOException(
+          "Error getting context class loader for context: " + contextName, e);
     }
   }
 

@@ -34,13 +34,14 @@ import org.easymock.EasyMock;
 public class MockServerContext {
 
   public static ServerContext get() {
-    ServerContext sc = EasyMock.createMock(ServerContext.class);
+    ServerContext context = EasyMock.createMock(ServerContext.class);
     ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     conf.set(Property.INSTANCE_VOLUMES, "file:///");
-    expect(sc.getConfiguration()).andReturn(conf).anyTimes();
-    expect(sc.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance()).anyTimes();
-    expect(sc.getProperties()).andReturn(new Properties()).anyTimes();
-    return sc;
+    expect(context.getConfiguration()).andReturn(conf).anyTimes();
+    expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
+        .anyTimes();
+    expect(context.getProperties()).andReturn(new Properties()).anyTimes();
+    return context;
   }
 
   public static ServerContext getWithZK(String instanceID, String zk, int zkTimeout) {

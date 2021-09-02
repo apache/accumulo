@@ -113,29 +113,29 @@ public class TServerUtilsTest {
     // not dying is enough
   }
 
-  private ServerContext ctx;
+  private ServerContext context;
   private final ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
 
   @Before
   public void createMockServerContext() {
-    ctx = EasyMock.createMock(ServerContext.class);
-    expect(ctx.getZooReaderWriter()).andReturn(null).anyTimes();
-    expect(ctx.getProperties()).andReturn(new Properties()).anyTimes();
-    expect(ctx.getZooKeepers()).andReturn("").anyTimes();
-    expect(ctx.getInstanceName()).andReturn("instance").anyTimes();
-    expect(ctx.getZooKeepersSessionTimeOut()).andReturn(1).anyTimes();
-    expect(ctx.getInstanceID()).andReturn("11111").anyTimes();
-    expect(ctx.getConfiguration()).andReturn(conf).anyTimes();
-    expect(ctx.getThriftServerType()).andReturn(ThriftServerType.THREADPOOL).anyTimes();
-    expect(ctx.getServerSslParams()).andReturn(null).anyTimes();
-    expect(ctx.getSaslParams()).andReturn(null).anyTimes();
-    expect(ctx.getClientTimeoutInMillis()).andReturn((long) 1000).anyTimes();
-    replay(ctx);
+    context = EasyMock.createMock(ServerContext.class);
+    expect(context.getZooReaderWriter()).andReturn(null).anyTimes();
+    expect(context.getProperties()).andReturn(new Properties()).anyTimes();
+    expect(context.getZooKeepers()).andReturn("").anyTimes();
+    expect(context.getInstanceName()).andReturn("instance").anyTimes();
+    expect(context.getZooKeepersSessionTimeOut()).andReturn(1).anyTimes();
+    expect(context.getInstanceID()).andReturn("11111").anyTimes();
+    expect(context.getConfiguration()).andReturn(conf).anyTimes();
+    expect(context.getThriftServerType()).andReturn(ThriftServerType.THREADPOOL).anyTimes();
+    expect(context.getServerSslParams()).andReturn(null).anyTimes();
+    expect(context.getSaslParams()).andReturn(null).anyTimes();
+    expect(context.getClientTimeoutInMillis()).andReturn((long) 1000).anyTimes();
+    replay(context);
   }
 
   @After
   public void verifyMockServerContext() {
-    verify(ctx);
+    verify(context);
   }
 
   @Test
@@ -343,17 +343,18 @@ public class TServerUtilsTest {
   }
 
   private ServerAddress startServer() throws Exception {
-    ClientServiceHandler clientHandler = new ClientServiceHandler(ctx, null);
+    ClientServiceHandler clientHandler = new ClientServiceHandler(context, null);
     Iface rpcProxy = TraceUtil.wrapService(clientHandler);
     Processor<Iface> processor = new Processor<>(rpcProxy);
     // "localhost" explicitly to make sure we can always bind to that interface (avoids DNS
     // misconfiguration)
     String hostname = "localhost";
 
-    return TServerUtils.startServer(Metrics.initSystem(getClass().getSimpleName()), ctx, hostname,
-        Property.TSERV_CLIENTPORT, processor, "TServerUtilsTest", "TServerUtilsTestThread",
-        Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT,
-        Property.TSERV_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+    return TServerUtils.startServer(Metrics.initSystem(getClass().getSimpleName()), context,
+        hostname, Property.TSERV_CLIENTPORT, processor, "TServerUtilsTest",
+        "TServerUtilsTestThread", Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS,
+        Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK,
+        Property.GENERAL_MAX_MESSAGE_SIZE);
 
   }
 }

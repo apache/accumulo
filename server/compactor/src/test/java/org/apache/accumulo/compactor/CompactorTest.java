@@ -164,20 +164,20 @@ public class CompactorTest {
     private final Supplier<UUID> uuid;
     private final ServerAddress address;
     private final TExternalCompactionJob job;
-    private final ServerContext ctx;
+    private final ServerContext context;
     private final ExternalCompactionId eci;
     private volatile boolean completedCalled = false;
     private volatile boolean failedCalled = false;
     private TCompactionState latestState = null;
 
     SuccessfulCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
-        AccumuloConfiguration conf, ServerContext ctx, ExternalCompactionId eci) {
+        AccumuloConfiguration conf, ServerContext context, ExternalCompactionId eci) {
       super(new CompactorServerOpts(), new String[] {"-q", "testQ"}, conf);
       this.conf = conf;
       this.uuid = uuid;
       this.address = address;
       this.job = job;
-      this.ctx = ctx;
+      this.context = context;
       this.eci = eci;
     }
 
@@ -197,7 +197,7 @@ public class CompactorTest {
 
     @Override
     public ServerContext getContext() {
-      return this.ctx;
+      return this.context;
     }
 
     @Override
@@ -265,8 +265,8 @@ public class CompactorTest {
   public class FailedCompactor extends SuccessfulCompactor {
 
     FailedCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
-        AccumuloConfiguration conf, ServerContext ctx, ExternalCompactionId eci) {
-      super(uuid, address, job, conf, ctx, eci);
+        AccumuloConfiguration conf, ServerContext context, ExternalCompactionId eci) {
+      super(uuid, address, job, conf, context, eci);
     }
 
     @Override
@@ -280,8 +280,8 @@ public class CompactorTest {
   public class InterruptedCompactor extends SuccessfulCompactor {
 
     InterruptedCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
-        AccumuloConfiguration conf, ServerContext ctx, ExternalCompactionId eci) {
-      super(uuid, address, job, conf, ctx, eci);
+        AccumuloConfiguration conf, ServerContext context, ExternalCompactionId eci) {
+      super(uuid, address, job, conf, context, eci);
     }
 
     @Override
@@ -335,18 +335,18 @@ public class CompactorTest {
     AccumuloConfiguration conf = PowerMock.createNiceMock(AccumuloConfiguration.class);
     EasyMock.expect(conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT)).andReturn(86400000L);
 
-    ServerContext ctx = PowerMock.createNiceMock(ServerContext.class);
+    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
-    EasyMock.expect(ctx.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    EasyMock.expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
     EasyMock.expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
     VolumeManagerImpl vm = PowerMock.createNiceMock(VolumeManagerImpl.class);
-    EasyMock.expect(ctx.getVolumeManager()).andReturn(vm);
+    EasyMock.expect(context.getVolumeManager()).andReturn(vm);
     vm.close();
 
     PowerMock.replayAll();
 
-    SuccessfulCompactor c = new SuccessfulCompactor(supplier, client, job, conf, ctx, eci);
+    SuccessfulCompactor c = new SuccessfulCompactor(supplier, client, job, conf, context, eci);
     c.run();
 
     PowerMock.verifyAll();
@@ -388,18 +388,18 @@ public class CompactorTest {
     AccumuloConfiguration conf = PowerMock.createNiceMock(AccumuloConfiguration.class);
     EasyMock.expect(conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT)).andReturn(86400000L);
 
-    ServerContext ctx = PowerMock.createNiceMock(ServerContext.class);
+    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
-    EasyMock.expect(ctx.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    EasyMock.expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
     EasyMock.expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
     VolumeManagerImpl vm = PowerMock.createNiceMock(VolumeManagerImpl.class);
-    EasyMock.expect(ctx.getVolumeManager()).andReturn(vm);
+    EasyMock.expect(context.getVolumeManager()).andReturn(vm);
     vm.close();
 
     PowerMock.replayAll();
 
-    FailedCompactor c = new FailedCompactor(supplier, client, job, conf, ctx, eci);
+    FailedCompactor c = new FailedCompactor(supplier, client, job, conf, context, eci);
     c.run();
 
     PowerMock.verifyAll();
@@ -441,18 +441,18 @@ public class CompactorTest {
     AccumuloConfiguration conf = PowerMock.createNiceMock(AccumuloConfiguration.class);
     EasyMock.expect(conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT)).andReturn(86400000L);
 
-    ServerContext ctx = PowerMock.createNiceMock(ServerContext.class);
+    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
-    EasyMock.expect(ctx.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    EasyMock.expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
     EasyMock.expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
     VolumeManagerImpl vm = PowerMock.createNiceMock(VolumeManagerImpl.class);
-    EasyMock.expect(ctx.getVolumeManager()).andReturn(vm);
+    EasyMock.expect(context.getVolumeManager()).andReturn(vm);
     vm.close();
 
     PowerMock.replayAll();
 
-    InterruptedCompactor c = new InterruptedCompactor(supplier, client, job, conf, ctx, eci);
+    InterruptedCompactor c = new InterruptedCompactor(supplier, client, job, conf, context, eci);
     c.run();
 
     PowerMock.verifyAll();
