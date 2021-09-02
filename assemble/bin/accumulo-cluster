@@ -49,12 +49,14 @@ function parse_fail {
 }
 
 function parse_config {
-  if [[ -f ${conf}/slaves ]]; then
-    echo "ERROR: A 'slaves' file was found in ${conf}/"
-    echo "Accumulo now uses cluster host configuration information from 'cluster.yml' and requires that the 'slaves' file not be present to reduce confusion."
-    echo "Please rename the 'slaves' file to 'tservers' or remove it if both exist."
-    exit 1
-  fi
+
+  for file in slaves tservers monitor tracers gc managers masters; do
+    if [[ -f ${conf}/${file} ]]; then
+      echo "ERROR: A '${file}' file was found in ${conf}/"
+      echo "Accumulo now uses cluster host configuration information from 'cluster.yml' and requires that the '${file}' file not be present to reduce confusion."
+      exit 1
+    fi
+  done
 
   if [[ ! -f ${conf}/cluster.yml ]]; then
     echo "ERROR: A 'cluster.yml' file was not found at ${conf}/cluster.yml"
