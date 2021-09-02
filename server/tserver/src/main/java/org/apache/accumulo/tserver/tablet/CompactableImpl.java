@@ -171,7 +171,7 @@ public class CompactableImpl implements Compactable {
    *
    * <p>
    * This class does no synchronization of its own and relies on CompactableImpl to do all needed
-   * synchronization. CompactableImpl must makes changes to files and other state like running jobs
+   * synchronization. CompactableImpl must make changes to files and other state like running jobs
    * in a mutually exclusive manner, so synchronization at this level is unnecessary.
    *
    */
@@ -181,7 +181,7 @@ public class CompactableImpl implements Compactable {
     private CompactionKind selectKind = null;
 
     // Tracks if when a set of files was selected, if at that time the set was all of the tablets
-    // files. Because a set of selected files can be compacted over one or more compactions, its
+    // files. Because a set of selected files can be compacted over one or more compactions, it's
     // important to track this in order to know if the last compaction is a full compaction and
     // should not propagate deletes.
     private boolean initiallySelectedAll = false;
@@ -361,7 +361,7 @@ public class CompactableImpl implements Compactable {
         log.trace("Ignoring because compacting not a subset {}", getExtent());
 
         // A compaction finished, so things are out of date. This can happen because CompactableImpl
-        // and Tablet have separate locks, its ok.
+        // and Tablet have separate locks, it's ok.
         return Set.of();
       }
 
@@ -1044,7 +1044,7 @@ public class CompactableImpl implements Compactable {
   }
 
   /**
-   * Attempt to reserve files for compaction. Its possible that since a compaction job was queued
+   * Attempt to reserve files for compaction. It's possible that since a compaction job was queued
    * that things have changed and there is no longer anything to do for the job. In this case
    * Optional.empty() is returned.
    */
@@ -1378,7 +1378,7 @@ public class CompactableImpl implements Compactable {
   }
 
   /**
-   * Interrupts and waits for any running compactions. After this method returns no compactions
+   * Interrupts and waits for any running compactions. After this method returns, no compactions
    * should be running and none should be able to start.
    */
   public synchronized void close() {
