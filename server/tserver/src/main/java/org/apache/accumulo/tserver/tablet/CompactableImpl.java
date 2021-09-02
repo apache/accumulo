@@ -1001,7 +1001,9 @@ public class CompactableImpl implements Compactable {
       Set<StoredTabletFile> candidates = fileMgr.getCandidates(
           Collections.unmodifiableSet(files.keySet()), kind, isCompactionStratConfigured());
 
-      if (kind == CompactionKind.USER && !candidates.isEmpty()) {
+      if (candidates.isEmpty()) {
+        return Optional.empty();
+      } else if (kind == CompactionKind.USER) {
         Map<String,String> hints = compactionConfig.getExecutionHints();
         return Optional.of(new Compactable.Files(files, candidates, runningJobsCopy, hints));
       } else {
@@ -1106,6 +1108,18 @@ public class CompactableImpl implements Compactable {
 
       cInfo.localHelper = this.chelper;
       cInfo.localCompactionCfg = this.compactionConfig;
+    }
+
+    // Check to ensure the tablet actually has these files now that they are reserved. Compaction
+    // jobs are queued for some period of time and then they try to run. Things could change while
+    // they are queued. This check ensures that the files a job is reserving still exists in the
+    // tablet. Without this check the compaction could run and then fail to commit on the tablet.
+    // The tablet and this class have separate locks that should not be held at the same time. This
+    // check is done after the file are exclusively reserved in this class to avoid race conditions.
+    if (!tablet.getDatafiles().keySet().containsAll(cInfo.jobFiles)) {
+      // The tablet does not know of all these files, so unreserve them.
+      completeCompaction(job, cInfo.jobFiles, null);
+      return Optional.empty();
     }
 
     return Optional.of(cInfo);
