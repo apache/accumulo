@@ -24,7 +24,7 @@ public interface TracerProvider {
 
   /**
    * Get a Tracer for the service
-   * 
+   *
    * @param serviceName
    *          name of the service
    * @return Tracer

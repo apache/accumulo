@@ -68,10 +68,10 @@ public class TraceUtil {
   /**
    * Returns a newly created Context from the TInfo object sent by a remote process. The Context can
    * then be used in this process to continue the tracing. The Context is used like:
-   * 
+   *
    * <preformat> Context remoteCtx = TracerFactory.getContext(tinfo); Span span =
    * TracerFactory.getTracer().spanBuilder(name).setParent(remoteCtx).startSpan(); </preformat>
-   * 
+   *
    * @param tinfo
    *          tracing information
    * @return Context
