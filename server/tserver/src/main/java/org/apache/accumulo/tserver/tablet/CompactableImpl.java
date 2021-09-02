@@ -183,8 +183,7 @@ public class CompactableImpl implements Compactable {
     // Tracks if when a set of files was selected, if at that time the set was all of the tablets
     // files. Because a set of selected files can be compacted over one or more compactions, its
     // important to track this in order to know if the last compaction is a full compaction and
-    // should
-    // not propagate deletes.
+    // should not propagate deletes.
     private boolean initiallySelectedAll = false;
     private Set<StoredTabletFile> selectedFiles = new HashSet<>();
 
@@ -561,9 +560,9 @@ public class CompactableImpl implements Compactable {
 
     Map<ExternalCompactionId,String> extCompactionsToRemove = new HashMap<>();
 
-    var extSelInfo = initializeSelection(extCompactions, tablet, extCompactionsToRemove);
+    var extSelInfo = initExternalSelection(extCompactions, tablet, extCompactionsToRemove);
 
-    sanityCheckExternalCompactions(extCompactions, dataFileSizes.keySet(), extCompactionsToRemove);
+    verifyExternalCompactions(extCompactions, dataFileSizes.keySet(), extCompactionsToRemove);
 
     extCompactionsToRemove.forEach((ecid, reason) -> {
       log.warn("Removing external compaction {} for {} because {} meta: {}", ecid,
@@ -615,7 +614,7 @@ public class CompactableImpl implements Compactable {
     this.fileMgr = new FileManager(tablet.getExtent(), extCompactingFiles, extSelInfo);
   }
 
-  private void sanityCheckExternalCompactions(
+  private void verifyExternalCompactions(
       Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions,
       Set<StoredTabletFile> tabletFiles, Map<ExternalCompactionId,String> extCompactionsToRemove) {
 
@@ -635,7 +634,6 @@ public class CompactableImpl implements Compactable {
         extCompactionsToRemove.putIfAbsent(ecid, "Some external compaction files overlap");
       });
     }
-
   }
 
   private synchronized boolean addJob(CompactionJob job) {
@@ -760,14 +758,14 @@ public class CompactableImpl implements Compactable {
   }
 
   /**
-   * For user compactions a set of files is selected. Then those files compacted by one or more
+   * For user compactions a set of files is selected. Those files then get compacted by one or more
    * compactions until the set is empty. This method attempts to reconstruct the selected set of
-   * files when a tablet is loaded that has an external user compaction. Doing this avoid repeating
-   * work and also when a user compaction completes it does checks against the selected set. So the
-   * selected set must be initialized. Since the data is coming from persisted storage, lots of
-   * sanity checks are done in this method rather than assuming the persisted data is just correct.
+   * files when a tablet is loaded with an external user compaction. It avoids repeating work and
+   * when a user compaction completes, files are verified against the selected set. So the selected
+   * set must be initialized. Since the data is coming from persisted storage, lots of checks are
+   * done in this method rather than assuming the persisted data is correct.
    */
-  private Optional<SelectedInfo> initializeSelection(
+  private Optional<SelectedInfo> initExternalSelection(
       Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions, Tablet tablet,
       Map<ExternalCompactionId,String> externalCompactionsToRemove) {
     CompactionKind extKind = null;
