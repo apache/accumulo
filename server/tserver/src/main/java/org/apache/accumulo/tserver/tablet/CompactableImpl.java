@@ -761,9 +761,9 @@ public class CompactableImpl implements Compactable {
    * For user compactions a set of files is selected. Those files then get compacted by one or more
    * compactions until the set is empty. This method attempts to reconstruct the selected set of
    * files when a tablet is loaded with an external user compaction. It avoids repeating work and
-   * when a user compaction completes, files are verified against the selected set. So the selected
-   * set must be initialized. Since the data is coming from persisted storage, lots of checks are
-   * done in this method rather than assuming the persisted data is correct.
+   * when a user compaction completes, files are verified against the selected set. Since the data
+   * is coming from persisted storage, lots of checks are done in this method rather than assuming
+   * the persisted data is correct.
    */
   private Optional<SelectedInfo> initExternalSelection(
       Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions, Tablet tablet,
