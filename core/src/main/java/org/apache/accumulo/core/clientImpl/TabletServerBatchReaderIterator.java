@@ -74,8 +74,6 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.opentelemetry.context.Context;
-
 public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value>> {
 
   private static final Logger log = LoggerFactory.getLogger(TabletServerBatchReaderIterator.class);
@@ -528,7 +526,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     for (QueryTask queryTask : queryTasks) {
       queryTask.setSemaphore(semaphore, queryTasks.size());
-      queryThreadPool.execute(Context.current().wrap(queryTask));
+      queryThreadPool.execute(queryTask);
     }
   }
 

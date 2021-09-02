@@ -85,8 +85,6 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 
-import io.opentelemetry.context.Context;
-
 class ConditionalWriterImpl implements ConditionalWriter {
 
   private static ThreadPoolExecutor cleanupThreadPool = ThreadPools.createFixedThreadPool(1, 3,
@@ -313,7 +311,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       serverQueue.queue.add(mutations);
       // never execute more than one task per server
       if (!serverQueue.taskQueued) {
-        threadPool.execute(Context.current().wrap(new SendTask(location)));
+        threadPool.execute(new SendTask(location));
         serverQueue.taskQueued = true;
       }
     }
@@ -333,7 +331,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       if (serverQueue.queue.isEmpty())
         serverQueue.taskQueued = false;
       else
-        threadPool.execute(Context.current().wrap(task));
+        threadPool.execute(task);
     }
 
   }

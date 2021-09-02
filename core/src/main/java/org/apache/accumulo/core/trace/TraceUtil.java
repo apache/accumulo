@@ -38,7 +38,6 @@ import io.opentelemetry.context.propagation.TextMapGetter;
 public class TraceUtil {
 
   public static final String INSTRUMENTATION_NAME = "io.opentelemetry.contrib.accumulo";
-  private static final TInfo DONT_TRACE = new TInfo();
   private static Tracer INSTANCE = null;
 
   public static synchronized Tracer getTracer() {

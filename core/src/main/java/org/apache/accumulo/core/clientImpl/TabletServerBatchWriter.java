@@ -703,7 +703,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     void queueMutations(final MutationSet mutationsToSend) {
       if (mutationsToSend == null)
         return;
-      binningThreadPool.execute(Context.current().wrap(() -> {
+      binningThreadPool.execute(() -> {
         if (mutationsToSend != null) {
           try {
             log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
@@ -713,7 +713,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
             updateUnknownErrors("Error processing mutation set", e);
           }
         }
-      }));
+      });
     }
 
     private void addMutations(MutationSet mutationsToSend) {
@@ -769,7 +769,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       for (String server : servers)
         if (!queued.contains(server)) {
-          sendThreadPool.submit(Context.current().wrap(new SendTask(server)));
+          sendThreadPool.submit(new SendTask(server));
           queued.add(server);
         }
     }
