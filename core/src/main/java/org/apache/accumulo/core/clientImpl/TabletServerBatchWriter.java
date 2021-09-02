@@ -83,7 +83,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Joiner;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 
 /*
