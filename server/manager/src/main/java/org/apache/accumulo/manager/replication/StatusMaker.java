@@ -40,16 +40,19 @@ import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
 
 /**
  * Reads replication records from the metadata table and creates status records in the replication
@@ -82,7 +85,9 @@ public class StatusMaker {
   }
 
   public void run() {
-    try (TraceScope span = Trace.startSpan("replicationStatusMaker")) {
+    Tracer tracer = TraceUtil.getTracer();
+    Span span = tracer.spanBuilder("StatusMaker::replicationStatusMaker").startSpan();
+    try (Scope scope = span.makeCurrent()) {
       // Read from a source table (typically accumulo.metadata)
       final Scanner s;
       try {
@@ -125,22 +130,31 @@ public class StatusMaker {
         log.debug("Creating replication status record for {} on table {} with {}.", file, tableId,
             ProtobufUtil.toString(status));
 
-        try (TraceScope workSpan = Trace.startSpan("createStatusMutations")) {
+        Span childSpan = tracer.spanBuilder("StatusMaker::createStatusMutations").startSpan();
+        try (Scope childScope = span.makeCurrent()) {
           // Create entries in the replication table from the metadata table
           if (!addStatusRecord(file, tableId, entry.getValue())) {
             continue;
           }
+        } finally {
+          childSpan.end();
         }
 
         if (status.getClosed()) {
-          try (TraceScope orderSpan = Trace.startSpan("recordStatusOrder")) {
+          Span closedSpan = tracer.spanBuilder("StatusMaker::recordStatusOrder").startSpan();
+          try (Scope childScope = closedSpan.makeCurrent()) {
             if (!addOrderRecord(file, tableId, status, entry.getValue())) {
               continue;
             }
+          } finally {
+            closedSpan.end();
           }
 
-          try (TraceScope deleteSpan = Trace.startSpan("deleteClosedStatus")) {
+          Span deleteSpan = tracer.spanBuilder("StatusMaker::recordStatusOrder").startSpan();
+          try (Scope childScope = deleteSpan.makeCurrent()) {
             deleteStatusRecord(entry.getKey());
+          } finally {
+            deleteSpan.end();
           }
         }
       }

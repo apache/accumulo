@@ -54,6 +54,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
@@ -65,10 +66,12 @@ import org.apache.accumulo.server.problems.ProblemReportingIterator;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
 
 public class FileCompactor implements Callable<CompactionStats> {
   private static final Logger log = LoggerFactory.getLogger(FileCompactor.class);
@@ -336,7 +339,9 @@ public class FileCompactor implements Callable<CompactionStats> {
       boolean inclusive, FileSKVWriter mfw, CompactionStats majCStats)
       throws IOException, CompactionCanceledException {
     ArrayList<FileSKVIterator> readers = new ArrayList<>(filesToCompact.size());
-    try (TraceScope span = Trace.startSpan("compact")) {
+    Tracer tracer = TraceUtil.getTracer();
+    Span compactSpan = tracer.spanBuilder("FileCompactor::compact").startSpan();
+    try (Scope span = compactSpan.makeCurrent()) {
       long entriesCompacted = 0;
       List<SortedKeyValueIterator<Key,Value>> iters = openMapDataFiles(readers);
 
@@ -366,7 +371,8 @@ public class FileCompactor implements Callable<CompactionStats> {
         mfw.startDefaultLocalityGroup();
       }
 
-      try (TraceScope write = Trace.startSpan("write")) {
+      Span writeSpan = tracer.spanBuilder("FileCompactor::write").startSpan();
+      try (Scope write = writeSpan.makeCurrent()) {
         while (itr.hasTop() && env.isCompactionEnabled()) {
           mfw.append(itr.getTopKey(), itr.getTopValue());
           itr.next();
@@ -396,6 +402,7 @@ public class FileCompactor implements Callable<CompactionStats> {
       } finally {
         CompactionStats lgMajcStats = new CompactionStats(citr.getCount(), entriesCompacted);
         majCStats.add(lgMajcStats);
+        writeSpan.end();
       }
 
     } finally {
@@ -407,6 +414,7 @@ public class FileCompactor implements Callable<CompactionStats> {
           log.warn("Failed to close map file", e);
         }
       }
+      compactSpan.end();
     }
   }
 

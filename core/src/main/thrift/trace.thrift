@@ -19,7 +19,8 @@
 namespace java org.apache.accumulo.core.trace.thrift
 namespace cpp org.apache.accumulo.core.trace.thrift
 
+# OpenTelemetry uses the standards at https://www.w3.org/TR/trace-context/
+# to propagate information across process boundaries.
 struct TInfo {
-  1:i64 traceId
-  2:i64 parentId
+  1:map<string,string> headers
 }

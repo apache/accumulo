@@ -64,7 +64,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Condition;
@@ -84,22 +83,15 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.constraints.AlphaNumKeyConstraint;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.SlowIterator;
-import org.apache.accumulo.tracer.TraceDump;
-import org.apache.accumulo.tracer.TraceServer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Sampler;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -132,7 +124,6 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       // Set the min span to 0 so we will definitely get all the traces back. See ACCUMULO-4365
       Map<String,String> siteConf = cfg.getSiteConfig();
-      siteConf.put(Property.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "tracer.span.min.ms", "0");
       cfg.setSiteConfig(siteConf);
     }
   }
@@ -1522,77 +1513,4 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
     }
   }
 
-  @Test
-  public void testTrace() throws Exception {
-    // Need to add a getClientConfig() to AccumuloCluster
-    Process tracer = null;
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      MiniAccumuloClusterImpl mac = getCluster();
-      if (!client.tableOperations().exists("trace")) {
-        tracer = mac.exec(TraceServer.class).getProcess();
-        while (!client.tableOperations().exists("trace")) {
-          sleepUninterruptibly(1, TimeUnit.SECONDS);
-        }
-      }
-
-      String tableName = getUniqueNames(1)[0];
-      client.tableOperations().create(tableName);
-
-      TraceUtil.enableClientTraces("localhost", "testTrace", mac.getClientProperties());
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
-      long rootTraceId;
-      try (TraceScope root = Trace.startSpan("traceTest", Sampler.ALWAYS);
-          ConditionalWriter cw = client.createConditionalWriter(tableName)) {
-        rootTraceId = root.getSpan().getTraceId();
-
-        // mutation conditional on column tx:seq not exiting
-        ConditionalMutation cm0 = new ConditionalMutation("99006", new Condition("tx", "seq"));
-        cm0.put("name", "last", "doe");
-        cm0.put("name", "first", "john");
-        cm0.put("tx", "seq", "1");
-        assertEquals(Status.ACCEPTED, cw.write(cm0).getStatus());
-      }
-
-      try (Scanner scanner = client.createScanner("trace", Authorizations.EMPTY)) {
-        scanner.setRange(new Range(new Text(Long.toHexString(rootTraceId))));
-        loop: while (true) {
-          final StringBuilder finalBuffer = new StringBuilder();
-          int traceCount = TraceDump.printTrace(scanner, line -> {
-            try {
-              finalBuffer.append(line).append("\n");
-            } catch (Exception ex) {
-              throw new RuntimeException(ex);
-            }
-          });
-          String traceOutput = finalBuffer.toString();
-          log.info("Trace output:" + traceOutput);
-          if (traceCount > 0) {
-            String[] parts = ("traceTest, startScan,startConditionalUpdate,conditionalUpdate"
-                + ",Check conditions,apply conditional mutations").split(",");
-            int lastPos = 0;
-            for (String part : parts) {
-              log.info("Looking in trace output for '" + part + "'");
-              int pos = traceOutput.indexOf(part);
-              if (pos == -1) {
-                log.info("Trace output doesn't contain '" + part + "'");
-                Thread.sleep(1000);
-                break loop;
-              }
-              assertTrue("Did not find '" + part + "' in output", pos > 0);
-              assertTrue("'" + part + "' occurred earlier than the previous element unexpectedly",
-                  pos > lastPos);
-              lastPos = pos;
-            }
-            break;
-          } else {
-            log.info("Ignoring trace output as traceCount not greater than zero: " + traceCount);
-            Thread.sleep(1000);
-          }
-        }
-        if (tracer != null) {
-          tracer.destroy();
-        }
-      }
-    }
-  }
 }

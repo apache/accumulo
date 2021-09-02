@@ -43,6 +43,7 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -51,12 +52,13 @@ import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.hadoop.fs.Path;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 class DatafileManager {
   private final Logger log = LoggerFactory.getLogger(DatafileManager.class);
@@ -174,7 +176,8 @@ class DatafileManager {
     long startTime = System.currentTimeMillis();
     TreeSet<StoredTabletFile> inUse = new TreeSet<>();
 
-    try (TraceScope waitForScans = Trace.startSpan("waitForScans")) {
+    Span span = TraceUtil.getTracer().spanBuilder("DatafileManager::waitForScans").startSpan();
+    try (Scope scope = span.makeCurrent()) {
       synchronized (tablet) {
         for (StoredTabletFile path : pathsToWaitFor) {
           while (fileScanReferenceCounts.get(path) > 0
@@ -192,6 +195,8 @@ class DatafileManager {
             inUse.add(path);
         }
       }
+    } finally {
+      span.end();
     }
     return inUse;
   }

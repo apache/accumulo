@@ -31,7 +31,6 @@ public enum ServerType {
   ZOOKEEPER("ZooKeeper"),
   TABLET_SERVER("TServer"),
   GARBAGE_COLLECTOR("GC"),
-  TRACER("Tracer"),
   MONITOR("Monitor");
 
   private final String prettyPrint;

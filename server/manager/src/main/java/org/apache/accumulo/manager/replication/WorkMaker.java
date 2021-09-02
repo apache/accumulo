@@ -38,18 +38,21 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
 
 /**
  * Reads replication records from the replication table and creates work records which include
@@ -74,7 +77,9 @@ public class WorkMaker {
       return;
     }
 
-    try (TraceScope span = Trace.startSpan("replicationWorkMaker")) {
+    Tracer tracer = TraceUtil.getTracer();
+    Span span = tracer.spanBuilder("WorkMaker::replicationWorkMaker").startSpan();
+    try (Scope scope = span.makeCurrent()) {
       final Scanner s;
       try {
         s = ReplicationTable.getScanner(client);
@@ -132,11 +137,16 @@ public class WorkMaker {
         if (replicationTargets.isEmpty()) {
           log.warn("No configured targets for table with ID {}", tableId);
         } else {
-          try (TraceScope workSpan = Trace.startSpan("createWorkMutations")) {
+          Span childSpan = tracer.spanBuilder("WorkMaker::createWorkMutations").startSpan();
+          try (Scope childScope = childSpan.makeCurrent()) {
             addWorkRecord(file, entry.getValue(), replicationTargets, tableId);
+          } finally {
+            childSpan.end();
           }
         }
       }
+    } finally {
+      span.end();
     }
   }
 

@@ -55,8 +55,7 @@ public class StandaloneClusterControl implements ClusterControl {
   private static final String ACCUMULO_SERVICE_SCRIPT = "accumulo-service",
       ACCUMULO_SCRIPT = "accumulo";
   private static final String MANAGER_HOSTS_FILE = "managers", GC_HOSTS_FILE = "gc",
-      TSERVER_HOSTS_FILE = "tservers", TRACER_HOSTS_FILE = "tracers",
-      MONITOR_HOSTS_FILE = "monitor";
+      TSERVER_HOSTS_FILE = "tservers", MONITOR_HOSTS_FILE = "monitor";
 
   String accumuloHome;
   String clientAccumuloConfDir;
@@ -188,11 +187,6 @@ public class StandaloneClusterControl implements ClusterControl {
           start(server, gc);
         }
         break;
-      case TRACER:
-        for (String tracer : getHosts(TRACER_HOSTS_FILE)) {
-          start(server, tracer);
-        }
-        break;
       case MONITOR:
         for (String monitor : getHosts(MONITOR_HOSTS_FILE)) {
           start(server, monitor);
@@ -232,11 +226,6 @@ public class StandaloneClusterControl implements ClusterControl {
       case GARBAGE_COLLECTOR:
         for (String gc : getHosts(GC_HOSTS_FILE)) {
           stop(server, gc);
-        }
-        break;
-      case TRACER:
-        for (String tracer : getHosts(TRACER_HOSTS_FILE)) {
-          stop(server, tracer);
         }
         break;
       case MONITOR:
@@ -332,8 +321,6 @@ public class StandaloneClusterControl implements ClusterControl {
       case MASTER:
       case MANAGER:
         return "manager";
-      case TRACER:
-        return "tracer";
       case MONITOR:
         return "monitor";
       default:

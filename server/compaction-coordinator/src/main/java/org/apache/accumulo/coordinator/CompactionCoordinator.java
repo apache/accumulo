@@ -290,8 +290,7 @@ public class CompactionCoordinator extends AbstractServer
   }
 
   private void updateSummaries() {
-    ExecutorService executor =
-        ThreadPools.createFixedThreadPool(10, "Compaction Summary Gatherer", false);
+    ExecutorService executor = ThreadPools.createFixedThreadPool(10, "Compaction Summary Gatherer");
     try {
       Set<String> queuesSeen = new ConcurrentSkipListSet<>();
 

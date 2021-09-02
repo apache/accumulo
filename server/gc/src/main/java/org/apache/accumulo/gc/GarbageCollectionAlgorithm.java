@@ -35,16 +35,18 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.gc.GarbageCollectionEnvironment.Reference;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class GarbageCollectionAlgorithm {
 
@@ -267,15 +269,23 @@ public class GarbageCollectionAlgorithm {
 
   private void confirmDeletesTrace(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) throws TableNotFoundException {
-    try (TraceScope confirmDeletesSpan = Trace.startSpan("confirmDeletes")) {
+    Span confirmDeletesSpan =
+        TraceUtil.getTracer().spanBuilder("GarbageCollectionAlgorithm::confirmDeletes").startSpan();
+    try (Scope scope = confirmDeletesSpan.makeCurrent()) {
       confirmDeletes(gce, candidateMap);
+    } finally {
+      confirmDeletesSpan.end();
     }
   }
 
   private void deleteConfirmed(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) throws IOException, TableNotFoundException {
-    try (TraceScope deleteSpan = Trace.startSpan("deleteFiles")) {
+    Span deleteSpan =
+        TraceUtil.getTracer().spanBuilder("GarbageCollectionAlgorithm::deleteFiles").startSpan();
+    try (Scope deleteScope = deleteSpan.makeCurrent()) {
       gce.delete(candidateMap);
+    } finally {
+      deleteSpan.end();
     }
 
     cleanUpDeletedTableDirs(gce, candidateMap);
@@ -287,8 +297,12 @@ public class GarbageCollectionAlgorithm {
 
     while (candidatesIter.hasNext()) {
       List<String> batchOfCandidates;
-      try (TraceScope candidatesSpan = Trace.startSpan("getCandidates")) {
+      Span candidatesSpan = TraceUtil.getTracer()
+          .spanBuilder("GarbageCollectionAlgorithm::getCandidates").startSpan();
+      try (Scope candidatesScope = candidatesSpan.makeCurrent()) {
         batchOfCandidates = gce.readCandidatesThatFitInMemory(candidatesIter);
+      } finally {
+        candidatesSpan.end();
       }
       deleteBatch(gce, batchOfCandidates);
     }

@@ -80,16 +80,17 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Trace;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 
+import io.opentelemetry.context.Context;
+
 class ConditionalWriterImpl implements ConditionalWriter {
 
   private static ThreadPoolExecutor cleanupThreadPool = ThreadPools.createFixedThreadPool(1, 3,
-      TimeUnit.SECONDS, "Conditional Writer Cleanup Thread", false);
+      TimeUnit.SECONDS, "Conditional Writer Cleanup Thread");
 
   static {
     cleanupThreadPool.allowCoreThreadTimeOut(true);
@@ -312,7 +313,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       serverQueue.queue.add(mutations);
       // never execute more than one task per server
       if (!serverQueue.taskQueued) {
-        threadPool.execute(Trace.wrap(new SendTask(location)));
+        threadPool.execute(Context.current().wrap(new SendTask(location)));
         serverQueue.taskQueued = true;
       }
     }
@@ -332,7 +333,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       if (serverQueue.queue.isEmpty())
         serverQueue.taskQueued = false;
       else
-        threadPool.execute(Trace.wrap(task));
+        threadPool.execute(Context.current().wrap(task));
     }
 
   }
@@ -367,7 +368,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
     this.threadPool = ThreadPools.createScheduledExecutorService(config.getMaxWriteThreads(),
-        this.getClass().getSimpleName(), false);
+        this.getClass().getSimpleName());
     this.locator = new SyncingTabletLocator(context, tableId);
     this.serverQueues = new HashMap<>();
     this.tableId = tableId;

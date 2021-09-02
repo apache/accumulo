@@ -50,12 +50,14 @@ import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Joiner;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class TableDiskUsage {
 
@@ -300,11 +302,15 @@ public class TableDiskUsage {
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    try (TraceScope clientSpan = opts.parseArgsAndTrace(TableDiskUsage.class.getName(), args)) {
+    Span span = opts.parseArgsAndTrace(TableDiskUsage.class.getName(), args).spanBuilder("main")
+        .startSpan();
+    try (Scope scope = span.makeCurrent()) {
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
         VolumeManager fs = opts.getServerContext().getVolumeManager();
         org.apache.accumulo.server.util.TableDiskUsage.printDiskUsage(opts.tables, fs, client,
             false);
+      } finally {
+        span.end();
       }
     }
   }

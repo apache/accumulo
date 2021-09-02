@@ -123,11 +123,14 @@ public enum ClientProperty {
       "Kerberos principal/primary that Accumulo servers use to login"),
 
   // Trace
+  @Deprecated(since = "2.1.0", forRemoval = true)
   TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient",
       "A list of span receiver classes to send trace spans"),
+  @Deprecated(since = "2.1.0", forRemoval = true)
   TRACE_ZOOKEEPER_PATH("trace.zookeeper.path", Constants.ZTRACERS, PropertyType.PATH,
       "The zookeeper node where tracers are registered", "2.0.0", false);
 
+  @Deprecated(since = "2.1.0", forRemoval = true)
   public static final String TRACE_SPAN_RECEIVER_PREFIX = "trace.span.receiver";
 
   private final String key;

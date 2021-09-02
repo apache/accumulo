@@ -88,8 +88,11 @@ public class ClientConfiguration {
         "UUID of Accumulo instance to connect to"),
 
     // Tracing
+    @Deprecated(since = "2.1.0")
     TRACE_SPAN_RECEIVERS(Property.TRACE_SPAN_RECEIVERS),
+    @Deprecated(since = "2.1.0")
     TRACE_SPAN_RECEIVER_PREFIX(Property.TRACE_SPAN_RECEIVER_PREFIX),
+    @Deprecated(since = "2.1.0")
     TRACE_ZK_PATH(Property.TRACE_ZK_PATH),
 
     // SASL / GSSAPI(Kerberos)

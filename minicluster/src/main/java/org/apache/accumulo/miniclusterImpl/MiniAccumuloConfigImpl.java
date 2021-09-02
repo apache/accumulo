@@ -111,6 +111,7 @@ public class MiniAccumuloConfigImpl {
   /**
    * Set directories and fully populate site config
    */
+  @SuppressWarnings("deprecation")
   MiniAccumuloConfigImpl initialize() {
 
     // Sanity checks

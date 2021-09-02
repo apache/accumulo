@@ -73,11 +73,11 @@ public class CompactionFinalizer {
     int max = this.context.getConfiguration()
         .getCount(Property.COMPACTION_COORDINATOR_FINALIZER_TSERVER_NOTIFIER_MAXTHREADS);
 
-    this.ntfyExecutor = ThreadPools.createThreadPool(3, max, 1, TimeUnit.MINUTES,
-        "Compaction Finalizer Notifier", false);
+    this.ntfyExecutor =
+        ThreadPools.createThreadPool(3, max, 1, TimeUnit.MINUTES, "Compaction Finalizer Notifier");
 
     this.backgroundExecutor =
-        ThreadPools.createFixedThreadPool(1, "Compaction Finalizer Background Task", false);
+        ThreadPools.createFixedThreadPool(1, "Compaction Finalizer Background Task");
 
     backgroundExecutor.execute(() -> {
       processPending();

@@ -58,8 +58,6 @@ import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.test.categories.SunnyDayTests;
-import org.apache.accumulo.tracer.TraceServer;
-import org.apache.accumulo.tracer.TracerExecutable;
 import org.apache.accumulo.tserver.TServerExecutable;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.logger.LogReader;
@@ -122,7 +120,6 @@ public class KeywordStartIT {
     expectSet.put("rfile-info", PrintInfo.class);
     expectSet.put("wal-info", LogReader.class);
     expectSet.put("shell", Shell.class);
-    expectSet.put("tracer", TracerExecutable.class);
     expectSet.put("tserver", TServerExecutable.class);
     expectSet.put("version", Version.class);
     expectSet.put("zookeeper", ZooKeeperMain.class);
@@ -176,7 +173,6 @@ public class KeywordStartIT {
     expectSet.add(Shell.class);
     expectSet.add(SimpleGarbageCollector.class);
     expectSet.add(TabletServer.class);
-    expectSet.add(TraceServer.class);
     expectSet.add(ZooKeeperMain.class);
 
     for (Class<?> c : expectSet) {

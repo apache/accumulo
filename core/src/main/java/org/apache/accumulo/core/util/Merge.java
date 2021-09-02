@@ -40,12 +40,15 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.context.Scope;
 
 public class Merge {
 
@@ -96,7 +99,9 @@ public class Merge {
 
   public void start(String[] args) throws MergeException {
     Opts opts = new Opts();
-    try (TraceScope clientTrace = opts.parseArgsAndTrace(Merge.class.getName(), args)) {
+    Span span =
+        opts.parseArgsAndTrace(Merge.class.getName(), args).spanBuilder("start").startSpan();
+    try (Scope scope = span.makeCurrent()) {
 
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
 
@@ -113,7 +118,10 @@ public class Merge {
         message("Merging tablets in table %s to %d bytes", opts.tableName, opts.goalSize);
         mergomatic(client, opts.tableName, opts.begin, opts.end, opts.goalSize, opts.force);
       } catch (Exception ex) {
+        span.setStatus(StatusCode.ERROR, ex.getMessage());
         throw new MergeException(ex);
+      } finally {
+        span.end();
       }
     }
   }

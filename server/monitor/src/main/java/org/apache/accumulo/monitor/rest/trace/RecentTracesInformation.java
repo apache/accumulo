@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.monitor.rest.trace;
 
-import org.apache.accumulo.tracer.thrift.RemoteSpan;
-
 /**
  * Generates a recent trace
  *
@@ -51,25 +49,4 @@ public class RecentTracesInformation {
     this.type = type;
   }
 
-  /**
-   * Adds a span for the trace
-   *
-   * @param span
-   *          Remote span to obtain information
-   */
-  public void addSpan(RemoteSpan span) {
-    total++;
-    long ms = span.stop - span.start;
-    totalMS += ms;
-    min = Math.min(min, ms);
-    max = Math.max(max, ms);
-    int index = 0;
-    while (ms >= 10 && index < histogram.length) {
-      ms /= 10;
-      index++;
-    }
-    histogram[index]++;
-
-    avg = total != 0 ? totalMS / total : null;
-  }
 }

@@ -24,7 +24,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.hadoop.metrics2.MetricsSystem;
@@ -52,7 +51,6 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
     context.init(appName);
     ClassLoaderUtil.initContextFactory(context.getConfiguration());
     this.metricsSystem = Metrics.initSystem(getClass().getSimpleName());
-    TraceUtil.enableServerTraces(hostname, appName, context.getConfiguration());
     if (context.getSaslParams() != null) {
       // Server-side "client" check to make sure we're logged in as a user we expect to be
       context.enforceKerberosLogin();
@@ -99,8 +97,6 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
   }
 
   @Override
-  public void close() {
-    TraceUtil.disable();
-  }
+  public void close() {}
 
 }

@@ -96,9 +96,6 @@ import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
-import org.apache.htrace.impl.ProbabilitySampler;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,6 +106,9 @@ import com.google.common.collect.Maps;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
 
 // Could/Should implement HighlyAvaialbleService but the Thrift server is already started before
 // the ZK lock is acquired. The server is only for metrics, there are no concerns about clients
@@ -478,9 +478,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       return;
     }
 
-    ProbabilitySampler sampler =
-        TraceUtil.probabilitySampler(getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
-
     // This is created outside of the run loop and passed to the walogCollector so that
     // only a single timed task is created (internal to LiveTServerSet using SimpleTimer.
     final LiveTServerSet liveTServerSet =
@@ -493,9 +490,12 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           }
         });
 
+    Tracer tracer = TraceUtil.getTracer();
     while (true) {
-      try (TraceScope gcOuterSpan = Trace.startSpan("gc", sampler)) {
-        try (TraceScope gcSpan = Trace.startSpan("loop")) {
+      Span outerSpan = tracer.spanBuilder("SimpleGarbageCollector::gc").startSpan();
+      try (Scope outerScope = outerSpan.makeCurrent()) {
+        Span innerSpan = tracer.spanBuilder("SimpleGarbageCollector::loop").startSpan();
+        try (Scope innerScope = innerSpan.makeCurrent()) {
           final long tStart = System.nanoTime();
           try {
             System.gc(); // make room
@@ -529,15 +529,20 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
            * are no longer referenced in the metadata table before running
            * GarbageCollectWriteAheadLogs to ensure we delete as many files as possible.
            */
-          try (TraceScope replSpan = Trace.startSpan("replicationClose")) {
+          Span replSpan =
+              tracer.spanBuilder("SimpleGarbageCollector::replicationClose").startSpan();
+          try (Scope replScope = replSpan.makeCurrent()) {
             CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(getContext());
             closeWals.run();
           } catch (Exception e) {
             log.error("Error trying to close write-ahead logs for replication table", e);
+          } finally {
+            replSpan.end();
           }
 
           // Clean up any unused write-ahead logs
-          try (TraceScope waLogs = Trace.startSpan("walogs")) {
+          Span walSpan = tracer.spanBuilder("SimpleGarbageCollector::walogs").startSpan();
+          try (Scope walScope = walSpan.makeCurrent()) {
             GarbageCollectWriteAheadLogs walogCollector =
                 new GarbageCollectWriteAheadLogs(getContext(), fs, liveTServerSet, isUsingTrash());
             log.info("Beginning garbage collection of write-ahead logs");
@@ -545,7 +550,11 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
             gcCycleMetrics.setLastWalCollect(status.lastLog);
           } catch (Exception e) {
             log.error("{}", e.getMessage(), e);
+          } finally {
+            walSpan.end();
           }
+        } finally {
+          innerSpan.end();
         }
 
         // we just made a lot of metadata changes: flush them out
@@ -580,6 +589,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         } catch (Exception e) {
           log.warn("{}", e.getMessage(), e);
         }
+      } finally {
+        outerSpan.end();
       }
       try {
         gcCycleMetrics.incrementRunCycleCount();

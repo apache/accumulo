@@ -31,11 +31,13 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class RandomWriter {
 
@@ -97,7 +99,10 @@ public class RandomWriter {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.principal = "root";
-    try (TraceScope clientSpan = opts.parseArgsAndTrace(RandomWriter.class.getName(), args)) {
+
+    Span span =
+        opts.parseArgsAndTrace(RandomWriter.class.getName(), args).spanBuilder("main").startSpan();
+    try (Scope scope = span.makeCurrent()) {
       long start = System.currentTimeMillis();
       Properties clientProps = opts.getClientProps();
       String principal = ClientProperty.AUTH_PRINCIPAL.getValue(clientProps);
@@ -114,6 +119,8 @@ public class RandomWriter {
 
       log.info("stopping at {}", stop);
       log.info("elapsed: {}", (((double) stop - (double) start) / 1000.0));
+    } finally {
+      span.end();
     }
   }
 

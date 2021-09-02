@@ -41,18 +41,24 @@ import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.Listener;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
-import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class FindOfflineTablets {
   private static final Logger log = LoggerFactory.getLogger(FindOfflineTablets.class);
 
   public static void main(String[] args) throws Exception {
     ServerUtilOpts opts = new ServerUtilOpts();
-    try (TraceScope clientSpan = opts.parseArgsAndTrace(FindOfflineTablets.class.getName(), args)) {
+    Span span = opts.parseArgsAndTrace(FindOfflineTablets.class.getName(), args).spanBuilder("main")
+        .startSpan();
+    try (Scope scope = span.makeCurrent()) {
       ServerContext context = opts.getServerContext();
       findOffline(context, null);
+    } finally {
+      span.end();
     }
   }
 

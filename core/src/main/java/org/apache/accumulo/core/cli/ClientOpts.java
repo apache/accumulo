@@ -35,10 +35,7 @@ import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.htrace.NullScope;
-import org.apache.htrace.Sampler;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
+import org.apache.accumulo.core.trace.TraceUtil;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
@@ -46,6 +43,8 @@ import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.converters.IParameterSplitter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Tracer;
 
 public class ClientOpts extends Help {
 
@@ -181,9 +180,13 @@ public class ClientOpts extends Help {
     return ConfigOpts.getOverrides(overrides);
   }
 
-  public TraceScope parseArgsAndTrace(String programName, String[] args, Object... others) {
+  public Tracer parseArgsAndTrace(String programName, String[] args, Object... others) {
     parseArgs(programName, args, others);
-    return trace ? Trace.startSpan(programName, Sampler.ALWAYS) : NullScope.INSTANCE;
+    if (trace) {
+      return TraceUtil.getTracer();
+    } else {
+      return OpenTelemetry.noop().getTracer(TraceUtil.INSTRUMENTATION_NAME);
+    }
   }
 
   @Override

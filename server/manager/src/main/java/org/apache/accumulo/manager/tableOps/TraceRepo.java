@@ -22,46 +22,58 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
-import org.apache.htrace.TraceScope;
 
 import com.google.gson.Gson;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.Scope;
 
 public class TraceRepo<T> implements Repo<T> {
 
   private static final long serialVersionUID = 1L;
 
-  long traceId;
-  long parentId;
+  TInfo tinfo;
   Repo<T> repo;
 
   public TraceRepo(Repo<T> repo) {
     this.repo = repo;
-    TInfo tinfo = TraceUtil.traceInfo();
-    traceId = tinfo.traceId;
-    parentId = tinfo.parentId;
+    tinfo = TraceUtil.traceInfo();
   }
 
   @Override
   public long isReady(long tid, T environment) throws Exception {
-    try (TraceScope t = TraceUtil.trace(new TInfo(traceId, parentId), repo.getDescription())) {
+    Context ctx = TraceUtil.getContext(tinfo);
+    Span span = TraceUtil.getTracer().spanBuilder(repo.getDescription()).setParent(ctx).startSpan();
+    try (Scope scope = span.makeCurrent()) {
       return repo.isReady(tid, environment);
+    } finally {
+      span.end();
     }
   }
 
   @Override
   public Repo<T> call(long tid, T environment) throws Exception {
-    try (TraceScope t = TraceUtil.trace(new TInfo(traceId, parentId), repo.getDescription())) {
+    Context ctx = TraceUtil.getContext(tinfo);
+    Span span = TraceUtil.getTracer().spanBuilder(repo.getDescription()).setParent(ctx).startSpan();
+    try (Scope scope = span.makeCurrent()) {
       Repo<T> result = repo.call(tid, environment);
       if (result == null)
         return null;
       return new TraceRepo<>(result);
+    } finally {
+      span.end();
     }
   }
 
   @Override
   public void undo(long tid, T environment) throws Exception {
-    try (TraceScope t = TraceUtil.trace(new TInfo(traceId, parentId), repo.getDescription())) {
+    Context ctx = TraceUtil.getContext(tinfo);
+    Span span = TraceUtil.getTracer().spanBuilder(repo.getDescription()).setParent(ctx).startSpan();
+    try (Scope scope = span.makeCurrent()) {
       repo.undo(tid, environment);
+    } finally {
+      span.end();
     }
   }
 

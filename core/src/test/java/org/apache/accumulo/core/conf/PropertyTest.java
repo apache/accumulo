@@ -96,6 +96,7 @@ public class PropertyTest {
   }
 
   // This test verifies all "sensitive" properties are properly marked as sensitive
+  @SuppressWarnings("deprecation")
   @Test
   public void testSensitiveKeys() {
     // add trace token, because it's a sensitive property not in the default configuration

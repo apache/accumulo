@@ -41,13 +41,18 @@ import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.htrace.TraceScope;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class LocalityCheck {
 
   public int run(String[] args) throws Exception {
     ServerUtilOpts opts = new ServerUtilOpts();
-    try (TraceScope clientSpan = opts.parseArgsAndTrace(LocalityCheck.class.getName(), args)) {
+
+    Span span =
+        opts.parseArgsAndTrace(LocalityCheck.class.getName(), args).spanBuilder("run").startSpan();
+    try (Scope scope = span.makeCurrent()) {
 
       VolumeManager fs = opts.getServerContext().getVolumeManager();
       try (AccumuloClient accumuloClient =
@@ -82,6 +87,8 @@ public class LocalityCheck {
         }
       }
       return 0;
+    } finally {
+      span.end();
     }
   }
 

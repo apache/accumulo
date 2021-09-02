@@ -48,9 +48,11 @@ import org.apache.accumulo.server.manager.state.MergeState;
 import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class MergeStats {
   final static private Logger log = LoggerFactory.getLogger(MergeStats.class);
@@ -260,8 +262,10 @@ public class MergeStats {
 
   public static void main(String[] args) throws Exception {
     ServerUtilOpts opts = new ServerUtilOpts();
-    try (TraceScope clientSpan = opts.parseArgsAndTrace(MergeStats.class.getName(), args)) {
 
+    Span span =
+        opts.parseArgsAndTrace(MergeStats.class.getName(), args).spanBuilder("main").startSpan();
+    try (Scope scope = span.makeCurrent()) {
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
         Map<String,String> tableIdMap = client.tableOperations().tableIdMap();
         ZooReaderWriter zooReaderWriter = opts.getServerContext().getZooReaderWriter();
@@ -280,6 +284,8 @@ public class MergeStats {
               info.getOperation(), info.getExtent()));
         }
       }
+    } finally {
+      span.end();
     }
   }
 }

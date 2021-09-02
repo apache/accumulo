@@ -73,8 +73,6 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -83,6 +81,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.Scope;
 
 /*
  * Differences from previous TabletServerBatchWriter
@@ -302,7 +304,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
     if (closed)
       throw new IllegalStateException("Closed");
 
-    try (TraceScope span = Trace.startSpan("flush")) {
+    Span span = TraceUtil.getTracer().spanBuilder("TabletServerBatchWriter::flush").startSpan();
+    try (Scope scope = span.makeCurrent()) {
       checkForFailures();
 
       if (flushing) {
@@ -325,6 +328,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
       this.notifyAll();
 
       checkForFailures();
+    } finally {
+      span.end();
     }
   }
 
@@ -334,7 +339,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
     if (closed)
       return;
 
-    try (TraceScope span = Trace.startSpan("close")) {
+    Span span = TraceUtil.getTracer().spanBuilder("TabletServerBatchWriter::close").startSpan();
+    try (Scope scope = span.makeCurrent()) {
       closed = true;
 
       startProcessing();
@@ -345,6 +351,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       checkForFailures();
     } finally {
+      span.end();
       // make a best effort to release these resources
       writer.binningThreadPool.shutdownNow();
       writer.sendThreadPool.shutdownNow();
@@ -633,11 +640,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<>();
       queued = new HashSet<>();
-      sendThreadPool =
-          ThreadPools.createFixedThreadPool(numSendThreads, this.getClass().getName(), false);
+      sendThreadPool = ThreadPools.createFixedThreadPool(numSendThreads, this.getClass().getName());
       locators = new HashMap<>();
       binningThreadPool =
-          ThreadPools.createFixedThreadPool(1, "BinMutations", new SynchronousQueue<>(), false);
+          ThreadPools.createFixedThreadPool(1, "BinMutations", new SynchronousQueue<>());
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
@@ -697,7 +703,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     void queueMutations(final MutationSet mutationsToSend) {
       if (mutationsToSend == null)
         return;
-      binningThreadPool.execute(Trace.wrap(() -> {
+      binningThreadPool.execute(Context.current().wrap(() -> {
         if (mutationsToSend != null) {
           try {
             log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
@@ -712,11 +718,15 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
     private void addMutations(MutationSet mutationsToSend) {
       Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
-      try (TraceScope span = Trace.startSpan("binMutations")) {
+      Span span =
+          TraceUtil.getTracer().spanBuilder("TabletServerBatchWriter::binMutations").startSpan();
+      try (Scope scope = span.makeCurrent()) {
         long t1 = System.currentTimeMillis();
         binMutations(mutationsToSend, binnedMutations);
         long t2 = System.currentTimeMillis();
         updateBinningStats(mutationsToSend.size(), (t2 - t1), binnedMutations);
+      } finally {
+        span.end();
       }
       addMutations(binnedMutations);
     }
@@ -759,7 +769,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       for (String server : servers)
         if (!queued.contains(server)) {
-          sendThreadPool.submit(Trace.wrap(new SendTask(server)));
+          sendThreadPool.submit(Context.current().wrap(new SendTask(server)));
           queued.add(server);
         }
     }
@@ -820,7 +830,9 @@ public class TabletServerBatchWriter implements AutoCloseable {
               + Joiner.on(',').join(tableIds) + ']';
           Thread.currentThread().setName(msg);
 
-          try (TraceScope span = Trace.startSpan("sendMutations")) {
+          Span span = TraceUtil.getTracer().spanBuilder("TabletServerBatchWriter::sendMutations")
+              .startSpan();
+          try (Scope scope = span.makeCurrent()) {
 
             TimeoutTracker timeoutTracker = timeoutTrackers.get(location);
             if (timeoutTracker == null) {
@@ -851,6 +863,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
             updateSendStats(count, st2 - st1);
             decrementMemUsed(successBytes);
 
+          } finally {
+            span.end();
           }
         } catch (IOException e) {
           if (log.isTraceEnabled())

@@ -600,8 +600,10 @@ public enum Property {
       "1.8.0"),
   TSERV_MINC_MAXCONCURRENT("tserver.compaction.minor.concurrent.max", "4", PropertyType.COUNT,
       "The maximum number of concurrent minor compactions for a tablet server", "1.3.5"),
+  @Deprecated(since = "2.1.0", forRemoval = true)
   TSERV_MAJC_TRACE_PERCENT("tserver.compaction.major.trace.percent", "0.1", PropertyType.FRACTION,
       "The percent of major compactions to trace", "1.7.0"),
+  @Deprecated(since = "2.1.0", forRemoval = true)
   TSERV_MINC_TRACE_PERCENT("tserver.compaction.minor.trace.percent", "0.1", PropertyType.FRACTION,
       "The percent of minor compactions to trace", "1.7.0"),
   TSERV_COMPACTION_WARN_TIME("tserver.compaction.warn.time", "10m", PropertyType.TIMEDURATION,
@@ -757,6 +759,7 @@ public enum Property {
       "The number of threads used to delete RFiles and write-ahead logs", "1.3.5"),
   GC_TRASH_IGNORE("gc.trash.ignore", "false", PropertyType.BOOLEAN,
       "Do not use the Trash, even if it is configured.", "1.5.0"),
+  @Deprecated(since = "2.1.0", forRemoval = true)
   GC_TRACE_PERCENT("gc.trace.percent", "0.01", PropertyType.FRACTION,
       "Percent of gc cycles to trace", "1.7.0"),
   GC_SAFEMODE("gc.safemode", "false", PropertyType.BOOLEAN,
@@ -816,28 +819,38 @@ public enum Property {
           + " accumulo/server/monitor/src/main/resources/templates/default.ftl",
       "2.0.0"),
 
+  @Deprecated(since = "2.1.0")
   TRACE_PREFIX("trace.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of distributed tracing.", "1.3.5"),
+  @Deprecated(since = "2.1.0")
   TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient",
       PropertyType.CLASSNAMELIST, "A list of span receiver classes to send trace spans", "1.7.0"),
+  @Deprecated(since = "2.1.0")
   TRACE_SPAN_RECEIVER_PREFIX("trace.span.receiver.", null, PropertyType.PREFIX,
       "Prefix for span receiver configuration properties", "1.7.0"),
+  @Deprecated(since = "2.1.0")
   TRACE_ZK_PATH("trace.zookeeper.path", Constants.ZTRACERS, PropertyType.STRING,
       "The zookeeper node where tracers are registered", "1.7.0"),
+  @Deprecated(since = "2.1.0")
   TRACE_PORT("trace.port.client", "12234", PropertyType.PORT,
       "The listening port for the trace server", "1.3.5"),
+  @Deprecated(since = "2.1.0")
   TRACE_TABLE("trace.table", "trace", PropertyType.STRING,
       "The name of the table to store distributed traces", "1.3.5"),
+  @Deprecated(since = "2.1.0")
   TRACE_USER("trace.user", "root", PropertyType.STRING,
       "The name of the user to store distributed traces", "1.3.5"),
   @Sensitive
+  @Deprecated(since = "2.1.0")
   TRACE_PASSWORD("trace.password", "secret", PropertyType.STRING,
       "The password for the user used to store distributed traces", "1.3.5"),
   @Sensitive
+  @Deprecated(since = "2.1.0")
   TRACE_TOKEN_PROPERTY_PREFIX("trace.token.property.", null, PropertyType.PREFIX,
       "The prefix used to create a token for storing distributed traces. For"
           + " each property required by trace.token.type, place this prefix in front of it.",
       "1.5.0"),
+  @Deprecated(since = "2.1.0")
   TRACE_TOKEN_TYPE("trace.token.type", PasswordToken.class.getName(), PropertyType.CLASSNAME,
       "An AuthenticationToken type supported by the authorizer", "1.5.0"),
 
@@ -1213,6 +1226,7 @@ public enum Property {
       "Amount of time to wait before re-checking for replication work, not"
           + " useful outside of tests",
       "1.7.0"),
+  @Deprecated(since = "2.1.0", forRemoval = true)
   REPLICATION_TRACE_PERCENT("replication.trace.percent", "0.1", PropertyType.FRACTION,
       "The sampling percentage to use for replication traces", "1.7.0"),
   REPLICATION_RPC_TIMEOUT("replication.rpc.timeout", "2m", PropertyType.TIMEDURATION,

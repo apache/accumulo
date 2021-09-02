@@ -43,12 +43,14 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.htrace.TraceScope;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
 import com.beust.jcommander.Parameter;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class ChangeSecret {
 
@@ -73,8 +75,10 @@ public class ChangeSecret {
       argsList.add("--old");
       argsList.add("--new");
       argsList.addAll(Arrays.asList(args));
-      try (TraceScope clientSpan =
-          opts.parseArgsAndTrace(ChangeSecret.class.getName(), argsList.toArray(new String[0]))) {
+
+      Span span = opts.parseArgsAndTrace(ChangeSecret.class.getName(), args).spanBuilder("main")
+          .startSpan();
+      try (Scope scope = span.makeCurrent()) {
 
         ServerContext context = opts.getServerContext();
         verifyAccumuloIsDown(context, opts.oldPass);
@@ -87,6 +91,8 @@ public class ChangeSecret {
         }
         System.out.println("New instance id is " + newInstanceId);
         System.out.println("Be sure to put your new secret in accumulo.properties");
+      } finally {
+        span.end();
       }
     }
   }

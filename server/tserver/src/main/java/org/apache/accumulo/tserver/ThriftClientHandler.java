@@ -113,6 +113,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Halt;
@@ -150,8 +151,6 @@ import org.apache.hadoop.fs.FSError;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
@@ -159,6 +158,11 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.Cache;
 import com.google.common.collect.Collections2;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
 
 public class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
 
@@ -744,7 +748,9 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       server.resourceManager.waitUntilCommitsAreEnabled();
     }
 
-    try (TraceScope prep = Trace.startSpan("prep")) {
+    Tracer tracer = TraceUtil.getTracer();
+    Span span = tracer.spanBuilder("ThriftClientHandler::flush::prep").startSpan();
+    try (Scope scope = span.makeCurrent()) {
       for (Entry<Tablet,? extends List<Mutation>> entry : us.queuedMutations.entrySet()) {
 
         Tablet tablet = entry.getKey();
@@ -788,6 +794,8 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
           }
         }
       }
+    } finally {
+      span.end();
     }
 
     long pt2 = System.currentTimeMillis();
@@ -799,7 +807,8 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       throw new RuntimeException(error);
     }
     try {
-      try (TraceScope wal = Trace.startSpan("wal")) {
+      Span span2 = tracer.spanBuilder("ThriftClientHandler::flush::wal").startSpan();
+      try (Scope scope = span2.makeCurrent()) {
         while (true) {
           try {
             long t1 = System.currentTimeMillis();
@@ -815,12 +824,17 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
           } catch (Exception t) {
             log.error("Unknown exception logging mutations, counts"
                 + " for mutations in flight not decremented!", t);
+            span2.setStatus(StatusCode.ERROR, "Unknown exception logging mutations, counts"
+                + " for mutations in flight not decremented!");
             throw new RuntimeException(t);
           }
         }
+      } finally {
+        span2.end();
       }
 
-      try (TraceScope commit = Trace.startSpan("commit")) {
+      Span span3 = tracer.spanBuilder("ThriftClientHandler::flush::commit").startSpan();
+      try (Scope scope = span3.makeCurrent()) {
         long t1 = System.currentTimeMillis();
         sendables.forEach((commitSession, mutations) -> {
           commitSession.commit(mutations);
@@ -841,6 +855,8 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         us.commitTimes.addStat(t2 - t1);
 
         updateAvgCommitTime(t2 - t1, sendables.size());
+      } finally {
+        span3.end();
       }
     } finally {
       us.queuedMutations.clear();
@@ -958,9 +974,13 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       final List<Mutation> mutations = Collections.singletonList(mutation);
 
       PreparedMutations prepared;
-      try (TraceScope prep = Trace.startSpan("prep")) {
+      Tracer tracer = TraceUtil.getTracer();
+      Span span = tracer.spanBuilder("ThriftClientHandler::update::prep").startSpan();
+      try (Scope scope = span.makeCurrent()) {
         prepared = tablet.prepareMutationsForCommit(
             new TservConstraintEnv(server.getContext(), security, credentials), mutations);
+      } finally {
+        span.end();
       }
 
       if (prepared.tabletClosed()) {
@@ -976,8 +996,11 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         // Instead of always looping on true, skip completely when durability is NONE.
         while (durability != Durability.NONE) {
           try {
-            try (TraceScope wal = Trace.startSpan("wal")) {
+            Span span2 = tracer.spanBuilder("ThriftClientHandler::update::wal").startSpan();
+            try (Scope scope = span2.makeCurrent()) {
               server.logger.log(session, mutation, durability);
+            } finally {
+              span2.end();
             }
             break;
           } catch (IOException ex) {
@@ -985,8 +1008,11 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
           }
         }
 
-        try (TraceScope commit = Trace.startSpan("commit")) {
+        Span span3 = tracer.spanBuilder("ThriftClientHandler::update::commit").startSpan();
+        try (Scope scope = span3.makeCurrent()) {
           session.commit(mutations);
+        } finally {
+          span3.end();
         }
       }
     } finally {
@@ -1059,7 +1085,10 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
     boolean sessionCanceled = sess.interruptFlag.get();
 
-    try (TraceScope prepSpan = Trace.startSpan("prep")) {
+    Tracer tracer = TraceUtil.getTracer();
+    Span span =
+        tracer.spanBuilder("ThriftClientHandler::writeConditionalMutations::prep").startSpan();
+    try (Scope scope = span.makeCurrent()) {
       long t1 = System.currentTimeMillis();
       for (Entry<KeyExtent,List<ServerConditionalMutation>> entry : es) {
         final Tablet tablet = server.getOnlineTablet(entry.getKey());
@@ -1100,9 +1129,13 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
       long t2 = System.currentTimeMillis();
       updateAvgPrepTime(t2 - t1, es.size());
+    } finally {
+      span.end();
     }
 
-    try (TraceScope walSpan = Trace.startSpan("wal")) {
+    Span span2 =
+        tracer.spanBuilder("ThriftClientHandler::writeConditionalMutations::wal").startSpan();
+    try (Scope scope = span2.makeCurrent()) {
       while (!loggables.isEmpty()) {
         try {
           long t1 = System.currentTimeMillis();
@@ -1115,16 +1148,24 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         } catch (Exception t) {
           log.error("Unknown exception logging mutations, counts for"
               + " mutations in flight not decremented!", t);
+          span2.setStatus(StatusCode.ERROR, "Unknown exception logging mutations, counts for"
+              + " mutations in flight not decremented!");
           throw new RuntimeException(t);
         }
       }
+    } finally {
+      span2.end();
     }
 
-    try (TraceScope commitSpan = Trace.startSpan("commit")) {
+    Span span3 =
+        tracer.spanBuilder("ThriftClientHandler::writeConditionalMutations::commit").startSpan();
+    try (Scope scope = span3.makeCurrent()) {
       long t1 = System.currentTimeMillis();
       sendables.forEach(CommitSession::commit);
       long t2 = System.currentTimeMillis();
       updateAvgCommitTime(t2 - t1, sendables.size());
+    } finally {
+      span3.end();
     }
   }
 
@@ -1155,12 +1196,22 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     // get as many locks as possible w/o blocking... defer any rows that are locked
     List<RowLock> locks = rowLocks.acquireRowlocks(updates, deferred);
     try {
-      try (TraceScope checkSpan = Trace.startSpan("Check conditions")) {
+      Tracer tracer = TraceUtil.getTracer();
+      Span span = tracer.spanBuilder("ThriftClientHandler::conditionalUpdate::Check conditions")
+          .startSpan();
+      try (Scope scope = span.makeCurrent()) {
         checkConditions(updates, results, cs, symbols);
+      } finally {
+        span.end();
       }
 
-      try (TraceScope updateSpan = Trace.startSpan("apply conditional mutations")) {
+      Span span2 =
+          tracer.spanBuilder("ThriftClientHandler::conditionalUpdate::apply conditional mutations")
+              .startSpan();
+      try (Scope scope = span2.makeCurrent()) {
         writeConditionalMutations(updates, results, cs);
+      } finally {
+        span2.end();
       }
     } finally {
       rowLocks.releaseRowLocks(locks);

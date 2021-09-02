@@ -90,6 +90,7 @@ import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanDispatch;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ShutdownUtil;
@@ -130,8 +131,6 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
@@ -140,6 +139,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
 
 /**
  * Provide access to a single row range in a living TabletServer.
@@ -792,19 +794,26 @@ public class Tablet {
     try {
       Thread.currentThread().setName("Minor compacting " + this.extent);
       CompactionStats stats;
-      try (TraceScope span = Trace.startSpan("write")) {
+      Tracer tracer = TraceUtil.getTracer();
+      Span span = tracer.spanBuilder("Tablet::minorCompact::write").startSpan();
+      try (Scope scope = span.makeCurrent()) {
         count = memTable.getNumEntries();
 
         MinorCompactor compactor = new MinorCompactor(tabletServer, this, memTable, tmpDatafile,
             mincReason, tableConfiguration);
         stats = compactor.call();
+      } finally {
+        span.end();
       }
 
-      try (TraceScope span = Trace.startSpan("bringOnline")) {
+      Span span2 = tracer.spanBuilder("Tablet::minorCompact::bringOnline").startSpan();
+      try (Scope scope = span2.makeCurrent()) {
         var storedFile = getDatafileManager().bringMinorCompactionOnline(tmpDatafile, newDatafile,
             new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()), commitSession,
             flushId);
         compactable.filesAdded(true, List.of(storedFile));
+      } finally {
+        span2.end();
       }
 
       return new DataFileValue(stats.getFileSize(), stats.getEntriesWritten());
@@ -837,10 +846,7 @@ public class Tablet {
     otherLogs = currentLogs;
     currentLogs = new HashSet<>();
 
-    double tracePercent =
-        tabletServer.getConfiguration().getFraction(Property.TSERV_MINC_TRACE_PERCENT);
-
-    return new MinorCompactionTask(this, oldCommitSession, flushId, mincReason, tracePercent);
+    return new MinorCompactionTask(this, oldCommitSession, flushId, mincReason);
 
   }
 
