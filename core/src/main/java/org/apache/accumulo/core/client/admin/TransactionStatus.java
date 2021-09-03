@@ -67,8 +67,9 @@ public class TransactionStatus {
     return txid;
   }
 
-  // Changed this to string for public API, shouldn't cause issues elsewhere but need to
-  // double-check
+  /**
+   * @return The transaction's operation status code.
+   */
   public String getStatus() {
     return status;
   }
