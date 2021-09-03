@@ -26,11 +26,11 @@ import java.util.ServiceLoader;
 
 import org.apache.accumulo.core.trace.thrift.TInfo;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapGetter;
@@ -60,7 +60,7 @@ public class TraceUtil {
    */
   public static TInfo traceInfo() {
     TInfo tinfo = new TInfo();
-    GlobalOpenTelemetry.getPropagators().getTextMapPropagator().inject(Context.current(), tinfo,
+    W3CTraceContextPropagator.getInstance().inject(Context.current(), tinfo,
         (carrier, key, value) -> carrier.putToHeaders(key, value));
     return tinfo;
   }
@@ -79,8 +79,8 @@ public class TraceUtil {
    * @return Context
    */
   public static Context getContext(TInfo tinfo) {
-    return GlobalOpenTelemetry.getPropagators().getTextMapPropagator().extract(Context.current(),
-        tinfo, new TextMapGetter<TInfo>() {
+    return W3CTraceContextPropagator.getInstance().extract(Context.current(), tinfo,
+        new TextMapGetter<TInfo>() {
           @Override
           public Iterable<String> keys(TInfo carrier) {
             return carrier.getHeaders().keySet();
@@ -88,6 +88,9 @@ public class TraceUtil {
 
           @Override
           public String get(TInfo carrier, String key) {
+            if (carrier.getHeaders() == null) {
+              return null;
+            }
             return carrier.getHeaders().get(key);
           }
         });

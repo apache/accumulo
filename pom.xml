@@ -130,6 +130,8 @@
     <failsafe.groups />
     <failsafe.reuseForks>false</failsafe.reuseForks>
     <hadoop.version>3.3.0</hadoop.version>
+    <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
+    <htrace.version>3.2.0-incubating</htrace.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
     <!-- prevent introduction of new compiler warnings -->
     <maven.compiler.failOnWarning>true</maven.compiler.failOnWarning>
@@ -138,6 +140,7 @@
     <maven.compiler.target>11</maven.compiler.target>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
+    <opentelemetry.version>1.5.0</opentelemetry.version>
     <powermock.version>2.0.9</powermock.version>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
     <project.build.outputTimestamp>2020-12-17T22:06:50Z</project.build.outputTimestamp>
@@ -217,6 +220,11 @@
         <version>3.7.1</version>
       </dependency>
       <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java-util</artifactId>
+        <version>3.7.1</version>
+      </dependency>
+      <dependency>
         <groupId>com.lmax</groupId>
         <artifactId>disruptor</artifactId>
         <version>3.4.4</version>
@@ -243,12 +251,22 @@
       </dependency>
       <dependency>
         <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-context</artifactId>
-        <version>1.5.0</version>
+        <artifactId>opentelemetry-api-metrics</artifactId>
+        <version>1.5.0-alpha</version>
       </dependency>
       <dependency>
         <groupId>io.opentelemetry</groupId>
         <artifactId>opentelemetry-sdk-extension-autoconfigure</artifactId>
+        <version>1.5.0-alpha</version>
+      </dependency>
+      <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-sdk-metrics</artifactId>
+        <version>1.5.0-alpha</version>
+      </dependency>
+      <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-semconv</artifactId>
         <version>1.5.0-alpha</version>
       </dependency>
       <dependency>
@@ -452,6 +470,16 @@
         <version>${hadoop.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.apache.htrace</groupId>
+        <artifactId>htrace-core</artifactId>
+        <version>${htrace.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.htrace</groupId>
+        <artifactId>htrace-core4</artifactId>
+        <version>${htrace.hadoop.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.thrift</groupId>
         <artifactId>libthrift</artifactId>
         <version>${thrift.version}</version>
@@ -565,6 +593,60 @@
         <version>${slf4j.version}</version>
       </dependency>
       <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-api</artifactId>
+        <version>1.38.0</version>
+        <scope>runtime</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-context</artifactId>
+        <version>1.38.0</version>
+        <scope>runtime</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-core</artifactId>
+        <version>1.38.0</version>
+        <scope>runtime</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-netty-shaded</artifactId>
+        <version>1.38.0</version>
+        <scope>runtime</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-protobuf</artifactId>
+        <version>1.38.0</version>
+        <scope>runtime</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-protobuf-lite</artifactId>
+        <version>1.38.0</version>
+        <scope>runtime</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-stub</artifactId>
+        <version>1.38.0</version>
+        <scope>runtime</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.perfmark</groupId>
+        <artifactId>perfmark-api</artifactId>
+        <version>0.23.0</version>
+        <scope>runtime</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.perfmark</groupId>
+        <artifactId>perfmark-impl</artifactId>
+        <version>0.23.0</version>
+        <scope>runtime</scope>
+      </dependency>
+      <dependency>
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>
         <version>2.12.3</version>
@@ -574,7 +656,7 @@
       <dependency>
         <groupId>io.opentelemetry</groupId>
         <artifactId>opentelemetry-bom</artifactId>
-        <version>1.5.0</version>
+        <version>${opentelemetry.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

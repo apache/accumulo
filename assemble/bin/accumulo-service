@@ -28,7 +28,6 @@ Services:
   manager     Accumulo manager
   master      Accumulo master (Deprecated)
   tserver     Accumulo tserver
-  tracer      Accumulo tracter
 
 Commands:
   start       Starts service

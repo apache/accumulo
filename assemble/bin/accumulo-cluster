@@ -73,15 +73,6 @@ function verify_config {
       exit 1
     fi
   fi
-  if [[ ! -f "${conf}/tracers" ]]; then
-    if [[ -z "${manager1}" ]] ; then
-      echo "Could not find a manager node to use as a default for the tracer role."
-      echo "Either set up \"${conf}/tracers\" or make sure \"${conf}/$manager_file\" is non-empty."
-      exit 1
-    else
-      echo "$manager1" > "${conf}/tracers"
-    fi
-  fi
   if [[ ! -f "${conf}/gc" ]]; then
     if [[ -z "${manager1}" ]] ; then
       echo "Could not infer a GC role. You need to either set up \"${conf}/gc\" or make sure \"${conf}/$manager_file\" is non-empty."
@@ -155,10 +146,6 @@ function start_all() {
     start_service "$host" gc
   done
 
-  grep -Ev '(^#|^\s*$)' "${conf}/tracers" | while read -r host; do
-    start_service "$host" tracer
-  done
-
   start_service "$monitor" monitor
 }
 
@@ -193,12 +180,6 @@ function start_here() {
     fi
   done
 
-  for host in $local_hosts; do
-    if grep -q "^${host}\$" "${conf}/tracers"; then
-      start_service "$host" tracer
-      break
-    fi
-  done
 }
 
 function end_service() {
@@ -245,16 +226,12 @@ function kill_all() {
 
   kill_service "$monitor" monitor
 
-  grep -Ev '(^#|^\s*$)' "${conf}/tracers" | while read -r tracer; do
-    kill_service "$tracer" tracer
-  done
-
   grep -Ev '(^#|^\s*$)' "${conf}/tservers" | while read -r host; do
     kill_service "$host" tserver
   done
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -tracers
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers
 }
 
 
@@ -285,16 +262,13 @@ function stop_all() {
 
     end_service "$monitor" monitor $end_cmd
 
-    grep -Ev '(^#|^\s*$)' "${conf}/tracers" | while read -r tracer; do
-      end_service "$tracer" tracer $end_cmd
-    done
   done
 
   # stop tserver still running
   stop_tservers
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -tracers
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers
 }
 
 function stop_here() {
@@ -313,7 +287,7 @@ function stop_here() {
 
   for host in "${hosts_to_check[@]}"; do
     for end_cmd in "stop" "kill"; do
-      for svc in tserver gc manager monitor tracer; do
+      for svc in tserver gc manager monitor; do
         end_service "$host" $svc $end_cmd
       done
     done
@@ -351,7 +325,6 @@ function main() {
       echo "localhost" > "$conf/gc"
       echo "localhost" > "$conf/managers"
       echo "localhost" > "$conf/monitor"
-      echo "localhost" > "$conf/tracers"
       echo "localhost" > "$conf/tservers"
       ;;
     restart)
