@@ -59,7 +59,7 @@ public class EncodingOptions {
   /**
    * Instantiate an instance of EncodingOptions reading the values from an input stream. Typically,
    * the stream will be obtained from reading a byte array from a data store and then creating a
-   * stream the reads from that array,
+   * stream that reads from that array,
    *
    * @param dis
    *          a data input stream

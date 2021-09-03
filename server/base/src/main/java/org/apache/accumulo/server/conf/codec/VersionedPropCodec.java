@@ -118,7 +118,8 @@ public abstract class VersionedPropCodec {
 
       if (!checkCanDecodeVersion(encodingOpts)) {
         throw new IllegalArgumentException(
-            "Invalid data version - cannot process the version read: {}");
+            "Invalid data version - cannot process the version read: "
+                + encodingOpts.getEncodingVersion());
       }
 
       DataVersionInfo vMetadata = new DataVersionInfo(dis);
@@ -179,7 +180,7 @@ public abstract class VersionedPropCodec {
 
   /**
    * Decode the payload and any optional encoding specific metadata and return a map of the property
-   * name, value pairs. 1
+   * name, value pairs.
    *
    * @param inStream
    *          an input stream

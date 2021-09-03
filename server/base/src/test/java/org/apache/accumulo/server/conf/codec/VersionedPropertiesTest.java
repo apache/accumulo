@@ -96,12 +96,12 @@ public class VersionedPropertiesTest {
   public void updateSingleProp() {
 
     VersionedProperties vProps = new VersionedProperties();
-    vProps = vProps.update("k1", "v1");
+    vProps = vProps.addOrUpdate("k1", "v1");
 
     assertEquals("v1", vProps.getProperties().get("k1"));
     assertEquals(1, vProps.getProperties().size());
 
-    vProps = vProps.update("k1", "v1-2");
+    vProps = vProps.addOrUpdate("k1", "v1-2");
 
     assertEquals("v1-2", vProps.getProperties().get("k1"));
   }
@@ -122,7 +122,7 @@ public class VersionedPropertiesTest {
     bMap.put("k1", "v1-1");
     bMap.put("k3", "v3");
 
-    VersionedProperties updated = vProps.update(bMap);
+    VersionedProperties updated = vProps.addOrUpdate(bMap);
 
     assertEquals(2, vProps.getProperties().size());
     assertEquals(3, updated.getProperties().size());

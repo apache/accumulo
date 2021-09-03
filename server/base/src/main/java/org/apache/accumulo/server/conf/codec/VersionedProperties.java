@@ -36,9 +36,9 @@ import com.google.common.collect.ImmutableMap;
  * versioning information metadata.
  * <p>
  * The metadata used to verify cached values match stored values. Storing the metadata with the
- * properties allows for comparison of properties and can be used to ensure that vales being written
- * to the backend store have not changed. This metadata should be written / appear early in the
- * encoded bytes and be uncompressed so that decisions can be made that may make deserialization
+ * properties allows for comparison of properties and can be used to ensure that values being
+ * written to the backend store have not changed. This metadata should be written / appear early in
+ * the encoded bytes and be uncompressed so that decisions can be made that may make deserialization
  * unnecessary.
  * <p>
  * Note: Avoid using -1 because that has significance in ZooKeeper - writing a ZooKeeper node with a
@@ -154,10 +154,12 @@ public class VersionedProperties {
   /**
    * Update a single property. If a property already exists it is overwritten.
    * <p>
-   * It is much more efficient to add multiple properties at a time rather than one by one. Because
-   * instances of this class are immutable, the creates a new copy of the properties. Other
-   * processes will continue to see original values retrieved from the data store. Other processes
-   * will be updated when the instance is encoded and stored in the data store.
+   * It is much more efficient to add multiple properties at a time rather than one by one.
+   * <p>
+   * Because instances of this class are immutable, this method creates a new copy of the
+   * properties. Other processes will continue to see original values retrieved from the data store.
+   * Other processes will receive an update when the instance is encoded and stored in the data
+   * store and then retrieved with the normal store update mechanisms.
    *
    * @param key
    *          the property name.
@@ -165,7 +167,7 @@ public class VersionedProperties {
    *          the property value.
    * @return A new instance of this class with the property added or updated.
    */
-  public VersionedProperties update(final String key, final String value) {
+  public VersionedProperties addOrUpdate(final String key, final String value) {
     ImmutableMap<String,String> updated =
         ImmutableMap.<String,String>builder().putAll(new HashMap<>() {
           {
@@ -179,15 +181,16 @@ public class VersionedProperties {
   /**
    * Add or update multiple properties. If a property already exists it is overwritten.
    * <p>
-   * Because instances of this class are immutable, the creates a new copy of the properties. Other
-   * processes will continue to see original values retrieved from the data store. Other processes
-   * will be updated when the instance is encoded and stored in the data store.
+   * Because instances of this class are immutable, this method creates a new copy of the
+   * properties. Other processes will continue to see original values retrieved from the data store.
+   * Other processes will receive an update when the instance is encoded and stored in the data
+   * store and then retrieved with the normal store update mechanisms.
    *
    * @param updates
    *          A map of key, values pairs.
    * @return A new instance of this class with the properties added or updated.
    */
-  public VersionedProperties update(final Map<String,String> updates) {
+  public VersionedProperties addOrUpdate(final Map<String,String> updates) {
     ImmutableMap<String,String> updated =
         ImmutableMap.<String,String>builder().putAll(new HashMap<>() {
           {
@@ -201,9 +204,10 @@ public class VersionedProperties {
   /**
    * Delete multiple properties provided as a collection of keys.
    * <p>
-   * Because instances of this class are immutable, the creates a new copy of the properties. Other
-   * processes will continue to see original values retrieved from the data store. Other processes
-   * will be updated when the instance is encoded and stored in the data store.
+   * Because instances of this class are immutable, this method creates a new copy of the
+   * properties. Other processes will continue to see original values retrieved from the data store.
+   * Other processes will receive an update when the instance is encoded and stored in the data
+   * store and then retrieved with the normal store update mechanisms.
    *
    * @param keys
    *          a collection of the keys that if they exist, will be removed.
