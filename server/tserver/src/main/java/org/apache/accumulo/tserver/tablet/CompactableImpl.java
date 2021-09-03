@@ -111,7 +111,7 @@ public class CompactableImpl implements Compactable {
 
   // status of special compactions
   enum FileSelectionStatus {
-    NEW, SELECTING, SELECTED, NOT_ACTIVE, CANCELED
+    NEW, SELECTING, SELECTED, NOT_ACTIVE, CANCELED, MARKING
   }
 
   private CompactionHelper chelper = null;
@@ -318,7 +318,7 @@ public class CompactableImpl implements Compactable {
 
       if (chopStatus == FileSelectionStatus.SELECTED) {
         if (getFilesToChop(allFiles).isEmpty()) {
-          chopStatus = FileSelectionStatus.NOT_ACTIVE;
+          chopStatus = FileSelectionStatus.MARKING;
           completed = true;
         }
       }
@@ -326,6 +326,15 @@ public class CompactableImpl implements Compactable {
       choppedFiles.retainAll(allFiles);
 
       return completed;
+    }
+
+    boolean finishMarkingChop() {
+      if (chopStatus == FileSelectionStatus.MARKING) {
+        chopStatus = FileSelectionStatus.NOT_ACTIVE;
+        return true;
+      } else {
+        return false;
+      }
     }
 
     void addChoppedFiles(Collection<StoredTabletFile> files) {
@@ -684,11 +693,25 @@ public class CompactableImpl implements Compactable {
     boolean completed = false;
 
     synchronized (this) {
+      if (closed) {
+        // if closed, do not attempt to transition to the MARKING state
+        return;
+      }
+      // when this returns true it means we transitioned to the MARKING state
       completed = fileMgr.finishChop(allFiles);
     }
 
-    if (completed && !closed) {
-      markChopped();
+    if (completed) {
+      try {
+        markChopped();
+      } finally {
+        synchronized (this) {
+          // transition the state from MARKING to NOT_ACTIVE
+          fileMgr.finishMarkingChop();
+          this.notifyAll();
+        }
+      }
+
       TabletLogger.selected(getExtent(), CompactionKind.CHOP, Set.of());
     }
   }
