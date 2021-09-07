@@ -40,11 +40,17 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
+import org.apache.accumulo.manager.tableOps.delete.PreDeleteTable;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.thrift.TException;
 import org.slf4j.LoggerFactory;
 
 class CompactionDriver extends ManagerRepo {
+
+  public static String createCompactionCancellationPath(String instanceId, TableId tableId) {
+    return Constants.ZROOT + "/" + instanceId + Constants.ZTABLES + "/" + tableId.canonical()
+        + Constants.ZTABLE_COMPACT_CANCEL_ID;
+  }
 
   private static final long serialVersionUID = 1L;
 
@@ -71,15 +77,21 @@ class CompactionDriver extends ManagerRepo {
       return 0;
     }
 
-    String zCancelID = Constants.ZROOT + "/" + manager.getInstanceID() + Constants.ZTABLES + "/"
-        + tableId + Constants.ZTABLE_COMPACT_CANCEL_ID;
-
+    String zCancelID = createCompactionCancellationPath(manager.getInstanceID(), tableId);
     ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
 
     if (Long.parseLong(new String(zoo.getData(zCancelID))) >= compactId) {
       // compaction was canceled
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.OTHER, "Compaction canceled");
+    }
+
+    String deleteMarkerPath =
+        PreDeleteTable.createDeleteMarkerPath(manager.getInstanceID(), tableId);
+    if (zoo.exists(deleteMarkerPath)) {
+      // table is being deleted
+      throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
+          TableOperation.COMPACT, TableOperationExceptionType.OTHER, "Table is being deleted");
     }
 
     MapCounter<TServerInstance> serversToFlush = new MapCounter<>();
