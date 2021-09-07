@@ -82,6 +82,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
@@ -327,6 +328,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
       this.notifyAll();
 
       checkForFailures();
+    } catch (Exception e) {
+      span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+          .put("exception.escaped", true).build());
+      throw e;
     } finally {
       span.end();
     }
@@ -349,6 +354,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
       logStats();
 
       checkForFailures();
+    } catch (Exception e) {
+      span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+          .put("exception.escaped", true).build());
+      throw e;
     } finally {
       span.end();
       // make a best effort to release these resources
@@ -724,6 +733,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
         binMutations(mutationsToSend, binnedMutations);
         long t2 = System.currentTimeMillis();
         updateBinningStats(mutationsToSend.size(), (t2 - t1), binnedMutations);
+      } catch (Exception e) {
+        span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+            .put("exception.escaped", true).build());
+        throw e;
       } finally {
         span.end();
       }
@@ -862,6 +875,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
             updateSendStats(count, st2 - st1);
             decrementMemUsed(successBytes);
 
+          } catch (Exception e) {
+            span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+                .put("exception.escaped", true).build());
+            throw e;
           } finally {
             span.end();
           }

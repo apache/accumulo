@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
@@ -99,6 +100,10 @@ public class VerifyIngest {
         verifyIngest(client, opts.getVerifyParams());
       }
 
+    } catch (Exception e) {
+      span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+          .put("exception.escaped", true).build());
+      throw e;
     } finally {
       span.end();
     }

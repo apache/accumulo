@@ -27,6 +27,7 @@ import org.apache.accumulo.manager.Manager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
@@ -78,6 +79,8 @@ public class ReplicationDriver implements Runnable {
         try {
           statusMaker.run();
         } catch (Exception e) {
+          span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+              .put("exception.escaped", false).build());
           log.error("Caught Exception trying to create Replication status records", e);
         }
 
@@ -85,6 +88,8 @@ public class ReplicationDriver implements Runnable {
         try {
           workMaker.run();
         } catch (Exception e) {
+          span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+              .put("exception.escaped", false).build());
           log.error("Caught Exception trying to create Replication work records", e);
         }
 
@@ -92,6 +97,8 @@ public class ReplicationDriver implements Runnable {
         try {
           finishedWorkUpdater.run();
         } catch (Exception e) {
+          span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+              .put("exception.escaped", false).build());
           log.error(
               "Caught Exception trying to update Replication records using finished work records",
               e);
@@ -103,9 +110,15 @@ public class ReplicationDriver implements Runnable {
         try {
           rcrr.run();
         } catch (Exception e) {
+          span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+              .put("exception.escaped", false).build());
           log.error("Caught Exception trying to remove finished Replication records", e);
         }
 
+      } catch (Exception e) {
+        span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+            .put("exception.escaped", true).build());
+        throw e;
       } finally {
         span.end();
       }

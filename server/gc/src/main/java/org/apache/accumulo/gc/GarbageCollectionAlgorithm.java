@@ -45,6 +45,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
@@ -273,6 +274,10 @@ public class GarbageCollectionAlgorithm {
         TraceUtil.getTracer().spanBuilder("GarbageCollectionAlgorithm::confirmDeletes").startSpan();
     try (Scope scope = confirmDeletesSpan.makeCurrent()) {
       confirmDeletes(gce, candidateMap);
+    } catch (Exception e) {
+      confirmDeletesSpan.recordException(e, Attributes.builder()
+          .put("exception.message", e.getMessage()).put("exception.escaped", true).build());
+      throw e;
     } finally {
       confirmDeletesSpan.end();
     }
@@ -284,6 +289,10 @@ public class GarbageCollectionAlgorithm {
         TraceUtil.getTracer().spanBuilder("GarbageCollectionAlgorithm::deleteFiles").startSpan();
     try (Scope deleteScope = deleteSpan.makeCurrent()) {
       gce.delete(candidateMap);
+    } catch (Exception e) {
+      deleteSpan.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+          .put("exception.escaped", true).build());
+      throw e;
     } finally {
       deleteSpan.end();
     }
@@ -301,6 +310,10 @@ public class GarbageCollectionAlgorithm {
           .spanBuilder("GarbageCollectionAlgorithm::getCandidates").startSpan();
       try (Scope candidatesScope = candidatesSpan.makeCurrent()) {
         batchOfCandidates = gce.readCandidatesThatFitInMemory(candidatesIter);
+      } catch (Exception e) {
+        candidatesSpan.recordException(e, Attributes.builder()
+            .put("exception.message", e.getMessage()).put("exception.escaped", true).build());
+        throw e;
       } finally {
         candidatesSpan.end();
       }

@@ -63,6 +63,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterators;
 
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
@@ -153,6 +154,10 @@ public class GarbageCollectWriteAheadLogs {
         log.info(String.format("Fetched %d files for %d servers in %.2f seconds", count,
             logsByServer.size(), (fileScanStop - status.currentLog.started) / 1000.));
         status.currentLog.candidates = count;
+      } catch (Exception e) {
+        span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+            .put("exception.escaped", true).build());
+        throw e;
       } finally {
         span.end();
       }
@@ -169,6 +174,8 @@ public class GarbageCollectWriteAheadLogs {
         count = uuidToTServer.size();
       } catch (Exception ex) {
         log.error("Unable to scan metadata table", ex);
+        span2.recordException(ex, Attributes.builder().put("exception.message", ex.getMessage())
+            .put("exception.escaped", false).build());
         return;
       } finally {
         span2.end();
@@ -184,6 +191,8 @@ public class GarbageCollectWriteAheadLogs {
         count = removeReplicationEntries(uuidToTServer);
       } catch (Exception ex) {
         log.error("Unable to scan replication table", ex);
+        span3.recordException(ex, Attributes.builder().put("exception.message", ex.getMessage())
+            .put("exception.escaped", false).build());
         return;
       } finally {
         span3.end();
@@ -206,6 +215,10 @@ public class GarbageCollectWriteAheadLogs {
 
         count = removeFiles(recoveryLogs.values());
         log.info("{} recovery logs removed", count);
+      } catch (Exception e) {
+        span4.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+            .put("exception.escaped", false).build());
+        throw e;
       } finally {
         span4.end();
       }
@@ -216,6 +229,10 @@ public class GarbageCollectWriteAheadLogs {
         long removeMarkersStop = System.currentTimeMillis();
         log.info(String.format("%d markers removed in %.2f seconds", count,
             (removeMarkersStop - removeStop) / 1000.));
+      } catch (Exception e) {
+        span5.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+            .put("exception.escaped", false).build());
+        throw e;
       } finally {
         span5.end();
       }

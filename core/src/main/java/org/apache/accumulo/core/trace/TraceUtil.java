@@ -27,8 +27,8 @@ import java.util.ServiceLoader;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 
 import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
@@ -126,9 +126,14 @@ public class TraceUtil {
       try (Scope scope = span.makeCurrent()) {
         return method.invoke(instance, args);
       } catch (InvocationTargetException ex) {
-        span.recordException(ex);
-        span.setStatus(StatusCode.ERROR);
+        span.recordException(ex.getCause(),
+            Attributes.builder().put("exception.message", ex.getCause().getMessage())
+                .put("exception.escaped", true).build());
         throw ex.getCause();
+      } catch (Exception e) {
+        span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+            .put("exception.escaped", true).build());
+        throw e;
       } finally {
         span.end();
       }
@@ -147,6 +152,10 @@ public class TraceUtil {
         Span span = getTracer().spanBuilder(method.getName()).startSpan();
         try (Scope scope = span.makeCurrent()) {
           return method.invoke(instance, args);
+        } catch (Exception e) {
+          span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+              .put("exception.escaped", true).build());
+          throw e;
         } finally {
           span.end();
         }

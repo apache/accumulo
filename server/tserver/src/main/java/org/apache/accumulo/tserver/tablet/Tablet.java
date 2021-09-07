@@ -139,6 +139,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
@@ -802,6 +803,10 @@ public class Tablet {
         MinorCompactor compactor = new MinorCompactor(tabletServer, this, memTable, tmpDatafile,
             mincReason, tableConfiguration);
         stats = compactor.call();
+      } catch (Exception e) {
+        span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+            .put("exception.escaped", true).build());
+        throw e;
       } finally {
         span.end();
       }
@@ -812,6 +817,10 @@ public class Tablet {
             new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()), commitSession,
             flushId);
         compactable.filesAdded(true, List.of(storedFile));
+      } catch (Exception e) {
+        span2.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+            .put("exception.escaped", true).build());
+        throw e;
       } finally {
         span2.end();
       }

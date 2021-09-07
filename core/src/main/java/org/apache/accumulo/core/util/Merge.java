@@ -46,8 +46,8 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.context.Scope;
 
 public class Merge {
@@ -118,7 +118,8 @@ public class Merge {
         message("Merging tablets in table %s to %d bytes", opts.tableName, opts.goalSize);
         mergomatic(client, opts.tableName, opts.begin, opts.end, opts.goalSize, opts.force);
       } catch (Exception ex) {
-        span.setStatus(StatusCode.ERROR, ex.getMessage());
+        span.recordException(ex, Attributes.builder().put("exception.message", ex.getMessage())
+            .put("exception.escaped", true).build());
         throw new MergeException(ex);
       } finally {
         span.end();

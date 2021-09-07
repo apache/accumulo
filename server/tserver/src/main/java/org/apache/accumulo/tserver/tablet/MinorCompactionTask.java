@@ -28,6 +28,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
@@ -65,6 +66,10 @@ class MinorCompactionTask implements Runnable {
           synchronized (tablet) {
             commitSession.waitForCommitsToFinish();
           }
+        } catch (Exception e) {
+          span2.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+              .put("exception.escaped", true).build());
+          throw e;
         } finally {
           span2.end();
         }
@@ -98,6 +103,10 @@ class MinorCompactionTask implements Runnable {
 
             }
           }
+        } catch (Exception e) {
+          span3.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+              .put("exception.escaped", true).build());
+          throw e;
         } finally {
           span3.end();
         }
@@ -105,6 +114,10 @@ class MinorCompactionTask implements Runnable {
         try (Scope scope4 = span4.makeCurrent()) {
           this.stats = tablet.minorCompact(tablet.getTabletMemory().getMinCMemTable(), tmpFile,
               newFile, queued, commitSession, flushId, mincReason);
+        } catch (Exception e) {
+          span4.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+              .put("exception.escaped", true).build());
+          throw e;
         } finally {
           span4.end();
         }
@@ -112,6 +125,10 @@ class MinorCompactionTask implements Runnable {
         span.setAttribute("extent", tablet.getExtent().toString());
         span.setAttribute("numEntries", Long.toString(this.stats.getNumEntries()));
         span.setAttribute("size", Long.toString(this.stats.getSize()));
+      } catch (Exception e) {
+        span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+            .put("exception.escaped", true).build());
+        throw e;
       } finally {
         span.end();
       }

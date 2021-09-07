@@ -69,6 +69,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
@@ -405,6 +406,10 @@ public class FileCompactor implements Callable<CompactionStats> {
         writeSpan.end();
       }
 
+    } catch (Exception e) {
+      compactSpan.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+          .put("exception.escaped", true).build());
+      throw e;
     } finally {
       // close sequence files opened
       for (FileSKVIterator reader : readers) {

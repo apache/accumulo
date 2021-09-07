@@ -159,8 +159,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.cache.Cache;
 import com.google.common.collect.Collections2;
 
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.context.Scope;
 
@@ -790,10 +790,16 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
           } catch (Exception t) {
             error = t;
             log.error("Unexpected error preparing for commit", error);
+            span.recordException(t, Attributes.builder().put("exception.message", t.getMessage())
+                .put("exception.escaped", false).build());
             break;
           }
         }
       }
+    } catch (Exception e) {
+      span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+          .put("exception.escaped", true).build());
+      throw e;
     } finally {
       span.end();
     }
@@ -824,11 +830,13 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
           } catch (Exception t) {
             log.error("Unknown exception logging mutations, counts"
                 + " for mutations in flight not decremented!", t);
-            span2.setStatus(StatusCode.ERROR, "Unknown exception logging mutations, counts"
-                + " for mutations in flight not decremented!");
             throw new RuntimeException(t);
           }
         }
+      } catch (Exception e) {
+        span2.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+            .put("exception.escaped", true).build());
+        throw e;
       } finally {
         span2.end();
       }
@@ -979,6 +987,10 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       try (Scope scope = span.makeCurrent()) {
         prepared = tablet.prepareMutationsForCommit(
             new TservConstraintEnv(server.getContext(), security, credentials), mutations);
+      } catch (Exception e) {
+        span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+            .put("exception.escaped", true).build());
+        throw e;
       } finally {
         span.end();
       }
@@ -999,6 +1011,10 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
             Span span2 = tracer.spanBuilder("ThriftClientHandler::update::wal").startSpan();
             try (Scope scope = span2.makeCurrent()) {
               server.logger.log(session, mutation, durability);
+            } catch (Exception e) {
+              span2.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+                  .put("exception.escaped", true).build());
+              throw e;
             } finally {
               span2.end();
             }
@@ -1011,6 +1027,10 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         Span span3 = tracer.spanBuilder("ThriftClientHandler::update::commit").startSpan();
         try (Scope scope = span3.makeCurrent()) {
           session.commit(mutations);
+        } catch (Exception e) {
+          span3.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+              .put("exception.escaped", true).build());
+          throw e;
         } finally {
           span3.end();
         }
@@ -1129,6 +1149,10 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
       long t2 = System.currentTimeMillis();
       updateAvgPrepTime(t2 - t1, es.size());
+    } catch (Exception e) {
+      span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+          .put("exception.escaped", true).build());
+      throw e;
     } finally {
       span.end();
     }
@@ -1144,15 +1168,19 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
           updateWalogWriteTime(t2 - t1);
           break;
         } catch (IOException | FSError ex) {
+          span2.recordException(ex, Attributes.builder().put("exception.message", ex.getMessage())
+              .put("exception.escaped", false).build());
           log.warn("logging mutations failed, retrying");
         } catch (Exception t) {
           log.error("Unknown exception logging mutations, counts for"
               + " mutations in flight not decremented!", t);
-          span2.setStatus(StatusCode.ERROR, "Unknown exception logging mutations, counts for"
-              + " mutations in flight not decremented!");
           throw new RuntimeException(t);
         }
       }
+    } catch (Exception e) {
+      span2.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+          .put("exception.escaped", true).build());
+      throw e;
     } finally {
       span2.end();
     }
@@ -1164,6 +1192,10 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       sendables.forEach(CommitSession::commit);
       long t2 = System.currentTimeMillis();
       updateAvgCommitTime(t2 - t1, sendables.size());
+    } catch (Exception e) {
+      span3.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+          .put("exception.escaped", true).build());
+      throw e;
     } finally {
       span3.end();
     }
@@ -1201,6 +1233,10 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
           .startSpan();
       try (Scope scope = span.makeCurrent()) {
         checkConditions(updates, results, cs, symbols);
+      } catch (Exception e) {
+        span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+            .put("exception.escaped", true).build());
+        throw e;
       } finally {
         span.end();
       }
@@ -1210,6 +1246,10 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
               .startSpan();
       try (Scope scope = span2.makeCurrent()) {
         writeConditionalMutations(updates, results, cs);
+      } catch (Exception e) {
+        span2.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+            .put("exception.escaped", true).build());
+        throw e;
       } finally {
         span2.end();
       }

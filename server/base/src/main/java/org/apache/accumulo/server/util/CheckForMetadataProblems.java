@@ -42,8 +42,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.hadoop.io.Text;
 
+import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.context.Scope;
 
 public class CheckForMetadataProblems {
@@ -186,8 +186,11 @@ public class CheckForMetadataProblems {
       System.out.println();
       checkMetadataAndRootTableEntries(MetadataTable.NAME, opts);
       if (sawProblems)
-        span.setStatus(StatusCode.ERROR, "saw problems");
-      throw new RuntimeException();
+        throw new RuntimeException();
+    } catch (Exception e) {
+      span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
+          .put("exception.escaped", true).build());
+      throw e;
     } finally {
       span.end();
     }
