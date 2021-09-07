@@ -220,11 +220,6 @@
         <version>3.7.1</version>
       </dependency>
       <dependency>
-        <groupId>com.google.protobuf</groupId>
-        <artifactId>protobuf-java-util</artifactId>
-        <version>3.7.1</version>
-      </dependency>
-      <dependency>
         <groupId>com.lmax</groupId>
         <artifactId>disruptor</artifactId>
         <version>3.4.4</version>
@@ -248,26 +243,6 @@
         <groupId>commons-logging</groupId>
         <artifactId>commons-logging</artifactId>
         <version>1.2</version>
-      </dependency>
-      <dependency>
-        <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-api-metrics</artifactId>
-        <version>1.5.0-alpha</version>
-      </dependency>
-      <dependency>
-        <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-sdk-extension-autoconfigure</artifactId>
-        <version>1.5.0-alpha</version>
-      </dependency>
-      <dependency>
-        <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-sdk-metrics</artifactId>
-        <version>1.5.0-alpha</version>
-      </dependency>
-      <dependency>
-        <groupId>io.opentelemetry</groupId>
-        <artifactId>opentelemetry-semconv</artifactId>
-        <version>1.5.0-alpha</version>
       </dependency>
       <dependency>
         <groupId>junit</groupId>
@@ -591,60 +566,6 @@
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
         <version>${slf4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-api</artifactId>
-        <version>1.38.0</version>
-        <scope>runtime</scope>
-      </dependency>
-      <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-context</artifactId>
-        <version>1.38.0</version>
-        <scope>runtime</scope>
-      </dependency>
-      <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-core</artifactId>
-        <version>1.38.0</version>
-        <scope>runtime</scope>
-      </dependency>
-      <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-netty-shaded</artifactId>
-        <version>1.38.0</version>
-        <scope>runtime</scope>
-      </dependency>
-      <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-protobuf</artifactId>
-        <version>1.38.0</version>
-        <scope>runtime</scope>
-      </dependency>
-      <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-protobuf-lite</artifactId>
-        <version>1.38.0</version>
-        <scope>runtime</scope>
-      </dependency>
-      <dependency>
-        <groupId>io.grpc</groupId>
-        <artifactId>grpc-stub</artifactId>
-        <version>1.38.0</version>
-        <scope>runtime</scope>
-      </dependency>
-      <dependency>
-        <groupId>io.perfmark</groupId>
-        <artifactId>perfmark-api</artifactId>
-        <version>0.23.0</version>
-        <scope>runtime</scope>
-      </dependency>
-      <dependency>
-        <groupId>io.perfmark</groupId>
-        <artifactId>perfmark-impl</artifactId>
-        <version>0.23.0</version>
-        <scope>runtime</scope>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson</groupId>
@@ -1041,6 +962,24 @@
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-1.2-api:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-slf4j-impl:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-web:jar:*</unusedDeclaredDependency>
+                <!-- ignore opentelemetry runtime dependencies -->
+                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-sdk:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>com.google.protobuf:protobuf-java-util:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.grpc:grpc-api:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.grpc:grpc-context:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.grpc:grpc-core:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.grpc:grpc-netty-shaded:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.grpc:grpc-protobuf:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.grpc:grpc-protobuf-lite:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.grpc:grpc-stub:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-api-metrics:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-exporter-jaeger:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-sdk-common:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-sdk-metrics:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-sdk-trace:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-semconv:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.perfmark:perfmark-api:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.perfmark:perfmark-impl:jar:*</unusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>

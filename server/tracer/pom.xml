@@ -42,7 +42,12 @@
     </dependency>
     <dependency>
       <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-sdk</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-sdk-extension-autoconfigure</artifactId>
+      <version>1.5.0-alpha</version>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
@@ -53,9 +58,170 @@
       <artifactId>commons-lang3</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java-util</artifactId>
+      <version>3.17.2</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-api</artifactId>
+      <version>1.38.0</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-context</artifactId>
+      <version>1.38.0</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-core</artifactId>
+      <version>1.38.0</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-netty-shaded</artifactId>
+      <version>1.38.0</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-protobuf</artifactId>
+      <version>1.38.0</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-protobuf-lite</artifactId>
+      <version>1.38.0</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-stub</artifactId>
+      <version>1.38.0</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-api-metrics</artifactId>
+      <version>1.5.0-alpha</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-exporter-jaeger</artifactId>
       <scope>runtime</scope>
     </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-sdk-common</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-sdk-metrics</artifactId>
+      <version>1.5.0-alpha</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-sdk-trace</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-semconv</artifactId>
+      <version>1.5.0-alpha</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.perfmark</groupId>
+      <artifactId>perfmark-api</artifactId>
+      <version>0.23.0</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.perfmark</groupId>
+      <artifactId>perfmark-impl</artifactId>
+      <version>0.23.0</version>
+      <scope>runtime</scope>
+    </dependency>
   </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.2.4</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <artifactSet>
+                <includes>
+                  <include>com.google.protobuf:protobuf-java-util</include>
+                  <include>io.grpc:grpc-api</include>
+                  <include>io.grpc:grpc-context</include>
+                  <include>io.grpc:grpc-core</include>
+                  <include>io.grpc:grpc-netty-shaded</include>
+                  <include>io.grpc:grpc-protobuf</include>
+                  <include>io.grpc:grpc-protobuf-lite</include>
+                  <include>io.grpc:grpc-stub</include>
+                  <include>io.opentelemetry:opentelemetry-sdk</include>
+                  <include>io.opentelemetry:opentelemetry-sdk-extension-autoconfigure</include>
+                  <include>io.opentelemetry:opentelemetry-api-metrics</include>
+                  <include>io.opentelemetry:opentelemetry-exporter-jaeger</include>
+                  <include>io.opentelemetry:opentelemetry-sdk-common</include>
+                  <include>io.opentelemetry:opentelemetry-sdk-metrics</include>
+                  <include>io.opentelemetry:opentelemetry-sdk-trace</include>
+                  <include>io.opentelemetry:opentelemetry-semconv</include>
+                  <include>io.perfmark:perfmark-api</include>
+                  <include>io.perfmark:perfmark-impl</include>
+                </includes>
+              </artifactSet>
+              <dependencyReducedPomLocation>${project.build.directory}/.</dependencyReducedPomLocation>
+              <finalName>${project.artifactId}-shaded</finalName>
+              <relocations>
+                <relocation>
+                  <pattern>com.google.protobuf</pattern>
+                  <shadedPattern>accumulo.opentelemetry.shaded.com.google.protobuf</shadedPattern>
+                  <includes>
+                    <include>com.google.protobuf.*</include>
+                  </includes>
+                </relocation>
+                <relocation>
+                  <pattern>io.grpc</pattern>
+                  <shadedPattern>accumulo.opentelemetry.shaded.io.perfmark</shadedPattern>
+                  <includes>
+                    <include>io.grpc.*</include>
+                  </includes>
+                </relocation>
+                <relocation>
+                  <pattern>io.perfmark</pattern>
+                  <shadedPattern>accumulo.opentelemetry.shaded.io.perfmark</shadedPattern>
+                  <includes>
+                    <include>io.perfmark.*</include>
+                  </includes>
+                </relocation>
+              </relocations>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>shaded</shadedClassifierName>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer" />
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer" />
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>

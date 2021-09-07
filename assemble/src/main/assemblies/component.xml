@@ -43,32 +43,14 @@
         <include>com.google.guava:failureaccess</include>
         <include>com.google.guava:guava</include>
         <include>com.google.protobuf:protobuf-java</include>
-        <include>com.google.protobuf:protobuf-java-util</include>
         <include>com.lmax:disruptor</include>
         <include>commons-cli:commons-cli</include>
         <include>commons-codec:commons-codec</include>
         <include>commons-io:commons-io</include>
         <include>commons-logging:commons-logging</include>
         <include>com.sun.istack:istack-commons-runtime</include>
-        <include>io.grpc:grpc-api</include>
-        <include>io.grpc:grpc-context</include>
-        <include>io.grpc:grpc-core</include>
-        <include>io.grpc:grpc-netty-shaded</include>
-        <include>io.grpc:grpc-protobuf</include>
-        <include>io.grpc:grpc-protobuf-lite</include>
-        <include>io.grpc:grpc-stub</include>
         <include>io.opentelemetry:opentelemetry-api</include>
-        <include>io.opentelemetry:opentelemetry-api-metrics</include>
         <include>io.opentelemetry:opentelemetry-context</include>
-        <include>io.opentelemetry:opentelemetry-exporter-jaeger</include>
-        <include>io.opentelemetry:opentelemetry-sdk</include>
-        <include>io.opentelemetry:opentelemetry-sdk-common</include>
-        <include>io.opentelemetry:opentelemetry-sdk-extension-autoconfigure</include>
-        <include>io.opentelemetry:opentelemetry-sdk-metrics</include>
-        <include>io.opentelemetry:opentelemetry-sdk-trace</include>
-        <include>io.opentelemetry:opentelemetry-semconv</include>
-        <include>io.perfmark:perfmark-api</include>
-        <include>io.perfmark:perfmark-impl</include>
         <include>jakarta.activation:jakarta.activation-api</include>
         <include>jakarta.annotation:jakarta.annotation-api</include>
         <include>jakarta.el:jakarta.el-api</include>
