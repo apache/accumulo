@@ -20,7 +20,8 @@ package org.apache.accumulo.manager.tableOps.compact;
 
 import static org.junit.Assert.fail;
 
-import org.apache.accumulo.core.Constants;
+import java.util.UUID;
+
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -28,24 +29,17 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.delete.PreDeleteTable;
 import org.apache.accumulo.server.ServerContext;
 import org.easymock.EasyMock;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.powermock.api.easymock.PowerMock;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(CompactionDriver.class)
-@PowerMockIgnore({"org.apache.logging.*", "javax.management.*", "org.slf4j.*"})
 public class CompactionDriverTest {
 
   @Test
   public void testCancelId() throws Exception {
 
-    final String instance = "test-instance";
+    final String instance = UUID.randomUUID().toString();
     final long compactId = 123;
     final long cancelId = 124;
     final NamespaceId namespaceId = NamespaceId.of("13");
@@ -53,19 +47,18 @@ public class CompactionDriverTest {
     final byte[] startRow = new byte[0];
     final byte[] endRow = new byte[0];
 
-    PowerMock.resetAll();
-    Manager manager = PowerMock.createNiceMock(Manager.class);
-    ServerContext ctx = PowerMock.createNiceMock(ServerContext.class);
-    ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
+    Manager manager = EasyMock.createNiceMock(Manager.class);
+    ServerContext ctx = EasyMock.createNiceMock(ServerContext.class);
+    ZooReaderWriter zrw = EasyMock.createNiceMock(ZooReaderWriter.class);
     EasyMock.expect(manager.getInstanceID()).andReturn(instance).anyTimes();
     EasyMock.expect(manager.getContext()).andReturn(ctx);
     EasyMock.expect(ctx.getZooReaderWriter()).andReturn(zrw);
 
-    final String zCancelID = Constants.ZROOT + "/" + instance + Constants.ZTABLES + "/"
-        + tableId.toString() + Constants.ZTABLE_COMPACT_CANCEL_ID;
+    final String zCancelID =
+        CompactionDriver.createCompactionCancellationPath(instance, tableId.toString());
     EasyMock.expect(zrw.getData(zCancelID)).andReturn(Long.toString(cancelId).getBytes());
 
-    PowerMock.replayAll();
+    EasyMock.replay(manager, ctx, zrw);
 
     final CompactionDriver driver =
         new CompactionDriver(compactId, namespaceId, tableId, startRow, endRow);
@@ -82,13 +75,13 @@ public class CompactionDriverTest {
     } catch (Exception e) {
       fail("Unhandled error thrown: " + e.getMessage());
     }
-    PowerMock.verifyAll();
+    EasyMock.verify(manager, ctx, zrw);
   }
 
   @Test
   public void testTableBeingDeleted() throws Exception {
 
-    final String instance = "test-instance";
+    final String instance = UUID.randomUUID().toString();
     final long compactId = 123;
     final long cancelId = 122;
     final NamespaceId namespaceId = NamespaceId.of("14");
@@ -96,23 +89,21 @@ public class CompactionDriverTest {
     final byte[] startRow = new byte[0];
     final byte[] endRow = new byte[0];
 
-    PowerMock.resetAll();
-    Manager manager = PowerMock.createNiceMock(Manager.class);
-    ServerContext ctx = PowerMock.createNiceMock(ServerContext.class);
-    ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
+    Manager manager = EasyMock.createNiceMock(Manager.class);
+    ServerContext ctx = EasyMock.createNiceMock(ServerContext.class);
+    ZooReaderWriter zrw = EasyMock.createNiceMock(ZooReaderWriter.class);
     EasyMock.expect(manager.getInstanceID()).andReturn(instance).anyTimes();
     EasyMock.expect(manager.getContext()).andReturn(ctx);
     EasyMock.expect(ctx.getZooReaderWriter()).andReturn(zrw);
 
-    final String zCancelID = Constants.ZROOT + "/" + instance + Constants.ZTABLES + "/"
-        + tableId.toString() + Constants.ZTABLE_COMPACT_CANCEL_ID;
+    final String zCancelID =
+        CompactionDriver.createCompactionCancellationPath(instance, tableId.toString());
     EasyMock.expect(zrw.getData(zCancelID)).andReturn(Long.toString(cancelId).getBytes());
 
-    String deleteMarkerPath = Constants.ZROOT + "/" + instance + Constants.ZTABLES + "/" + tableId
-        + Constants.ZTABLE_DELETE_MARKER;
+    String deleteMarkerPath = PreDeleteTable.createDeleteMarkerPath(instance, tableId.toString());
     EasyMock.expect(zrw.exists(deleteMarkerPath)).andReturn(true);
 
-    PowerMock.replayAll();
+    EasyMock.replay(manager, ctx, zrw);
 
     final CompactionDriver driver =
         new CompactionDriver(compactId, namespaceId, tableId, startRow, endRow);
@@ -129,7 +120,7 @@ public class CompactionDriverTest {
     } catch (Exception e) {
       fail("Unhandled error thrown: " + e.getMessage());
     }
-    PowerMock.verifyAll();
+    EasyMock.verify(manager, ctx, zrw);
   }
 
 }
