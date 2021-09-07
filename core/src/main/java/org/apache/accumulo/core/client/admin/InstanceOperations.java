@@ -35,9 +35,9 @@ public interface InstanceOperations {
    * if there is an attempt to set a read-only property.
    *
    * @param property
-   *          the name of a per-table property
+   *          the name of a system property
    * @param value
-   *          the value to set a per-table property to
+   *          the value to set a system property to
    * @throws AccumuloException
    *           if a general error occurs
    * @throws AccumuloSecurityException
@@ -55,7 +55,7 @@ public interface InstanceOperations {
    * if there is an attempt to set a read-only property.
    *
    * @param properties
-   *          a map containing the name of a per-table property and its corresponding value to set
+   *          a map of system properties and their values
    * @throws AccumuloException
    *           if a general error occurs
    * @throws AccumuloSecurityException
@@ -69,7 +69,7 @@ public interface InstanceOperations {
    * {@link #getSystemConfiguration()}
    *
    * @param property
-   *          the name of a per-table property
+   *          the name of a system property
    * @throws AccumuloException
    *           if a general error occurs
    * @throws AccumuloSecurityException
