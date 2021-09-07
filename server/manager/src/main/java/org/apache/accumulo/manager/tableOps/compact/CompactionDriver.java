@@ -47,8 +47,8 @@ import org.slf4j.LoggerFactory;
 
 class CompactionDriver extends ManagerRepo {
 
-  public static String createCompactionCancellationPath(String instanceId, String tableId) {
-    return Constants.ZROOT + "/" + instanceId + Constants.ZTABLES + "/" + tableId
+  public static String createCompactionCancellationPath(String instanceId, TableId tableId) {
+    return Constants.ZROOT + "/" + instanceId + Constants.ZTABLES + "/" + tableId.canonical()
         + Constants.ZTABLE_COMPACT_CANCEL_ID;
   }
 
@@ -77,8 +77,7 @@ class CompactionDriver extends ManagerRepo {
       return 0;
     }
 
-    String zCancelID =
-        createCompactionCancellationPath(manager.getInstanceID(), tableId.toString());
+    String zCancelID = createCompactionCancellationPath(manager.getInstanceID(), tableId);
     ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
 
     if (Long.parseLong(new String(zoo.getData(zCancelID))) >= compactId) {
@@ -88,7 +87,7 @@ class CompactionDriver extends ManagerRepo {
     }
 
     String deleteMarkerPath =
-        PreDeleteTable.createDeleteMarkerPath(manager.getInstanceID(), tableId.toString());
+        PreDeleteTable.createDeleteMarkerPath(manager.getInstanceID(), tableId);
     if (zoo.exists(deleteMarkerPath)) {
       // table is being deleted
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
