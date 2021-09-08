@@ -23,8 +23,11 @@ import static org.junit.Assert.assertEquals;
 import java.io.OutputStream;
 import java.security.SecureRandom;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.easymock.EasyMock;
 import org.junit.Test;
 
 import com.google.common.io.CountingOutputStream;
@@ -34,7 +37,17 @@ public class RateLimitedOutputStreamTest {
   @Test
   public void permitsAreProperlyAcquired() throws Exception {
     Random randGen = new SecureRandom();
-    MockRateLimiter rateLimiter = new MockRateLimiter();
+    // Create variables for tracking behaviors of mock object
+    AtomicLong rateLimiterPermitsAcquired = new AtomicLong();
+    // Construct mock object
+    RateLimiter rateLimiter = EasyMock.niceMock(RateLimiter.class);
+    // Stub Mock Method
+    rateLimiter.acquire(EasyMock.anyLong());
+    EasyMock.expectLastCall()
+        .andAnswer(() -> rateLimiterPermitsAcquired.addAndGet(EasyMock.getCurrentArgument(0)))
+        .anyTimes();
+    EasyMock.replay(rateLimiter);
+
     long bytesWritten = 0;
     try (RateLimitedOutputStream os =
         new RateLimitedOutputStream(new NullOutputStream(), rateLimiter)) {
@@ -45,7 +58,7 @@ public class RateLimitedOutputStreamTest {
       }
       assertEquals(bytesWritten, os.position());
     }
-    assertEquals(bytesWritten, rateLimiter.getPermitsAcquired());
+    assertEquals(bytesWritten, rateLimiterPermitsAcquired.get());
   }
 
   public static class NullOutputStream extends FSDataOutputStream {
