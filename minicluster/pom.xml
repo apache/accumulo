@@ -71,10 +71,6 @@
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-start</artifactId>
     </dependency>
-    <!--     <dependency> -->
-    <!--       <groupId>org.apache.accumulo</groupId> -->
-    <!--       <artifactId>accumulo-tracer</artifactId> -->
-    <!--     </dependency> -->
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-tserver</artifactId>

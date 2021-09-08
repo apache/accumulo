@@ -64,6 +64,18 @@
       <scope>runtime</scope>
     </dependency>
     <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp</artifactId>
+      <version>3.14.9</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.okio</groupId>
+      <artifactId>okio</artifactId>
+      <version>1.17.2</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-api</artifactId>
       <version>1.38.0</version>
@@ -118,6 +130,11 @@
     </dependency>
     <dependency>
       <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-exporter-logging</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-exporter-otlp</artifactId>
       <scope>runtime</scope>
     </dependency>
@@ -129,6 +146,17 @@
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-exporter-otlp-trace</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-exporter-prometheus</artifactId>
+      <version>1.5.0-alpha</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-exporter-zipkin</artifactId>
       <scope>runtime</scope>
     </dependency>
     <dependency>
@@ -171,6 +199,48 @@
       <version>0.23.0</version>
       <scope>runtime</scope>
     </dependency>
+    <dependency>
+      <groupId>io.prometheus</groupId>
+      <artifactId>simpleclient</artifactId>
+      <version>0.11.0</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.prometheus</groupId>
+      <artifactId>simpleclient_tracer_common</artifactId>
+      <version>0.11.0</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.prometheus</groupId>
+      <artifactId>simpleclient_tracer_otel</artifactId>
+      <version>0.11.0</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.prometheus</groupId>
+      <artifactId>simpleclient_tracer_otel_agent</artifactId>
+      <version>0.11.0</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.zipkin.reporter2</groupId>
+      <artifactId>zipkin-reporter</artifactId>
+      <version>2.16.3</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.zipkin.reporter2</groupId>
+      <artifactId>zipkin-sender-okhttp3</artifactId>
+      <version>2.16.3</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.zipkin.zipkin2</groupId>
+      <artifactId>zipkin</artifactId>
+      <version>2.23.2</version>
+      <scope>runtime</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -196,6 +266,8 @@
               <artifactSet>
                 <includes>
                   <include>com.google.protobuf:protobuf-java-util</include>
+                  <include>com.squareup.okhttp3:okhttp</include>
+                  <include>com.squareup.okio:okio</include>
                   <include>io.grpc:grpc-api</include>
                   <include>io.grpc:grpc-context</include>
                   <include>io.grpc:grpc-core</include>
@@ -207,6 +279,9 @@
                   <include>io.opentelemetry:opentelemetry-sdk-extension-autoconfigure</include>
                   <include>io.opentelemetry:opentelemetry-api-metrics</include>
                   <include>io.opentelemetry:opentelemetry-exporter-jaeger</include>
+                  <include>io.opentelemetry:opentelemetry-exporter-logging</include>
+                  <include>io.opentelemetry:opentelemetry-exporter-prometheus</include>
+                  <include>io.opentelemetry:opentelemetry-exporter-zipkin</include>
                   <include>io.opentelemetry:opentelemetry-exporter-otlp</include>
                   <include>io.opentelemetry:opentelemetry-exporter-otlp-common</include>
                   <include>io.opentelemetry:opentelemetry-exporter-otlp-trace</include>
@@ -217,6 +292,13 @@
                   <include>io.opentelemetry:opentelemetry-semconv</include>
                   <include>io.perfmark:perfmark-api</include>
                   <include>io.perfmark:perfmark-impl</include>
+                  <include>io.prometheus:simpleclient</include>
+                  <include>io.prometheus:simpleclient_tracer_common</include>
+                  <include>io.prometheus:simpleclient_tracer_otel</include>
+                  <include>io.prometheus:simpleclient_tracer_otel_agent</include>
+                  <include>io.zipkin.zipkin2:zipkin</include>
+                  <include>io.zipkin.reporter2:zipkin-reporter</include>
+                  <include>io.zipkin.reporter2:zipkin-sender-okhttp3</include>
                 </includes>
               </artifactSet>
               <createSourcesJar>true</createSourcesJar>

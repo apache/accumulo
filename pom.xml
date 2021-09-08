@@ -974,6 +974,9 @@
                 <unusedDeclaredDependency>io.grpc:grpc-stub:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>io.opentelemetry:opentelemetry-api-metrics:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>io.opentelemetry:opentelemetry-exporter-jaeger:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-exporter-logging:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-exporter-prometheus:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-exporter-zipkin:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>io.opentelemetry:opentelemetry-exporter-otlp:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>io.opentelemetry:opentelemetry-exporter-otlp-common:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>io.opentelemetry:opentelemetry-exporter-otlp-trace:jar:*</unusedDeclaredDependency>
@@ -984,6 +987,15 @@
                 <unusedDeclaredDependency>io.opentelemetry:opentelemetry-semconv:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>io.perfmark:perfmark-api:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>io.perfmark:perfmark-impl:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>com.squareup.okhttp3:okhttp:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>com.squareup.okio:okio:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.prometheus:simpleclient:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.prometheus:simpleclient_tracer_common:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.prometheus:simpleclient_tracer_otel:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.prometheus:simpleclient_tracer_otel_agent:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.zipkin.reporter2:zipkin-reporter:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.zipkin.reporter2:zipkin-sender-okhttp3:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.zipkin.zipkin2:zipkin:jar:*</unusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
