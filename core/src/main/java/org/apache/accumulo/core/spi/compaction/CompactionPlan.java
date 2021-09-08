@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.spi.compaction;
 
 import java.util.Collection;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner.PlanningParameters;
@@ -55,5 +56,13 @@ public interface CompactionPlan {
     CompactionPlan build();
   }
 
+  /**
+   * Return the set of compaction candidates.
+   */
+  Set<CompactableFile> getCandidates();
+
+  /**
+   * Return the set of jobs this plan will submit for compaction.
+   */
   Collection<CompactionJob> getJobs();
 }

@@ -254,7 +254,7 @@ public class CompactionManager {
               new HashSet<>(runningExternalCompactions.keySet());
           for (Compactable compactable : compactables) {
             last = compactable;
-            compact(compactable);
+            submitCompaction(compactable);
             // remove anything from snapshot that tablets know are running
             compactable.getExternalCompactionIds(runningEcids::remove);
           }
@@ -267,7 +267,7 @@ public class CompactionManager {
               compactablesToCheck.poll(maxTimeBetweenChecks - passed, TimeUnit.MILLISECONDS);
           if (compactable != null) {
             last = compactable;
-            compact(compactable);
+            submitCompaction(compactable);
           }
         }
 
@@ -290,7 +290,10 @@ public class CompactionManager {
     }
   }
 
-  private void compact(Compactable compactable) {
+  /**
+   * Get each configured service for the compactable tablet and submit for compaction
+   */
+  private void submitCompaction(Compactable compactable) {
     for (CompactionKind ctype : CompactionKind.values()) {
       var csid = compactable.getConfiguredService(ctype);
       var service = services.get(csid);
@@ -308,7 +311,7 @@ public class CompactionManager {
       }
 
       if (service != null) {
-        service.compact(ctype, compactable, compactablesToCheck::add);
+        service.submitCompaction(ctype, compactable, compactablesToCheck::add);
       }
     }
   }
