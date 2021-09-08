@@ -48,7 +48,7 @@ public class TraceUtil {
         // If no OpenTelemetry implementation on the ClassPath, then use the NOOP implementation
         INSTANCE = OpenTelemetry.noop().getTracer(INSTRUMENTATION_NAME);
       } else {
-        INSTANCE = first.get().getTracer(INSTRUMENTATION_NAME);
+        INSTANCE = first.get().getTracer();
       }
     }
     return INSTANCE;

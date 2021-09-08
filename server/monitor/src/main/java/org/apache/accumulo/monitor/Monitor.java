@@ -568,7 +568,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       final HostAndPort parsedServer = HostAndPort.fromString(server);
       Client tserver = ThriftUtil.getTServerClient(parsedServer, context);
       try {
-        List<ActiveScan> scans = tserver.getActiveScans(null, context.rpcCreds());
+        List<ActiveScan> scans = tserver.getActiveScans(TraceUtil.traceInfo(), context.rpcCreds());
         synchronized (allScans) {
           allScans.put(parsedServer, new ScanStats(scans));
         }

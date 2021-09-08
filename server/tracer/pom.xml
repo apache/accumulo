@@ -118,6 +118,27 @@
     </dependency>
     <dependency>
       <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-exporter-otlp</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-exporter-otlp-common</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-exporter-otlp-trace</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-proto</artifactId>
+      <version>1.5.0-alpha</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-sdk-common</artifactId>
       <scope>runtime</scope>
     </dependency>
@@ -156,7 +177,15 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
+        <!--  override version to prevent IllegalArgumentException -->
         <version>3.2.4</version>
+        <dependencies>
+          <dependency>
+            <groupId>com.hazelcast</groupId>
+            <artifactId>hazelcast-build-utils</artifactId>
+            <version>4.2.2</version>
+          </dependency>
+        </dependencies>
         <executions>
           <execution>
             <goals>
@@ -178,6 +207,10 @@
                   <include>io.opentelemetry:opentelemetry-sdk-extension-autoconfigure</include>
                   <include>io.opentelemetry:opentelemetry-api-metrics</include>
                   <include>io.opentelemetry:opentelemetry-exporter-jaeger</include>
+                  <include>io.opentelemetry:opentelemetry-exporter-otlp</include>
+                  <include>io.opentelemetry:opentelemetry-exporter-otlp-common</include>
+                  <include>io.opentelemetry:opentelemetry-exporter-otlp-trace</include>
+                  <include>io.opentelemetry:opentelemetry-proto</include>
                   <include>io.opentelemetry:opentelemetry-sdk-common</include>
                   <include>io.opentelemetry:opentelemetry-sdk-metrics</include>
                   <include>io.opentelemetry:opentelemetry-sdk-trace</include>
@@ -186,34 +219,16 @@
                   <include>io.perfmark:perfmark-impl</include>
                 </includes>
               </artifactSet>
+              <createSourcesJar>true</createSourcesJar>
               <dependencyReducedPomLocation>${project.build.directory}/.</dependencyReducedPomLocation>
-              <finalName>${project.artifactId}-shaded</finalName>
-              <relocations>
-                <relocation>
-                  <pattern>com.google.protobuf</pattern>
-                  <shadedPattern>accumulo.opentelemetry.shaded.com.google.protobuf</shadedPattern>
-                  <includes>
-                    <include>com.google.protobuf.*</include>
-                  </includes>
-                </relocation>
-                <relocation>
-                  <pattern>io.grpc</pattern>
-                  <shadedPattern>accumulo.opentelemetry.shaded.io.perfmark</shadedPattern>
-                  <includes>
-                    <include>io.grpc.*</include>
-                  </includes>
-                </relocation>
-                <relocation>
-                  <pattern>io.perfmark</pattern>
-                  <shadedPattern>accumulo.opentelemetry.shaded.io.perfmark</shadedPattern>
-                  <includes>
-                    <include>io.perfmark.*</include>
-                  </includes>
-                </relocation>
-              </relocations>
+              <shadeSourcesContent>true</shadeSourcesContent>
               <shadedArtifactAttached>true</shadedArtifactAttached>
               <shadedClassifierName>shaded</shadedClassifierName>
               <transformers>
+                <transformer implementation="com.hazelcast.buildutils.HazelcastManifestTransformer">
+                  <!-- the tag below is required due to a missing null-check it seems -->
+                  <overrideInstructions />
+                </transformer>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer" />
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer" />
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />

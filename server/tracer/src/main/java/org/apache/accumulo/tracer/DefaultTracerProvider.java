@@ -31,17 +31,20 @@ import io.opentelemetry.sdk.autoconfigure.OpenTelemetrySdkAutoConfiguration;
 public class DefaultTracerProvider implements TracerProvider {
 
   @Override
-  public Tracer getTracer(String serviceName) {
+  public Tracer getTracer() {
+    // Set the service name if not set
     String svcNameEnvVar = System.getenv("OTEL_SERVICE_NAME");
     String svcNameProp = System.getenv("otel.service.name");
-    if (StringUtils.isEmpty(svcNameEnvVar) && StringUtils.isEmpty(svcNameProp)) {
-      System.setProperty("otel.service.name", serviceName);
+    String appName = System.getProperty("accumulo.application"); // set in accumulo-env.sh
+    if (StringUtils.isEmpty(svcNameEnvVar) && StringUtils.isEmpty(svcNameProp)
+        && !StringUtils.isEmpty(appName)) {
+      System.setProperty("otel.service.name", appName);
     }
     // Configures a global OpenTelemetry object that can be configured using
     // the instructions at
     // https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure
     OpenTelemetry otel = OpenTelemetrySdkAutoConfiguration.initialize();
-    return otel.getTracer(serviceName);
+    return otel.getTracer(INSTRUMENTATION_NAME);
   }
 
 }

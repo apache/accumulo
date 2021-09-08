@@ -158,6 +158,9 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.RateLimiter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 /**
  * The Manager is responsible for assigning and balancing tablets to tablet servers.
@@ -795,13 +798,18 @@ public class Manager extends AbstractServer
               + " continue with attempt to update status", t);
         }
 
-        try {
+        Span span = TraceUtil.getTracer().spanBuilder("Manager::run::updateStatus").startSpan();
+        try (Scope scope = span.makeCurrent()) {
           wait = updateStatus();
           eventListener.waitForEvents(wait);
         } catch (Exception t) {
+          span.recordException(t, Attributes.builder().put("exception.message", t.getMessage())
+              .put("exception.escaped", false).build());
           log.error("Error balancing tablets, will wait for {} (seconds) and then retry ",
               WAIT_BETWEEN_ERRORS / ONE_SECOND, t);
           sleepUninterruptibly(WAIT_BETWEEN_ERRORS, TimeUnit.MILLISECONDS);
+        } finally {
+          span.end();
         }
       }
     }

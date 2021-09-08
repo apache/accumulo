@@ -974,6 +974,10 @@
                 <unusedDeclaredDependency>io.grpc:grpc-stub:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>io.opentelemetry:opentelemetry-api-metrics:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>io.opentelemetry:opentelemetry-exporter-jaeger:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-exporter-otlp:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-exporter-otlp-common:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-exporter-otlp-trace:jar:*</unusedDeclaredDependency>
+                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-proto:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>io.opentelemetry:opentelemetry-sdk-common:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>io.opentelemetry:opentelemetry-sdk-metrics:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>io.opentelemetry:opentelemetry-sdk-trace:jar:*</unusedDeclaredDependency>

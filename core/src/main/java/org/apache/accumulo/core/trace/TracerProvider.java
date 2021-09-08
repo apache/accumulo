@@ -22,13 +22,13 @@ import io.opentelemetry.api.trace.Tracer;
 
 public interface TracerProvider {
 
+  String INSTRUMENTATION_NAME = "io.opentelemetry.contrib.accumulo";
+
   /**
-   * Get a Tracer for the service
+   * Get a Tracer
    *
-   * @param serviceName
-   *          name of the service
    * @return Tracer
    */
-  public Tracer getTracer(String serviceName);
+  public Tracer getTracer();
 
 }
