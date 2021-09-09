@@ -36,7 +36,7 @@ import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 
 import com.google.common.annotations.VisibleForTesting;
 
-public class CompactionEnvironment implements CompactionEnv {
+public class ExtCEnv implements CompactionEnv {
 
   private final CompactionJobHolder jobHolder;
   private TExternalCompactionJob job;
@@ -58,7 +58,7 @@ public class CompactionEnvironment implements CompactionEnv {
     }
   }
 
-  CompactionEnvironment(CompactionJobHolder jobHolder, String queueName) {
+  ExtCEnv(CompactionJobHolder jobHolder, String queueName) {
     this.jobHolder = jobHolder;
     this.job = jobHolder.getJob();
     this.queueName = queueName;
