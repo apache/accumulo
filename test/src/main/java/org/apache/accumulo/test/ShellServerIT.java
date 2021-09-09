@@ -1948,7 +1948,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertEquals(2, result.split("\n").length);
     result = ts.exec("scan -r row0 -c c:f");
     assertEquals(1, result.split("\n").length);
-
     ts.exec("deletetable -f twithcolontest");
   }
 
@@ -2201,6 +2200,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     for (int i = 0; i < 10; i++) {
       ts.exec(String.format("insert row%d c:f col%d value", i, i));
     }
+
   }
 
   private List<String> getFiles(String tableId) throws IOException {

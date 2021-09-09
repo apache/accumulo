@@ -290,7 +290,7 @@ public class ScanCommand extends Command {
 
   protected String[] extractColumnFamily(final String columnString) {
     String[] columnFamily = new String[2];
-    if (CharMatcher.is(':').countIn(columnString) == 2) {
+    if (CharMatcher.is(':').countIn(columnString) >= 2) {
       columnFamily[0] = columnString.substring(0, columnString.lastIndexOf(":"));
       columnFamily[1] = columnString.substring(columnString.lastIndexOf(":") + 1);
       return columnFamily;
