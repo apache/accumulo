@@ -37,21 +37,14 @@ import com.google.common.base.Preconditions;
 public class CompactionPlanImpl implements CompactionPlan {
 
   private final Collection<CompactionJob> jobs;
-  private final Set<CompactableFile> candidates;
 
-  private CompactionPlanImpl(Collection<CompactionJob> jobs, Set<CompactableFile> candidates) {
+  private CompactionPlanImpl(Collection<CompactionJob> jobs) {
     this.jobs = List.copyOf(jobs);
-    this.candidates = candidates;
   }
 
   @Override
   public Collection<CompactionJob> getJobs() {
     return jobs;
-  }
-
-  @Override
-  public Set<CompactableFile> getCandidates() {
-    return candidates;
   }
 
   @Override
@@ -94,7 +87,7 @@ public class CompactionPlanImpl implements CompactionPlan {
 
     @Override
     public CompactionPlan build() {
-      return new CompactionPlanImpl(jobs, candidates);
+      return new CompactionPlanImpl(jobs);
     }
   }
 

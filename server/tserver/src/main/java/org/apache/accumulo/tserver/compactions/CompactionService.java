@@ -238,9 +238,13 @@ public class CompactionService {
       try {
         planningExecutor.execute(() -> {
           try {
-            var files = compactable.getFiles(...);
-            Optional<CompactionPlan> plan = getCompactionPlan(kind, files, compactable.getExtent());
-            plan.ifPresent(cp -> submitCompactionJob(cp, files, compactable.getExtent(), completionCallback));
+            Optional<Compactable.Files> files = compactable.getFiles(myId, kind);
+            if (files.isEmpty() || files.get().candidates.isEmpty()) {
+              log.trace("Compactable returned no files {} {}", compactable.getExtent(), kind);
+            } else {
+              CompactionPlan plan = getCompactionPlan(kind, files.get(), compactable);
+              submitCompactionJob(plan, files.get(), compactable, completionCallback);
+            }
           } finally {
             queuedForPlanning.get(kind).remove(compactable.getExtent());
           }
@@ -314,15 +318,9 @@ public class CompactionService {
     }
   }
 
-  private Optional<CompactionPlan> getCompactionPlan(CompactionKind kind, Compactable compactable) {
-    var files = compactable.getFiles(myId, kind);
-
-    if (files.isEmpty() || files.get().candidates.isEmpty()) {
-      log.trace("Compactable returned no files {} {} {}", compactable.getExtent(), kind, files);
-      return Optional.empty();
-    }
-
-    PlanningParameters params = new CpPlanParams(kind, compactable, files.get());
+  private CompactionPlan getCompactionPlan(CompactionKind kind, Compactable.Files files,
+      Compactable compactable) {
+    PlanningParameters params = new CpPlanParams(kind, compactable, files);
 
     log.trace("Planning compactions {} {} {} {}", planner.getClass().getName(),
         compactable.getExtent(), kind, files);
@@ -336,11 +334,11 @@ public class CompactionService {
       throw e;
     }
 
-    return Optional.of(convertPlan(plan, kind, files.get().allFiles, files.get().candidates));
+    return convertPlan(plan, kind, files.allFiles, files.candidates);
   }
 
-  private void submitCompactionJob(CompactionPlan plan, Compactable compactable,
-      Consumer<Compactable> completionCallback) {
+  private void submitCompactionJob(CompactionPlan plan, Compactable.Files files,
+      Compactable compactable, Consumer<Compactable> completionCallback) {
     // log error if tablet is metadata and compaction is external
     var execIds = plan.getJobs().stream().map(cj -> (CompactionExecutorIdImpl) cj.getExecutor());
     if (compactable.getExtent().isMeta() && execIds.anyMatch(ceid -> ceid.isExternalId())) {
@@ -379,7 +377,7 @@ public class CompactionService {
       }
     } else {
       log.trace("Did not submit compaction plan {} id:{} files:{} plan:{}", compactable.getExtent(),
-          myId, plan.getCandidates(), plan);
+          myId, files, plan);
     }
   }
 
