@@ -1940,13 +1940,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void scanswithcolon() throws Exception {
+  public void scansWithColon() throws Exception {
     ts.exec("createtable twithcolontest");
-    make10withcolon();
-    String result = ts.exec("scan -b row0 -c c\\:f:col0 -e row0");
+    make10WithColon();
+    ts.exec("scan -r row0 -c c\\:f:col0", true, "value");
+    String result = ts.exec("scan -b row1 -c c\\:f:col1 -e row1");
+    assertEquals(2, result.split("\n").length);
+    result = ts.exec("scan -r row0 -c c:f");
     assertEquals(1, result.split("\n").length);
-    result = ts.exec("scan -r row0 -c c\\:f:col0");
-    assertEquals(1, result.split("\n").length);
+
     ts.exec("deletetable -f twithcolontest");
   }
 
@@ -2195,7 +2197,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-  private void make10withcolon() throws IOException {
+  private void make10WithColon() throws IOException {
     for (int i = 0; i < 10; i++) {
       ts.exec(String.format("insert row%d c:f col%d value", i, i));
     }

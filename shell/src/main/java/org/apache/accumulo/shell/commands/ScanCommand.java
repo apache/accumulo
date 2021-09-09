@@ -21,6 +21,7 @@ package org.apache.accumulo.shell.commands;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
@@ -54,6 +55,7 @@ import org.apache.accumulo.shell.ShellUtil;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 
 public class ScanCommand extends Command {
@@ -273,7 +275,7 @@ public class ScanCommand extends Command {
 
     if (cl.hasOption(scanOptColumns.getOpt())) {
       for (String a : cl.getOptionValue(scanOptColumns.getOpt()).split(",")) {
-        final String[] sa = a.split("(?<!\\\\\\\\):", 2);
+        final String[] sa = extractColumnFamily(a);
         if (sa.length == 1) {
           scanner.fetchColumnFamily(
               formatter.interpretColumnFamily(new Text(a.getBytes(Shell.CHARSET))));
@@ -284,6 +286,19 @@ public class ScanCommand extends Command {
         }
       }
     }
+  }
+
+  protected String[] extractColumnFamily(final String columnString) {
+    String[] columnFamily = new String[2];
+    if (StringUtils.countMatches(columnString, ":") == 2) {
+      columnFamily[0] = columnString.substring(0, columnString.lastIndexOf(":"));
+      columnFamily[1] = columnString.substring(columnString.lastIndexOf(":") + 1);
+      return columnFamily;
+    } else {
+      return columnString.split(":", 2);
+
+    }
+
   }
 
   protected Range getRange(final CommandLine cl, final ScanInterpreter formatter)
