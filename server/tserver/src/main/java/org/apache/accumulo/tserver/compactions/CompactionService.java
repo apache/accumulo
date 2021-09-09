@@ -238,8 +238,9 @@ public class CompactionService {
       try {
         planningExecutor.execute(() -> {
           try {
-            Optional<CompactionPlan> plan = getCompactionPlan(kind, compactable);
-            plan.ifPresent(cp -> submitCompactionJob(cp, compactable, completionCallback));
+            var files = compactable.getFiles(...);
+            Optional<CompactionPlan> plan = getCompactionPlan(kind, files, compactable.getExtent());
+            plan.ifPresent(cp -> submitCompactionJob(cp, files, compactable.getExtent(), completionCallback));
           } finally {
             queuedForPlanning.get(kind).remove(compactable.getExtent());
           }
@@ -374,7 +375,7 @@ public class CompactionService {
 
       if (!jobs.isEmpty()) {
         log.trace("Submitted compaction plan {} id:{} files:{} plan:{}", compactable.getExtent(),
-            myId, plan.getCandidates(), plan);
+            myId, files, plan);
       }
     } else {
       log.trace("Did not submit compaction plan {} id:{} files:{} plan:{}", compactable.getExtent(),
