@@ -466,12 +466,12 @@ public class CompactableImpl implements Compactable {
                 return false;
               }
             } else {
-              log.trace("Ingoring {} compaction because not selected kind {}", job.getKind(),
+              log.trace("Ingoing {} compaction because not selected kind {}", job.getKind(),
                   getExtent());
               return false;
             }
           } else if (!Collections.disjoint(selectedFiles, jobFiles)) {
-            log.trace("Ingoring compaction that overlaps with selected files {} {} {}", getExtent(),
+            log.trace("Ingoing compaction that overlaps with selected files {} {} {}", getExtent(),
                 job.getKind(), asFileNames(Sets.intersection(selectedFiles, jobFiles)));
             return false;
           }
