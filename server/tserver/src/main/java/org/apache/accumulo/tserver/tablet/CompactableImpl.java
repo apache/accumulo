@@ -36,7 +36,6 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -619,17 +618,19 @@ public class CompactableImpl implements Compactable {
       Set<StoredTabletFile> tabletFiles, Map<ExternalCompactionId,String> extCompactionsToRemove) {
 
     Set<StoredTabletFile> seen = new HashSet<>();
-    AtomicBoolean overlap = new AtomicBoolean(false);
+    boolean overlap = false;
 
-    extCompactions.forEach((ecid, ecMeta) -> {
+    for (var entry : extCompactions.entrySet()) {
+      ExternalCompactionMetadata ecMeta = entry.getValue();
       if (!tabletFiles.containsAll(ecMeta.getJobFiles())) {
-        extCompactionsToRemove.putIfAbsent(ecid, "Has files outside of tablet files");
+        extCompactionsToRemove.putIfAbsent(entry.getKey(), "Has files outside of tablet files");
       } else if (!Collections.disjoint(seen, ecMeta.getJobFiles())) {
-        overlap.set(true);
+        overlap = true;
       }
-    });
+      seen.addAll(ecMeta.getJobFiles());
+    }
 
-    if (overlap.get()) {
+    if (overlap) {
       extCompactions.keySet().forEach(ecid -> {
         extCompactionsToRemove.putIfAbsent(ecid, "Some external compaction files overlap");
       });
