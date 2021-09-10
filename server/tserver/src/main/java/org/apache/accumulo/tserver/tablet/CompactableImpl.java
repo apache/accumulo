@@ -680,7 +680,7 @@ public class CompactableImpl implements Compactable {
 
   private void checkifChopComplete(Set<StoredTabletFile> allFiles) {
 
-    boolean completed = false;
+    boolean completed;
 
     synchronized (this) {
       completed = fileMgr.finishChop(allFiles);
@@ -847,7 +847,7 @@ public class CompactableImpl implements Compactable {
     }
 
     Pair<Long,CompactionConfig> idAndCfg = null;
-    if (extKind != null && extKind == CompactionKind.USER) {
+    if (extKind == CompactionKind.USER) {
       try {
         idAndCfg = tablet.getCompactionID();
         if (!idAndCfg.getFirst().equals(cid)) {
@@ -870,7 +870,6 @@ public class CompactableImpl implements Compactable {
     }
 
     if (extKind != null) {
-
       if (extKind == CompactionKind.USER) {
         this.chelper = CompactableUtils.getHelper(extKind, tablet, cid, idAndCfg.getSecond());
         this.compactionConfig = idAndCfg.getSecond();
@@ -1012,7 +1011,7 @@ public class CompactableImpl implements Compactable {
   }
 
   class CompactionCheck {
-    private Supplier<Boolean> memoizedCheck;
+    private final Supplier<Boolean> memoizedCheck;
 
     public CompactionCheck(CompactionServiceId service, CompactionKind kind, Long compactionId) {
       this.memoizedCheck = Suppliers.memoizeWithExpiration(() -> {

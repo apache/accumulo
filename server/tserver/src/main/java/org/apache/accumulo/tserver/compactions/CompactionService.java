@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -223,15 +224,27 @@ public class CompactionService {
     return true;
   }
 
-  public void compact(CompactionKind kind, Compactable compactable,
+  /**
+   * Get compaction plan for the provided compactable tablet and possibly submit for compaction.
+   * Plans get added to the planning queue before calling the planningExecutor to get the plan. If
+   * no files are selected, return. Otherwise, submit the compaction job.
+   */
+  public void submitCompaction(CompactionKind kind, Compactable compactable,
       Consumer<Compactable> completionCallback) {
     Objects.requireNonNull(compactable);
 
+    // add tablet to planning queue and use planningExecutor to get the plan
     if (queuedForPlanning.get(kind).putIfAbsent(compactable.getExtent(), compactable) == null) {
       try {
         planningExecutor.execute(() -> {
           try {
-            planCompaction(kind, compactable, completionCallback);
+            Optional<Compactable.Files> files = compactable.getFiles(myId, kind);
+            if (files.isEmpty() || files.get().candidates.isEmpty()) {
+              log.trace("Compactable returned no files {} {}", compactable.getExtent(), kind);
+            } else {
+              CompactionPlan plan = getCompactionPlan(kind, files.get(), compactable);
+              submitCompactionJob(plan, files.get(), compactable, completionCallback);
+            }
           } finally {
             queuedForPlanning.get(kind).remove(compactable.getExtent());
           }
@@ -305,16 +318,9 @@ public class CompactionService {
     }
   }
 
-  private void planCompaction(CompactionKind kind, Compactable compactable,
-      Consumer<Compactable> completionCallback) {
-    var files = compactable.getFiles(myId, kind);
-
-    if (files.isEmpty() || files.get().candidates.isEmpty()) {
-      log.trace("Compactable returned no files {} {} {}", compactable.getExtent(), kind, files);
-      return;
-    }
-
-    PlanningParameters params = new CpPlanParams(kind, compactable, files.get());
+  private CompactionPlan getCompactionPlan(CompactionKind kind, Compactable.Files files,
+      Compactable compactable) {
+    PlanningParameters params = new CpPlanParams(kind, compactable, files);
 
     log.trace("Planning compactions {} {} {} {}", planner.getClass().getName(),
         compactable.getExtent(), kind, files);
@@ -328,7 +334,11 @@ public class CompactionService {
       throw e;
     }
 
-    plan = convertPlan(plan, kind, files.get().allFiles, files.get().candidates);
+    return convertPlan(plan, kind, files.allFiles, files.candidates);
+  }
+
+  private void submitCompactionJob(CompactionPlan plan, Compactable.Files files,
+      Compactable compactable, Consumer<Compactable> completionCallback) {
     // log error if tablet is metadata and compaction is external
     var execIds = plan.getJobs().stream().map(cj -> (CompactionExecutorIdImpl) cj.getExecutor());
     if (compactable.getExtent().isMeta() && execIds.anyMatch(ceid -> ceid.isExternalId())) {
