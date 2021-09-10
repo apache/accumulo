@@ -27,6 +27,7 @@ import java.lang.management.CompilationMXBean;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,8 +35,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -72,7 +77,6 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
 import org.apache.thrift.TApplicationException;
@@ -118,7 +122,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
   // state
   private boolean flushing;
   private boolean closed;
-  private MutationSet mutations;
+  private MutationSet incomingQueue;
 
   // background writer
   private final MutationWriter writer;
@@ -129,15 +133,13 @@ public class TabletServerBatchWriter implements AutoCloseable {
       Collections.synchronizedMap(new HashMap<>());
 
   // stats
-  private long totalMemUsed = 0;
-  private long lastProcessingStartTime;
-
-  private long totalAdded = 0;
+  private final AtomicLong totalMemUsed = new AtomicLong(0);
+  private final AtomicLong totalAdded = new AtomicLong(0);
   private final AtomicLong totalSent = new AtomicLong(0);
   private final AtomicLong totalBinned = new AtomicLong(0);
   private final AtomicLong totalBinTime = new AtomicLong(0);
   private final AtomicLong totalSendTime = new AtomicLong(0);
-  private long startTime = 0;
+  private final AtomicLong startTime = new AtomicLong(0);
   private long initialGCTimes;
   private long initialCompileTimes;
   private double initialSystemLoad;
@@ -154,7 +156,6 @@ public class TabletServerBatchWriter implements AutoCloseable {
   private final Violations violations = new Violations();
   private final Map<KeyExtent,Set<SecurityErrorCode>> authorizationFailures = new HashMap<>();
   private final HashSet<String> serverSideErrors = new HashSet<>();
-  private final FailedMutations failedMutations;
   private int unknownErrors = 0;
   private boolean somethingFailed = false;
   private Exception lastUnknownError = null;
@@ -201,47 +202,25 @@ public class TabletServerBatchWriter implements AutoCloseable {
     this.context = context;
     this.executor =
         ThreadPools.createGeneralScheduledExecutorService(this.context.getConfiguration());
-    this.failedMutations = new FailedMutations();
     this.maxMem = config.getMaxMemory();
     this.maxLatency = config.getMaxLatency(TimeUnit.MILLISECONDS) <= 0 ? Long.MAX_VALUE
         : config.getMaxLatency(TimeUnit.MILLISECONDS);
     this.timeout = config.getTimeout(TimeUnit.MILLISECONDS);
-    this.mutations = new MutationSet();
-    this.lastProcessingStartTime = System.currentTimeMillis();
+    this.incomingQueue = new MutationSet();
     this.durability = config.getDurability();
-
     this.writer = new MutationWriter(config.getMaxWriteThreads());
+  }
 
-    if (this.maxLatency != Long.MAX_VALUE) {
-      executor.scheduleWithFixedDelay(Threads.createNamedRunnable("BatchWriterLatencyTimer", () -> {
-        try {
-          synchronized (TabletServerBatchWriter.this) {
-            if ((System.currentTimeMillis() - lastProcessingStartTime)
-                > TabletServerBatchWriter.this.maxLatency)
-              startProcessing();
-          }
-        } catch (Exception e) {
-          updateUnknownErrors("Max latency task failed " + e.getMessage(), e);
-        }
-      }), 0, this.maxLatency / 4, TimeUnit.MILLISECONDS);
+  private void decrementMemUsed(long amount) {
+    totalMemUsed.getAndAdd(-1 * amount);
+    synchronized (this) {
+      this.notifyAll();
     }
   }
 
-  private synchronized void startProcessing() {
-    if (mutations.getMemoryUsed() == 0)
-      return;
-    lastProcessingStartTime = System.currentTimeMillis();
-    writer.queueMutations(mutations);
-    mutations = new MutationSet();
-  }
+  public void addMutation(final TableId table, final Mutation m) throws MutationsRejectedException {
 
-  private synchronized void decrementMemUsed(long amount) {
-    totalMemUsed -= amount;
-    this.notifyAll();
-  }
-
-  public synchronized void addMutation(TableId table, Mutation m)
-      throws MutationsRejectedException {
+    long start = System.currentTimeMillis();
 
     if (closed)
       throw new IllegalStateException("Closed");
@@ -250,15 +229,21 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
     checkForFailures();
 
-    waitRTE(() -> (totalMemUsed > maxMem || flushing) && !somethingFailed);
+    // Back-pressure if current mutation will put us over max memory
+    waitRTE(() -> ((this.maxMem > 0)
+        && ((m.estimatedMemoryUsed() + totalMemUsed.get()) > this.maxMem)));
+
+    if (System.currentTimeMillis() - start > this.maxLatency) {
+      // TODO: Should we do something here? Error?
+    }
 
     // do checks again since things could have changed while waiting and not holding lock
     if (closed)
       throw new IllegalStateException("Closed");
+
     checkForFailures();
 
-    if (startTime == 0) {
-      startTime = System.currentTimeMillis();
+    if (startTime.compareAndSet(0, System.currentTimeMillis())) {
 
       List<GarbageCollectorMXBean> gcmBeans = ManagementFactory.getGarbageCollectorMXBeans();
       for (GarbageCollectorMXBean garbageCollectorMXBean : gcmBeans) {
@@ -278,16 +263,12 @@ public class TabletServerBatchWriter implements AutoCloseable {
     // is important for the case where a mutation is passed from map to reduce
     // to batch writer... the map reduce code will keep passing the same mutation
     // object into the reduce method
-    m = new Mutation(m);
+    Mutation copy = new Mutation(m);
 
-    totalMemUsed += m.estimatedMemoryUsed();
-    mutations.addMutation(table, m);
-    totalAdded++;
+    totalMemUsed.getAndAdd(copy.estimatedMemoryUsed());
+    incomingQueue.add(table, copy);
+    totalAdded.getAndIncrement();
 
-    if (mutations.getMemoryUsed() >= maxMem / 2) {
-      startProcessing();
-      checkForFailures();
-    }
   }
 
   public void addMutation(TableId table, Iterator<Mutation> iterator)
@@ -316,10 +297,9 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       flushing = true;
 
-      startProcessing();
       checkForFailures();
 
-      waitRTE(() -> totalMemUsed > 0 && !somethingFailed);
+      waitRTE(() -> totalMemUsed.get() > 0 && !somethingFailed);
 
       flushing = false;
       this.notifyAll();
@@ -337,17 +317,14 @@ public class TabletServerBatchWriter implements AutoCloseable {
     try (TraceScope span = Trace.startSpan("close")) {
       closed = true;
 
-      startProcessing();
-
-      waitRTE(() -> totalMemUsed > 0 && !somethingFailed);
+      waitRTE(() -> totalMemUsed.get() > 0 && !somethingFailed);
 
       logStats();
 
       checkForFailures();
     } finally {
       // make a best effort to release these resources
-      writer.binningThreadPool.shutdownNow();
-      writer.sendThreadPool.shutdownNow();
+      writer.close();
       executor.shutdownNow();
     }
   }
@@ -369,7 +346,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
       }
 
       double averageRate = totalSent.get() / (totalSendTime.get() / 1000.0);
-      double overallRate = totalAdded / ((finishTime - startTime) / 1000.0);
+      double overallRate = totalAdded.get() / ((finishTime - startTime.get()) / 1000.0);
 
       double finalSystemLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
 
@@ -378,9 +355,9 @@ public class TabletServerBatchWriter implements AutoCloseable {
       log.trace(String.format("Added                : %,10d mutations", totalAdded));
       log.trace(String.format("Sent                 : %,10d mutations", totalSent.get()));
       log.trace(String.format("Resent percentage   : %10.2f%s",
-          (totalSent.get() - totalAdded) / (double) totalAdded * 100.0, "%"));
-      log.trace(
-          String.format("Overall time         : %,10.2f secs", (finishTime - startTime) / 1000.0));
+          (totalSent.get() - totalAdded.get()) / (double) totalAdded.get() * 100.0, "%"));
+      log.trace(String.format("Overall time         : %,10.2f secs",
+          (finishTime - startTime.get()) / 1000.0));
       log.trace(String.format("Overall send rate    : %,10.2f mutations/sec", overallRate));
       log.trace(
           String.format("Send efficiency      : %10.2f%s", overallRate / averageRate * 100.0, "%"));
@@ -388,10 +365,11 @@ public class TabletServerBatchWriter implements AutoCloseable {
       log.trace("BACKGROUND WRITER PROCESS STATISTICS");
       log.trace(
           String.format("Total send time      : %,10.2f secs %6.2f%s", totalSendTime.get() / 1000.0,
-              100.0 * totalSendTime.get() / (finishTime - startTime), "%"));
+              100.0 * totalSendTime.get() / (finishTime - startTime.get()), "%"));
       log.trace(String.format("Average send rate    : %,10.2f mutations/sec", averageRate));
-      log.trace(String.format("Total bin time       : %,10.2f secs %6.2f%s",
-          totalBinTime.get() / 1000.0, 100.0 * totalBinTime.get() / (finishTime - startTime), "%"));
+      log.trace(
+          String.format("Total bin time       : %,10.2f secs %6.2f%s", totalBinTime.get() / 1000.0,
+              100.0 * totalBinTime.get() / (finishTime - startTime.get()), "%"));
       log.trace(String.format("Average bin rate     : %,10.2f mutations/sec",
           totalBinned.get() / (totalBinTime.get() / 1000.0)));
       log.trace(String.format("tservers per batch   : %,8.2f avg  %,6d min %,6d max",
@@ -552,68 +530,37 @@ public class TabletServerBatchWriter implements AutoCloseable {
   /**
    * Add mutations that previously failed back into the mix
    */
-  private synchronized void addFailedMutations(MutationSet failedMutations) {
-    mutations.addAll(failedMutations);
-    if (mutations.getMemoryUsed() >= maxMem / 2 || closed || flushing) {
-      startProcessing();
+  private void addFailedMutations(MutationSet failedMutations) {
+    if (log.isTraceEnabled()) {
+      log.trace("tid={}  Requeuing {} failed mutations", Thread.currentThread().getId(),
+          failedMutations.numMutations());
     }
+    incomingQueue.addAll(failedMutations);
   }
 
-  private class FailedMutations {
-
-    private MutationSet recentFailures = null;
-    private long initTime;
-    private final Runnable task;
-
-    FailedMutations() {
-      task =
-          Threads.createNamedRunnable("failed mutationBatchWriterLatencyTimers handler", this::run);
-      executor.scheduleWithFixedDelay(task, 0, 500, TimeUnit.MILLISECONDS);
+  /**
+   * Add mutations that previously failed back into the mix
+   */
+  private void addFailedMutations(TableId table, ArrayList<Mutation> tableFailures) {
+    if (log.isTraceEnabled()) {
+      log.trace("tid={}  Requeuing {} failed mutations", Thread.currentThread().getId(),
+          tableFailures.size());
     }
+    incomingQueue.addAll(table, tableFailures);
+  }
 
-    private MutationSet init() {
-      if (recentFailures == null) {
-        recentFailures = new MutationSet();
-        initTime = System.currentTimeMillis();
-      }
-      return recentFailures;
-    }
-
-    synchronized void add(TableId table, ArrayList<Mutation> tableFailures) {
-      init().addAll(table, tableFailures);
-    }
-
-    synchronized void add(MutationSet failures) {
-      init().addAll(failures);
-    }
-
-    synchronized void add(TabletServerMutations<Mutation> tsm) {
-      init();
-      tsm.getMutations().forEach((ke, muts) -> recentFailures.addAll(ke.tableId(), muts));
-    }
-
-    public void run() {
-      try {
-        MutationSet rf = null;
-
-        synchronized (this) {
-          if (recentFailures != null && System.currentTimeMillis() - initTime > 1000) {
-            rf = recentFailures;
-            recentFailures = null;
-          }
-        }
-
-        if (rf != null) {
-          if (log.isTraceEnabled())
-            log.trace("tid={}  Requeuing {} failed mutations", Thread.currentThread().getId(),
-                rf.size());
-          addFailedMutations(rf);
-        }
-      } catch (Exception t) {
-        updateUnknownErrors("tid=" + Thread.currentThread().getId()
-            + "  Failed to requeue failed mutations " + t.getMessage(), t);
-        executor.remove(task);
-      }
+  /**
+   * Add mutations that previously failed back into the mix
+   */
+  private void addFailedMutations(TabletServerMutations<Mutation> tsm) {
+    AtomicLong count = new AtomicLong(0);
+    tsm.getMutations().forEach((ke, muts) -> {
+      count.addAndGet(muts.size());
+      incomingQueue.addAll(ke.tableId(), muts);
+    });
+    if (log.isTraceEnabled()) {
+      log.trace("tid={}  Requeued {} failed mutations", Thread.currentThread().getId(),
+          count.get());
     }
   }
 
@@ -629,6 +576,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     private final Map<String,TabletServerMutations<Mutation>> serversMutations;
     private final Set<String> queued;
     private final Map<TableId,TabletLocator> locators;
+    private volatile boolean closed = false;
 
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<>();
@@ -639,6 +587,39 @@ public class TabletServerBatchWriter implements AutoCloseable {
       binningThreadPool =
           ThreadPools.createFixedThreadPool(1, "BinMutations", new SynchronousQueue<>(), false);
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+      binningThreadPool.execute(Trace.wrap(new Runnable() {
+        @Override
+        public void run() {
+          while (!closed) {
+            int num = incomingQueue.numMutations();
+            if (num > 0) {
+              try {
+                log.trace("{} - binning {} mutations", Thread.currentThread().getName(), num);
+                // Remove the mutations from the incoming queue
+                final MutationSet copy = new MutationSet();
+                incomingQueue.forEach((table, mutations) -> {
+                  mutations.forEach(mutation -> {
+                    copy.add(table, mutation);
+                    mutations.remove(mutation);
+                  });
+                });
+                addMutations(copy);
+              } catch (Exception e) {
+                updateUnknownErrors("Error processing mutation set", e);
+              }
+            } else {
+              try {
+                Thread.sleep(100);
+              } catch (InterruptedException e) {
+                if (!closed) {
+                  log.error("sleep interrupted", e);
+                }
+              }
+            }
+          }
+        }
+      }));
+
     }
 
     private synchronized TabletLocator getLocator(TableId tableId) {
@@ -655,18 +636,18 @@ public class TabletServerBatchWriter implements AutoCloseable {
         Map<String,TabletServerMutations<Mutation>> binnedMutations) {
       TableId tableId = null;
       try {
-        Set<Entry<TableId,List<Mutation>>> es = mutationsToProcess.getMutations().entrySet();
-        for (Entry<TableId,List<Mutation>> entry : es) {
+        Set<Entry<TableId,Queue<Mutation>>> es = mutationsToProcess.entrySet();
+        for (Entry<TableId,Queue<Mutation>> entry : es) {
           tableId = entry.getKey();
           TabletLocator locator = getLocator(tableId);
-          List<Mutation> tableMutations = entry.getValue();
+          Collection<Mutation> tableMutations = entry.getValue();
 
           if (tableMutations != null) {
             ArrayList<Mutation> tableFailures = new ArrayList<>();
             locator.binMutations(context, tableMutations, binnedMutations, tableFailures);
 
             if (!tableFailures.isEmpty()) {
-              failedMutations.add(tableId, tableFailures);
+              addFailedMutations(tableId, tableFailures);
 
               if (tableFailures.size() == tableMutations.size()) {
                 context.requireNotDeleted(tableId);
@@ -681,7 +662,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
         updateServerErrors(ase.getServer(), ase);
       } catch (AccumuloException ae) {
         // assume an IOError communicating with metadata tablet
-        failedMutations.add(mutationsToProcess);
+        addFailedMutations(mutationsToProcess);
       } catch (AccumuloSecurityException e) {
         updateAuthorizationFailures(Collections.singletonMap(new KeyExtent(tableId, null, null),
             SecurityErrorCode.valueOf(e.getSecurityErrorCode().name())));
@@ -694,29 +675,13 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
     }
 
-    void queueMutations(final MutationSet mutationsToSend) {
-      if (mutationsToSend == null)
-        return;
-      binningThreadPool.execute(Trace.wrap(() -> {
-        if (mutationsToSend != null) {
-          try {
-            log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
-                mutationsToSend.size());
-            addMutations(mutationsToSend);
-          } catch (Exception e) {
-            updateUnknownErrors("Error processing mutation set", e);
-          }
-        }
-      }));
-    }
-
     private void addMutations(MutationSet mutationsToSend) {
       Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
       try (TraceScope span = Trace.startSpan("binMutations")) {
         long t1 = System.currentTimeMillis();
         binMutations(mutationsToSend, binnedMutations);
         long t2 = System.currentTimeMillis();
-        updateBinningStats(mutationsToSend.size(), (t2 - t1), binnedMutations);
+        updateBinningStats(mutationsToSend.numMutations(), (t2 - t1), binnedMutations);
       }
       addMutations(binnedMutations);
     }
@@ -753,15 +718,16 @@ public class TabletServerBatchWriter implements AutoCloseable {
         log.trace(String.format("Started sending %,d mutations to %,d tablet servers", count,
             binnedMutations.keySet().size()));
 
-      // randomize order of servers
-      ArrayList<String> servers = new ArrayList<>(binnedMutations.keySet());
-      Collections.shuffle(servers);
+      // order servers by decreasing number of mutations
+      TreeMap<Integer,String> servers = new TreeMap<>();
+      binnedMutations.forEach((server, tsm) -> servers.put(tsm.getMutations().size(), server));
 
-      for (String server : servers)
+      for (String server : servers.descendingMap().values()) {
         if (!queued.contains(server)) {
           sendThreadPool.submit(Trace.wrap(new SendTask(server)));
           queued.add(server);
         }
+      }
     }
 
     private synchronized TabletServerMutations<Mutation> getMutationsToSend(String server) {
@@ -834,7 +800,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
             if (log.isTraceEnabled())
               log.trace("sent " + String.format("%,d", count) + " mutations to " + location + " in "
                   + String.format("%.2f secs (%,.2f mutations/sec) with %,d failures",
-                      (st2 - st1) / 1000.0, count / ((st2 - st1) / 1000.0), failures.size()));
+                      (st2 - st1) / 1000.0, count / ((st2 - st1) / 1000.0),
+                      failures.numMutations()));
 
             long successBytes = 0;
             for (Entry<KeyExtent,List<Mutation>> entry : mutationBatch.entrySet()) {
@@ -843,8 +810,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
               }
             }
 
-            if (failures.size() > 0) {
-              failedMutations.add(failures);
+            if (failures.numMutations() > 0) {
+              addFailedMutations(failures);
               successBytes -= failures.getMemoryUsed();
             }
 
@@ -863,7 +830,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
           for (TableId table : tables)
             getLocator(table).invalidateCache(context, location);
 
-          failedMutations.add(tsm);
+          addFailedMutations(tsm);
         } finally {
           Thread.currentThread().setName(oldName);
         }
@@ -985,52 +952,41 @@ public class TabletServerBatchWriter implements AutoCloseable {
         throw new IOException(e);
       }
     }
+
+    private void close() {
+      this.closed = true;
+      binningThreadPool.shutdownNow();
+      sendThreadPool.shutdownNow();
+    }
   }
 
   // END code for sending mutations to tablet servers using background threads
 
-  private static class MutationSet {
+  private static class MutationSet extends ConcurrentHashMap<TableId,Queue<Mutation>> {
 
-    private final HashMap<TableId,List<Mutation>> mutations;
+    private static final long serialVersionUID = 1L;
+
     private long memoryUsed = 0;
 
-    MutationSet() {
-      mutations = new HashMap<>();
-    }
-
-    void addMutation(TableId table, Mutation mutation) {
-      mutations.computeIfAbsent(table, k -> new ArrayList<>()).add(mutation);
+    public void add(TableId table, Mutation mutation) {
       memoryUsed += mutation.estimatedMemoryUsed();
+      this.computeIfAbsent(table, k -> new ConcurrentLinkedQueue<>()).add(mutation);
     }
 
-    Map<TableId,List<Mutation>> getMutations() {
-      return mutations;
+    public void addAll(TableId table, Collection<Mutation> mutations) {
+      mutations.forEach(m -> add(table, m));
     }
 
-    int size() {
+    public void addAll(Map<? extends TableId,? extends Collection<Mutation>> map) {
+      map.forEach((k, v) -> addAll(k, v));
+    }
+
+    int numMutations() {
       int result = 0;
-      for (List<Mutation> perTable : mutations.values()) {
+      for (Collection<Mutation> perTable : this.values()) {
         result += perTable.size();
       }
       return result;
-    }
-
-    public void addAll(MutationSet failures) {
-      Set<Entry<TableId,List<Mutation>>> es = failures.getMutations().entrySet();
-
-      for (Entry<TableId,List<Mutation>> entry : es) {
-        TableId table = entry.getKey();
-
-        for (Mutation mutation : entry.getValue()) {
-          addMutation(table, mutation);
-        }
-      }
-    }
-
-    public void addAll(TableId table, List<Mutation> mutations) {
-      for (Mutation mutation : mutations) {
-        addMutation(table, mutation);
-      }
     }
 
     public long getMemoryUsed() {

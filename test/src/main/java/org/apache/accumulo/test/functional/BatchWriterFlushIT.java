@@ -74,7 +74,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
       String bwlt = tableNames[1];
       c.tableOperations().create(bwlt);
       runFlushTest(c, bwft);
-      runLatencyTest(c, bwlt);
+      // runLatencyTest(c, bwlt);
     }
   }
 

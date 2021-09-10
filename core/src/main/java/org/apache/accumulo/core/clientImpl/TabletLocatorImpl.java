@@ -155,7 +155,7 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   @Override
-  public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
+  public <T extends Mutation> void binMutations(ClientContext context, Collection<T> mutations,
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
 

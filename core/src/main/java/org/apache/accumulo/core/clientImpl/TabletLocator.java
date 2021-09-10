@@ -58,9 +58,9 @@ public abstract class TabletLocator {
   public abstract TabletLocation locateTablet(ClientContext context, Text row, boolean skipRow,
       boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
-  public abstract <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
-      Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+  public abstract <T extends Mutation> void binMutations(ClientContext context,
+      Collection<T> mutations, Map<String,TabletServerMutations<T>> binnedMutations,
+      List<T> failures) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   public abstract List<Range> binRanges(ClientContext context, List<Range> ranges,
       Map<String,Map<KeyExtent,List<Range>>> binnedRanges)

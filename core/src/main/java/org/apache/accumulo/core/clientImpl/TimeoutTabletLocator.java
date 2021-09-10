@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -78,7 +79,7 @@ public class TimeoutTabletLocator extends SyncingTabletLocator {
   }
 
   @Override
-  public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
+  public <T extends Mutation> void binMutations(ClientContext context, Collection<T> mutations,
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     try {

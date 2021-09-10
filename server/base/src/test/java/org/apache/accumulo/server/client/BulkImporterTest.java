@@ -75,7 +75,7 @@ public class BulkImporterTest {
     }
 
     @Override
-    public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
+    public <T extends Mutation> void binMutations(ClientContext context, Collection<T> mutations,
         Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures) {
       throw new UnsupportedOperationException();
     }

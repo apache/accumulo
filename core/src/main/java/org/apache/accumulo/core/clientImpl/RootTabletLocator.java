@@ -51,7 +51,7 @@ public class RootTabletLocator extends TabletLocator {
   }
 
   @Override
-  public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
+  public <T extends Mutation> void binMutations(ClientContext context, Collection<T> mutations,
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures) {
     TabletLocation rootTabletLocation = getRootTabletLocation(context);
     if (rootTabletLocation != null) {
