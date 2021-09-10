@@ -36,7 +36,6 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -467,12 +466,12 @@ public class CompactableImpl implements Compactable {
                 return false;
               }
             } else {
-              log.trace("Ingoring {} compaction because not selected kind {}", job.getKind(),
+              log.trace("Ingoing {} compaction because not selected kind {}", job.getKind(),
                   getExtent());
               return false;
             }
           } else if (!Collections.disjoint(selectedFiles, jobFiles)) {
-            log.trace("Ingoring compaction that overlaps with selected files {} {} {}", getExtent(),
+            log.trace("Ingoing compaction that overlaps with selected files {} {} {}", getExtent(),
                 job.getKind(), asFileNames(Sets.intersection(selectedFiles, jobFiles)));
             return false;
           }
@@ -619,17 +618,19 @@ public class CompactableImpl implements Compactable {
       Set<StoredTabletFile> tabletFiles, Map<ExternalCompactionId,String> extCompactionsToRemove) {
 
     Set<StoredTabletFile> seen = new HashSet<>();
-    AtomicBoolean overlap = new AtomicBoolean(false);
+    boolean overlap = false;
 
-    extCompactions.forEach((ecid, ecMeta) -> {
+    for (var entry : extCompactions.entrySet()) {
+      ExternalCompactionMetadata ecMeta = entry.getValue();
       if (!tabletFiles.containsAll(ecMeta.getJobFiles())) {
-        extCompactionsToRemove.putIfAbsent(ecid, "Has files outside of tablet files");
+        extCompactionsToRemove.putIfAbsent(entry.getKey(), "Has files outside of tablet files");
       } else if (!Collections.disjoint(seen, ecMeta.getJobFiles())) {
-        overlap.set(true);
+        overlap = true;
       }
-    });
+      seen.addAll(ecMeta.getJobFiles());
+    }
 
-    if (overlap.get()) {
+    if (overlap) {
       extCompactions.keySet().forEach(ecid -> {
         extCompactionsToRemove.putIfAbsent(ecid, "Some external compaction files overlap");
       });
@@ -679,7 +680,7 @@ public class CompactableImpl implements Compactable {
 
   private void checkifChopComplete(Set<StoredTabletFile> allFiles) {
 
-    boolean completed = false;
+    boolean completed;
 
     synchronized (this) {
       completed = fileMgr.finishChop(allFiles);
@@ -846,7 +847,7 @@ public class CompactableImpl implements Compactable {
     }
 
     Pair<Long,CompactionConfig> idAndCfg = null;
-    if (extKind != null && extKind == CompactionKind.USER) {
+    if (extKind == CompactionKind.USER) {
       try {
         idAndCfg = tablet.getCompactionID();
         if (!idAndCfg.getFirst().equals(cid)) {
@@ -869,7 +870,6 @@ public class CompactableImpl implements Compactable {
     }
 
     if (extKind != null) {
-
       if (extKind == CompactionKind.USER) {
         this.chelper = CompactableUtils.getHelper(extKind, tablet, cid, idAndCfg.getSecond());
         this.compactionConfig = idAndCfg.getSecond();
@@ -1011,7 +1011,7 @@ public class CompactableImpl implements Compactable {
   }
 
   class CompactionCheck {
-    private Supplier<Boolean> memoizedCheck;
+    private final Supplier<Boolean> memoizedCheck;
 
     public CompactionCheck(CompactionServiceId service, CompactionKind kind, Long compactionId) {
       this.memoizedCheck = Suppliers.memoizeWithExpiration(() -> {
