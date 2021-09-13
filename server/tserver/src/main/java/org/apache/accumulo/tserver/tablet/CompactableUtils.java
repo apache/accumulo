@@ -551,13 +551,12 @@ public class CompactableUtils {
       CompactableImpl.CompactionInfo cInfo, CompactionEnv cenv,
       Map<StoredTabletFile,DataFileValue> compactFiles, TabletFile tmpFileName)
       throws IOException, CompactionCanceledException {
-    boolean propagateDeletes = cInfo.propagateDeletes;
 
     AccumuloConfiguration compactionConfig = getCompactionConfig(tablet.getTableConfiguration(),
         getOverrides(job.getKind(), tablet, cInfo.localHelper, job.getFiles()));
 
     FileCompactor compactor = new FileCompactor(tablet.getContext(), tablet.getExtent(),
-        compactFiles, tmpFileName, propagateDeletes, cenv, cInfo.iters, compactionConfig);
+        compactFiles, tmpFileName, cInfo.propagateDeletes, cenv, cInfo.iters, compactionConfig);
 
     return compactor.call();
   }
