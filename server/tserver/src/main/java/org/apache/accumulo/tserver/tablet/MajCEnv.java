@@ -37,7 +37,7 @@ public class MajCEnv implements FileCompactor.CompactionEnv {
   private final RateLimiter readLimiter;
   private final RateLimiter writeLimiter;
   private final boolean propagateDeletes;
-  private final boolean enabled;
+  private final CompactableImpl.CompactionCheck compactionCheck;
 
   public MajCEnv(CompactionKind kind, CompactableImpl.CompactionCheck compactionCheck,
       RateLimiter readLimiter, RateLimiter writeLimiter, boolean propagateDeletes) {
@@ -45,12 +45,12 @@ public class MajCEnv implements FileCompactor.CompactionEnv {
     this.readLimiter = readLimiter;
     this.writeLimiter = writeLimiter;
     this.propagateDeletes = propagateDeletes;
-    this.enabled = compactionCheck.isCompactionEnabled();
+    this.compactionCheck = compactionCheck;
   }
 
   @Override
   public boolean isCompactionEnabled() {
-    return enabled;
+    return compactionCheck.isCompactionEnabled();
   }
 
   @Override
