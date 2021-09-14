@@ -43,7 +43,7 @@ import com.google.common.base.Preconditions;
 
 public class ExternalCompactionExecutor implements CompactionExecutor {
 
-  // This exist to provide an accurate count of queued compactions for metrics. The PriorityQueue is
+  // This set provides an accurate count of queued compactions for metrics. The PriorityQueue is
   // not used because its size may be off due to it containing cancelled compactions. The collection
   // below should not contain cancelled compactions. A concurrent set was not used because those do
   // not have constant time size operations.

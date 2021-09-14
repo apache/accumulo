@@ -56,18 +56,18 @@ public class InternalCompactionExecutor implements CompactionExecutor {
   private AtomicLong cancelCount = new AtomicLong();
   private ThreadPoolExecutor threadPool;
 
-  // This exist to provide an accurate count of queued compactions for metrics. The PriorityQueue is
+  // This set provides an accurate count of queued compactions for metrics. The PriorityQueue is
   // not used because its size may be off due to it containing cancelled compactions. The collection
   // below should not contain cancelled compactions. A concurrent set was not used because those do
   // not have constant time size operations.
-  private Set<CompactionTask> queuedTask = Collections.synchronizedSet(new HashSet<>());
+  private Set<InternalJob> queuedTask = Collections.synchronizedSet(new HashSet<>());
 
   private AutoCloseable metricCloser;
 
   private RateLimiter readLimiter;
   private RateLimiter writeLimiter;
 
-  private class CompactionTask extends SubmittedJob implements Runnable {
+  private class InternalJob extends SubmittedJob implements Runnable {
 
     private AtomicReference<Status> status = new AtomicReference<>(Status.QUEUED);
     private Compactable compactable;
@@ -75,7 +75,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
     private Consumer<Compactable> completionCallback;
     private final long queuedTime;
 
-    public CompactionTask(CompactionJob job, Compactable compactable, CompactionServiceId csid,
+    public InternalJob(CompactionJob job, Compactable compactable, CompactionServiceId csid,
         Consumer<Compactable> completionCallback) {
       super(job);
       this.compactable = compactable;
@@ -124,17 +124,17 @@ public class InternalCompactionExecutor implements CompactionExecutor {
         // priority. This runs periodically, instead of every time something is canceled, to avoid
         // hurting performance.
         queue.removeIf(runnable -> {
-          CompactionTask compactionTask;
+          InternalJob internalJob;
           if (runnable instanceof TraceRunnable) {
             runnable = ((TraceRunnable) runnable).getRunnable();
           }
-          if (runnable instanceof CompactionTask) {
-            compactionTask = (CompactionTask) runnable;
+          if (runnable instanceof InternalJob) {
+            internalJob = (InternalJob) runnable;
           } else {
             throw new IllegalArgumentException(
                 "Unknown runnable type " + runnable.getClass().getName());
           }
-          return compactionTask.getStatus() == Status.CANCELED;
+          return internalJob.getStatus() == Status.CANCELED;
         });
       }
 
@@ -151,8 +151,8 @@ public class InternalCompactionExecutor implements CompactionExecutor {
       return getJob(((TraceRunnable) r).getRunnable());
     }
 
-    if (r instanceof CompactionTask) {
-      return ((CompactionTask) r).getJob();
+    if (r instanceof InternalJob) {
+      return ((InternalJob) r).getJob();
     }
 
     throw new IllegalArgumentException("Unknown runnable type " + r.getClass().getName());
@@ -182,9 +182,9 @@ public class InternalCompactionExecutor implements CompactionExecutor {
   public SubmittedJob submit(CompactionServiceId csid, CompactionJob job, Compactable compactable,
       Consumer<Compactable> completionCallback) {
     Preconditions.checkArgument(job.getExecutor().equals(ceid));
-    var ctask = new CompactionTask(job, compactable, csid, completionCallback);
-    threadPool.execute(ctask);
-    return ctask;
+    var internalJob = new InternalJob(job, compactable, csid, completionCallback);
+    threadPool.execute(internalJob);
+    return internalJob;
   }
 
   public void setThreads(int numThreads) {
@@ -232,9 +232,9 @@ public class InternalCompactionExecutor implements CompactionExecutor {
 
   @Override
   public void compactableClosed(KeyExtent extent) {
-    List<CompactionTask> taskToCancel;
+    List<InternalJob> taskToCancel;
     synchronized (queuedTask) {
-      taskToCancel = queuedTask.stream().filter(ejob -> ejob.getExtent().equals(extent))
+      taskToCancel = queuedTask.stream().filter(job -> job.getExtent().equals(extent))
           .collect(Collectors.toList());
     }
 
