@@ -72,7 +72,7 @@ public class QuotedStringTokenizer implements Iterable<String> {
         inEscapeSequence = false;
         if (ch == 'x') {
           hexChars = "";
-        } else if (ch == ' ' || ch == '\'' || ch == '"' || ch == '\\' || ch == ':') {
+        } else if (ch == ' ' || ch == '\'' || ch == '"' || ch == '\\') {
           token[tokenLength++] = inputBytes[i];
         } else {
           throw new BadArgumentException("can only escape single quotes, double"

@@ -33,13 +33,13 @@ public class ScanCommandTest {
   @Test
   public void testCFRowHelp() {
     assertTrue("Column Family",
-        new ScanCommand().getOptions().getOption("cf").getDescription().contains("Family"));
+        new ScanCommand().getOptions().getOption("cf").getDescription().contains("family"));
   }
 
   @Test
   public void testCQHelp() {
     assertTrue("Column Qualifier",
-        new ScanCommand().getOptions().getOption("cq").getDescription().contains("Qualifier"));
+        new ScanCommand().getOptions().getOption("cq").getDescription().contains("qualifier"));
   }
 
 }

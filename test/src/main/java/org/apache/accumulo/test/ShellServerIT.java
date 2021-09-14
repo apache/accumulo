@@ -1942,10 +1942,16 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void scansWithColon() throws Exception {
     ts.exec("createtable twithcolontest");
-    make10WithColon();
-    ts.exec("scan -r row0 -cf c:f", true, "value");
-    String result = ts.exec("scan -b row1 -cf c:f  -cq col1 -e row1");
+    ts.exec("insert row c:f cq value");
+    ts.exec("scan -r row -cf c:f", true, "value");
+    String result = ts.exec("scan -b row -cf c:f  -cq cq -e row");
     assertEquals(2, result.split("\n").length);
+    result = ts.exec("scan -b row -c cf -cf c:f  -cq cq -e row", false);
+    assertTrue(result.contains("mutually exclusive"));
+
+    result = ts.exec("scan -b row -cq col1 -e row", false);
+    assertTrue(result.contains("cannot be empty"));
+
     ts.exec("deletetable -f twithcolontest");
   }
 
@@ -2192,13 +2198,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     for (int i = 0; i < 10; i++) {
       ts.exec(String.format("insert row%d cf col%d value", i, i));
     }
-  }
-
-  private void make10WithColon() throws IOException {
-    for (int i = 0; i < 10; i++) {
-      ts.exec(String.format("insert row%d c:f col%d value", i, i));
-    }
-
   }
 
   private List<String> getFiles(String tableId) throws IOException {
