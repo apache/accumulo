@@ -39,7 +39,7 @@ public class ScanCommandTest {
   @Test
   public void testCQHelp() {
     assertTrue("Column Qualifier",
-        new ScanCommand().getOptions().getOption("cf").getDescription().contains("Qualifier"));
+        new ScanCommand().getOptions().getOption("cq").getDescription().contains("Qualifier"));
   }
 
 }
