@@ -246,9 +246,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
     // Back-pressure if current mutation will put us over max memory
     if (this.maxMem > 0) {
-      synchronized (this) {
-        waitRTE(() -> ((m.estimatedMemoryUsed() + totalMemUsed) > this.maxMem));
-      }
+      waitRTE(() -> ((m.estimatedMemoryUsed() + totalMemUsed) > this.maxMem));
     }
 
     if (System.currentTimeMillis() - start > this.maxLatency) {
