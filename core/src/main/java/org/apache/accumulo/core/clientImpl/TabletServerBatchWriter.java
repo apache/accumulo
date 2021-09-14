@@ -229,9 +229,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   private synchronized void decrementMemUsed(long amount) {
     totalMemUsed -= amount;
-    synchronized (this) {
-      this.notifyAll();
-    }
+    this.notifyAll();
   }
 
   public synchronized void addMutation(final TableId table, final Mutation m)
