@@ -149,12 +149,12 @@ public class TabletServerBatchWriter implements AutoCloseable {
       Collections.synchronizedMap(new HashMap<>());
 
   // stats
-  private final AtomicLong totalMemUsed = new AtomicLong(0);
-  private final AtomicLong totalAdded = new AtomicLong(0);
   private final AtomicLong totalSent = new AtomicLong(0);
   private final AtomicLong totalBinned = new AtomicLong(0);
   private final AtomicLong totalBinTime = new AtomicLong(0);
   private final AtomicLong totalSendTime = new AtomicLong(0);
+  private long totalMemUsed = 0;
+  private long totalAdded = 0;
   private long startTime = 0;
   private long initialGCTimes;
   private long initialCompileTimes;
@@ -227,8 +227,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
     this.writer = new MutationWriter(config.getMaxWriteThreads());
   }
 
-  private void decrementMemUsed(long amount) {
-    totalMemUsed.getAndAdd(-1 * amount);
+  private synchronized void decrementMemUsed(long amount) {
+    totalMemUsed -= amount;
     synchronized (this) {
       this.notifyAll();
     }
@@ -249,7 +249,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     // Back-pressure if current mutation will put us over max memory
     if (this.maxMem > 0) {
       synchronized (this) {
-        waitRTE(() -> ((m.estimatedMemoryUsed() + totalMemUsed.get()) > this.maxMem));
+        waitRTE(() -> ((m.estimatedMemoryUsed() + totalMemUsed) > this.maxMem));
       }
     }
 
@@ -286,9 +286,9 @@ public class TabletServerBatchWriter implements AutoCloseable {
     // object into the reduce method
     Mutation copy = new Mutation(m);
 
-    totalMemUsed.getAndAdd(copy.estimatedMemoryUsed());
+    totalMemUsed += copy.estimatedMemoryUsed();
     incomingQueue.add(new TableIdAndMutation(table, copy));
-    totalAdded.getAndIncrement();
+    totalAdded++;
 
   }
 
@@ -320,7 +320,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       checkForFailures();
 
-      waitRTE(() -> totalMemUsed.get() > 0 && !somethingFailed);
+      waitRTE(() -> totalMemUsed > 0 && !somethingFailed);
 
       flushing = false;
       this.notifyAll();
@@ -338,7 +338,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     try (TraceScope span = Trace.startSpan("close")) {
       closed = true;
 
-      waitRTE(() -> totalMemUsed.get() > 0 && !somethingFailed);
+      waitRTE(() -> totalMemUsed > 0 && !somethingFailed);
 
       logStats();
 
@@ -367,7 +367,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
       }
 
       double averageRate = totalSent.get() / (totalSendTime.get() / 1000.0);
-      double overallRate = totalAdded.get() / ((finishTime - startTime) / 1000.0);
+      double overallRate = totalAdded / ((finishTime - startTime) / 1000.0);
 
       double finalSystemLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
 
@@ -376,7 +376,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
       log.trace(String.format("Added                : %,10d mutations", totalAdded));
       log.trace(String.format("Sent                 : %,10d mutations", totalSent.get()));
       log.trace(String.format("Resent percentage   : %10.2f%s",
-          (totalSent.get() - totalAdded.get()) / (double) totalAdded.get() * 100.0, "%"));
+          (totalSent.get() - totalAdded) / (double) totalAdded * 100.0, "%"));
       log.trace(
           String.format("Overall time         : %,10.2f secs", (finishTime - startTime) / 1000.0));
       log.trace(String.format("Overall send rate    : %,10.2f mutations/sec", overallRate));
