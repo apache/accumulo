@@ -1943,11 +1943,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
   public void scansWithColon() throws Exception {
     ts.exec("createtable twithcolontest");
     make10WithColon();
-    ts.exec("scan -r row0 -c c\\:f:col0", true, "value");
-    String result = ts.exec("scan -b row1 -c c\\:f:col1 -e row1");
+    ts.exec("scan -r row0 -cf c:f", true, "value");
+    String result = ts.exec("scan -b row1 -cf c:f  -cq col1 -e row1");
     assertEquals(2, result.split("\n").length);
-    result = ts.exec("scan -r row0 -c c:f");
-    assertEquals(1, result.split("\n").length);
     ts.exec("deletetable -f twithcolontest");
   }
 

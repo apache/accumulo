@@ -56,12 +56,11 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
-import com.google.common.base.CharMatcher;
-
 public class ScanCommand extends Command {
 
   private Option scanOptAuths, scanOptRow, scanOptColumns, disablePaginationOpt, showFewOpt,
-      formatterOpt, interpreterOpt, formatterInterpeterOpt, outputFileOpt;
+      formatterOpt, interpreterOpt, formatterInterpeterOpt, outputFileOpt, scanOptCfOptions,
+      scanOptColQualifier;
 
   protected Option timestampOpt;
   protected Option profileOpt;
@@ -116,6 +115,7 @@ public class ScanCommand extends Command {
 
       // handle columns
       fetchColumns(cl, scanner, interpeter);
+      fetchColumsWithCFAndCQ(cl, scanner, interpeter);
 
       // set timeout
       scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
@@ -273,9 +273,18 @@ public class ScanCommand extends Command {
   protected void fetchColumns(final CommandLine cl, final ScannerBase scanner,
       final ScanInterpreter formatter) throws UnsupportedEncodingException {
 
+    if ((cl.hasOption(scanOptCfOptions.getOpt()) || cl.hasOption(scanOptColQualifier.getOpt()))
+        && cl.hasOption(scanOptColumns.getOpt())) {
+
+      String formattedString =
+          String.format("Options - %s AND (- %s" + "OR - %s are mutually exclusive ",
+              scanOptColumns.getOpt(), scanOptCfOptions.getOpt(), scanOptColQualifier.getOpt());
+      throw new IllegalArgumentException(formattedString);
+    }
+
     if (cl.hasOption(scanOptColumns.getOpt())) {
       for (String a : cl.getOptionValue(scanOptColumns.getOpt()).split(",")) {
-        final String[] sa = extractColumnFamily(a);
+        final String[] sa = a.split(":", 2);
         if (sa.length == 1) {
           scanner.fetchColumnFamily(
               formatter.interpretColumnFamily(new Text(a.getBytes(Shell.CHARSET))));
@@ -288,14 +297,28 @@ public class ScanCommand extends Command {
     }
   }
 
-  protected String[] extractColumnFamily(final String columnString) {
-    String[] columnFamily = new String[2];
-    if (CharMatcher.is(':').countIn(columnString) >= 2) {
-      columnFamily[0] = columnString.substring(0, columnString.lastIndexOf(":"));
-      columnFamily[1] = columnString.substring(columnString.lastIndexOf(":") + 1);
-      return columnFamily;
-    } else {
-      return columnString.split(":", 2);
+  private void fetchColumsWithCFAndCQ(CommandLine cl, Scanner scanner, ScanInterpreter interpeter) {
+    String cf = "";
+    String cq = "";
+    if (cl.hasOption(scanOptCfOptions.getOpt())) {
+      cf = cl.getOptionValue(scanOptCfOptions.getOpt());
+    }
+    if (cl.hasOption(scanOptColQualifier.getOpt())) {
+      cq = cl.getOptionValue(scanOptColQualifier.getOpt());
+    }
+
+    if (cf.isEmpty() && !cq.isEmpty()) {
+      String formattedString = String.format(
+          "Option - %s when used with (- %s" + "cannot be empty ", scanOptCfOptions.getOpt(),
+          scanOptColQualifier.getOpt(), scanOptColQualifier.getOpt());
+      throw new IllegalArgumentException(formattedString);
+    } else if (!cf.isEmpty() && cq.isEmpty()) {
+      scanner.fetchColumnFamily(
+          interpeter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET))));
+
+    } else if (!cf.isEmpty() && !cq.isEmpty()) {
+      scanner.fetchColumn(interpeter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET))),
+          interpeter.interpretColumnQualifier(new Text(cq.getBytes(Shell.CHARSET))));
 
     }
 
@@ -364,6 +387,9 @@ public class ScanCommand extends Command {
     optEndRowExclusive.setArgName("end-exclusive");
     scanOptRow = new Option("r", "row", true, "row to scan");
     scanOptColumns = new Option("c", "columns", true, "comma-separated columns");
+    scanOptCfOptions = new Option("cf", "column-family", true, "Column Family");
+    scanOptColQualifier = new Option("cq", "column-qualifier", true, "Column Qualifier");
+
     timestampOpt = new Option("st", "show-timestamps", false, "display timestamps");
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     showFewOpt = new Option("f", "show-few", true, "show only a specified number of characters");
@@ -385,6 +411,8 @@ public class ScanCommand extends Command {
     scanOptRow.setArgName("row");
     scanOptColumns
         .setArgName("<columnfamily>[:<columnqualifier>]{,<columnfamily>[:<columnqualifier>]}");
+    scanOptCfOptions.setArgName("column-family");
+    scanOptColQualifier.setArgName("column-qualifier");
     showFewOpt.setRequired(false);
     showFewOpt.setArgName("int");
     formatterOpt.setArgName("className");
@@ -406,6 +434,8 @@ public class ScanCommand extends Command {
     o.addOption(optStartRowExclusive);
     o.addOption(optEndRowExclusive);
     o.addOption(scanOptColumns);
+    o.addOption(scanOptCfOptions);
+    o.addOption(scanOptColQualifier);
     o.addOption(timestampOpt);
     o.addOption(disablePaginationOpt);
     o.addOption(OptUtil.tableOpt("table to be scanned"));
