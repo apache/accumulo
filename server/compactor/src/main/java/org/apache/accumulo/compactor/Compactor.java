@@ -542,7 +542,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
           job.getIteratorSettings().getIterators()
               .forEach(tis -> iters.add(SystemIteratorUtil.toIteratorSetting(tis)));
 
-          CompactionEnvironment cenv = new CompactionEnvironment(JOB_HOLDER, queueName);
+          ExtCEnv cenv = new ExtCEnv(JOB_HOLDER, queueName);
           FileCompactor compactor = new FileCompactor(getContext(), extent, files, outputFile,
               job.isPropagateDeletes(), cenv, iters, tConfig);
 
