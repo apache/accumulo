@@ -47,7 +47,7 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
   // not used because its size may be off due to it containing cancelled compactions. The collection
   // below should not contain cancelled compactions. A concurrent set was not used because those do
   // not have constant time size operations.
-  private Set<ExternalJob> queuedTask = Collections.synchronizedSet(new HashSet<>());
+  private Set<ExternalJob> queuedJob = Collections.synchronizedSet(new HashSet<>());
 
   private class ExternalJob extends SubmittedJob {
     private final AtomicReference<Status> status = new AtomicReference<>(Status.QUEUED);
@@ -61,7 +61,7 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
       super(job);
       this.compactable = compactable;
       this.csid = csid;
-      queuedTask.add(this);
+      queuedJob.add(this);
       this.timeCreated = System.currentTimeMillis();
     }
 
@@ -83,11 +83,11 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
       if (expectedStatus == Status.QUEUED) {
         canceled = status.compareAndSet(expectedStatus, Status.CANCELED);
         if (canceled) {
-          queuedTask.remove(this);
+          queuedJob.remove(this);
         }
 
         if (canceled && cancelCount.incrementAndGet() % 1024 == 0) {
-          // Occasionally clean the queue of canceled tasks that have hung around because of their
+          // Occasionally clean the queue of canceled jobs that have hung around because of their
           // low priority. This runs periodically, instead of every time something is canceled, to
           // avoid hurting performance.
           queue.removeIf(ej -> ej.getStatus() == Status.CANCELED);
@@ -140,7 +140,7 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
   public int getCompactionsQueued(CType ctype) {
     if (ctype != CType.EXTERNAL)
       return 0;
-    return queuedTask.size();
+    return queuedJob.size();
   }
 
   @Override
@@ -166,7 +166,7 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
 
       if (extJob.getJob().getPriority() >= priority) {
         if (extJob.status.compareAndSet(Status.QUEUED, Status.RUNNING)) {
-          queuedTask.remove(extJob);
+          queuedJob.remove(extJob);
           var ecj = extJob.compactable.reserveExternalCompaction(extJob.csid, extJob.getJob(),
               compactorId, externalCompactionId);
           if (ecj == null) {
@@ -191,7 +191,7 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
 
   public Stream<TCompactionQueueSummary> summarize() {
     HashSet<Short> uniqPrios = new HashSet<Short>();
-    queuedTask.forEach(task -> uniqPrios.add(task.getJob().getPriority()));
+    queuedJob.forEach(job -> uniqPrios.add(job.getJob().getPriority()));
 
     Stream<Short> prioStream = uniqPrios.stream();
 
@@ -212,13 +212,13 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
 
   @Override
   public void compactableClosed(KeyExtent extent) {
-    List<ExternalJob> taskToCancel;
-    synchronized (queuedTask) {
-      taskToCancel = queuedTask.stream().filter(ejob -> ejob.getExtent().equals(extent))
+    List<ExternalJob> jobToCancel;
+    synchronized (queuedJob) {
+      jobToCancel = queuedJob.stream().filter(ejob -> ejob.getExtent().equals(extent))
           .collect(Collectors.toList());
     }
 
-    taskToCancel.forEach(task -> task.cancel(Status.QUEUED));
+    jobToCancel.forEach(job -> job.cancel(Status.QUEUED));
   }
 
 }

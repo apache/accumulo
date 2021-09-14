@@ -60,7 +60,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
   // not used because its size may be off due to it containing cancelled compactions. The collection
   // below should not contain cancelled compactions. A concurrent set was not used because those do
   // not have constant time size operations.
-  private Set<InternalJob> queuedTask = Collections.synchronizedSet(new HashSet<>());
+  private Set<InternalJob> queuedJob = Collections.synchronizedSet(new HashSet<>());
 
   private AutoCloseable metricCloser;
 
@@ -81,7 +81,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
       this.compactable = compactable;
       this.csid = csid;
       this.completionCallback = completionCallback;
-      queuedTask.add(this);
+      queuedJob.add(this);
       queuedTime = System.currentTimeMillis();
     }
 
@@ -90,7 +90,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
 
       try {
         if (status.compareAndSet(Status.QUEUED, Status.RUNNING)) {
-          queuedTask.remove(this);
+          queuedJob.remove(this);
           compactable.compact(csid, getJob(), readLimiter, writeLimiter, queuedTime);
           completionCallback.accept(compactable);
         }
@@ -117,10 +117,10 @@ public class InternalCompactionExecutor implements CompactionExecutor {
       }
 
       if (canceled)
-        queuedTask.remove(this);
+        queuedJob.remove(this);
 
       if (canceled && cancelCount.incrementAndGet() % 1024 == 0) {
-        // Occasionally clean the queue of canceled tasks that have hung around because of their low
+        // Occasionally clean the queue of canceled jobs that have hung around because of their low
         // priority. This runs periodically, instead of every time something is canceled, to avoid
         // hurting performance.
         queue.removeIf(runnable -> {
@@ -170,7 +170,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
         "compaction." + ceid, queue, OptionalInt.empty(), true);
 
     metricCloser =
-        ceMetrics.addExecutor(ceid, () -> threadPool.getActiveCount(), () -> queuedTask.size());
+        ceMetrics.addExecutor(ceid, () -> threadPool.getActiveCount(), () -> queuedJob.size());
 
     this.readLimiter = readLimiter;
     this.writeLimiter = writeLimiter;
@@ -216,7 +216,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
   public int getCompactionsQueued(CType ctype) {
     if (ctype != CType.INTERNAL)
       return 0;
-    return queuedTask.size();
+    return queuedJob.size();
   }
 
   @Override
@@ -232,12 +232,12 @@ public class InternalCompactionExecutor implements CompactionExecutor {
 
   @Override
   public void compactableClosed(KeyExtent extent) {
-    List<InternalJob> taskToCancel;
-    synchronized (queuedTask) {
-      taskToCancel = queuedTask.stream().filter(job -> job.getExtent().equals(extent))
+    List<InternalJob> jobToCancel;
+    synchronized (queuedJob) {
+      jobToCancel = queuedJob.stream().filter(job -> job.getExtent().equals(extent))
           .collect(Collectors.toList());
     }
 
-    taskToCancel.forEach(task -> task.cancel(Status.QUEUED));
+    jobToCancel.forEach(job -> job.cancel(Status.QUEUED));
   }
 }
