@@ -47,7 +47,7 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
   // not used because its size may be off due to it containing cancelled compactions. The collection
   // below should not contain cancelled compactions. A concurrent set was not used because those do
   // not have constant time size operations.
-  private Set<ExternalJob> queuedJob = Collections.synchronizedSet(new HashSet<>());
+  private final Set<ExternalJob> queuedJob = Collections.synchronizedSet(new HashSet<>());
 
   private class ExternalJob extends SubmittedJob {
     private final AtomicReference<Status> status = new AtomicReference<>(Status.QUEUED);
@@ -106,8 +106,8 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
     }
   }
 
-  private PriorityBlockingQueue<ExternalJob> queue;
-  private CompactionExecutorId ceid;
+  private final PriorityBlockingQueue<ExternalJob> queue;
+  private final CompactionExecutorId ceid;
 
   public ExternalCompactionExecutor(CompactionExecutorId ceid) {
     this.ceid = ceid;
@@ -116,8 +116,8 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
     priorityComparator =
         priorityComparator.reversed().thenComparingLong(ExternalJob::getTimeCreated);
 
-    this.queue = new PriorityBlockingQueue<ExternalJob>(100,
-        priorityComparator.thenComparing(priorityComparator));
+    this.queue =
+        new PriorityBlockingQueue<>(100, priorityComparator.thenComparing(priorityComparator));
   }
 
   @Override

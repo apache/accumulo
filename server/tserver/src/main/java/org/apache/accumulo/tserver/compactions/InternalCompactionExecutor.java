@@ -60,19 +60,19 @@ public class InternalCompactionExecutor implements CompactionExecutor {
   // not used because its size may be off due to it containing cancelled compactions. The collection
   // below should not contain cancelled compactions. A concurrent set was not used because those do
   // not have constant time size operations.
-  private Set<InternalJob> queuedJob = Collections.synchronizedSet(new HashSet<>());
+  private final Set<InternalJob> queuedJob = Collections.synchronizedSet(new HashSet<>());
 
-  private AutoCloseable metricCloser;
+  private final AutoCloseable metricCloser;
 
-  private RateLimiter readLimiter;
-  private RateLimiter writeLimiter;
+  private final RateLimiter readLimiter;
+  private final RateLimiter writeLimiter;
 
   private class InternalJob extends SubmittedJob implements Runnable {
 
-    private AtomicReference<Status> status = new AtomicReference<>(Status.QUEUED);
-    private Compactable compactable;
-    private CompactionServiceId csid;
-    private Consumer<Compactable> completionCallback;
+    private final AtomicReference<Status> status = new AtomicReference<>(Status.QUEUED);
+    private final Compactable compactable;
+    private final CompactionServiceId csid;
+    private final Consumer<Compactable> completionCallback;
     private final long queuedTime;
 
     public InternalJob(CompactionJob job, Compactable compactable, CompactionServiceId csid,
