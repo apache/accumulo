@@ -1031,7 +1031,7 @@ public class CompactableImpl implements Compactable {
     }
   }
 
-  private static class CompactionInfo {
+  static class CompactionInfo {
     Set<StoredTabletFile> jobFiles;
     Long checkCompactionId = null;
     boolean propagateDeletes = true;
@@ -1147,31 +1147,37 @@ public class CompactableImpl implements Compactable {
       return;
 
     var cInfo = ocInfo.get();
-    StoredTabletFile metaFile = null;
+    StoredTabletFile newFile = null;
     long startTime = System.currentTimeMillis();
-    // create an empty stats object to be populated by CompactableUtils.compact()
+    CompactionKind kind = job.getKind();
+
     CompactionStats stats = new CompactionStats();
     try {
-
       TabletLogger.compacting(getExtent(), job, cInfo.localCompactionCfg);
       tablet.incrementStatusMajor();
+      var check = new CompactionCheck(service, kind, cInfo.checkCompactionId);
+      TabletFile tmpFileName = tablet.getNextMapFilenameForMajc(cInfo.propagateDeletes);
+      var compactEnv = new MajCEnv(kind, check, readLimiter, writeLimiter, cInfo.propagateDeletes);
 
-      metaFile = CompactableUtils.compact(tablet, job, cInfo.jobFiles, cInfo.checkCompactionId,
-          cInfo.selectedFiles, cInfo.propagateDeletes, cInfo.localHelper, cInfo.iters,
-          new CompactionCheck(service, job.getKind(), cInfo.checkCompactionId), readLimiter,
-          writeLimiter, stats);
+      SortedMap<StoredTabletFile,DataFileValue> allFiles = tablet.getDatafiles();
+      HashMap<StoredTabletFile,DataFileValue> compactFiles = new HashMap<>();
+      cInfo.jobFiles.forEach(file -> compactFiles.put(file, allFiles.get(file)));
 
-      TabletLogger.compacted(getExtent(), job, metaFile);
+      stats = CompactableUtils.compact(tablet, job, cInfo, compactEnv, compactFiles, tmpFileName);
 
+      newFile = CompactableUtils.bringOnline(tablet.getDatafileManager(), cInfo, stats,
+          compactFiles, allFiles, kind, tmpFileName);
+
+      TabletLogger.compacted(getExtent(), job, newFile);
     } catch (CompactionCanceledException cce) {
       log.debug("Compaction canceled {} ", getExtent());
-      metaFile = null;
+      newFile = null;
     } catch (Exception e) {
-      metaFile = null;
+      newFile = null;
       throw new RuntimeException(e);
     } finally {
-      completeCompaction(job, cInfo.jobFiles, metaFile);
-      tablet.updateTimer(MAJOR, queuedTime, startTime, stats.getEntriesRead(), metaFile == null);
+      completeCompaction(job, cInfo.jobFiles, newFile);
+      tablet.updateTimer(MAJOR, queuedTime, startTime, stats.getEntriesRead(), newFile == null);
     }
   }
 

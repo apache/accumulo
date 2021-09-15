@@ -53,8 +53,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.compactor.CompactionEnvironment.CompactorIterEnv;
 import org.apache.accumulo.compactor.Compactor;
+import org.apache.accumulo.compactor.ExtCEnv.CompactorIterEnv;
 import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.coordinator.ExternalCompactionMetrics;
 import org.apache.accumulo.core.client.Accumulo;
