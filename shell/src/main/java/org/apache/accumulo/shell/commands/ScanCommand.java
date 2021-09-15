@@ -308,8 +308,8 @@ public class ScanCommand extends Command {
 
     if (cf.isEmpty() && !cq.isEmpty()) {
       String formattedString =
-          String.format("Option - %s when used with (%s" + " cannot be empty )", scanOptCf.getOpt(),
-              scanOptCq.getOpt(), scanOptCq.getOpt());
+          String.format("Option -%s is required when using -%s.", scanOptCf.getOpt(),
+              scanOptCq.getOpt());
       throw new IllegalArgumentException(formattedString);
     } else if (!cf.isEmpty() && cq.isEmpty()) {
       scanner.fetchColumnFamily(
