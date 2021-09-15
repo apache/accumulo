@@ -388,7 +388,7 @@ public class ScanCommand extends Command {
     scanOptColumns = new Option("c", "columns", true,
         "comma-separated columns.This" + "option is mutually exclusive with cf");
     scanOptCf = new Option("cf", "column-family", true, "column family to scan.");
-    scanOptCq = new Option("cq", "column-qualifier", true, "column qualifier");
+    scanOptCq = new Option("cq", "column-qualifier", true, "column qualifier to scan");
 
     timestampOpt = new Option("st", "show-timestamps", false, "display timestamps");
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
