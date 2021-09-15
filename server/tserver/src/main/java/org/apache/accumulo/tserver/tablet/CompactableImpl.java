@@ -36,7 +36,6 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -171,7 +170,7 @@ public class CompactableImpl implements Compactable {
    *
    * <p>
    * This class does no synchronization of its own and relies on CompactableImpl to do all needed
-   * synchronization. CompactableImpl must makes changes to files and other state like running jobs
+   * synchronization. CompactableImpl must make changes to files and other state like running jobs
    * in a mutually exclusive manner, so synchronization at this level is unnecessary.
    *
    */
@@ -181,10 +180,9 @@ public class CompactableImpl implements Compactable {
     private CompactionKind selectKind = null;
 
     // Tracks if when a set of files was selected, if at that time the set was all of the tablets
-    // files. Because a set of selected files can be compacted over one or more compactions, its
+    // files. Because a set of selected files can be compacted over one or more compactions, it's
     // important to track this in order to know if the last compaction is a full compaction and
-    // should
-    // not propagate deletes.
+    // should not propagate deletes.
     private boolean initiallySelectedAll = false;
     private Set<StoredTabletFile> selectedFiles = new HashSet<>();
 
@@ -362,7 +360,7 @@ public class CompactableImpl implements Compactable {
         log.trace("Ignoring because compacting not a subset {}", getExtent());
 
         // A compaction finished, so things are out of date. This can happen because CompactableImpl
-        // and Tablet have separate locks, its ok.
+        // and Tablet have separate locks, it's ok.
         return Set.of();
       }
 
@@ -468,12 +466,12 @@ public class CompactableImpl implements Compactable {
                 return false;
               }
             } else {
-              log.trace("Ingoring {} compaction because not selected kind {}", job.getKind(),
+              log.trace("Ingoing {} compaction because not selected kind {}", job.getKind(),
                   getExtent());
               return false;
             }
           } else if (!Collections.disjoint(selectedFiles, jobFiles)) {
-            log.trace("Ingoring compaction that overlaps with selected files {} {} {}", getExtent(),
+            log.trace("Ingoing compaction that overlaps with selected files {} {} {}", getExtent(),
                 job.getKind(), asFileNames(Sets.intersection(selectedFiles, jobFiles)));
             return false;
           }
@@ -561,9 +559,9 @@ public class CompactableImpl implements Compactable {
 
     Map<ExternalCompactionId,String> extCompactionsToRemove = new HashMap<>();
 
-    var extSelInfo = initializeSelection(extCompactions, tablet, extCompactionsToRemove);
+    var extSelInfo = initExternalSelection(extCompactions, tablet, extCompactionsToRemove);
 
-    sanityCheckExternalCompactions(extCompactions, dataFileSizes.keySet(), extCompactionsToRemove);
+    verifyExternalCompactions(extCompactions, dataFileSizes.keySet(), extCompactionsToRemove);
 
     extCompactionsToRemove.forEach((ecid, reason) -> {
       log.warn("Removing external compaction {} for {} because {} meta: {}", ecid,
@@ -615,27 +613,28 @@ public class CompactableImpl implements Compactable {
     this.fileMgr = new FileManager(tablet.getExtent(), extCompactingFiles, extSelInfo);
   }
 
-  private void sanityCheckExternalCompactions(
+  private void verifyExternalCompactions(
       Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions,
       Set<StoredTabletFile> tabletFiles, Map<ExternalCompactionId,String> extCompactionsToRemove) {
 
     Set<StoredTabletFile> seen = new HashSet<>();
-    AtomicBoolean overlap = new AtomicBoolean(false);
+    boolean overlap = false;
 
-    extCompactions.forEach((ecid, ecMeta) -> {
+    for (var entry : extCompactions.entrySet()) {
+      ExternalCompactionMetadata ecMeta = entry.getValue();
       if (!tabletFiles.containsAll(ecMeta.getJobFiles())) {
-        extCompactionsToRemove.putIfAbsent(ecid, "Has files outside of tablet files");
+        extCompactionsToRemove.putIfAbsent(entry.getKey(), "Has files outside of tablet files");
       } else if (!Collections.disjoint(seen, ecMeta.getJobFiles())) {
-        overlap.set(true);
+        overlap = true;
       }
-    });
+      seen.addAll(ecMeta.getJobFiles());
+    }
 
-    if (overlap.get()) {
+    if (overlap) {
       extCompactions.keySet().forEach(ecid -> {
         extCompactionsToRemove.putIfAbsent(ecid, "Some external compaction files overlap");
       });
     }
-
   }
 
   private synchronized boolean addJob(CompactionJob job) {
@@ -681,7 +680,7 @@ public class CompactableImpl implements Compactable {
 
   private void checkifChopComplete(Set<StoredTabletFile> allFiles) {
 
-    boolean completed = false;
+    boolean completed;
 
     synchronized (this) {
       completed = fileMgr.finishChop(allFiles);
@@ -760,14 +759,14 @@ public class CompactableImpl implements Compactable {
   }
 
   /**
-   * For user compactions a set of files is selected. Then those files compacted by one or more
+   * For user compactions a set of files is selected. Those files then get compacted by one or more
    * compactions until the set is empty. This method attempts to reconstruct the selected set of
-   * files when a tablet is loaded that has an external user compaction. Doing this avoid repeating
-   * work and also when a user compaction completes it does checks against the selected set. So the
-   * selected set must be initialized. Since the data is coming from persisted storage, lots of
-   * sanity checks are done in this method rather than assuming the persisted data is just correct.
+   * files when a tablet is loaded with an external user compaction. It avoids repeating work and
+   * when a user compaction completes, files are verified against the selected set. Since the data
+   * is coming from persisted storage, lots of checks are done in this method rather than assuming
+   * the persisted data is correct.
    */
-  private Optional<SelectedInfo> initializeSelection(
+  private Optional<SelectedInfo> initExternalSelection(
       Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions, Tablet tablet,
       Map<ExternalCompactionId,String> externalCompactionsToRemove) {
     CompactionKind extKind = null;
@@ -848,7 +847,7 @@ public class CompactableImpl implements Compactable {
     }
 
     Pair<Long,CompactionConfig> idAndCfg = null;
-    if (extKind != null && extKind == CompactionKind.USER) {
+    if (extKind == CompactionKind.USER) {
       try {
         idAndCfg = tablet.getCompactionID();
         if (!idAndCfg.getFirst().equals(cid)) {
@@ -871,7 +870,6 @@ public class CompactableImpl implements Compactable {
     }
 
     if (extKind != null) {
-
       if (extKind == CompactionKind.USER) {
         this.chelper = CompactableUtils.getHelper(extKind, tablet, cid, idAndCfg.getSecond());
         this.compactionConfig = idAndCfg.getSecond();
@@ -1013,7 +1011,7 @@ public class CompactableImpl implements Compactable {
   }
 
   class CompactionCheck {
-    private Supplier<Boolean> memoizedCheck;
+    private final Supplier<Boolean> memoizedCheck;
 
     public CompactionCheck(CompactionServiceId service, CompactionKind kind, Long compactionId) {
       this.memoizedCheck = Suppliers.memoizeWithExpiration(() -> {
@@ -1033,7 +1031,7 @@ public class CompactableImpl implements Compactable {
     }
   }
 
-  private static class CompactionInfo {
+  static class CompactionInfo {
     Set<StoredTabletFile> jobFiles;
     Long checkCompactionId = null;
     boolean propagateDeletes = true;
@@ -1046,7 +1044,7 @@ public class CompactableImpl implements Compactable {
   }
 
   /**
-   * Attempt to reserve files for compaction. Its possible that since a compaction job was queued
+   * Attempt to reserve files for compaction. It's possible that since a compaction job was queued
    * that things have changed and there is no longer anything to do for the job. In this case
    * Optional.empty() is returned.
    */
@@ -1149,31 +1147,37 @@ public class CompactableImpl implements Compactable {
       return;
 
     var cInfo = ocInfo.get();
-    StoredTabletFile metaFile = null;
+    StoredTabletFile newFile = null;
     long startTime = System.currentTimeMillis();
-    // create an empty stats object to be populated by CompactableUtils.compact()
+    CompactionKind kind = job.getKind();
+
     CompactionStats stats = new CompactionStats();
     try {
-
       TabletLogger.compacting(getExtent(), job, cInfo.localCompactionCfg);
       tablet.incrementStatusMajor();
+      var check = new CompactionCheck(service, kind, cInfo.checkCompactionId);
+      TabletFile tmpFileName = tablet.getNextMapFilenameForMajc(cInfo.propagateDeletes);
+      var compactEnv = new MajCEnv(kind, check, readLimiter, writeLimiter, cInfo.propagateDeletes);
 
-      metaFile = CompactableUtils.compact(tablet, job, cInfo.jobFiles, cInfo.checkCompactionId,
-          cInfo.selectedFiles, cInfo.propagateDeletes, cInfo.localHelper, cInfo.iters,
-          new CompactionCheck(service, job.getKind(), cInfo.checkCompactionId), readLimiter,
-          writeLimiter, stats);
+      SortedMap<StoredTabletFile,DataFileValue> allFiles = tablet.getDatafiles();
+      HashMap<StoredTabletFile,DataFileValue> compactFiles = new HashMap<>();
+      cInfo.jobFiles.forEach(file -> compactFiles.put(file, allFiles.get(file)));
 
-      TabletLogger.compacted(getExtent(), job, metaFile);
+      stats = CompactableUtils.compact(tablet, job, cInfo, compactEnv, compactFiles, tmpFileName);
 
+      newFile = CompactableUtils.bringOnline(tablet.getDatafileManager(), cInfo, stats,
+          compactFiles, allFiles, kind, tmpFileName);
+
+      TabletLogger.compacted(getExtent(), job, newFile);
     } catch (CompactionCanceledException cce) {
       log.debug("Compaction canceled {} ", getExtent());
-      metaFile = null;
+      newFile = null;
     } catch (Exception e) {
-      metaFile = null;
+      newFile = null;
       throw new RuntimeException(e);
     } finally {
-      completeCompaction(job, cInfo.jobFiles, metaFile);
-      tablet.updateTimer(MAJOR, queuedTime, startTime, stats.getEntriesRead(), metaFile == null);
+      completeCompaction(job, cInfo.jobFiles, newFile);
+      tablet.updateTimer(MAJOR, queuedTime, startTime, stats.getEntriesRead(), newFile == null);
     }
   }
 
@@ -1392,7 +1396,7 @@ public class CompactableImpl implements Compactable {
   }
 
   /**
-   * Interrupts and waits for any running compactions. After this method returns no compactions
+   * Interrupts and waits for any running compactions. After this method returns, no compactions
    * should be running and none should be able to start.
    */
   public synchronized void close() {
