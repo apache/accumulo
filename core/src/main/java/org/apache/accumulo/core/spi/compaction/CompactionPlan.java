@@ -55,5 +55,8 @@ public interface CompactionPlan {
     CompactionPlan build();
   }
 
+  /**
+   * Return the set of jobs this plan will submit for compaction.
+   */
   Collection<CompactionJob> getJobs();
 }

@@ -36,7 +36,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -66,11 +65,13 @@ public class ChangeSecret {
   public static void main(String[] args) throws Exception {
     var siteConfig = SiteConfiguration.auto();
     var hadoopConf = new Configuration();
-    try (var fs = VolumeManagerImpl.get(siteConfig, hadoopConf)) {
+
+    Opts opts = new Opts();
+    ServerContext context = opts.getServerContext();
+    try (var fs = context.getVolumeManager()) {
       ServerDirs serverDirs = new ServerDirs(siteConfig, hadoopConf);
       verifyHdfsWritePermission(serverDirs, fs);
 
-      Opts opts = new Opts();
       List<String> argsList = new ArrayList<>(args.length + 2);
       argsList.add("--old");
       argsList.add("--new");
@@ -80,7 +81,6 @@ public class ChangeSecret {
           .startSpan();
       try (Scope scope = span.makeCurrent()) {
 
-        ServerContext context = opts.getServerContext();
         verifyAccumuloIsDown(context, opts.oldPass);
 
         final String newInstanceId = UUID.randomUUID().toString();

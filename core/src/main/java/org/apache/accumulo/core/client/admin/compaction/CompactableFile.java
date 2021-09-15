@@ -23,6 +23,8 @@ import java.net.URI;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 
 /**
+ * A single file ready to compact, that will come in a set of possible candidates.
+ *
  * @since 2.1.0
  */
 public interface CompactableFile {

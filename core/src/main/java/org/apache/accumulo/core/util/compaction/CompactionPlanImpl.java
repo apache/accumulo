@@ -54,11 +54,11 @@ public class CompactionPlanImpl implements CompactionPlan {
 
   public static class BuilderImpl implements CompactionPlan.Builder {
 
-    private CompactionKind kind;
+    private final CompactionKind kind;
     private ArrayList<CompactionJob> jobs = new ArrayList<>();
-    private Set<CompactableFile> allFiles;
-    private Set<CompactableFile> seenFiles = new HashSet<>();
-    private Set<CompactableFile> candidates;
+    private final Set<CompactableFile> allFiles;
+    private final Set<CompactableFile> seenFiles = new HashSet<>();
+    private final Set<CompactableFile> candidates;
 
     public BuilderImpl(CompactionKind kind, Set<CompactableFile> allFiles,
         Set<CompactableFile> candidates) {
