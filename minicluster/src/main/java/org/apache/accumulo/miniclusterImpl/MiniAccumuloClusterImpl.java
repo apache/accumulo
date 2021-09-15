@@ -81,7 +81,6 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
@@ -474,7 +473,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       ConfigurationCopy cc = new ConfigurationCopy(acuConf);
       Path instanceIdPath;
-      try (var fs = VolumeManagerImpl.get(cc, hadoopConf)) {
+      try (var fs = getServerContext().getVolumeManager()) {
         instanceIdPath = serverDirs.getInstanceIdLocation(fs.getFirst());
       } catch (IOException e) {
         throw new RuntimeException(e);
