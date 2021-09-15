@@ -1946,7 +1946,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("scan -r row -cf c:f", true, "value");
     ts.exec("scan -b row -cf c:f  -cq cq -e row", true, "value");
     ts.exec("scan -b row -c cf -cf c:f  -cq cq -e row", false, "mutually exclusive");
-    ts.exec("scan -b row -cq col1 -e row", false, "cannot be empty");
+    ts.exec("scan -b row -cq col1 -e row", false, "Option -cf is required when using -cq");
     ts.exec("deletetable -f twithcolontest");
   }
 
