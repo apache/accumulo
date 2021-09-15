@@ -386,7 +386,7 @@ public class ScanCommand extends Command {
     optEndRowExclusive.setArgName("end-exclusive");
     scanOptRow = new Option("r", "row", true, "row to scan");
     scanOptColumns = new Option("c", "columns", true,
-        "comma-separated columns.This" + "option is mutually exclusive with cf");
+        "comma-separated columns.This" + " option is mutually exclusive with cf and cq");
     scanOptCf = new Option("cf", "column-family", true, "column family to scan.");
     scanOptCq = new Option("cq", "column-qualifier", true, "column qualifier to scan");
 
