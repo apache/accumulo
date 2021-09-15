@@ -26,7 +26,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 
 /**
  * A non-pluggable component that executes compactions using multiple threads and has a priority
- * queue. There are two types: Internal & External. The {@link InternalCompactionExecutor} runs
+ * queue. There are two types: Internal and External. The {@link InternalCompactionExecutor} runs
  * within the Accumulo tserver process. The {@link ExternalCompactionExecutor} runs compactions
  * outside the tserver.
  */
