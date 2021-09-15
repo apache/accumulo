@@ -41,6 +41,9 @@ import org.apache.accumulo.tserver.compactions.SubmittedJob.Status;
 
 import com.google.common.base.Preconditions;
 
+/**
+ * Runs compactions outside the tserver, typically by a process external to Accumulo.
+ */
 public class ExternalCompactionExecutor implements CompactionExecutor {
 
   // This set provides an accurate count of queued compactions for metrics. The PriorityQueue is
