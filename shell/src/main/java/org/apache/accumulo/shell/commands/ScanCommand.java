@@ -276,7 +276,7 @@ public class ScanCommand extends Command {
         && cl.hasOption(scanOptColumns.getOpt())) {
 
       String formattedString =
-          String.format("Options - %s AND (- %s" + " OR - %s are mutually exclusive )",
+          String.format("Option -%s is mutually exclusive with options -%s and -%s.",
               scanOptColumns.getOpt(), scanOptCf.getOpt(), scanOptCq.getOpt());
       throw new IllegalArgumentException(formattedString);
     }
