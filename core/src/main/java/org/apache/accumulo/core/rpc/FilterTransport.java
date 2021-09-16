@@ -20,6 +20,7 @@ package org.apache.accumulo.core.rpc;
 
 import static java.util.Objects.requireNonNull;
 
+import org.apache.thrift.TConfiguration;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
@@ -102,5 +103,20 @@ public class FilterTransport extends TTransport {
   @Override
   public void consumeBuffer(int len) {
     wrapped.consumeBuffer(len);
+  }
+
+  @Override
+  public TConfiguration getConfiguration() {
+    return wrapped.getConfiguration();
+  }
+
+  @Override
+  public void updateKnownMessageSize(long size) throws TTransportException {
+    wrapped.updateKnownMessageSize(size);
+  }
+
+  @Override
+  public void checkReadBytesAvailable(long numBytes) throws TTransportException {
+    wrapped.checkReadBytesAvailable(numBytes);
   }
 }

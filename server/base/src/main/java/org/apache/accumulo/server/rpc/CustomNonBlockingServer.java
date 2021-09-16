@@ -28,6 +28,7 @@ import org.apache.thrift.server.TNonblockingServer;
 import org.apache.thrift.transport.TNonblockingServerTransport;
 import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TNonblockingTransport;
+import org.apache.thrift.transport.TTransportException;
 
 /**
  * This class implements a custom non-blocking thrift server that stores the client address in
@@ -83,7 +84,8 @@ public class CustomNonBlockingServer extends THsHaServer {
 
     @Override
     protected FrameBuffer createFrameBuffer(final TNonblockingTransport trans,
-        final SelectionKey selectionKey, final AbstractSelectThread selectThread) {
+        final SelectionKey selectionKey, final AbstractSelectThread selectThread)
+        throws TTransportException {
       if (processorFactory_.isAsyncProcessor()) {
         throw new IllegalStateException("This implementation does not support AsyncProcessors");
       }
@@ -99,7 +101,7 @@ public class CustomNonBlockingServer extends THsHaServer {
   private class CustomFrameBuffer extends FrameBuffer {
 
     public CustomFrameBuffer(TNonblockingTransport trans, SelectionKey selectionKey,
-        AbstractSelectThread selectThread) {
+        AbstractSelectThread selectThread) throws TTransportException {
       super(trans, selectionKey, selectThread);
     }
 

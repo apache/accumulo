@@ -32,6 +32,7 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.thrift.transport.TIOStreamTransport;
 import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,7 +64,8 @@ public class TTimeoutTransport {
    * @throws IOException
    *           If the transport fails to be created/connected
    */
-  public static TTransport create(HostAndPort addr, long timeoutMillis) throws IOException {
+  public static TTransport create(HostAndPort addr, long timeoutMillis)
+      throws IOException, TTransportException {
     return INSTANCE.createInternal(new InetSocketAddress(addr.getHost(), addr.getPort()),
         timeoutMillis);
   }
@@ -80,7 +82,8 @@ public class TTimeoutTransport {
    * @throws IOException
    *           If the Thrift client is failed to be connected/created
    */
-  TTransport createInternal(SocketAddress addr, long timeoutMillis) throws IOException {
+  TTransport createInternal(SocketAddress addr, long timeoutMillis)
+      throws IOException, TTransportException {
     Socket socket = null;
     try {
       socket = openSocket(addr);
@@ -97,7 +100,7 @@ public class TTimeoutTransport {
       InputStream input = wrapInputStream(socket, timeoutMillis);
       OutputStream output = wrapOutputStream(socket, timeoutMillis);
       return new TIOStreamTransport(input, output);
-    } catch (IOException e) {
+    } catch (IOException | TTransportException e) {
       try {
         socket.close();
       } catch (IOException ioe) {

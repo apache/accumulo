@@ -24,6 +24,7 @@ import java.security.PrivilegedAction;
 
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
 
 /**
@@ -46,7 +47,13 @@ public class UGIAssumingTransportFactory extends TTransportFactory {
   }
 
   @Override
-  public TTransport getTransport(final TTransport trans) {
-    return ugi.doAs((PrivilegedAction<TTransport>) () -> wrapped.getTransport(trans));
+  public TTransport getTransport(final TTransport trans) throws TTransportException {
+    return ugi.doAs((PrivilegedAction<TTransport>) () -> {
+      try {
+        return wrapped.getTransport(trans);
+      } catch (TTransportException e) {
+        throw new RuntimeException(e);
+      }
+    });
   }
 }

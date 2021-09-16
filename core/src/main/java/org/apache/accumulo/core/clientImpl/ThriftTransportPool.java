@@ -42,6 +42,7 @@ import org.apache.accumulo.core.singletons.SingletonService;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.thrift.TConfiguration;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -649,6 +650,31 @@ public class ThriftTransportPool {
       try {
         ioCount++;
         wrappedTransport.consumeBuffer(len);
+      } finally {
+        ioCount++;
+      }
+    }
+
+    @Override
+    public TConfiguration getConfiguration() {
+      return wrappedTransport.getConfiguration();
+    }
+
+    @Override
+    public void updateKnownMessageSize(long size) throws TTransportException {
+      try {
+        ioCount++;
+        wrappedTransport.updateKnownMessageSize(size);
+      } finally {
+        ioCount++;
+      }
+    }
+
+    @Override
+    public void checkReadBytesAvailable(long numBytes) throws TTransportException {
+      try {
+        ioCount++;
+        wrappedTransport.checkReadBytesAvailable(numBytes);
       } finally {
         ioCount++;
       }

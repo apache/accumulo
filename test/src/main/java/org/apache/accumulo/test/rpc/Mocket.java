@@ -23,8 +23,10 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.thrift.TConfiguration;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
 
 /**
  * Mocket - a Mock Socket
@@ -141,13 +143,13 @@ public class Mocket {
     public void listen() {}
 
     @Override
-    public void close() {
-      acceptImpl().close();
+    public TTransport accept() throws TTransportException {
+      return null;
     }
 
     @Override
-    protected TTransport acceptImpl() {
-      return servTrans;
+    public void close() {
+      servTrans.close();
     }
 
     @Override
@@ -170,6 +172,21 @@ public class Mocket {
     @Override
     public void write(byte[] buf, int off, int len) {
       output.write(buf, off, len);
+    }
+
+    @Override
+    public TConfiguration getConfiguration() {
+      return null;
+    }
+
+    @Override
+    public void updateKnownMessageSize(long size) throws TTransportException {
+
+    }
+
+    @Override
+    public void checkReadBytesAvailable(long numBytes) throws TTransportException {
+
     }
 
     @Override
