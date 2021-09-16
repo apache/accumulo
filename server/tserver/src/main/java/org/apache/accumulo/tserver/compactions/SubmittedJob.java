@@ -20,6 +20,9 @@ package org.apache.accumulo.tserver.compactions;
 
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 
+/**
+ * A submitted Compaction job, either internal or external.
+ */
 public abstract class SubmittedJob {
   private final CompactionJob job;
 
