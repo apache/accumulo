@@ -38,6 +38,7 @@ public class Constants {
   public static final String ZTABLES = "/tables";
   public static final byte[] ZTABLES_INITIAL_ID = {'0'};
   public static final String ZTABLE_NAME = "/name";
+  public static final String ZTABLE_DELETE_MARKER = "/deleting";
   public static final String ZTABLE_CONF = "/conf";
   public static final String ZTABLE_STATE = "/state";
   public static final String ZTABLE_FLUSH_ID = "/flush-id";

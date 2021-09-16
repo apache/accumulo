@@ -36,7 +36,6 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -467,12 +466,12 @@ public class CompactableImpl implements Compactable {
                 return false;
               }
             } else {
-              log.trace("Ingoring {} compaction because not selected kind {}", job.getKind(),
+              log.trace("Ingoing {} compaction because not selected kind {}", job.getKind(),
                   getExtent());
               return false;
             }
           } else if (!Collections.disjoint(selectedFiles, jobFiles)) {
-            log.trace("Ingoring compaction that overlaps with selected files {} {} {}", getExtent(),
+            log.trace("Ingoing compaction that overlaps with selected files {} {} {}", getExtent(),
                 job.getKind(), asFileNames(Sets.intersection(selectedFiles, jobFiles)));
             return false;
           }
@@ -619,17 +618,19 @@ public class CompactableImpl implements Compactable {
       Set<StoredTabletFile> tabletFiles, Map<ExternalCompactionId,String> extCompactionsToRemove) {
 
     Set<StoredTabletFile> seen = new HashSet<>();
-    AtomicBoolean overlap = new AtomicBoolean(false);
+    boolean overlap = false;
 
-    extCompactions.forEach((ecid, ecMeta) -> {
+    for (var entry : extCompactions.entrySet()) {
+      ExternalCompactionMetadata ecMeta = entry.getValue();
       if (!tabletFiles.containsAll(ecMeta.getJobFiles())) {
-        extCompactionsToRemove.putIfAbsent(ecid, "Has files outside of tablet files");
+        extCompactionsToRemove.putIfAbsent(entry.getKey(), "Has files outside of tablet files");
       } else if (!Collections.disjoint(seen, ecMeta.getJobFiles())) {
-        overlap.set(true);
+        overlap = true;
       }
-    });
+      seen.addAll(ecMeta.getJobFiles());
+    }
 
-    if (overlap.get()) {
+    if (overlap) {
       extCompactions.keySet().forEach(ecid -> {
         extCompactionsToRemove.putIfAbsent(ecid, "Some external compaction files overlap");
       });
@@ -679,7 +680,7 @@ public class CompactableImpl implements Compactable {
 
   private void checkifChopComplete(Set<StoredTabletFile> allFiles) {
 
-    boolean completed = false;
+    boolean completed;
 
     synchronized (this) {
       completed = fileMgr.finishChop(allFiles);
@@ -846,7 +847,7 @@ public class CompactableImpl implements Compactable {
     }
 
     Pair<Long,CompactionConfig> idAndCfg = null;
-    if (extKind != null && extKind == CompactionKind.USER) {
+    if (extKind == CompactionKind.USER) {
       try {
         idAndCfg = tablet.getCompactionID();
         if (!idAndCfg.getFirst().equals(cid)) {
@@ -869,7 +870,6 @@ public class CompactableImpl implements Compactable {
     }
 
     if (extKind != null) {
-
       if (extKind == CompactionKind.USER) {
         this.chelper = CompactableUtils.getHelper(extKind, tablet, cid, idAndCfg.getSecond());
         this.compactionConfig = idAndCfg.getSecond();
@@ -1011,7 +1011,7 @@ public class CompactableImpl implements Compactable {
   }
 
   class CompactionCheck {
-    private Supplier<Boolean> memoizedCheck;
+    private final Supplier<Boolean> memoizedCheck;
 
     public CompactionCheck(CompactionServiceId service, CompactionKind kind, Long compactionId) {
       this.memoizedCheck = Suppliers.memoizeWithExpiration(() -> {
@@ -1031,7 +1031,7 @@ public class CompactableImpl implements Compactable {
     }
   }
 
-  private static class CompactionInfo {
+  static class CompactionInfo {
     Set<StoredTabletFile> jobFiles;
     Long checkCompactionId = null;
     boolean propagateDeletes = true;
@@ -1147,31 +1147,37 @@ public class CompactableImpl implements Compactable {
       return;
 
     var cInfo = ocInfo.get();
-    StoredTabletFile metaFile = null;
+    StoredTabletFile newFile = null;
     long startTime = System.currentTimeMillis();
-    // create an empty stats object to be populated by CompactableUtils.compact()
+    CompactionKind kind = job.getKind();
+
     CompactionStats stats = new CompactionStats();
     try {
-
       TabletLogger.compacting(getExtent(), job, cInfo.localCompactionCfg);
       tablet.incrementStatusMajor();
+      var check = new CompactionCheck(service, kind, cInfo.checkCompactionId);
+      TabletFile tmpFileName = tablet.getNextMapFilenameForMajc(cInfo.propagateDeletes);
+      var compactEnv = new MajCEnv(kind, check, readLimiter, writeLimiter, cInfo.propagateDeletes);
 
-      metaFile = CompactableUtils.compact(tablet, job, cInfo.jobFiles, cInfo.checkCompactionId,
-          cInfo.selectedFiles, cInfo.propagateDeletes, cInfo.localHelper, cInfo.iters,
-          new CompactionCheck(service, job.getKind(), cInfo.checkCompactionId), readLimiter,
-          writeLimiter, stats);
+      SortedMap<StoredTabletFile,DataFileValue> allFiles = tablet.getDatafiles();
+      HashMap<StoredTabletFile,DataFileValue> compactFiles = new HashMap<>();
+      cInfo.jobFiles.forEach(file -> compactFiles.put(file, allFiles.get(file)));
 
-      TabletLogger.compacted(getExtent(), job, metaFile);
+      stats = CompactableUtils.compact(tablet, job, cInfo, compactEnv, compactFiles, tmpFileName);
 
+      newFile = CompactableUtils.bringOnline(tablet.getDatafileManager(), cInfo, stats,
+          compactFiles, allFiles, kind, tmpFileName);
+
+      TabletLogger.compacted(getExtent(), job, newFile);
     } catch (CompactionCanceledException cce) {
       log.debug("Compaction canceled {} ", getExtent());
-      metaFile = null;
+      newFile = null;
     } catch (Exception e) {
-      metaFile = null;
+      newFile = null;
       throw new RuntimeException(e);
     } finally {
-      completeCompaction(job, cInfo.jobFiles, metaFile);
-      tablet.updateTimer(MAJOR, queuedTime, startTime, stats.getEntriesRead(), metaFile == null);
+      completeCompaction(job, cInfo.jobFiles, newFile);
+      tablet.updateTimer(MAJOR, queuedTime, startTime, stats.getEntriesRead(), newFile == null);
     }
   }
 
