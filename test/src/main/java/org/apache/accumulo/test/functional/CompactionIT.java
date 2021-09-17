@@ -20,35 +20,54 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
+import org.apache.accumulo.core.client.admin.compaction.CompressionConfigurer;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.DevNull;
+import org.apache.accumulo.core.iterators.Filter;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.SleepyIterator;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.CompactionExecutorIT;
+import org.apache.accumulo.test.ExternalCompactionIT.FSelector;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
@@ -56,15 +75,47 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
+import org.bouncycastle.util.Arrays;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 @SuppressWarnings("removal")
 public class CompactionIT extends AccumuloClusterHarness {
+
+  public static class TestFilter extends Filter {
+
+    int modulus = 1;
+
+    @Override
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {
+      super.init(source, options, env);
+
+      // if the init function is never called at all, then not setting the modulus option should
+      // cause the test to fail
+      if (options.containsKey("modulus")) {
+        Preconditions.checkArgument(!options.containsKey("pmodulus"));
+        modulus = Integer.parseInt(options.get("modulus"));
+      }
+
+      // use when partial compaction is expected
+      if (options.containsKey("pmodulus")) {
+        Preconditions.checkArgument(!options.containsKey("modulus"));
+        modulus = Integer.parseInt(options.get("pmodulus"));
+      }
+    }
+
+    @Override
+    public boolean accept(Key k, Value v) {
+      return Integer.parseInt(v.toString()) % modulus == 0;
+    }
+
+  }
 
   public static class RandomErrorThrowingSelector implements CompactionSelector {
 
@@ -99,6 +150,8 @@ public class CompactionIT extends AccumuloClusterHarness {
   }
 
   private static final Logger log = LoggerFactory.getLogger(CompactionIT.class);
+
+  private static final int MAX_DATA = 1000;
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -160,7 +213,227 @@ public class CompactionIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void test() throws Exception {
+  public void testCompactionWithTableIterator() throws Exception {
+    String table1 = this.getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table1);
+      try (BatchWriter bw = client.createBatchWriter(table1)) {
+        for (int i = 1; i <= 4; i++) {
+          Mutation m = new Mutation(Integer.toString(i));
+          m.put("cf", "cq", new Value());
+          bw.addMutation(m);
+          bw.flush();
+          client.tableOperations().flush(table1, null, null, true);
+        }
+      }
+
+      IteratorSetting setting = new IteratorSetting(50, "delete", DevNull.class);
+      client.tableOperations().attachIterator(table1, setting, EnumSet.of(IteratorScope.majc));
+      client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
+
+      try (Scanner s = client.createScanner(table1)) {
+        assertFalse(s.iterator().hasNext());
+      }
+    }
+  }
+
+  @Test
+  public void testUserCompactionCancellation() throws Exception {
+    final String table1 = this.getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table1);
+      try (BatchWriter bw = client.createBatchWriter(table1)) {
+        for (int i = 1; i <= MAX_DATA; i++) {
+          Mutation m = new Mutation(Integer.toString(i));
+          m.put("cf", "cq", new Value());
+          bw.addMutation(m);
+          bw.flush();
+          client.tableOperations().flush(table1, null, null, true);
+        }
+      }
+
+      final AtomicReference<Exception> error = new AtomicReference<>();
+      final AtomicBoolean started = new AtomicBoolean(false);
+      Thread t = new Thread(() -> {
+        try {
+          started.set(true);
+          IteratorSetting setting = new IteratorSetting(50, "sleepy", SleepyIterator.class);
+          client.tableOperations().attachIterator(table1, setting, EnumSet.of(IteratorScope.majc));
+          client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
+        } catch (AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
+          error.set(e);
+        }
+      });
+      t.start();
+      while (!started.get()) {
+        Thread.sleep(1000);
+      }
+      client.tableOperations().cancelCompaction(table1);
+      t.join();
+      Exception e = error.get();
+      assertNotNull(e);
+      assertEquals("Compaction canceled", e.getMessage());
+
+    }
+  }
+
+  @Test
+  public void testTableDeletedDuringUserCompaction() throws Exception {
+    final String table1 = this.getUniqueNames(1)[0];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table1);
+      try (BatchWriter bw = client.createBatchWriter(table1)) {
+        for (int i = 1; i <= MAX_DATA; i++) {
+          Mutation m = new Mutation(Integer.toString(i));
+          m.put("cf", "cq", new Value());
+          bw.addMutation(m);
+          bw.flush();
+          client.tableOperations().flush(table1, null, null, true);
+        }
+      }
+
+      final AtomicReference<Exception> error = new AtomicReference<>();
+      final AtomicBoolean started = new AtomicBoolean(false);
+      Thread t = new Thread(() -> {
+        try {
+          started.set(true);
+          IteratorSetting setting = new IteratorSetting(50, "sleepy", SleepyIterator.class);
+          client.tableOperations().attachIterator(table1, setting, EnumSet.of(IteratorScope.majc));
+          client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
+        } catch (AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
+          error.set(e);
+        }
+      });
+      t.start();
+      while (!started.get()) {
+        Thread.sleep(1000);
+      }
+      client.tableOperations().delete(table1);
+      t.join();
+      Exception e = error.get();
+      assertNotNull(e);
+      assertEquals("Compaction canceled", e.getMessage());
+
+    }
+  }
+
+  @Test
+  public void testPartialCompaction() throws Exception {
+    String tableName = getUniqueNames(1)[0];
+    try (final AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      client.tableOperations().create(tableName);
+
+      // Insert MAX_DATA rows
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
+        for (int i = 0; i < MAX_DATA; i++) {
+          Mutation m = new Mutation(String.format("r:%04d", i));
+          m.put("", "", "" + i);
+          bw.addMutation(m);
+        }
+      }
+      client.tableOperations().flush(tableName);
+      IteratorSetting iterSetting = new IteratorSetting(100, TestFilter.class);
+      // make sure iterator options make it to compactor process
+      iterSetting.addOption("modulus", 17 + "");
+      CompactionConfig config =
+          new CompactionConfig().setIterators(List.of(iterSetting)).setWait(true);
+      client.tableOperations().compact(tableName, config);
+
+      // Insert 2 * MAX_DATA rows
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
+        for (int i = MAX_DATA; i < MAX_DATA * 2; i++) {
+          Mutation m = new Mutation(String.format("r:%04d", i));
+          m.put("", "", "" + i);
+          bw.addMutation(m);
+        }
+      }
+      // this should create an F file
+      client.tableOperations().flush(tableName);
+
+      // run a compaction that only compacts F files
+      iterSetting = new IteratorSetting(100, TestFilter.class);
+      // compact F file w/ different modulus and user pmodulus option for partial compaction
+      iterSetting.addOption("pmodulus", 19 + "");
+      config = new CompactionConfig().setIterators(List.of(iterSetting)).setWait(true)
+          .setSelector(new PluginConfig(FSelector.class.getName()));
+      client.tableOperations().compact(tableName, config);
+
+      try (Scanner scanner = client.createScanner(tableName)) {
+        int count = 0;
+        for (Entry<Key,Value> entry : scanner) {
+
+          int v = Integer.parseInt(entry.getValue().toString());
+          int modulus = v < MAX_DATA ? 17 : 19;
+
+          assertTrue(String.format("%s %s %d != 0", entry.getValue(), "%", modulus),
+              Integer.parseInt(entry.getValue().toString()) % modulus == 0);
+          count++;
+        }
+
+        // Verify
+        int expectedCount = 0;
+        for (int i = 0; i < MAX_DATA * 2; i++) {
+          int modulus = i < MAX_DATA ? 17 : 19;
+          if (i % modulus == 0) {
+            expectedCount++;
+          }
+        }
+        assertEquals(expectedCount, count);
+      }
+
+    }
+  }
+
+  @Test
+  public void testConfigurer() throws Exception {
+    String tableName = this.getUniqueNames(1)[0];
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      Map<String,String> props = Map.of(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none");
+      NewTableConfiguration ntc = new NewTableConfiguration().setProperties(props);
+      client.tableOperations().create(tableName, ntc);
+
+      byte[] data = new byte[100000];
+      Arrays.fill(data, (byte) 65);
+      try (var writer = client.createBatchWriter(tableName)) {
+        for (int row = 0; row < 10; row++) {
+          Mutation m = new Mutation(row + "");
+          m.at().family("big").qualifier("stuff").put(data);
+          writer.addMutation(m);
+        }
+      }
+      client.tableOperations().flush(tableName, null, null, true);
+
+      // without compression, expect file to be large
+      long sizes = CompactionExecutorIT.getFileSizes(client, tableName);
+      assertTrue("Unexpected files sizes : " + sizes,
+          sizes > data.length * 10 && sizes < data.length * 11);
+
+      client.tableOperations().compact(tableName,
+          new CompactionConfig().setWait(true)
+              .setConfigurer(new PluginConfig(CompressionConfigurer.class.getName(),
+                  Map.of(CompressionConfigurer.LARGE_FILE_COMPRESSION_TYPE, "gz",
+                      CompressionConfigurer.LARGE_FILE_COMPRESSION_THRESHOLD, data.length + ""))));
+
+      // after compacting with compression, expect small file
+      sizes = CompactionExecutorIT.getFileSizes(client, tableName);
+      assertTrue("Unexpected files sizes: data: " + data.length + ", file:" + sizes,
+          sizes < data.length);
+
+      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+
+      // after compacting without compression, expect big files again
+      sizes = CompactionExecutorIT.getFileSizes(client, tableName);
+      assertTrue("Unexpected files sizes : " + sizes,
+          sizes > data.length * 10 && sizes < data.length * 11);
+
+    }
+  }
+
+  @Test
+  public void testSuccessfulCompaction() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
