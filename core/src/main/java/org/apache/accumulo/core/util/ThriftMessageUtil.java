@@ -42,18 +42,14 @@ public class ThriftMessageUtil {
   private final TMemoryInputTransport inputTransport;
   private final TCompactProtocol inputProtocol;
 
-  public ThriftMessageUtil() {
-    this(64);
-  }
-
-  public ThriftMessageUtil(int initialCapacity) {
+  public ThriftMessageUtil() throws IOException {
     // TODO does this make sense? better to push this down to the serialize method (accept the
     // transport as an argument)?
-    this.initialCapacity = initialCapacity;
+    this.initialCapacity = 64;
     try {
       this.inputTransport = new TMemoryInputTransport();
     } catch (TTransportException e) {
-      throw new RuntimeException(e);
+      throw new IOException(e);
     }
     this.inputProtocol = new TCompactProtocol(inputTransport);
   }

@@ -298,9 +298,9 @@ public class ThriftUtil {
         // Make sure a timeout is set
         try {
           transport = TTimeoutTransport.create(address, timeout);
-        } catch (IOException e) {
+        } catch (TTransportException e) {
           log.warn("Failed to open transport to {}", address);
-          throw new TTransportException(e);
+          throw e;
         }
 
         try {
@@ -371,9 +371,9 @@ public class ThriftUtil {
         } else {
           try {
             transport = TTimeoutTransport.create(address, timeout);
-          } catch (IOException ex) {
+          } catch (TTransportException ex) {
             log.warn("Failed to open transport to {}", address);
-            throw new TTransportException(ex);
+            throw ex;
           }
 
           // Open the transport

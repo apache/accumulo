@@ -33,7 +33,7 @@ public class ThriftMessageUtilTest {
   private ThriftMessageUtil util;
 
   @Before
-  public void setup() {
+  public void setup() throws IOException {
     msg = new TAuthenticationTokenIdentifier("principal");
     util = new ThriftMessageUtil();
   }

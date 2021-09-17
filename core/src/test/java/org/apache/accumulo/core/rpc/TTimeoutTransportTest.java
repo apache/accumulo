@@ -105,8 +105,8 @@ public class TTimeoutTransportTest {
 
     try {
       timeoutTransport.createInternal(addr, timeout);
-      fail("Expected to catch IOException but got none");
-    } catch (IOException | TTransportException e) {
+      fail("Expected to catch TTransportException but got none");
+    } catch (TTransportException e) {
       // Expected
     }
 
@@ -145,8 +145,8 @@ public class TTimeoutTransportTest {
 
     try {
       timeoutTransport.createInternal(addr, timeout);
-      fail("Expected to catch IOException but got none");
-    } catch (IOException | TTransportException e) {
+      fail("Expected to catch TTransportException but got none");
+    } catch (TTransportException e) {
       // Expected
     }
 
