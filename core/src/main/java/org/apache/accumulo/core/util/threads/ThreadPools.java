@@ -29,11 +29,15 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ThreadPools {
 
   // the number of seconds before we allow a thread to terminate with non-use.
   public static final long DEFAULT_TIMEOUT_MILLISECS = 180000L;
+
+  private static final Logger log = LoggerFactory.getLogger(ThreadPools.class);
 
   private static void makeResizeable(final ThreadPoolExecutor pool,
       final AccumuloConfiguration conf, final Property p) {
@@ -45,8 +49,16 @@ public class ThreadPools {
           Thread.sleep(1000);
           int newCount = conf.getCount(p);
           if (newCount != count) {
-            pool.setCorePoolSize(newCount);
-            pool.setMaximumPoolSize(newCount);
+            log.info("Changing max threads for {} from {} to {}", p.getKey(), count, newCount);
+            if (newCount > count) {
+              // increasing, increase the max first, or the core will fail to be increased
+              pool.setMaximumPoolSize(newCount);
+              pool.setCorePoolSize(newCount);
+            } else {
+              // decreasing, lower the core size first, or the max will fail to be lowered
+              pool.setCorePoolSize(newCount);
+              pool.setMaximumPoolSize(newCount);
+            }
             count = newCount;
           }
         } catch (InterruptedException e) {
