@@ -58,7 +58,6 @@ import org.apache.accumulo.core.iterators.DevNull;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.SleepyIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -257,7 +256,9 @@ public class CompactionIT extends AccumuloClusterHarness {
       Thread t = new Thread(() -> {
         try {
           started.set(true);
-          IteratorSetting setting = new IteratorSetting(50, "sleepy", SleepyIterator.class);
+          IteratorSetting setting = new IteratorSetting(50, "sleepy", SlowIterator.class);
+          setting.addOption("sleepTime", "3000");
+          setting.addOption("seekSleepTime", "3000");
           client.tableOperations().attachIterator(table1, setting, EnumSet.of(IteratorScope.majc));
           client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
         } catch (AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
@@ -297,7 +298,9 @@ public class CompactionIT extends AccumuloClusterHarness {
       Thread t = new Thread(() -> {
         try {
           started.set(true);
-          IteratorSetting setting = new IteratorSetting(50, "sleepy", SleepyIterator.class);
+          IteratorSetting setting = new IteratorSetting(50, "sleepy", SlowIterator.class);
+          setting.addOption("sleepTime", "3000");
+          setting.addOption("seekSleepTime", "3000");
           client.tableOperations().attachIterator(table1, setting, EnumSet.of(IteratorScope.majc));
           client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
         } catch (AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
