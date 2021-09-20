@@ -29,33 +29,30 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ThreadPools {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ThreadPools.class);
 
   // the number of seconds before we allow a thread to terminate with non-use.
   public static final long DEFAULT_TIMEOUT_MILLISECS = 180000L;
 
-  private static void makeResizeable(final ThreadPoolExecutor pool,
-      final AccumuloConfiguration conf, final Property p) {
-    final String threadName = p.name().concat("_watcher");
-    Threads.createThread(threadName, () -> {
-      int count = conf.getCount(p);
-      while (Thread.currentThread().isAlive() && !Thread.currentThread().isInterrupted()) {
-        try {
-          Thread.sleep(1000);
-          int newCount = conf.getCount(p);
-          if (newCount != count) {
-            pool.setCorePoolSize(newCount);
-            pool.setMaximumPoolSize(newCount);
-            count = newCount;
-          }
-        } catch (InterruptedException e) {
-          // throw a RuntimeException and let the AccumuloUncaughtExceptionHandler deal with it.
-          throw new RuntimeException("Thread " + threadName + " was interrupted.");
-        }
-      }
-    }).start();
-
+  public static void makeResizeable(final ThreadPoolExecutor pool, final AccumuloConfiguration conf,
+      final Property p) {
+    int count = pool.getMaximumPoolSize();
+    int newCount = conf.getCount(p);
+    LOG.info("Changing max threads for {} from {} to {}", p.getKey(), count, newCount);
+    if (newCount > count) {
+      // increasing, increase the max first, or the core will fail to be increased
+      pool.setMaximumPoolSize(newCount);
+      pool.setCorePoolSize(newCount);
+    } else {
+      // decreasing, lower the core size first, or the max will fail to be lowered
+      pool.setCorePoolSize(newCount);
+      pool.setMaximumPoolSize(newCount);
+    }
   }
 
   /**
