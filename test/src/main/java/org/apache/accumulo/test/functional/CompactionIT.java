@@ -274,7 +274,6 @@ public class CompactionIT extends AccumuloClusterHarness {
       Exception e = error.get();
       assertNotNull(e);
       assertEquals("Compaction canceled", e.getMessage());
-
     }
   }
 
