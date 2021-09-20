@@ -40,6 +40,29 @@ public class ThreadPools {
   // the number of seconds before we allow a thread to terminate with non-use.
   public static final long DEFAULT_TIMEOUT_MILLISECS = 180000L;
 
+  private static void makeResizeable(final ThreadPoolExecutor pool,
+      final AccumuloConfiguration conf, final Property p) {
+    final String threadName = p.name().concat("_watcher");
+    Threads.createThread(threadName, () -> {
+      int count = conf.getCount(p);
+      while (Thread.currentThread().isAlive() && !Thread.currentThread().isInterrupted()) {
+        try {
+          Thread.sleep(1000);
+          int newCount = conf.getCount(p);
+          if (newCount != count) {
+            pool.setCorePoolSize(newCount);
+            pool.setMaximumPoolSize(newCount);
+            count = newCount;
+          }
+        } catch (InterruptedException e) {
+          // throw a RuntimeException and let the AccumuloUncaughtExceptionHandler deal with it.
+          throw new RuntimeException("Thread " + threadName + " was interrupted.");
+        }
+      }
+    }).start();
+
+  }
+
   /**
    * Create a thread pool based on a thread pool related property
    *
@@ -51,7 +74,8 @@ public class ThreadPools {
    * @throws RuntimeException
    *           if property is not handled
    */
-  public static ExecutorService createExecutorService(AccumuloConfiguration conf, Property p) {
+  public static ExecutorService createExecutorService(final AccumuloConfiguration conf,
+      final Property p) {
 
     switch (p) {
       case GENERAL_SIMPLETIMER_THREADPOOL_SIZE:
@@ -63,7 +87,9 @@ public class ThreadPools {
       case MANAGER_RENAME_THREADS:
         return createFixedThreadPool(conf.getCount(p), "bulk move");
       case MANAGER_FATE_THREADPOOL_SIZE:
-        return createFixedThreadPool(conf.getCount(p), "Repo Runner");
+        ThreadPoolExecutor pool = createFixedThreadPool(conf.getCount(p), "Repo Runner");
+        makeResizeable(pool, conf, p);
+        return pool;
       case MANAGER_STATUS_THREAD_POOL_SIZE:
         int threads = conf.getCount(p);
         if (threads == 0) {
@@ -95,7 +121,9 @@ public class ThreadPools {
       case GC_DELETE_THREADS:
         return createFixedThreadPool(conf.getCount(p), "deleting");
       case REPLICATION_WORKER_THREADS:
-        return createFixedThreadPool(conf.getCount(p), "replication task");
+        ThreadPoolExecutor pool2 = createFixedThreadPool(conf.getCount(p), "replication task");
+        makeResizeable(pool2, conf, p);
+        return pool2;
       default:
         throw new RuntimeException("Unhandled thread pool property: " + p);
     }
