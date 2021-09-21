@@ -29,7 +29,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -579,12 +578,18 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       }
     }
     // Age off old scan information
-    Iterator<Entry<HostAndPort,ScanStats>> entryIter = allScans.entrySet().iterator();
     long now = System.currentTimeMillis();
-    while (entryIter.hasNext()) {
-      Entry<HostAndPort,ScanStats> entry = entryIter.next();
+    List<HostAndPort> inActiveServers = new ArrayList<>();
+    for (var entry : allScans.entrySet()) {
       if (now - entry.getValue().fetched > 5 * 60 * 1000) {
-        entryIter.remove();
+        inActiveServers.add(entry.getKey());
+      }
+    }
+    if (!inActiveServers.isEmpty()) {
+      for (HostAndPort server : inActiveServers) {
+        synchronized (allScans) {
+          allScans.remove(server);
+        }
       }
     }
   }
