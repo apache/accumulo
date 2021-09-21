@@ -30,4 +30,16 @@ public class ScanCommandTest {
         new ScanCommand().getOptions().getOption("b").getDescription().contains("row (inclusive)"));
   }
 
+  @Test
+  public void testCFRowHelp() {
+    assertTrue("Column Family",
+        new ScanCommand().getOptions().getOption("cf").getDescription().contains("family"));
+  }
+
+  @Test
+  public void testCQHelp() {
+    assertTrue("Column Qualifier",
+        new ScanCommand().getOptions().getOption("cq").getDescription().contains("qualifier"));
+  }
+
 }
