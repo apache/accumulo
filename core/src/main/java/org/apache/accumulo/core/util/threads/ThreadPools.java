@@ -26,6 +26,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.IntSupplier;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -39,11 +40,24 @@ public class ThreadPools {
   // the number of seconds before we allow a thread to terminate with non-use.
   public static final long DEFAULT_TIMEOUT_MILLISECS = 180000L;
 
-  public static void makeResizeable(final ThreadPoolExecutor pool, final AccumuloConfiguration conf,
-      final Property p) {
+  /**
+   * Resize ThreadPoolExecutor based on current value of maxThreads
+   *
+   * @param pool
+   *          the ThreadPoolExecutor to modify
+   * @param maxThreads
+   *          supplier of maxThreads value
+   * @param poolName
+   *          name of the thread pool
+   */
+  public static void resizePool(final ThreadPoolExecutor pool, final IntSupplier maxThreads,
+      String poolName) {
     int count = pool.getMaximumPoolSize();
-    int newCount = conf.getCount(p);
-    LOG.info("Changing max threads for {} from {} to {}", p.getKey(), count, newCount);
+    int newCount = maxThreads.getAsInt();
+    if (count == newCount) {
+      return;
+    }
+    LOG.info("Changing max threads for {} from {} to {}", poolName, count, newCount);
     if (newCount > count) {
       // increasing, increase the max first, or the core will fail to be increased
       pool.setMaximumPoolSize(newCount);
@@ -53,6 +67,22 @@ public class ThreadPools {
       pool.setCorePoolSize(newCount);
       pool.setMaximumPoolSize(newCount);
     }
+
+  }
+
+  /**
+   * Resize ThreadPoolExecutor based on current value of Property p
+   *
+   * @param pool
+   *          the ThreadPoolExecutor to modify
+   * @param conf
+   *          the AccumuloConfiguration
+   * @param p
+   *          the property to base the size from
+   */
+  public static void resizePool(final ThreadPoolExecutor pool, final AccumuloConfiguration conf,
+      final Property p) {
+    resizePool(pool, () -> conf.getCount(p), p.getKey());
   }
 
   /**
@@ -79,9 +109,7 @@ public class ThreadPools {
       case MANAGER_RENAME_THREADS:
         return createFixedThreadPool(conf.getCount(p), "bulk move", false);
       case MANAGER_FATE_THREADPOOL_SIZE:
-        ThreadPoolExecutor pool = createFixedThreadPool(conf.getCount(p), "Repo Runner", false);
-        makeResizeable(pool, conf, p);
-        return pool;
+        return createFixedThreadPool(conf.getCount(p), "Repo Runner", false);
       case MANAGER_STATUS_THREAD_POOL_SIZE:
         int threads = conf.getCount(p);
         if (threads == 0) {
@@ -114,10 +142,7 @@ public class ThreadPools {
       case GC_DELETE_THREADS:
         return createFixedThreadPool(conf.getCount(p), "deleting", false);
       case REPLICATION_WORKER_THREADS:
-        ThreadPoolExecutor pool2 =
-            createFixedThreadPool(conf.getCount(p), "replication task", false);
-        makeResizeable(pool2, conf, p);
-        return pool2;
+        return createFixedThreadPool(conf.getCount(p), "replication task", false);
       default:
         throw new RuntimeException("Unhandled thread pool property: " + p);
     }

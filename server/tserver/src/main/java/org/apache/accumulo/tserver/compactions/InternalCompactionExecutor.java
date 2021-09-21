@@ -191,21 +191,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
   }
 
   public void setThreads(int numThreads) {
-
-    int coreSize = threadPool.getCorePoolSize();
-
-    if (numThreads < coreSize) {
-      threadPool.setCorePoolSize(numThreads);
-      threadPool.setMaximumPoolSize(numThreads);
-    } else if (numThreads > coreSize) {
-      threadPool.setMaximumPoolSize(numThreads);
-      threadPool.setCorePoolSize(numThreads);
-    }
-
-    if (numThreads != coreSize) {
-      log.debug("Adjusted compaction executor {} threads from {} to {}", ceid, coreSize,
-          numThreads);
-    }
+    ThreadPools.resizePool(threadPool, () -> numThreads, "compaction." + ceid);
   }
 
   @Override

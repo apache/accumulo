@@ -21,6 +21,7 @@ package org.apache.accumulo.fate;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -227,10 +228,19 @@ public class Fate<T> {
         Property.MANAGER_FATE_THREADPOOL_SIZE);
     fatePoolWatcher = ThreadPools.createGeneralScheduledExecutorService(conf);
     fatePoolWatcher.schedule(() -> {
-      ThreadPools.makeResizeable(pool, conf, Property.MANAGER_FATE_THREADPOOL_SIZE);
-      int remaining = 1000 - pool.getQueue().size();
+      ThreadPools.resizePool(pool, conf, Property.MANAGER_FATE_THREADPOOL_SIZE);
+      // Assume a thread could execute up to 100 operations a second.
+      // We are sleeping for three seconds. So to calculate max to queue do 3* 100 * numThreads.
+      int maxToQueue = 300 * conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE);
+      int remaining = maxToQueue - pool.getQueue().size();
       for (int i = 0; i < remaining; i++) {
-        pool.execute(new TransactionRunner());
+        try {
+          pool.execute(new TransactionRunner());
+        } catch (RejectedExecutionException e) {
+          // RejectedExecutionException could be shutting down
+          log.warn("Error adding transaction runner to FaTE executor pool.");
+          break;
+        }
       }
     }, 3, TimeUnit.SECONDS);
     executor = pool;
