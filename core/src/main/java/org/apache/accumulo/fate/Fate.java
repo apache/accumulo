@@ -238,7 +238,13 @@ public class Fate<T> {
           pool.execute(new TransactionRunner());
         } catch (RejectedExecutionException e) {
           // RejectedExecutionException could be shutting down
-          log.warn("Error adding transaction runner to FaTE executor pool.");
+      if(pool.isShutdown()){
+          // The exception is expected in this case, no need to spam the logs.
+          log.trace("Error adding transaction runner to FaTE executor pool.",e);
+       } else {
+        // This is bad, FaTE may no longer work!
+         log.error("Error adding transaction runner to FaTE executor pool.",e);
+       }
           break;
         }
       }
