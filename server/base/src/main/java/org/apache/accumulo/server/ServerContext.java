@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
@@ -89,6 +90,7 @@ public class ServerContext extends ClientContext {
   private AccumuloConfiguration systemConfig = null;
   private AuthenticationTokenSecretManager secretManager;
   private CryptoService cryptoService = null;
+  private ScheduledThreadPoolExecutor sharedScheduledThreadPool = null;
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(new ServerInfo(siteConfig));
@@ -410,7 +412,7 @@ public class ServerContext extends ClientContext {
   }
 
   private void monitorSwappiness(AccumuloConfiguration config) {
-    ThreadPools.createGeneralScheduledExecutorService(config).scheduleWithFixedDelay(() -> {
+    getSharedGenericScheduledExecutorService().scheduleWithFixedDelay(() -> {
       try {
         String procFile = "/proc/sys/vm/swappiness";
         File swappiness = new File(procFile);
@@ -433,4 +435,13 @@ public class ServerContext extends ClientContext {
       }
     }, 1000, 10 * 60 * 1000, TimeUnit.MILLISECONDS);
   }
+
+  public ScheduledThreadPoolExecutor getSharedGenericScheduledExecutorService() {
+    if (sharedScheduledThreadPool == null) {
+      sharedScheduledThreadPool = (ScheduledThreadPoolExecutor) ThreadPools
+          .createExecutorService(getConfiguration(), Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE);
+    }
+    return sharedScheduledThreadPool;
+  }
+
 }

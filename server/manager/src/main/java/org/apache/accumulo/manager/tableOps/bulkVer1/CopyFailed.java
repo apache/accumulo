@@ -143,7 +143,7 @@ class CopyFailed extends ManagerRepo {
     if (!loadedFailures.isEmpty()) {
       DistributedWorkQueue bifCopyQueue = new DistributedWorkQueue(
           Constants.ZROOT + "/" + manager.getInstanceID() + Constants.ZBULK_FAILED_COPYQ,
-          manager.getConfiguration());
+          manager.getContext());
 
       HashSet<String> workIds = new HashSet<>();
 

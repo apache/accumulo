@@ -50,7 +50,6 @@ import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
-import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
@@ -164,9 +163,8 @@ public class FileManager {
     this.reservedReaders = new HashMap<>();
 
     this.maxIdleTime = context.getConfiguration().getTimeInMillis(Property.TSERV_MAX_IDLE);
-    ThreadPools.createGeneralScheduledExecutorService(context.getConfiguration())
-        .scheduleWithFixedDelay(new IdleFileCloser(), maxIdleTime, maxIdleTime / 2,
-            TimeUnit.MILLISECONDS);
+    this.context.getSharedGenericScheduledExecutorService().scheduleWithFixedDelay(
+        new IdleFileCloser(), maxIdleTime, maxIdleTime / 2, TimeUnit.MILLISECONDS);
 
     this.slowFilePermitMillis =
         context.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FILEPERMIT_MILLIS);

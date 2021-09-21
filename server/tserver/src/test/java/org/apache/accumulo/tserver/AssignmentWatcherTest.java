@@ -20,11 +20,14 @@ package org.apache.accumulo.tserver;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.tserver.TabletServerResourceManager.AssignmentWatcher;
 import org.easymock.EasyMock;
 import org.junit.Before;
@@ -33,28 +36,33 @@ import org.junit.Test;
 public class AssignmentWatcherTest {
 
   private Map<KeyExtent,RunnableStartedAt> assignments;
+  private ServerContext context;
   private AccumuloConfiguration conf;
   private AssignmentWatcher watcher;
 
   @Before
   public void setup() {
     assignments = new HashMap<>();
-    conf = EasyMock.createMock(AccumuloConfiguration.class);
-    watcher = new AssignmentWatcher(conf, assignments);
+    context = EasyMock.createMock(ServerContext.class);
+    conf = EasyMock.createNiceMock(AccumuloConfiguration.class);
+    watcher = new AssignmentWatcher(context, assignments);
   }
 
   @Test
   public void testAssignmentWarning() {
     ActiveAssignmentRunnable task = EasyMock.createMock(ActiveAssignmentRunnable.class);
     RunnableStartedAt run = new RunnableStartedAt(task, System.currentTimeMillis());
-    EasyMock.expect(conf.getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING)).andReturn(0L);
-    EasyMock.expect(conf.getCount(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE)).andReturn(1);
+    EasyMock.expect(context.getConfiguration()).andReturn(conf).anyTimes();
+    EasyMock.expect(conf.getCount(EasyMock.isA(Property.class))).andReturn(1).anyTimes();
+    EasyMock.expect(conf.getTimeInMillis(EasyMock.isA(Property.class))).andReturn(0L).anyTimes();
+    EasyMock.expect(context.getSharedGenericScheduledExecutorService())
+        .andReturn((ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1)).anyTimes();
     assignments.put(new KeyExtent(TableId.of("1"), null, null), run);
 
     EasyMock.expect(task.getException()).andReturn(new Exception("Assignment warning happened"));
-    EasyMock.replay(conf, task);
+    EasyMock.replay(context, task);
     watcher.run();
-    EasyMock.verify(conf, task);
+    EasyMock.verify(context, task);
   }
 
 }

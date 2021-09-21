@@ -77,7 +77,7 @@ public class RecoveryManager {
     try {
       List<String> workIDs =
           new DistributedWorkQueue(manager.getZooKeeperRoot() + Constants.ZRECOVERY,
-              manager.getConfiguration()).getWorkQueued();
+              manager.getContext()).getWorkQueued();
       sortsQueued.addAll(workIDs);
     } catch (Exception e) {
       log.warn("{}", e.getMessage(), e);
@@ -128,8 +128,8 @@ public class RecoveryManager {
   private void initiateSort(String sortId, String source, final String destination)
       throws KeeperException, InterruptedException {
     String work = source + "|" + destination;
-    new DistributedWorkQueue(manager.getZooKeeperRoot() + Constants.ZRECOVERY,
-        manager.getConfiguration()).addWork(sortId, work.getBytes(UTF_8));
+    new DistributedWorkQueue(manager.getZooKeeperRoot() + Constants.ZRECOVERY, manager.getContext())
+        .addWork(sortId, work.getBytes(UTF_8));
 
     synchronized (this) {
       sortsQueued.add(sortId);
