@@ -61,8 +61,9 @@ public class ZooZap {
     boolean zapTservers = false;
     @Parameter(names = "-tracers", description = "remove tracer locks")
     boolean zapTracers = false;
-    @Parameter(names = "-coordinators", description = "remove compaction coordinator locks")
-    boolean zapCoordinator = false;
+    @Parameter(names = "-compaction-coordinators",
+        description = "remove compaction coordinator locks")
+    boolean zapCoordinators = false;
     @Parameter(names = "-compactors", description = "remove compactor locks")
     boolean zapCompactors = false;
     @Parameter(names = "-verbose", description = "print out messages about progress")
@@ -135,7 +136,7 @@ public class ZooZap {
         }
       }
 
-      if (opts.zapCoordinator) {
+      if (opts.zapCoordinators) {
         final String coordinatorPath = Constants.ZROOT + "/" + iid + Constants.ZCOORDINATOR_LOCK;
         try {
           zapDirectory(zoo, coordinatorPath, opts);

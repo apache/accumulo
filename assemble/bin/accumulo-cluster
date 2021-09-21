@@ -330,7 +330,7 @@ function kill_all() {
   done
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -tracers -coordinators -compactors
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -tracers -compaction-coordinators -compactors
 }
 
 
@@ -386,7 +386,7 @@ function stop_all() {
   stop_tservers
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -tracers -coordinators -compactors
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -tracers -compaction-coordinators -compactors
 }
 
 function stop_here() {
