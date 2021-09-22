@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.monitor.rest.scans;
+package org.apache.accumulo.monitor.rest.compactions;
 
 import java.util.Map;
 
@@ -30,42 +30,40 @@ import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.monitor.Monitor;
-import org.apache.accumulo.monitor.Monitor.ScanStats;
 
 /**
- * Generate a new Scan list JSON object
+ * Generate a new Compaction list JSON object
  *
  * @since 2.0.0
  */
-@Path("/scans")
+@Path("/compactions")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-public class ScansResource {
+public class CompactionsResource {
 
   @Inject
   private Monitor monitor;
 
   /**
-   * Generates a new JSON object with scan information
+   * Generates a new JSON object with compaction information
    *
    * @return Scan JSON object
    */
   @GET
-  public Scans getActiveScans() {
-    Scans scans = new Scans();
+  public Compactions getActiveCompactions() {
+    Compactions compactions = new Compactions();
     ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
-      return scans;
+      return compactions;
     }
 
-    Map<HostAndPort,ScanStats> entry = monitor.getScans();
+    Map<HostAndPort,Monitor.CompactionStats> entry = monitor.getCompactions();
 
-    // Adds new scans to the array
     for (TabletServerStatus tserverInfo : mmi.getTServerInfo()) {
-      ScanStats stats = entry.get(HostAndPort.fromString(tserverInfo.name));
+      var stats = entry.get(HostAndPort.fromString(tserverInfo.name));
       if (stats != null) {
-        scans.addScan(new ScanInformation(tserverInfo, stats.scanCount, stats.oldestScan));
+        compactions.addCompaction(new CompactionInfo(tserverInfo, stats.count, stats.oldest));
       }
     }
-    return scans;
+    return compactions;
   }
 }
