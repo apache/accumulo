@@ -199,7 +199,7 @@ public class WebViews {
   @GET
   @Path("compactions")
   @Template(name = "/default.ftl")
-  public Map<String,Object> Compactions() {
+  public Map<String,Object> getCompactions() {
 
     Map<String,Object> model = getModel();
     model.put("title", "Active Compactions");
