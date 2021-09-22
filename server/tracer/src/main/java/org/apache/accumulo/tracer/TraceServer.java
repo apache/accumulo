@@ -300,8 +300,8 @@ public class TraceServer implements Watcher, AutoCloseable {
   }
 
   public void run() {
-    context.getSharedGenericScheduledExecutorService().scheduleWithFixedDelay(this::flush,
-        SCHEDULE_DELAY, SCHEDULE_PERIOD, TimeUnit.MILLISECONDS);
+    context.getScheduledExecutor().scheduleWithFixedDelay(this::flush, SCHEDULE_DELAY,
+        SCHEDULE_PERIOD, TimeUnit.MILLISECONDS);
     server.serve();
   }
 

@@ -215,7 +215,7 @@ class AssignmentHandler implements Runnable {
       server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
       long reschedule = Math.min((1L << Math.min(32, retryAttempt)) * 1000, 10 * 60 * 1000L);
       log.warn(String.format("rescheduling tablet load in %.2f seconds", reschedule / 1000.));
-      this.server.getContext().getSharedGenericScheduledExecutorService().schedule(new Runnable() {
+      this.server.getContext().getScheduledExecutor().schedule(new Runnable() {
         @Override
         public void run() {
           log.info("adding tablet {} back to the assignment pool (retry {})", extent, retryAttempt);

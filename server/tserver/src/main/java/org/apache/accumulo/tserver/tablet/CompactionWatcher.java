@@ -108,7 +108,7 @@ public class CompactionWatcher implements Runnable {
 
   public static synchronized void startWatching(ServerContext context) {
     if (!watching) {
-      context.getSharedGenericScheduledExecutorService().scheduleWithFixedDelay(
+      context.getScheduledExecutor().scheduleWithFixedDelay(
           new CompactionWatcher(context.getConfiguration()), 10000, 10000, TimeUnit.MILLISECONDS);
       watching = true;
     }

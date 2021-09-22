@@ -136,7 +136,7 @@ public class TabletServerResourceManager {
    */
   private void modifyThreadPoolSizesAtRuntime(IntSupplier maxThreads, String name,
       final ThreadPoolExecutor tp) {
-    context.getSharedGenericScheduledExecutorService().scheduleWithFixedDelay(() -> {
+    context.getScheduledExecutor().scheduleWithFixedDelay(() -> {
       ThreadPools.resizePool(tp, maxThreads, name);
     }, 1000, 10_000, TimeUnit.MILLISECONDS);
   }
@@ -377,8 +377,8 @@ public class TabletServerResourceManager {
 
     // We can use the same map for both metadata and normal assignments since the keyspace (extent)
     // is guaranteed to be unique. Schedule the task once, the task will reschedule itself.
-    context.getSharedGenericScheduledExecutorService()
-        .schedule(new AssignmentWatcher(context, activeAssignments), 5000, TimeUnit.MILLISECONDS);
+    context.getScheduledExecutor().schedule(
+        new AssignmentWatcher(acuConf, context, activeAssignments), 5000, TimeUnit.MILLISECONDS);
   }
 
   /**
@@ -390,10 +390,12 @@ public class TabletServerResourceManager {
     private static final Logger log = LoggerFactory.getLogger(AssignmentWatcher.class);
 
     private final Map<KeyExtent,RunnableStartedAt> activeAssignments;
+    private final AccumuloConfiguration conf;
     private final ServerContext context;
 
-    public AssignmentWatcher(ServerContext context,
+    public AssignmentWatcher(AccumuloConfiguration conf, ServerContext context,
         Map<KeyExtent,RunnableStartedAt> activeAssignments) {
+      this.conf = conf;
       this.context = context;
       this.activeAssignments = activeAssignments;
     }
@@ -401,7 +403,7 @@ public class TabletServerResourceManager {
     @Override
     public void run() {
       final long millisBeforeWarning =
-          context.getConfiguration().getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING);
+          this.conf.getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING);
       try {
         long now = System.currentTimeMillis();
         KeyExtent extent;
@@ -427,8 +429,7 @@ public class TabletServerResourceManager {
         if (log.isTraceEnabled()) {
           log.trace("Rescheduling assignment watcher to run in {}ms", delay);
         }
-        context.getSharedGenericScheduledExecutorService().schedule(this, delay,
-            TimeUnit.MILLISECONDS);
+        context.getScheduledExecutor().schedule(this, delay, TimeUnit.MILLISECONDS);
       }
     }
   }

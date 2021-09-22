@@ -412,7 +412,7 @@ public class ServerContext extends ClientContext {
   }
 
   private void monitorSwappiness(AccumuloConfiguration config) {
-    getSharedGenericScheduledExecutorService().scheduleWithFixedDelay(() -> {
+    getScheduledExecutor().scheduleWithFixedDelay(() -> {
       try {
         String procFile = "/proc/sys/vm/swappiness";
         File swappiness = new File(procFile);

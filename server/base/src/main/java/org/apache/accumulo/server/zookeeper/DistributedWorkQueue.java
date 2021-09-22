@@ -30,6 +30,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -57,6 +58,7 @@ public class DistributedWorkQueue {
   private ThreadPoolExecutor threadPool;
   private ZooReaderWriter zoo;
   private String path;
+  private AccumuloConfiguration config;
   private ServerContext context;
   private long timerInitialDelay, timerPeriod;
 
@@ -162,18 +164,19 @@ public class DistributedWorkQueue {
     void process(String workID, byte[] data);
   }
 
-  public DistributedWorkQueue(String path, ServerContext context) {
+  public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context) {
     // Preserve the old delay and period
-    this(path, context, new SecureRandom().nextInt(60 * 1000), 60 * 1000);
+    this(path, config, context, new SecureRandom().nextInt(60 * 1000), 60 * 1000);
   }
 
-  public DistributedWorkQueue(String path, ServerContext context, long timerInitialDelay,
-      long timerPeriod) {
+  public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context,
+      long timerInitialDelay, long timerPeriod) {
     this.path = path;
+    this.config = config;
     this.context = context;
     this.timerInitialDelay = timerInitialDelay;
     this.timerPeriod = timerPeriod;
-    zoo = new ZooReaderWriter(context.getConfiguration());
+    zoo = new ZooReaderWriter(this.config);
   }
 
   public ServerContext getContext() {
@@ -223,7 +226,7 @@ public class DistributedWorkQueue {
     lookForWork(processor, children);
 
     // Add a little jitter to avoid all the tservers slamming zookeeper at once
-    context.getSharedGenericScheduledExecutorService().scheduleWithFixedDelay(new Runnable() {
+    context.getScheduledExecutor().scheduleWithFixedDelay(new Runnable() {
       @Override
       public void run() {
         log.debug("Looking for work in {}", path);

@@ -162,12 +162,12 @@ public class FileManager {
     this.openFiles = new HashMap<>();
     this.reservedReaders = new HashMap<>();
 
-    this.maxIdleTime = context.getConfiguration().getTimeInMillis(Property.TSERV_MAX_IDLE);
-    this.context.getSharedGenericScheduledExecutorService().scheduleWithFixedDelay(
-        new IdleFileCloser(), maxIdleTime, maxIdleTime / 2, TimeUnit.MILLISECONDS);
+    this.maxIdleTime = this.context.getConfiguration().getTimeInMillis(Property.TSERV_MAX_IDLE);
+    this.context.getScheduledExecutor().scheduleWithFixedDelay(new IdleFileCloser(), maxIdleTime,
+        maxIdleTime / 2, TimeUnit.MILLISECONDS);
 
     this.slowFilePermitMillis =
-        context.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FILEPERMIT_MILLIS);
+        this.context.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FILEPERMIT_MILLIS);
   }
 
   private static int countReaders(Map<String,List<OpenReader>> files) {

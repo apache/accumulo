@@ -88,8 +88,8 @@ public class SessionManager {
       }
     };
 
-    context.getSharedGenericScheduledExecutorService().scheduleWithFixedDelay(r, 0,
-        Math.max(maxIdle / 2, 1000), TimeUnit.MILLISECONDS);
+    context.getScheduledExecutor().scheduleWithFixedDelay(r, 0, Math.max(maxIdle / 2, 1000),
+        TimeUnit.MILLISECONDS);
   }
 
   public long createSession(Session session, boolean reserve) {

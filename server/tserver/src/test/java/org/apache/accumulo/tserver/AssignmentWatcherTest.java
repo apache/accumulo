@@ -45,7 +45,7 @@ public class AssignmentWatcherTest {
     assignments = new HashMap<>();
     context = EasyMock.createMock(ServerContext.class);
     conf = EasyMock.createNiceMock(AccumuloConfiguration.class);
-    watcher = new AssignmentWatcher(context, assignments);
+    watcher = new AssignmentWatcher(conf, context, assignments);
   }
 
   @Test
@@ -55,7 +55,7 @@ public class AssignmentWatcherTest {
     EasyMock.expect(context.getConfiguration()).andReturn(conf).anyTimes();
     EasyMock.expect(conf.getCount(EasyMock.isA(Property.class))).andReturn(1).anyTimes();
     EasyMock.expect(conf.getTimeInMillis(EasyMock.isA(Property.class))).andReturn(0L).anyTimes();
-    EasyMock.expect(context.getSharedGenericScheduledExecutorService())
+    EasyMock.expect(context.getScheduledExecutor())
         .andReturn((ScheduledThreadPoolExecutor) Executors.newScheduledThreadPool(1)).anyTimes();
     assignments.put(new KeyExtent(TableId.of("1"), null, null), run);
 

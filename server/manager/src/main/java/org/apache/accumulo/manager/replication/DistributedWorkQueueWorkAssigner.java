@@ -91,7 +91,7 @@ public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
   protected void initializeWorkQueue(AccumuloConfiguration conf) {
     workQueue =
         new DistributedWorkQueue(ZooUtil.getRoot(client.instanceOperations().getInstanceID())
-            + ReplicationConstants.ZOO_WORK_QUEUE, this.workQueue.getContext());
+            + ReplicationConstants.ZOO_WORK_QUEUE, conf, this.workQueue.getContext());
   }
 
   @Override

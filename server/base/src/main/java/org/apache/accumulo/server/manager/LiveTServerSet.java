@@ -253,8 +253,8 @@ public class LiveTServerSet implements Watcher {
 
   public synchronized void startListeningForTabletServerChanges() {
     scanServers();
-    this.context.getSharedGenericScheduledExecutorService()
-        .scheduleWithFixedDelay(this::scanServers, 0, 5000, TimeUnit.MILLISECONDS);
+    this.context.getScheduledExecutor().scheduleWithFixedDelay(this::scanServers, 0, 5000,
+        TimeUnit.MILLISECONDS);
   }
 
   public synchronized void scanServers() {
