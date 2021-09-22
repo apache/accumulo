@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -73,7 +74,7 @@ public class CompactionService {
   private Map<CompactionExecutorId,CompactionExecutor> executors;
   private final CompactionServiceId myId;
   private Map<KeyExtent,Collection<SubmittedJob>> submittedJobs = new ConcurrentHashMap<>();
-  private ServerContext serverCtx;
+  private ServerContext context;
   private String plannerClassName;
   private Map<String,String> plannerOpts;
   private CompactionExecutorsMetrics ceMetrics;
@@ -92,7 +93,7 @@ public class CompactionService {
     private final Map<String,String> plannerOpts;
     private final Map<CompactionExecutorId,Integer> requestedExecutors;
     private final Set<CompactionExecutorId> requestedExternalExecutors;
-    private final ServiceEnvironment senv = new ServiceEnvironmentImpl(serverCtx);
+    private final ServiceEnvironment senv = new ServiceEnvironmentImpl(context);
 
     CpInitParams(Map<String,String> plannerOpts) {
       this.plannerOpts = plannerOpts;
@@ -140,13 +141,14 @@ public class CompactionService {
   }
 
   public CompactionService(String serviceName, String plannerClass, Long maxRate,
-      Map<String,String> plannerOptions, ServerContext sctx, CompactionExecutorsMetrics ceMetrics,
+      Map<String,String> plannerOptions, ServerContext context,
+      CompactionExecutorsMetrics ceMetrics,
       Function<CompactionExecutorId,ExternalCompactionExecutor> externExecutorSupplier) {
 
     Preconditions.checkArgument(maxRate >= 0);
 
     this.myId = CompactionServiceId.of(serviceName);
-    this.serverCtx = sctx;
+    this.context = context;
     this.plannerClassName = plannerClass;
     this.plannerOpts = plannerOptions;
     this.ceMetrics = ceMetrics;
@@ -160,9 +162,9 @@ public class CompactionService {
 
     this.rateLimit.set(maxRate);
 
-    this.readLimiter = SharedRateLimiterFactory.getInstance(this.serverCtx.getConfiguration())
+    this.readLimiter = SharedRateLimiterFactory.getInstance(this.context.getConfiguration())
         .create("CS_" + serviceName + "_read", () -> rateLimit.get());
-    this.writeLimiter = SharedRateLimiterFactory.getInstance(this.serverCtx.getConfiguration())
+    this.writeLimiter = SharedRateLimiterFactory.getInstance(this.context.getConfiguration())
         .create("CS_" + serviceName + "_write", () -> rateLimit.get());
 
     initParams.requestedExecutors.forEach((ceid, numThreads) -> {
@@ -222,15 +224,27 @@ public class CompactionService {
     return true;
   }
 
-  public void compact(CompactionKind kind, Compactable compactable,
+  /**
+   * Get compaction plan for the provided compactable tablet and possibly submit for compaction.
+   * Plans get added to the planning queue before calling the planningExecutor to get the plan. If
+   * no files are selected, return. Otherwise, submit the compaction job.
+   */
+  public void submitCompaction(CompactionKind kind, Compactable compactable,
       Consumer<Compactable> completionCallback) {
     Objects.requireNonNull(compactable);
 
+    // add tablet to planning queue and use planningExecutor to get the plan
     if (queuedForPlanning.get(kind).putIfAbsent(compactable.getExtent(), compactable) == null) {
       try {
         planningExecutor.execute(() -> {
           try {
-            planCompaction(kind, compactable, completionCallback);
+            Optional<Compactable.Files> files = compactable.getFiles(myId, kind);
+            if (files.isEmpty() || files.get().candidates.isEmpty()) {
+              log.trace("Compactable returned no files {} {}", compactable.getExtent(), kind);
+            } else {
+              CompactionPlan plan = getCompactionPlan(kind, files.get(), compactable);
+              submitCompactionJob(plan, files.get(), compactable, completionCallback);
+            }
           } finally {
             queuedForPlanning.get(kind).remove(compactable.getExtent());
           }
@@ -242,68 +256,71 @@ public class CompactionService {
     }
   }
 
-  private void planCompaction(CompactionKind kind, Compactable compactable,
-      Consumer<Compactable> completionCallback) {
-    var files = compactable.getFiles(myId, kind);
+  private class CpPlanParams implements PlanningParameters {
+    private final CompactionKind kind;
+    private final Compactable comp;
+    private final Compactable.Files files;
 
-    if (files.isEmpty() || files.get().candidates.isEmpty()) {
-      log.trace("Compactable returned no files {} {} {}", compactable.getExtent(), kind, files);
-      return;
+    public CpPlanParams(CompactionKind kind, Compactable comp, Compactable.Files files) {
+      this.kind = kind;
+      this.comp = comp;
+      this.files = files;
     }
 
-    PlanningParameters params = new PlanningParameters() {
+    private final ServiceEnvironment senv = new ServiceEnvironmentImpl(context);
 
-      private final ServiceEnvironment senv = new ServiceEnvironmentImpl(serverCtx);
+    @Override
+    public TableId getTableId() {
+      return comp.getTableId();
+    }
 
-      @Override
-      public TableId getTableId() {
-        return compactable.getTableId();
-      }
+    @Override
+    public ServiceEnvironment getServiceEnvironment() {
+      return senv;
+    }
 
-      @Override
-      public ServiceEnvironment getServiceEnvironment() {
-        return senv;
-      }
+    @Override
+    public double getRatio() {
+      return comp.getCompactionRatio();
+    }
 
-      @Override
-      public double getRatio() {
-        return compactable.getCompactionRatio();
-      }
+    @Override
+    public CompactionKind getKind() {
+      return kind;
+    }
 
-      @Override
-      public CompactionKind getKind() {
-        return kind;
-      }
+    @Override
+    public Collection<CompactionJob> getRunningCompactions() {
+      return files.compacting;
+    }
 
-      @Override
-      public Collection<CompactionJob> getRunningCompactions() {
-        return files.get().compacting;
-      }
+    @Override
+    public Collection<CompactableFile> getCandidates() {
+      return files.candidates;
+    }
 
-      @Override
-      public Collection<CompactableFile> getCandidates() {
-        return files.get().candidates;
-      }
+    @Override
+    public Collection<CompactableFile> getAll() {
+      return files.allFiles;
+    }
 
-      @Override
-      public Collection<CompactableFile> getAll() {
-        return files.get().allFiles;
-      }
+    @Override
+    public Map<String,String> getExecutionHints() {
+      if (kind == CompactionKind.USER)
+        return files.executionHints;
+      else
+        return Map.of();
+    }
 
-      @Override
-      public Map<String,String> getExecutionHints() {
-        if (kind == CompactionKind.USER)
-          return files.get().executionHints;
-        else
-          return Map.of();
-      }
+    @Override
+    public CompactionPlan.Builder createPlanBuilder() {
+      return new CompactionPlanImpl.BuilderImpl(kind, files.allFiles, files.candidates);
+    }
+  }
 
-      @Override
-      public CompactionPlan.Builder createPlanBuilder() {
-        return new CompactionPlanImpl.BuilderImpl(kind, files.get().allFiles,
-            files.get().candidates);
-      }
-    };
+  private CompactionPlan getCompactionPlan(CompactionKind kind, Compactable.Files files,
+      Compactable compactable) {
+    PlanningParameters params = new CpPlanParams(kind, compactable, files);
 
     log.trace("Planning compactions {} {} {} {}", planner.getClass().getName(),
         compactable.getExtent(), kind, files);
@@ -317,10 +334,14 @@ public class CompactionService {
       throw e;
     }
 
-    plan = convertPlan(plan, kind, files.get().allFiles, files.get().candidates);
+    return convertPlan(plan, kind, files.allFiles, files.candidates);
+  }
 
-    if (compactable.getExtent().isMeta() && plan.getJobs().stream().map(cj -> cj.getExecutor())
-        .anyMatch(ceid -> ((CompactionExecutorIdImpl) ceid).isExternalId())) {
+  private void submitCompactionJob(CompactionPlan plan, Compactable.Files files,
+      Compactable compactable, Consumer<Compactable> completionCallback) {
+    // log error if tablet is metadata and compaction is external
+    var execIds = plan.getJobs().stream().map(cj -> (CompactionExecutorIdImpl) cj.getExecutor());
+    if (compactable.getExtent().isMeta() && execIds.anyMatch(ceid -> ceid.isExternalId())) {
       log.error(
           "Compacting metadata tablets on external compactors is not supported, please change "
               + "config for compaction service ({}) and/or table ASAP.  {} is not compacting, "
@@ -343,11 +364,11 @@ public class CompactionService {
 
     if (reconcile(jobs, submitted)) {
       for (CompactionJob job : jobs) {
-        var sjob =
-            executors.get(job.getExecutor()).submit(myId, job, compactable, completionCallback);
+        CompactionExecutor executor = executors.get(job.getExecutor());
+        var submittedJob = executor.submit(myId, job, compactable, completionCallback);
         // its important that the collection created in computeIfAbsent supports concurrency
         submittedJobs.computeIfAbsent(compactable.getExtent(), k -> new ConcurrentLinkedQueue<>())
-            .add(sjob);
+            .add(submittedJob);
       }
 
       if (!jobs.isEmpty()) {

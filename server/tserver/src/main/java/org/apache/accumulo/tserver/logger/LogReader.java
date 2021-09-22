@@ -38,12 +38,10 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.log.RecoveryLogsIterator;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -107,7 +105,7 @@ public class LogReader implements KeywordExecutable {
 
     var siteConfig = SiteConfiguration.auto();
     ServerContext context = new ServerContext(siteConfig);
-    try (VolumeManager fs = VolumeManagerImpl.get(siteConfig, new Configuration())) {
+    try (VolumeManager fs = context.getVolumeManager()) {
 
       Matcher rowMatcher = null;
       KeyExtent ke = null;

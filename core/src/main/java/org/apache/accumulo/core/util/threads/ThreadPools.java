@@ -26,14 +26,64 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.IntSupplier;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ThreadPools {
 
+  private static final Logger LOG = LoggerFactory.getLogger(ThreadPools.class);
+
   // the number of seconds before we allow a thread to terminate with non-use.
   public static final long DEFAULT_TIMEOUT_MILLISECS = 180000L;
+
+  /**
+   * Resize ThreadPoolExecutor based on current value of maxThreads
+   *
+   * @param pool
+   *          the ThreadPoolExecutor to modify
+   * @param maxThreads
+   *          supplier of maxThreads value
+   * @param poolName
+   *          name of the thread pool
+   */
+  public static void resizePool(final ThreadPoolExecutor pool, final IntSupplier maxThreads,
+      String poolName) {
+    int count = pool.getMaximumPoolSize();
+    int newCount = maxThreads.getAsInt();
+    if (count == newCount) {
+      return;
+    }
+    LOG.info("Changing max threads for {} from {} to {}", poolName, count, newCount);
+    if (newCount > count) {
+      // increasing, increase the max first, or the core will fail to be increased
+      pool.setMaximumPoolSize(newCount);
+      pool.setCorePoolSize(newCount);
+    } else {
+      // decreasing, lower the core size first, or the max will fail to be lowered
+      pool.setCorePoolSize(newCount);
+      pool.setMaximumPoolSize(newCount);
+    }
+
+  }
+
+  /**
+   * Resize ThreadPoolExecutor based on current value of Property p
+   *
+   * @param pool
+   *          the ThreadPoolExecutor to modify
+   * @param conf
+   *          the AccumuloConfiguration
+   * @param p
+   *          the property to base the size from
+   */
+  public static void resizePool(final ThreadPoolExecutor pool, final AccumuloConfiguration conf,
+      final Property p) {
+    resizePool(pool, () -> conf.getCount(p), p.getKey());
+  }
 
   /**
    * Create a thread pool based on a thread pool related property
@@ -46,7 +96,8 @@ public class ThreadPools {
    * @throws RuntimeException
    *           if property is not handled
    */
-  public static ExecutorService createExecutorService(AccumuloConfiguration conf, Property p) {
+  public static ExecutorService createExecutorService(final AccumuloConfiguration conf,
+      final Property p) {
 
     switch (p) {
       case GENERAL_SIMPLETIMER_THREADPOOL_SIZE:

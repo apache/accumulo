@@ -2096,8 +2096,6 @@ public class Tablet {
 
   public void compactAll(long compactionId, CompactionConfig compactionConfig) {
 
-    boolean shouldInitiate = false;
-
     synchronized (this) {
       if (lastCompactID >= compactionId) {
         return;
@@ -2116,17 +2114,13 @@ public class Tablet {
         }
       }
 
-      if (isClosing() || isClosed()) {
+      if (isClosing() || isClosed() || isBeingDeleted()) {
         return;
       }
-
-      shouldInitiate = true;
-
     }
 
-    if (shouldInitiate) {
-      compactable.initiateUserCompaction(compactionId, compactionConfig);
-    }
+    // passed all verification checks so initiate compaction
+    compactable.initiateUserCompaction(compactionId, compactionConfig);
   }
 
   public TableConfiguration getTableConfiguration() {

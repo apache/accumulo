@@ -60,9 +60,9 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   protected AutoCloseable closeAfterMutate;
   private boolean updatesEnabled = true;
 
-  protected TabletMutatorBase(ServerContext ctx, KeyExtent extent) {
+  protected TabletMutatorBase(ServerContext context, KeyExtent extent) {
     this.extent = extent;
-    this.context = ctx;
+    this.context = context;
     mutation = new Mutation(extent.toMetaRow());
   }
 

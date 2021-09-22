@@ -71,7 +71,7 @@ public class ConditionCheckerContext {
 
   private Map<ByteSequence,MergedIterConfig> mergedIterCache = new HashMap<>();
 
-  ConditionCheckerContext(ServerContext serverContext, CompressedIterators compressedIters,
+  ConditionCheckerContext(ServerContext context, CompressedIterators compressedIters,
       TableConfiguration tableConf) {
     this.compressedIters = compressedIters;
 
@@ -79,11 +79,11 @@ public class ConditionCheckerContext {
 
     tableIters = pic.getIterInfo();
     tableIterOpts = pic.getOpts();
-    context = pic.getServiceEnv();
+    this.context = pic.getServiceEnv();
 
     classCache = new HashMap<>();
 
-    tie = new TabletIteratorEnvironment(serverContext, IteratorScope.scan, tableConf,
+    tie = new TabletIteratorEnvironment(context, IteratorScope.scan, tableConf,
         tableConf.getTableId());
   }
 
