@@ -137,24 +137,7 @@ public class TabletServerResourceManager {
       final ThreadPoolExecutor tp) {
     ThreadPools.createGeneralScheduledExecutorService(context.getConfiguration())
         .scheduleWithFixedDelay(() -> {
-          try {
-            int max = maxThreads.getAsInt();
-            int currentMax = tp.getMaximumPoolSize();
-            if (currentMax != max) {
-              log.info("Changing max threads for {} from {} to {}", name, currentMax, max);
-              if (max > currentMax) {
-                // increasing, increase the max first, or the core will fail to be increased
-                tp.setMaximumPoolSize(max);
-                tp.setCorePoolSize(max);
-              } else {
-                // decreasing, lower the core size first, or the max will fail to be lowered
-                tp.setCorePoolSize(max);
-                tp.setMaximumPoolSize(max);
-              }
-            }
-          } catch (Exception t) {
-            log.error("Failed to change thread pool size", t);
-          }
+          ThreadPools.resizePool(tp, maxThreads, name);
         }, 1000, 10_000, TimeUnit.MILLISECONDS);
   }
 

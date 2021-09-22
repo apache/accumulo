@@ -911,12 +911,7 @@ public class TabletServer extends AbstractServer {
 
     // Check the configuration value for the size of the pool and, if changed, resize the pool
     Runnable replicationWorkThreadPoolResizer = () -> {
-      int maxPoolSize = aconf.getCount(Property.REPLICATION_WORKER_THREADS);
-      if (replicationThreadPool.getMaximumPoolSize() != maxPoolSize) {
-        log.info("Resizing thread pool for sending replication work from {} to {}",
-            replicationThreadPool.getMaximumPoolSize(), maxPoolSize);
-        replicationThreadPool.setMaximumPoolSize(maxPoolSize);
-      }
+      ThreadPools.resizePool(replicationThreadPool, aconf, Property.REPLICATION_WORKER_THREADS);
     };
     ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(
         replicationWorkThreadPoolResizer, 10000, 30000, TimeUnit.MILLISECONDS);

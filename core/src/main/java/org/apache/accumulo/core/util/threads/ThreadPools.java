@@ -29,38 +29,65 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.IntSupplier;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.opentelemetry.context.Context;
 
 public class ThreadPools {
 
+  private static final Logger LOG = LoggerFactory.getLogger(ThreadPools.class);
+
   // the number of seconds before we allow a thread to terminate with non-use.
   public static final long DEFAULT_TIMEOUT_MILLISECS = 180000L;
 
-  private static void makeResizeable(final ThreadPoolExecutor pool,
-      final AccumuloConfiguration conf, final Property p) {
-    final String threadName = p.name().concat("_watcher");
-    Threads.createThread(threadName, () -> {
-      int count = conf.getCount(p);
-      while (Thread.currentThread().isAlive() && !Thread.currentThread().isInterrupted()) {
-        try {
-          Thread.sleep(1000);
-          int newCount = conf.getCount(p);
-          if (newCount != count) {
-            pool.setCorePoolSize(newCount);
-            pool.setMaximumPoolSize(newCount);
-            count = newCount;
-          }
-        } catch (InterruptedException e) {
-          // throw a RuntimeException and let the AccumuloUncaughtExceptionHandler deal with it.
-          throw new RuntimeException("Thread " + threadName + " was interrupted.");
-        }
-      }
-    }).start();
+  /**
+   * Resize ThreadPoolExecutor based on current value of maxThreads
+   *
+   * @param pool
+   *          the ThreadPoolExecutor to modify
+   * @param maxThreads
+   *          supplier of maxThreads value
+   * @param poolName
+   *          name of the thread pool
+   */
+  public static void resizePool(final ThreadPoolExecutor pool, final IntSupplier maxThreads,
+      String poolName) {
+    int count = pool.getMaximumPoolSize();
+    int newCount = maxThreads.getAsInt();
+    if (count == newCount) {
+      return;
+    }
+    LOG.info("Changing max threads for {} from {} to {}", poolName, count, newCount);
+    if (newCount > count) {
+      // increasing, increase the max first, or the core will fail to be increased
+      pool.setMaximumPoolSize(newCount);
+      pool.setCorePoolSize(newCount);
+    } else {
+      // decreasing, lower the core size first, or the max will fail to be lowered
+      pool.setCorePoolSize(newCount);
+      pool.setMaximumPoolSize(newCount);
+    }
 
+  }
+
+  /**
+   * Resize ThreadPoolExecutor based on current value of Property p
+   *
+   * @param pool
+   *          the ThreadPoolExecutor to modify
+   * @param conf
+   *          the AccumuloConfiguration
+   * @param p
+   *          the property to base the size from
+   */
+  public static void resizePool(final ThreadPoolExecutor pool, final AccumuloConfiguration conf,
+      final Property p) {
+    resizePool(pool, () -> conf.getCount(p), p.getKey());
   }
 
   /**
@@ -87,9 +114,7 @@ public class ThreadPools {
       case MANAGER_RENAME_THREADS:
         return createFixedThreadPool(conf.getCount(p), "bulk move");
       case MANAGER_FATE_THREADPOOL_SIZE:
-        ThreadPoolExecutor pool = createFixedThreadPool(conf.getCount(p), "Repo Runner");
-        makeResizeable(pool, conf, p);
-        return pool;
+        return createFixedThreadPool(conf.getCount(p), "Repo Runner");
       case MANAGER_STATUS_THREAD_POOL_SIZE:
         int threads = conf.getCount(p);
         if (threads == 0) {
@@ -121,9 +146,7 @@ public class ThreadPools {
       case GC_DELETE_THREADS:
         return createFixedThreadPool(conf.getCount(p), "deleting");
       case REPLICATION_WORKER_THREADS:
-        ThreadPoolExecutor pool2 = createFixedThreadPool(conf.getCount(p), "replication task");
-        makeResizeable(pool2, conf, p);
-        return pool2;
+        return createFixedThreadPool(conf.getCount(p), "replication task");
       default:
         throw new RuntimeException("Unhandled thread pool property: " + p);
     }
