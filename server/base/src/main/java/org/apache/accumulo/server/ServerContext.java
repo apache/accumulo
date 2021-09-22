@@ -436,7 +436,10 @@ public class ServerContext extends ClientContext {
     }, 1000, 10 * 60 * 1000, TimeUnit.MILLISECONDS);
   }
 
-  public ScheduledThreadPoolExecutor getSharedGenericScheduledExecutorService() {
+  /**
+   * return a shared scheduled executor
+   */
+  public synchronized ScheduledThreadPoolExecutor getScheduledExecutor() {
     if (sharedScheduledThreadPool == null) {
       sharedScheduledThreadPool = (ScheduledThreadPoolExecutor) ThreadPools
           .createExecutorService(getConfiguration(), Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE);
