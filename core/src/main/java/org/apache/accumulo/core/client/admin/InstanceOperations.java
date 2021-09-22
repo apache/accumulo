@@ -64,7 +64,7 @@ public interface InstanceOperations {
    *
    * @return A map of system properties set in zookeeper. If a property is not set in zookeeper,
    *         then it will return the value set in accumulo.properties on some server. If nothing is
-   *         set in an accumulo.properties file, it will return the default value for each property.
+   *         set in an accumulo.properties file, the default value for each property will be used.
    */
   Map<String,String> getSystemConfiguration() throws AccumuloException, AccumuloSecurityException;
 
@@ -72,7 +72,7 @@ public interface InstanceOperations {
    * Retrieve the site configuration (that is set in the server configuration file).
    *
    * @return A map of system properties set in accumulo.properties on some server. If nothing is set
-   *         in an accumulo.properties file, it will return the default value for each property.
+   *         in an accumulo.properties file, the default value for each property will be used.
    */
   Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException;
 
@@ -95,7 +95,7 @@ public interface InstanceOperations {
    * List the active scans on a tablet server.
    *
    * @param tserver
-   *          The tablet server address - should be of the form {@code <ip address>:<port>}
+   *          The tablet server address. This should be of the form {@code <ip address>:<port>}
    * @return A list of active scans on tablet server.
    */
   List<ActiveScan> getActiveScans(String tserver)
@@ -108,7 +108,7 @@ public interface InstanceOperations {
    * of all compactions running on tservers and compactors.
    *
    * @param tserver
-   *          The tablet server address - should be of the form {@code <ip address>:<port>}
+   *          The tablet server address. This should be of the form {@code <ip address>:<port>}
    * @return the list of active compactions
    * @since 1.5.0
    */
@@ -127,7 +127,7 @@ public interface InstanceOperations {
    * Throws an exception if a tablet server can not be contacted.
    *
    * @param tserver
-   *          The tablet server address - should be of the form {@code <ip address>:<port>}
+   *          The tablet server address. This should be of the form {@code <ip address>:<port>}
    * @since 1.5.0
    */
   void ping(String tserver) throws AccumuloException;
