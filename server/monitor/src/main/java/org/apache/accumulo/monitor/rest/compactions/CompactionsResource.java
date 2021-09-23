@@ -34,7 +34,7 @@ import org.apache.accumulo.monitor.Monitor;
 /**
  * Generate a new Compaction list JSON object
  *
- * @since 2.0.0
+ * @since 2.1.0
  */
 @Path("/compactions")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
