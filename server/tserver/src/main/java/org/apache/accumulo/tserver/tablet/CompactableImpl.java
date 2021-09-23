@@ -86,8 +86,8 @@ import com.google.common.collect.Sets;
 /**
  * This class exists between compaction services and tablets and tracks state related to compactions
  * for a tablet. This class was written to mainly contain code related to tracking files, state, and
- * synchronization. All other code was placed in {@link CompactableUtils} inorder to make this class
- * easier to analyze.
+ * synchronization. All other code was placed in {@link CompactableUtils} in order to make this
+ * class easier to analyze.
  */
 public class CompactableImpl implements Compactable {
 
@@ -110,12 +110,12 @@ public class CompactableImpl implements Compactable {
   private Set<CompactionServiceId> servicesUsed = new ConcurrentSkipListSet<>();
 
   enum ChopSelectionStatus {
-    SELECTING, SELECTED, NOT_ACTIVE
+    SELECTING, SELECTED, NOT_ACTIVE, MARKING
   }
 
   // status of special compactions
   enum FileSelectionStatus {
-    NEW, SELECTING, SELECTED, RESERVED, NOT_ACTIVE, CANCELED, MARKING
+    NEW, SELECTING, SELECTED, RESERVED, NOT_ACTIVE, CANCELED
   }
 
   private CompactionHelper chelper = null;
@@ -341,8 +341,8 @@ public class CompactableImpl implements Compactable {
     }
 
     boolean finishMarkingChop() {
-      if (chopStatus == FileSelectionStatus.MARKING) {
-        chopStatus = FileSelectionStatus.NOT_ACTIVE;
+      if (chopStatus == ChopSelectionStatus.MARKING) {
+        chopStatus = ChopSelectionStatus.NOT_ACTIVE;
         return true;
       } else {
         return false;
@@ -1475,7 +1475,7 @@ public class CompactableImpl implements Compactable {
       while (runningJobs.stream()
           .anyMatch(job -> !((CompactionExecutorIdImpl) job.getExecutor()).isExternalId())
           || !externalCompactionsCommitting.isEmpty()
-          || fileMgr.chopStatus != FileSelectionStatus.NOT_ACTIVE) {
+          || fileMgr.chopStatus != ChopSelectionStatus.NOT_ACTIVE) {
         try {
           wait(50);
         } catch (InterruptedException e) {
