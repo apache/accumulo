@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.test.compaction;
 
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.junit.Assert.assertEquals;
