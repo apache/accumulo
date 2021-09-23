@@ -152,8 +152,8 @@ public class ExternalCompaction_1_IT extends AccumuloClusterHarness
   public void testExternalCompaction() throws Exception {
     ProcessInfo c1 = null, c2 = null, coord = null;
     String[] names = this.getUniqueNames(2);
-    try (AccumuloClient client = Accumulo.newClient()
-        .from(getCluster().getClientProperties()).build()) {
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
       String table1 = names[0];
       ExternalCompactionUtils.createTable(client, table1, "cs1");
@@ -164,9 +164,9 @@ public class ExternalCompaction_1_IT extends AccumuloClusterHarness
       ExternalCompactionUtils.writeData(client, table1);
       ExternalCompactionUtils.writeData(client, table2);
 
-      c1 = ((MiniAccumuloClusterImpl)getCluster()).exec(Compactor.class, "-q", "DCQ1");
-      c2 = ((MiniAccumuloClusterImpl)getCluster()).exec(Compactor.class, "-q", "DCQ2");
-      coord = ((MiniAccumuloClusterImpl)getCluster()).exec(CompactionCoordinator.class);
+      c1 = ((MiniAccumuloClusterImpl) getCluster()).exec(Compactor.class, "-q", "DCQ1");
+      c2 = ((MiniAccumuloClusterImpl) getCluster()).exec(Compactor.class, "-q", "DCQ2");
+      coord = ((MiniAccumuloClusterImpl) getCluster()).exec(CompactionCoordinator.class);
 
       ExternalCompactionUtils.compact(client, table1, 2, "DCQ1", true);
       ExternalCompactionUtils.verify(client, table1, 2);
@@ -187,24 +187,26 @@ public class ExternalCompaction_1_IT extends AccumuloClusterHarness
   @Test
   public void testCompactionAndCompactorDies() throws Exception {
     String table1 = this.getUniqueNames(1)[0];
-    try (AccumuloClient client = Accumulo.newClient()
-        .from(getCluster().getClientProperties()).build()) {
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
       // Stop the TabletServer so that it does not commit the compaction
-      ((MiniAccumuloClusterImpl)getCluster()).getProcesses().get(TABLET_SERVER).forEach(p -> {
+      ((MiniAccumuloClusterImpl) getCluster()).getProcesses().get(TABLET_SERVER).forEach(p -> {
         try {
-          ((MiniAccumuloClusterImpl)getCluster()).killProcess(TABLET_SERVER, p);
+          ((MiniAccumuloClusterImpl) getCluster()).killProcess(TABLET_SERVER, p);
         } catch (Exception e) {
           fail("Failed to shutdown tablet server");
         }
       });
       // Start our TServer that will not commit the compaction
-      ProcessInfo tserv = ((MiniAccumuloClusterImpl)getCluster()).exec(ExternalCompactionTServer.class);
+      ProcessInfo tserv =
+          ((MiniAccumuloClusterImpl) getCluster()).exec(ExternalCompactionTServer.class);
 
       ExternalCompactionUtils.createTable(client, table1, "cs1", 2);
       ExternalCompactionUtils.writeData(client, table1);
-      ProcessInfo c1 =
-          ((MiniAccumuloClusterImpl)getCluster()).exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
-      ProcessInfo coord = ((MiniAccumuloClusterImpl)getCluster()).exec(CompactionCoordinator.class);
+      ProcessInfo c1 = ((MiniAccumuloClusterImpl) getCluster())
+          .exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
+      ProcessInfo coord =
+          ((MiniAccumuloClusterImpl) getCluster()).exec(CompactionCoordinator.class);
       ExternalCompactionUtils.compact(client, table1, 2, "DCQ1", false);
       TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
       // Wait for the compaction to start by waiting for 1 external compaction column
@@ -233,7 +235,7 @@ public class ExternalCompaction_1_IT extends AccumuloClusterHarness
       ExternalCompactionUtils.stopProcesses(tserv, coord);
     } finally {
       // We stopped the TServer and started our own, restart the original TabletServers
-      ((MiniAccumuloClusterImpl)getCluster()).getClusterControl().start(ServerType.TABLET_SERVER);
+      ((MiniAccumuloClusterImpl) getCluster()).getClusterControl().start(ServerType.TABLET_SERVER);
     }
 
   }
@@ -242,18 +244,18 @@ public class ExternalCompaction_1_IT extends AccumuloClusterHarness
   public void testManytablets() throws Exception {
     ProcessInfo c1 = null, c2 = null, c3 = null, c4 = null, coord = null;
     String table1 = this.getUniqueNames(1)[0];
-    try (AccumuloClient client = Accumulo.newClient()
-        .from(getCluster().getClientProperties()).build()) {
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
       ExternalCompactionUtils.createTable(client, table1, "cs1", 200);
 
       ExternalCompactionUtils.writeData(client, table1);
 
-      c1 = ((MiniAccumuloClusterImpl)getCluster()).exec(Compactor.class, "-q", "DCQ1");
-      c2 = ((MiniAccumuloClusterImpl)getCluster()).exec(Compactor.class, "-q", "DCQ1");
-      c3 = ((MiniAccumuloClusterImpl)getCluster()).exec(Compactor.class, "-q", "DCQ1");
-      c4 = ((MiniAccumuloClusterImpl)getCluster()).exec(Compactor.class, "-q", "DCQ1");
-      coord = ((MiniAccumuloClusterImpl)getCluster()).exec(CompactionCoordinator.class);
+      c1 = ((MiniAccumuloClusterImpl) getCluster()).exec(Compactor.class, "-q", "DCQ1");
+      c2 = ((MiniAccumuloClusterImpl) getCluster()).exec(Compactor.class, "-q", "DCQ1");
+      c3 = ((MiniAccumuloClusterImpl) getCluster()).exec(Compactor.class, "-q", "DCQ1");
+      c4 = ((MiniAccumuloClusterImpl) getCluster()).exec(Compactor.class, "-q", "DCQ1");
+      coord = ((MiniAccumuloClusterImpl) getCluster()).exec(CompactionCoordinator.class);
 
       ExternalCompactionUtils.compact(client, table1, 3, "DCQ1", true);
 
@@ -263,17 +265,15 @@ public class ExternalCompaction_1_IT extends AccumuloClusterHarness
     }
   }
 
-
-
   @Test
   public void testConfigurer() throws Exception {
     String tableName = this.getUniqueNames(1)[0];
 
-    ProcessInfo c1 = ((MiniAccumuloClusterImpl)getCluster()).exec(Compactor.class, "-q", "DCQ1");
-    ProcessInfo coord = ((MiniAccumuloClusterImpl)getCluster()).exec(CompactionCoordinator.class);
+    ProcessInfo c1 = ((MiniAccumuloClusterImpl) getCluster()).exec(Compactor.class, "-q", "DCQ1");
+    ProcessInfo coord = ((MiniAccumuloClusterImpl) getCluster()).exec(CompactionCoordinator.class);
 
-    try (AccumuloClient client = Accumulo.newClient()
-        .from(getCluster().getClientProperties()).build()) {
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
       Map<String,String> props = Map.of("table.compaction.dispatcher",
           SimpleCompactionDispatcher.class.getName(), "table.compaction.dispatcher.opts.service",
@@ -340,12 +340,12 @@ public class ExternalCompaction_1_IT extends AccumuloClusterHarness
 
     ProcessInfo c1 = null, coord = null;
     String table1 = this.getUniqueNames(1)[0];
-    try (AccumuloClient client = Accumulo.newClient()
-        .from(getCluster().getClientProperties()).build()) {
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
       ExternalCompactionUtils.createTable(client, table1, "cs1");
       ExternalCompactionUtils.writeData(client, table1);
-      c1 = ((MiniAccumuloClusterImpl)getCluster()).exec(Compactor.class, "-q", "DCQ1");
-      coord = ((MiniAccumuloClusterImpl)getCluster()).exec(CompactionCoordinator.class);
+      c1 = ((MiniAccumuloClusterImpl) getCluster()).exec(Compactor.class, "-q", "DCQ1");
+      coord = ((MiniAccumuloClusterImpl) getCluster()).exec(CompactionCoordinator.class);
       ExternalCompactionUtils.compact(client, table1, 2, "DCQ1", true);
       ExternalCompactionUtils.verify(client, table1, 2);
 
@@ -364,31 +364,33 @@ public class ExternalCompaction_1_IT extends AccumuloClusterHarness
   @Test
   public void testExternalCompactionDeadTServer() throws Exception {
     // Shut down the normal TServers
-    ((MiniAccumuloClusterImpl)getCluster()).getProcesses().get(TABLET_SERVER).forEach(p -> {
+    ((MiniAccumuloClusterImpl) getCluster()).getProcesses().get(TABLET_SERVER).forEach(p -> {
       try {
-        ((MiniAccumuloClusterImpl)getCluster()).killProcess(TABLET_SERVER, p);
+        ((MiniAccumuloClusterImpl) getCluster()).killProcess(TABLET_SERVER, p);
       } catch (Exception e) {
         fail("Failed to shutdown tablet server");
       }
     });
     // Start our TServer that will not commit the compaction
-    ProcessInfo tserv = ((MiniAccumuloClusterImpl)getCluster()).exec(ExternalCompactionTServer.class);
+    ProcessInfo tserv =
+        ((MiniAccumuloClusterImpl) getCluster()).exec(ExternalCompactionTServer.class);
 
     final String table3 = this.getUniqueNames(1)[0];
     ProcessInfo c1 = null, coord = null;
-    try (final AccumuloClient client = Accumulo.newClient()
-        .from(getCluster().getClientProperties()).build()) {
+    try (final AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
       ExternalCompactionUtils.createTable(client, table3, "cs1");
       ExternalCompactionUtils.writeData(client, table3);
-      c1 = ((MiniAccumuloClusterImpl)getCluster()).exec(Compactor.class, "-q", "DCQ1");
-      coord = ((MiniAccumuloClusterImpl)getCluster()).exec(CompactionCoordinator.class);
+      c1 = ((MiniAccumuloClusterImpl) getCluster()).exec(Compactor.class, "-q", "DCQ1");
+      coord = ((MiniAccumuloClusterImpl) getCluster()).exec(CompactionCoordinator.class);
       ExternalCompactionUtils.compact(client, table3, 2, "DCQ1", false);
 
       // ExternalCompactionTServer will not commit the compaction. Wait for the
       // metadata table entries to show up.
       LOG.info("Waiting for external compaction to complete.");
       TableId tid = Tables.getTableId(getCluster().getServerContext(), table3);
-      Stream<ExternalCompactionFinalState> fs = ExternalCompactionUtils.getFinalStatesForTable(getCluster(), tid);
+      Stream<ExternalCompactionFinalState> fs =
+          ExternalCompactionUtils.getFinalStatesForTable(getCluster(), tid);
       while (fs.count() == 0) {
         LOG.info("Waiting for compaction completed marker to appear");
         UtilWaitThread.sleep(250);
@@ -405,7 +407,8 @@ public class ExternalCompaction_1_IT extends AccumuloClusterHarness
       Map<ExternalCompactionId,ExternalCompactionMetadata> em = m.getExternalCompactions();
       assertEquals(1, em.size());
       List<ExternalCompactionFinalState> finished = new ArrayList<>();
-      ExternalCompactionUtils.getFinalStatesForTable(getCluster(), tid).forEach(f -> finished.add(f));
+      ExternalCompactionUtils.getFinalStatesForTable(getCluster(), tid)
+          .forEach(f -> finished.add(f));
       assertEquals(1, finished.size());
       assertEquals(em.entrySet().iterator().next().getKey(),
           finished.get(0).getExternalCompactionId());
@@ -421,11 +424,12 @@ public class ExternalCompaction_1_IT extends AccumuloClusterHarness
 
       // Start a TabletServer to commit the compaction.
       LOG.info("Starting normal tablet server");
-      ((MiniAccumuloClusterImpl)getCluster()).getClusterControl().start(ServerType.TABLET_SERVER);
+      ((MiniAccumuloClusterImpl) getCluster()).getClusterControl().start(ServerType.TABLET_SERVER);
 
       // Wait for the compaction to be committed.
       LOG.info("Waiting for compaction completed marker to disappear");
-      Stream<ExternalCompactionFinalState> fs2 = ExternalCompactionUtils.getFinalStatesForTable(getCluster(), tid);
+      Stream<ExternalCompactionFinalState> fs2 =
+          ExternalCompactionUtils.getFinalStatesForTable(getCluster(), tid);
       while (fs2.count() != 0) {
         LOG.info("Waiting for compaction completed marker to disappear");
         UtilWaitThread.sleep(500);
@@ -456,11 +460,11 @@ public class ExternalCompaction_1_IT extends AccumuloClusterHarness
   public void testPartialCompaction() throws Exception {
     ProcessInfo c1 = null, coord = null;
     String tableName = getUniqueNames(1)[0];
-    try (final AccumuloClient client = Accumulo.newClient()
-        .from(getCluster().getClientProperties()).build()) {
+    try (final AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
-      c1 = ((MiniAccumuloClusterImpl)getCluster()).exec(Compactor.class, "-q", "DCQ1");
-      coord = ((MiniAccumuloClusterImpl)getCluster()).exec(CompactionCoordinator.class);
+      c1 = ((MiniAccumuloClusterImpl) getCluster()).exec(Compactor.class, "-q", "DCQ1");
+      coord = ((MiniAccumuloClusterImpl) getCluster()).exec(CompactionCoordinator.class);
 
       ExternalCompactionUtils.createTable(client, tableName, "cs1");
 
@@ -470,7 +474,8 @@ public class ExternalCompaction_1_IT extends AccumuloClusterHarness
       ExternalCompactionUtils.verify(client, tableName, 17);
 
       try (BatchWriter bw = client.createBatchWriter(tableName)) {
-        for (int i = ExternalCompactionUtils.MAX_DATA; i < ExternalCompactionUtils.MAX_DATA * 2; i++) {
+        for (int i = ExternalCompactionUtils.MAX_DATA; i < ExternalCompactionUtils.MAX_DATA * 2;
+            i++) {
           Mutation m = new Mutation(ExternalCompactionUtils.row(i));
           m.put("", "", "" + i);
           bw.addMutation(m);
@@ -531,14 +536,14 @@ public class ExternalCompaction_1_IT extends AccumuloClusterHarness
   @Test
   public void testMetrics() throws Exception {
     Collection<ProcessReference> tservers =
-        ((MiniAccumuloClusterImpl)getCluster()).getProcesses().get(ServerType.TABLET_SERVER);
+        ((MiniAccumuloClusterImpl) getCluster()).getProcesses().get(ServerType.TABLET_SERVER);
     assertEquals(2, tservers.size());
     // kill one tserver so that queue metrics are not spread across tservers
-    ((MiniAccumuloClusterImpl)getCluster()).killProcess(TABLET_SERVER, tservers.iterator().next());
+    ((MiniAccumuloClusterImpl) getCluster()).killProcess(TABLET_SERVER, tservers.iterator().next());
     ProcessInfo c1 = null, c2 = null, coord = null;
     String[] names = getUniqueNames(2);
-    try (final AccumuloClient client = Accumulo.newClient()
-        .from(getCluster().getClientProperties()).build()) {
+    try (final AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
       String table1 = names[0];
       ExternalCompactionUtils.createTable(client, table1, "cs1", 5);
 
@@ -573,9 +578,9 @@ public class ExternalCompaction_1_IT extends AccumuloClusterHarness
       }
 
       // start compactors
-      c1 = ((MiniAccumuloClusterImpl)getCluster()).exec(Compactor.class, "-q", "DCQ1");
-      c2 = ((MiniAccumuloClusterImpl)getCluster()).exec(Compactor.class, "-q", "DCQ2");
-      coord = ((MiniAccumuloClusterImpl)getCluster()).exec(CompactionCoordinator.class);
+      c1 = ((MiniAccumuloClusterImpl) getCluster()).exec(Compactor.class, "-q", "DCQ1");
+      c2 = ((MiniAccumuloClusterImpl) getCluster()).exec(Compactor.class, "-q", "DCQ2");
+      coord = ((MiniAccumuloClusterImpl) getCluster()).exec(CompactionCoordinator.class);
 
       boolean sawDCQ1_0 = false;
       boolean sawDCQ2_0 = false;
@@ -605,9 +610,8 @@ public class ExternalCompaction_1_IT extends AccumuloClusterHarness
     } finally {
       ExternalCompactionUtils.stopProcesses(c1, c2, coord);
       // We stopped the TServer and started our own, restart the original TabletServers
-      ((MiniAccumuloClusterImpl)getCluster()).getClusterControl().start(ServerType.TABLET_SERVER);
+      ((MiniAccumuloClusterImpl) getCluster()).getClusterControl().start(ServerType.TABLET_SERVER);
     }
   }
-
 
 }

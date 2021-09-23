@@ -1,4 +1,23 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.accumulo.test;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -7,10 +26,10 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.net.http.HttpClient.Redirect;
 import java.net.http.HttpClient.Version;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.List;
 import java.util.Map;
@@ -42,8 +61,8 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.ExternalCompaction_1_IT.TestFilter;
 import org.apache.hadoop.conf.Configuration;
@@ -56,7 +75,7 @@ import com.beust.jcommander.internal.Maps;
 import com.google.gson.Gson;
 
 public class ExternalCompactionUtils {
-  
+
   private static final Logger LOG = LoggerFactory.getLogger(ExternalCompactionUtils.class);
 
   public static final int MAX_DATA = 1000;
@@ -65,7 +84,8 @@ public class ExternalCompactionUtils {
     return String.format("r:%04d", r);
   }
 
-  public static Stream<ExternalCompactionFinalState> getFinalStatesForTable(AccumuloCluster cluster, TableId tid) {
+  public static Stream<ExternalCompactionFinalState> getFinalStatesForTable(AccumuloCluster cluster,
+      TableId tid) {
     return cluster.getServerContext().getAmple().getExternalCompactionFinalStates()
         .filter(state -> state.getExtent().tableId().equals(tid));
   }
@@ -93,8 +113,8 @@ public class ExternalCompactionUtils {
 
   }
 
-  public static void createTable(AccumuloClient client, String tableName, String service, int numTablets)
-      throws Exception {
+  public static void createTable(AccumuloClient client, String tableName, String service,
+      int numTablets) throws Exception {
     SortedSet<Text> splits = new TreeSet<>();
     int jump = MAX_DATA / numTablets;
 
@@ -116,8 +136,9 @@ public class ExternalCompactionUtils {
 
   }
 
-  public static void writeData(AccumuloClient client, String table1) throws MutationsRejectedException,
-      TableNotFoundException, AccumuloException, AccumuloSecurityException {
+  public static void writeData(AccumuloClient client, String table1)
+      throws MutationsRejectedException, TableNotFoundException, AccumuloException,
+      AccumuloSecurityException {
     try (BatchWriter bw = client.createBatchWriter(table1)) {
       for (int i = 0; i < MAX_DATA; i++) {
         Mutation m = new Mutation(row(i));
@@ -166,13 +187,13 @@ public class ExternalCompactionUtils {
   }
 
   public static void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-    
+
     // ecomp writes from the TabletServer are not being written to the metadata
     // table, they are being queued up instead.
     Map<String,String> clProps = Maps.newHashMap();
     clProps.put(ClientProperty.BATCH_WRITER_LATENCY_MAX.getKey(), "2s");
     cfg.setClientProps(clProps);
-    
+
     cfg.setProperty("tserver.compaction.major.service.cs1.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs1.planner.opts.executors",
@@ -190,7 +211,7 @@ public class ExternalCompactionUtils {
     // use raw local file system so walogs sync and flush will work
     coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
-  
+
   private static HttpRequest req = null;
   static {
     try {
@@ -199,7 +220,7 @@ public class ExternalCompactionUtils {
       throw new RuntimeException(e);
     }
   }
-  
+
   private static final HttpClient hc =
       HttpClient.newBuilder().version(Version.HTTP_1_1).followRedirects(Redirect.NORMAL).build();
 
@@ -211,7 +232,8 @@ public class ExternalCompactionUtils {
     return new Gson().fromJson(metrics, ExternalCompactionMetrics.class);
   }
 
-  public static ProcessInfo startCoordinator(MiniAccumuloClusterImpl cluster, Class<? extends CompactionCoordinator> coord) throws IOException {
+  public static ProcessInfo startCoordinator(MiniAccumuloClusterImpl cluster,
+      Class<? extends CompactionCoordinator> coord) throws IOException {
     ProcessInfo pi = cluster.exec(coord);
     if (TestCompactionCoordinator.class.isAssignableFrom(coord)) {
       // Wait for coordinator to start

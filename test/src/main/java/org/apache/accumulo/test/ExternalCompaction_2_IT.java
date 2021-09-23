@@ -1,3 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
@@ -39,7 +57,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ExternalCompaction_2_IT extends AccumuloClusterHarness implements MiniClusterConfigurationCallback {
+public class ExternalCompaction_2_IT extends AccumuloClusterHarness
+    implements MiniClusterConfigurationCallback {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExternalCompaction_2_IT.class);
 
@@ -50,14 +69,16 @@ public class ExternalCompaction_2_IT extends AccumuloClusterHarness implements M
 
   private ProcessInfo testCompactor = null;
   private ProcessInfo testCoordinator = null;
-  
+
   @Before
   public void setUp() throws Exception {
     super.setupCluster();
-    testCompactor = ((MiniAccumuloClusterImpl)getCluster()).exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
-    testCoordinator = ExternalCompactionUtils.startCoordinator(((MiniAccumuloClusterImpl)getCluster()), TestCompactionCoordinator.class);
+    testCompactor = ((MiniAccumuloClusterImpl) getCluster()).exec(ExternalDoNothingCompactor.class,
+        "-q", "DCQ1");
+    testCoordinator = ExternalCompactionUtils.startCoordinator(
+        ((MiniAccumuloClusterImpl) getCluster()), TestCompactionCoordinator.class);
   }
-  
+
   @After
   public void tearDown() throws Exception {
     super.teardownCluster();
@@ -69,8 +90,8 @@ public class ExternalCompaction_2_IT extends AccumuloClusterHarness implements M
   @Test
   public void testSplitDuringExternalCompaction() throws Exception {
     String table1 = this.getUniqueNames(1)[0];
-    try (AccumuloClient client = Accumulo.newClient()
-        .from(getCluster().getClientProperties()).build()) {
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
       ExternalCompactionMetrics startingMetrics = ExternalCompactionUtils.getCoordinatorMetrics();
 
@@ -126,8 +147,8 @@ public class ExternalCompaction_2_IT extends AccumuloClusterHarness implements M
     ExternalCompactionMetrics startingMetrics = ExternalCompactionUtils.getCoordinatorMetrics();
     ExternalCompactionUtils.stopProcesses(testCoordinator, testCompactor);
     String table1 = this.getUniqueNames(1)[0];
-    try (AccumuloClient client = Accumulo.newClient()
-        .from(getCluster().getClientProperties()).build()) {
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
       ExternalCompactionUtils.createTable(client, table1, "cs1");
       // set compaction ratio to 1 so that majc occurs naturally, not user compaction
@@ -139,7 +160,8 @@ public class ExternalCompaction_2_IT extends AccumuloClusterHarness implements M
       ExternalCompactionUtils.writeData(client, table1);
       ExternalCompactionUtils.writeData(client, table1);
 
-      ProcessInfo coord = ExternalCompactionUtils.startCoordinator(((MiniAccumuloClusterImpl)getCluster()), TestCompactionCoordinatorForOfflineTable.class);
+      ProcessInfo coord = ExternalCompactionUtils.startCoordinator(
+          ((MiniAccumuloClusterImpl) getCluster()), TestCompactionCoordinatorForOfflineTable.class);
 
       ExternalCompactionMetrics metrics = ExternalCompactionUtils.getCoordinatorMetrics();
 
@@ -164,7 +186,8 @@ public class ExternalCompaction_2_IT extends AccumuloClusterHarness implements M
       assertEquals(0, ExternalCompactionUtils.getFinalStatesForTable(getCluster(), tid).count());
 
       // Start the compactor
-      ProcessInfo comp = ((MiniAccumuloClusterImpl)getCluster()).exec(Compactor.class, "-q", "DCQ1");
+      ProcessInfo comp =
+          ((MiniAccumuloClusterImpl) getCluster()).exec(Compactor.class, "-q", "DCQ1");
 
       t.join();
 
@@ -182,19 +205,20 @@ public class ExternalCompaction_2_IT extends AccumuloClusterHarness implements M
       client.tableOperations().online(table1);
 
       // wait for compaction to be committed by tserver or test timeout
-      long finalStateCount = ExternalCompactionUtils.getFinalStatesForTable(getCluster(), tid).count();
+      long finalStateCount =
+          ExternalCompactionUtils.getFinalStatesForTable(getCluster(), tid).count();
       while (finalStateCount > 0) {
         UtilWaitThread.sleep(250);
         finalStateCount = ExternalCompactionUtils.getFinalStatesForTable(getCluster(), tid).count();
       }
-      
+
       // Check that the compaction succeeded
       metrics = ExternalCompactionUtils.getCoordinatorMetrics();
       assertTrue(metrics.getStarted() > startingMetrics.getStarted());
       assertTrue(metrics.getCompleted() > startingMetrics.getCompleted());
       assertEquals(metrics.getFailed(), startingMetrics.getFailed());
       assertEquals(0, metrics.getRunning());
-      
+
       ExternalCompactionUtils.stopProcesses(comp, coord);
     }
   }
@@ -202,8 +226,8 @@ public class ExternalCompaction_2_IT extends AccumuloClusterHarness implements M
   @Test
   public void testUserCompactionCancellation() throws Exception {
     String table1 = this.getUniqueNames(1)[0];
-    try (AccumuloClient client = Accumulo.newClient()
-        .from(getCluster().getClientProperties()).build()) {
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
       ExternalCompactionMetrics startingMetrics = ExternalCompactionUtils.getCoordinatorMetrics();
 
@@ -244,8 +268,8 @@ public class ExternalCompaction_2_IT extends AccumuloClusterHarness implements M
   @Test
   public void testDeleteTableDuringUserExternalCompaction() throws Exception {
     String table1 = this.getUniqueNames(1)[0];
-    try (AccumuloClient client = Accumulo.newClient()
-        .from(getCluster().getClientProperties()).build()) {
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
       ExternalCompactionMetrics startingMetrics = ExternalCompactionUtils.getCoordinatorMetrics();
 
@@ -284,8 +308,8 @@ public class ExternalCompaction_2_IT extends AccumuloClusterHarness implements M
   @Test
   public void testDeleteTableDuringExternalCompaction() throws Exception {
     String table1 = this.getUniqueNames(1)[0];
-    try (AccumuloClient client = Accumulo.newClient()
-        .from(getCluster().getClientProperties()).build()) {
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
       ExternalCompactionMetrics startingMetrics = ExternalCompactionUtils.getCoordinatorMetrics();
 
