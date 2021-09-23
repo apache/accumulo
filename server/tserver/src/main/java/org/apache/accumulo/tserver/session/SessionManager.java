@@ -43,6 +43,7 @@ import org.apache.accumulo.core.tabletserver.thrift.ScanState;
 import org.apache.accumulo.core.tabletserver.thrift.ScanType;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.tserver.scan.ScanRunState;
 import org.apache.accumulo.tserver.scan.ScanTask;
 import org.apache.accumulo.tserver.session.Session.State;
@@ -65,10 +66,10 @@ public class SessionManager {
   private final Long expiredSessionMarker = (long) -1;
   private final AccumuloConfiguration aconf;
 
-  public SessionManager(AccumuloConfiguration conf) {
-    aconf = conf;
-    maxUpdateIdle = conf.getTimeInMillis(Property.TSERV_UPDATE_SESSION_MAXIDLE);
-    maxIdle = conf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
+  public SessionManager(ServerContext context) {
+    this.aconf = context.getConfiguration();
+    maxUpdateIdle = aconf.getTimeInMillis(Property.TSERV_UPDATE_SESSION_MAXIDLE);
+    maxIdle = aconf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
 
     SecureRandom sr;
     try {
@@ -87,8 +88,8 @@ public class SessionManager {
       }
     };
 
-    ThreadPools.createGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(r, 0,
-        Math.max(maxIdle / 2, 1000), TimeUnit.MILLISECONDS);
+    context.getScheduledExecutor().scheduleWithFixedDelay(r, 0, Math.max(maxIdle / 2, 1000),
+        TimeUnit.MILLISECONDS);
   }
 
   public long createSession(Session session, boolean reserve) {

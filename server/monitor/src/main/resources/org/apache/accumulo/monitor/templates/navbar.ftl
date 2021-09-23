@@ -51,6 +51,7 @@
                 Activity <span class="caret"></span>
               </a>
               <ul class="dropdown-menu">
+                <li><a href="/compactions">Active&nbsp;Compactions</a></li>
                 <li><a href="/scans">Active&nbsp;Scans</a></li>
                 <li><a href="/bulkImports">Bulk&nbsp;Imports</a></li>
                 <li><a href="/replication">Replication</a></li>

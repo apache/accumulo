@@ -31,10 +31,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.WatchedEvent;
@@ -59,6 +59,7 @@ public class DistributedWorkQueue {
   private ZooReaderWriter zoo;
   private String path;
   private AccumuloConfiguration config;
+  private ServerContext context;
   private long timerInitialDelay, timerPeriod;
 
   private AtomicInteger numTask = new AtomicInteger(0);
@@ -163,18 +164,23 @@ public class DistributedWorkQueue {
     void process(String workID, byte[] data);
   }
 
-  public DistributedWorkQueue(String path, AccumuloConfiguration config) {
+  public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context) {
     // Preserve the old delay and period
-    this(path, config, new SecureRandom().nextInt(60 * 1000), 60 * 1000);
+    this(path, config, context, new SecureRandom().nextInt(60 * 1000), 60 * 1000);
   }
 
-  public DistributedWorkQueue(String path, AccumuloConfiguration config, long timerInitialDelay,
-      long timerPeriod) {
+  public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context,
+      long timerInitialDelay, long timerPeriod) {
     this.path = path;
     this.config = config;
+    this.context = context;
     this.timerInitialDelay = timerInitialDelay;
     this.timerPeriod = timerPeriod;
-    zoo = new ZooReaderWriter(config);
+    zoo = new ZooReaderWriter(this.config);
+  }
+
+  public ServerContext getContext() {
+    return context;
   }
 
   public ZooReaderWriter getZooReaderWriter() {
@@ -220,20 +226,19 @@ public class DistributedWorkQueue {
     lookForWork(processor, children);
 
     // Add a little jitter to avoid all the tservers slamming zookeeper at once
-    ThreadPools.createGeneralScheduledExecutorService(config)
-        .scheduleWithFixedDelay(new Runnable() {
-          @Override
-          public void run() {
-            log.debug("Looking for work in {}", path);
-            try {
-              lookForWork(processor, zoo.getChildren(path));
-            } catch (KeeperException e) {
-              log.error("Failed to look for work", e);
-            } catch (InterruptedException e) {
-              log.info("Interrupted looking for work", e);
-            }
-          }
-        }, timerInitialDelay, timerPeriod, TimeUnit.MILLISECONDS);
+    context.getScheduledExecutor().scheduleWithFixedDelay(new Runnable() {
+      @Override
+      public void run() {
+        log.debug("Looking for work in {}", path);
+        try {
+          lookForWork(processor, zoo.getChildren(path));
+        } catch (KeeperException e) {
+          log.error("Failed to look for work", e);
+        } catch (InterruptedException e) {
+          log.info("Interrupted looking for work", e);
+        }
+      }
+    }, timerInitialDelay, timerPeriod, TimeUnit.MILLISECONDS);
   }
 
   /**

@@ -323,16 +323,11 @@ public class TServerUtils {
       // however, this isn't really an issue, since it adjusts periodically anyway
       if (pool.getCorePoolSize() <= pool.getActiveCount()) {
         int larger = pool.getCorePoolSize() + Math.min(pool.getQueue().size(), 2);
-        log.info("Increasing server thread pool size on {} to {}", serverName, larger);
-        pool.setMaximumPoolSize(larger);
-        pool.setCorePoolSize(larger);
+        ThreadPools.resizePool(pool, () -> larger, serverName + "-ClientPool");
       } else {
         if (pool.getCorePoolSize() > pool.getActiveCount() + 3) {
           int smaller = Math.max(executorThreads, pool.getCorePoolSize() - 1);
-          if (smaller != pool.getCorePoolSize()) {
-            log.info("Decreasing server thread pool size on {} to {}", serverName, smaller);
-            pool.setCorePoolSize(smaller);
-          }
+          ThreadPools.resizePool(pool, () -> smaller, serverName + "-ClientPool");
         }
       }
     }, timeBetweenThreadChecks, timeBetweenThreadChecks, TimeUnit.MILLISECONDS);

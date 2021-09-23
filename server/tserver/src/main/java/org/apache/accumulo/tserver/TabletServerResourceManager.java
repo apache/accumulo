@@ -136,27 +136,9 @@ public class TabletServerResourceManager {
    */
   private void modifyThreadPoolSizesAtRuntime(IntSupplier maxThreads, String name,
       final ThreadPoolExecutor tp) {
-    ThreadPools.createGeneralScheduledExecutorService(context.getConfiguration())
-        .scheduleWithFixedDelay(() -> {
-          try {
-            int max = maxThreads.getAsInt();
-            int currentMax = tp.getMaximumPoolSize();
-            if (currentMax != max) {
-              log.info("Changing max threads for {} from {} to {}", name, currentMax, max);
-              if (max > currentMax) {
-                // increasing, increase the max first, or the core will fail to be increased
-                tp.setMaximumPoolSize(max);
-                tp.setCorePoolSize(max);
-              } else {
-                // decreasing, lower the core size first, or the max will fail to be lowered
-                tp.setCorePoolSize(max);
-                tp.setMaximumPoolSize(max);
-              }
-            }
-          } catch (Exception t) {
-            log.error("Failed to change thread pool size", t);
-          }
-        }, 1000, 10_000, TimeUnit.MILLISECONDS);
+    context.getScheduledExecutor().scheduleWithFixedDelay(() -> {
+      ThreadPools.resizePool(tp, maxThreads, name);
+    }, 1000, 10_000, TimeUnit.MILLISECONDS);
   }
 
   private ExecutorService createPriorityExecutor(ScanExecutorConfig sec,
@@ -395,8 +377,8 @@ public class TabletServerResourceManager {
 
     // We can use the same map for both metadata and normal assignments since the keyspace (extent)
     // is guaranteed to be unique. Schedule the task once, the task will reschedule itself.
-    ThreadPools.createGeneralScheduledExecutorService(context.getConfiguration())
-        .schedule(new AssignmentWatcher(acuConf, activeAssignments), 5000, TimeUnit.MILLISECONDS);
+    context.getScheduledExecutor().schedule(
+        new AssignmentWatcher(acuConf, context, activeAssignments), 5000, TimeUnit.MILLISECONDS);
   }
 
   /**
@@ -409,17 +391,19 @@ public class TabletServerResourceManager {
 
     private final Map<KeyExtent,RunnableStartedAt> activeAssignments;
     private final AccumuloConfiguration conf;
+    private final ServerContext context;
 
-    public AssignmentWatcher(AccumuloConfiguration conf,
+    public AssignmentWatcher(AccumuloConfiguration conf, ServerContext context,
         Map<KeyExtent,RunnableStartedAt> activeAssignments) {
       this.conf = conf;
+      this.context = context;
       this.activeAssignments = activeAssignments;
     }
 
     @Override
     public void run() {
       final long millisBeforeWarning =
-          conf.getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING);
+          this.conf.getTimeInMillis(Property.TSERV_ASSIGNMENT_DURATION_WARNING);
       try {
         long now = System.currentTimeMillis();
         KeyExtent extent;
@@ -445,8 +429,7 @@ public class TabletServerResourceManager {
         if (log.isTraceEnabled()) {
           log.trace("Rescheduling assignment watcher to run in {}ms", delay);
         }
-        ThreadPools.createGeneralScheduledExecutorService(conf).schedule(this, delay,
-            TimeUnit.MILLISECONDS);
+        context.getScheduledExecutor().schedule(this, delay, TimeUnit.MILLISECONDS);
       }
     }
   }
