@@ -184,9 +184,27 @@ public class WebViews {
   public Map<String,Object> getScans() {
 
     Map<String,Object> model = getModel();
-    model.put("title", "Scans");
+    model.put("title", "Active scans");
     model.put("template", "scans.ftl");
     model.put("js", "scans.js");
+
+    return model;
+  }
+
+  /**
+   * Returns the compactions template
+   *
+   * @return Scans model
+   */
+  @GET
+  @Path("compactions")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getCompactions() {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Active Compactions");
+    model.put("template", "compactions.ftl");
+    model.put("js", "compactions.js");
 
     return model;
   }

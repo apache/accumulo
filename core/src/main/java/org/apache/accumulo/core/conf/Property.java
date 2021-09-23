@@ -887,6 +887,14 @@ public enum Property {
       "2.1.0"),
   TABLE_COMPACTION_DISPATCHER_OPTS("table.compaction.dispatcher.opts.", null, PropertyType.PREFIX,
       "Options for the table compaction dispatcher", "2.1.0"),
+  TABLE_COMPACTION_SELECTION_EXPIRATION("table.compaction.selection.expiration.ms", "2m",
+      PropertyType.TIMEDURATION,
+      "User compactions select files and are then queued for compaction, preventing these files "
+          + "from being used in system compactions.  This timeout allows system compactions to cancel "
+          + "the hold queued user compactions have on files, when its queued for more than the "
+          + "specified time.  If a system compaction cancels a hold and runs, then the user compaction"
+          + " can reselect and hold files after the system compaction runs.",
+      "2.1.0"),
   TABLE_COMPACTION_SELECTOR("table.compaction.selector", "", PropertyType.CLASSNAME,
       "A configurable selector for a table that can periodically select file for mandatory "
           + "compaction, even if the files do not meet the compaction ratio.",
