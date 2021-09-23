@@ -66,7 +66,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.CompactionExecutorIT;
-import org.apache.accumulo.test.ExternalCompactionIT.FSelector;
+import org.apache.accumulo.test.ExternalCompaction_1_IT.FSelector;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
