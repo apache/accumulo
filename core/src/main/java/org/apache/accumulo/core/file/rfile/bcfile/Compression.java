@@ -696,7 +696,7 @@ public final class Compression {
     return supportedAlgorithms.toArray(new String[0]);
   }
 
-  static Algorithm getCompressionAlgorithmByName(final String name) {
+  public static Algorithm getCompressionAlgorithmByName(final String name) {
     Algorithm[] algorithms = Algorithm.class.getEnumConstants();
     for (Algorithm algorithm : algorithms) {
       if (algorithm.getName().equals(name)) {

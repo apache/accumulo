@@ -1940,6 +1940,17 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Test
+  public void scansWithColon() throws Exception {
+    ts.exec("createtable twithcolontest");
+    ts.exec("insert row c:f cq value");
+    ts.exec("scan -r row -cf c:f", true, "value");
+    ts.exec("scan -b row -cf c:f  -cq cq -e row", true, "value");
+    ts.exec("scan -b row -c cf -cf c:f  -cq cq -e row", false, "mutually exclusive");
+    ts.exec("scan -b row -cq col1 -e row", false, "Option -cf is required when using -cq");
+    ts.exec("deletetable -f twithcolontest");
+  }
+
+  @Test
   public void scansWithClassLoaderContext() throws IOException {
 
     try {

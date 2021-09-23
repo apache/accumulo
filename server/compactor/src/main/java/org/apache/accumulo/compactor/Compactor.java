@@ -212,7 +212,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
             var cancelId = Long.parseLong(new String(id, UTF_8));
 
             if (cancelId >= job.getUserCompactionId()) {
-              LOG.info("Cancelling compaction {} because user compaction was canceled");
+              LOG.info("Cancelling compaction {} because user compaction was canceled", ecid);
               JOB_HOLDER.cancel(job.getExternalCompactionId());
               return;
             }
@@ -542,7 +542,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
           job.getIteratorSettings().getIterators()
               .forEach(tis -> iters.add(SystemIteratorUtil.toIteratorSetting(tis)));
 
-          CompactionEnvironment cenv = new CompactionEnvironment(JOB_HOLDER, queueName);
+          ExtCEnv cenv = new ExtCEnv(JOB_HOLDER, queueName);
           FileCompactor compactor = new FileCompactor(getContext(), extent, files, outputFile,
               job.isPropagateDeletes(), cenv, iters, tConfig);
 

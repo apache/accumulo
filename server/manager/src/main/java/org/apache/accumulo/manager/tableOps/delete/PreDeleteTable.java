@@ -18,16 +18,25 @@
  */
 package org.apache.accumulo.manager.tableOps.delete;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.Repo;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.manager.tableOps.compact.cancel.CancelCompactions;
+import org.apache.zookeeper.KeeperException;
 
 public class PreDeleteTable extends ManagerRepo {
+
+  public static String createDeleteMarkerPath(String instanceId, TableId tableId) {
+    return Constants.ZROOT + "/" + instanceId + Constants.ZTABLES + "/" + tableId.canonical()
+        + Constants.ZTABLE_DELETE_MARKER;
+  }
 
   private static final long serialVersionUID = 1L;
 
@@ -45,9 +54,17 @@ public class PreDeleteTable extends ManagerRepo {
         + Utils.reserveTable(env, tableId, tid, false, true, TableOperation.DELETE);
   }
 
+  private void preventFutureCompactions(Manager environment)
+      throws KeeperException, InterruptedException {
+    String deleteMarkerPath = createDeleteMarkerPath(environment.getInstanceID(), tableId);
+    ZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
+    zoo.putPersistentData(deleteMarkerPath, new byte[] {}, NodeExistsPolicy.SKIP);
+  }
+
   @Override
   public Repo<Manager> call(long tid, Manager environment) throws Exception {
     try {
+      preventFutureCompactions(environment);
       CancelCompactions.mutateZooKeeper(tid, tableId, environment);
       return new DeleteTable(namespaceId, tableId);
     } finally {

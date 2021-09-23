@@ -81,20 +81,20 @@ public class CompactionCoordinatorTest {
 
   public class TestCoordinator extends CompactionCoordinator {
 
-    private final ServerContext ctx;
+    private final ServerContext context;
     private final ServerAddress client;
     private final TabletClientService.Client tabletServerClient;
 
     protected TestCoordinator(AccumuloConfiguration conf, CompactionFinalizer finalizer,
         LiveTServerSet tservers, ServerAddress client,
-        TabletClientService.Client tabletServerClient, ServerContext ctx,
+        TabletClientService.Client tabletServerClient, ServerContext context,
         AuditedSecurityOperation security) {
       super(new ServerOpts(), new String[] {}, conf);
       this.compactionFinalizer = finalizer;
       this.tserverSet = tservers;
       this.client = client;
       this.tabletServerClient = tabletServerClient;
-      this.ctx = ctx;
+      this.context = context;
       this.security = security;
     }
 
@@ -131,7 +131,7 @@ public class CompactionCoordinatorTest {
 
     @Override
     public ServerContext getContext() {
-      return this.ctx;
+      return this.context;
     }
 
     @Override
@@ -186,11 +186,11 @@ public class CompactionCoordinatorTest {
         "detectDanglingFinalStateMarkers"));
 
     AccumuloConfiguration conf = PowerMock.createNiceMock(AccumuloConfiguration.class);
-    ServerContext ctx = PowerMock.createNiceMock(ServerContext.class);
+    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
 
     PowerMock.mockStatic(ExternalCompactionUtil.class);
     Map<HostAndPort,TExternalCompactionJob> runningCompactions = new HashMap<>();
-    EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(ctx))
+    EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
 
     CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
@@ -213,7 +213,7 @@ public class CompactionCoordinatorTest {
     PowerMock.replayAll();
 
     TestCoordinator coordinator =
-        new TestCoordinator(conf, finalizer, tservers, client, tsc, ctx, security);
+        new TestCoordinator(conf, finalizer, tservers, client, tsc, context, security);
     coordinator.resetInternals();
     assertEquals(0, coordinator.getQueues().size());
     assertEquals(0, coordinator.getIndex().size());
@@ -237,13 +237,13 @@ public class CompactionCoordinatorTest {
         "detectDanglingFinalStateMarkers"));
 
     AccumuloConfiguration conf = PowerMock.createNiceMock(AccumuloConfiguration.class);
-    ServerContext ctx = PowerMock.createNiceMock(ServerContext.class);
+    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
-    EasyMock.expect(ctx.rpcCreds()).andReturn(creds);
+    EasyMock.expect(context.rpcCreds()).andReturn(creds);
 
     PowerMock.mockStatic(ExternalCompactionUtil.class);
     Map<HostAndPort,TExternalCompactionJob> runningCompactions = new HashMap<>();
-    EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(ctx))
+    EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
 
     CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
@@ -270,7 +270,7 @@ public class CompactionCoordinatorTest {
     PowerMock.replayAll();
 
     TestCoordinator coordinator =
-        new TestCoordinator(conf, finalizer, tservers, client, tsc, ctx, security);
+        new TestCoordinator(conf, finalizer, tservers, client, tsc, context, security);
     coordinator.resetInternals();
     assertEquals(0, coordinator.getQueues().size());
     assertEquals(0, coordinator.getIndex().size());
@@ -308,9 +308,9 @@ public class CompactionCoordinatorTest {
         "detectDanglingFinalStateMarkers"));
 
     AccumuloConfiguration conf = PowerMock.createNiceMock(AccumuloConfiguration.class);
-    ServerContext ctx = PowerMock.createNiceMock(ServerContext.class);
+    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
-    EasyMock.expect(ctx.rpcCreds()).andReturn(creds);
+    EasyMock.expect(context.rpcCreds()).andReturn(creds);
 
     CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
     LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
@@ -322,7 +322,7 @@ public class CompactionCoordinatorTest {
 
     PowerMock.mockStatic(ExternalCompactionUtil.class);
     Map<HostAndPort,TExternalCompactionJob> runningCompactions = new HashMap<>();
-    EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(ctx))
+    EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
 
     ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
@@ -343,7 +343,7 @@ public class CompactionCoordinatorTest {
     PowerMock.replayAll();
 
     TestCoordinator coordinator =
-        new TestCoordinator(conf, finalizer, tservers, client, tsc, ctx, security);
+        new TestCoordinator(conf, finalizer, tservers, client, tsc, context, security);
     coordinator.resetInternals();
     assertEquals(0, coordinator.getQueues().size());
     assertEquals(0, coordinator.getIndex().size());
@@ -382,9 +382,9 @@ public class CompactionCoordinatorTest {
         "detectDanglingFinalStateMarkers"));
 
     AccumuloConfiguration conf = PowerMock.createNiceMock(AccumuloConfiguration.class);
-    ServerContext ctx = PowerMock.createNiceMock(ServerContext.class);
+    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
-    EasyMock.expect(ctx.rpcCreds()).andReturn(creds);
+    EasyMock.expect(context.rpcCreds()).andReturn(creds);
 
     CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
     LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
@@ -402,7 +402,7 @@ public class CompactionCoordinatorTest {
     TKeyExtent extent = new TKeyExtent();
     extent.setTable("1".getBytes());
     runningCompactions.put(tserverAddress, job);
-    EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(ctx))
+    EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
 
     ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
@@ -425,7 +425,7 @@ public class CompactionCoordinatorTest {
     PowerMock.replayAll();
 
     TestCoordinator coordinator =
-        new TestCoordinator(conf, finalizer, tservers, client, tsc, ctx, security);
+        new TestCoordinator(conf, finalizer, tservers, client, tsc, context, security);
     coordinator.resetInternals();
     assertEquals(0, coordinator.getQueues().size());
     assertEquals(0, coordinator.getIndex().size());
@@ -463,13 +463,13 @@ public class CompactionCoordinatorTest {
         "detectDanglingFinalStateMarkers"));
 
     AccumuloConfiguration conf = PowerMock.createNiceMock(AccumuloConfiguration.class);
-    ServerContext ctx = PowerMock.createNiceMock(ServerContext.class);
+    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
-    EasyMock.expect(ctx.rpcCreds()).andReturn(creds).anyTimes();
+    EasyMock.expect(context.rpcCreds()).andReturn(creds).anyTimes();
 
     PowerMock.mockStatic(ExternalCompactionUtil.class);
     Map<HostAndPort,TExternalCompactionJob> runningCompactions = new HashMap<>();
-    EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(ctx))
+    EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
 
     CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
@@ -508,7 +508,7 @@ public class CompactionCoordinatorTest {
     PowerMock.replayAll();
 
     TestCoordinator coordinator =
-        new TestCoordinator(conf, finalizer, tservers, client, tsc, ctx, security);
+        new TestCoordinator(conf, finalizer, tservers, client, tsc, context, security);
     coordinator.resetInternals();
     assertEquals(0, coordinator.getQueues().size());
     assertEquals(0, coordinator.getIndex().size());
@@ -561,7 +561,7 @@ public class CompactionCoordinatorTest {
     PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
 
     AccumuloConfiguration conf = PowerMock.createNiceMock(AccumuloConfiguration.class);
-    ServerContext ctx = PowerMock.createNiceMock(ServerContext.class);
+    ServerContext context = PowerMock.createNiceMock(ServerContext.class);
     TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
 
     CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
@@ -579,7 +579,7 @@ public class CompactionCoordinatorTest {
     PowerMock.replayAll();
 
     TestCoordinator coordinator =
-        new TestCoordinator(conf, finalizer, tservers, client, tsc, ctx, security);
+        new TestCoordinator(conf, finalizer, tservers, client, tsc, context, security);
     coordinator.resetInternals();
     TExternalCompactionJob job = coordinator.getCompactionJob(TraceUtil.traceInfo(), creds, "R2DQ",
         "localhost:10240", UUID.randomUUID().toString());

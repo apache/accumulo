@@ -65,7 +65,7 @@ public class CompactionManager {
 
   private long maxTimeBetweenChecks;
 
-  private ServerContext ctx;
+  private ServerContext context;
 
   private Config currentCfg;
 
@@ -254,7 +254,7 @@ public class CompactionManager {
               new HashSet<>(runningExternalCompactions.keySet());
           for (Compactable compactable : compactables) {
             last = compactable;
-            compact(compactable);
+            submitCompaction(compactable);
             // remove anything from snapshot that tablets know are running
             compactable.getExternalCompactionIds(runningEcids::remove);
           }
@@ -267,7 +267,7 @@ public class CompactionManager {
               compactablesToCheck.poll(maxTimeBetweenChecks - passed, TimeUnit.MILLISECONDS);
           if (compactable != null) {
             last = compactable;
-            compact(compactable);
+            submitCompaction(compactable);
           }
         }
 
@@ -275,7 +275,7 @@ public class CompactionManager {
         if (retry.hasRetried())
           retry = retryFactory.createRetry();
 
-        checkForConfigChanges();
+        checkForConfigChanges(false);
 
       } catch (Exception e) {
         var extent = last == null ? null : last.getExtent();
@@ -290,33 +290,39 @@ public class CompactionManager {
     }
   }
 
-  private void compact(Compactable compactable) {
+  /**
+   * Get each configured service for the compactable tablet and submit for compaction
+   */
+  private void submitCompaction(Compactable compactable) {
     for (CompactionKind ctype : CompactionKind.values()) {
       var csid = compactable.getConfiguredService(ctype);
       var service = services.get(csid);
       if (service == null) {
-        log.error(
-            "Tablet {} returned non existant compaction service {} for compaction type {}.  Check"
-                + " the table compaction dispatcher configuration. Attempting to fall back to "
-                + "{} service.",
-            compactable.getExtent(), csid, ctype, DEFAULT_SERVICE);
-
-        service = services.get(DEFAULT_SERVICE);
+        checkForConfigChanges(true);
+        service = services.get(csid);
+        if (service == null) {
+          log.error(
+              "Tablet {} returned non-existent compaction service {} for compaction type {}.  Check"
+                  + " the table compaction dispatcher configuration. Attempting to fall back to "
+                  + "{} service.",
+              compactable.getExtent(), csid, ctype, DEFAULT_SERVICE);
+          service = services.get(DEFAULT_SERVICE);
+        }
       }
 
       if (service != null) {
-        service.compact(ctype, compactable, compactablesToCheck::add);
+        service.submitCompaction(ctype, compactable, compactablesToCheck::add);
       }
     }
   }
 
-  public CompactionManager(Iterable<Compactable> compactables, ServerContext ctx,
+  public CompactionManager(Iterable<Compactable> compactables, ServerContext context,
       CompactionExecutorsMetrics ceMetrics) {
     this.compactables = compactables;
 
-    this.currentCfg = new Config(ctx.getConfiguration());
+    this.currentCfg = new Config(context.getConfiguration());
 
-    this.ctx = ctx;
+    this.context = context;
 
     this.ceMetrics = ceMetrics;
 
@@ -331,7 +337,7 @@ public class CompactionManager {
         tmpServices.put(CompactionServiceId.of(serviceName),
             new CompactionService(serviceName, plannerClassName,
                 currentCfg.getRateLimit(serviceName),
-                currentCfg.options.getOrDefault(serviceName, Map.of()), ctx, ceMetrics,
+                currentCfg.options.getOrDefault(serviceName, Map.of()), context, ceMetrics,
                 this::getExternalExecutor));
       } catch (RuntimeException e) {
         log.error("Failed to create compaction service {} with planner:{} options:{}", serviceName,
@@ -341,7 +347,8 @@ public class CompactionManager {
 
     this.services = Map.copyOf(tmpServices);
 
-    this.maxTimeBetweenChecks = ctx.getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY);
+    this.maxTimeBetweenChecks =
+        context.getConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY);
 
     ceMetrics.setExternalMetricsSupplier(this::getExternalMetrics);
   }
@@ -350,15 +357,17 @@ public class CompactionManager {
     compactablesToCheck.add(compactable);
   }
 
-  private void checkForConfigChanges() {
+  private synchronized void checkForConfigChanges(boolean force) {
     try {
-      if (TimeUnit.SECONDS.convert(System.nanoTime() - lastConfigCheckTime, TimeUnit.NANOSECONDS)
-          < 1)
+      final long secondsSinceLastCheck =
+          TimeUnit.SECONDS.convert(System.nanoTime() - lastConfigCheckTime, TimeUnit.NANOSECONDS);
+      if (!force && (secondsSinceLastCheck < 1)) {
         return;
+      }
 
       lastConfigCheckTime = System.nanoTime();
 
-      var tmpCfg = new Config(ctx.getConfiguration());
+      var tmpCfg = new Config(context.getConfiguration());
 
       if (!currentCfg.equals(tmpCfg)) {
         Map<CompactionServiceId,CompactionService> tmpServices = new HashMap<>();
@@ -372,7 +381,7 @@ public class CompactionManager {
               tmpServices.put(csid,
                   new CompactionService(serviceName, plannerClassName,
                       tmpCfg.getRateLimit(serviceName),
-                      tmpCfg.options.getOrDefault(serviceName, Map.of()), ctx, ceMetrics,
+                      tmpCfg.options.getOrDefault(serviceName, Map.of()), context, ceMetrics,
                       this::getExternalExecutor));
             } else {
               service.configurationChanged(plannerClassName, tmpCfg.getRateLimit(serviceName),

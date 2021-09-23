@@ -63,9 +63,9 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
   private ServerContext context;
 
-  public ServerAmpleImpl(ServerContext ctx) {
-    super(ctx);
-    this.context = ctx;
+  public ServerAmpleImpl(ServerContext context) {
+    super(context);
+    this.context = context;
   }
 
   @Override
