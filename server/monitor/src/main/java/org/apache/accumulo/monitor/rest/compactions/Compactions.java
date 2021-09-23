@@ -24,7 +24,7 @@ import java.util.List;
 /**
  * Generates a new list of compactions as a JSON object
  *
- * @since 2.1
+ * @since 2.1.0
  */
 public class Compactions {
 
