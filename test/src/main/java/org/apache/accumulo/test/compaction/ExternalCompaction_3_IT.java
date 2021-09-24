@@ -157,8 +157,6 @@ public class ExternalCompaction_3_IT extends AccumuloClusterHarness
       // Wait for the compaction to start by waiting for 1 external compaction column
       Set<ExternalCompactionId> ecids = new HashSet<>();
       do {
-        // getCluster().getServerContext().getAmple().readTablets().forTable(tid).saveKeyValues().build().forEach(tm
-        // -> tm.getKeyValues().forEach((k,v) -> System.out.println(k + " -> " + v)));
         try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
             .forTable(tid).fetch(ColumnType.ECOMP).build()) {
           tm.stream().flatMap(t -> t.getExternalCompactions().keySet().stream())
