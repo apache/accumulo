@@ -16,44 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.test.compaction;
 
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.CompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 
 @SuppressWarnings("removal")
-public class TestCompactionStrategy extends CompactionStrategy {
+public class SizeCompactionStrategy extends CompactionStrategy {
 
-  private String inputPrefix = "Z";
-  private String dropPrefix = "Z";
-  private boolean shouldCompact = false;
+  private long size = 0;
 
   @Override
   public void init(Map<String,String> options) {
-    if (options.containsKey("inputPrefix"))
-      inputPrefix = options.get("inputPrefix");
-    if (options.containsKey("dropPrefix"))
-      dropPrefix = options.get("dropPrefix");
-    if (options.containsKey("shouldCompact"))
-      shouldCompact = Boolean.parseBoolean(options.get("shouldCompact"));
+    size = Long.parseLong(options.get("size"));
   }
 
   @Override
   public boolean shouldCompact(MajorCompactionRequest request) {
-    if (shouldCompact)
-      return true;
 
-    for (TabletFile file : request.getFiles().keySet()) {
-      if (file.getFileName().startsWith(inputPrefix))
+    for (DataFileValue dfv : request.getFiles().values())
+      if (dfv.getSize() < size)
         return true;
-      if (file.getFileName().startsWith(dropPrefix))
-        return true;
-    }
 
     return false;
   }
@@ -62,14 +51,11 @@ public class TestCompactionStrategy extends CompactionStrategy {
   public CompactionPlan getCompactionPlan(MajorCompactionRequest request) {
     CompactionPlan plan = new CompactionPlan();
 
-    for (StoredTabletFile file : request.getFiles().keySet()) {
-      if (file.getFileName().startsWith(dropPrefix)) {
-        plan.deleteFiles.add(file);
-      } else if (file.getFileName().startsWith(inputPrefix)) {
-        plan.inputFiles.add(file);
-      }
-    }
+    for (Entry<StoredTabletFile,DataFileValue> entry : request.getFiles().entrySet())
+      if (entry.getValue().getSize() < size)
+        plan.inputFiles.add(entry.getKey());
 
     return plan;
   }
+
 }
