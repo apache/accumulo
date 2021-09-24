@@ -227,6 +227,7 @@ public class TabletServer extends AbstractServer {
 
   private final ZooAuthenticationKeyWatcher authKeyWatcher;
   private final WalStateManager walMarker;
+  private final ServerContext context;
 
   public static void main(String[] args) throws Exception {
     try (TabletServer tserver = new TabletServer(new ServerOpts(), args)) {
@@ -236,13 +237,13 @@ public class TabletServer extends AbstractServer {
 
   protected TabletServer(ServerOpts opts, String[] args) {
     super("tserver", opts, args);
-    ServerContext context = super.getContext();
+    context = super.getContext();
     context.setupCrypto();
     this.managerLockCache = new ZooCache(context.getZooReaderWriter(), null);
     final AccumuloConfiguration aconf = getConfiguration();
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstanceID());
-    this.sessionManager = new SessionManager(aconf);
+    this.sessionManager = new SessionManager(context);
     this.logSorter = new LogSorter(context, aconf);
     this.replWorker = new ReplicationWorker(context);
     this.statsKeeper = new TabletStatsKeeper();
@@ -257,7 +258,7 @@ public class TabletServer extends AbstractServer {
     // This thread will calculate and log out the busiest tablets based on ingest count and
     // query count every #{logBusiestTabletsDelay}
     if (numBusyTabletsToLog > 0) {
-      ThreadPools.createGeneralScheduledExecutorService(aconf)
+      context.getScheduledExecutor()
           .scheduleWithFixedDelay(Threads.createNamedRunnable("BusyTabletLogger", new Runnable() {
             private BusiestTracker ingestTracker =
                 BusiestTracker.newBusiestIngestTracker(numBusyTabletsToLog);
@@ -284,7 +285,7 @@ public class TabletServer extends AbstractServer {
           }), logBusyTabletsDelay, logBusyTabletsDelay, TimeUnit.MILLISECONDS);
     }
 
-    ThreadPools.createGeneralScheduledExecutorService(aconf)
+    context.getScheduledExecutor()
         .scheduleWithFixedDelay(Threads.createNamedRunnable("TabletRateUpdater", new Runnable() {
           @Override
           public void run() {
@@ -349,8 +350,8 @@ public class TabletServer extends AbstractServer {
     scanMetrics = new TabletServerScanMetrics();
     mincMetrics = new TabletServerMinCMetrics();
     ceMetrics = new CompactionExecutorsMetrics();
-    ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(
-        TabletLocator::clearLocators, jitter(), jitter(), TimeUnit.MILLISECONDS);
+    context.getScheduledExecutor().scheduleWithFixedDelay(TabletLocator::clearLocators, jitter(),
+        jitter(), TimeUnit.MILLISECONDS);
     walMarker = new WalStateManager(context);
 
     // Create the secret manager
@@ -425,8 +426,8 @@ public class TabletServer extends AbstractServer {
 
   private class MajorCompactor implements Runnable {
 
-    public MajorCompactor(AccumuloConfiguration config) {
-      CompactionWatcher.startWatching(config);
+    public MajorCompactor(ServerContext context) {
+      CompactionWatcher.startWatching(context);
     }
 
     @Override
@@ -763,8 +764,9 @@ public class TabletServer extends AbstractServer {
     ThreadPoolExecutor distWorkQThreadPool = (ThreadPoolExecutor) ThreadPools
         .createExecutorService(getConfiguration(), Property.TSERV_WORKQ_THREADS);
 
-    bulkFailedCopyQ = new DistributedWorkQueue(
-        getContext().getZooKeeperRoot() + Constants.ZBULK_FAILED_COPYQ, getConfiguration());
+    bulkFailedCopyQ =
+        new DistributedWorkQueue(getContext().getZooKeeperRoot() + Constants.ZBULK_FAILED_COPYQ,
+            getConfiguration(), getContext());
     try {
       bulkFailedCopyQ.startProcessing(new BulkFailedCopyProcessor(getContext()),
           distWorkQThreadPool);
@@ -780,7 +782,7 @@ public class TabletServer extends AbstractServer {
     }
     final AccumuloConfiguration aconf = getConfiguration();
     // if the replication name is ever set, then start replication services
-    ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
+    context.getScheduledExecutor().scheduleWithFixedDelay(() -> {
       if (this.replServer == null) {
         if (!getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
           log.info(Property.REPLICATION_NAME.getKey() + " was set, starting repl services.");
@@ -790,9 +792,8 @@ public class TabletServer extends AbstractServer {
     }, 0, 5000, TimeUnit.MILLISECONDS);
 
     final long CLEANUP_BULK_LOADED_CACHE_MILLIS = 15 * 60 * 1000;
-    ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(
-        new BulkImportCacheCleaner(this), CLEANUP_BULK_LOADED_CACHE_MILLIS,
-        CLEANUP_BULK_LOADED_CACHE_MILLIS, TimeUnit.MILLISECONDS);
+    context.getScheduledExecutor().scheduleWithFixedDelay(new BulkImportCacheCleaner(this),
+        CLEANUP_BULK_LOADED_CACHE_MILLIS, CLEANUP_BULK_LOADED_CACHE_MILLIS, TimeUnit.MILLISECONDS);
 
     HostAndPort managerHost;
     while (!serverStopRequested) {
@@ -913,8 +914,8 @@ public class TabletServer extends AbstractServer {
     Runnable replicationWorkThreadPoolResizer = () -> {
       ThreadPools.resizePool(replicationThreadPool, aconf, Property.REPLICATION_WORKER_THREADS);
     };
-    ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(
-        replicationWorkThreadPoolResizer, 10000, 30000, TimeUnit.MILLISECONDS);
+    context.getScheduledExecutor().scheduleWithFixedDelay(replicationWorkThreadPoolResizer, 10000,
+        30000, TimeUnit.MILLISECONDS);
   }
 
   static boolean checkTabletMetadata(KeyExtent extent, TServerInstance instance,
@@ -1006,7 +1007,7 @@ public class TabletServer extends AbstractServer {
 
   private void config() {
     log.info("Tablet server starting on {}", getHostname());
-    Threads.createThread("Split/MajC initiator", new MajorCompactor(getConfiguration())).start();
+    Threads.createThread("Split/MajC initiator", new MajorCompactor(context)).start();
 
     clientAddress = HostAndPort.fromParts(getHostname(), 0);
 
@@ -1016,8 +1017,8 @@ public class TabletServer extends AbstractServer {
 
     Runnable gcDebugTask = () -> gcLogger.logGCInfo(getConfiguration());
 
-    ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(gcDebugTask, 0,
-        TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
+    context.getScheduledExecutor().scheduleWithFixedDelay(gcDebugTask, 0, TIME_BETWEEN_GC_CHECKS,
+        TimeUnit.MILLISECONDS);
   }
 
   public TabletServerStatus getStats(Map<TableId,MapCounter<ScanRunState>> scanCounts) {
