@@ -47,6 +47,7 @@ public class ManagerMetricsFactory {
   }
 
   public int register(Manager manager) {
+
     MetricsSystem metricsSystem = manager.getMetricsSystem();
 
     int failureCount = 0;
@@ -61,7 +62,8 @@ public class ManagerMetricsFactory {
 
     try {
       if (enableFateMetrics) {
-        new FateMetrics(manager.getContext(), fateMinUpdateInterval).register(metricsSystem);
+        new FateMetrics(manager.getContext(), fateMinUpdateInterval, manager.getMicrometerMetrics())
+            .register(metricsSystem);
         log.info("Registered FATE metrics module");
       }
     } catch (Exception ex) {

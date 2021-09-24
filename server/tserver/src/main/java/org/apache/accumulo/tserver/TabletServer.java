@@ -165,6 +165,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterators;
 
+import io.micrometer.core.instrument.MeterRegistry;
+
 public class TabletServer extends AbstractServer {
 
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
@@ -346,10 +348,11 @@ public class TabletServer extends AbstractServer {
     this.resourceManager = new TabletServerResourceManager(context);
     this.security = AuditedSecurityOperation.getInstance(context);
 
-    updateMetrics = new TabletServerUpdateMetrics();
-    scanMetrics = new TabletServerScanMetrics();
-    mincMetrics = new TabletServerMinCMetrics();
-    ceMetrics = new CompactionExecutorsMetrics();
+    MeterRegistry registry = getMicrometerMetrics().getRegistry();
+    updateMetrics = new TabletServerUpdateMetrics(registry);
+    scanMetrics = new TabletServerScanMetrics(registry);
+    mincMetrics = new TabletServerMinCMetrics(registry);
+    ceMetrics = new CompactionExecutorsMetrics(registry);
     context.getScheduledExecutor().scheduleWithFixedDelay(TabletLocator::clearLocators, jitter(),
         jitter(), TimeUnit.MILLISECONDS);
     walMarker = new WalStateManager(context);

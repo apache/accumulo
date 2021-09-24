@@ -18,28 +18,58 @@
  */
 package org.apache.accumulo.tserver.metrics;
 
+import java.time.Duration;
+
 import org.apache.hadoop.metrics2.lib.MetricsRegistry;
 import org.apache.hadoop.metrics2.lib.MutableStat;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+
 public class TabletServerMinCMetrics extends TServerMetrics {
 
-  private final MutableStat activeMinc;
-  private final MutableStat queuedMinc;
+  private final Timer activeMinc;
+  private final Timer queuedMinc;
 
-  public TabletServerMinCMetrics() {
+  TabletServerMinCHadoopMetrics hadoopMetrics;
+
+  public TabletServerMinCMetrics(MeterRegistry meterRegistry) {
     super("MinorCompactions");
 
-    MetricsRegistry registry = super.getRegistry();
-    activeMinc = registry.newStat("minc", "Minor compactions", "Ops", "Count", true);
-    queuedMinc = registry.newStat("queue", "Queued minor compactions", "Ops", "Count", true);
+    activeMinc = Timer.builder("minc").description("Minor compactions").register(meterRegistry);
+    queuedMinc =
+        Timer.builder("queue").description("Queued minor compactions").register(meterRegistry);
+
+    hadoopMetrics = new TabletServerMinCHadoopMetrics(super.getRegistry());
   }
 
   public void addActive(long value) {
-    activeMinc.add(value);
+    activeMinc.record(Duration.ofMillis(value));
+    hadoopMetrics.addActive(value);
   }
 
   public void addQueued(long value) {
-    queuedMinc.add(value);
+    queuedMinc.record(Duration.ofMillis(value));
+    hadoopMetrics.addQueued(value);
   }
 
+  private static class TabletServerMinCHadoopMetrics {
+
+    private final MutableStat activeMinc;
+    private final MutableStat queuedMinc;
+
+    TabletServerMinCHadoopMetrics(MetricsRegistry metricsRegistry) {
+      activeMinc = metricsRegistry.newStat("minc", "Minor compactions", "Ops", "Count", true);
+      queuedMinc =
+          metricsRegistry.newStat("queue", "Queued minor compactions", "Ops", "Count", true);
+    }
+
+    private void addActive(long value) {
+      activeMinc.add(value);
+    }
+
+    private void addQueued(long value) {
+      queuedMinc.add(value);
+    }
+  }
 }
