@@ -500,7 +500,6 @@ public class CompactableImpl implements Compactable {
           if (job.getKind() == CompactionKind.USER || job.getKind() == CompactionKind.SELECTOR) {
             if (selectKind == job.getKind()) {
               if (!selectedFiles.containsAll(jobFiles)) {
-                // TODO diff log level?
                 log.trace("Ignoring {} compaction that does not contain selected files {} {} {}",
                     job.getKind(), getExtent(), asFileNames(selectedFiles), asFileNames(jobFiles));
                 return false;
