@@ -419,7 +419,6 @@ public class CompactableImplFileManagerTest {
               return SELECTION_EXPIRATION;
             }
           });
-      // TODO Auto-generated constructor stub
     }
 
     @Override
