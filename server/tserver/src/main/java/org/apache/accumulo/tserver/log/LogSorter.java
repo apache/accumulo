@@ -275,8 +275,8 @@ public class LogSorter {
   public void startWatchingForRecoveryLogs(ThreadPoolExecutor distWorkQThreadPool)
       throws KeeperException, InterruptedException {
     this.threadPool = distWorkQThreadPool;
-    new DistributedWorkQueue(context.getZooKeeperRoot() + Constants.ZRECOVERY, sortedLogConf)
-        .startProcessing(new LogProcessor(), this.threadPool);
+    new DistributedWorkQueue(context.getZooKeeperRoot() + Constants.ZRECOVERY, sortedLogConf,
+        context).startProcessing(new LogProcessor(), this.threadPool);
   }
 
   public List<RecoveryStatus> getLogSorts() {

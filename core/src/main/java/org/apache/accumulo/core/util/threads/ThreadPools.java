@@ -211,6 +211,10 @@ public class ThreadPools {
     return result;
   }
 
+  /*
+   * If you need the server-side shared ScheduledThreadPoolExecutor, then use
+   * ServerContext.getScheduledExecutor()
+   */
   public static ScheduledThreadPoolExecutor
       createGeneralScheduledExecutorService(AccumuloConfiguration conf) {
     return (ScheduledThreadPoolExecutor) createExecutorService(conf,

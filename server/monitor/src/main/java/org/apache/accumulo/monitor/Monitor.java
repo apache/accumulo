@@ -53,6 +53,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -484,6 +485,17 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       }
     }).start();
 
+    Threads.createThread("Compaction fetcher", () -> {
+      while (true) {
+        try {
+          fetchCompactions();
+        } catch (Exception e) {
+          log.warn("{}", e.getMessage(), e);
+        }
+        sleepUninterruptibly(5, TimeUnit.SECONDS);
+      }
+    }).start();
+
     monitorInitialized.set(true);
   }
 
@@ -553,12 +565,35 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
   }
 
+  public static class CompactionStats {
+    public final long count;
+    public final Long oldest;
+    public final long fetched;
+
+    CompactionStats(List<ActiveCompaction> active) {
+      this.count = active.size();
+      long oldest = -1;
+      for (ActiveCompaction a : active) {
+        oldest = Math.max(oldest, a.age);
+      }
+      this.oldest = oldest < 0 ? null : oldest;
+      this.fetched = System.currentTimeMillis();
+    }
+  }
+
   private final Map<HostAndPort,ScanStats> allScans = new HashMap<>();
+  private final Map<HostAndPort,CompactionStats> allCompactions = new HashMap<>();
   private final RecentLogs recentLogs = new RecentLogs();
 
   public Map<HostAndPort,ScanStats> getScans() {
     synchronized (allScans) {
       return new HashMap<>(allScans);
+    }
+  }
+
+  public Map<HostAndPort,CompactionStats> getCompactions() {
+    synchronized (allCompactions) {
+      return new HashMap<>(allCompactions);
     }
   }
 
@@ -583,6 +618,33 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     long now = System.currentTimeMillis();
     while (entryIter.hasNext()) {
       Entry<HostAndPort,ScanStats> entry = entryIter.next();
+      if (now - entry.getValue().fetched > 5 * 60 * 1000) {
+        entryIter.remove();
+      }
+    }
+  }
+
+  private void fetchCompactions() throws Exception {
+    ServerContext context = getContext();
+    for (String server : context.instanceOperations().getTabletServers()) {
+      final HostAndPort parsedServer = HostAndPort.fromString(server);
+      Client tserver = ThriftUtil.getTServerClient(parsedServer, context);
+      try {
+        var compacts = tserver.getActiveCompactions(null, context.rpcCreds());
+        synchronized (allCompactions) {
+          allCompactions.put(parsedServer, new CompactionStats(compacts));
+        }
+      } catch (Exception ex) {
+        log.debug("Failed to get active compactions from {}", server, ex);
+      } finally {
+        ThriftUtil.returnClient(tserver);
+      }
+    }
+    // Age off old compaction information
+    var entryIter = allCompactions.entrySet().iterator();
+    long now = System.currentTimeMillis();
+    while (entryIter.hasNext()) {
+      var entry = entryIter.next();
       if (now - entry.getValue().fetched > 5 * 60 * 1000) {
         entryIter.remove();
       }

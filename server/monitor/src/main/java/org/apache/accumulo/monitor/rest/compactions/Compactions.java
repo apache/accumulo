@@ -16,14 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.monitor.rest.compactions;
 
-import org.apache.accumulo.core.conf.Property;
+import java.util.ArrayList;
+import java.util.List;
 
-public class CompactionRateLimitingDeprecatedIT extends CompactionRateLimitingIT {
-  @Override
-  @SuppressWarnings("removal")
-  protected Property getThroughputProp() {
-    return Property.TSERV_MAJC_THROUGHPUT;
+/**
+ * Generates a new list of compactions as a JSON object
+ *
+ * @since 2.1.0
+ */
+public class Compactions {
+
+  // Variable names become JSON keys
+  public List<CompactionInfo> compactions = new ArrayList<>();
+
+  /**
+   * Adds a new compactionInfo to the list
+   *
+   * @param compactionInfo
+   *          Compaction info to add
+   */
+  public void addCompaction(CompactionInfo compactionInfo) {
+    compactions.add(compactionInfo);
   }
 }
