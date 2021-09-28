@@ -41,6 +41,20 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 public interface GarbageCollectionEnvironment {
 
   /**
+   * Return true if this for the RootTable, usually setup in the constructor
+   *
+   * @return true if the GCE is for the RootTable
+   */
+  boolean isRootTable();
+
+  /**
+   * Return true if this for the MetadataTable, usually setup in the constructor
+   *
+   * @return true if the GCE is for the MetadataTable
+   */
+  boolean isMetadataTable();
+
+  /**
    * Return a list of paths to files and dirs which are candidates for deletion from a given table,
    * {@link RootTable#NAME} or {@link MetadataTable#NAME}
    *
@@ -73,6 +87,15 @@ public interface GarbageCollectionEnvironment {
    */
   Iterator<Entry<Key,Value>> getReferenceIterator()
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+
+  /**
+   * Return a list of TableIDs for which we are considering deletes. For the root table this would
+   * be the metadata table. For the metadata table, this would be all of the other tables in the
+   * system.
+   *
+   * @return The table ids
+   */
+  Set<String> getCandidateTableIDs();
 
   /**
    * Return the set of tableIDs for the given instance this GarbageCollector is running over

@@ -19,6 +19,7 @@ package org.apache.accumulo.gc;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -47,6 +48,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 
@@ -172,18 +174,21 @@ public class GarbageCollectionAlgorithm {
 
     }
 
+    Set<String> tableIdsBefore = gce.getCandidateTableIDs();
+    Set<String> tableIdsSeen = new HashSet<>();
     Iterator<Entry<Key,Value>> iter = gce.getReferenceIterator();
     while (iter.hasNext()) {
       Entry<Key,Value> entry = iter.next();
       Key key = entry.getKey();
       Text cft = key.getColumnFamily();
+      String tableID = new String(KeyExtent.tableOfMetadataRow(key.getRow()));
+      tableIdsSeen.add(tableID);
 
       if (cft.equals(DataFileColumnFamily.NAME) || cft.equals(ScanFileColumnFamily.NAME)) {
         String cq = key.getColumnQualifier().toString();
 
         String reference = cq;
         if (cq.startsWith("/")) {
-          String tableID = new String(KeyExtent.tableOfMetadataRow(key.getRow()));
           reference = "/" + tableID + cq;
         } else if (!cq.contains(":") && !cq.startsWith("../")) {
           throw new RuntimeException("Bad file reference " + cq);
@@ -201,7 +206,6 @@ public class GarbageCollectionAlgorithm {
           log.debug("Candidate was still in use: " + reference);
 
       } else if (TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.hasColumns(key)) {
-        String tableID = new String(KeyExtent.tableOfMetadataRow(key.getRow()));
         String dir = entry.getValue().toString();
         if (!dir.contains(":")) {
           if (!dir.startsWith("/"))
@@ -217,9 +221,52 @@ public class GarbageCollectionAlgorithm {
         throw new RuntimeException(
             "Scanner over metadata table returned unexpected column : " + entry.getKey());
     }
+    Set<String> tableIdsAfter = gce.getCandidateTableIDs();
+    ensureAllTablesChecked(Collections.unmodifiableSet(tableIdsBefore),
+        Collections.unmodifiableSet(tableIdsSeen), Collections.unmodifiableSet(tableIdsAfter));
 
     confirmDeletesFromReplication(gce.getReplicationNeededIterator(),
         candidateMap.entrySet().iterator());
+  }
+
+  @VisibleForTesting
+  /**
+   *
+   */
+  protected void ensureAllTablesChecked(Set<String> tableIdsBefore, Set<String> tableIdsSeen,
+      Set<String> tableIdsAfter) {
+
+    // if a table was added or deleted during this run, it is acceptable to not
+    // have seen those tables ids when scanning the metadata table. So get the intersection
+    Set<String> tableIdsMustHaveSeen = new HashSet<>(tableIdsBefore);
+    tableIdsMustHaveSeen.retainAll(tableIdsAfter);
+
+    if (tableIdsMustHaveSeen.isEmpty() && !tableIdsSeen.isEmpty()) {
+      if (!tableIdsBefore.isEmpty() && tableIdsAfter.isEmpty()) {
+        throw new RuntimeException("ZK returned no table ids after scanning for references,"
+            + " maybe all the tables were deleted");
+      } else {
+        // we saw no table ids in ZK but did in the metadata table. This is unexpected.
+        throw new RuntimeException(
+            "Saw no table ids in ZK but did see table ids in metadata table: " + tableIdsSeen);
+      }
+    }
+
+    // From that intersection, remove all the table ids that were seen.
+    tableIdsMustHaveSeen.removeAll(tableIdsSeen);
+
+    // If anything is left then we missed a table and may not have removed rfiles references
+    // from the candidates list that are acutally still in use, which would
+    // result in the rfiles being deleted in the next step of the GC process
+    if (!tableIdsMustHaveSeen.isEmpty()) {
+      log.error("TableIDs before: " + tableIdsBefore);
+      log.error("TableIDs after : " + tableIdsAfter);
+      log.error("TableIDs seen  : " + tableIdsSeen);
+      log.error("TableIDs that should have been seen but were not: " + tableIdsMustHaveSeen);
+      // maybe a scan failed?
+      throw new RuntimeException(
+          "Saw table IDs in ZK that were not in metadata table:  " + tableIdsMustHaveSeen);
+    }
   }
 
   protected void confirmDeletesFromReplication(

@@ -22,6 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -269,10 +270,20 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
   private class GCEnv implements GarbageCollectionEnvironment {
 
-    private String tableName;
+    private final String tableName;
 
     GCEnv(String tableName) {
       this.tableName = tableName;
+    }
+
+    @Override
+    public boolean isRootTable() {
+      return this.tableName == RootTable.NAME;
+    }
+
+    @Override
+    public boolean isMetadataTable() {
+      return this.tableName == MetadataTable.NAME;
     }
 
     @Override
@@ -332,6 +343,20 @@ public class SimpleGarbageCollector extends AccumuloServerContext implements Ifa
 
       return Iterators
           .concat(Iterators.transform(tabletIterator, input -> input.entrySet().iterator()));
+    }
+
+    @Override
+    public Set<String> getCandidateTableIDs() {
+      if (isRootTable()) {
+        return Collections.singleton(MetadataTable.ID);
+      } else if (isMetadataTable()) {
+        Set<String> tableIds = new HashSet<>(getTableIDs());
+        tableIds.remove(MetadataTable.ID);
+        tableIds.remove(RootTable.ID);
+        return tableIds;
+      } else {
+        throw new RuntimeException("Unexpected Table in GC Env: " + this.tableName);
+      }
     }
 
     @Override

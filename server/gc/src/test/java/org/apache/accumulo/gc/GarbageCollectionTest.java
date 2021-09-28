@@ -17,9 +17,11 @@
 package org.apache.accumulo.gc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -36,6 +38,8 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.server.replication.StatusUtil;
@@ -56,6 +60,27 @@ public class GarbageCollectionTest {
     ArrayList<String> deletes = new ArrayList<>();
     ArrayList<String> tablesDirsToDelete = new ArrayList<>();
     TreeMap<String,Status> filesToReplicate = new TreeMap<>();
+
+    private final String tableName;
+
+    TestGCE(String tableName) {
+      this.tableName = tableName;
+    }
+
+    TestGCE() {
+      // assume metadata table if not passed in for tests
+      this.tableName = MetadataTable.NAME;
+    }
+
+    @Override
+    public boolean isRootTable() {
+      return this.tableName == RootTable.NAME;
+    }
+
+    @Override
+    public boolean isMetadataTable() {
+      return this.tableName == MetadataTable.NAME;
+    }
 
     @Override
     public boolean getCandidates(String continuePoint, List<String> ret) {
@@ -104,12 +129,15 @@ public class GarbageCollectionTest {
 
     public Value addFileReference(String tableId, String endRow, String file) {
       Key key = newFileReferenceKey(tableId, endRow, file);
-      Value val = new Value(new DataFileValue(0, 0).encode());
-      return references.put(key, val);
+      Value val = references.put(key, new Value(new DataFileValue(0, 0).encode()));
+      tableIds.add(tableId);
+      return val;
     }
 
     public Value removeFileReference(String tableId, String endRow, String file) {
-      return references.remove(newFileReferenceKey(tableId, endRow, file));
+      Value retVal = references.remove(newFileReferenceKey(tableId, endRow, file));
+      removeLastTableIdRef(tableId);
+      return retVal;
     }
 
     Key newDirReferenceKey(String tableId, String endRow) {
@@ -125,12 +153,30 @@ public class GarbageCollectionTest {
 
     public Value addDirReference(String tableId, String endRow, String dir) {
       Key key = newDirReferenceKey(tableId, endRow);
-      Value val = new Value(dir.getBytes());
-      return references.put(key, val);
+      Value val = references.put(key, new Value(dir.getBytes()));
+      tableIds.add(tableId);
+      return val;
     }
 
     public Value removeDirReference(String tableId, String endRow) {
-      return references.remove(newDirReferenceKey(tableId, endRow));
+      Value retVal = references.remove(newDirReferenceKey(tableId, endRow));
+      removeLastTableIdRef(tableId);
+      return retVal;
+    }
+
+    /*
+     * this is to be called from removeDirReference or removeFileReference.
+     *
+     * If you just removed the last reference to a table, we need to remove it from the tableIds in
+     * zookeeper
+     */
+    private void removeLastTableIdRef(String tableId) {
+      boolean inUse = references.keySet().stream()
+          .map(k -> new String(KeyExtent.tableOfMetadataRow(k.getRow())))
+          .anyMatch(tid -> tableId.equals(tid));
+      if (!inUse) {
+        assertTrue(tableIds.remove(tableId));
+      }
     }
 
     @Override
@@ -144,6 +190,18 @@ public class GarbageCollectionTest {
         throws AccumuloException, AccumuloSecurityException {
       return filesToReplicate.entrySet().iterator();
     }
+
+    @Override
+    public Set<String> getCandidateTableIDs() {
+      if (tableName.equals(RootTable.NAME)) {
+        return Collections.singleton(MetadataTable.ID);
+      } else {
+        Set<String> tableIds = new HashSet<>(getTableIDs());
+        tableIds.remove(MetadataTable.ID);
+        tableIds.remove(RootTable.ID);
+        return tableIds;
+      }
+    }
   }
 
   private void assertRemoved(TestGCE gce, String... refs) {
@@ -156,7 +214,7 @@ public class GarbageCollectionTest {
 
   @Test
   public void testBasic() throws Exception {
-    TestGCE gce = new TestGCE();
+    TestGCE gce = new TestGCE(MetadataTable.NAME);
 
     gce.candidates.add("hdfs://foo:6000/accumulo/tables/4/t0/F000.rf");
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/4/t0/F001.rf");
@@ -199,7 +257,7 @@ public class GarbageCollectionTest {
 
   @Test
   public void testRelative() throws Exception {
-    TestGCE gce = new TestGCE();
+    TestGCE gce = new TestGCE(MetadataTable.NAME);
 
     gce.candidates.add("/4/t0/F000.rf");
     gce.candidates.add("/4/t0/F002.rf");
@@ -249,7 +307,6 @@ public class GarbageCollectionTest {
 
     gca.collect(gce);
     assertRemoved(gce, "/4/t0/F002.rf");
-
   }
 
   @Test
@@ -394,6 +451,8 @@ public class GarbageCollectionTest {
 
     // Removing the dir reference for a table will delete all tablet directories
     gce.removeDirReference("5", null);
+    // but we need to add a file ref
+    gce.addFileReference("8", "m", "/t-0/F00.rf");
     gca.collect(gce);
     assertRemoved(gce, "hdfs://foo.com:6000/user/foo/tables/5/t-0");
 
@@ -496,6 +555,7 @@ public class GarbageCollectionTest {
     GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
 
     TestGCE gce = new TestGCE();
+
     gce.candidates.add("/1636/default_tablet");
     gce.addDirReference("1636", null, "/default_tablet");
     gca.collect(gce);
@@ -536,7 +596,6 @@ public class GarbageCollectionTest {
     gce.candidates.add("/1636/b-0001/I0000");
     gca.collect(gce);
     assertRemoved(gce);
-
   }
 
   @Test
@@ -545,14 +604,13 @@ public class GarbageCollectionTest {
 
     TestGCE gce = new TestGCE();
 
-    gce.tableIds.add("4");
-
     gce.candidates.add("/4/t-0");
     gce.candidates.add("/4/t-0/F002.rf");
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/5/t-0");
     gce.candidates.add("/6/t-0");
     gce.candidates.add("hdfs://foo:6000/accumulo/tables/7/t-0/");
 
+    gce.addDirReference("4", null, "/t-0");
     gce.addDirReference("7", null, "hdfs://foo.com:6000/accumulo/tables/7/t-0");
 
     gca.collect(gce);
@@ -643,5 +701,149 @@ public class GarbageCollectionTest {
     // We need to replicate that one file still, should not delete it.
     assertEquals(1, gce.deletes.size());
     assertEquals("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf", gce.deletes.get(0));
+  }
+
+  @Test
+  public void testMissingTableIds() throws Exception {
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+
+    TestGCE gce = new TestGCE();
+
+    gce.candidates.add("hdfs://foo.com:6000/user/foo/tables/a/t-0/F00.rf");
+
+    gce.addFileReference("a", null, "hdfs://foo.com:6000/user/foo/tables/a/t-0/F00.rf");
+    gce.addFileReference("c", null, "hdfs://foo.com:6000/user/foo/tables/c/t-0/F00.rf");
+
+    // add 2 more table references that will not be seen by in the scan
+    gce.tableIds.addAll(Arrays.asList("b", "d"));
+
+    String msg = assertThrows(RuntimeException.class, () -> gca.collect(gce)).getMessage();
+    assertTrue(msg, (msg.contains("[b, d]") || msg.contains("[d, b]"))
+        && msg.contains("Saw table IDs in ZK that were not in metadata table:"));
+  }
+
+  // below are tests for potential failure conditions of the GC process. Some of these cases were
+  // observed on clusters. Some were hypothesis based on observations. The result was that
+  // candidate entries were not removed when they should have been and therefore files were
+  // removed from HDFS that were actually still in use
+
+  private Set<String> makeUnmodifiableSet(String... args) {
+    return Collections.unmodifiableSet(new HashSet<>(Arrays.asList(args)));
+  }
+
+  @Test
+  public void testNormalGCRun() {
+    // happy path, no tables added or removed during this portion and all the tables checked
+    Set<String> tablesBefore = makeUnmodifiableSet("1", "2", "3");
+    Set<String> tablesSeen = makeUnmodifiableSet("2", "1", "3");
+    Set<String> tablesAfter = makeUnmodifiableSet("1", "3", "2");
+
+    new GarbageCollectionAlgorithm().ensureAllTablesChecked(tablesBefore, tablesSeen, tablesAfter);
+  }
+
+  @Test
+  public void testTableAddedInMiddle() {
+    // table was added during this portion and we don't see it, should be fine
+    Set<String> tablesBefore = makeUnmodifiableSet("1", "2", "3");
+    Set<String> tablesSeen = makeUnmodifiableSet("2", "1", "3");
+    Set<String> tablesAfter = makeUnmodifiableSet("1", "3", "2", "4");
+
+    new GarbageCollectionAlgorithm().ensureAllTablesChecked(tablesBefore, tablesSeen, tablesAfter);
+  }
+
+  @Test
+  public void testTableAddedInMiddleTwo() {
+    // table was added during this portion and we DO see it
+    // Means table was added after candidates were grabbed, so there should be nothing to remove
+    Set<String> tablesBefore = makeUnmodifiableSet("1", "2", "3");
+    Set<String> tablesSeen = makeUnmodifiableSet("2", "1", "3", "4");
+    Set<String> tablesAfter = makeUnmodifiableSet("1", "3", "2", "4");
+
+    new GarbageCollectionAlgorithm().ensureAllTablesChecked(tablesBefore, tablesSeen, tablesAfter);
+  }
+
+  @Test
+  public void testTableDeletedInMiddle() {
+    // table was deleted during this portion and we don't see it
+    // this mean any candidates from the deleted table wil stay on the candidate list
+    // and during the delete step they will try to removed
+    Set<String> tablesBefore = makeUnmodifiableSet("1", "2", "3", "4");
+    Set<String> tablesSeen = makeUnmodifiableSet("2", "1", "4");
+    Set<String> tablesAfter = makeUnmodifiableSet("1", "2", "4");
+
+    new GarbageCollectionAlgorithm().ensureAllTablesChecked(tablesBefore, tablesSeen, tablesAfter);
+  }
+
+  @Test
+  public void testTableDeletedInMiddleTwo() {
+    // table was deleted during this portion and we DO see it
+    // this mean candidates from the deleted table may get removed from the candidate list
+    // which should be ok, as the delete table function should be responsible for removing those
+    Set<String> tablesBefore = makeUnmodifiableSet("1", "2", "3", "4");
+    Set<String> tablesSeen = makeUnmodifiableSet("2", "1", "4", "3");
+    Set<String> tablesAfter = makeUnmodifiableSet("1", "2", "4");
+
+    new GarbageCollectionAlgorithm().ensureAllTablesChecked(tablesBefore, tablesSeen, tablesAfter);
+  }
+
+  @Test
+  public void testMissEntireTable() {
+    // this test simulates missing an entire table when looking for what files are in use
+    // if you add custom splits to the metadata at able boundaries, this can happen with a failed
+    // scan
+    // recall the ~tab:~pr for this first entry of a new table is empty, so there is now way to
+    // check the prior row. If you split a couple of tables in the metadata the table boundary
+    // , say table ids 2,3,4, and then miss scanning table 3 but get 4, it is possible other
+    // consistency checks will miss this
+    Set<String> tablesBefore = makeUnmodifiableSet("1", "2", "3", "4");
+    Set<String> tablesSeen = makeUnmodifiableSet("1", "2", "4");
+    Set<String> tablesAfter = makeUnmodifiableSet("1", "2", "3", "4");
+
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+    String msg = assertThrows(RuntimeException.class,
+        () -> gca.ensureAllTablesChecked(tablesBefore, tablesSeen, tablesAfter)).getMessage();
+    assertTrue(msg.startsWith("Saw table IDs in ZK that were not in metadata table:"));
+
+  }
+
+  @Test
+  public void testZKHadNoTables() {
+    // this test simulates getting nothing from ZK for table ids, which should not happen,
+    // but just in case let's test
+    Set<String> tablesBefore = makeUnmodifiableSet();
+    Set<String> tablesSeen = makeUnmodifiableSet("1", "2");
+    Set<String> tablesAfter = makeUnmodifiableSet();
+
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+    String msg = assertThrows(RuntimeException.class,
+        () -> gca.ensureAllTablesChecked(tablesBefore, tablesSeen, tablesAfter)).getMessage();
+    assertTrue(msg.startsWith("Saw no table ids in ZK but did see table ids in metadata table:"));
+  }
+
+  @Test
+  public void testMissingTableAndTableAdd() {
+    // simulates missing a table when checking references, and a table being added
+    Set<String> tablesBefore = makeUnmodifiableSet("1", "2", "3");
+    Set<String> tablesSeen = makeUnmodifiableSet("1", "2", "4");
+    Set<String> tablesAfter = makeUnmodifiableSet("1", "2", "3", "4");
+
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+    String msg = assertThrows(RuntimeException.class,
+        () -> gca.ensureAllTablesChecked(tablesBefore, tablesSeen, tablesAfter)).getMessage();
+    assertTrue(msg.equals("Saw table IDs in ZK that were not in metadata table:  [3]"));
+  }
+
+  @Test
+  public void testMissingTableAndTableDeleted() {
+    // simulates missing a table when checking references, and a table being deleted
+    Set<String> tablesBefore = makeUnmodifiableSet("1", "2", "3", "4");
+    Set<String> tablesSeen = makeUnmodifiableSet("1", "2", "4");
+    Set<String> tablesAfter = makeUnmodifiableSet("1", "2", "3");
+
+    GarbageCollectionAlgorithm gca = new GarbageCollectionAlgorithm();
+    String msg = assertThrows(RuntimeException.class,
+        () -> gca.ensureAllTablesChecked(tablesBefore, tablesSeen, tablesAfter)).getMessage();
+    assertTrue(msg.equals("Saw table IDs in ZK that were not in metadata table:  [3]"));
+
   }
 }
