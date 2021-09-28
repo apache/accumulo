@@ -143,7 +143,7 @@ public class Mocket {
     public void listen() {}
 
     @Override
-    public TTransport accept() throws TTransportException {
+    public TTransport accept() {
       return servTrans;
     }
 
