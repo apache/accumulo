@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.test.compaction;
 
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.tserver.TabletServer;
