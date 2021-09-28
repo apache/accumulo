@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
@@ -152,7 +153,7 @@ public class CompactableImplFileManagerTest {
 
     // advance time past the expiration timeout, however this should not matter since the first
     // reservation was successfully made
-    fileMgr.setCurrentTimeMillis(2 * SELECTION_EXPIRATION);
+    fileMgr.setNanoTime(2 * SELECTION_EXPIRATION);
 
     assertEquals(newFiles("F00003.rf"), fileMgr.getCandidates(tabletFiles, SYSTEM, false));
     assertEquals(newFiles("F00002.rf"), fileMgr.getCandidates(tabletFiles, USER, false));
@@ -183,7 +184,6 @@ public class CompactableImplFileManagerTest {
     assertEquals(newFiles("C00005.rf", "F00003.rf"),
         fileMgr.getCandidates(tabletFiles, SYSTEM, false));
     assertNoCandidates(fileMgr, tabletFiles, USER, CHOP, SELECTOR);
-
   }
 
   @Test
@@ -204,7 +204,7 @@ public class CompactableImplFileManagerTest {
     assertNoCandidates(fileMgr, tabletFiles, SYSTEM, CHOP, SELECTOR);
 
     // advance time to a point where the selection is eligible to expire
-    fileMgr.setCurrentTimeMillis(2 * SELECTION_EXPIRATION);
+    fileMgr.setNanoTime(2 * SELECTION_EXPIRATION);
 
     // now that the selection is eligible to expire, the selected files should be available as
     // system compaction candidates
@@ -239,7 +239,7 @@ public class CompactableImplFileManagerTest {
     assertEquals(FileSelectionStatus.SELECTED, fileMgr.getSelectionStatus());
 
     // advance time to a point where the selection is eligible to expire
-    fileMgr.setCurrentTimeMillis(2 * SELECTION_EXPIRATION);
+    fileMgr.setNanoTime(2 * SELECTION_EXPIRATION);
 
     // the following reservation for a system compaction should not cancel the selection because its
     // not reserving files that are selected
@@ -264,7 +264,6 @@ public class CompactableImplFileManagerTest {
   @Test
   public void testSelectionWaitsForCompaction() {
     TestFileManager fileMgr = new TestFileManager();
-    var tabletFiles = newFiles("F00000.rf", "F00001.rf", "F00002.rf", "F00003.rf");
 
     var job1 = newJob(SYSTEM, "F00000.rf", "F00001.rf");
     assertTrue(fileMgr.reserveFiles(job1));
@@ -406,7 +405,7 @@ public class CompactableImplFileManagerTest {
 
   static class TestFileManager extends CompactableImpl.FileManager {
 
-    public static final long SELECTION_EXPIRATION = 120_000L;
+    public static final long SELECTION_EXPIRATION = TimeUnit.SECONDS.toNanos(120);
     private long time = 0;
     public Set<CompactionKind> running = new HashSet<>();
 
@@ -435,11 +434,11 @@ public class CompactableImplFileManagerTest {
     }
 
     @Override
-    protected long getCurentTimeMillis() {
+    protected long getNanoTime() {
       return time;
     }
 
-    void setCurrentTimeMillis(long t) {
+    void setNanoTime(long t) {
       time = t;
     }
 

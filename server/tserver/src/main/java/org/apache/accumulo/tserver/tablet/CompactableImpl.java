@@ -182,8 +182,8 @@ public class CompactableImpl implements Compactable {
   static abstract class FileManager {
 
     FileSelectionStatus selectStatus = FileSelectionStatus.NOT_ACTIVE;
-    private long selectedTime;
-    private long selectedExpirationDurationMs;
+    private long selectedTimeNanos;
+    private long selectedExpirationDurationNanos;
     private CompactionKind selectKind = null;
 
     // Tracks if when a set of files was selected, if at that time the set was all of the tablets
@@ -201,13 +201,13 @@ public class CompactableImpl implements Compactable {
     private Set<StoredTabletFile> allFilesWhenChopStarted = new HashSet<>();
 
     private final KeyExtent extent;
-    private Deriver<Long> selectionExpirationDeriver;
+    private Deriver<Long> selectionExpirationNanosDeriver;
 
     public FileManager(KeyExtent extent, Collection<StoredTabletFile> extCompactingFiles,
-        Optional<SelectedInfo> extSelInfo, Deriver<Long> selectionExpirationDeriver) {
+        Optional<SelectedInfo> extSelInfo, Deriver<Long> selectionExpirationNanosDeriver) {
 
       this.extent = extent;
-      this.selectionExpirationDeriver = selectionExpirationDeriver;
+      this.selectionExpirationNanosDeriver = selectionExpirationNanosDeriver;
       allCompactingFiles.addAll(extCompactingFiles);
       if (extSelInfo.isPresent()) {
         this.selectedFiles.addAll(extSelInfo.get().selectedFiles);
@@ -235,7 +235,7 @@ public class CompactableImpl implements Compactable {
 
     protected abstract boolean noneRunning(CompactionKind kind);
 
-    protected abstract long getCurentTimeMillis();
+    protected abstract long getNanoTime();
 
     boolean initiateSelection(CompactionKind kind) {
 
@@ -268,9 +268,9 @@ public class CompactableImpl implements Compactable {
       Preconditions.checkArgument(!selected.isEmpty());
       Preconditions.checkState(selectStatus == FileSelectionStatus.SELECTING);
       selectStatus = FileSelectionStatus.SELECTED;
-      selectedTime = getCurentTimeMillis();
+      selectedTimeNanos = getNanoTime();
       // take a snapshot of this from config and use it for the entire selection for consistency
-      selectedExpirationDurationMs = selectionExpirationDeriver.derive();
+      selectedExpirationDurationNanos = selectionExpirationNanosDeriver.derive();
       selectedFiles.clear();
       selectedFiles.addAll(selected);
       initiallySelectedAll = allSelected;
@@ -402,7 +402,7 @@ public class CompactableImpl implements Compactable {
             case SELECTED: {
               Set<StoredTabletFile> candidates = new HashSet<>(currFiles);
               candidates.removeAll(allCompactingFiles);
-              if (getCurentTimeMillis() - selectedTime < selectedExpirationDurationMs) {
+              if (getNanoTime() - selectedTimeNanos < selectedExpirationDurationNanos) {
                 candidates.removeAll(selectedFiles);
               }
               return Collections.unmodifiableSet(candidates);
@@ -478,7 +478,7 @@ public class CompactableImpl implements Compactable {
       Preconditions.checkArgument(!jobFiles.isEmpty());
 
       if (selectStatus == FileSelectionStatus.SELECTED
-          && getCurentTimeMillis() - selectedTime > selectedExpirationDurationMs
+          && getNanoTime() - selectedTimeNanos > selectedExpirationDurationNanos
           && job.getKind() != selectKind && !Collections.disjoint(selectedFiles, jobFiles)) {
         // If a selected compaction starts running, it should always changes the state to RESERVED.
         // So would never expect there to be any running when in the SELECTED state.
@@ -652,17 +652,18 @@ public class CompactableImpl implements Compactable {
       return Set.copyOf(servicesIds);
     }, 2, TimeUnit.SECONDS);
 
-    Deriver<Long> selectionExpirationDeriver = tablet.getTableConfiguration()
-        .newDeriver(conf -> conf.getTimeInMillis(Property.TABLE_COMPACTION_SELECTION_EXPIRATION));
+    Deriver<Long> selectionExpirationNanosDeriver =
+        tablet.getTableConfiguration().newDeriver(conf -> TimeUnit.MILLISECONDS
+            .toNanos(conf.getTimeInMillis(Property.TABLE_COMPACTION_SELECTION_EXPIRATION)));
     this.fileMgr = new FileManager(tablet.getExtent(), extCompactingFiles, extSelInfo,
-        selectionExpirationDeriver) {
+        selectionExpirationNanosDeriver) {
       protected boolean noneRunning(CompactionKind kind) {
         return CompactableImpl.this.noneRunning(kind);
       }
 
       @Override
-      protected long getCurentTimeMillis() {
-        return System.currentTimeMillis();
+      protected long getNanoTime() {
+        return System.nanoTime();
       }
     };
   }
