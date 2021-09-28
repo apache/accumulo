@@ -26,7 +26,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.thrift.TConfiguration;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransport;
-import org.apache.thrift.transport.TTransportException;
 
 /**
  * Mocket - a Mock Socket
