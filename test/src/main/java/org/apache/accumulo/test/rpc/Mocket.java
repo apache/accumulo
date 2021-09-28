@@ -144,7 +144,7 @@ public class Mocket {
 
     @Override
     public TTransport accept() throws TTransportException {
-      return null;
+      return servTrans;
     }
 
     @Override
@@ -180,12 +180,12 @@ public class Mocket {
     }
 
     @Override
-    public void updateKnownMessageSize(long size) throws TTransportException {
+    public void updateKnownMessageSize(long size) {
 
     }
 
     @Override
-    public void checkReadBytesAvailable(long numBytes) throws TTransportException {
+    public void checkReadBytesAvailable(long numBytes) {
 
     }
 

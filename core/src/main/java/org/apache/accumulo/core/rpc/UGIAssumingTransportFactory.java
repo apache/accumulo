@@ -47,7 +47,7 @@ public class UGIAssumingTransportFactory extends TTransportFactory {
   }
 
   @Override
-  public TTransport getTransport(final TTransport trans) throws TTransportException {
+  public TTransport getTransport(final TTransport trans) {
     return ugi.doAs((PrivilegedAction<TTransport>) () -> {
       try {
         return wrapped.getTransport(trans);
