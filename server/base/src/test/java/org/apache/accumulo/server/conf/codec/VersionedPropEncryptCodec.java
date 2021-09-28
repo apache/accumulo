@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.server.conf.codec;
 
-import static org.apache.accumulo.server.conf.codec.EncodingOptions.EXPERIMENTAL_CIPHER_ENCODING_1_0;
-
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -55,6 +53,9 @@ import javax.crypto.spec.SecretKeySpec;
  * stored in the external store.
  */
 public class VersionedPropEncryptCodec extends VersionedPropCodec {
+
+  // testing version (999 or higher)
+  public static final int EXPERIMENTAL_CIPHER_ENCODING_1_0 = 999;
 
   public static final String CRYPT_ALGORITHM = "AES/GCM/NoPadding";
 

@@ -19,10 +19,10 @@
 package org.apache.accumulo.server.conf.codec;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.Test;
@@ -32,9 +32,9 @@ import org.junit.Test;
  */
 public class VersionedPropCodecTest {
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void invalidEncodingNullArray() {
-    VersionedPropCodec.getEncodingVersion(null);
+    assertThrows(IllegalArgumentException.class, () -> VersionedPropCodec.getEncodingVersion(null));
   }
 
   @Test
@@ -49,28 +49,22 @@ public class VersionedPropCodecTest {
    * The timestamp will be invalid - this should cause a timestamp parse error that will be remapped
    * to an IllegalArgumentException.
    */
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void getDataVersionBadTimestamp() {
     // length so that array reads do not error
     byte[] bytes = new byte[100];
-    assertEquals(0, VersionedPropCodec.getDataVersion(bytes));
+    assertThrows(IllegalArgumentException.class, () -> VersionedPropCodec.getDataVersion(bytes));
   }
 
   @Test
   public void goPath() throws IOException {
-
     int aVersion = 13;
-    Instant now = Instant.now();
-
-    Map<String,String> p = new HashMap<>();
-    p.put("k1", "v1");
-
-    VersionedProperties vProps = new VersionedProperties(aVersion, now, p);
+    VersionedProperties vProps =
+        new VersionedProperties(aVersion, Instant.now(), Map.of("k1", "v1"));
 
     VersionedPropCodec codec = VersionedPropGzipCodec.codec(true);
     byte[] encodedBytes = codec.toBytes(vProps);
 
     assertEquals(aVersion + 1, VersionedPropCodec.getDataVersion(encodedBytes));
-
   }
 }

@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.Test;
@@ -39,11 +38,7 @@ public class VersionedPropGzipCodecTest {
 
   @Test
   public void roundTripUncompressed() throws IOException {
-
-    Map<String,String> p = new HashMap<>();
-    p.put("k1", "v1");
-
-    VersionedProperties vProps = new VersionedProperties(p);
+    VersionedProperties vProps = new VersionedProperties(Map.of("k1", "v1"));
 
     VersionedPropCodec encoder = VersionedPropGzipCodec.codec(false);
 
@@ -64,11 +59,7 @@ public class VersionedPropGzipCodecTest {
 
   @Test
   public void roundTripCompressed() throws IOException {
-
-    Map<String,String> p = new HashMap<>();
-    p.put("k1", "v1");
-
-    VersionedProperties vProps = new VersionedProperties(p);
+    VersionedProperties vProps = new VersionedProperties(Map.of("k1", "v1"));
 
     VersionedPropCodec codec = VersionedPropGzipCodec.codec(true);
 
@@ -93,12 +84,8 @@ public class VersionedPropGzipCodecTest {
   public void roundTripVersioning() throws IOException {
 
     int aVersion = 13;
-    Instant now = Instant.now();
-
-    Map<String,String> p = new HashMap<>();
-    p.put("k1", "v1");
-
-    VersionedProperties vProps = new VersionedProperties(aVersion, now, p);
+    VersionedProperties vProps =
+        new VersionedProperties(aVersion, Instant.now(), Map.of("k1", "v1"));
 
     VersionedPropCodec codec = VersionedPropGzipCodec.codec(true);
     byte[] encodedBytes = codec.toBytes(vProps);
@@ -126,14 +113,11 @@ public class VersionedPropGzipCodecTest {
   }
 
   @Test
-  public void rt2() throws IOException {
+  public void roundTrip2() throws IOException {
 
     int aVersion = 13;
-    Instant now = Instant.now();
-
-    Map<String,String> p = new HashMap<>();
-    p.put("k1", "v1");
-    VersionedProperties vProps = new VersionedProperties(aVersion, now, p);
+    VersionedProperties vProps =
+        new VersionedProperties(aVersion, Instant.now(), Map.of("k1", "v1"));
 
     VersionedPropCodec codec = VersionedPropGzipCodec.codec(true);
     byte[] encodedBytes = codec.toBytes(vProps);

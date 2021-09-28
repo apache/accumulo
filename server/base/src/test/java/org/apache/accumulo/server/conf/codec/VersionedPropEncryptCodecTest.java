@@ -26,17 +26,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.Base64;
-import java.util.HashMap;
 import java.util.Map;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
 
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -59,25 +54,21 @@ public class VersionedPropEncryptCodecTest {
     final char[] pass = {'a', 'b', 'c'};
     final byte[] salt = {1, 2, 3};
 
-    VersionedPropEncryptCodec.GCMCipherParams cipherProps =
-        new VersionedPropEncryptCodec.GCMCipherParams(pass, salt);
+    var cipherProps = new VersionedPropEncryptCodec.GCMCipherParams(pass, salt);
 
-    Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+    var cipher = Cipher.getInstance("AES/GCM/NoPadding");
     cipher.init(Cipher.ENCRYPT_MODE, cipherProps.getSecretKey(), cipherProps.getParameterSpec());
 
     byte[] payload;
 
-    try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-
-      CipherOutputStream cos = new CipherOutputStream(bos, cipher);
-
-      DataOutputStream dos = new DataOutputStream(cos);
+    try (var bos = new ByteArrayOutputStream()) {
+      var cos = new CipherOutputStream(bos, cipher);
+      var dos = new DataOutputStream(cos);
 
       dos.writeUTF("A");
       dos.writeUTF("B");
       dos.writeUTF("C");
 
-      cos.flush();
       cos.close();
 
       payload = bos.toByteArray();
@@ -87,16 +78,15 @@ public class VersionedPropEncryptCodecTest {
     }
 
     cipher.init(Cipher.DECRYPT_MODE, cipherProps.getSecretKey(), cipherProps.getParameterSpec());
-    try (ByteArrayInputStream bis = new ByteArrayInputStream(payload)) {
 
+    try (var bis = new ByteArrayInputStream(payload)) {
       // write the property map keys, values.
-      try (CipherInputStream cis = new CipherInputStream(bis, cipher);
+      try (var cis = new CipherInputStream(bis, cipher);
+          var cdatastream = new DataInputStream(cis)) {
 
-          DataInputStream cdis = new DataInputStream(cis)) {
-
-        assertEquals("A", cdis.readUTF());
-        assertEquals("B", cdis.readUTF());
-        assertEquals("C", cdis.readUTF());
+        assertEquals("A", cdatastream.readUTF());
+        assertEquals("B", cdatastream.readUTF());
+        assertEquals("C", cdatastream.readUTF());
       }
     }
   }
@@ -108,17 +98,14 @@ public class VersionedPropEncryptCodecTest {
   public void roundTripEncryption() throws Exception {
 
     int aVersion = 13;
-    Instant now = Instant.now();
 
-    Map<String,String> p = new HashMap<>();
-    p.put("k1", "v1");
-
-    VersionedProperties vProps = new VersionedProperties(aVersion, now, p);
+    VersionedProperties vProps =
+        new VersionedProperties(aVersion, Instant.now(), Map.of("k1", "v1"));
 
     final char[] pass = {'a', 'b', 'c'};
     final byte[] salt = {1, 2, 3};
 
-    VersionedPropCodec encoder = VersionedPropEncryptCodec.codec(false,
+    var encoder = VersionedPropEncryptCodec.codec(false,
         new VersionedPropEncryptCodec.GCMCipherParams(pass, salt));
 
     byte[] encodedBytes = encoder.toBytes(vProps);
@@ -158,14 +145,12 @@ public class VersionedPropEncryptCodecTest {
     Instant now = Instant.now();
 
     // compression friendly
-    Map<String,String> p = new HashMap<>();
-    p.put("accumulo.prop.key_name.1", "value1");
-    p.put("accumulo.prop.key_name.2", "value2");
-    p.put("accumulo.prop.key_name.3", "value3");
-    p.put("accumulo.prop.key_name.4", "value4");
-    p.put("accumulo.prop.key_name.5", "value5");
-    p.put("accumulo.prop.key_name.6", "value9");
-
+    // @formatter:off
+    Map<String, String> p
+        = Map.of("accumulo.prop.key_name.1", "value1", "accumulo.prop.key_name.2",
+            "value2", "accumulo.prop.key_name.3", "value3", "accumulo.prop.key_name.4", "value4",
+            "accumulo.prop.key_name.5", "value5", "accumulo.prop.key_name.6", "value9");
+    // @@formatter:on
     VersionedProperties vProps = new VersionedProperties(aVersion, now, p);
 
     final char[] pass = {'a', 'b', 'c'};
@@ -205,12 +190,9 @@ public class VersionedPropEncryptCodecTest {
   public void validateEncryptedValuesChange() throws Exception {
 
     int aVersion = 13;
-    Instant now = Instant.now();
 
-    Map<String,String> p = new HashMap<>();
-    p.put("k1", "v1");
-
-    VersionedProperties vProps = new VersionedProperties(aVersion, now, p);
+    VersionedProperties vProps =
+        new VersionedProperties(aVersion, Instant.now(), Map.of("k1", "v1"));
 
     final char[] pass = {'a', 'b', 'c'};
     final byte[] salt = {1, 2, 3};
@@ -242,10 +224,5 @@ public class VersionedPropEncryptCodecTest {
 
     assertNotEquals(encodedBytes1, encodedBytes2);
 
-  }
-
-  private String keyGen() throws NoSuchAlgorithmException {
-    SecretKey secretKey = KeyGenerator.getInstance("AES").generateKey();
-    return Base64.getEncoder().encodeToString(secretKey.getEncoded());
   }
 }

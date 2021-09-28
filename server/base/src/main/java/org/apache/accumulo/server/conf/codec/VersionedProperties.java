@@ -18,18 +18,16 @@
  */
 package org.apache.accumulo.server.conf.codec;
 
+import static java.util.Objects.requireNonNull;
+
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.TreeMap;
-
-import com.google.common.collect.ImmutableMap;
 
 /**
  * Version properties maintain a {@code Map<String,String>}; of property k,v pairs along with
@@ -54,13 +52,13 @@ public class VersionedProperties {
   private static final int NO_VERSION = -2;
   private final int dataVersion;
   private final Instant timestamp;
-  private final ImmutableMap<String,String> props;
+  private final Map<String,String> props;
 
   /**
    * Instantiate an initial instance with default version info and empty map.
    */
   public VersionedProperties() {
-    this(NO_VERSION, Instant.now(), Collections.emptyMap());
+    this(Map.of());
   }
 
   /**
@@ -88,12 +86,8 @@ public class VersionedProperties {
   public VersionedProperties(final int dataVersion, final Instant timestamp,
       final Map<String,String> props) {
     this.dataVersion = dataVersion;
-    this.timestamp = timestamp;
-    if (Objects.nonNull(props)) {
-      this.props = new ImmutableMap.Builder<String,String>().putAll(props).build();
-    } else {
-      this.props = new ImmutableMap.Builder<String,String>().build();
-    }
+    this.timestamp = requireNonNull(timestamp, "A timestamp must be supplied");
+    this.props = props == null ? Map.of() : Map.copyOf(props);
   }
 
   /**
@@ -138,7 +132,7 @@ public class VersionedProperties {
    * @return the timestamp of the instance.
    */
   public Instant getTimestamp() {
-    return Instant.from(timestamp);
+    return timestamp;
   }
 
   /**
@@ -168,13 +162,8 @@ public class VersionedProperties {
    * @return A new instance of this class with the property added or updated.
    */
   public VersionedProperties addOrUpdate(final String key, final String value) {
-    ImmutableMap<String,String> updated =
-        ImmutableMap.<String,String>builder().putAll(new HashMap<>() {
-          {
-            putAll(props);
-            put(key, value);
-          }
-        }).build();
+    var updated = new HashMap<>(props);
+    updated.put(key, value);
     return new VersionedProperties(dataVersion, Instant.now(), updated);
   }
 
@@ -191,13 +180,8 @@ public class VersionedProperties {
    * @return A new instance of this class with the properties added or updated.
    */
   public VersionedProperties addOrUpdate(final Map<String,String> updates) {
-    ImmutableMap<String,String> updated =
-        ImmutableMap.<String,String>builder().putAll(new HashMap<>() {
-          {
-            putAll(props);
-            putAll(updates);
-          }
-        }).build();
+    var updated = new HashMap<>(props);
+    updated.putAll(updates);
     return new VersionedProperties(dataVersion, Instant.now(), updated);
   }
 
@@ -214,13 +198,8 @@ public class VersionedProperties {
    * @return A new instance of this class.
    */
   public VersionedProperties remove(Collection<String> keys) {
-
-    HashMap<String,String> orig = new HashMap<>(props);
-    keys.forEach(orig::remove);
-
-    ImmutableMap<String,String> updated =
-        ImmutableMap.<String,String>builder().putAll(orig).build();
-
+    var updated = new HashMap<>(props);
+    updated.keySet().removeAll(keys);
     return new VersionedProperties(dataVersion, Instant.now(), updated);
   }
 

@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.Instant;
-import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -114,7 +113,7 @@ public abstract class VersionedPropCodec {
     try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
         DataInputStream dis = new DataInputStream(bis)) {
 
-      EncodingOptions encodingOpts = new EncodingOptions(dis);
+      EncodingOptions encodingOpts = EncodingOptions.fromDataStream(dis);
 
       if (!checkCanDecodeVersion(encodingOpts)) {
         throw new IllegalArgumentException(
@@ -122,7 +121,7 @@ public abstract class VersionedPropCodec {
                 + encodingOpts.getEncodingVersion());
       }
 
-      DataVersionInfo vMetadata = new DataVersionInfo(dis);
+      DataVersionInfo vMetadata = DataVersionInfo.fromDataStream(dis);
 
       Map<String,String> props = decodePayload(bis, encodingOpts);
 
@@ -145,7 +144,7 @@ public abstract class VersionedPropCodec {
   public static int getEncodingVersion(final byte[] bytes) {
     try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
         DataInputStream dis = new DataInputStream(bis)) {
-      return new EncodingOptions(dis).getEncodingVersion();
+      return EncodingOptions.fromDataStream(dis).getEncodingVersion();
     } catch (NullPointerException | IOException ex) {
       throw new IllegalArgumentException("Failed to read encoding version from byte array provided",
           ex);
@@ -170,8 +169,8 @@ public abstract class VersionedPropCodec {
     try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
         DataInputStream dis = new DataInputStream(bis)) {
       // skip encoding metadata
-      new EncodingOptions(dis);
-      return new DataVersionInfo(dis).getDataVersion();
+      EncodingOptions.fromDataStream(dis);
+      return DataVersionInfo.fromDataStream(dis).getDataVersion();
     } catch (NullPointerException | IOException ex) {
       throw new IllegalArgumentException(
           "Failed to read data version version from byte array provided", ex);
@@ -260,12 +259,13 @@ public abstract class VersionedPropCodec {
       this.timestamp = timestamp;
     }
 
-    public DataVersionInfo(final DataInputStream dis) throws IOException {
-      dataVersion = dis.readInt();
+    public static DataVersionInfo fromDataStream(final DataInputStream dis) throws IOException {
       try {
-        timestamp = tsFormatter.parse(dis.readUTF(), Instant::from);
-      } catch (DateTimeParseException ex) {
-        throw new IOException("Could not parse timestamp", ex);
+        var dataVersion = dis.readInt();
+        var timestamp = tsFormatter.parse(dis.readUTF(), Instant::from);
+        return new DataVersionInfo(dataVersion, timestamp);
+      } catch (Exception ex) {
+        throw new IOException("Could not parse data version info", ex);
       }
     }
 

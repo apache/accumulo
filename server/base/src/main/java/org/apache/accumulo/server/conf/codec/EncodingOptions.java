@@ -33,9 +33,8 @@ import java.util.StringJoiner;
 public class EncodingOptions {
 
   // Adding an encoding version must be done as an addition. Do not change or delete previous
-  // version numbers
+  // version numbers - versions 999 and above reserved for testing
   public static final int EncodingVersion_1_0 = 1;
-  public static final int EXPERIMENTAL_CIPHER_ENCODING_1_0 = 999;
 
   private final int encodingVersion;
   private final boolean compress;
@@ -66,9 +65,8 @@ public class EncodingOptions {
    * @throws IOException
    *           if an exception occurs reading from the input stream.
    */
-  public EncodingOptions(final DataInputStream dis) throws IOException {
-    encodingVersion = dis.readInt();
-    compress = dis.readBoolean();
+  public static EncodingOptions fromDataStream(final DataInputStream dis) throws IOException {
+    return new EncodingOptions(dis.readInt(), dis.readBoolean());
   }
 
   /**
