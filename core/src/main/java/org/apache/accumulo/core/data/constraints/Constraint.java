@@ -90,10 +90,6 @@ public interface Constraint {
    *
    * Violation codes must be non-negative. Negative violation codes are reserved for system use.
    *
-   * New API equivalent of
-   * {@link org.apache.accumulo.core.constraints.Constraint#check(org.apache.accumulo.core.constraints.Constraint.Environment, Mutation)}
-   * but renamed to prevent ambiguous method call errors.
-   *
    * @param env
    *          constraint environment
    * @param mutation
