@@ -72,7 +72,6 @@ import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.summary.SummaryReader;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
-import org.apache.accumulo.server.compaction.CompactionInfo;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.compaction.FileCompactor.CompactionCanceledException;
