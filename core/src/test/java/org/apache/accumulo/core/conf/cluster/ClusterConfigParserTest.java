@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -32,22 +33,17 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths provided by test")
 public class ClusterConfigParserTest {
 
-  @Rule
-  public TemporaryFolder tmp = new TemporaryFolder();
-
   @Test
   public void testParse() throws Exception {
     URL configFile = ClusterConfigParserTest.class
-        .getResource("/org/apache/accumulo/core/conf/cluster/cluster.yml");
+        .getResource("/org/apache/accumulo/core/conf/cluster/cluster.yaml");
     assertNotNull(configFile);
 
     Map<String,String> contents =
@@ -74,7 +70,7 @@ public class ClusterConfigParserTest {
   @Test
   public void testParseWithExternalCompactions() throws Exception {
     URL configFile = ClusterConfigParserTest.class.getResource(
-        "/org/apache/accumulo/core/conf/cluster/cluster-with-external-compactions.yml");
+        "/org/apache/accumulo/core/conf/cluster/cluster-with-external-compactions.yaml");
     assertNotNull(configFile);
 
     Map<String,String> contents =
@@ -105,13 +101,24 @@ public class ClusterConfigParserTest {
   @Test
   public void testShellOutput() throws Exception {
 
-    File f = tmp.newFile();
+    String userDir = System.getProperty("user.dir");
+    String targetDir = "target";
+    File dir = new File(userDir, targetDir);
+    if (!dir.exists()) {
+      if (!dir.mkdirs()) {
+        fail("Unable to make directory ${user.dir}/target");
+      }
+    }
+    File f = new File(dir, "ClusterConfigParserTest_testShellOutput");
+    if (!f.createNewFile()) {
+      fail("Unable to create file in ${user.dir}/target");
+    }
     f.deleteOnExit();
 
     PrintStream ps = new PrintStream(f);
 
     URL configFile = ClusterConfigParserTest.class.getResource(
-        "/org/apache/accumulo/core/conf/cluster/cluster-with-external-compactions.yml");
+        "/org/apache/accumulo/core/conf/cluster/cluster-with-external-compactions.yaml");
     assertNotNull(configFile);
 
     Map<String,String> contents =
@@ -120,16 +127,13 @@ public class ClusterConfigParserTest {
     ClusterConfigParser.outputShellVariables(contents, ps);
     ps.close();
 
-    Map<String,String> expected = new HashMap<>();
-    expected.put("MANAGER_HOSTS", "\"localhost1 localhost2\"");
-    expected.put("MONITOR_HOSTS", "\"localhost1 localhost2\"");
-    expected.put("TRACER_HOSTS", "\"localhost\"");
-    expected.put("GC_HOSTS", "\"localhost\"");
-    expected.put("TSERVER_HOSTS", "\"localhost1 localhost2 localhost3 localhost4\"");
-    expected.put("COORDINATOR_HOSTS", "\"localhost1 localhost2\"");
-    expected.put("COMPACTION_QUEUES", "\"q1 q2\"");
-    expected.put("COMPACTOR_HOSTS_q1", "\"localhost1 localhost2\"");
-    expected.put("COMPACTOR_HOSTS_q2", "\"localhost1 localhost2\"");
+    Map<String,
+        String> expected = Map.of("MANAGER_HOSTS", "\"localhost1 localhost2\"", "MONITOR_HOSTS",
+            "\"localhost1 localhost2\"", "TRACER_HOSTS", "\"localhost\"", "GC_HOSTS",
+            "\"localhost\"", "TSERVER_HOSTS", "\"localhost1 localhost2 localhost3 localhost4\"",
+            "COORDINATOR_HOSTS", "\"localhost1 localhost2\"", "COMPACTION_QUEUES", "\"q1 q2\"",
+            "COMPACTOR_HOSTS_q1", "\"localhost1 localhost2\"", "COMPACTOR_HOSTS_q2",
+            "\"localhost1 localhost2\"");
 
     Map<String,String> actual = new HashMap<>();
     try (BufferedReader rdr = Files.newBufferedReader(Paths.get(f.toURI()))) {
