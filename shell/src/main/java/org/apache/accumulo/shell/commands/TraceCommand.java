@@ -28,6 +28,7 @@ import org.apache.commons.cli.CommandLine;
 
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
 
 public class TraceCommand extends Command {
 
@@ -39,8 +40,8 @@ public class TraceCommand extends Command {
     if (cl.getArgs().length == 1) {
       if (cl.getArgs()[0].equalsIgnoreCase("on")) {
         if (span == null) {
-          span = TraceUtil.getTracer()
-              .spanBuilder("shell:" + shellState.getAccumuloClient().whoami()).startSpan();
+          span = TraceUtil.createSpan(Shell.class, shellState.getAccumuloClient().whoami(),
+              SpanKind.CLIENT);
         }
       } else if (cl.getArgs()[0].equalsIgnoreCase("off")) {
         if (span != null) {

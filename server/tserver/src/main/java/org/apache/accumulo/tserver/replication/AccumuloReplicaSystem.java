@@ -81,7 +81,7 @@ import org.slf4j.LoggerFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class AccumuloReplicaSystem implements ReplicaSystem {
@@ -203,8 +203,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       final ReplicaSystemHelper helper, final AccumuloConfiguration localConf,
       final ClientContext peerContext, final UserGroupInformation accumuloUgi) {
 
-    Tracer tracer = TraceUtil.getTracer();
-    Span span = tracer.spanBuilder("AccumuloReplicaSystem::_replicate").startSpan();
+    Span span = TraceUtil.createSpan(this.getClass(), "_replicate", SpanKind.SERVER);
     try (Scope replicaScope = span.makeCurrent()) {
 
       // Remote identifier is an integer (table id) in this case.
@@ -217,8 +216,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         log.debug("Attempt {}", i);
         String peerTserverStr;
         log.debug("Fetching peer tserver address");
-        Span span2 =
-            tracer.spanBuilder("AccumuloReplicaSystem::_replicate::Fetch peer tserver").startSpan();
+        Span span2 = TraceUtil.createSpan(this.getClass(), "_replicate::Fetch peer tserver",
+            SpanKind.SERVER);
         try (Scope scope = span2.makeCurrent()) {
           // Ask the manager on the remote what TServer we should talk with to replicate the data
           peerTserverStr = ReplicationClient.executeCoordinatorWithReturn(peerContext,
@@ -255,8 +254,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         final long sizeLimit = conf.getAsBytes(Property.REPLICATION_MAX_UNIT_SIZE);
         try {
           if (p.getName().endsWith(RFILE_SUFFIX)) {
-            Span span3 = tracer.spanBuilder("AccumuloReplicaSystem::_replicate::RFile replication")
-                .startSpan();
+            Span span3 = TraceUtil.createSpan(this.getClass(), "_replicate::RFile replication",
+                SpanKind.SERVER);
             try (Scope scope = span3.makeCurrent()) {
               finalStatus = replicateRFiles(peerContext, peerTserver, target, p, status, timeout);
             } catch (Exception e) {
@@ -267,8 +266,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
               span3.end();
             }
           } else {
-            Span span4 = tracer.spanBuilder("AccumuloReplicaSystem::_replicate::WAL replication")
-                .startSpan();
+            Span span4 = TraceUtil.createSpan(this.getClass(), "_replicate::WAL replication",
+                SpanKind.SERVER);
             try (Scope scope = span4.makeCurrent()) {
               finalStatus = replicateLogs(peerContext, peerTserver, target, p, status, sizeLimit,
                   remoteTableId, peerContext.rpcCreds(), helper, accumuloUgi, timeout);
@@ -357,12 +356,11 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
     log.debug("Replication WAL to peer tserver");
     final Set<Integer> tids;
-    Tracer tracer = TraceUtil.getTracer();
     try (final FSDataInputStream fsinput = context.getVolumeManager().open(p);
         final DataInputStream input = getWalStream(p, fsinput)) {
       log.debug("Skipping unwanted data in WAL");
-      Span span = tracer.spanBuilder("AccumuloReplicaSystem::replicateLogs::Consume WAL prefix")
-          .startSpan();
+      Span span = TraceUtil.createSpan(this.getClass(), "replicateLogs::Consume WAL prefix",
+          SpanKind.SERVER);
       try (Scope scope = span.makeCurrent()) {
         span.setAttribute("file", p.toString());
         // We want to read all records in the WAL up to the "begin" offset contained in the Status
@@ -389,8 +387,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
       while (true) {
         ReplicationStats replResult;
-        Span span2 = tracer.spanBuilder("AccumuloReplicaSystem::replicateLogs::Replicate WAL batch")
-            .startSpan();
+        Span span2 = TraceUtil.createSpan(this.getClass(), "replicateLogs::Replicate WAL batch",
+            SpanKind.SERVER);
         try (Scope scope = span2.makeCurrent()) {
           span2.setAttribute("Batch size (bytes)", Long.toString(sizeLimit));
           span2.setAttribute("File", p.toString());
@@ -434,9 +432,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           // we can just not record any updates, and it will be picked up again by the work assigner
           return status;
         } else {
-          Span span3 =
-              tracer.spanBuilder("AccumuloReplicaSystem::replicateLogs::Update replication table")
-                  .startSpan();
+          Span span3 = TraceUtil.createSpan(this.getClass(),
+              "replicateLogs::Update replication table", SpanKind.SERVER);
           try (Scope scope = span3.makeCurrent()) {
             if (accumuloUgi != null) {
               final Status copy = currentStatus;
@@ -500,9 +497,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       } else {
         newStatus = Status.newBuilder(status).setBegin(status.getEnd()).build();
       }
-      Span span4 =
-          tracer.spanBuilder("AccumuloReplicaSystem::replicateLogs::Update replication table")
-              .startSpan();
+      Span span4 = TraceUtil.createSpan(this.getClass(), "replicateLogs::Update replication table",
+          SpanKind.SERVER);
       try (Scope scope = span4.makeCurrent()) {
         helper.recordNewStatus(p, newStatus, target);
       } catch (TableNotFoundException tnfe) {
@@ -689,8 +685,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
   public DataInputStream getWalStream(Path p, FSDataInputStream input)
       throws LogHeaderIncompleteException, IOException {
-    Span span = TraceUtil.getTracer()
-        .spanBuilder("AccumuloReplicaSystem::getWalStream::Read WAL header").startSpan();
+    Span span =
+        TraceUtil.createSpan(this.getClass(), "getWalStream::Read WAL header", SpanKind.SERVER);
     try (Scope scope = span.makeCurrent()) {
       span.setAttribute("file", p.toString());
       return DfsLogger.getDecryptingStream(input, conf);

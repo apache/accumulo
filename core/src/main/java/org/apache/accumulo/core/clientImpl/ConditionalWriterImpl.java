@@ -35,9 +35,9 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
@@ -87,12 +87,8 @@ import org.apache.thrift.transport.TTransportException;
 
 class ConditionalWriterImpl implements ConditionalWriter {
 
-  private static ThreadPoolExecutor cleanupThreadPool = ThreadPools.createFixedThreadPool(1, 3,
-      TimeUnit.SECONDS, "Conditional Writer Cleanup Thread");
-
-  static {
-    cleanupThreadPool.allowCoreThreadTimeOut(true);
-  }
+  private static ExecutorService cleanupThreadPool = ThreadPools.createFixedThreadPool(1, 3,
+      TimeUnit.SECONDS, "Conditional Writer Cleanup Thread", false);
 
   private static final int MAX_SLEEP = 30000;
 
@@ -114,7 +110,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
   private Map<String,ServerQueue> serverQueues;
   private DelayQueue<QCMutation> failedMutations = new DelayQueue<>();
-  private ScheduledThreadPoolExecutor threadPool;
+  private ScheduledExecutorService threadPool;
 
   private class RQIterator implements Iterator<Result> {
 
@@ -366,7 +362,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
     this.threadPool = ThreadPools.createScheduledExecutorService(config.getMaxWriteThreads(),
-        this.getClass().getSimpleName());
+        this.getClass().getSimpleName(), false);
     this.locator = new SyncingTabletLocator(context, tableId);
     this.serverQueues = new HashMap<>();
     this.tableId = tableId;

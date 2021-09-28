@@ -35,6 +35,7 @@ import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.manager.LiveTServerSet;
@@ -45,6 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class FindOfflineTablets {
@@ -52,8 +54,8 @@ public class FindOfflineTablets {
 
   public static void main(String[] args) throws Exception {
     ServerUtilOpts opts = new ServerUtilOpts();
-    Span span = opts.parseArgsAndTrace(FindOfflineTablets.class.getName(), args).spanBuilder("main")
-        .startSpan();
+    opts.parseArgs(FindOfflineTablets.class.getName(), args);
+    Span span = TraceUtil.createSpan(FindOfflineTablets.class, "main", SpanKind.CLIENT);
     try (Scope scope = span.makeCurrent()) {
       ServerContext context = opts.getServerContext();
       findOffline(context, null);

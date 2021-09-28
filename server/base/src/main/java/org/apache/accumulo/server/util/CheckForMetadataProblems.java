@@ -39,11 +39,13 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.hadoop.io.Text;
 
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class CheckForMetadataProblems {
@@ -178,8 +180,8 @@ public class CheckForMetadataProblems {
 
   public static void main(String[] args) throws Exception {
     opts = new ServerUtilOpts();
-    Span span = opts.parseArgsAndTrace(CheckForMetadataProblems.class.getName(), args)
-        .spanBuilder("main").startSpan();
+    opts.parseArgs(CheckForMetadataProblems.class.getName(), args);
+    Span span = TraceUtil.createSpan(CheckForMetadataProblems.class, "main", SpanKind.CLIENT);
     try (Scope scope = span.makeCurrent()) {
 
       checkMetadataAndRootTableEntries(RootTable.NAME, opts);

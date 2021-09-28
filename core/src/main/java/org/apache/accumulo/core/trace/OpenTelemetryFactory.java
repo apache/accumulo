@@ -20,15 +20,13 @@ package org.apache.accumulo.core.trace;
 
 import io.opentelemetry.api.trace.Tracer;
 
-public interface TracerProvider {
-
-  String INSTRUMENTATION_NAME = "io.opentelemetry.contrib.accumulo";
+public interface OpenTelemetryFactory {
 
   /**
-   * Get a Tracer
+   * Get the OpenTelemetry Tracer implementation
    *
    * @return Tracer
    */
-  public Tracer getTracer();
+  public Tracer getOpenTelemetry();
 
 }

@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -48,7 +48,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
   private final TableId tableId;
   private final String tableName;
   private final int numThreads;
-  private final ThreadPoolExecutor queryThreadPool;
+  private final ExecutorService queryThreadPool;
   private final ClientContext context;
   private final Authorizations authorizations;
   private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -73,9 +73,9 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     this.numThreads = numQueryThreads;
 
     queryThreadPool = ThreadPools.createFixedThreadPool(numQueryThreads,
-        "batch scanner " + batchReaderInstance + "-");
+        "batch scanner " + batchReaderInstance + "-", false);
     // Call shutdown on this thread pool in case the caller does not call close().
-    cleanable = CleanerUtil.shutdownThreadPoolExecutor(queryThreadPool, closed, log);
+    cleanable = CleanerUtil.shutdownExecutorService(queryThreadPool, closed, log);
   }
 
   @Override

@@ -42,6 +42,7 @@ import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
@@ -52,6 +53,7 @@ import org.apache.hadoop.fs.Path;
 import com.beust.jcommander.Parameter;
 
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 /**
@@ -125,7 +127,7 @@ public class RemoveEntriesForMissingFiles {
     @SuppressWarnings({"rawtypes"})
     Map cache = new LRUMap(100000);
     Set<Path> processing = new HashSet<>();
-    ExecutorService threadPool = ThreadPools.createFixedThreadPool(16, "CheckFileTasks");
+    ExecutorService threadPool = ThreadPools.createFixedThreadPool(16, "CheckFileTasks", false);
 
     System.out.printf("Scanning : %s %s\n", tableName, range);
 
@@ -205,8 +207,8 @@ public class RemoveEntriesForMissingFiles {
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    Span span = opts.parseArgsAndTrace(RemoveEntriesForMissingFiles.class.getName(), args)
-        .spanBuilder("main").startSpan();
+    opts.parseArgs(RemoveEntriesForMissingFiles.class.getName(), args);
+    Span span = TraceUtil.createSpan(RemoveEntriesForMissingFiles.class, "main", SpanKind.CLIENT);
     try (Scope scope = span.makeCurrent()) {
       checkAllTables(opts.getServerContext(), opts.fix);
     } finally {

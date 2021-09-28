@@ -187,7 +187,7 @@ public class TabletServerResourceManager {
 
     ExecutorService es =
         ThreadPools.createThreadPool(sec.getCurrentMaxThreads(), sec.getCurrentMaxThreads(), 0L,
-            TimeUnit.MILLISECONDS, "scan-" + sec.name, queue, sec.priority);
+            TimeUnit.MILLISECONDS, "scan-" + sec.name, queue, sec.priority, true);
     modifyThreadPoolSizesAtRuntime(sec::getCurrentMaxThreads, "scan-" + sec.name,
         (ThreadPoolExecutor) es);
     return es;
@@ -306,13 +306,13 @@ public class TabletServerResourceManager {
         () -> context.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT),
         "minor compactor", (ThreadPoolExecutor) minorCompactionThreadPool);
 
-    splitThreadPool = ThreadPools.createThreadPool(0, 1, 1, TimeUnit.SECONDS, "splitter");
+    splitThreadPool = ThreadPools.createThreadPool(0, 1, 1, TimeUnit.SECONDS, "splitter", true);
 
     defaultSplitThreadPool =
-        ThreadPools.createThreadPool(0, 1, 60, TimeUnit.SECONDS, "md splitter");
+        ThreadPools.createThreadPool(0, 1, 60, TimeUnit.SECONDS, "md splitter", true);
 
     defaultMigrationPool =
-        ThreadPools.createThreadPool(0, 1, 60, TimeUnit.SECONDS, "metadata tablet migration");
+        ThreadPools.createThreadPool(0, 1, 60, TimeUnit.SECONDS, "metadata tablet migration", true);
 
     migrationPool =
         ThreadPools.createExecutorService(acuConf, Property.TSERV_MIGRATE_MAXCONCURRENT);
@@ -331,8 +331,8 @@ public class TabletServerResourceManager {
         () -> context.getConfiguration().getCount(Property.TSERV_ASSIGNMENT_MAXCONCURRENT),
         "tablet assignment", (ThreadPoolExecutor) assignmentPool);
 
-    assignMetaDataPool =
-        ThreadPools.createThreadPool(0, 1, 60, TimeUnit.SECONDS, "metadata tablet assignment");
+    assignMetaDataPool = ThreadPools.createThreadPool(0, 1, 60, TimeUnit.SECONDS,
+        "metadata tablet assignment", true);
 
     activeAssignments = new ConcurrentHashMap<>();
 

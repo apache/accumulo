@@ -108,7 +108,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 // Could/Should implement HighlyAvaialbleService but the Thrift server is already started before
@@ -491,11 +491,10 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           }
         });
 
-    Tracer tracer = TraceUtil.getTracer();
     while (true) {
-      Span outerSpan = tracer.spanBuilder("SimpleGarbageCollector::gc").startSpan();
+      Span outerSpan = TraceUtil.createSpan(this.getClass(), "gc", SpanKind.SERVER);
       try (Scope outerScope = outerSpan.makeCurrent()) {
-        Span innerSpan = tracer.spanBuilder("SimpleGarbageCollector::loop").startSpan();
+        Span innerSpan = TraceUtil.createSpan(this.getClass(), "loop", SpanKind.SERVER);
         try (Scope innerScope = innerSpan.makeCurrent()) {
           final long tStart = System.nanoTime();
           try {
@@ -533,7 +532,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
            * GarbageCollectWriteAheadLogs to ensure we delete as many files as possible.
            */
           Span replSpan =
-              tracer.spanBuilder("SimpleGarbageCollector::replicationClose").startSpan();
+              TraceUtil.createSpan(this.getClass(), "replicationClose", SpanKind.SERVER);
           try (Scope replScope = replSpan.makeCurrent()) {
             CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(getContext());
             closeWals.run();
@@ -546,7 +545,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           }
 
           // Clean up any unused write-ahead logs
-          Span walSpan = tracer.spanBuilder("SimpleGarbageCollector::walogs").startSpan();
+          Span walSpan = TraceUtil.createSpan(this.getClass(), "walogs", SpanKind.SERVER);
           try (Scope walScope = walSpan.makeCurrent()) {
             GarbageCollectWriteAheadLogs walogCollector =
                 new GarbageCollectWriteAheadLogs(getContext(), fs, liveTServerSet, isUsingTrash());

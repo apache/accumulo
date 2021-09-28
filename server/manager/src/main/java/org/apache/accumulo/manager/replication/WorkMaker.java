@@ -52,7 +52,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 /**
@@ -78,8 +78,7 @@ public class WorkMaker {
       return;
     }
 
-    Tracer tracer = TraceUtil.getTracer();
-    Span span = tracer.spanBuilder("WorkMaker::replicationWorkMaker").startSpan();
+    Span span = TraceUtil.createSpan(this.getClass(), "replicationWorkMaker", SpanKind.SERVER);
     try (Scope scope = span.makeCurrent()) {
       final Scanner s;
       try {
@@ -140,7 +139,8 @@ public class WorkMaker {
         if (replicationTargets.isEmpty()) {
           log.warn("No configured targets for table with ID {}", tableId);
         } else {
-          Span childSpan = tracer.spanBuilder("WorkMaker::createWorkMutations").startSpan();
+          Span childSpan =
+              TraceUtil.createSpan(this.getClass(), "createWorkMutations", SpanKind.SERVER);
           try (Scope childScope = childSpan.makeCurrent()) {
             addWorkRecord(file, entry.getValue(), replicationTargets, tableId);
           } catch (Exception e) {

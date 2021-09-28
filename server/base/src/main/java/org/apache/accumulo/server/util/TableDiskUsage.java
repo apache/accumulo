@@ -45,6 +45,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -57,6 +58,7 @@ import com.beust.jcommander.Parameter;
 import com.google.common.base.Joiner;
 
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class TableDiskUsage {
@@ -302,8 +304,8 @@ public class TableDiskUsage {
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    Span span = opts.parseArgsAndTrace(TableDiskUsage.class.getName(), args).spanBuilder("main")
-        .startSpan();
+    opts.parseArgs(TableDiskUsage.class.getName(), args);
+    Span span = TraceUtil.createSpan(TableDiskUsage.class, "main", SpanKind.CLIENT);
     try (Scope scope = span.makeCurrent()) {
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
         VolumeManager fs = opts.getServerContext().getVolumeManager();

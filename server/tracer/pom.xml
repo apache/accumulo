@@ -47,7 +47,7 @@
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-sdk-extension-autoconfigure</artifactId>
-      <version>1.5.0-alpha</version>
+      <version>1.6.0-alpha</version>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
@@ -151,18 +151,12 @@
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-exporter-prometheus</artifactId>
-      <version>1.5.0-alpha</version>
+      <version>1.6.0-alpha</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-exporter-zipkin</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.opentelemetry</groupId>
-      <artifactId>opentelemetry-proto</artifactId>
-      <version>1.5.0-alpha</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
@@ -173,7 +167,7 @@
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-sdk-metrics</artifactId>
-      <version>1.5.0-alpha</version>
+      <version>1.6.0-alpha</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
@@ -184,7 +178,7 @@
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-semconv</artifactId>
-      <version>1.5.0-alpha</version>
+      <version>1.6.0-alpha</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>

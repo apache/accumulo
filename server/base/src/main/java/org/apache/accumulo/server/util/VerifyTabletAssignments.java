@@ -64,6 +64,7 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class VerifyTabletAssignments {
@@ -77,8 +78,8 @@ public class VerifyTabletAssignments {
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    Span span = opts.parseArgsAndTrace(VerifyTabletAssignments.class.getName(), args)
-        .spanBuilder("main").startSpan();
+    opts.parseArgs(VerifyTabletAssignments.class.getName(), args);
+    Span span = TraceUtil.createSpan(VerifyTabletAssignments.class, "main", SpanKind.CLIENT);
     try (Scope scope = span.makeCurrent()) {
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
         for (String table : client.tableOperations().list())
@@ -125,7 +126,7 @@ public class VerifyTabletAssignments {
       }
     }
 
-    ExecutorService tp = ThreadPools.createFixedThreadPool(20, "CheckTabletServer");
+    ExecutorService tp = ThreadPools.createFixedThreadPool(20, "CheckTabletServer", false);
     for (final Entry<HostAndPort,List<KeyExtent>> entry : extentsPerServer.entrySet()) {
       Runnable r = () -> {
         try {

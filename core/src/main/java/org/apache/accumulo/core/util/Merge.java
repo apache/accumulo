@@ -39,6 +39,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +49,7 @@ import com.beust.jcommander.Parameter;
 
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class Merge {
@@ -99,8 +101,8 @@ public class Merge {
 
   public void start(String[] args) throws MergeException {
     Opts opts = new Opts();
-    Span span =
-        opts.parseArgsAndTrace(Merge.class.getName(), args).spanBuilder("start").startSpan();
+    opts.parseArgs(Merge.class.getName(), args);
+    Span span = TraceUtil.createSpan(Merge.class, "start", SpanKind.CLIENT);
     try (Scope scope = span.makeCurrent()) {
 
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {

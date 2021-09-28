@@ -34,6 +34,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -43,15 +44,16 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class LocalityCheck {
 
   public int run(String[] args) throws Exception {
     ServerUtilOpts opts = new ServerUtilOpts();
+    opts.parseArgs(LocalityCheck.class.getName(), args);
 
-    Span span =
-        opts.parseArgsAndTrace(LocalityCheck.class.getName(), args).spanBuilder("run").startSpan();
+    Span span = TraceUtil.createSpan(LocalityCheck.class, "run", SpanKind.CLIENT);
     try (Scope scope = span.makeCurrent()) {
 
       VolumeManager fs = opts.getServerContext().getVolumeManager();

@@ -35,8 +35,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.sample.Sampler;
@@ -239,9 +239,8 @@ public class MultiThreadedRFileTest {
       // now start up multiple RFile deepcopies
       int maxThreads = 10;
       String name = "MultiThreadedRFileTestThread";
-      ThreadPoolExecutor pool = ThreadPools.createThreadPool(maxThreads + 1, maxThreads + 1, 5 * 60,
-          TimeUnit.SECONDS, name, new LinkedBlockingQueue<>(), OptionalInt.empty());
-      pool.allowCoreThreadTimeOut(true);
+      ExecutorService pool = ThreadPools.createThreadPool(maxThreads + 1, maxThreads + 1, 5 * 60,
+          TimeUnit.SECONDS, name, new LinkedBlockingQueue<>(), OptionalInt.empty(), false);
       try {
         Runnable runnable = () -> {
           try {

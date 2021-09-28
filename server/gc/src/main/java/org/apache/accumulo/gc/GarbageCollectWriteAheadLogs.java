@@ -65,7 +65,7 @@ import com.google.common.collect.Iterators;
 
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class GarbageCollectWriteAheadLogs {
@@ -132,9 +132,8 @@ public class GarbageCollectWriteAheadLogs {
       Map<TServerInstance,Set<UUID>> logsByServer;
       Map<UUID,Pair<WalState,Path>> logsState;
       Map<UUID,Path> recoveryLogs;
-      Tracer tracer = TraceUtil.getTracer();
 
-      Span span = tracer.spanBuilder("GarbageCollectWriteAheadLogs::getCandidates").startSpan();
+      Span span = TraceUtil.createSpan(this.getClass(), "getCandidates", SpanKind.SERVER);
       try (Scope scope = span.makeCurrent()) {
         status.currentLog.started = System.currentTimeMillis();
 
@@ -167,8 +166,7 @@ public class GarbageCollectWriteAheadLogs {
       Set<TServerInstance> currentServers = liveServers.getCurrentServers();
 
       Map<UUID,TServerInstance> uuidToTServer;
-      Span span2 =
-          tracer.spanBuilder("GarbageCollectWriteAheadLogs::removeEntriesInUse").startSpan();
+      Span span2 = TraceUtil.createSpan(this.getClass(), "removeEntriesInUse", SpanKind.SERVER);
       try (Scope scope = span2.makeCurrent()) {
         uuidToTServer = removeEntriesInUse(logsByServer, currentServers, logsState, recoveryLogs);
         count = uuidToTServer.size();
@@ -186,7 +184,7 @@ public class GarbageCollectWriteAheadLogs {
           (logEntryScanStop - fileScanStop) / 1000.));
 
       Span span3 =
-          tracer.spanBuilder("GarbageCollectWriteAheadLogs::removeReplicationEntries").startSpan();
+          TraceUtil.createSpan(this.getClass(), "removeReplicationEntries", SpanKind.SERVER);
       try (Scope scope = span3.makeCurrent()) {
         count = removeReplicationEntries(uuidToTServer);
       } catch (Exception ex) {
@@ -203,7 +201,7 @@ public class GarbageCollectWriteAheadLogs {
           (replicationEntryScanStop - logEntryScanStop) / 1000.));
 
       long removeStop;
-      Span span4 = tracer.spanBuilder("GarbageCollectWriteAheadLogs::removeFiles").startSpan();
+      Span span4 = TraceUtil.createSpan(this.getClass(), "removeFiles", SpanKind.SERVER);
       try (Scope scope = span4.makeCurrent()) {
 
         logsState.keySet().retainAll(uuidToTServer.keySet());
@@ -223,7 +221,7 @@ public class GarbageCollectWriteAheadLogs {
         span4.end();
       }
 
-      Span span5 = tracer.spanBuilder("GarbageCollectWriteAheadLogs::removeMarkers").startSpan();
+      Span span5 = TraceUtil.createSpan(this.getClass(), "removeMarkers", SpanKind.SERVER);
       try (Scope scope = span5.makeCurrent()) {
         count = removeTabletServerMarkers(uuidToTServer, logsByServer, currentServers);
         long removeMarkersStop = System.currentTimeMillis();

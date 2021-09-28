@@ -120,6 +120,14 @@ public class ZooZap {
         }
       }
 
+      // Remove the tracers, we don't use them anymore.
+      @SuppressWarnings("deprecation")
+      String path = siteConf.get(Property.TRACE_ZK_PATH);
+      try {
+        zapDirectory(zoo, path, opts);
+      } catch (Exception e) {
+        // do nothing if the /tracers node does not exist.
+      }
     } finally {
       SingletonManager.setMode(Mode.CLOSED);
     }

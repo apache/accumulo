@@ -96,7 +96,6 @@ public class PropertyTest {
   }
 
   // This test verifies all "sensitive" properties are properly marked as sensitive
-  @SuppressWarnings("deprecation")
   @Test
   public void testSensitiveKeys() {
     // add trace token, because it's a sensitive property not in the default configuration
@@ -107,6 +106,7 @@ public class PropertyTest {
     Collector<Entry<String,String>,?,TreeMap<String,String>> treeMapCollector =
         Collectors.toMap(Entry::getKey, Entry::getValue, (a, b) -> a, TreeMap::new);
 
+    @SuppressWarnings("deprecation")
     Predicate<Entry<String,String>> sensitiveNames =
         e -> e.getKey().equals(Property.INSTANCE_SECRET.getKey())
             || e.getKey().toLowerCase().contains("password")

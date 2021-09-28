@@ -39,6 +39,7 @@ import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateExc
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
@@ -52,6 +53,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class MergeStats {
@@ -262,9 +264,9 @@ public class MergeStats {
 
   public static void main(String[] args) throws Exception {
     ServerUtilOpts opts = new ServerUtilOpts();
+    opts.parseArgs(MergeStats.class.getName(), args);
 
-    Span span =
-        opts.parseArgsAndTrace(MergeStats.class.getName(), args).spanBuilder("main").startSpan();
+    Span span = TraceUtil.createSpan(MergeStats.class, "main", SpanKind.CLIENT);
     try (Scope scope = span.makeCurrent()) {
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
         Map<String,String> tableIdMap = client.tableOperations().tableIdMap();

@@ -52,7 +52,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 /**
@@ -86,8 +86,7 @@ public class StatusMaker {
   }
 
   public void run() {
-    Tracer tracer = TraceUtil.getTracer();
-    Span span = tracer.spanBuilder("StatusMaker::replicationStatusMaker").startSpan();
+    Span span = TraceUtil.createSpan(this.getClass(), "replicationStatusMaker", SpanKind.SERVER);
     try (Scope scope = span.makeCurrent()) {
       // Read from a source table (typically accumulo.metadata)
       final Scanner s;
@@ -131,7 +130,8 @@ public class StatusMaker {
         log.debug("Creating replication status record for {} on table {} with {}.", file, tableId,
             ProtobufUtil.toString(status));
 
-        Span childSpan = tracer.spanBuilder("StatusMaker::createStatusMutations").startSpan();
+        Span childSpan =
+            TraceUtil.createSpan(this.getClass(), "createStatusMutations", SpanKind.SERVER);
         try (Scope childScope = span.makeCurrent()) {
           // Create entries in the replication table from the metadata table
           if (!addStatusRecord(file, tableId, entry.getValue())) {
@@ -146,7 +146,8 @@ public class StatusMaker {
         }
 
         if (status.getClosed()) {
-          Span closedSpan = tracer.spanBuilder("StatusMaker::recordStatusOrder").startSpan();
+          Span closedSpan =
+              TraceUtil.createSpan(this.getClass(), "recordStatusOrder", SpanKind.SERVER);
           try (Scope childScope = closedSpan.makeCurrent()) {
             if (!addOrderRecord(file, tableId, status, entry.getValue())) {
               continue;
@@ -159,7 +160,8 @@ public class StatusMaker {
             closedSpan.end();
           }
 
-          Span deleteSpan = tracer.spanBuilder("StatusMaker::recordStatusOrder").startSpan();
+          Span deleteSpan =
+              TraceUtil.createSpan(this.getClass(), "deleteClosedStatus", SpanKind.SERVER);
           try (Scope childScope = deleteSpan.makeCurrent()) {
             deleteStatusRecord(entry.getKey());
           } catch (Exception e) {

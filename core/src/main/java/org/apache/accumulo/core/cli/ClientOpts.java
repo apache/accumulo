@@ -35,7 +35,6 @@ import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.trace.TraceUtil;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
@@ -43,8 +42,6 @@ import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.converters.IParameterSplitter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.opentelemetry.api.OpenTelemetry;
-import io.opentelemetry.api.trace.Tracer;
 
 public class ClientOpts extends Help {
 
@@ -178,15 +175,6 @@ public class ClientOpts extends Help {
 
   public Map<String,String> getOverrides() {
     return ConfigOpts.getOverrides(overrides);
-  }
-
-  public Tracer parseArgsAndTrace(String programName, String[] args, Object... others) {
-    parseArgs(programName, args, others);
-    if (trace) {
-      return TraceUtil.getTracer();
-    } else {
-      return OpenTelemetry.noop().getTracer(TraceUtil.INSTRUMENTATION_NAME);
-    }
   }
 
   @Override

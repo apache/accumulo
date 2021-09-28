@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 class MinorCompactionTask implements Runnable {
@@ -57,11 +57,10 @@ class MinorCompactionTask implements Runnable {
   @Override
   public void run() {
     tablet.minorCompactionStarted();
-    Tracer tracer = TraceUtil.getTracer();
     try {
-      Span span = tracer.spanBuilder("MinorCompactionTask::minorCompaction").startSpan();
+      Span span = TraceUtil.createSpan(this.getClass(), "minorCompaction", SpanKind.SERVER);
       try (Scope scope = span.makeCurrent()) {
-        Span span2 = tracer.spanBuilder("MinorCompactionTask::waitForCommits").startSpan();
+        Span span2 = TraceUtil.createSpan(this.getClass(), "waitForCommits", SpanKind.SERVER);
         try (Scope scope2 = span2.makeCurrent()) {
           synchronized (tablet) {
             commitSession.waitForCommitsToFinish();
@@ -75,7 +74,7 @@ class MinorCompactionTask implements Runnable {
         }
         TabletFile newFile = null;
         TabletFile tmpFile = null;
-        Span span3 = tracer.spanBuilder("MinorCompactionTask::start").startSpan();
+        Span span3 = TraceUtil.createSpan(this.getClass(), "start", SpanKind.SERVER);
         try (Scope scope3 = span3.makeCurrent()) {
           while (true) {
             try {
@@ -110,7 +109,7 @@ class MinorCompactionTask implements Runnable {
         } finally {
           span3.end();
         }
-        Span span4 = tracer.spanBuilder("MinorCompactionTask::compact").startSpan();
+        Span span4 = TraceUtil.createSpan(this.getClass(), "compact", SpanKind.SERVER);
         try (Scope scope4 = span4.makeCurrent()) {
           this.stats = tablet.minorCompact(tablet.getTabletMemory().getMinCMemTable(), tmpFile,
               newFile, queued, commitSession, flushId, mincReason);

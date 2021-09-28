@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.tracer;
 
-import org.apache.accumulo.core.trace.TracerProvider;
+import org.apache.accumulo.core.trace.OpenTelemetryFactory;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.auto.service.AutoService;
@@ -27,11 +28,11 @@ import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.sdk.autoconfigure.OpenTelemetrySdkAutoConfiguration;
 
-@AutoService(TracerProvider.class)
-public class DefaultTracerProvider implements TracerProvider {
+@AutoService(OpenTelemetryFactory.class)
+public class DefaultTracerProvider implements OpenTelemetryFactory {
 
   @Override
-  public Tracer getTracer() {
+  public Tracer getOpenTelemetry() {
     // Set the service name if not set
     String svcNameEnvVar = System.getenv("OTEL_SERVICE_NAME");
     String svcNameProp = System.getenv("otel.service.name");
@@ -44,7 +45,7 @@ public class DefaultTracerProvider implements TracerProvider {
     // the instructions at
     // https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure
     OpenTelemetry otel = OpenTelemetrySdkAutoConfiguration.initialize();
-    return otel.getTracer(INSTRUMENTATION_NAME);
+    return otel.getTracer(TraceUtil.INSTRUMENTATION_NAME);
   }
 
 }

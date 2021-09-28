@@ -21,6 +21,7 @@ package org.apache.accumulo.core.trace;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
+import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
 
@@ -29,6 +30,8 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
@@ -38,20 +41,52 @@ import io.opentelemetry.context.propagation.TextMapGetter;
 public class TraceUtil {
 
   public static final String INSTRUMENTATION_NAME = "io.opentelemetry.contrib.accumulo";
+
+  private static final String SPAN_FORMAT = "%s::%s";
+
   private static Tracer INSTANCE = null;
 
   public static synchronized Tracer getTracer() {
     if (INSTANCE == null) {
-      ServiceLoader<TracerProvider> loader = ServiceLoader.load(TracerProvider.class);
-      Optional<TracerProvider> first = loader.findFirst();
+      ServiceLoader<OpenTelemetryFactory> loader = ServiceLoader.load(OpenTelemetryFactory.class);
+      Optional<OpenTelemetryFactory> first = loader.findFirst();
       if (first.isEmpty()) {
         // If no OpenTelemetry implementation on the ClassPath, then use the NOOP implementation
         INSTANCE = OpenTelemetry.noop().getTracer(INSTRUMENTATION_NAME);
       } else {
-        INSTANCE = first.get().getTracer();
+        INSTANCE = first.get().getOpenTelemetry();
       }
     }
     return INSTANCE;
+  }
+
+  public static Span createSpan(Class<?> caller, String spanName, SpanKind kind) {
+    return createSpan(caller, spanName, kind, null, false, null);
+  }
+
+  public static Span createSpan(Class<?> caller, String spanName, SpanKind kind, Context parent) {
+    return createSpan(caller, spanName, kind, null, false, parent);
+  }
+
+  public static Span createSpan(Class<?> caller, String spanName, SpanKind kind,
+      Map<String,String> attributes) {
+    return createSpan(caller, spanName, kind, attributes, false, null);
+  }
+
+  public static Span createSpan(Class<?> caller, String spanName, SpanKind kind,
+      Map<String,String> attributes, boolean setNoParent, Context parent) {
+    final String name = String.format(SPAN_FORMAT, caller.getSimpleName(), spanName);
+    final SpanBuilder builder = getTracer().spanBuilder(name);
+    builder.setSpanKind(kind);
+    if (attributes != null) {
+      attributes.forEach((k, v) -> builder.setAttribute(k, v));
+    }
+    if (setNoParent) {
+      builder.setNoParent();
+    } else if (parent != null) {
+      builder.setParent(parent);
+    }
+    return builder.startSpan();
   }
 
   /**
@@ -122,7 +157,7 @@ public class TraceUtil {
       if (TInfo.class.isAssignableFrom(method.getParameterTypes()[0])) {
         args[0] = traceInfo();
       }
-      Span span = getTracer().spanBuilder("client:" + method.getName()).startSpan();
+      Span span = createSpan(instance.getClass(), "client:" + method.getName(), SpanKind.CLIENT);
       try (Scope scope = span.makeCurrent()) {
         return method.invoke(instance, args);
       } catch (InvocationTargetException ex) {
@@ -149,7 +184,7 @@ public class TraceUtil {
         }
         TInfo tinfo = (TInfo) args[0];
         getContext(tinfo).makeCurrent();
-        Span span = getTracer().spanBuilder(method.getName()).startSpan();
+        Span span = createSpan(instance.getClass(), method.getName(), SpanKind.SERVER);
         try (Scope scope = span.makeCurrent()) {
           return method.invoke(instance, args);
         } catch (Exception e) {

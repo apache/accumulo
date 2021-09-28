@@ -59,6 +59,7 @@ import com.google.common.base.Preconditions;
 
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 class DatafileManager {
@@ -177,7 +178,7 @@ class DatafileManager {
     long startTime = System.currentTimeMillis();
     TreeSet<StoredTabletFile> inUse = new TreeSet<>();
 
-    Span span = TraceUtil.getTracer().spanBuilder("DatafileManager::waitForScans").startSpan();
+    Span span = TraceUtil.createSpan(this.getClass(), "waitForScans", SpanKind.SERVER);
     try (Scope scope = span.makeCurrent()) {
       synchronized (tablet) {
         for (StoredTabletFile path : pathsToWaitFor) {

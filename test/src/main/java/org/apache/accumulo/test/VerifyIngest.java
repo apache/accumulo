@@ -46,6 +46,7 @@ import com.beust.jcommander.Parameter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class VerifyIngest {
@@ -91,7 +92,7 @@ public class VerifyIngest {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(VerifyIngest.class.getName(), args);
-    Span span = TraceUtil.getTracer().spanBuilder(VerifyIngest.class.getSimpleName()).startSpan();
+    Span span = TraceUtil.createSpan(VerifyIngest.class, "main", SpanKind.CLIENT);
     try (Scope scope = span.makeCurrent()) {
 
       span.setAttribute("cmdLine", Arrays.asList(args).toString());

@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -49,6 +50,7 @@ import org.apache.zookeeper.data.Stat;
 import com.beust.jcommander.Parameter;
 
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class ChangeSecret {
@@ -77,8 +79,8 @@ public class ChangeSecret {
       argsList.add("--new");
       argsList.addAll(Arrays.asList(args));
 
-      Span span = opts.parseArgsAndTrace(ChangeSecret.class.getName(), args).spanBuilder("main")
-          .startSpan();
+      opts.parseArgs(ChangeSecret.class.getName(), args);
+      Span span = TraceUtil.createSpan(ChangeSecret.class, "main", SpanKind.CLIENT);
       try (Scope scope = span.makeCurrent()) {
 
         verifyAccumuloIsDown(context, opts.oldPass);

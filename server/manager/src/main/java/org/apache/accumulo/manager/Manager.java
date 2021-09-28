@@ -160,6 +160,7 @@ import com.google.common.util.concurrent.RateLimiter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 /**
@@ -797,7 +798,7 @@ public class Manager extends AbstractServer
               + " continue with attempt to update status", t);
         }
 
-        Span span = TraceUtil.getTracer().spanBuilder("Manager::run::updateStatus").startSpan();
+        Span span = TraceUtil.createSpan(this.getClass(), "run::updateStatus", SpanKind.SERVER);
         try (Scope scope = span.makeCurrent()) {
           wait = updateStatus();
           eventListener.waitForEvents(wait);

@@ -28,7 +28,7 @@ package org.apache.accumulo.core.trace.thrift;
 public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, java.io.Serializable, Cloneable, Comparable<TInfo> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TInfo");
 
-  private static final org.apache.thrift.protocol.TField HEADERS_FIELD_DESC = new org.apache.thrift.protocol.TField("headers", org.apache.thrift.protocol.TType.MAP, (short)1);
+  private static final org.apache.thrift.protocol.TField HEADERS_FIELD_DESC = new org.apache.thrift.protocol.TField("headers", org.apache.thrift.protocol.TType.MAP, (short)3);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TInfoStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TInfoTupleSchemeFactory();
@@ -37,7 +37,7 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    HEADERS((short)1, "headers");
+    HEADERS((short)3, "headers");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -53,7 +53,7 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
     @org.apache.thrift.annotation.Nullable
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // HEADERS
+        case 3: // HEADERS
           return HEADERS;
         default:
           return null;
@@ -335,7 +335,7 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
           break;
         }
         switch (schemeField.id) {
-          case 1: // HEADERS
+          case 3: // HEADERS
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
                 org.apache.thrift.protocol.TMap _map0 = iprot.readMapBegin();

@@ -74,7 +74,7 @@ import org.slf4j.LoggerFactory;
 
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class ThriftScanner {
@@ -250,8 +250,7 @@ public class ThriftScanner {
 
     List<KeyValue> results = null;
 
-    Tracer tracer = TraceUtil.getTracer();
-    Span parent = tracer.spanBuilder("ThriftScanner::scan").startSpan();
+    Span parent = TraceUtil.createSpan(ThriftScanner.class, "scan", SpanKind.CLIENT);
     try (Scope scope = parent.makeCurrent()) {
       while (results == null && !scanState.finished) {
         if (Thread.currentThread().isInterrupted()) {
@@ -266,7 +265,8 @@ public class ThriftScanner {
           if ((currentTime - startTime) / 1000.0 > timeOut)
             throw new ScanTimedOutException();
 
-          Span child1 = tracer.spanBuilder("ThriftScanner::scan::locateTablet").startSpan();
+          Span child1 =
+              TraceUtil.createSpan(ThriftScanner.class, "scan::locateTablet", SpanKind.CLIENT);
           try (Scope locateSpan = child1.makeCurrent()) {
             loc = TabletLocator.getLocator(context, scanState.tableId).locateTablet(context,
                 scanState.startRow, scanState.skipStartRow, false);
@@ -322,8 +322,8 @@ public class ThriftScanner {
           }
         }
 
-        Span child2 = tracer.spanBuilder("ThriftScanner::scan::location")
-            .setAttribute("tserver", loc.tablet_location).startSpan();
+        Span child2 = TraceUtil.createSpan(ThriftScanner.class, "scan::location", SpanKind.CLIENT,
+            Map.of("tserver", loc.tablet_location));
         try (Scope scanLocation = child2.makeCurrent()) {
           results = scan(loc, scanState, context);
         } catch (AccumuloSecurityException e) {

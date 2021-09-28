@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class RandomWriter {
@@ -99,9 +101,9 @@ public class RandomWriter {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.principal = "root";
+    opts.parseArgs(RandomWriter.class.getName(), args);
 
-    Span span =
-        opts.parseArgsAndTrace(RandomWriter.class.getName(), args).spanBuilder("main").startSpan();
+    Span span = TraceUtil.createSpan(RandomWriter.class, "main", SpanKind.CLIENT);
     try (Scope scope = span.makeCurrent()) {
       long start = System.currentTimeMillis();
       Properties clientProps = opts.getClientProps();
