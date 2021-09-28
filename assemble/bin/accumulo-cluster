@@ -44,7 +44,7 @@ function invalid_args {
 }
 
 function parse_fail {
-  echo "Failed to parse ${conf}/cluster.yml"
+  echo "Failed to parse ${conf}/cluster.yaml"
   exit 1
 }
 
@@ -53,30 +53,30 @@ function parse_config {
   for file in slaves tservers monitor tracers gc managers masters; do
     if [[ -f ${conf}/${file} ]]; then
       echo "ERROR: A '${file}' file was found in ${conf}/"
-      echo "Accumulo now uses cluster host configuration information from 'cluster.yml' and requires that the '${file}' file not be present to reduce confusion."
+      echo "Accumulo now uses cluster host configuration information from 'cluster.yaml' and requires that the '${file}' file not be present to reduce confusion."
       exit 1
     fi
   done
 
-  if [[ ! -f ${conf}/cluster.yml ]]; then
-    echo "ERROR: A 'cluster.yml' file was not found at ${conf}/cluster.yml"
+  if [[ ! -f ${conf}/cluster.yaml ]]; then
+    echo "ERROR: A 'cluster.yaml' file was not found at ${conf}/cluster.yaml"
     echo "Please make sure it exists and is configured with the host information. Run 'accumulo-cluster create-config' to create an example configuration."
     exit 1
   fi
 
   trap 'rm -f "$CONFIG_FILE"' EXIT
   CONFIG_FILE=$(mktemp) || exit 1
-  ${accumulo_cmd} org.apache.accumulo.core.conf.cluster.ClusterConfigParser "${conf}"/cluster.yml > "$CONFIG_FILE" || parse_fail
+  ${accumulo_cmd} org.apache.accumulo.core.conf.cluster.ClusterConfigParser "${conf}"/cluster.yaml > "$CONFIG_FILE" || parse_fail
   . "$CONFIG_FILE"
   rm -f "$CONFIG_FILE"
 
   if [[ -z $MANAGER_HOSTS ]]; then
-    echo "ERROR: managers not found in ${conf}/cluster.yml"
+    echo "ERROR: managers not found in ${conf}/cluster.yaml"
     exit 1
   fi
 
   if [[ -z $TSERVER_HOSTS ]]; then
-    echo "ERROR: tservers not found in ${conf}/cluster.yml"
+    echo "ERROR: tservers not found in ${conf}/cluster.yaml"
     exit 1
   fi
 
@@ -95,17 +95,17 @@ function parse_config {
   manager1=$(echo "${MANAGER_HOSTS}" | cut -d" " -f1)
 
   if [[ -z $MONITOR_HOSTS ]]; then
-    echo "WARN: monitors not found in ${conf}/cluster.yml, using first manager host $manager1"
+    echo "WARN: monitors not found in ${conf}/cluster.yaml, using first manager host $manager1"
     MONITOR_HOSTS=$manager1
   fi
 
   if [[ -z $GC_HOSTS ]]; then
-    echo "WARN: gc not found in ${conf}/cluster.yml, using first manager host $manager1"
+    echo "WARN: gc not found in ${conf}/cluster.yaml, using first manager host $manager1"
     GC_HOSTS=$manager1
   fi
 
   if [[ -z $TRACER_HOSTS ]]; then
-    echo "WARN: tracer not found in ${conf}/cluster.yml, using first manager host $manager1"
+    echo "WARN: tracer not found in ${conf}/cluster.yaml, using first manager host $manager1"
     TRACER_HOSTS=$manager1
   fi
 }
@@ -442,7 +442,7 @@ function main() {
 
   case "$1" in
     create-config)
-      cat <<EOF > "$conf"/cluster.yml
+      cat <<EOF > "$conf"/cluster.yaml
 manager:
   - localhost
 
