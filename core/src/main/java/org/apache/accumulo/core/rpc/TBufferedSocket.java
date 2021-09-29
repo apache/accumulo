@@ -24,12 +24,13 @@ import java.io.IOException;
 
 import org.apache.thrift.transport.TIOStreamTransport;
 import org.apache.thrift.transport.TSocket;
+import org.apache.thrift.transport.TTransportException;
 
 public class TBufferedSocket extends TIOStreamTransport {
 
   String client;
 
-  public TBufferedSocket(TSocket sock, int bufferSize) throws IOException {
+  public TBufferedSocket(TSocket sock, int bufferSize) throws IOException, TTransportException {
     super(new BufferedInputStream(sock.getSocket().getInputStream(), bufferSize),
         new BufferedOutputStream(sock.getSocket().getOutputStream(), bufferSize));
     client = sock.getSocket().getInetAddress().getHostAddress() + ":" + sock.getSocket().getPort();

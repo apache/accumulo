@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.net.Socket;
 import java.net.SocketAddress;
 
+import org.apache.thrift.transport.TTransportException;
 import org.junit.Test;
 
 /**
@@ -104,8 +105,8 @@ public class TTimeoutTransportTest {
 
     try {
       timeoutTransport.createInternal(addr, timeout);
-      fail("Expected to catch IOException but got none");
-    } catch (IOException e) {
+      fail("Expected to catch TTransportException but got none");
+    } catch (TTransportException e) {
       // Expected
     }
 
@@ -144,8 +145,8 @@ public class TTimeoutTransportTest {
 
     try {
       timeoutTransport.createInternal(addr, timeout);
-      fail("Expected to catch IOException but got none");
-    } catch (IOException e) {
+      fail("Expected to catch TTransportException but got none");
+    } catch (TTransportException e) {
       // Expected
     }
 

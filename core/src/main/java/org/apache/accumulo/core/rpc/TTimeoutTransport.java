@@ -32,6 +32,7 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.thrift.transport.TIOStreamTransport;
 import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,10 +61,10 @@ public class TTimeoutTransport {
    * @param timeoutMillis
    *          The timeout in milliseconds for the connection
    * @return A TTransport connected to the given <code>addr</code>
-   * @throws IOException
+   * @throws TTransportException
    *           If the transport fails to be created/connected
    */
-  public static TTransport create(HostAndPort addr, long timeoutMillis) throws IOException {
+  public static TTransport create(HostAndPort addr, long timeoutMillis) throws TTransportException {
     return INSTANCE.createInternal(new InetSocketAddress(addr.getHost(), addr.getPort()),
         timeoutMillis);
   }
@@ -77,16 +78,16 @@ public class TTimeoutTransport {
    * @param timeoutMillis
    *          The socket timeout in milliseconds
    * @return A TTransport instance to the given <code>addr</code>
-   * @throws IOException
+   * @throws TTransportException
    *           If the Thrift client is failed to be connected/created
    */
-  TTransport createInternal(SocketAddress addr, long timeoutMillis) throws IOException {
+  TTransport createInternal(SocketAddress addr, long timeoutMillis) throws TTransportException {
     Socket socket = null;
     try {
       socket = openSocket(addr);
     } catch (IOException e) {
       // openSocket handles closing the Socket on error
-      throw e;
+      throw new TTransportException(e);
     }
 
     // Should be non-null
@@ -98,13 +99,20 @@ public class TTimeoutTransport {
       OutputStream output = wrapOutputStream(socket, timeoutMillis);
       return new TIOStreamTransport(input, output);
     } catch (IOException e) {
-      try {
-        socket.close();
-      } catch (IOException ioe) {
-        log.error("Failed to close socket after unsuccessful I/O stream setup", e);
-      }
-
+      closeSocket(socket, e);
+      throw new TTransportException(e);
+    } catch (TTransportException e) {
+      closeSocket(socket, e);
       throw e;
+    }
+  }
+
+  private void closeSocket(Socket socket, Exception e) {
+    try {
+      if (socket != null)
+        socket.close();
+    } catch (IOException ioe) {
+      log.error("Failed to close socket after unsuccessful I/O stream setup", e);
     }
   }
 
@@ -134,13 +142,7 @@ public class TTimeoutTransport {
       socket.connect(addr);
       return socket;
     } catch (IOException e) {
-      try {
-        if (socket != null)
-          socket.close();
-      } catch (IOException ioe) {
-        log.error("Failed to close socket after unsuccessful open.", e);
-      }
-
+      closeSocket(socket, e);
       throw e;
     }
   }

@@ -72,9 +72,8 @@ public class SystemIteratorUtil {
   }
 
   public static byte[] encodeIteratorSettings(IteratorConfig iterators) {
-    TSerializer tser = new TSerializer(new TBinaryProtocol.Factory());
-
     try {
+      TSerializer tser = new TSerializer(new TBinaryProtocol.Factory());
       return tser.serialize(iterators);
     } catch (TException e) {
       throw new RuntimeException(e);
@@ -86,9 +85,9 @@ public class SystemIteratorUtil {
   }
 
   public static List<IteratorSetting> decodeIteratorSettings(byte[] enc) {
-    TDeserializer tdser = new TDeserializer(new TBinaryProtocol.Factory());
     IteratorConfig ic = new IteratorConfig();
     try {
+      TDeserializer tdser = new TDeserializer(new TBinaryProtocol.Factory());
       tdser.deserialize(ic, enc);
     } catch (TException e) {
       throw new RuntimeException(e);

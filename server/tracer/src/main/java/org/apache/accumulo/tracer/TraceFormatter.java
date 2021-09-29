@@ -57,15 +57,15 @@ public class TraceFormatter implements Formatter {
   private FormatterConfig config;
 
   public static RemoteSpan getRemoteSpan(Entry<Key,Value> entry) {
-    TMemoryInputTransport transport = new TMemoryInputTransport(entry.getValue().get());
-    TCompactProtocol protocol = new TCompactProtocol(transport);
-    RemoteSpan span = new RemoteSpan();
     try {
+      TMemoryInputTransport transport = new TMemoryInputTransport(entry.getValue().get());
+      TCompactProtocol protocol = new TCompactProtocol(transport);
+      RemoteSpan span = new RemoteSpan();
       span.read(protocol);
+      return span;
     } catch (TException ex) {
       throw new RuntimeException(ex);
     }
-    return span;
   }
 
   @Override
