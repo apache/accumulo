@@ -93,6 +93,7 @@ public class TraceUtil {
    * @param conf
    *          AccumuloConfiguration
    * @throws Exception
+   *           unable to find or load class
    */
   public static void initializeTracer(AccumuloConfiguration conf) throws Exception {
     if (conf != null) {
@@ -108,7 +109,9 @@ public class TraceUtil {
    * returned from the factory class.
    *
    * @param factoryClass
+   *          name of class to load
    * @throws Exception
+   *           unable to find or load class
    */
   public static void initializeTracer(String factoryClass) throws Exception {
     if (instance == null) {
