@@ -18,15 +18,15 @@
  */
 package org.apache.accumulo.core.trace;
 
-import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.OpenTelemetry;
 
 public interface OpenTelemetryFactory {
 
   /**
-   * Get the OpenTelemetry Tracer implementation
+   * Configures and returns an instance of OpenTelemetry
    *
-   * @return Tracer
+   * @return OpenTelemetry
    */
-  public Tracer getOpenTelemetry();
+  public OpenTelemetry getOpenTelemetry();
 
 }

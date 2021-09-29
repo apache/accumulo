@@ -22,42 +22,91 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.util.Map;
-import java.util.Optional;
-import java.util.ServiceLoader;
+import java.util.Objects;
 
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.thrift.TInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapGetter;
+import io.opentelemetry.semconv.trace.attributes.SemanticAttributes;
 
 public class TraceUtil {
+
+  public static final Logger LOG = LoggerFactory.getLogger(TraceUtil.class);
 
   public static final String INSTRUMENTATION_NAME = "io.opentelemetry.contrib.accumulo";
 
   private static final String SPAN_FORMAT = "%s::%s";
 
-  private static Tracer INSTANCE = null;
+  private static Tracer instance = null;
+  private static boolean tracing = false;
 
-  public static synchronized Tracer getTracer() {
-    if (INSTANCE == null) {
-      ServiceLoader<OpenTelemetryFactory> loader = ServiceLoader.load(OpenTelemetryFactory.class);
-      Optional<OpenTelemetryFactory> first = loader.findFirst();
-      if (first.isEmpty()) {
-        // If no OpenTelemetry implementation on the ClassPath, then use the NOOP implementation
-        INSTANCE = OpenTelemetry.noop().getTracer(INSTRUMENTATION_NAME);
-      } else {
-        INSTANCE = first.get().getOpenTelemetry();
+  public static void initializeTracer(AccumuloConfiguration conf) throws Exception {
+    if (instance == null) {
+      // Allow user to specify a class that will configure and return
+      // an instance of OpenTelemetry
+      String factoryClass = conf.get(Property.GENERAL_OPENTELEMETRY_FACTORY);
+      if (factoryClass != null && !factoryClass.isEmpty()) {
+        Class<? extends OpenTelemetryFactory> clazz =
+            (Class<? extends OpenTelemetryFactory>) ClassLoaderUtil.loadClass(factoryClass,
+                OpenTelemetryFactory.class);
+        OpenTelemetryFactory factory = clazz.getDeclaredConstructor().newInstance();
+        OpenTelemetry ot = factory.getOpenTelemetry();
+        GlobalOpenTelemetry.set(ot);
+        LOG.info("OpenTelemetry configured and set from {}", clazz);
       }
+
+      // Get the Tracer from the global OpenTelemetry object. This could have
+      // been set from:
+      //
+      // a. the code above
+      // b. the java agent (https://github.com/open-telemetry/opentelemetry-java-instrumentation)
+      // c. or via some other mechanism (for example an application that uses the Accumulo client
+      // code)
+      //
+      // TODO: Is there a way to get our version to pass to getTracer() ?
+      instance = GlobalOpenTelemetry.getTracer(INSTRUMENTATION_NAME);
+      tracing = (!instance.equals(OpenTelemetry.noop().getTracer(INSTRUMENTATION_NAME)));
+      LOG.info("Tracer is: {}", instance.getClass());
+    } else {
+      LOG.warn("Tracer already initialized.");
     }
-    return INSTANCE;
+  }
+
+  /**
+   * @return the Tracer set on the GlobalOpenTelemetry object
+   */
+  private static Tracer getTracer() {
+    if (Objects.isNull(instance)) {
+      LOG.warn("initializeTracer not called, using GlobalOpenTelemetry.getTracer()");
+      instance = GlobalOpenTelemetry.getTracer(INSTRUMENTATION_NAME);
+      tracing = (!instance.equals(OpenTelemetry.noop().getTracer(INSTRUMENTATION_NAME)));
+      LOG.info("Tracer is: {}", instance.getClass());
+    }
+    return instance;
+  }
+
+  /**
+   * @return true if an OpenTelemetry Tracer implementation has been set, false if the NoOp Tracer
+   *         is being used.
+   */
+  public static boolean isTracing() {
+    return tracing;
   }
 
   public static Span createSpan(Class<?> caller, String spanName, SpanKind kind) {
@@ -87,6 +136,26 @@ public class TraceUtil {
       builder.setParent(parent);
     }
     return builder.startSpan();
+  }
+
+  /**
+   * Record that an Exception occurred in the code covered by a Span
+   *
+   * @param span
+   *          the span
+   * @param e
+   *          the exception
+   * @param rethrown
+   *          whether the exception is subsequently re-thrown
+   */
+  public static void setException(Span span, Throwable e, boolean rethrown) {
+    if (tracing) {
+      span.setStatus(StatusCode.ERROR);
+      span.recordException(e,
+          Attributes.builder().put(SemanticAttributes.EXCEPTION_TYPE, e.getClass().getName())
+              .put(SemanticAttributes.EXCEPTION_MESSAGE, e.getMessage())
+              .put(SemanticAttributes.EXCEPTION_ESCAPED, rethrown).build());
+    }
   }
 
   /**

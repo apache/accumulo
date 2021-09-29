@@ -158,7 +158,6 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.RateLimiter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
@@ -803,8 +802,7 @@ public class Manager extends AbstractServer
           wait = updateStatus();
           eventListener.waitForEvents(wait);
         } catch (Exception t) {
-          span.recordException(t, Attributes.builder().put("exception.message", t.getMessage())
-              .put("exception.escaped", false).build());
+          TraceUtil.setException(span, t, false);
           log.error("Error balancing tablets, will wait for {} (seconds) and then retry ",
               WAIT_BETWEEN_ERRORS / ONE_SECOND, t);
           sleepUninterruptibly(WAIT_BETWEEN_ERRORS, TimeUnit.MILLISECONDS);

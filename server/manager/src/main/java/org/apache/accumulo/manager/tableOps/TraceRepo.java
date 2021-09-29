@@ -25,7 +25,6 @@ import org.apache.accumulo.manager.Manager;
 
 import com.google.gson.Gson;
 
-import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Context;
@@ -50,8 +49,7 @@ public class TraceRepo<T> implements Repo<T> {
     try (Scope scope = span.makeCurrent()) {
       return repo.isReady(tid, environment);
     } catch (Exception e) {
-      span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-          .put("exception.escaped", true).build());
+      TraceUtil.setException(span, e, true);
       throw e;
     } finally {
       span.end();
@@ -68,8 +66,7 @@ public class TraceRepo<T> implements Repo<T> {
         return null;
       return new TraceRepo<>(result);
     } catch (Exception e) {
-      span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-          .put("exception.escaped", true).build());
+      TraceUtil.setException(span, e, true);
       throw e;
     } finally {
       span.end();
@@ -83,8 +80,7 @@ public class TraceRepo<T> implements Repo<T> {
     try (Scope scope = span.makeCurrent()) {
       repo.undo(tid, environment);
     } catch (Exception e) {
-      span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-          .put("exception.escaped", true).build());
+      TraceUtil.setException(span, e, true);
       throw e;
     } finally {
       span.end();

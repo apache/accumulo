@@ -50,7 +50,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
-import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
@@ -87,8 +86,7 @@ public class WorkMaker {
           setBatchWriter(ReplicationTable.getBatchWriter(client));
         }
       } catch (ReplicationTableOfflineException e) {
-        span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-            .put("exception.escaped", false).build());
+        TraceUtil.setException(span, e, false);
         log.warn("Replication table was online, but not anymore");
         writer = null;
         return;
@@ -144,8 +142,7 @@ public class WorkMaker {
           try (Scope childScope = childSpan.makeCurrent()) {
             addWorkRecord(file, entry.getValue(), replicationTargets, tableId);
           } catch (Exception e) {
-            childSpan.recordException(e, Attributes.builder()
-                .put("exception.message", e.getMessage()).put("exception.escaped", true).build());
+            TraceUtil.setException(childSpan, e, true);
             throw e;
           } finally {
             childSpan.end();
@@ -153,8 +150,7 @@ public class WorkMaker {
         }
       }
     } catch (Exception e) {
-      span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-          .put("exception.escaped", true).build());
+      TraceUtil.setException(span, e, true);
       throw e;
     } finally {
       span.end();

@@ -57,7 +57,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
@@ -198,8 +197,7 @@ class DatafileManager {
         }
       }
     } catch (Exception e) {
-      span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-          .put("exception.escaped", true).build());
+      TraceUtil.setException(span, e, true);
       throw e;
     } finally {
       span.end();

@@ -94,7 +94,6 @@
     <module>server/master</module>
     <module>server/monitor</module>
     <module>server/native</module>
-    <module>server/tracer</module>
     <module>server/tserver</module>
     <module>shell</module>
     <module>start</module>
@@ -961,39 +960,6 @@
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-1.2-api:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-slf4j-impl:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-web:jar:*</unusedDeclaredDependency>
-                <!-- ignore opentelemetry runtime dependencies -->
-                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-sdk:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>com.google.protobuf:protobuf-java-util:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.grpc:grpc-api:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.grpc:grpc-context:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.grpc:grpc-core:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.grpc:grpc-netty-shaded:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.grpc:grpc-protobuf:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.grpc:grpc-protobuf-lite:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.grpc:grpc-stub:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-api-metrics:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-exporter-jaeger:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-exporter-logging:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-exporter-prometheus:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-exporter-zipkin:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-exporter-otlp:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-exporter-otlp-common:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-exporter-otlp-trace:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-sdk-common:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-sdk-metrics:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-sdk-trace:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.opentelemetry:opentelemetry-semconv:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.perfmark:perfmark-api:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.perfmark:perfmark-impl:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>com.squareup.okhttp3:okhttp:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>com.squareup.okio:okio:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.prometheus:simpleclient:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.prometheus:simpleclient_tracer_common:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.prometheus:simpleclient_tracer_otel:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.prometheus:simpleclient_tracer_otel_agent:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.zipkin.reporter2:zipkin-reporter:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.zipkin.reporter2:zipkin-sender-okhttp3:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>io.zipkin.zipkin2:zipkin:jar:*</unusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>

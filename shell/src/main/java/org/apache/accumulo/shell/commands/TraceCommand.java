@@ -26,7 +26,6 @@ import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 
-import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 
@@ -55,8 +54,7 @@ public class TraceCommand extends Command {
             fullCommand.indexOf(cl.getArgs()[0]));
       }
     } else if (cl.getArgs().length == 0) {
-      shellState.getWriter().println(TraceUtil.getTracer()
-          .equals(OpenTelemetry.noop().getTracer(TraceUtil.INSTRUMENTATION_NAME)) ? "on" : "off");
+      shellState.getWriter().println(TraceUtil.isTracing() ? "on" : "off");
     } else {
       shellState.printException(new IllegalArgumentException(
           "Expected 0 or 1 argument. There were " + cl.getArgs().length + "."));

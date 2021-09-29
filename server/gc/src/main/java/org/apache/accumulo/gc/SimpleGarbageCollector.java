@@ -106,7 +106,6 @@ import com.google.common.collect.Maps;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
@@ -517,8 +516,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
             status.current = new GcCycleStats();
 
           } catch (Exception e) {
-            innerSpan.recordException(e, Attributes.builder()
-                .put("exception.message", e.getMessage()).put("exception.escaped", false).build());
+            TraceUtil.setException(innerSpan, e, false);
             log.error("{}", e.getMessage(), e);
           }
 
@@ -537,8 +535,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
             CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(getContext());
             closeWals.run();
           } catch (Exception e) {
-            replSpan.recordException(e, Attributes.builder()
-                .put("exception.message", e.getMessage()).put("exception.escaped", false).build());
+            TraceUtil.setException(replSpan, e, false);
             log.error("Error trying to close write-ahead logs for replication table", e);
           } finally {
             replSpan.end();
@@ -553,15 +550,13 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
             walogCollector.collect(status);
             gcCycleMetrics.setLastWalCollect(status.lastLog);
           } catch (Exception e) {
-            walSpan.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-                .put("exception.escaped", false).build());
+            TraceUtil.setException(walSpan, e, false);
             log.error("{}", e.getMessage(), e);
           } finally {
             walSpan.end();
           }
         } catch (Exception e) {
-          innerSpan.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-              .put("exception.escaped", true).build());
+          TraceUtil.setException(innerSpan, e, true);
           throw e;
         } finally {
           innerSpan.end();
@@ -597,13 +592,11 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
               (TimeUnit.NANOSECONDS.toMillis(actionComplete - actionStart) / 1000.0)));
 
         } catch (Exception e) {
-          outerSpan.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-              .put("exception.escaped", false).build());
+          TraceUtil.setException(outerSpan, e, false);
           log.warn("{}", e.getMessage(), e);
         }
       } catch (Exception e) {
-        outerSpan.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-            .put("exception.escaped", true).build());
+        TraceUtil.setException(outerSpan, e, true);
         throw e;
       } finally {
         outerSpan.end();

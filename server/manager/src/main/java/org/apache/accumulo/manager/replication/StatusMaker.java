@@ -50,7 +50,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
-import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
@@ -138,8 +137,7 @@ public class StatusMaker {
             continue;
           }
         } catch (Exception e) {
-          childSpan.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-              .put("exception.escaped", true).build());
+          TraceUtil.setException(childSpan, e, true);
           throw e;
         } finally {
           childSpan.end();
@@ -153,8 +151,7 @@ public class StatusMaker {
               continue;
             }
           } catch (Exception e) {
-            closedSpan.recordException(e, Attributes.builder()
-                .put("exception.message", e.getMessage()).put("exception.escaped", true).build());
+            TraceUtil.setException(closedSpan, e, true);
             throw e;
           } finally {
             closedSpan.end();
@@ -165,8 +162,7 @@ public class StatusMaker {
           try (Scope childScope = deleteSpan.makeCurrent()) {
             deleteStatusRecord(entry.getKey());
           } catch (Exception e) {
-            deleteSpan.recordException(e, Attributes.builder()
-                .put("exception.message", e.getMessage()).put("exception.escaped", true).build());
+            TraceUtil.setException(deleteSpan, e, true);
             throw e;
           } finally {
             deleteSpan.end();
@@ -174,8 +170,7 @@ public class StatusMaker {
         }
       }
     } catch (Exception e) {
-      span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-          .put("exception.escaped", true).build());
+      TraceUtil.setException(span, e, true);
       throw e;
     } finally {
       span.end();

@@ -94,6 +94,14 @@ JAVA_OPTS=("${JAVA_OPTS[@]}"
   "-Dlog4j2.contextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
 )
 
+## Optionally setup OpenTelemetry Java Agent
+## See https://github.com/open-telemetry/opentelemetry-java-instrumentation for more options
+#JAVA_OPTS=("${JAVA_OPTS[@]}"
+#  "-javaagent:path/to/opentelemetry-javaagent-all.jar"
+#  "-Dotel.service.name=${cmd}${ACCUMULO_SERVICE_INSTANCE}"
+#  "-Dotel.traces.exporter=jaeger"
+#)
+
 case "$cmd" in
   monitor|gc|manager|master|tserver|tracer|compaction-coordinator|compactor)
     JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configurationFile=log4j2-service.properties")

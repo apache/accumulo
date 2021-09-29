@@ -239,6 +239,8 @@ public enum Property {
       "1.6.5"),
   GENERAL_MAX_MESSAGE_SIZE("general.server.message.size.max", "1G", PropertyType.BYTES,
       "The maximum size of a message that can be sent to a server.", "1.5.0"),
+  GENERAL_OPENTELEMETRY_FACTORY("general.opentelemetry.factory", "", PropertyType.CLASSNAME,
+      "Name of class that implements OpenTelemetryFactory", "2.1.0"),
   GENERAL_SIMPLETIMER_THREADPOOL_SIZE("general.server.simpletimer.threadpool.size", "1",
       PropertyType.COUNT, "The number of threads to use for " + "server-internal scheduled tasks",
       "1.7.0"),
@@ -818,7 +820,6 @@ public enum Property {
           + " The resources that are used by default can be seen in"
           + " accumulo/server/monitor/src/main/resources/templates/default.ftl",
       "2.0.0"),
-
   @Deprecated(since = "2.1.0")
   TRACE_PREFIX("trace.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of distributed tracing.", "1.3.5"),

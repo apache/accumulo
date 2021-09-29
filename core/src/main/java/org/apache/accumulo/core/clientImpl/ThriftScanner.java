@@ -72,7 +72,6 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
@@ -302,8 +301,7 @@ public class ThriftScanner {
               }
             }
           } catch (AccumuloServerException e) {
-            child1.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-                .put("exception.escaped", true).build());
+            TraceUtil.setException(child1, e, true);
             log.debug("Scan failed, server side exception : {}", e.getMessage());
             throw e;
           } catch (AccumuloException e) {
@@ -312,8 +310,8 @@ public class ThriftScanner {
               log.debug("{}", error);
             else if (log.isTraceEnabled())
               log.trace("{}", error);
-            child1.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-                .put("exception.escaped", false).build());
+
+            TraceUtil.setException(child1, e, false);
 
             lastError = error;
             sleepMillis = pause(sleepMillis, maxSleepTime);
@@ -330,18 +328,15 @@ public class ThriftScanner {
           Tables.clearCache(context);
           context.requireNotDeleted(scanState.tableId);
           e.setTableInfo(Tables.getPrintableTableInfoFromId(context, scanState.tableId));
-          child2.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-              .put("exception.escaped", true).build());
+          TraceUtil.setException(child2, e, true);
           throw e;
         } catch (TApplicationException tae) {
-          child2.recordException(tae, Attributes.builder()
-              .put("exception.message", tae.getMessage()).put("exception.escaped", true).build());
+          TraceUtil.setException(child2, tae, true);
           throw new AccumuloServerException(loc.tablet_location, tae);
         } catch (TSampleNotPresentException tsnpe) {
           String message = "Table " + Tables.getPrintableTableInfoFromId(context, scanState.tableId)
               + " does not have sampling configured or built";
-          child2.recordException(tsnpe, Attributes.builder()
-              .put("exception.message", tsnpe.getMessage()).put("exception.escaped", true).build());
+          TraceUtil.setException(child2, tsnpe, true);
           throw new SampleNotPresentException(message, tsnpe);
         } catch (NotServingTabletException e) {
           error = "Scan failed, not serving tablet " + loc;
@@ -358,13 +353,11 @@ public class ThriftScanner {
           scanState.scanID = null;
 
           if (scanState.isolated) {
-            child2.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-                .put("exception.escaped", true).build());
+            TraceUtil.setException(child2, e, true);
             throw new IsolationException();
           }
 
-          child2.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-              .put("exception.escaped", false).build());
+          TraceUtil.setException(child2, e, false);
           sleepMillis = pause(sleepMillis, maxSleepTime);
         } catch (NoSuchScanIDException e) {
           error = "Scan failed, no such scan id " + scanState.scanID + " " + loc;
@@ -375,13 +368,11 @@ public class ThriftScanner {
           lastError = error;
 
           if (scanState.isolated) {
-            child2.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-                .put("exception.escaped", true).build());
+            TraceUtil.setException(child2, e, true);
             throw new IsolationException();
           }
 
-          child2.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-              .put("exception.escaped", false).build());
+          TraceUtil.setException(child2, e, false);
           scanState.scanID = null;
         } catch (TooManyFilesException e) {
           error = "Tablet has too many files " + loc + " retrying...";
@@ -403,13 +394,11 @@ public class ThriftScanner {
           scanState.scanID = null;
 
           if (scanState.isolated) {
-            child2.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-                .put("exception.escaped", true).build());
+            TraceUtil.setException(child2, e, true);
             throw new IsolationException();
           }
 
-          child2.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-              .put("exception.escaped", false).build());
+          TraceUtil.setException(child2, e, false);
           sleepMillis = pause(sleepMillis, maxSleepTime);
         } catch (TException e) {
           TabletLocator.getLocator(context, scanState.tableId).invalidateCache(context,
@@ -429,13 +418,11 @@ public class ThriftScanner {
           scanState.scanID = null;
 
           if (scanState.isolated) {
-            child2.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-                .put("exception.escaped", true).build());
+            TraceUtil.setException(child2, e, true);
             throw new IsolationException();
           }
 
-          child2.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-              .put("exception.escaped", false).build());
+          TraceUtil.setException(child2, e, false);
           sleepMillis = pause(sleepMillis, maxSleepTime);
         } finally {
           child2.end();
@@ -448,8 +435,7 @@ public class ThriftScanner {
 
       return results;
     } catch (InterruptedException ex) {
-      parent.recordException(ex, Attributes.builder().put("exception.message", ex.getMessage())
-          .put("exception.escaped", true).build());
+      TraceUtil.setException(parent, ex, true);
       throw new AccumuloException(ex);
     } finally {
       parent.end();
