@@ -130,7 +130,7 @@ public class BulkImporter {
 
       timer.start(Timers.EXAMINE_MAP_FILES);
       ExecutorService threadPool =
-          ThreadPools.createFixedThreadPool(numThreads, "findOverlapping", false);
+          ThreadPools.createFixedThreadPool(numThreads, "findOverlapping", true);
 
       for (Path path : paths) {
         final Path mapFile = path;
@@ -351,7 +351,7 @@ public class BulkImporter {
     final Map<Path,List<AssignmentInfo>> ais = Collections.synchronizedMap(new TreeMap<>());
 
     ExecutorService threadPool =
-        ThreadPools.createFixedThreadPool(numThreads, "estimateSizes", false);
+        ThreadPools.createFixedThreadPool(numThreads, "estimateSizes", true);
 
     for (final Entry<Path,List<TabletLocation>> entry : assignments.entrySet()) {
       if (entry.getValue().size() == 1) {

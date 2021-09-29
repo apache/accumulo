@@ -68,6 +68,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
@@ -352,6 +353,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         }
       }
       try {
+        TraceUtil.initializeTracer(
+            clientProperties.getProperty(ClientProperty.GENERAL_OPENTELEMETRY_FACTORY.getKey()));
         this.setTableName("");
         accumuloClient = Accumulo.newClient().from(clientProperties).as(principal, token).build();
         context = (ClientContext) accumuloClient;

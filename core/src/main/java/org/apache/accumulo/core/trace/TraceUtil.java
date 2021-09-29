@@ -56,11 +56,62 @@ public class TraceUtil {
   private static Tracer instance = null;
   private static boolean tracing = false;
 
+  private static void initializeInternals() {
+    // Get the Tracer from the global OpenTelemetry object. This could have
+    // been set from:
+    //
+    // a. one of the initializeTracer methods
+    // b. the java agent (https://github.com/open-telemetry/opentelemetry-java-instrumentation)
+    // c. or other code that directly sets GlobalOpenTelemetry
+
+    // TODO: Is there a way to get our version to pass to getTracer() ?
+    instance = GlobalOpenTelemetry.getTracer(INSTRUMENTATION_NAME);
+    tracing = (!instance.equals(OpenTelemetry.noop().getTracer(INSTRUMENTATION_NAME)));
+    LOG.info("Tracer is: {}", instance.getClass());
+  }
+
+  /**
+   * Initialize TracerUtil using the OpenTelemetry parameter
+   *
+   * @param ot
+   *          OpenTelemetry instance
+   */
+  public static void initializeTracer(OpenTelemetry ot) {
+    if (instance != null) {
+      GlobalOpenTelemetry.set(ot);
+      initializeInternals();
+    } else {
+      LOG.warn("Tracer already initialized.");
+    }
+  }
+
+  /**
+   * Initialize TracerUtil using the OpenTelemetry Tracer that is set on the GlobalOpenTelemetry
+   * object. If Property.GENERAL_OPENTELEMETRY_FACTORY has been set, then it will use the
+   * OpenTelemetry object returned from the factory class.
+   *
+   * @param conf
+   *          AccumuloConfiguration
+   * @throws Exception
+   */
   public static void initializeTracer(AccumuloConfiguration conf) throws Exception {
+    if (conf != null) {
+      initializeTracer(conf.get(Property.GENERAL_OPENTELEMETRY_FACTORY));
+    } else {
+      LOG.warn("Tracer already initialized.");
+    }
+  }
+
+  /**
+   * Initialize TracerUtil using the OpenTelemetry Tracer that is set on the GlobalOpenTelemetry
+   * object. If parameter factoryClass has been set, then it will use the OpenTelemetry object
+   * returned from the factory class.
+   *
+   * @param factoryClass
+   * @throws Exception
+   */
+  public static void initializeTracer(String factoryClass) throws Exception {
     if (instance == null) {
-      // Allow user to specify a class that will configure and return
-      // an instance of OpenTelemetry
-      String factoryClass = conf.get(Property.GENERAL_OPENTELEMETRY_FACTORY);
       if (factoryClass != null && !factoryClass.isEmpty()) {
         Class<? extends OpenTelemetryFactory> clazz =
             (Class<? extends OpenTelemetryFactory>) ClassLoaderUtil.loadClass(factoryClass,
@@ -70,19 +121,7 @@ public class TraceUtil {
         GlobalOpenTelemetry.set(ot);
         LOG.info("OpenTelemetry configured and set from {}", clazz);
       }
-
-      // Get the Tracer from the global OpenTelemetry object. This could have
-      // been set from:
-      //
-      // a. the code above
-      // b. the java agent (https://github.com/open-telemetry/opentelemetry-java-instrumentation)
-      // c. or via some other mechanism (for example an application that uses the Accumulo client
-      // code)
-      //
-      // TODO: Is there a way to get our version to pass to getTracer() ?
-      instance = GlobalOpenTelemetry.getTracer(INSTRUMENTATION_NAME);
-      tracing = (!instance.equals(OpenTelemetry.noop().getTracer(INSTRUMENTATION_NAME)));
-      LOG.info("Tracer is: {}", instance.getClass());
+      initializeInternals();
     } else {
       LOG.warn("Tracer already initialized.");
     }

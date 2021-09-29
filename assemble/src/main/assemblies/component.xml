@@ -51,6 +51,7 @@
         <include>com.sun.istack:istack-commons-runtime</include>
         <include>io.opentelemetry:opentelemetry-api</include>
         <include>io.opentelemetry:opentelemetry-context</include>
+        <include>io.opentelemetry:opentelemetry-semconv</include>
         <include>jakarta.activation:jakarta.activation-api</include>
         <include>jakarta.annotation:jakarta.annotation-api</include>
         <include>jakarta.el:jakarta.el-api</include>

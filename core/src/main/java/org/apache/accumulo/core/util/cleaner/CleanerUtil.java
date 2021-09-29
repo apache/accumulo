@@ -103,7 +103,7 @@ public class CleanerUtil {
     });
   }
 
-  public static Cleanable shutdownExecutorService(ExecutorService pool, AtomicBoolean closed,
+  public static Cleanable shutdownThreadPoolExecutor(ExecutorService pool, AtomicBoolean closed,
       Logger log) {
     requireNonNull(pool);
     requireNonNull(log);
