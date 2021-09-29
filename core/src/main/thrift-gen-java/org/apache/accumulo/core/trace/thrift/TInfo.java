@@ -252,31 +252,12 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
 
     int lastComparison = 0;
 
-<<<<<<< HEAD
-    lastComparison = java.lang.Boolean.valueOf(isSetHeaders()).compareTo(other.isSetHeaders());
+    lastComparison = java.lang.Boolean.compare(isSetHeaders(), other.isSetHeaders());
     if (lastComparison != 0) {
       return lastComparison;
     }
     if (isSetHeaders()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.headers, other.headers);
-=======
-    lastComparison = java.lang.Boolean.compare(isSetTraceId(), other.isSetTraceId());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetTraceId()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.traceId, other.traceId);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
-    lastComparison = java.lang.Boolean.compare(isSetParentId(), other.isSetParentId());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetParentId()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.parentId, other.parentId);
->>>>>>> main
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -440,7 +421,7 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
       java.util.BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map6 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+          org.apache.thrift.protocol.TMap _map6 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
           struct.headers = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map6.size);
           @org.apache.thrift.annotation.Nullable java.lang.String _key7;
           @org.apache.thrift.annotation.Nullable java.lang.String _val8;
