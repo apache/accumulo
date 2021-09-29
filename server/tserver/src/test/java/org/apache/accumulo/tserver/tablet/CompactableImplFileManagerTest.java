@@ -27,11 +27,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
@@ -153,7 +153,7 @@ public class CompactableImplFileManagerTest {
 
     // advance time past the expiration timeout, however this should not matter since the first
     // reservation was successfully made
-    fileMgr.setNanoTime(2 * SELECTION_EXPIRATION);
+    fileMgr.setNanoTime(2 * SELECTION_EXPIRATION.toNanos());
 
     assertEquals(newFiles("F00003.rf"), fileMgr.getCandidates(tabletFiles, SYSTEM, false));
     assertEquals(newFiles("F00002.rf"), fileMgr.getCandidates(tabletFiles, USER, false));
@@ -204,7 +204,7 @@ public class CompactableImplFileManagerTest {
     assertNoCandidates(fileMgr, tabletFiles, SYSTEM, CHOP, SELECTOR);
 
     // advance time to a point where the selection is eligible to expire
-    fileMgr.setNanoTime(2 * SELECTION_EXPIRATION);
+    fileMgr.setNanoTime(2 * SELECTION_EXPIRATION.toNanos());
 
     // now that the selection is eligible to expire, the selected files should be available as
     // system compaction candidates
@@ -239,7 +239,7 @@ public class CompactableImplFileManagerTest {
     assertEquals(FileSelectionStatus.SELECTED, fileMgr.getSelectionStatus());
 
     // advance time to a point where the selection is eligible to expire
-    fileMgr.setNanoTime(2 * SELECTION_EXPIRATION);
+    fileMgr.setNanoTime(2 * SELECTION_EXPIRATION.toNanos());
 
     // the following reservation for a system compaction should not cancel the selection because its
     // not reserving files that are selected
@@ -405,16 +405,16 @@ public class CompactableImplFileManagerTest {
 
   static class TestFileManager extends CompactableImpl.FileManager {
 
-    public static final long SELECTION_EXPIRATION = TimeUnit.SECONDS.toNanos(120);
+    public static final Duration SELECTION_EXPIRATION = Duration.ofSeconds(120);
     private long time = 0;
     public Set<CompactionKind> running = new HashSet<>();
 
     public TestFileManager() {
       super(new KeyExtent(TableId.of("1"), null, null), Set.of(), Optional.empty(),
-          new Deriver<Long>() {
+          new Deriver<Duration>() {
 
             @Override
-            public Long derive() {
+            public Duration derive() {
               return SELECTION_EXPIRATION;
             }
           });

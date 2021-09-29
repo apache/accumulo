@@ -22,6 +22,7 @@ import static org.apache.accumulo.tserver.TabletStatsKeeper.Operation.MAJOR;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -183,7 +184,7 @@ public class CompactableImpl implements Compactable {
 
     FileSelectionStatus selectStatus = FileSelectionStatus.NOT_ACTIVE;
     private long selectedTimeNanos;
-    private long selectedExpirationDurationNanos;
+    private Duration selectedExpirationDuration;
     private CompactionKind selectKind = null;
 
     // Tracks if when a set of files was selected, if at that time the set was all of the tablets
@@ -201,13 +202,13 @@ public class CompactableImpl implements Compactable {
     private Set<StoredTabletFile> allFilesWhenChopStarted = new HashSet<>();
 
     private final KeyExtent extent;
-    private Deriver<Long> selectionExpirationNanosDeriver;
+    private Deriver<Duration> selectionExpirationDeriver;
 
     public FileManager(KeyExtent extent, Collection<StoredTabletFile> extCompactingFiles,
-        Optional<SelectedInfo> extSelInfo, Deriver<Long> selectionExpirationNanosDeriver) {
+        Optional<SelectedInfo> extSelInfo, Deriver<Duration> selectionExpirationDeriver) {
 
       this.extent = extent;
-      this.selectionExpirationNanosDeriver = selectionExpirationNanosDeriver;
+      this.selectionExpirationDeriver = selectionExpirationDeriver;
       allCompactingFiles.addAll(extCompactingFiles);
       if (extSelInfo.isPresent()) {
         this.selectedFiles.addAll(extSelInfo.get().selectedFiles);
@@ -270,7 +271,7 @@ public class CompactableImpl implements Compactable {
       selectStatus = FileSelectionStatus.SELECTED;
       selectedTimeNanos = getNanoTime();
       // take a snapshot of this from config and use it for the entire selection for consistency
-      selectedExpirationDurationNanos = selectionExpirationNanosDeriver.derive();
+      selectedExpirationDuration = selectionExpirationDeriver.derive();
       selectedFiles.clear();
       selectedFiles.addAll(selected);
       initiallySelectedAll = allSelected;
@@ -402,7 +403,7 @@ public class CompactableImpl implements Compactable {
             case SELECTED: {
               Set<StoredTabletFile> candidates = new HashSet<>(currFiles);
               candidates.removeAll(allCompactingFiles);
-              if (getNanoTime() - selectedTimeNanos < selectedExpirationDurationNanos) {
+              if (getNanoTime() - selectedTimeNanos < selectedExpirationDuration.toNanos()) {
                 candidates.removeAll(selectedFiles);
               }
               return Collections.unmodifiableSet(candidates);
@@ -478,7 +479,7 @@ public class CompactableImpl implements Compactable {
       Preconditions.checkArgument(!jobFiles.isEmpty());
 
       if (selectStatus == FileSelectionStatus.SELECTED
-          && getNanoTime() - selectedTimeNanos > selectedExpirationDurationNanos
+          && getNanoTime() - selectedTimeNanos > selectedExpirationDuration.toNanos()
           && job.getKind() != selectKind && !Collections.disjoint(selectedFiles, jobFiles)) {
         // If a selected compaction starts running, it should always changes the state to RESERVED.
         // So would never expect there to be any running when in the SELECTED state.
@@ -652,9 +653,9 @@ public class CompactableImpl implements Compactable {
       return Set.copyOf(servicesIds);
     }, 2, TimeUnit.SECONDS);
 
-    Deriver<Long> selectionExpirationNanosDeriver =
-        tablet.getTableConfiguration().newDeriver(conf -> TimeUnit.MILLISECONDS
-            .toNanos(conf.getTimeInMillis(Property.TABLE_COMPACTION_SELECTION_EXPIRATION)));
+    Deriver<Duration> selectionExpirationNanosDeriver =
+        tablet.getTableConfiguration().newDeriver(conf -> Duration
+            .ofMillis(conf.getTimeInMillis(Property.TABLE_COMPACTION_SELECTION_EXPIRATION)));
     this.fileMgr = new FileManager(tablet.getExtent(), extCompactingFiles, extSelInfo,
         selectionExpirationNanosDeriver) {
       protected boolean noneRunning(CompactionKind kind) {
