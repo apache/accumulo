@@ -27,6 +27,7 @@ import java.util.Objects;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.spi.trace.OpenTelemetryFactory;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,46 +50,39 @@ public class TraceUtil {
 
   public static final Logger LOG = LoggerFactory.getLogger(TraceUtil.class);
 
-  public static final String INSTRUMENTATION_NAME = "io.opentelemetry.contrib.accumulo";
-
   private static final String SPAN_FORMAT = "%s::%s";
 
   private static Tracer instance = null;
+  private static String name = null;
   private static boolean tracing = false;
 
-  private static void initializeInternals() {
-    // Get the Tracer from the global OpenTelemetry object. This could have
-    // been set from:
-    //
-    // a. one of the initializeTracer methods
-    // b. the java agent (https://github.com/open-telemetry/opentelemetry-java-instrumentation)
-    // c. or other code that directly sets GlobalOpenTelemetry
-
+  private static void initializeInternals(OpenTelemetry ot, String instrumentationName) {
     // TODO: Is there a way to get our version to pass to getTracer() ?
-    instance = GlobalOpenTelemetry.getTracer(INSTRUMENTATION_NAME);
-    tracing = (!instance.equals(OpenTelemetry.noop().getTracer(INSTRUMENTATION_NAME)));
-    LOG.info("Tracer is: {}", instance.getClass());
+    name = instrumentationName;
+    instance = ot.getTracer(name);
+    tracing = (!ot.equals(OpenTelemetry.noop()));
+    LOG.info("Trace enabled: {}, Tracer is: {}", tracing, instance.getClass());
   }
 
   /**
-   * Initialize TracerUtil using the OpenTelemetry parameter
+   * Initialize TracerUtil using the OpenTelemetry parameter and instrumentationName
    *
    * @param ot
    *          OpenTelemetry instance
+   * @param instrumentationName
+   *          OpenTelemetry instrumentation library name
    */
-  public static void initializeTracer(OpenTelemetry ot) {
+  public static void initializeTracer(OpenTelemetry ot, String instrumentationName) {
     if (instance != null) {
-      GlobalOpenTelemetry.set(ot);
-      initializeInternals();
+      initializeInternals(ot, instrumentationName);
     } else {
       LOG.warn("Tracer already initialized.");
     }
   }
 
   /**
-   * Initialize TracerUtil using the OpenTelemetry Tracer that is set on the GlobalOpenTelemetry
-   * object. If Property.GENERAL_OPENTELEMETRY_FACTORY has been set, then it will use the
-   * OpenTelemetry object returned from the factory class.
+   * Use the property values in the AccumuloConfiguration to call
+   * {@link #initializeTracer(boolean, String, String)}
    *
    * @param conf
    *          AccumuloConfiguration
@@ -96,35 +90,42 @@ public class TraceUtil {
    *           unable to find or load class
    */
   public static void initializeTracer(AccumuloConfiguration conf) throws Exception {
-    if (conf != null) {
-      initializeTracer(conf.get(Property.GENERAL_OPENTELEMETRY_FACTORY));
-    } else {
-      LOG.warn("Tracer already initialized.");
-    }
+    initializeTracer(conf.getBoolean(Property.GENERAL_OPENTELEMETRY_ENABLED),
+        conf.get(Property.GENERAL_OPENTELEMETRY_FACTORY),
+        conf.get(Property.GENERAL_OPENTELEMETRY_NAME));
   }
 
   /**
-   * Initialize TracerUtil using the OpenTelemetry Tracer that is set on the GlobalOpenTelemetry
-   * object. If parameter factoryClass has been set, then it will use the OpenTelemetry object
-   * returned from the factory class.
+   * If not enabled, the OpenTelemetry implementation will be set to the NoOp implementation. If
+   * enabled and a factoryClass is supplied, then we will get the OpenTelemetry instance from the
+   * factory class.
    *
+   * @param enabled
+   *          whether or not tracing is enabled
    * @param factoryClass
    *          name of class to load
+   * @param instrumentationName
+   *          OpenTelemetry instrumentation library name
    * @throws Exception
    *           unable to find or load class
    */
-  public static void initializeTracer(String factoryClass) throws Exception {
+  public static void initializeTracer(boolean enabled, String factoryClass,
+      String instrumentationName) throws Exception {
     if (instance == null) {
-      if (factoryClass != null && !factoryClass.isEmpty()) {
+      OpenTelemetry ot = null;
+      if (!enabled) {
+        ot = OpenTelemetry.noop();
+      } else if (factoryClass != null && !factoryClass.isEmpty()) {
         Class<? extends OpenTelemetryFactory> clazz =
             (Class<? extends OpenTelemetryFactory>) ClassLoaderUtil.loadClass(factoryClass,
                 OpenTelemetryFactory.class);
         OpenTelemetryFactory factory = clazz.getDeclaredConstructor().newInstance();
-        OpenTelemetry ot = factory.getOpenTelemetry();
-        GlobalOpenTelemetry.set(ot);
+        ot = factory.getOpenTelemetry();
         LOG.info("OpenTelemetry configured and set from {}", clazz);
+      } else {
+        ot = GlobalOpenTelemetry.get();
       }
-      initializeInternals();
+      initializeInternals(ot, instrumentationName);
     } else {
       LOG.warn("Tracer already initialized.");
     }
@@ -136,9 +137,9 @@ public class TraceUtil {
   private static Tracer getTracer() {
     if (Objects.isNull(instance)) {
       LOG.warn("initializeTracer not called, using GlobalOpenTelemetry.getTracer()");
-      instance = GlobalOpenTelemetry.getTracer(INSTRUMENTATION_NAME);
-      tracing = (!instance.equals(OpenTelemetry.noop().getTracer(INSTRUMENTATION_NAME)));
-      LOG.info("Tracer is: {}", instance.getClass());
+      instance = GlobalOpenTelemetry.getTracer(name);
+      tracing = (!instance.equals(OpenTelemetry.noop().getTracer(name)));
+      LOG.info("Trace enabled: {}, Tracer is: {}", tracing, instance.getClass());
     }
     return instance;
   }
@@ -242,51 +243,6 @@ public class TraceUtil {
         });
   }
 
-  /**
-   * To move trace data from client to server, the RPC call must be annotated to take a TInfo object
-   * as its first argument. The user can simply pass null, so long as they wrap their Client and
-   * Service objects with these functions.
-   *
-   * <pre>
-   * Trace.on(&quot;remoteMethod&quot;);
-   * Iface c = new Client();
-   * c = TracerFactory.wrapClient(c);
-   * c.remoteMethod(null, arg2, arg3);
-   * Trace.off();
-   * </pre>
-   *
-   * The wrapper will see the annotated method and send or re-establish the trace information.
-   *
-   * Note that the result of these calls is a Proxy object that conforms to the basic interfaces,
-   * but is not your concrete instance.
-   */
-  public static <T> T wrapClient(final T instance) {
-    InvocationHandler handler = (obj, method, args) -> {
-      if (args == null || args.length < 1 || args[0] != null) {
-        return method.invoke(instance, args);
-      }
-      if (TInfo.class.isAssignableFrom(method.getParameterTypes()[0])) {
-        args[0] = traceInfo();
-      }
-      Span span = createSpan(instance.getClass(), "client:" + method.getName(), SpanKind.CLIENT);
-      try (Scope scope = span.makeCurrent()) {
-        return method.invoke(instance, args);
-      } catch (InvocationTargetException ex) {
-        span.recordException(ex.getCause(),
-            Attributes.builder().put("exception.message", ex.getCause().getMessage())
-                .put("exception.escaped", true).build());
-        throw ex.getCause();
-      } catch (Exception e) {
-        span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-            .put("exception.escaped", true).build());
-        throw e;
-      } finally {
-        span.end();
-      }
-    };
-    return wrapRpc(handler, instance);
-  }
-
   public static <T> T wrapService(final T instance) {
     InvocationHandler handler = (obj, method, args) -> {
       try {
@@ -299,8 +255,7 @@ public class TraceUtil {
         try (Scope scope = span.makeCurrent()) {
           return method.invoke(instance, args);
         } catch (Exception e) {
-          span.recordException(e, Attributes.builder().put("exception.message", e.getMessage())
-              .put("exception.escaped", true).build());
+          setException(span, e, true);
           throw e;
         } finally {
           span.end();

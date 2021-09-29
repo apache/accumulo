@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.trace;
+package org.apache.accumulo.core.spi.trace;
 
 import io.opentelemetry.api.OpenTelemetry;
 

@@ -27,6 +27,7 @@ import org.apache.thrift.transport.TTransport;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.context.Scope;
 
 /**
  * {@link org.apache.thrift.protocol.TCompactProtocol.Factory} implementation which uses a protocol
@@ -39,17 +40,19 @@ public class TraceProtocolFactory extends TCompactProtocol.Factory {
   public TProtocol getProtocol(TTransport trans) {
     return new TCompactProtocol(trans) {
       private Span span = null;
+      private Scope scope = null;
 
       @Override
       public void writeMessageBegin(TMessage message) throws TException {
-        span = TraceUtil.createSpan(this.getClass(), "client:" + message.name, SpanKind.CLIENT);
-        span.makeCurrent();
+        span = TraceUtil.createSpan(this.getClass(), message.name, SpanKind.CLIENT);
+        scope = span.makeCurrent();
         super.writeMessageBegin(message);
       }
 
       @Override
       public void writeMessageEnd() throws TException {
         super.writeMessageEnd();
+        scope.close();
         span.end();
       }
     };

@@ -92,14 +92,19 @@ JAVA_OPTS=("${JAVA_OPTS[@]}"
   "-Daccumulo.application=${cmd}${ACCUMULO_SERVICE_INSTANCE}_$(hostname)"
   "-Daccumulo.metrics.service.instance=${ACCUMULO_SERVICE_INSTANCE}"
   "-Dlog4j2.contextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
+  "-Dotel.service.name=${cmd}${ACCUMULO_SERVICE_INSTANCE}"
 )
+
+## Optionally setup OpenTelemetry SDK AutoConfigure
+## See https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure
+#JAVA_OPTS=("${JAVA_OPTS[@]}"
+#  "-Dotel.traces.exporter=jaeger"
+#)
 
 ## Optionally setup OpenTelemetry Java Agent
 ## See https://github.com/open-telemetry/opentelemetry-java-instrumentation for more options
 #JAVA_OPTS=("${JAVA_OPTS[@]}"
 #  "-javaagent:path/to/opentelemetry-javaagent-all.jar"
-#  "-Dotel.service.name=${cmd}${ACCUMULO_SERVICE_INSTANCE}"
-#  "-Dotel.traces.exporter=jaeger"
 #)
 
 case "$cmd" in
