@@ -44,13 +44,13 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
 import org.apache.thrift.protocol.TProtocolFactory;
-import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSSLTransportFactory;
 import org.apache.thrift.transport.TSaslClientTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
+import org.apache.thrift.transport.layered.TFramedTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,7 +82,7 @@ public class ThriftUtil {
   }
 
   /**
-   * An instance of {@link org.apache.thrift.transport.TFramedTransport.Factory}
+   * An instance of {@link org.apache.thrift.transport.layered.TFramedTransport.Factory}
    *
    * @return The default Thrift TTransportFactory for RPC
    */
@@ -298,9 +298,9 @@ public class ThriftUtil {
         // Make sure a timeout is set
         try {
           transport = TTimeoutTransport.create(address, timeout);
-        } catch (IOException e) {
+        } catch (TTransportException e) {
           log.warn("Failed to open transport to {}", address);
-          throw new TTransportException(e);
+          throw e;
         }
 
         try {
@@ -371,9 +371,9 @@ public class ThriftUtil {
         } else {
           try {
             transport = TTimeoutTransport.create(address, timeout);
-          } catch (IOException ex) {
+          } catch (TTransportException ex) {
             log.warn("Failed to open transport to {}", address);
-            throw new TTransportException(ex);
+            throw ex;
           }
 
           // Open the transport
