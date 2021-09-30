@@ -61,7 +61,8 @@ public class TraceUtil {
     name = instrumentationName;
     instance = ot.getTracer(name);
     tracing = (!ot.equals(OpenTelemetry.noop()));
-    LOG.info("Trace enabled: {}, Tracer is: {}", tracing, instance.getClass());
+    LOG.info("Trace enabled: {}, OpenTelemetry instance: {}, Tracer instance: {}", tracing,
+        ot.getClass(), instance.getClass());
   }
 
   /**
