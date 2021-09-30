@@ -54,7 +54,6 @@ public class ClusterConfigParser {
     return (key.endsWith(".")) ? "" : ".";
   }
 
-  @SuppressWarnings("unchecked")
   private static void flatten(String parentKey, String key, Object value,
       Map<String,String> results) {
     String parent =
@@ -74,7 +73,9 @@ public class ClusterConfigParser {
         }
       });
     } else if (value instanceof Map) {
-      ((Map<String,Object>) value).forEach((k, v) -> flatten(parent + key, k, v, results));
+      @SuppressWarnings("unchecked")
+      Map<String,Object> map = (Map<String,Object>) value;
+      map.forEach((k, v) -> flatten(parent + key, k, v, results));
     } else {
       throw new RuntimeException("Unhandled object type: " + value.getClass());
     }
