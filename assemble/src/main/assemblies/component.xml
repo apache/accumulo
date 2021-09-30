@@ -104,6 +104,7 @@
         <include>org.jboss.logging:jboss-logging</include>
         <include>org.jline:jline</include>
         <include>org.slf4j:slf4j-api</include>
+        <include>org.yaml:snakeyaml</include>
       </includes>
     </dependencySet>
   </dependencySets>
