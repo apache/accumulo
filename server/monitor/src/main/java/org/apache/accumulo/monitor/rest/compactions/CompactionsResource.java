@@ -61,7 +61,7 @@ public class CompactionsResource {
     for (TabletServerStatus tserverInfo : mmi.getTServerInfo()) {
       var stats = entry.get(HostAndPort.fromString(tserverInfo.name));
       if (stats != null) {
-        compactions.addCompaction(new CompactionInfo(tserverInfo, stats.count, stats.oldest));
+        compactions.addCompaction(new CompactionInfo(tserverInfo, stats));
       }
     }
     return compactions;
