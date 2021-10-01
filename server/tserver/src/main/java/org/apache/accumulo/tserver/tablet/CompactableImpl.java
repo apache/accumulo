@@ -22,6 +22,7 @@ import static org.apache.accumulo.tserver.TabletStatsKeeper.Operation.MAJOR;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -179,11 +180,11 @@ public class CompactableImpl implements Compactable {
    * in a mutually exclusive manner, so synchronization at this level is unnecessary.
    *
    */
-  private class FileManager {
+  static abstract class FileManager {
 
     FileSelectionStatus selectStatus = FileSelectionStatus.NOT_ACTIVE;
-    private long selectedTime;
-    private long selectedExpirationDurationMs;
+    private long selectedTimeNanos;
+    private Duration selectedExpirationDuration;
     private CompactionKind selectKind = null;
 
     // Tracks if when a set of files was selected, if at that time the set was all of the tablets
@@ -193,7 +194,7 @@ public class CompactableImpl implements Compactable {
     private boolean initiallySelectedAll = false;
     private Set<StoredTabletFile> selectedFiles = new HashSet<>();
 
-    private Set<StoredTabletFile> allCompactingFiles = new HashSet<>();
+    protected Set<StoredTabletFile> allCompactingFiles = new HashSet<>();
 
     // track files produced by compactions of this tablet, those are considered chopped
     private Set<StoredTabletFile> choppedFiles = new HashSet<>();
@@ -201,10 +202,10 @@ public class CompactableImpl implements Compactable {
     private Set<StoredTabletFile> allFilesWhenChopStarted = new HashSet<>();
 
     private final KeyExtent extent;
-    private Deriver<Long> selectionExpirationDeriver;
+    private Deriver<Duration> selectionExpirationDeriver;
 
     public FileManager(KeyExtent extent, Collection<StoredTabletFile> extCompactingFiles,
-        Optional<SelectedInfo> extSelInfo, Deriver<Long> selectionExpirationDeriver) {
+        Optional<SelectedInfo> extSelInfo, Deriver<Duration> selectionExpirationDeriver) {
 
       this.extent = extent;
       this.selectionExpirationDeriver = selectionExpirationDeriver;
@@ -233,7 +234,13 @@ public class CompactableImpl implements Compactable {
       return new SelectedInfo(initiallySelectedAll, selectedFiles, selectKind);
     }
 
+    protected abstract boolean noneRunning(CompactionKind kind);
+
+    protected abstract long getNanoTime();
+
     boolean initiateSelection(CompactionKind kind) {
+
+      Preconditions.checkArgument(kind == CompactionKind.SELECTOR || kind == CompactionKind.USER);
 
       if (selectStatus == FileSelectionStatus.NOT_ACTIVE || (kind == CompactionKind.USER
           && selectKind == CompactionKind.SELECTOR && noneRunning(CompactionKind.SELECTOR))) {
@@ -262,9 +269,9 @@ public class CompactableImpl implements Compactable {
       Preconditions.checkArgument(!selected.isEmpty());
       Preconditions.checkState(selectStatus == FileSelectionStatus.SELECTING);
       selectStatus = FileSelectionStatus.SELECTED;
-      selectedTime = System.currentTimeMillis();
+      selectedTimeNanos = getNanoTime();
       // take a snapshot of this from config and use it for the entire selection for consistency
-      selectedExpirationDurationMs = selectionExpirationDeriver.derive();
+      selectedExpirationDuration = selectionExpirationDeriver.derive();
       selectedFiles.clear();
       selectedFiles.addAll(selected);
       initiallySelectedAll = allSelected;
@@ -396,7 +403,7 @@ public class CompactableImpl implements Compactable {
             case SELECTED: {
               Set<StoredTabletFile> candidates = new HashSet<>(currFiles);
               candidates.removeAll(allCompactingFiles);
-              if (System.currentTimeMillis() - selectedTime < selectedExpirationDurationMs) {
+              if (getNanoTime() - selectedTimeNanos < selectedExpirationDuration.toNanos()) {
                 candidates.removeAll(selectedFiles);
               }
               return Collections.unmodifiableSet(candidates);
@@ -467,12 +474,12 @@ public class CompactableImpl implements Compactable {
      *
      * @return true if the files were reserved and false otherwise
      */
-    private boolean reserveFiles(CompactionJob job, Set<StoredTabletFile> jobFiles) {
+    boolean reserveFiles(CompactionJob job, Set<StoredTabletFile> jobFiles) {
 
       Preconditions.checkArgument(!jobFiles.isEmpty());
 
       if (selectStatus == FileSelectionStatus.SELECTED
-          && System.currentTimeMillis() - selectedTime > selectedExpirationDurationMs
+          && getNanoTime() - selectedTimeNanos > selectedExpirationDuration.toNanos()
           && job.getKind() != selectKind && !Collections.disjoint(selectedFiles, jobFiles)) {
         // If a selected compaction starts running, it should always changes the state to RESERVED.
         // So would never expect there to be any running when in the SELECTED state.
@@ -494,8 +501,7 @@ public class CompactableImpl implements Compactable {
           if (job.getKind() == CompactionKind.USER || job.getKind() == CompactionKind.SELECTOR) {
             if (selectKind == job.getKind()) {
               if (!selectedFiles.containsAll(jobFiles)) {
-                // TODO diff log level?
-                log.error("Ignoring {} compaction that does not contain selected files {} {} {}",
+                log.trace("Ignoring {} compaction that does not contain selected files {} {} {}",
                     job.getKind(), getExtent(), asFileNames(selectedFiles), asFileNames(jobFiles));
                 return false;
               }
@@ -546,8 +552,7 @@ public class CompactableImpl implements Compactable {
      * @param newFile
      *          The file produced by a compaction. If the compaction failed, this can be null.
      */
-    private void completed(CompactionJob job, Set<StoredTabletFile> jobFiles,
-        StoredTabletFile newFile) {
+    void completed(CompactionJob job, Set<StoredTabletFile> jobFiles, StoredTabletFile newFile) {
       Preconditions.checkArgument(!jobFiles.isEmpty());
       Preconditions.checkState(allCompactingFiles.removeAll(jobFiles));
       if (newFile != null) {
@@ -574,7 +579,7 @@ public class CompactableImpl implements Compactable {
           || (selectStatus == FileSelectionStatus.CANCELED && noneRunning(selectKind))) {
         selectStatus = FileSelectionStatus.NOT_ACTIVE;
         log.trace("Selected compaction status changed {} {}", getExtent(), selectStatus);
-      } else if (selectStatus == FileSelectionStatus.SELECTED) {
+      } else if (selectStatus == FileSelectionStatus.RESERVED) {
         selectedFiles.add(newFile);
         log.trace("Compacted subset of selected files {} {} -> {}", getExtent(),
             asFileNames(jobFiles), newFile.getFileName());
@@ -648,10 +653,20 @@ public class CompactableImpl implements Compactable {
       return Set.copyOf(servicesIds);
     }, 2, TimeUnit.SECONDS);
 
-    Deriver<Long> selectionExpirationDeriver = tablet.getTableConfiguration()
-        .newDeriver(conf -> conf.getTimeInMillis(Property.TABLE_COMPACTION_SELECTION_EXPIRATION));
+    Deriver<Duration> selectionExpirationNanosDeriver =
+        tablet.getTableConfiguration().newDeriver(conf -> Duration
+            .ofMillis(conf.getTimeInMillis(Property.TABLE_COMPACTION_SELECTION_EXPIRATION)));
     this.fileMgr = new FileManager(tablet.getExtent(), extCompactingFiles, extSelInfo,
-        selectionExpirationDeriver);
+        selectionExpirationNanosDeriver) {
+      protected boolean noneRunning(CompactionKind kind) {
+        return CompactableImpl.this.noneRunning(kind);
+      }
+
+      @Override
+      protected long getNanoTime() {
+        return System.nanoTime();
+      }
+    };
   }
 
   private void verifyExternalCompactions(

@@ -19,6 +19,7 @@
 package org.apache.accumulo.monitor.rest.compactions;
 
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.monitor.Monitor;
 
 /**
  * Generates a compaction info JSON object
@@ -30,6 +31,7 @@ public class CompactionInfo {
   // Variable names become JSON keys
   public String server;
 
+  public long fetched;
   public long count;
   public Long oldest;
 
@@ -37,17 +39,11 @@ public class CompactionInfo {
 
   /**
    * Stores new compaction information
-   *
-   * @param tserverInfo
-   *          status of the tserver
-   * @param count
-   *          number of compactions
-   * @param oldest
-   *          time of oldest compaction
    */
-  public CompactionInfo(TabletServerStatus tserverInfo, long count, Long oldest) {
+  public CompactionInfo(TabletServerStatus tserverInfo, Monitor.CompactionStats stats) {
     this.server = tserverInfo.getName();
-    this.count = count;
-    this.oldest = oldest;
+    this.fetched = stats.fetched;
+    this.count = stats.count;
+    this.oldest = stats.oldest;
   }
 }
