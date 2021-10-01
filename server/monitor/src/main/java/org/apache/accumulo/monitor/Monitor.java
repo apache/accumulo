@@ -566,8 +566,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final RecentLogs recentLogs = new RecentLogs();
   private long scansFetchedNanos = 0L;
   private long compactsFetchedNanos = 0L;
-  private final long fetchTimeNanos = TimeUnit.NANOSECONDS.convert(1, TimeUnit.MINUTES);
-  private final long ageOffEntriesMillis = TimeUnit.MILLISECONDS.convert(15, TimeUnit.MINUTES);
+  private final long fetchTimeNanos = TimeUnit.MINUTES.toNanos(1);
+  private final long ageOffEntriesMillis = TimeUnit.MINUTES.toMillis(15);
 
   /**
    * Fetch the active scans but only if fetchTimeNanos has elapsed.
