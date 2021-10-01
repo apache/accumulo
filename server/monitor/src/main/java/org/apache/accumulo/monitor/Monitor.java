@@ -474,28 +474,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       }
     }).start();
 
-    Threads.createThread("Scan scanner", () -> {
-      while (true) {
-        try {
-          fetchScans();
-        } catch (Exception e) {
-          log.warn("{}", e.getMessage(), e);
-        }
-        sleepUninterruptibly(5, TimeUnit.SECONDS);
-      }
-    }).start();
-
-    Threads.createThread("Compaction fetcher", () -> {
-      while (true) {
-        try {
-          fetchCompactions();
-        } catch (Exception e) {
-          log.warn("{}", e.getMessage(), e);
-        }
-        sleepUninterruptibly(5, TimeUnit.SECONDS);
-      }
-    }).start();
-
     monitorInitialized.set(true);
   }
 
@@ -561,6 +539,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         oldest = Math.max(oldest, scan.age);
       }
       this.oldestScan = oldest < 0 ? null : oldest;
+      // use clock time for date friendly display
       this.fetched = System.currentTimeMillis();
     }
   }
@@ -577,6 +556,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         oldest = Math.max(oldest, a.age);
       }
       this.oldest = oldest < 0 ? null : oldest;
+      // use clock time for date friendly display
       this.fetched = System.currentTimeMillis();
     }
   }
@@ -584,56 +564,71 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final Map<HostAndPort,ScanStats> allScans = new HashMap<>();
   private final Map<HostAndPort,CompactionStats> allCompactions = new HashMap<>();
   private final RecentLogs recentLogs = new RecentLogs();
+  private long scansFetchedNanos = 0L;
+  private long compactsFetchedNanos = 0L;
+  private final long fetchTimeNanos = TimeUnit.MINUTES.toNanos(1);
+  private final long ageOffEntriesMillis = TimeUnit.MINUTES.toMillis(15);
 
-  public Map<HostAndPort,ScanStats> getScans() {
-    synchronized (allScans) {
-      return new HashMap<>(allScans);
+  /**
+   * Fetch the active scans but only if fetchTimeNanos has elapsed.
+   */
+  public synchronized Map<HostAndPort,ScanStats> getScans() {
+    if (System.nanoTime() - scansFetchedNanos > fetchTimeNanos) {
+      log.info("User initiated fetch of Active Scans");
+      fetchScans();
     }
+    return Map.copyOf(allScans);
   }
 
-  public Map<HostAndPort,CompactionStats> getCompactions() {
-    synchronized (allCompactions) {
-      return new HashMap<>(allCompactions);
+  /**
+   * Fetch the active compactions but only if fetchTimeNanos has elapsed.
+   */
+  public synchronized Map<HostAndPort,CompactionStats> getCompactions() {
+    if (System.nanoTime() - compactsFetchedNanos > fetchTimeNanos) {
+      log.info("User initiated fetch of Active Compactions");
+      fetchCompactions();
     }
+    return Map.copyOf(allCompactions);
   }
 
-  private void fetchScans() throws Exception {
+  private void fetchScans() {
     ServerContext context = getContext();
     for (String server : context.instanceOperations().getTabletServers()) {
       final HostAndPort parsedServer = HostAndPort.fromString(server);
-      Client tserver = ThriftUtil.getTServerClient(parsedServer, context);
+      Client tserver = null;
       try {
-        List<ActiveScan> scans = tserver.getActiveScans(TraceUtil.traceInfo(), context.rpcCreds());
-        synchronized (allScans) {
-          allScans.put(parsedServer, new ScanStats(scans));
-        }
+        tserver = ThriftUtil.getTServerClient(parsedServer, context);
+        List<ActiveScan> scans = tserver.getActiveScans(null, context.rpcCreds());
+        allScans.put(parsedServer, new ScanStats(scans));
+        scansFetchedNanos = System.nanoTime();
       } catch (Exception ex) {
-        log.debug("Failed to get active scans from {}", server, ex);
+        log.error("Failed to get active scans from {}", server, ex);
       } finally {
         ThriftUtil.returnClient(tserver);
       }
     }
     // Age off old scan information
     Iterator<Entry<HostAndPort,ScanStats>> entryIter = allScans.entrySet().iterator();
+    // clock time used for fetched for date friendly display
     long now = System.currentTimeMillis();
     while (entryIter.hasNext()) {
       Entry<HostAndPort,ScanStats> entry = entryIter.next();
-      if (now - entry.getValue().fetched > 5 * 60 * 1000) {
+      if (now - entry.getValue().fetched > ageOffEntriesMillis) {
         entryIter.remove();
       }
     }
   }
 
-  private void fetchCompactions() throws Exception {
+  private void fetchCompactions() {
     ServerContext context = getContext();
     for (String server : context.instanceOperations().getTabletServers()) {
       final HostAndPort parsedServer = HostAndPort.fromString(server);
-      Client tserver = ThriftUtil.getTServerClient(parsedServer, context);
+      Client tserver = null;
       try {
+        tserver = ThriftUtil.getTServerClient(parsedServer, context);
         var compacts = tserver.getActiveCompactions(null, context.rpcCreds());
-        synchronized (allCompactions) {
-          allCompactions.put(parsedServer, new CompactionStats(compacts));
-        }
+        allCompactions.put(parsedServer, new CompactionStats(compacts));
+        compactsFetchedNanos = System.nanoTime();
       } catch (Exception ex) {
         log.debug("Failed to get active compactions from {}", server, ex);
       } finally {
@@ -642,10 +637,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
     // Age off old compaction information
     var entryIter = allCompactions.entrySet().iterator();
+    // clock time used for fetched for date friendly display
     long now = System.currentTimeMillis();
     while (entryIter.hasNext()) {
       var entry = entryIter.next();
-      if (now - entry.getValue().fetched > 5 * 60 * 1000) {
+      if (now - entry.getValue().fetched > ageOffEntriesMillis) {
         entryIter.remove();
       }
     }
