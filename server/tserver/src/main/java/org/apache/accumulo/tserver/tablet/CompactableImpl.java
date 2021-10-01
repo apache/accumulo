@@ -449,6 +449,7 @@ public class CompactableImpl implements Compactable {
           switch (chopStatus) {
             case NOT_ACTIVE:
             case SELECTING:
+            case MARKING:
               return Set.of();
             case SELECTED: {
               if (selectStatus == FileSelectionStatus.NEW
@@ -1475,7 +1476,7 @@ public class CompactableImpl implements Compactable {
       while (runningJobs.stream()
           .anyMatch(job -> !((CompactionExecutorIdImpl) job.getExecutor()).isExternalId())
           || !externalCompactionsCommitting.isEmpty()
-          || fileMgr.chopStatus != ChopSelectionStatus.NOT_ACTIVE) {
+          || fileMgr.chopStatus == ChopSelectionStatus.MARKING) {
         try {
           wait(50);
         } catch (InterruptedException e) {
