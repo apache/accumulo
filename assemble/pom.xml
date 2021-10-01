@@ -485,6 +485,11 @@
       <artifactId>slf4j-api</artifactId>
       <optional>true</optional>
     </dependency>
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
+      <optional>true</optional>
+    </dependency>
   </dependencies>
   <build>
     <pluginManagement>

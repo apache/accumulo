@@ -59,6 +59,11 @@ public class ZooZap {
     boolean zapManager = false;
     @Parameter(names = "-tservers", description = "remove tablet server locks")
     boolean zapTservers = false;
+    @Parameter(names = "-compaction-coordinators",
+        description = "remove compaction coordinator locks")
+    boolean zapCoordinators = false;
+    @Parameter(names = "-compactors", description = "remove compactor locks")
+    boolean zapCompactors = false;
     @Parameter(names = "-verbose", description = "print out messages about progress")
     boolean verbose = false;
   }
@@ -128,6 +133,30 @@ public class ZooZap {
       } catch (Exception e) {
         // do nothing if the /tracers node does not exist.
       }
+
+      if (opts.zapCoordinators) {
+        final String coordinatorPath = Constants.ZROOT + "/" + iid + Constants.ZCOORDINATOR_LOCK;
+        try {
+          zapDirectory(zoo, coordinatorPath, opts);
+        } catch (Exception e) {
+          log.error("Error deleting coordinator from zookeeper, {}", e.getMessage(), e);
+        }
+      }
+
+      if (opts.zapCompactors) {
+        String compactorsBasepath = Constants.ZROOT + "/" + iid + Constants.ZCOMPACTORS;
+        try {
+          List<String> queues = zoo.getChildren(compactorsBasepath);
+          for (String queue : queues) {
+            message("Deleting " + compactorsBasepath + "/" + queue + " from zookeeper", opts);
+            zoo.recursiveDelete(compactorsBasepath + "/" + queue, NodeMissingPolicy.SKIP);
+          }
+        } catch (Exception e) {
+          log.error("Error deleting compactors from zookeeper, {}", e.getMessage(), e);
+        }
+
+      }
+
     } finally {
       SingletonManager.setMode(Mode.CLOSED);
     }
