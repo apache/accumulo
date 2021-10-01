@@ -25,6 +25,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -58,59 +59,63 @@ public class Fate<T> {
   private static final EnumSet<TStatus> FINISHED_STATES =
       EnumSet.of(TStatus.FAILED, TStatus.SUCCESSFUL, TStatus.UNKNOWN);
 
+  private final AtomicBoolean keepRunning = new AtomicBoolean(true);
+
   private class TransactionRunner implements Runnable {
 
     @Override
     public void run() {
-      long deferTime = 0;
-      Long tid = null;
-      try {
-        tid = store.reserve();
-        TStatus status = store.getStatus(tid);
-        Repo<T> op = store.top(tid);
-        if (status == TStatus.FAILED_IN_PROGRESS) {
-          processFailed(tid, op);
-        } else {
-          Repo<T> prevOp = null;
-          try {
-            deferTime = op.isReady(tid, environment);
-
-            if (deferTime == 0) {
-              prevOp = op;
-              op = op.call(tid, environment);
-            } else
-              return;
-
-          } catch (Exception e) {
-            blockIfHadoopShutdown(tid, e);
-            transitionToFailed(tid, e);
-            return;
-          }
-
-          if (op == null) {
-            // transaction is finished
-            String ret = prevOp.getReturn();
-            if (ret != null)
-              store.setProperty(tid, RETURN_PROP, ret);
-            store.setStatus(tid, TStatus.SUCCESSFUL);
-            doCleanUp(tid);
+      while (keepRunning.get()) {
+        long deferTime = 0;
+        Long tid = null;
+        try {
+          tid = store.reserve();
+          TStatus status = store.getStatus(tid);
+          Repo<T> op = store.top(tid);
+          if (status == TStatus.FAILED_IN_PROGRESS) {
+            processFailed(tid, op);
           } else {
+            Repo<T> prevOp = null;
             try {
-              store.push(tid, op);
-            } catch (StackOverflowException e) {
-              // the op that failed to push onto the stack was never executed, so no need to undo
-              // it
-              // just transition to failed and undo the ops that executed
+              deferTime = op.isReady(tid, environment);
+
+              if (deferTime == 0) {
+                prevOp = op;
+                op = op.call(tid, environment);
+              } else
+                continue;
+
+            } catch (Exception e) {
+              blockIfHadoopShutdown(tid, e);
               transitionToFailed(tid, e);
-              return;
+              continue;
+            }
+
+            if (op == null) {
+              // transaction is finished
+              String ret = prevOp.getReturn();
+              if (ret != null)
+                store.setProperty(tid, RETURN_PROP, ret);
+              store.setStatus(tid, TStatus.SUCCESSFUL);
+              doCleanUp(tid);
+            } else {
+              try {
+                store.push(tid, op);
+              } catch (StackOverflowException e) {
+                // the op that failed to push onto the stack was never executed, so no need to undo
+                // it
+                // just transition to failed and undo the ops that executed
+                transitionToFailed(tid, e);
+                continue;
+              }
             }
           }
-        }
-      } catch (Exception e) {
-        runnerLog.error("Uncaught exception in FATE runner thread.", e);
-      } finally {
-        if (tid != null) {
-          store.unreserve(tid, deferTime);
+        } catch (Exception e) {
+          runnerLog.error("Uncaught exception in FATE runner thread.", e);
+        } finally {
+          if (tid != null) {
+            store.unreserve(tid, deferTime);
+          }
         }
       }
     }
@@ -228,24 +233,25 @@ public class Fate<T> {
         Property.MANAGER_FATE_THREADPOOL_SIZE);
     fatePoolWatcher = ThreadPools.createGeneralScheduledExecutorService(conf);
     fatePoolWatcher.schedule(() -> {
+      // resize the pool if the property changed
       ThreadPools.resizePool(pool, conf, Property.MANAGER_FATE_THREADPOOL_SIZE);
-      // Assume a thread could execute up to 100 operations a second.
-      // We are sleeping for three seconds. So to calculate max to queue do 3* 100 * numThreads.
-      int maxToQueue = 300 * conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE);
-      int remaining = maxToQueue - pool.getQueue().size();
-      for (int i = 0; i < remaining; i++) {
-        try {
-          pool.execute(new TransactionRunner());
-        } catch (RejectedExecutionException e) {
-          // RejectedExecutionException could be shutting down
-          if (pool.isShutdown()) {
-            // The exception is expected in this case, no need to spam the logs.
-            log.trace("Error adding transaction runner to FaTE executor pool.", e);
-          } else {
-            // This is bad, FaTE may no longer work!
-            log.error("Error adding transaction runner to FaTE executor pool.", e);
+      // If the pool grew, then ensure that there is a TransactionRunner for each thread
+      int needed = conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE) - pool.getQueue().size();
+      if (needed > 0) {
+        for (int i = 0; i < needed; i++) {
+          try {
+            pool.execute(new TransactionRunner());
+          } catch (RejectedExecutionException e) {
+            // RejectedExecutionException could be shutting down
+            if (pool.isShutdown()) {
+              // The exception is expected in this case, no need to spam the logs.
+              log.trace("Error adding transaction runner to FaTE executor pool.", e);
+            } else {
+              // This is bad, FaTE may no longer work!
+              log.error("Error adding transaction runner to FaTE executor pool.", e);
+            }
+            break;
           }
-          break;
         }
       }
     }, 3, TimeUnit.SECONDS);
@@ -343,6 +349,7 @@ public class Fate<T> {
    * Flags that FATE threadpool to clear out and end. Does not actively stop running FATE processes.
    */
   public void shutdown() {
+    keepRunning.set(false);
     fatePoolWatcher.shutdown();
     executor.shutdown();
   }
