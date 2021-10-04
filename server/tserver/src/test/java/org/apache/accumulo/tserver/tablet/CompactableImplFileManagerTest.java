@@ -379,6 +379,7 @@ public class CompactableImplFileManagerTest {
     tabletFiles = newFiles("C00004.rf", "C00006.rf", "F00003.rf", "F00004.rf");
     assertFalse(fileMgr.finishChop(tabletFiles));
     assertEquals(ChopSelectionStatus.SELECTED, fileMgr.getChopStatus());
+    assertFalse(fileMgr.finishMarkingChop());
 
     assertEquals(newFiles("F00004.rf"), fileMgr.getCandidates(tabletFiles, CHOP, false));
 
@@ -390,8 +391,11 @@ public class CompactableImplFileManagerTest {
     assertTrue(fileMgr.finishChop(tabletFiles));
 
     assertEquals(Set.of(), fileMgr.getCandidates(tabletFiles, CHOP, false));
-    assertEquals(ChopSelectionStatus.NOT_ACTIVE, fileMgr.getChopStatus());
+    assertEquals(ChopSelectionStatus.MARKING, fileMgr.getChopStatus());
     assertEquals(Set.of(), fileMgr.getCompactingFiles());
+
+    assertTrue(fileMgr.finishMarkingChop());
+    assertEquals(ChopSelectionStatus.NOT_ACTIVE, fileMgr.getChopStatus());
 
   }
 

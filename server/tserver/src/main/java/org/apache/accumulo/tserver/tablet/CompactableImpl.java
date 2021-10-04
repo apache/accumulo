@@ -1487,7 +1487,7 @@ public class CompactableImpl implements Compactable {
       closed = true;
 
       // wait while internal jobs are running, external compactions are committing or the status of
-      // chops is active, but do not wait on external compactions that are running
+      // chops is MARKING, but do not wait on external compactions that are running
       while (runningJobs.stream()
           .anyMatch(job -> !((CompactionExecutorIdImpl) job.getExecutor()).isExternalId())
           || !externalCompactionsCommitting.isEmpty()
