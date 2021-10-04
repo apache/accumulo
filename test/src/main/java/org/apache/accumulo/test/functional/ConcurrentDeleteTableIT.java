@@ -53,6 +53,11 @@ import org.junit.Test;
 
 public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
+  private final NewTableConfiguration ntc = new NewTableConfiguration().withSplits(createSplits());
+  private final int NUM_TABLES = 2;
+  private final int NUM_SPLITS = 1_000;
+  private final int NUM_MUTATIONS = 1_000;
+
   @Override
   protected int defaultTimeoutSeconds() {
     return 7 * 60;
@@ -62,46 +67,41 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
   public void testConcurrentDeleteTablesOps() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
-      String[] tables = getUniqueNames(2);
+      String[] tables = getUniqueNames(NUM_TABLES);
 
-      TreeSet<Text> splits = createSplits();
-      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+      int numDeleteOps = 20;
 
-      ExecutorService es = Executors.newFixedThreadPool(20);
+      ExecutorService es = Executors.newFixedThreadPool(numDeleteOps);
 
       int count = 0;
       for (final String table : tables) {
         c.tableOperations().create(table, ntc);
         writeData(c, table);
-        if (count == 1) {
+        // flush last table
+        if (count == tables.length - 1) {
           c.tableOperations().flush(table, null, null, true);
         }
         count++;
 
-        int numDeleteOps = 20;
         final CountDownLatch cdl = new CountDownLatch(numDeleteOps);
 
         List<Future<?>> futures = new ArrayList<>();
 
         for (int i = 0; i < numDeleteOps; i++) {
-          Future<?> future = es.submit(new Runnable() {
-
-            @Override
-            public void run() {
-              try {
-                cdl.countDown();
-                cdl.await();
-                c.tableOperations().delete(table);
-              } catch (TableNotFoundException e) {
-                // expected
-              } catch (InterruptedException | AccumuloException | AccumuloSecurityException e) {
-                throw new RuntimeException(e);
-              }
+          futures.add(es.submit(() -> {
+            try {
+              cdl.countDown();
+              cdl.await();
+              c.tableOperations().delete(table);
+            } catch (TableNotFoundException e) {
+              // expected
+            } catch (InterruptedException | AccumuloException | AccumuloSecurityException e) {
+              throw new RuntimeException(e);
             }
-          });
-
-          futures.add(future);
+          }));
         }
+
+        assertEquals(numDeleteOps, futures.size());
 
         for (Future<?> future : futures) {
           future.get();
@@ -121,49 +121,11 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
     }
   }
 
-  private TreeSet<Text> createSplits() {
-    TreeSet<Text> splits = new TreeSet<>();
-
-    for (int i = 0; i < 1000; i++) {
-      Text split = new Text(String.format("%09x", i * 100000));
-      splits.add(split);
-    }
-    return splits;
-  }
-
-  private abstract static class DelayedTableOp implements Runnable {
-    private CountDownLatch cdl;
-
-    DelayedTableOp(CountDownLatch cdl) {
-      this.cdl = cdl;
-    }
-
-    @Override
-    public void run() {
-      try {
-        cdl.countDown();
-        cdl.await();
-        Thread.sleep(10);
-        doTableOp();
-      } catch (TableNotFoundException | TableOfflineException e) {
-        // expected
-      } catch (RuntimeException e) {
-        throw e;
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    protected abstract void doTableOp() throws Exception;
-  }
-
   @Test
   public void testConcurrentFateOpsWithDelete() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      String[] tables = getUniqueNames(2);
 
-      TreeSet<Text> splits = createSplits();
-      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+      String[] tables = getUniqueNames(NUM_TABLES);
 
       int numOperations = 8;
 
@@ -173,7 +135,8 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
       for (final String table : tables) {
         c.tableOperations().create(table, ntc);
         writeData(c, table);
-        if (count == 1) {
+        // flush last table
+        if (count == tables.length - 1) {
           c.tableOperations().flush(table, null, null, true);
         }
         count++;
@@ -183,18 +146,15 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
         List<Future<?>> futures = new ArrayList<>();
 
-        futures.add(es.submit(new Runnable() {
-          @Override
-          public void run() {
-            try {
-              cdl.countDown();
-              cdl.await();
-              c.tableOperations().delete(table);
-            } catch (TableNotFoundException | TableOfflineException e) {
-              // expected
-            } catch (InterruptedException | AccumuloException | AccumuloSecurityException e) {
-              throw new RuntimeException(e);
-            }
+        futures.add(es.submit(() -> {
+          try {
+            cdl.countDown();
+            cdl.await();
+            c.tableOperations().delete(table);
+          } catch (TableNotFoundException | TableOfflineException e) {
+            // expected
+          } catch (InterruptedException | AccumuloException | AccumuloSecurityException e) {
+            throw new RuntimeException(e);
           }
         }));
 
@@ -269,12 +229,48 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
     }
   }
 
+  private abstract static class DelayedTableOp implements Runnable {
+    private final CountDownLatch cdl;
+
+    DelayedTableOp(CountDownLatch cdl) {
+      this.cdl = cdl;
+    }
+
+    @Override
+    public void run() {
+      try {
+        cdl.countDown();
+        cdl.await();
+        Thread.sleep(10);
+        doTableOp();
+      } catch (TableNotFoundException | TableOfflineException e) {
+        // expected
+      } catch (RuntimeException e) {
+        throw e;
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    protected abstract void doTableOp() throws Exception;
+  }
+
+  private TreeSet<Text> createSplits() {
+    TreeSet<Text> splits = new TreeSet<>();
+
+    for (int i = 0; i < NUM_SPLITS; i++) {
+      Text split = new Text(String.format("%09x", i * 100_000));
+      splits.add(split);
+    }
+    return splits;
+  }
+
   private void writeData(AccumuloClient c, String table)
       throws TableNotFoundException, MutationsRejectedException {
     try (BatchWriter bw = c.createBatchWriter(table)) {
       Random rand = new SecureRandom();
-      for (int i = 0; i < 1000; i++) {
-        Mutation m = new Mutation(String.format("%09x", rand.nextInt(100000 * 1000)));
+      for (int i = 0; i < NUM_MUTATIONS; i++) {
+        Mutation m = new Mutation(String.format("%09x", rand.nextInt(100_000 * 1_000)));
         m.put("m", "order", "" + i);
         bw.addMutation(m);
       }
