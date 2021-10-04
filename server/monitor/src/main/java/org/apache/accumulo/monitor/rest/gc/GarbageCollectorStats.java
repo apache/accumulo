@@ -31,13 +31,13 @@ public class GarbageCollectorStats {
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectorStats.class);
 
   // Variable names become JSON key
-  public String type;
-  public long finished = 0L;
-  public long candidates = 0L;
-  public long inUse = 0L;
-  public long deleted = 0L;
-  public long errors = 0L;
-  public long duration = 0L;
+  public final String type;
+  public final long finished;
+  public final long candidates;
+  public final long inUse;
+  public final long deleted;
+  public final long errors;
+  public final long duration;
 
   /**
    * Creates a new garbage collector cycle
