@@ -27,7 +27,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.metrics.service.MicrometerMetricsFactory;
 import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -38,7 +37,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 
 public class ReplicationMetricsTest {
-  private final long currentTime = 1000L;
 
   /**
    * Extend the class to override the current time for testing
@@ -48,10 +46,6 @@ public class ReplicationMetricsTest {
       super(manager);
     }
 
-    @Override
-    public long getCurrentTime() {
-      return currentTime;
-    }
   }
 
   @Test
@@ -60,7 +54,6 @@ public class ReplicationMetricsTest {
     ServerContext context = EasyMock.createMock(ServerContext.class);
     VolumeManager fileSystem = EasyMock.createMock(VolumeManager.class);
     ReplicationUtil util = EasyMock.createMock(ReplicationUtil.class);
-    MicrometerMetricsFactory micrometerMF = EasyMock.createMock(MicrometerMetricsFactory.class);
     MeterRegistry meterRegistry = EasyMock.createMock(MeterRegistry.class);
     Timer timer = EasyMock.createMock(Timer.class);
 
@@ -69,8 +62,6 @@ public class ReplicationMetricsTest {
 
     // First call will initialize the map of paths to modification time
     EasyMock.expect(manager.getContext()).andReturn(context).anyTimes();
-    EasyMock.expect(manager.getMicrometerMetrics()).andReturn(micrometerMF).anyTimes();
-    EasyMock.expect(micrometerMF.getRegistry()).andReturn(meterRegistry).anyTimes();
     EasyMock.expect(meterRegistry.timer("replicationQueue")).andReturn(timer).anyTimes();
     EasyMock.expect(meterRegistry.gauge(EasyMock.eq("filesPendingReplication"),
         EasyMock.anyObject(AtomicLong.class))).andReturn(new AtomicLong(0)).anyTimes();
@@ -89,10 +80,10 @@ public class ReplicationMetricsTest {
     // Second call will recognize the missing path1 and add the latency stat
     EasyMock.expect(util.getPendingReplicationPaths()).andReturn(Set.of(path2));
 
-    timer.record(Duration.ofMillis(currentTime - 100));
+    timer.record(EasyMock.isA(Duration.class));
     EasyMock.expectLastCall();
 
-    EasyMock.replay(manager, fileSystem, util, micrometerMF, meterRegistry, timer);
+    EasyMock.replay(manager, fileSystem, util, meterRegistry, timer);
 
     ReplicationMetrics metrics = new ReplicationMetricsTestMetrics(manager);
 
@@ -104,7 +95,7 @@ public class ReplicationMetricsTest {
     metrics.addReplicationQueueTimeMetrics();
     metrics.addReplicationQueueTimeMetrics();
 
-    EasyMock.verify(manager, fileSystem, util, micrometerMF, meterRegistry, timer);
+    EasyMock.verify(manager, fileSystem, util, meterRegistry, timer);
   }
 
   private void replaceField(Object instance, String fieldName, Object target)

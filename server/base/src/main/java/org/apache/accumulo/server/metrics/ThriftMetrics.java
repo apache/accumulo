@@ -18,19 +18,32 @@
  */
 package org.apache.accumulo.server.metrics;
 
-public class ThriftMetrics extends Metrics {
+import org.apache.accumulo.core.metrics.MicrometerMetricsFactory;
+
+import io.micrometer.core.instrument.DistributionSummary;
+
+public class ThriftMetrics {
+
+  private static final String METRICS_PREFIX = "accumulo.thrift.";
+
+  private final DistributionSummary idle;
+  private final DistributionSummary execute;
 
   public ThriftMetrics(String serverName, String threadName) {
-    super("Thrift,sub=" + serverName, "Thrift Server Metrics - " + serverName + " " + threadName,
-        "thrift", serverName);
+    idle = DistributionSummary.builder(METRICS_PREFIX + "idle").baseUnit("ms")
+        .tags("server", serverName, "thread", threadName)
+        .register(MicrometerMetricsFactory.getRegistry());
+    execute = DistributionSummary.builder(METRICS_PREFIX + "execute").baseUnit("ms")
+        .tags("server", serverName, "thread", threadName)
+        .register(MicrometerMetricsFactory.getRegistry());
   }
 
   public void addIdle(long time) {
-    getRegistry().add("idle", time);
+    idle.record(time);
   }
 
   public void addExecute(long time) {
-    getRegistry().add("execute", time);
+    execute.record(time);
   }
 
 }

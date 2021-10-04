@@ -74,7 +74,9 @@ public class GcMetricsIT extends ConfigurableMacBase {
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.GC_METRICS_ENABLED, "true");
+    @SuppressWarnings("deprecation")
+    Property p = Property.GC_METRICS_ENABLED;
+    cfg.setProperty(p, "true");
     cfg.setProperty(Property.GC_CYCLE_START, "5s");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "15s");
   }
@@ -98,8 +100,10 @@ public class GcMetricsIT extends ConfigurableMacBase {
 
   @Test
   public void gcMetricsPublishedHadoop() throws Exception {
+    @SuppressWarnings("deprecation")
+    Property p = Property.GC_METRICS_ENABLED;
     assumeTrue("gc metrics are disabled with GC_METRICS_ENABLED=false",
-        cluster.getSiteConfiguration().getBoolean(Property.GC_METRICS_ENABLED));
+        cluster.getSiteConfiguration().getBoolean(p));
 
     // uncomment for manual jmx / jconsole validation - not for automated testing
     // Thread.sleep(320_000);
@@ -118,8 +122,10 @@ public class GcMetricsIT extends ConfigurableMacBase {
 
   @Test
   public void gcMetricsPublishedMicrometer() throws Exception {
+    @SuppressWarnings("deprecation")
+    Property p = Property.GC_METRICS_ENABLED;
     assumeTrue("gc metrics are disabled with GC_METRICS_ENABLED=false",
-        cluster.getSiteConfiguration().getBoolean(Property.GC_METRICS_ENABLED));
+        cluster.getSiteConfiguration().getBoolean(p));
 
     // uncomment for manual jmx / jconsole validation - not for automated testing
     // Thread.sleep(320_000);

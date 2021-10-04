@@ -121,8 +121,10 @@ public class ManagerMetricsIT extends AccumuloClusterHarness {
   @Test
   public void managerMetricsPublishedHadoop() throws AccumuloException, AccumuloSecurityException {
     // assume metrics are enabled via properties
-    assumeTrue(accumuloClient.instanceOperations().getSystemConfiguration()
-        .get(Property.MANAGER_FATE_METRICS_ENABLED.getKey()).compareTo("true") == 0);
+    @SuppressWarnings("deprecation")
+    String p = Property.MANAGER_FATE_METRICS_ENABLED.getKey();
+    assumeTrue(
+        accumuloClient.instanceOperations().getSystemConfiguration().get(p).compareTo("true") == 0);
 
     log.trace("Client started, properties:{}", accumuloClient.properties());
 
@@ -160,9 +162,11 @@ public class ManagerMetricsIT extends AccumuloClusterHarness {
   @Test
   public void managerMetricsPublishedMicrometer()
       throws AccumuloException, AccumuloSecurityException {
+    @SuppressWarnings("deprecation")
+    String p = Property.MANAGER_FATE_METRICS_ENABLED.getKey();
     // assume metrics are enabled via properties
-    assumeTrue(accumuloClient.instanceOperations().getSystemConfiguration()
-        .get(Property.MANAGER_FATE_METRICS_ENABLED.getKey()).compareTo("true") == 0);
+    assumeTrue(
+        accumuloClient.instanceOperations().getSystemConfiguration().get(p).compareTo("true") == 0);
 
     log.trace("Client started, properties:{}", accumuloClient.properties());
 
@@ -191,9 +195,11 @@ public class ManagerMetricsIT extends AccumuloClusterHarness {
    */
   @Test
   public void compactionMetricsHadoop() throws AccumuloSecurityException, AccumuloException {
+    @SuppressWarnings("deprecation")
+    String p = Property.MANAGER_FATE_METRICS_ENABLED.getKey();
     // assume metrics are enabled via properties
-    assumeTrue(accumuloClient.instanceOperations().getSystemConfiguration()
-        .get(Property.MANAGER_FATE_METRICS_ENABLED.getKey()).compareTo("true") == 0);
+    assumeTrue(
+        accumuloClient.instanceOperations().getSystemConfiguration().get(p).compareTo("true") == 0);
 
     MetricsFileTailer.LineUpdate firstUpdate =
         metricsTail.waitForUpdate(-1, NUM_TAIL_ATTEMPTS, TAIL_DELAY);
@@ -266,9 +272,11 @@ public class ManagerMetricsIT extends AccumuloClusterHarness {
    */
   @Test
   public void compactionMetricsMicrometer() throws AccumuloException, AccumuloSecurityException {
+    @SuppressWarnings("deprecation")
+    String p = Property.MANAGER_FATE_METRICS_ENABLED.getKey();
     // assume metrics are enabled via properties
-    assumeTrue(accumuloClient.instanceOperations().getSystemConfiguration()
-        .get(Property.MANAGER_FATE_METRICS_ENABLED.getKey()).compareTo("true") == 0);
+    assumeTrue(
+        accumuloClient.instanceOperations().getSystemConfiguration().get(p).compareTo("true") == 0);
 
     ScrapeUpdate firstScrape = captureMetricsAfterTimestampPrometheus(-1L);
     log.info("Received first metrics update {}", firstScrape);

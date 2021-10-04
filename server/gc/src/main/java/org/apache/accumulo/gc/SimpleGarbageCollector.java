@@ -31,7 +31,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
@@ -63,6 +62,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.metrics.MicrometerMetricsFactory;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
@@ -120,21 +120,11 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   private final GCStatus status =
       new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
   private final GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
-  private GcMetrics gcMetrics = null;
 
   SimpleGarbageCollector(ServerOpts opts, String[] args) {
     super("gc", opts, args);
 
     final AccumuloConfiguration conf = getConfiguration();
-
-    // boolean gcMetricsRegistered = new GcMetricsFactory(conf).register(this);
-    var enableMetrics = conf.getBoolean(Property.GC_METRICS_ENABLED);
-    if (enableMetrics) {
-      log.info("gc metrics modules registered with metrics system");
-      gcMetrics = new GcMetrics(this);
-    } else {
-      log.info("Failed to register gc metrics module");
-    }
 
     final long gcDelay = conf.getTimeInMillis(Property.GC_CYCLE_DELAY);
     final String useFullCompaction = conf.get(Property.GC_USE_FULL_COMPACTION);
@@ -282,11 +272,21 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     // old data files to be unused
     log.info("Trying to acquire ZooKeeper lock for garbage collector");
 
+    HostAndPort address = startStatsService();
+
     try {
-      getZooLock(startStatsService());
+      getZooLock(address);
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);
       System.exit(1);
+    }
+
+    try {
+      MicrometerMetricsFactory.initializeMetrics(getContext().getConfiguration(),
+          this.applicationName, address);
+      new GcMetrics(this);
+    } catch (Exception e1) {
+      log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
 
     try {
@@ -404,10 +404,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       try {
 
         gcCycleMetrics.incrementRunCycleCount();
-        if (Objects.nonNull(gcMetrics)) {
-          gcMetrics.updateMetrics(gcCycleMetrics);
-        }
-
         long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
         log.debug("Sleeping for {} milliseconds", gcDelay);
         Thread.sleep(gcDelay);
@@ -483,7 +479,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {
-      ServerAddress server = TServerUtils.startTServer(getMetricsSystem(), getConfiguration(),
+      ServerAddress server = TServerUtils.startTServer(getConfiguration(),
           getContext().getThriftServerType(), processor, this.getClass().getSimpleName(),
           "GC Monitor Service", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, maxMessageSize,
           getContext().getServerSslParams(), getContext().getSaslParams(), 0, addresses);

@@ -1,0 +1,133 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.accumulo.core.metrics;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.HostAndPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.micrometer.core.instrument.Meter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics;
+import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics;
+import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics;
+import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics;
+import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics;
+import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
+import io.micrometer.core.instrument.config.MeterFilter;
+import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
+
+public class MicrometerMetricsFactory {
+
+  public static final Logger LOG = LoggerFactory.getLogger(MicrometerMetricsFactory.class);
+
+  private static JvmGcMetrics gc;
+  private static List<Tag> commonTags;
+
+  public static void initializeMetrics(boolean enabled, String factoryClass, String appName)
+      throws Exception {
+    initializeMetrics(enabled, factoryClass, appName, null);
+  }
+
+  public static void initializeMetrics(final AccumuloConfiguration conf, final String appName,
+      final HostAndPort address) throws Exception {
+    initializeMetrics(conf.getBoolean(Property.GENERAL_MICROMETER_ENABLED),
+        conf.get(Property.GENERAL_MICROMETER_FACTORY), appName, address);
+  }
+
+  private static void initializeMetrics(boolean enabled, String factoryClass, String appName,
+      HostAndPort address) throws Exception {
+    if (enabled && factoryClass != null && !factoryClass.isEmpty()) {
+
+      String processName = appName;
+      String serviceInstance = System.getProperty("accumulo.metrics.service.instance", "");
+      if (!serviceInstance.isBlank()) {
+        processName += serviceInstance;
+      }
+
+      List<Tag> tags = new ArrayList<>();
+      tags.add(Tag.of("process.name", processName));
+
+      if (address != null) {
+        tags.add(Tag.of("Address", address.toString()));
+      }
+      commonTags = Collections.unmodifiableList(tags);
+
+      // Configure replication metrics to display percentiles and change its expiry to 10 mins
+      MeterFilter replicationFilter = new MeterFilter() {
+        @Override
+        public DistributionStatisticConfig configure(Meter.Id id,
+            DistributionStatisticConfig config) {
+          if (id.getName().equals("replicationQueue")) {
+            return DistributionStatisticConfig.builder().percentiles(0.5, 0.75, 0.9, 0.95, 0.99)
+                .expiry(Duration.ofMinutes(10)).build().merge(config);
+          }
+          return config;
+        }
+      };
+
+      Class<? extends MeterRegistryFactory> clazz =
+          (Class<? extends MeterRegistryFactory>) ClassLoaderUtil.loadClass(factoryClass,
+              MeterRegistryFactory.class);
+      MeterRegistryFactory factory = clazz.getDeclaredConstructor().newInstance();
+
+      MeterRegistry registry = factory.create();
+      registry.config().commonTags(commonTags);
+      registry.config().meterFilter(replicationFilter);
+      Metrics.globalRegistry.add(registry);
+
+      new ClassLoaderMetrics(commonTags).bindTo(Metrics.globalRegistry);
+      new JvmMemoryMetrics(commonTags).bindTo(Metrics.globalRegistry);
+      gc = new JvmGcMetrics(commonTags);
+      gc.bindTo(Metrics.globalRegistry);
+      new ProcessorMetrics(commonTags).bindTo(Metrics.globalRegistry);
+      new JvmThreadMetrics(commonTags).bindTo(Metrics.globalRegistry);
+    }
+  }
+
+  public static void addExecutorServiceMetrics(ExecutorService executor, String name) {
+    new ExecutorServiceMetrics(executor, name, commonTags).bindTo(Metrics.globalRegistry);
+  }
+
+  public static MeterRegistry getRegistry() {
+    return Metrics.globalRegistry;
+  }
+
+  public static List<Tag> getCommonTags() {
+    return commonTags;
+  }
+
+  public static void close() {
+    if (gc != null) {
+      gc.close();
+    }
+  }
+
+}

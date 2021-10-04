@@ -16,26 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.metrics.service.prometheus;
+package org.apache.accumulo.core.metrics;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import io.micrometer.core.instrument.MeterRegistry;
 
-public class HealthCheck {
-
-  private static HealthCheck _instance = null;
-
-  private HealthCheck() {}
-
-  public synchronized static HealthCheck getInstance() {
-    if (Objects.isNull(_instance)) {
-      _instance = new HealthCheck();
-    }
-    return _instance;
-  }
-
-  public List<ProcessReport.Record> getProcessReport() {
-    return Collections.emptyList();
-  }
+public interface MeterRegistryFactory {
+  MeterRegistry create();
 }
