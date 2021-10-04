@@ -29,6 +29,7 @@ import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TMemoryBuffer;
 import org.apache.thrift.transport.TMemoryInputTransport;
+import org.apache.thrift.transport.TTransportException;
 
 /**
  * Serializes and deserializes Thrift messages to and from byte arrays. This class is not
@@ -41,15 +42,15 @@ public class ThriftMessageUtil {
   private final TMemoryInputTransport inputTransport;
   private final TCompactProtocol inputProtocol;
 
-  public ThriftMessageUtil() {
-    this(64);
-  }
-
-  public ThriftMessageUtil(int initialCapacity) {
+  public ThriftMessageUtil() throws IOException {
     // TODO does this make sense? better to push this down to the serialize method (accept the
     // transport as an argument)?
-    this.initialCapacity = initialCapacity;
-    this.inputTransport = new TMemoryInputTransport();
+    this.initialCapacity = 64;
+    try {
+      this.inputTransport = new TMemoryInputTransport();
+    } catch (TTransportException e) {
+      throw new IOException(e);
+    }
     this.inputProtocol = new TCompactProtocol(inputTransport);
   }
 
@@ -64,14 +65,14 @@ public class ThriftMessageUtil {
    */
   public ByteBuffer serialize(TBase<?,?> msg) throws IOException {
     requireNonNull(msg);
-    TMemoryBuffer transport = new TMemoryBuffer(initialCapacity);
-    TProtocol protocol = new TCompactProtocol(transport);
     try {
+      TMemoryBuffer transport = new TMemoryBuffer(initialCapacity);
+      TProtocol protocol = new TCompactProtocol(transport);
       msg.write(protocol);
+      return ByteBuffer.wrap(transport.getArray(), 0, transport.length());
     } catch (TException e) {
       throw new IOException(e);
     }
-    return ByteBuffer.wrap(transport.getArray(), 0, transport.length());
   }
 
   /**

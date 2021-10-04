@@ -50,7 +50,7 @@ public class ScansResource {
    * @return Scan JSON object
    */
   @GET
-  public Scans getActiveScans() {
+  public Scans getActiveScans() throws Exception {
     Scans scans = new Scans();
     ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
@@ -63,7 +63,7 @@ public class ScansResource {
     for (TabletServerStatus tserverInfo : mmi.getTServerInfo()) {
       ScanStats stats = entry.get(HostAndPort.fromString(tserverInfo.name));
       if (stats != null) {
-        scans.addScan(new ScanInformation(tserverInfo, stats.scanCount, stats.oldestScan));
+        scans.addScan(new ScanInformation(tserverInfo, stats));
       }
     }
     return scans;
