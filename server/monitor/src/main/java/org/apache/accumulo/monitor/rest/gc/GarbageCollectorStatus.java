@@ -26,7 +26,7 @@ import org.apache.accumulo.core.gc.thrift.GCStatus;
 /**
  * Responsible for grouping files and wals into a JSON object
  *
- * @since 2.1.0
+ * @since 2.0.0
  */
 public class GarbageCollectorStatus {
 
