@@ -21,43 +21,21 @@ package org.apache.accumulo.tserver.metrics;
 import java.time.Duration;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.metrics.MicrometerMetricsFactory;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 
 public class TabletServerUpdateMetrics implements MetricsProducer {
 
-  private final Counter permissionErrorsCounter;
-  private final Counter unknownTabletErrorsCounter;
-  private final Counter constraintViolationsCounter;
-
-  private final Timer commitPrepStat;
-  private final Timer walogWriteTimeStat;
-  private final Timer commitTimeStat;
-  private final DistributionSummary mutationArraySizeStat;
-
-  public TabletServerUpdateMetrics() {
-
-    permissionErrorsCounter = MicrometerMetricsFactory.getRegistry()
-        .counter(getMetricsPrefix() + "error", "type", "permission");
-    unknownTabletErrorsCounter = MicrometerMetricsFactory.getRegistry()
-        .counter(getMetricsPrefix() + "error", "type", "unknown.tablet");
-    constraintViolationsCounter = MicrometerMetricsFactory.getRegistry()
-        .counter(getMetricsPrefix() + "error", "type", "constraint.violation");
-
-    commitPrepStat = Timer.builder(getMetricsPrefix() + "commit.prep")
-        .description("preparing to commit mutations")
-        .register(MicrometerMetricsFactory.getRegistry());
-    walogWriteTimeStat = Timer.builder(getMetricsPrefix() + "walog.write")
-        .description("writing mutations to WAL").register(MicrometerMetricsFactory.getRegistry());
-    commitTimeStat = Timer.builder(getMetricsPrefix() + "commit")
-        .description("committing mutations").register(MicrometerMetricsFactory.getRegistry());
-    mutationArraySizeStat = DistributionSummary.builder(getMetricsPrefix() + "mutation.arrays.size")
-        .description("mutation array").register(MicrometerMetricsFactory.getRegistry());
-
-  }
+  private Counter permissionErrorsCounter;
+  private Counter unknownTabletErrorsCounter;
+  private Counter constraintViolationsCounter;
+  private Timer commitPrepStat;
+  private Timer walogWriteTimeStat;
+  private Timer commitTimeStat;
+  private DistributionSummary mutationArraySizeStat;
 
   public void addPermissionErrors(long value) {
     permissionErrorsCounter.increment(value);
@@ -88,8 +66,19 @@ public class TabletServerUpdateMetrics implements MetricsProducer {
   }
 
   @Override
-  public String getMetricsPrefix() {
-    return "accumulo.tserver.updates.";
+  public void registerMetrics(MeterRegistry registry) {
+    permissionErrorsCounter = registry.counter(METRICS_UPDATE_ERRORS, "type", "permission");
+    unknownTabletErrorsCounter = registry.counter(METRICS_UPDATE_ERRORS, "type", "unknown.tablet");
+    constraintViolationsCounter =
+        registry.counter(METRICS_UPDATE_ERRORS, "type", "constraint.violation");
+    commitPrepStat = Timer.builder(METRICS_UPDATE_COMMIT_PREP)
+        .description("preparing to commit mutations").register(registry);
+    walogWriteTimeStat = Timer.builder(METRICS_UPDATE_WALOG_WRITE)
+        .description("writing mutations to WAL").register(registry);
+    commitTimeStat =
+        Timer.builder(METRICS_UPDATE_COMMIT).description("committing mutations").register(registry);
+    mutationArraySizeStat = DistributionSummary.builder(METRICS_UPDATE_MUTATION_ARRAY_SIZE)
+        .description("mutation array").register(registry);
   }
 
 }

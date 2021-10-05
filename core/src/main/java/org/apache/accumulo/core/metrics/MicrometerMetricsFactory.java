@@ -46,7 +46,7 @@ import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
 
 public class MicrometerMetricsFactory {
 
-  public static final Logger LOG = LoggerFactory.getLogger(MicrometerMetricsFactory.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MicrometerMetricsFactory.class);
 
   private static JvmGcMetrics gc;
   private static List<Tag> commonTags;
@@ -64,6 +64,9 @@ public class MicrometerMetricsFactory {
 
   private static void initializeMetrics(boolean enabled, String factoryClass, String appName,
       HostAndPort address) throws Exception {
+
+    LOG.info("initializing metrics, enabled:{}, class:{}", enabled, factoryClass);
+
     if (enabled && factoryClass != null && !factoryClass.isEmpty()) {
 
       String processName = appName;
@@ -116,7 +119,7 @@ public class MicrometerMetricsFactory {
     new ExecutorServiceMetrics(executor, name, commonTags).bindTo(Metrics.globalRegistry);
   }
 
-  public static MeterRegistry getRegistry() {
+  static MeterRegistry getRegistry() {
     return Metrics.globalRegistry;
   }
 

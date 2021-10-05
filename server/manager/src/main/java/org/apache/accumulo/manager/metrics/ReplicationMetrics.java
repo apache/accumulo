@@ -42,6 +42,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 
 public class ReplicationMetrics implements MetricsProducer {
@@ -52,34 +53,15 @@ public class ReplicationMetrics implements MetricsProducer {
   private final ReplicationUtil replicationUtil;
   private final Map<Path,Long> pathModTimes;
 
-  private final Timer replicationQueueTimer;
-  private final AtomicLong pendingFiles;
-  private final AtomicInteger numPeers;
-  private final AtomicInteger maxReplicationThreads;
+  private Timer replicationQueueTimer;
+  private AtomicLong pendingFiles;
+  private AtomicInteger numPeers;
+  private AtomicInteger maxReplicationThreads;
 
   ReplicationMetrics(Manager manager) {
-
     this.manager = manager;
     pathModTimes = new HashMap<>();
     replicationUtil = new ReplicationUtil(manager.getContext());
-
-    replicationQueueTimer = MicrometerMetricsFactory.getRegistry()
-        .timer(getMetricsPrefix() + "queue", MicrometerMetricsFactory.getCommonTags());
-    pendingFiles =
-        MicrometerMetricsFactory.getRegistry().gauge(getMetricsPrefix() + "files.pending",
-            MicrometerMetricsFactory.getCommonTags(), new AtomicLong(0));
-    numPeers = MicrometerMetricsFactory.getRegistry().gauge(getMetricsPrefix() + "peers",
-        MicrometerMetricsFactory.getCommonTags(), new AtomicInteger(0));
-    maxReplicationThreads =
-        MicrometerMetricsFactory.getRegistry().gauge(getMetricsPrefix() + "threads",
-            MicrometerMetricsFactory.getCommonTags(), new AtomicInteger(0));
-
-    ScheduledExecutorService scheduler =
-        ThreadPools.createScheduledExecutorService(1, "replicationMetricsPoller", false);
-    Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
-    long minimumRefreshDelay = TimeUnit.SECONDS.toMillis(5);
-    scheduler.scheduleAtFixedRate(this::update, minimumRefreshDelay, minimumRefreshDelay,
-        TimeUnit.MILLISECONDS);
   }
 
   protected void update() {
@@ -170,8 +152,22 @@ public class ReplicationMetrics implements MetricsProducer {
   }
 
   @Override
-  public String getMetricsPrefix() {
-    return "accumulo.replication.";
+  public void registerMetrics(MeterRegistry registry) {
+    replicationQueueTimer =
+        registry.timer(METRICS_REPLICATION_QUEUE, MicrometerMetricsFactory.getCommonTags());
+    pendingFiles = registry.gauge(METRICS_REPLICATION_PENDING_FILES,
+        MicrometerMetricsFactory.getCommonTags(), new AtomicLong(0));
+    numPeers = registry.gauge(METRICS_REPLICATION_PEERS, MicrometerMetricsFactory.getCommonTags(),
+        new AtomicInteger(0));
+    maxReplicationThreads = registry.gauge(METRICS_REPLICATION_THREADS,
+        MicrometerMetricsFactory.getCommonTags(), new AtomicInteger(0));
+
+    ScheduledExecutorService scheduler =
+        ThreadPools.createScheduledExecutorService(1, "replicationMetricsPoller", false);
+    Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
+    long minimumRefreshDelay = TimeUnit.SECONDS.toMillis(5);
+    scheduler.scheduleAtFixedRate(this::update, minimumRefreshDelay, minimumRefreshDelay,
+        TimeUnit.MILLISECONDS);
   }
 
 }

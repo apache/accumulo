@@ -284,7 +284,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     try {
       MicrometerMetricsFactory.initializeMetrics(getContext().getConfiguration(),
           this.applicationName, address);
-      new GcMetrics(this);
+      new GcMetrics(this).initializeMetrics();
     } catch (Exception e1) {
       log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }

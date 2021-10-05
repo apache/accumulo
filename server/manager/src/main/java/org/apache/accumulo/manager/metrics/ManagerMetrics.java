@@ -33,11 +33,11 @@ public class ManagerMetrics {
 
   public static void init(AccumuloConfiguration conf, Manager m) {
     requireNonNull(conf, "AccumuloConfiguration must not be null");
-    long fateMinUpdateInterval =
-        conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL);
-    new ReplicationMetrics(m);
+    new ReplicationMetrics(m).initializeMetrics();
     log.info("Registered replication metrics module");
-    new FateMetrics(m.getContext(), fateMinUpdateInterval);
+    new FateMetrics(m.getContext(),
+        conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL))
+            .initializeMetrics();
     log.info("Registered FATE metrics module");
   }
 

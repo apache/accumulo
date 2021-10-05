@@ -22,23 +22,12 @@ import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MicrometerMetricsFactory;
 
 import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
 
 public class TabletServerMinCMetrics implements MetricsProducer {
 
-  private final DistributionSummary activeMinc;
-  private final DistributionSummary queuedMinc;
-
-  public TabletServerMinCMetrics() {
-    activeMinc =
-        DistributionSummary.builder(getMetricsPrefix() + "running").description("Minor compactions")
-            .baseUnit("ms").tags(MicrometerMetricsFactory.getCommonTags())
-            .register(MicrometerMetricsFactory.getRegistry());
-
-    queuedMinc = DistributionSummary.builder(getMetricsPrefix() + "queued")
-        .description("Queued minor compactions").baseUnit("ms")
-        .tags(MicrometerMetricsFactory.getCommonTags())
-        .register(MicrometerMetricsFactory.getRegistry());
-  }
+  private DistributionSummary activeMinc;
+  private DistributionSummary queuedMinc;
 
   public void addActive(long value) {
     activeMinc.record(value);
@@ -49,8 +38,13 @@ public class TabletServerMinCMetrics implements MetricsProducer {
   }
 
   @Override
-  public String getMetricsPrefix() {
-    return "accumulo.tserver.compactions.minc.";
+  public void registerMetrics(MeterRegistry registry) {
+    activeMinc = DistributionSummary.builder(METRICS_MINC_RUNNING).description("Minor compactions")
+        .baseUnit("ms").tags(MicrometerMetricsFactory.getCommonTags()).register(registry);
+
+    queuedMinc =
+        DistributionSummary.builder(METRICS_MINC_QUEUED).description("Queued minor compactions")
+            .baseUnit("ms").tags(MicrometerMetricsFactory.getCommonTags()).register(registry);
   }
 
 }

@@ -737,11 +737,15 @@ public class TabletServer extends AbstractServer {
       log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
 
-    new TabletServerMetrics(this);
+    new TabletServerMetrics(this).initializeMetrics();
     updateMetrics = new TabletServerUpdateMetrics();
+    updateMetrics.initializeMetrics();
     scanMetrics = new TabletServerScanMetrics();
+    scanMetrics.initializeMetrics();
     mincMetrics = new TabletServerMinCMetrics();
+    mincMetrics.initializeMetrics();
     ceMetrics = new CompactionExecutorsMetrics();
+    ceMetrics.initializeMetrics();
 
     this.compactionManager = new CompactionManager(new Iterable<Compactable>() {
       @Override

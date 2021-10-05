@@ -34,6 +34,7 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 
 public class FateMetrics implements MetricsProducer {
@@ -46,21 +47,23 @@ public class FateMetrics implements MetricsProducer {
   private final ServerContext context;
   private final ReadOnlyTStore<FateMetrics> zooStore;
   private final String fateRootPath;
+  private final long refreshDelay;
 
-  private final AtomicLong currentOpsGauge;
-  private final AtomicLong totalOpsGauge;
-  private final AtomicLong fateErrorsGauge;
-  private final AtomicLong newTxGauge;
-  private final AtomicLong inProgressTxGauge;
-  private final AtomicLong failedInProgressTxGauge;
-  private final AtomicLong failedTxGauge;
-  private final AtomicLong successfulTxGauge;
-  private final AtomicLong unknownTxGauge;
+  private AtomicLong currentOpsGauge;
+  private AtomicLong totalOpsGauge;
+  private AtomicLong fateErrorsGauge;
+  private AtomicLong newTxGauge;
+  private AtomicLong inProgressTxGauge;
+  private AtomicLong failedInProgressTxGauge;
+  private AtomicLong failedTxGauge;
+  private AtomicLong successfulTxGauge;
+  private AtomicLong unknownTxGauge;
 
   public FateMetrics(final ServerContext context, final long minimumRefreshDelay) {
 
     this.context = context;
     this.fateRootPath = context.getZooKeeperRoot() + Constants.ZFATE;
+    this.refreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
 
     try {
       this.zooStore = new ZooStore<>(fateRootPath, context.getZooReaderWriter());
@@ -72,58 +75,6 @@ public class FateMetrics implements MetricsProducer {
       throw new IllegalStateException(
           "FATE Metrics - Interrupt received while initializing zoo store");
     }
-
-    final String txMetricName = getMetricsPrefix() + "tx";
-
-    currentOpsGauge =
-        MicrometerMetricsFactory.getRegistry().gauge(getMetricsPrefix() + "ops.current",
-            MicrometerMetricsFactory.getCommonTags(), new AtomicLong(0));
-    totalOpsGauge = MicrometerMetricsFactory.getRegistry().gauge(getMetricsPrefix() + "ops.total",
-        MicrometerMetricsFactory.getCommonTags(), new AtomicLong(0));
-    fateErrorsGauge = MicrometerMetricsFactory.getRegistry().gauge(getMetricsPrefix() + "errors",
-        Tags.concat(MicrometerMetricsFactory.getCommonTags(), "type", "zk.connection"),
-        new AtomicLong(0));
-    newTxGauge = MicrometerMetricsFactory.getRegistry().gauge(txMetricName,
-        Tags.concat(MicrometerMetricsFactory.getCommonTags(), "state",
-            ReadOnlyTStore.TStatus.NEW.name()),
-        new AtomicLong(0));
-    inProgressTxGauge = MicrometerMetricsFactory.getRegistry().gauge(txMetricName,
-        Tags.concat(MicrometerMetricsFactory.getCommonTags(), "state",
-            ReadOnlyTStore.TStatus.IN_PROGRESS.name()),
-        new AtomicLong(0));
-    failedInProgressTxGauge = MicrometerMetricsFactory.getRegistry().gauge(txMetricName,
-        Tags.concat(MicrometerMetricsFactory.getCommonTags(), "state",
-            ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS.name()),
-        new AtomicLong(0));
-    failedTxGauge = MicrometerMetricsFactory.getRegistry().gauge(txMetricName,
-        Tags.concat(MicrometerMetricsFactory.getCommonTags(), "state",
-            ReadOnlyTStore.TStatus.FAILED.name()),
-        new AtomicLong(0));
-    successfulTxGauge = MicrometerMetricsFactory.getRegistry().gauge(txMetricName,
-        Tags.concat(MicrometerMetricsFactory.getCommonTags(), "state",
-            ReadOnlyTStore.TStatus.SUCCESSFUL.name()),
-        new AtomicLong(0));
-    unknownTxGauge = MicrometerMetricsFactory.getRegistry().gauge(txMetricName,
-        Tags.concat(MicrometerMetricsFactory.getCommonTags(), "state",
-            ReadOnlyTStore.TStatus.UNKNOWN.name()),
-        new AtomicLong(0));
-
-    long delay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
-
-    update();
-
-    // get fate status is read only operation - no reason to be nice on shutdown.
-    ScheduledExecutorService scheduler =
-        ThreadPools.createScheduledExecutorService(1, "fateMetricsPoller", false);
-    Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
-
-    scheduler.scheduleAtFixedRate(() -> {
-      try {
-        update();
-      } catch (Exception ex) {
-        log.info("Failed to update fate metrics due to exception", ex);
-      }
-    }, delay, delay, TimeUnit.MILLISECONDS);
 
   }
 
@@ -144,36 +95,74 @@ public class FateMetrics implements MetricsProducer {
     fateErrorsGauge.set(metricValues.getZkConnectionErrors());
 
     for (Entry<String,Long> vals : metricValues.getTxStateCounters().entrySet()) {
-      AtomicLong ref = null;
       switch (ReadOnlyTStore.TStatus.valueOf(vals.getKey())) {
         case NEW:
-          ref = newTxGauge;
+          newTxGauge.set(vals.getValue());
           break;
         case IN_PROGRESS:
-          ref = inProgressTxGauge;
+          inProgressTxGauge.set(vals.getValue());
           break;
         case FAILED_IN_PROGRESS:
-          ref = failedInProgressTxGauge;
+          failedInProgressTxGauge.set(vals.getValue());
           break;
         case FAILED:
-          ref = failedTxGauge;
+          failedTxGauge.set(vals.getValue());
           break;
         case SUCCESSFUL:
-          ref = successfulTxGauge;
+          successfulTxGauge.set(vals.getValue());
           break;
         case UNKNOWN:
-          ref = unknownTxGauge;
+          unknownTxGauge.set(vals.getValue());
           break;
         default:
           log.warn("Unhandled status type: {}", vals.getKey());
       }
-      ref.set(vals.getValue());
     }
   }
 
   @Override
-  public String getMetricsPrefix() {
-    return "accumulo.fate.";
+  public void registerMetrics(MeterRegistry registry) {
+    currentOpsGauge = registry.gauge(METRICS_FATE_CURRENT_OPS,
+        MicrometerMetricsFactory.getCommonTags(), new AtomicLong(0));
+    totalOpsGauge = registry.gauge(METRICS_FATE_TOTAL_OPS, MicrometerMetricsFactory.getCommonTags(),
+        new AtomicLong(0));
+    fateErrorsGauge = registry.gauge(METRICS_FATE_ERRORS,
+        Tags.concat(MicrometerMetricsFactory.getCommonTags(), "type", "zk.connection"),
+        new AtomicLong(0));
+    newTxGauge =
+        registry.gauge(METRICS_FATE_TX, Tags.concat(MicrometerMetricsFactory.getCommonTags(),
+            "state", ReadOnlyTStore.TStatus.NEW.name()), new AtomicLong(0));
+    inProgressTxGauge =
+        registry.gauge(METRICS_FATE_TX, Tags.concat(MicrometerMetricsFactory.getCommonTags(),
+            "state", ReadOnlyTStore.TStatus.IN_PROGRESS.name()), new AtomicLong(0));
+    failedInProgressTxGauge =
+        registry.gauge(METRICS_FATE_TX, Tags.concat(MicrometerMetricsFactory.getCommonTags(),
+            "state", ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS.name()), new AtomicLong(0));
+    failedTxGauge =
+        registry.gauge(METRICS_FATE_TX, Tags.concat(MicrometerMetricsFactory.getCommonTags(),
+            "state", ReadOnlyTStore.TStatus.FAILED.name()), new AtomicLong(0));
+    successfulTxGauge =
+        registry.gauge(METRICS_FATE_TX, Tags.concat(MicrometerMetricsFactory.getCommonTags(),
+            "state", ReadOnlyTStore.TStatus.SUCCESSFUL.name()), new AtomicLong(0));
+    unknownTxGauge =
+        registry.gauge(METRICS_FATE_TX, Tags.concat(MicrometerMetricsFactory.getCommonTags(),
+            "state", ReadOnlyTStore.TStatus.UNKNOWN.name()), new AtomicLong(0));
+
+    update();
+
+    // get fate status is read only operation - no reason to be nice on shutdown.
+    ScheduledExecutorService scheduler =
+        ThreadPools.createScheduledExecutorService(1, "fateMetricsPoller", false);
+    Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
+
+    scheduler.scheduleAtFixedRate(() -> {
+      try {
+        update();
+      } catch (Exception ex) {
+        log.info("Failed to update fate metrics due to exception", ex);
+      }
+    }, refreshDelay, refreshDelay, TimeUnit.MILLISECONDS);
+
   }
 
 }

@@ -21,26 +21,16 @@ package org.apache.accumulo.tserver.metrics;
 import java.time.Duration;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.metrics.MicrometerMetricsFactory;
 
 import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 
 public class TabletServerScanMetrics implements MetricsProducer {
 
-  private final Timer scans;
-  private final DistributionSummary resultsPerScan;
-  private final DistributionSummary yields;
-
-  public TabletServerScanMetrics() {
-
-    scans = Timer.builder(getMetricsPrefix() + "scans").description("Scans")
-        .register(MicrometerMetricsFactory.getRegistry());
-    resultsPerScan = DistributionSummary.builder(getMetricsPrefix() + "scans.result")
-        .description("Results per scan").register(MicrometerMetricsFactory.getRegistry());
-    yields = DistributionSummary.builder(getMetricsPrefix() + "scans.yields").description("yields")
-        .register(MicrometerMetricsFactory.getRegistry());
-  }
+  private Timer scans;
+  private DistributionSummary resultsPerScan;
+  private DistributionSummary yields;
 
   public void addScan(long value) {
     scans.record(Duration.ofMillis(value));
@@ -55,8 +45,12 @@ public class TabletServerScanMetrics implements MetricsProducer {
   }
 
   @Override
-  public String getMetricsPrefix() {
-    return "accumulo.tserver.";
+  public void registerMetrics(MeterRegistry registry) {
+    scans = Timer.builder(METRICS_SCAN).description("Scans").register(registry);
+    resultsPerScan = DistributionSummary.builder(METRICS_SCAN_RESULTS)
+        .description("Results per scan").register(registry);
+    yields =
+        DistributionSummary.builder(METRICS_SCAN_YIELDS).description("yields").register(registry);
   }
 
 }

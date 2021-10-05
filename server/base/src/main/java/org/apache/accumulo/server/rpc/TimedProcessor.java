@@ -41,6 +41,7 @@ public class TimedProcessor implements TProcessor {
   public TimedProcessor(TProcessor next, String serverName, String threadName) {
     this.other = next;
     thriftMetrics = new ThriftMetrics(serverName, threadName);
+    thriftMetrics.initializeMetrics();
     idleStart = System.currentTimeMillis();
   }
 

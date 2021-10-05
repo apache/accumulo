@@ -31,13 +31,13 @@ import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.metrics.MicrometerMetricsFactory;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.tserver.compactions.CompactionManager.ExtCompMetric;
 
 import com.google.common.collect.Sets;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 
 public class CompactionExecutorsMetrics implements MetricsProducer {
@@ -47,6 +47,7 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
   private volatile List<CeMetrics> ceMetricsList = List.of();
   private final Map<CompactionExecutorId,CeMetrics> ceMetricsMap = new HashMap<>();
   private final Map<CompactionExecutorId,ExMetrics> exCeMetricsMap = new HashMap<>();
+  private MeterRegistry registry = null;
 
   private static class CeMetrics {
     AtomicInteger queued;
@@ -79,10 +80,12 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
 
       CeMetrics cem = ceMetricsMap.computeIfAbsent(ceid, id -> {
         CeMetrics m = new CeMetrics();
-        m.queued = MicrometerMetricsFactory.getRegistry().gauge(getMetricsPrefix() + "queued",
-            Tags.of("id", ceid.canonical()), new AtomicInteger(0));
-        m.running = MicrometerMetricsFactory.getRegistry().gauge(getMetricsPrefix() + "running",
-            Tags.of("id", ceid.canonical()), new AtomicInteger(0));
+        if (registry != null) {
+          m.queued = registry.gauge(METRICS_MAJC_QUEUED, Tags.of("id", ceid.canonical()),
+              new AtomicInteger(0));
+          m.running = registry.gauge(METRICS_MAJC_RUNNING, Tags.of("id", ceid.canonical()),
+              new AtomicInteger(0));
+        }
         return m;
       });
 
@@ -115,10 +118,12 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
 
           ExMetrics exm = exCeMetricsMap.computeIfAbsent(ecm.ceid, id -> {
             ExMetrics m = new ExMetrics();
-            m.queued = MicrometerMetricsFactory.getRegistry().gauge(getMetricsPrefix() + "queued",
-                Tags.of("id", ecm.ceid.canonical()), new AtomicInteger(0));
-            m.running = MicrometerMetricsFactory.getRegistry().gauge(getMetricsPrefix() + "running",
-                Tags.of("id", ecm.ceid.canonical()), new AtomicInteger(0));
+            if (registry != null) {
+              m.queued = registry.gauge(METRICS_MAJC_QUEUED, Tags.of("id", ecm.ceid.canonical()),
+                  new AtomicInteger(0));
+              m.running = registry.gauge(METRICS_MAJC_RUNNING, Tags.of("id", ecm.ceid.canonical()),
+                  new AtomicInteger(0));
+            }
             return m;
           });
 
@@ -146,8 +151,10 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
   }
 
   @Override
-  public String getMetricsPrefix() {
-    return "accumulo.tserver.compactions.majc.";
+  public void registerMetrics(MeterRegistry registry) {
+    // Meters are registered dynamically. Save off the reference to the
+    // registry to use at that time.
+    this.registry = registry;
   }
 
 }
