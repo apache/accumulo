@@ -87,8 +87,8 @@ import com.google.common.collect.Sets;
 /**
  * This class exists between compaction services and tablets and tracks state related to compactions
  * for a tablet. This class was written to mainly contain code related to tracking files, state, and
- * synchronization. All other code was placed in {@link CompactableUtils} inorder to make this class
- * easier to analyze.
+ * synchronization. All other code was placed in {@link CompactableUtils} in order to make this
+ * class easier to analyze.
  */
 public class CompactableImpl implements Compactable {
 
@@ -111,7 +111,7 @@ public class CompactableImpl implements Compactable {
   private Set<CompactionServiceId> servicesUsed = new ConcurrentSkipListSet<>();
 
   enum ChopSelectionStatus {
-    SELECTING, SELECTED, NOT_ACTIVE
+    SELECTING, SELECTED, NOT_ACTIVE, MARKING
   }
 
   // status of special compactions
@@ -337,7 +337,7 @@ public class CompactableImpl implements Compactable {
 
       if (chopStatus == ChopSelectionStatus.SELECTED) {
         if (getFilesToChop(allFiles).isEmpty()) {
-          chopStatus = ChopSelectionStatus.NOT_ACTIVE;
+          chopStatus = ChopSelectionStatus.MARKING;
           completed = true;
         }
       }
@@ -345,6 +345,11 @@ public class CompactableImpl implements Compactable {
       choppedFiles.retainAll(allFiles);
 
       return completed;
+    }
+
+    void finishMarkingChop() {
+      Preconditions.checkState(chopStatus == ChopSelectionStatus.MARKING);
+      chopStatus = ChopSelectionStatus.NOT_ACTIVE;
     }
 
     void addChoppedFiles(Collection<StoredTabletFile> files) {
@@ -447,6 +452,7 @@ public class CompactableImpl implements Compactable {
           switch (chopStatus) {
             case NOT_ACTIVE:
             case SELECTING:
+            case MARKING:
               return Set.of();
             case SELECTED: {
               if (selectStatus == FileSelectionStatus.NEW
@@ -739,11 +745,25 @@ public class CompactableImpl implements Compactable {
     boolean completed;
 
     synchronized (this) {
+      if (closed) {
+        // if closed, do not attempt to transition to the MARKING state
+        return;
+      }
+      // when this returns true it means we transitioned to the MARKING state
       completed = fileMgr.finishChop(allFiles);
     }
 
     if (completed) {
-      markChopped();
+      try {
+        markChopped();
+      } finally {
+        synchronized (this) {
+          // transition the state from MARKING to NOT_ACTIVE
+          fileMgr.finishMarkingChop();
+          this.notifyAll();
+        }
+      }
+
       TabletLogger.selected(getExtent(), CompactionKind.CHOP, Set.of());
     }
   }
@@ -1462,11 +1482,12 @@ public class CompactableImpl implements Compactable {
 
       closed = true;
 
-      // wait while internal jobs are running or external compactions are committing, but do not
-      // wait on external compactions that are running
+      // wait while internal jobs are running, external compactions are committing or the status of
+      // chops is MARKING, but do not wait on external compactions that are running
       while (runningJobs.stream()
           .anyMatch(job -> !((CompactionExecutorIdImpl) job.getExecutor()).isExternalId())
-          || !externalCompactionsCommitting.isEmpty()) {
+          || !externalCompactionsCommitting.isEmpty()
+          || fileMgr.chopStatus == ChopSelectionStatus.MARKING) {
         try {
           wait(50);
         } catch (InterruptedException e) {
