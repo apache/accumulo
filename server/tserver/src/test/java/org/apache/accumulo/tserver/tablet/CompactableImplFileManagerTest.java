@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.spi.compaction.CompactionKind.USER;
 import static org.apache.accumulo.tserver.tablet.CompactableImplFileManagerTest.TestFileManager.SELECTION_EXPIRATION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
@@ -379,11 +380,7 @@ public class CompactableImplFileManagerTest {
     tabletFiles = newFiles("C00004.rf", "C00006.rf", "F00003.rf", "F00004.rf");
     assertFalse(fileMgr.finishChop(tabletFiles));
     assertEquals(ChopSelectionStatus.SELECTED, fileMgr.getChopStatus());
-    try {
-      fileMgr.finishMarkingChop();
-    } catch (IllegalStateException e) {
-      // expected
-    }
+    assertThrows(IllegalStateException.class, fileMgr::finishMarkingChop);
 
     assertEquals(newFiles("F00004.rf"), fileMgr.getCandidates(tabletFiles, CHOP, false));
 
