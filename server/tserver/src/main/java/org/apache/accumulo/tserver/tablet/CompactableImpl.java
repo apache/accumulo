@@ -348,8 +348,8 @@ public class CompactableImpl implements Compactable {
     }
 
     void finishMarkingChop() {
-        Preconditions.checkState(chopStatus == ChopSelectionStatus.MARKING);
-        chopStatus = ChopSelectionStatus.NOT_ACTIVE;
+      Preconditions.checkState(chopStatus == ChopSelectionStatus.MARKING);
+      chopStatus = ChopSelectionStatus.NOT_ACTIVE;
     }
 
     void addChoppedFiles(Collection<StoredTabletFile> files) {
