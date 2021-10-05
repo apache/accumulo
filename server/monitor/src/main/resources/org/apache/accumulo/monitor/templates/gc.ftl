@@ -25,12 +25,12 @@
           <thead>
             <tr>
               <th class="firstcell">Activity&nbsp;</th>
-              <th>Finished&nbsp;</th>
-              <th>Candidates&nbsp;</th>
-              <th>Deleted&nbsp;</th>
-              <th>In&nbsp;Use&nbsp;</th>
-              <th>Errors&nbsp;</th>
-              <th>Duration&nbsp;</th>
+              <th class="date">Finished&nbsp;</th>
+              <th class="big-num">Candidates&nbsp;</th>
+              <th class="big-num">Deleted&nbsp;</th>
+              <th class="big-num">In&nbsp;Use&nbsp;</th>
+              <th class="big-num">Errors&nbsp;</th>
+              <th class="duration">Duration&nbsp;</th>
             </tr>
           </thead>
           <tbody></tbody>
