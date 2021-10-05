@@ -367,7 +367,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
                   System.currentTimeMillis());
               return "";
             } finally {
-              ThriftUtil.returnClient(coordinatorClient);
+              ThriftUtil.returnClient(coordinatorClient, getContext());
             }
           }
         });
@@ -394,7 +394,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
                   job.getExternalCompactionId(), job.extent);
               return "";
             } finally {
-              ThriftUtil.returnClient(coordinatorClient);
+              ThriftUtil.returnClient(coordinatorClient, getContext());
             }
           }
         });
@@ -423,7 +423,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
                   job.getExternalCompactionId(), job.extent, stats);
               return "";
             } finally {
-              ThriftUtil.returnClient(coordinatorClient);
+              ThriftUtil.returnClient(coordinatorClient, getContext());
             }
           }
         });
@@ -458,7 +458,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
                   currentCompactionId.set(null);
                   throw e;
                 } finally {
-                  ThriftUtil.returnClient(coordinatorClient);
+                  ThriftUtil.returnClient(coordinatorClient, getContext());
                 }
               }
             });

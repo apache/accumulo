@@ -266,7 +266,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
-        ManagerClient.close(client);
+        ManagerClient.close(client, context);
       }
     }
   }
@@ -291,7 +291,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
-        ManagerClient.close(client);
+        ManagerClient.close(client, context);
       }
     }
   }
@@ -311,7 +311,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
-        ManagerClient.close(client);
+        ManagerClient.close(client, context);
       }
     }
   }
@@ -331,7 +331,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         log.debug("Contacted a Manager which is no longer active, retrying");
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
-        ManagerClient.close(client);
+        ManagerClient.close(client, context);
       }
     }
   }
@@ -578,7 +578,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             }
 
           } finally {
-            ThriftUtil.returnClient(client);
+            ThriftUtil.returnClient(client, context);
           }
 
         } catch (TApplicationException tae) {
@@ -930,7 +930,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           log.debug("Contacted a Manager which is no longer active, retrying");
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         } finally {
-          ManagerClient.close(client);
+          ManagerClient.close(client, context);
         }
       }
 
@@ -950,7 +950,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           log.debug("Contacted a Manager which is no longer active, retrying");
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         } finally {
-          ManagerClient.close(client);
+          ManagerClient.close(client, context);
         }
       }
     } catch (ThriftSecurityException e) {
@@ -1463,7 +1463,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       } finally {
         // must always return thrift connection
         if (pair != null)
-          ServerClient.close(pair.getSecond());
+          ServerClient.close(pair.getSecond(), context);
       }
     }
 

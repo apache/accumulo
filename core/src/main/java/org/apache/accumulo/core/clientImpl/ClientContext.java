@@ -113,6 +113,7 @@ public class ClientContext implements AccumuloClient {
   private final Supplier<SaslConnectionParams> saslSupplier;
   private final Supplier<SslConnectionParams> sslSupplier;
   private TCredentials rpcCreds;
+  private ThriftTransportPool thriftTransportPool;
 
   private volatile boolean closed = false;
 
@@ -711,6 +712,9 @@ public class ClientContext implements AccumuloClient {
   @Override
   public void close() {
     closed = true;
+    if (thriftTransportPool != null) {
+      thriftTransportPool.shutdown();
+    }
     singletonReservation.close();
   }
 
@@ -914,5 +918,13 @@ public class ClientContext implements AccumuloClient {
     public void setProperty(ClientProperty property, Integer value) {
       setProperty(property, Integer.toString(value));
     }
+  }
+
+  public ThriftTransportPool getTransportPool() {
+    if (thriftTransportPool == null) {
+      thriftTransportPool = new ThriftTransportPool();
+      thriftTransportPool.startCheckerThread();
+    }
+    return thriftTransportPool;
   }
 }

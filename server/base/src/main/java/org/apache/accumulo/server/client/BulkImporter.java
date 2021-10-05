@@ -255,7 +255,7 @@ public class BulkImporter {
       return assignmentStats;
     } finally {
       if (client != null) {
-        ServerClient.close(client);
+        ServerClient.close(client, context);
       }
     }
   }
@@ -589,7 +589,7 @@ public class BulkImporter {
 
         return failures.stream().map(KeyExtent::fromThrift).collect(Collectors.toList());
       } finally {
-        ThriftUtil.returnClient((TServiceClient) client);
+        ThriftUtil.returnClient((TServiceClient) client, context);
       }
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
