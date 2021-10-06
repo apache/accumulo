@@ -70,8 +70,7 @@ public class HadoopLogCloser implements LogCloser {
     } else if (ns instanceof LocalFileSystem || ns instanceof RawLocalFileSystem) {
       // ignore
     } else {
-      throw new IllegalStateException(
-          "Don't know how to recover a lease for " + ns.getClass().getName());
+      log.warn("Don't know how to recover a lease for " + ns.getClass().getName());
     }
     return 0;
   }
