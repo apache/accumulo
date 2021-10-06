@@ -737,7 +737,6 @@ public class TabletServer extends AbstractServer {
       log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
 
-    new TabletServerMetrics(this);
     updateMetrics = new TabletServerUpdateMetrics();
     scanMetrics = new TabletServerScanMetrics();
     mincMetrics = new TabletServerMinCMetrics();

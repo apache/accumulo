@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.metrics;
 
+import java.time.Duration;
+
 import org.apache.accumulo.core.metrics.MeterRegistryFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,31 +51,43 @@ public class TestStatsDRegistryFactory implements MeterRegistryFactory {
 
     StatsdConfig config = new StatsdConfig() {
       @Override
+      public StatsdFlavor flavor() {
+        return StatsdFlavor.DATADOG;
+      }
+
+      @Override
+      public boolean enabled() {
+        return true;
+      }
+
+      @Override
+      public String host() {
+        return host;
+      }
+
+      @Override
+      public int port() {
+        return Integer.parseInt(port);
+      }
+
+      @Override
+      public StatsdProtocol protocol() {
+        return StatsdProtocol.UDP;
+      }
+
+      @Override
+      public Duration pollingFrequency() {
+        return Duration.ofSeconds(3);
+      }
+
+      @Override
+      public boolean buffered() {
+        return false;
+      }
+
+      @Override
       public String get(String key) {
-        String response = null;
-        switch (key) {
-          case "statsd.flavor":
-            response = StatsdFlavor.DATADOG.name();
-            break;
-          case "statsd.host":
-            response = host;
-            break;
-          case "statsd.port":
-            response = port;
-            break;
-          case "statsd.protocol":
-            response = StatsdProtocol.UDP.name();
-            break;
-          case "statsd.buffered":
-            response = "false";
-            break;
-          case "statsd.pollingFrequency":
-            response = "PT3S"; // ISO8601 Duration
-            break;
-          default:
-            response = null;
-        }
-        return response;
+        return null;
       }
     };
     return StatsdMeterRegistry.builder(config).build();

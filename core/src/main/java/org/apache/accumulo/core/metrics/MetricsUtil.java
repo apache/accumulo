@@ -51,19 +51,15 @@ public class MetricsUtil {
   private static JvmGcMetrics gc;
   private static List<Tag> commonTags;
 
-  public static void initializeMetrics(boolean enabled, String factoryClass, String appName)
-      throws Exception {
-    initializeMetrics(enabled, factoryClass, appName, null);
-  }
-
   public static void initializeMetrics(final AccumuloConfiguration conf, final String appName,
       final HostAndPort address) throws Exception {
     initializeMetrics(conf.getBoolean(Property.GENERAL_MICROMETER_ENABLED),
+        conf.getBoolean(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED),
         conf.get(Property.GENERAL_MICROMETER_FACTORY), appName, address);
   }
 
-  private static void initializeMetrics(boolean enabled, String factoryClass, String appName,
-      HostAndPort address) throws Exception {
+  private static void initializeMetrics(boolean enabled, boolean jvmMetricsEnabled,
+      String factoryClass, String appName, HostAndPort address) throws Exception {
 
     LOG.info("initializing metrics, enabled:{}, class:{}", enabled, factoryClass);
 
@@ -106,12 +102,14 @@ public class MetricsUtil {
       registry.config().meterFilter(replicationFilter);
       Metrics.globalRegistry.add(registry);
 
-      new ClassLoaderMetrics(commonTags).bindTo(Metrics.globalRegistry);
-      new JvmMemoryMetrics(commonTags).bindTo(Metrics.globalRegistry);
-      gc = new JvmGcMetrics(commonTags);
-      gc.bindTo(Metrics.globalRegistry);
-      new ProcessorMetrics(commonTags).bindTo(Metrics.globalRegistry);
-      new JvmThreadMetrics(commonTags).bindTo(Metrics.globalRegistry);
+      if (jvmMetricsEnabled) {
+        new ClassLoaderMetrics(commonTags).bindTo(Metrics.globalRegistry);
+        new JvmMemoryMetrics(commonTags).bindTo(Metrics.globalRegistry);
+        gc = new JvmGcMetrics(commonTags);
+        gc.bindTo(Metrics.globalRegistry);
+        new ProcessorMetrics(commonTags).bindTo(Metrics.globalRegistry);
+        new JvmThreadMetrics(commonTags).bindTo(Metrics.globalRegistry);
+      }
     }
   }
 

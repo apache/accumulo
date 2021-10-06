@@ -61,12 +61,9 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    @SuppressWarnings("deprecation")
-    Property p = Property.GC_METRICS_ENABLED;
-    cfg.setProperty(p, "true");
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");
-    cfg.setProperty(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL, "5s");
+    cfg.setProperty(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL, "1s");
 
     // Tell the server processes to use a StatsDMeterRegistry that will be configured
     // to push all metrics to the sink we started.
@@ -86,6 +83,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
   public void confirmMetricsPublished() throws Exception {
     Map<String,String> expectedMetricNames = this.getMetricFields();
     // We might not see these in the course of normal operations
+    expectedMetricNames.remove(METRICS_GC_WAL_ERRORS);
     expectedMetricNames.remove(METRICS_SCAN_YIELDS);
     expectedMetricNames.remove(METRICS_UPDATE_ERRORS);
     expectedMetricNames.remove(METRICS_REPLICATION_QUEUE);
@@ -108,30 +106,37 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
       }
       client.tableOperations().flush(tableName);
       client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+      client.tableOperations().delete(tableName);
+      while (client.tableOperations().exists(tableName)) {
+        Thread.sleep(1000);
+      }
     }
 
-    Thread.sleep(5000);
+    Thread.sleep(30000);
+    cluster.stop();
 
     Map<String,String> seenMetricNames = new HashMap<>();
+
     List<String> statsDMetrics = sink.getLines();
-    for (String s : statsDMetrics) {
-      Metric m = TestStatsDSink.parseStatsDMetric(s);
-      boolean hasBeenSeen = seenMetricNames.containsKey(m.getName());
-      boolean isExpectedMetricName = expectedMetricNames.containsKey(m.getName());
-      if (!hasBeenSeen && isExpectedMetricName) {
-        String expectedValue = expectedMetricNames.remove(m.getName());
-        seenMetricNames.put(m.getName(), expectedValue);
-      } else if (!hasBeenSeen && !isExpectedMetricName) {
-        if (m.getName().startsWith("accumulo")) {
+    while (!statsDMetrics.isEmpty()) {
+      for (String s : statsDMetrics) {
+        if (!s.startsWith("accumulo")) {
+          continue;
+        }
+        Metric m = TestStatsDSink.parseStatsDMetric(s);
+        boolean hasBeenSeen = seenMetricNames.containsKey(m.getName());
+        boolean isExpectedMetricName = expectedMetricNames.containsKey(m.getName());
+        if (!hasBeenSeen && isExpectedMetricName) {
+          String expectedValue = expectedMetricNames.remove(m.getName());
+          seenMetricNames.put(m.getName(), expectedValue);
+        } else if (!hasBeenSeen && !isExpectedMetricName) {
           fail("Found accumulo metric not in expectedMetricNames: " + m.getName());
-        } else {
-          // We are likely getting other metrics (jvm, thread pools, etc.) that
-          // are set up in MicrometerMetricsFactory
+        }
+        if (expectedMetricNames.isEmpty()) {
+          break;
         }
       }
-      if (expectedMetricNames.isEmpty()) {
-        break;
-      }
+      statsDMetrics = sink.getLines();
     }
     if (!expectedMetricNames.isEmpty()) {
       fail("Did not see all metric names, missing: " + expectedMetricNames.values());
