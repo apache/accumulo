@@ -62,7 +62,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.metrics.MicrometerMetricsFactory;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
@@ -282,9 +282,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     }
 
     try {
-      MicrometerMetricsFactory.initializeMetrics(getContext().getConfiguration(),
-          this.applicationName, address);
-      new GcMetrics(this).initializeMetrics();
+      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName, address);
+      MetricsUtil.initializeProducers(new GcMetrics(this));
     } catch (Exception e1) {
       log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }

@@ -47,7 +47,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.metrics.MicrometerMetricsFactory;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
@@ -246,8 +246,8 @@ public class CompactionCoordinator extends AbstractServer
     }
 
     try {
-      MicrometerMetricsFactory.initializeMetrics(getContext().getConfiguration(),
-          this.applicationName, clientAddress);
+      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
+          clientAddress);
     } catch (Exception e1) {
       LOG.error("Error initializing metrics, metrics will not be emitted.", e1);
     }

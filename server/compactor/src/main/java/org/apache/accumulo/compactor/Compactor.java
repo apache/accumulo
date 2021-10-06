@@ -58,7 +58,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
-import org.apache.accumulo.core.metrics.MicrometerMetricsFactory;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
@@ -626,8 +626,8 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     }
 
     try {
-      MicrometerMetricsFactory.initializeMetrics(getContext().getConfiguration(),
-          this.applicationName, clientAddress);
+      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
+          clientAddress);
     } catch (Exception e1) {
       LOG.error("Error initializing metrics, metrics will not be emitted.", e1);
     }

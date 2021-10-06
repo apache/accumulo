@@ -112,10 +112,6 @@ public interface MetricsProducer {
   public static final String METRICS_UPDATE_MUTATION_ARRAY_SIZE =
       METRICS_UPDATE_PREFIX + "mutation.arrays.size";
 
-  default void initializeMetrics() {
-    registerMetrics(MicrometerMetricsFactory.getRegistry());
-  }
-
   /**
    * Build Micrometer Meter objects and register them with the registry
    */

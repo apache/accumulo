@@ -30,7 +30,7 @@ import java.util.function.IntSupplier;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.metrics.MicrometerMetricsFactory;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -187,7 +187,7 @@ public class ThreadPools {
     if (timeOut > 0) {
       result.allowCoreThreadTimeOut(true);
     }
-    MicrometerMetricsFactory.addExecutorServiceMetrics(result, name);
+    MetricsUtil.addExecutorServiceMetrics(result, name);
     return result;
   }
 
@@ -215,7 +215,7 @@ public class ThreadPools {
     } else {
       result = new ScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory(name, priority));
     }
-    MicrometerMetricsFactory.addExecutorServiceMetrics(result, name);
+    MetricsUtil.addExecutorServiceMetrics(result, name);
     return result;
   }
 

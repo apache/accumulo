@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 import org.slf4j.Logger;
@@ -33,11 +34,10 @@ public class ManagerMetrics {
 
   public static void init(AccumuloConfiguration conf, Manager m) {
     requireNonNull(conf, "AccumuloConfiguration must not be null");
-    new ReplicationMetrics(m).initializeMetrics();
+    MetricsUtil.initializeProducers(new ReplicationMetrics(m));
     log.info("Registered replication metrics module");
-    new FateMetrics(m.getContext(),
-        conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL))
-            .initializeMetrics();
+    MetricsUtil.initializeProducers(new FateMetrics(m.getContext(),
+        conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
     log.info("Registered FATE metrics module");
   }
 

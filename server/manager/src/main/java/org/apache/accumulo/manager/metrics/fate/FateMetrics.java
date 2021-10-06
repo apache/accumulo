@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.metrics.MicrometerMetricsFactory;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.ZooStore;
@@ -122,31 +122,29 @@ public class FateMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    currentOpsGauge = registry.gauge(METRICS_FATE_CURRENT_OPS,
-        MicrometerMetricsFactory.getCommonTags(), new AtomicLong(0));
-    totalOpsGauge = registry.gauge(METRICS_FATE_TOTAL_OPS, MicrometerMetricsFactory.getCommonTags(),
-        new AtomicLong(0));
+    currentOpsGauge =
+        registry.gauge(METRICS_FATE_CURRENT_OPS, MetricsUtil.getCommonTags(), new AtomicLong(0));
+    totalOpsGauge =
+        registry.gauge(METRICS_FATE_TOTAL_OPS, MetricsUtil.getCommonTags(), new AtomicLong(0));
     fateErrorsGauge = registry.gauge(METRICS_FATE_ERRORS,
-        Tags.concat(MicrometerMetricsFactory.getCommonTags(), "type", "zk.connection"),
+        Tags.concat(MetricsUtil.getCommonTags(), "type", "zk.connection"), new AtomicLong(0));
+    newTxGauge = registry.gauge(METRICS_FATE_TX,
+        Tags.concat(MetricsUtil.getCommonTags(), "state", ReadOnlyTStore.TStatus.NEW.name()),
         new AtomicLong(0));
-    newTxGauge =
-        registry.gauge(METRICS_FATE_TX, Tags.concat(MicrometerMetricsFactory.getCommonTags(),
-            "state", ReadOnlyTStore.TStatus.NEW.name()), new AtomicLong(0));
-    inProgressTxGauge =
-        registry.gauge(METRICS_FATE_TX, Tags.concat(MicrometerMetricsFactory.getCommonTags(),
-            "state", ReadOnlyTStore.TStatus.IN_PROGRESS.name()), new AtomicLong(0));
+    inProgressTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
+        "state", ReadOnlyTStore.TStatus.IN_PROGRESS.name()), new AtomicLong(0));
     failedInProgressTxGauge =
-        registry.gauge(METRICS_FATE_TX, Tags.concat(MicrometerMetricsFactory.getCommonTags(),
-            "state", ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS.name()), new AtomicLong(0));
-    failedTxGauge =
-        registry.gauge(METRICS_FATE_TX, Tags.concat(MicrometerMetricsFactory.getCommonTags(),
-            "state", ReadOnlyTStore.TStatus.FAILED.name()), new AtomicLong(0));
-    successfulTxGauge =
-        registry.gauge(METRICS_FATE_TX, Tags.concat(MicrometerMetricsFactory.getCommonTags(),
-            "state", ReadOnlyTStore.TStatus.SUCCESSFUL.name()), new AtomicLong(0));
-    unknownTxGauge =
-        registry.gauge(METRICS_FATE_TX, Tags.concat(MicrometerMetricsFactory.getCommonTags(),
-            "state", ReadOnlyTStore.TStatus.UNKNOWN.name()), new AtomicLong(0));
+        registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(), "state",
+            ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS.name()), new AtomicLong(0));
+    failedTxGauge = registry.gauge(METRICS_FATE_TX,
+        Tags.concat(MetricsUtil.getCommonTags(), "state", ReadOnlyTStore.TStatus.FAILED.name()),
+        new AtomicLong(0));
+    successfulTxGauge = registry.gauge(METRICS_FATE_TX,
+        Tags.concat(MetricsUtil.getCommonTags(), "state", ReadOnlyTStore.TStatus.SUCCESSFUL.name()),
+        new AtomicLong(0));
+    unknownTxGauge = registry.gauge(METRICS_FATE_TX,
+        Tags.concat(MetricsUtil.getCommonTags(), "state", ReadOnlyTStore.TStatus.UNKNOWN.name()),
+        new AtomicLong(0));
 
     update();
 

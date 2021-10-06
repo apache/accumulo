@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.rpc;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.server.metrics.ThriftMetrics;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
@@ -41,7 +42,7 @@ public class TimedProcessor implements TProcessor {
   public TimedProcessor(TProcessor next, String serverName, String threadName) {
     this.other = next;
     thriftMetrics = new ThriftMetrics(serverName, threadName);
-    thriftMetrics.initializeMetrics();
+    MetricsUtil.initializeProducers(thriftMetrics);
     idleStart = System.currentTimeMillis();
   }
 

@@ -44,9 +44,9 @@ import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
 import io.micrometer.core.instrument.config.MeterFilter;
 import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
 
-public class MicrometerMetricsFactory {
+public class MetricsUtil {
 
-  private static final Logger LOG = LoggerFactory.getLogger(MicrometerMetricsFactory.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MetricsUtil.class);
 
   private static JvmGcMetrics gc;
   private static List<Tag> commonTags;
@@ -115,12 +115,14 @@ public class MicrometerMetricsFactory {
     }
   }
 
-  public static void addExecutorServiceMetrics(ExecutorService executor, String name) {
-    new ExecutorServiceMetrics(executor, name, commonTags).bindTo(Metrics.globalRegistry);
+  public static void initializeProducers(MetricsProducer... producer) {
+    for (MetricsProducer p : producer) {
+      p.registerMetrics(Metrics.globalRegistry);
+    }
   }
 
-  static MeterRegistry getRegistry() {
-    return Metrics.globalRegistry;
+  public static void addExecutorServiceMetrics(ExecutorService executor, String name) {
+    new ExecutorServiceMetrics(executor, name, commonTags).bindTo(Metrics.globalRegistry);
   }
 
   public static List<Tag> getCommonTags() {

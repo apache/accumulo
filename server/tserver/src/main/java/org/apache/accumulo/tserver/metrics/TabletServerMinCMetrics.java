@@ -19,7 +19,7 @@
 package org.apache.accumulo.tserver.metrics;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.metrics.MicrometerMetricsFactory;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -40,11 +40,11 @@ public class TabletServerMinCMetrics implements MetricsProducer {
   @Override
   public void registerMetrics(MeterRegistry registry) {
     activeMinc = DistributionSummary.builder(METRICS_MINC_RUNNING).description("Minor compactions")
-        .baseUnit("ms").tags(MicrometerMetricsFactory.getCommonTags()).register(registry);
+        .baseUnit("ms").tags(MetricsUtil.getCommonTags()).register(registry);
 
     queuedMinc =
         DistributionSummary.builder(METRICS_MINC_QUEUED).description("Queued minor compactions")
-            .baseUnit("ms").tags(MicrometerMetricsFactory.getCommonTags()).register(registry);
+            .baseUnit("ms").tags(MetricsUtil.getCommonTags()).register(registry);
   }
 
 }

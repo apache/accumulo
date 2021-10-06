@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.metrics.MicrometerMetricsFactory;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.slf4j.Logger;
@@ -94,7 +94,7 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
   @Override
   public void close() {
     TraceUtil.disable();
-    MicrometerMetricsFactory.close();
+    MetricsUtil.close();
   }
 
 }

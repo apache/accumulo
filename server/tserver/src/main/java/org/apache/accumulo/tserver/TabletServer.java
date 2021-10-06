@@ -73,7 +73,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
-import org.apache.accumulo.core.metrics.MicrometerMetricsFactory;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -731,21 +731,19 @@ public class TabletServer extends AbstractServer {
     announceExistence();
 
     try {
-      MicrometerMetricsFactory.initializeMetrics(context.getConfiguration(), this.applicationName,
+      MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName,
           clientAddress);
     } catch (Exception e1) {
       log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
 
-    new TabletServerMetrics(this).initializeMetrics();
+    new TabletServerMetrics(this);
     updateMetrics = new TabletServerUpdateMetrics();
-    updateMetrics.initializeMetrics();
     scanMetrics = new TabletServerScanMetrics();
-    scanMetrics.initializeMetrics();
     mincMetrics = new TabletServerMinCMetrics();
-    mincMetrics.initializeMetrics();
     ceMetrics = new CompactionExecutorsMetrics();
-    ceMetrics.initializeMetrics();
+    MetricsUtil.initializeProducers(new TabletServerMetrics(this), updateMetrics, scanMetrics,
+        mincMetrics, ceMetrics);
 
     this.compactionManager = new CompactionManager(new Iterable<Compactable>() {
       @Override

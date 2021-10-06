@@ -82,7 +82,7 @@ import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.metrics.MicrometerMetricsFactory;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
@@ -1045,8 +1045,8 @@ public class Manager extends AbstractServer
     }
 
     try {
-      MicrometerMetricsFactory.initializeMetrics(getContext().getConfiguration(),
-          this.applicationName, sa.getAddress());
+      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
+          sa.getAddress());
       ManagerMetrics.init(getConfiguration(), this);
     } catch (Exception e1) {
       log.error("Error initializing metrics, metrics will not be emitted.", e1);
