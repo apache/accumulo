@@ -45,6 +45,7 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
@@ -248,7 +249,8 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
         throw e;
       } catch (Exception e) {
         if (e.getCause().getClass().equals(ThriftTableOperationException.class)
-            && e.getMessage().equals("Table is being deleted")) {
+            && (e.getMessage().equals(TableOperationsImpl.compCanceledMsg)
+                || e.getMessage().equals(TableOperationsImpl.tableDeletedMsg))) {
           // acceptable
         } else {
           throw new RuntimeException(e);

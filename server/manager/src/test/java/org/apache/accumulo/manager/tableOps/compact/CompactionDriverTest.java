@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
 import java.util.UUID;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -66,7 +67,7 @@ public class CompactionDriverTest {
     } catch (AcceptableThriftTableOperationException e) {
       if (e.getTableId().equals(tableId.toString()) && e.getOp().equals(TableOperation.COMPACT)
           && e.getType().equals(TableOperationExceptionType.OTHER)
-          && e.getDescription().equals("Compaction canceled")) {
+          && e.getDescription().equals(TableOperationsImpl.compCanceledMsg)) {
         // success
       } else {
         fail("Unexpected error thrown: " + e.getMessage());
@@ -110,7 +111,7 @@ public class CompactionDriverTest {
     } catch (AcceptableThriftTableOperationException e) {
       if (e.getTableId().equals(tableId.toString()) && e.getOp().equals(TableOperation.COMPACT)
           && e.getType().equals(TableOperationExceptionType.OTHER)
-          && e.getDescription().equals("Table is being deleted")) {
+          && e.getDescription().equals(TableOperationsImpl.tableDeletedMsg)) {
         // success
       } else {
         fail("Unexpected error thrown: " + e.getMessage());

@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.admin.compaction.CompressionConfigurer;
+import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -273,7 +274,7 @@ public class CompactionIT extends AccumuloClusterHarness {
       t.join();
       Exception e = error.get();
       assertNotNull(e);
-      assertEquals("Compaction canceled", e.getMessage());
+      assertEquals(TableOperationsImpl.compCanceledMsg, e.getMessage());
     }
   }
 
@@ -314,7 +315,7 @@ public class CompactionIT extends AccumuloClusterHarness {
       t.join();
       Exception e = error.get();
       assertNotNull(e);
-      assertEquals("Compaction canceled", e.getMessage());
+      assertEquals(TableOperationsImpl.compCanceledMsg, e.getMessage());
     }
   }
 

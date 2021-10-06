@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -83,7 +84,8 @@ class CompactionDriver extends ManagerRepo {
     if (Long.parseLong(new String(zoo.getData(zCancelID))) >= compactId) {
       // compaction was canceled
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
-          TableOperation.COMPACT, TableOperationExceptionType.OTHER, "Compaction canceled");
+          TableOperation.COMPACT, TableOperationExceptionType.OTHER,
+          TableOperationsImpl.compCanceledMsg);
     }
 
     String deleteMarkerPath =
@@ -91,7 +93,8 @@ class CompactionDriver extends ManagerRepo {
     if (zoo.exists(deleteMarkerPath)) {
       // table is being deleted
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
-          TableOperation.COMPACT, TableOperationExceptionType.OTHER, "Table is being deleted");
+          TableOperation.COMPACT, TableOperationExceptionType.OTHER,
+          TableOperationsImpl.tableDeletedMsg);
     }
 
     MapCounter<TServerInstance> serversToFlush = new MapCounter<>();

@@ -156,6 +156,8 @@ import com.google.common.base.Preconditions;
 public class TableOperationsImpl extends TableOperationsHelper {
 
   public static final String CLONE_EXCLUDE_PREFIX = "!";
+  public static final String compCanceledMsg = "Compaction canceled";
+  public static final String tableDeletedMsg = "Table is being deleted";
 
   private static final Logger log = LoggerFactory.getLogger(TableOperations.class);
   private final ClientContext context;
