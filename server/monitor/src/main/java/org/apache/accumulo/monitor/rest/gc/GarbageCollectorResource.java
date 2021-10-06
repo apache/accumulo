@@ -24,7 +24,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
-import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.monitor.Monitor;
 
 /**
@@ -47,95 +46,5 @@ public class GarbageCollectorResource {
   @GET
   public GarbageCollectorStatus getStatus() {
     return new GarbageCollectorStatus(monitor.getGcStatus());
-  }
-
-  /**
-   * Generates current and last file gc object
-   *
-   * @return file gc object
-   */
-  @Path("files")
-  @GET
-  public GarbageCollection getFileStatus() {
-    GCStatus gcStatus = monitor.getGcStatus();
-    if (gcStatus == null) {
-      return GarbageCollection.getEmpty();
-    }
-    return new GarbageCollection(gcStatus.last, gcStatus.current);
-  }
-
-  /**
-   * Generates last file gc object
-   *
-   * @return last file gc object
-   */
-  @Path("files/last")
-  @GET
-  public GarbageCollectorCycle getLastCycle() {
-    GCStatus status = monitor.getGcStatus();
-    if (status == null) {
-      return GarbageCollectorCycle.getEmpty();
-    }
-    return new GarbageCollectorCycle(status.last);
-  }
-
-  /**
-   * Generates current file gc object
-   *
-   * @return current file gc object
-   */
-  @Path("files/current")
-  @GET
-  public GarbageCollectorCycle getCurrentCycle() {
-    GCStatus status = monitor.getGcStatus();
-    if (status == null) {
-      return GarbageCollectorCycle.getEmpty();
-    }
-    return new GarbageCollectorCycle(status.current);
-  }
-
-  /**
-   * Generates wal gc object
-   *
-   * @return wal gc object
-   */
-  @Path("wals")
-  @GET
-  public GarbageCollection getWalStatus() {
-    GCStatus gcStatus = monitor.getGcStatus();
-    if (gcStatus == null) {
-      return GarbageCollection.getEmpty();
-    }
-    return new GarbageCollection(gcStatus.lastLog, gcStatus.currentLog);
-  }
-
-  /**
-   * Generates last wal object
-   *
-   * @return last wal object
-   */
-  @Path("wals/last")
-  @GET
-  public GarbageCollectorCycle getLastWalCycle() {
-    GCStatus status = monitor.getGcStatus();
-    if (status == null) {
-      return GarbageCollectorCycle.getEmpty();
-    }
-    return new GarbageCollectorCycle(status.lastLog);
-  }
-
-  /**
-   * Generates current wal object
-   *
-   * @return current wal object
-   */
-  @Path("wals/current")
-  @GET
-  public GarbageCollectorCycle getCurrentWalCycle() {
-    GCStatus status = monitor.getGcStatus();
-    if (status == null) {
-      return GarbageCollectorCycle.getEmpty();
-    }
-    return new GarbageCollectorCycle(status.currentLog);
   }
 }

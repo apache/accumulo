@@ -63,6 +63,7 @@ import org.apache.accumulo.tracer.thrift.SpanReceiver.Iface;
 import org.apache.accumulo.tracer.thrift.SpanReceiver.Processor;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TByteArrayOutputStream;
+import org.apache.thrift.TConfiguration;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.server.TServer;
@@ -122,6 +123,21 @@ public class TraceServer implements Watcher, AutoCloseable {
     @Override
     public void write(byte[] buf, int off, int len) {
       out.write(buf, off, len);
+    }
+
+    @Override
+    public TConfiguration getConfiguration() {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void updateKnownMessageSize(long size) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void checkReadBytesAvailable(long numBytes) {
+      throw new UnsupportedOperationException();
     }
 
     public byte[] get() {

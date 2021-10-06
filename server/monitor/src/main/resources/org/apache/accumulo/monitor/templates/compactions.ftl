@@ -31,6 +31,7 @@
                 <th class="firstcell">Server&nbsp;</th>
                 <th title="Number of compactions presently running">#&nbsp;</th>
                 <th class="duration" title="The age of the oldest compaction on this server.">Oldest&nbsp;Age&nbsp;</th>
+                <th class="date" title="Last time data was fetched. Server fetches on page refresh, at most every minute.">Fetched</th>
               </tr>
             </thead>
             <tbody></tbody>

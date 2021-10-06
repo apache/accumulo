@@ -36,7 +36,13 @@
                if(type === 'display') data = timeDuration(data);
                return data;
              }
-           }
+           },
+           { "targets": "date",
+               "render": function ( data, type, row ) {
+                 if(type === 'display') data = dateFormat(data);
+                 return data;
+               }
+             }
          ],
        "columns": [
          { "data": "server",
@@ -49,7 +55,8 @@
            }
          },
          { "data": "count" },
-         { "data": "oldest" }
+         { "data": "oldest" },
+         { "data": "fetched" },
        ]
      });
  });

@@ -155,7 +155,7 @@
     <!-- 3.0.0-M5 causes RowHashIT.test and ShellServerIT.scansWithClassLoaderContext to fail -->
     <surefire.version>3.0.0-M4</surefire.version>
     <!-- Thrift version -->
-    <thrift.version>0.13.0</thrift.version>
+    <thrift.version>0.15.0</thrift.version>
     <unitTestMemSize>-Xmx1G</unitTestMemSize>
     <!-- ZooKeeper version -->
     <zookeeper.version>3.5.9</zookeeper.version>
@@ -571,6 +571,11 @@
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
         <version>${slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.yaml</groupId>
+        <artifactId>snakeyaml</artifactId>
+        <version>1.29</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml.jackson</groupId>

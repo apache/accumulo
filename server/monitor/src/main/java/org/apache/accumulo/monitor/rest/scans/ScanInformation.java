@@ -19,6 +19,7 @@
 package org.apache.accumulo.monitor.rest.scans;
 
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.monitor.Monitor;
 
 /**
  * Generates a scan JSON object
@@ -30,6 +31,7 @@ public class ScanInformation {
   // Variable names become JSON keys
   public String server;
 
+  public long fetched;
   public long scanCount;
   public Long oldestScan;
 
@@ -37,17 +39,11 @@ public class ScanInformation {
 
   /**
    * Stores new scan information
-   *
-   * @param tserverInfo
-   *          status of the tserver
-   * @param scanCount
-   *          number of scans
-   * @param oldestScan
-   *          time of oldest scan
    */
-  public ScanInformation(TabletServerStatus tserverInfo, long scanCount, Long oldestScan) {
+  public ScanInformation(TabletServerStatus tserverInfo, Monitor.ScanStats stats) {
     this.server = tserverInfo.getName();
-    this.scanCount = scanCount;
-    this.oldestScan = oldestScan;
+    this.fetched = stats.fetched;
+    this.scanCount = stats.scanCount;
+    this.oldestScan = stats.oldestScan;
   }
 }
