@@ -49,6 +49,7 @@
         <include>commons-io:commons-io</include>
         <include>commons-logging:commons-logging</include>
         <include>com.sun.istack:istack-commons-runtime</include>
+        <include>io.micrometer:micrometer-core</include>
         <include>jakarta.activation:jakarta.activation-api</include>
         <include>jakarta.annotation:jakarta.annotation-api</include>
         <include>jakarta.el:jakarta.el-api</include>

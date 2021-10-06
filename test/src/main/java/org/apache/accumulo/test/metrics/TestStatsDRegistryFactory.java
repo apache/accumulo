@@ -73,7 +73,6 @@ public class TestStatsDRegistryFactory implements MeterRegistryFactory {
           default:
             response = null;
         }
-        LOG.info("Config, key:{}, value:{}", key, response);
         return response;
       }
     };

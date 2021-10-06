@@ -35,6 +35,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.metrics.TestStatsDSink.Metric;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -43,44 +44,6 @@ import org.junit.Test;
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
-
-  private static class Metric {
-    private final String name;
-    private final String value;
-    private final String type;
-    private final Map<String,String> tags = new HashMap<>();
-
-    public Metric(String name, String value, String type) {
-      super();
-      this.name = name;
-      this.value = value;
-      this.type = type;
-    }
-
-    public String getName() {
-      return name;
-    }
-
-    @SuppressWarnings("unused")
-    public String getValue() {
-      return value;
-    }
-
-    @SuppressWarnings("unused")
-    public String getType() {
-      return type;
-    }
-
-    public Map<String,String> getTags() {
-      return tags;
-    }
-
-    @Override
-    public String toString() {
-      return "Metric [name=" + name + ", value=" + value + ", type=" + type + ", tags=" + tags
-          + "]";
-    }
-  }
 
   private static TestStatsDSink sink;
 
@@ -152,7 +115,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     Map<String,String> seenMetricNames = new HashMap<>();
     List<String> statsDMetrics = sink.getLines();
     for (String s : statsDMetrics) {
-      Metric m = parseStatsDMetric(s);
+      Metric m = TestStatsDSink.parseStatsDMetric(s);
       boolean hasBeenSeen = seenMetricNames.containsKey(m.getName());
       boolean isExpectedMetricName = expectedMetricNames.containsKey(m.getName());
       if (!hasBeenSeen && isExpectedMetricName) {
@@ -174,24 +137,6 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
       fail("Did not see all metric names, missing: " + expectedMetricNames.values());
     }
 
-  }
-
-  private Metric parseStatsDMetric(String line) {
-    int idx = line.indexOf(':');
-    String name = line.substring(0, idx);
-    int idx2 = line.indexOf('|');
-    String value = line.substring(idx + 1, idx2);
-    int idx3 = line.indexOf('|', idx2 + 1);
-    String type = line.substring(idx2 + 1, idx3);
-    int idx4 = line.indexOf('#');
-    String tags = line.substring(idx4 + 1);
-    Metric m = new Metric(name, value, type);
-    String[] tag = tags.split(",");
-    for (String t : tag) {
-      String[] p = t.split(":");
-      m.getTags().put(p[0], p[1]);
-    }
-    return m;
   }
 
   @Override
