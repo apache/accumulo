@@ -45,6 +45,7 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -55,8 +56,6 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
   private final NewTableConfiguration ntc = new NewTableConfiguration().withSplits(createSplits());
   private final int NUM_TABLES = 2;
-  private final int NUM_SPLITS = 1_000;
-  private final int NUM_MUTATIONS = 1_000;
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -248,7 +247,12 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
       } catch (RuntimeException e) {
         throw e;
       } catch (Exception e) {
-        throw new RuntimeException(e);
+        if (e.getCause().getClass().equals(ThriftTableOperationException.class)
+            && e.getMessage().equals("Table is being deleted")) {
+          // acceptable
+        } else {
+          throw new RuntimeException(e);
+        }
       }
     }
 
@@ -258,7 +262,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
   private TreeSet<Text> createSplits() {
     TreeSet<Text> splits = new TreeSet<>();
 
-    for (int i = 0; i < NUM_SPLITS; i++) {
+    for (int i = 0; i < 1_000; i++) {
       Text split = new Text(String.format("%09x", i * 100_000));
       splits.add(split);
     }
@@ -269,7 +273,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
       throws TableNotFoundException, MutationsRejectedException {
     try (BatchWriter bw = c.createBatchWriter(table)) {
       Random rand = new SecureRandom();
-      for (int i = 0; i < NUM_MUTATIONS; i++) {
+      for (int i = 0; i < 1_000; i++) {
         Mutation m = new Mutation(String.format("%09x", rand.nextInt(100_000 * 1_000)));
         m.put("m", "order", "" + i);
         bw.addMutation(m);
