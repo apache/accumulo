@@ -274,7 +274,7 @@ public class CompactionIT extends AccumuloClusterHarness {
       t.join();
       Exception e = error.get();
       assertNotNull(e);
-      assertEquals(TableOperationsImpl.compCanceledMsg, e.getMessage());
+      assertEquals(TableOperationsImpl.COMPACTION_CANCELED_MSG, e.getMessage());
     }
   }
 
@@ -315,7 +315,7 @@ public class CompactionIT extends AccumuloClusterHarness {
       t.join();
       Exception e = error.get();
       assertNotNull(e);
-      assertEquals(TableOperationsImpl.compCanceledMsg, e.getMessage());
+      assertEquals(TableOperationsImpl.COMPACTION_CANCELED_MSG, e.getMessage());
     }
   }
 

@@ -67,7 +67,7 @@ public class CompactionDriverTest {
     } catch (AcceptableThriftTableOperationException e) {
       if (e.getTableId().equals(tableId.toString()) && e.getOp().equals(TableOperation.COMPACT)
           && e.getType().equals(TableOperationExceptionType.OTHER)
-          && e.getDescription().equals(TableOperationsImpl.compCanceledMsg)) {
+          && e.getDescription().equals(TableOperationsImpl.COMPACTION_CANCELED_MSG)) {
         // success
       } else {
         fail("Unexpected error thrown: " + e.getMessage());
@@ -111,7 +111,7 @@ public class CompactionDriverTest {
     } catch (AcceptableThriftTableOperationException e) {
       if (e.getTableId().equals(tableId.toString()) && e.getOp().equals(TableOperation.COMPACT)
           && e.getType().equals(TableOperationExceptionType.OTHER)
-          && e.getDescription().equals(TableOperationsImpl.tableDeletedMsg)) {
+          && e.getDescription().equals(TableOperationsImpl.TABLE_DELETED_MSG)) {
         // success
       } else {
         fail("Unexpected error thrown: " + e.getMessage());

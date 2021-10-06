@@ -85,7 +85,7 @@ class CompactionDriver extends ManagerRepo {
       // compaction was canceled
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.OTHER,
-          TableOperationsImpl.compCanceledMsg);
+          TableOperationsImpl.COMPACTION_CANCELED_MSG);
     }
 
     String deleteMarkerPath =
@@ -94,7 +94,7 @@ class CompactionDriver extends ManagerRepo {
       // table is being deleted
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.OTHER,
-          TableOperationsImpl.tableDeletedMsg);
+          TableOperationsImpl.TABLE_DELETED_MSG);
     }
 
     MapCounter<TServerInstance> serversToFlush = new MapCounter<>();

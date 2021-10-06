@@ -181,7 +181,7 @@ public class SlowOps {
           completed = true;
         } catch (Throwable ex) {
           // test cancels compaction on complete, so ignore it as an exception.
-          if (ex.getMessage().contains(TableOperationsImpl.compCanceledMsg)) {
+          if (ex.getMessage().contains(TableOperationsImpl.COMPACTION_CANCELED_MSG)) {
             return;
           }
           log.info("Exception thrown while waiting for compaction - will retry", ex);

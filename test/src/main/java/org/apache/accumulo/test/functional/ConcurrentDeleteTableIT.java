@@ -249,8 +249,8 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
         throw e;
       } catch (Exception e) {
         if (e.getCause().getClass().equals(ThriftTableOperationException.class)
-            && (e.getMessage().equals(TableOperationsImpl.compCanceledMsg)
-                || e.getMessage().equals(TableOperationsImpl.tableDeletedMsg))) {
+            && (e.getMessage().equals(TableOperationsImpl.COMPACTION_CANCELED_MSG)
+                || e.getMessage().equals(TableOperationsImpl.TABLE_DELETED_MSG))) {
           // acceptable
         } else {
           throw new RuntimeException(e);
