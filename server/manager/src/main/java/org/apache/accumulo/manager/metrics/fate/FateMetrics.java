@@ -128,23 +128,19 @@ public class FateMetrics implements MetricsProducer {
         registry.gauge(METRICS_FATE_TOTAL_OPS, MetricsUtil.getCommonTags(), new AtomicLong(0));
     fateErrorsGauge = registry.gauge(METRICS_FATE_ERRORS,
         Tags.concat(MetricsUtil.getCommonTags(), "type", "zk.connection"), new AtomicLong(0));
-    newTxGauge = registry.gauge(METRICS_FATE_TX,
-        Tags.concat(MetricsUtil.getCommonTags(), "state", ReadOnlyTStore.TStatus.NEW.name()),
-        new AtomicLong(0));
+    newTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(), "state",
+        ReadOnlyTStore.TStatus.NEW.name().toLowerCase()), new AtomicLong(0));
     inProgressTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyTStore.TStatus.IN_PROGRESS.name()), new AtomicLong(0));
+        "state", ReadOnlyTStore.TStatus.IN_PROGRESS.name().toLowerCase()), new AtomicLong(0));
     failedInProgressTxGauge =
         registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(), "state",
-            ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS.name()), new AtomicLong(0));
-    failedTxGauge = registry.gauge(METRICS_FATE_TX,
-        Tags.concat(MetricsUtil.getCommonTags(), "state", ReadOnlyTStore.TStatus.FAILED.name()),
-        new AtomicLong(0));
-    successfulTxGauge = registry.gauge(METRICS_FATE_TX,
-        Tags.concat(MetricsUtil.getCommonTags(), "state", ReadOnlyTStore.TStatus.SUCCESSFUL.name()),
-        new AtomicLong(0));
-    unknownTxGauge = registry.gauge(METRICS_FATE_TX,
-        Tags.concat(MetricsUtil.getCommonTags(), "state", ReadOnlyTStore.TStatus.UNKNOWN.name()),
-        new AtomicLong(0));
+            ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS.name().toLowerCase()), new AtomicLong(0));
+    failedTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
+        "state", ReadOnlyTStore.TStatus.FAILED.name().toLowerCase()), new AtomicLong(0));
+    successfulTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
+        "state", ReadOnlyTStore.TStatus.SUCCESSFUL.name().toLowerCase()), new AtomicLong(0));
+    unknownTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
+        "state", ReadOnlyTStore.TStatus.UNKNOWN.name().toLowerCase()), new AtomicLong(0));
 
     update();
 
