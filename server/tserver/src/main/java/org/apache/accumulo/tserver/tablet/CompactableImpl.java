@@ -23,17 +23,8 @@ import static org.apache.accumulo.tserver.TabletStatsKeeper.Operation.MAJOR;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
@@ -602,9 +593,30 @@ public class CompactableImpl implements Compactable {
 
     Map<ExternalCompactionId,String> extCompactionsToRemove = new HashMap<>();
 
-    var extSelInfo = initExternalSelection(extCompactions, tablet, extCompactionsToRemove);
+    // Memoize the supplier so it only calls tablet.getCompactionID() once, because the impl goes to
+    // zookeeper. Its a supplier because it may not be needed.
+    Supplier<Optional<Pair<Long,CompactionConfig>>> tabletCompactionId = Suppliers.memoize(() -> {
+      try {
+        return Optional.of(tablet.getCompactionID());
+      } catch (NoNodeException nne) {
+        return Optional.empty();
+      }
+    });
 
-    verifyExternalCompactions(extCompactions, dataFileSizes.keySet(), extCompactionsToRemove);
+    var extSelInfo =
+        processExternalMetadata(extCompactions, () -> tabletCompactionId.get().map(Pair::getFirst),
+            dataFileSizes.keySet(), extCompactionsToRemove);
+
+    if (extSelInfo.isPresent()) {
+      if (extSelInfo.get().selectKind == CompactionKind.USER) {
+        this.chelper = CompactableUtils.getHelper(extSelInfo.get().selectKind, tablet,
+            tabletCompactionId.get().get().getFirst(), tabletCompactionId.get().get().getSecond());
+        this.compactionConfig = tabletCompactionId.get().get().getSecond();
+        this.compactionId = tabletCompactionId.get().get().getFirst();
+      } else if (extSelInfo.get().selectKind == CompactionKind.SELECTOR) {
+        this.chelper = CompactableUtils.getHelper(extSelInfo.get().selectKind, tablet, null, null);
+      }
+    }
 
     extCompactionsToRemove.forEach((ecid, reason) -> {
       log.warn("Removing external compaction {} for {} because {} meta: {}", ecid,
@@ -667,30 +679,6 @@ public class CompactableImpl implements Compactable {
         return System.nanoTime();
       }
     };
-  }
-
-  private void verifyExternalCompactions(
-      Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions,
-      Set<StoredTabletFile> tabletFiles, Map<ExternalCompactionId,String> extCompactionsToRemove) {
-
-    Set<StoredTabletFile> seen = new HashSet<>();
-    boolean overlap = false;
-
-    for (var entry : extCompactions.entrySet()) {
-      ExternalCompactionMetadata ecMeta = entry.getValue();
-      if (!tabletFiles.containsAll(ecMeta.getJobFiles())) {
-        extCompactionsToRemove.putIfAbsent(entry.getKey(), "Has files outside of tablet files");
-      } else if (!Collections.disjoint(seen, ecMeta.getJobFiles())) {
-        overlap = true;
-      }
-      seen.addAll(ecMeta.getJobFiles());
-    }
-
-    if (overlap) {
-      extCompactions.keySet().forEach(ecid -> {
-        extCompactionsToRemove.putIfAbsent(ecid, "Some external compaction files overlap");
-      });
-    }
   }
 
   private synchronized boolean addJob(CompactionJob job) {
@@ -815,16 +803,47 @@ public class CompactableImpl implements Compactable {
   }
 
   /**
-   * For user compactions a set of files is selected. Those files then get compacted by one or more
-   * compactions until the set is empty. This method attempts to reconstruct the selected set of
-   * files when a tablet is loaded with an external user compaction. It avoids repeating work and
-   * when a user compaction completes, files are verified against the selected set. Since the data
-   * is coming from persisted storage, lots of checks are done in this method rather than assuming
-   * the persisted data is correct.
+   * This method sanity checks metadata about external compactions. It also extracts specific
+   * information needed for user and selector compactions.
    */
-  private Optional<SelectedInfo> initExternalSelection(
-      Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions, Tablet tablet,
+  static Optional<SelectedInfo> processExternalMetadata(
+      Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions,
+      Supplier<Optional<Long>> tabletCompactionId, Set<StoredTabletFile> tabletFiles,
       Map<ExternalCompactionId,String> externalCompactionsToRemove) {
+
+    // Check that external compactions have disjoint sets of files. Also check that each external
+    // compaction only has files inside a tablet.
+    Set<StoredTabletFile> seen = new HashSet<>();
+    boolean overlap = false;
+
+    for (var entry : extCompactions.entrySet()) {
+      ExternalCompactionMetadata ecMeta = entry.getValue();
+      if (!tabletFiles.containsAll(ecMeta.getJobFiles())) {
+        externalCompactionsToRemove.putIfAbsent(entry.getKey(),
+            "Has files outside of tablet files");
+      } else if (!Collections.disjoint(seen, ecMeta.getJobFiles())) {
+        overlap = true;
+      }
+      seen.addAll(ecMeta.getJobFiles());
+    }
+
+    if (overlap) {
+      extCompactions.keySet().forEach(ecid -> {
+        externalCompactionsToRemove.putIfAbsent(ecid, "Some external compaction files overlap");
+      });
+      return Optional.empty();
+    }
+
+    /*
+     * The rest of the code sanity checks user compaction metadata and extracts needed information.
+     * 
+     * For user compactions a set of files is selected. Those files then get compacted by one or
+     * more compactions until the set is empty. This method attempts to reconstruct the selected set
+     * of files when a tablet is loaded with an external user compaction. It avoids repeating work
+     * and when a user compaction completes, files are verified against the selected set. Since the
+     * data is coming from persisted storage, lots of checks are done in this method rather than
+     * assuming the persisted data is correct.
+     */
     CompactionKind extKind = null;
     boolean unexpectedExternal = false;
     Set<StoredTabletFile> tmpSelectedFiles = null;
@@ -902,17 +921,14 @@ public class CompactableImpl implements Compactable {
       reasons.add("Concurrent compactions not propagatingDeletes");
     }
 
-    Pair<Long,CompactionConfig> idAndCfg = null;
     if (extKind == CompactionKind.USER) {
-      try {
-        idAndCfg = tablet.getCompactionID();
-        if (!idAndCfg.getFirst().equals(cid)) {
-          unexpectedExternal = true;
-          reasons.add("Compaction id mismatch with zookeeper");
-        }
-      } catch (NoNodeException e) {
+      Optional<Long> compactionId = tabletCompactionId.get();
+      if (compactionId.isEmpty()) {
         unexpectedExternal = true;
         reasons.add("No compaction id in zookeeper");
+      } else if (!compactionId.get().equals(cid)) {
+        unexpectedExternal = true;
+        reasons.add("Compaction id mismatch with zookeeper");
       }
     }
 
@@ -925,17 +941,8 @@ public class CompactableImpl implements Compactable {
       return Optional.empty();
     }
 
-    if (extKind != null) {
-      if (extKind == CompactionKind.USER) {
-        this.chelper = CompactableUtils.getHelper(extKind, tablet, cid, idAndCfg.getSecond());
-        this.compactionConfig = idAndCfg.getSecond();
-        this.compactionId = cid;
-      } else if (extKind == CompactionKind.SELECTOR) {
-        this.chelper = CompactableUtils.getHelper(extKind, tablet, null, null);
-      }
-
+    if (extKind != null)
       return Optional.of(new SelectedInfo(initiallySelAll, tmpSelectedFiles, extKind));
-    }
 
     return Optional.empty();
   }

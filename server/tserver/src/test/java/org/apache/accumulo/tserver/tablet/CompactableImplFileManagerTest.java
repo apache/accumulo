@@ -448,11 +448,11 @@ public class CompactableImplFileManagerTest {
 
   }
 
-  private static StoredTabletFile newFile(String f) {
+  static StoredTabletFile newFile(String f) {
     return new StoredTabletFile("hdfs://nn1/accumulo/tables/1/t-0001/" + f);
   }
 
-  private static Set<StoredTabletFile> newFiles(String... strings) {
+  static Set<StoredTabletFile> newFiles(String... strings) {
     return Arrays.asList(strings).stream().map(s -> newFile(s)).collect(Collectors.toSet());
   }
 
