@@ -73,7 +73,7 @@ public class TabletServerMetrics implements MetricsProducer {
         .description("Ingest rate (entries/sec)").register(registry);
     Gauge.builder(METRICS_TSERVER_INGEST_BYTES, util, TabletServerMetricsUtil::getIngestByteRate)
         .description("Ingest rate (bytes/sec)").register(registry);
-    Gauge.builder(METRICS_TSERVER_SCAN_RESULTS, util, TabletServerMetricsUtil::getQueries)
+    Gauge.builder(METRICS_TSERVER_SCAN_RESULTS, util, TabletServerMetricsUtil::getQueryRate)
         .description("Query rate (entries/sec)").register(registry);
     Gauge
         .builder(METRICS_TSERVER_SCAN_RESULTS_BYTES, util,
