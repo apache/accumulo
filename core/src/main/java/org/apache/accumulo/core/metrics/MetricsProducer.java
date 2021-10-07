@@ -31,8 +31,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 /**
  * Prior to 2.1.0 Accumulo used the <a href=
  * "https://hadoop.apache.org/docs/current/api/org/apache/hadoop/metrics2/package-summary.html">Hadoop
- * Metrics2</a> framework. In 2.1.0 Accumulo migrated away from the Metrics2 framework to <a
- * href="https://micrometer.io/>Micrometer</a>. Micrometer suggests using a particular
+ * Metrics2</a> framework. In 2.1.0 Accumulo migrated away from the Metrics2 framework to
+ * <a href="https://micrometer.io/">Micrometer</a>. Micrometer suggests using a particular
  * <a href="https://micrometer.io/docs/concepts#_naming_meters">naming convention</a> for the
  * metrics. The table below contains a mapping of the old to new metric names.
  *
