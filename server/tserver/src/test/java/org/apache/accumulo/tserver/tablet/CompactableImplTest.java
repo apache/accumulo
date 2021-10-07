@@ -374,7 +374,6 @@ public class CompactableImplTest {
 
     assertTrue(selInfo.initiallySelectedAll);
     assertEquals(CompactionKind.USER, selInfo.selectKind);
-    assertEquals((Long) 5L, selInfo.compactionId);
     assertEquals(newFiles("F00001", "F00002", "F00003", "F00004"), selInfo.selectedFiles);
 
     // Try processing only system compactions.
@@ -391,7 +390,6 @@ public class CompactableImplTest {
         newFiles("F00001", "F00002", "F00003", "F00004", "F00005", "F00006"), toRemove);
     assertTrue(selInfo.initiallySelectedAll);
     assertEquals(CompactionKind.USER, selInfo.selectKind);
-    assertEquals((Long) 5L, selInfo.compactionId);
     assertEquals(newFiles("F00001", "F00002", "F00003", "F00004"), selInfo.selectedFiles);
   }
 
