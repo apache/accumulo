@@ -378,14 +378,14 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Queue</td>
  * <td>Stat</td>
  * <td>{@link #METRICS_MINC_QUEUED}</td>
- * <td>Distribution Summary</td>
+ * <td>Timer</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>Minc</td>
  * <td>Stat</td>
  * <td>{@link #METRICS_MINC_RUNNING}</td>
- * <td>Distribution Summary</td>
+ * <td>Timer</td>
  * <td></td>
  * </tr>
  * <!-- replication -->

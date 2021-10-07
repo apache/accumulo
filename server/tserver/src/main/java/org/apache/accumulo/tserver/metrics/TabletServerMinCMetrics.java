@@ -18,33 +18,35 @@
  */
 package org.apache.accumulo.tserver.metrics;
 
+import java.time.Duration;
+
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 
-import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 
 public class TabletServerMinCMetrics implements MetricsProducer {
 
-  private DistributionSummary activeMinc;
-  private DistributionSummary queuedMinc;
+  private Timer activeMinc;
+  private Timer queuedMinc;
 
   public void addActive(long value) {
-    activeMinc.record(value);
+    activeMinc.record(Duration.ofMillis(value));
   }
 
   public void addQueued(long value) {
-    queuedMinc.record(value);
+    queuedMinc.record(Duration.ofMillis(value));
   }
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    activeMinc = DistributionSummary.builder(METRICS_MINC_RUNNING).description("Minor compactions")
-        .baseUnit("ms").tags(MetricsUtil.getCommonTags()).register(registry);
+    activeMinc = Timer.builder(METRICS_MINC_RUNNING).description("Minor compactions time active")
+        .tags(MetricsUtil.getCommonTags()).register(registry);
 
     queuedMinc =
-        DistributionSummary.builder(METRICS_MINC_QUEUED).description("Queued minor compactions")
-            .baseUnit("ms").tags(MetricsUtil.getCommonTags()).register(registry);
+        Timer.builder(METRICS_MINC_QUEUED).description("Queued minor compactions time queued")
+            .tags(MetricsUtil.getCommonTags()).register(registry);
   }
 
 }
