@@ -1246,7 +1246,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         if (currentState != expectedState) {
           context.requireNotDeleted(tableId);
           if (currentState == TableState.DELETING)
-            throw new TableNotFoundException(tableId.canonical(), "", "Table is being deleted.");
+            throw new TableNotFoundException(tableId.canonical(), "", TABLE_DELETED_MSG);
           throw new AccumuloException("Unexpected table state " + tableId + " "
               + Tables.getTableState(context, tableId) + " != " + expectedState);
         }
