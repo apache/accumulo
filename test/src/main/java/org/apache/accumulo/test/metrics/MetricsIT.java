@@ -21,8 +21,10 @@ package org.apache.accumulo.test.metrics;
 import static org.junit.Assert.fail;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -81,9 +83,11 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
   @Test
   public void confirmMetricsPublished() throws Exception {
+    Set<String> flakyMetricNames = new HashSet<>();
+    flakyMetricNames.add(METRICS_GC_WAL_ERRORS);
+
     Map<String,String> expectedMetricNames = this.getMetricFields();
     // We might not see these in the course of normal operations
-    expectedMetricNames.remove(METRICS_GC_WAL_ERRORS);
     expectedMetricNames.remove(METRICS_SCAN_YIELDS);
     expectedMetricNames.remove(METRICS_UPDATE_ERRORS);
     expectedMetricNames.remove(METRICS_REPLICATION_QUEUE);
@@ -130,7 +134,9 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
           String expectedValue = expectedMetricNames.remove(m.getName());
           seenMetricNames.put(m.getName(), expectedValue);
         } else if (!hasBeenSeen && !isExpectedMetricName) {
-          fail("Found accumulo metric not in expectedMetricNames: " + m.getName());
+          if (!flakyMetricNames.contains(m.getName())) {
+            fail("Found accumulo metric not in expectedMetricNames: " + m.getName());
+          }
         }
         if (expectedMetricNames.isEmpty()) {
           break;

@@ -37,7 +37,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * metrics. The table below contains a mapping of the old to new metric names.
  *
  * <table border="1">
- * <!-- fate -->
+ * <caption>Summary of Metric Changes</caption> <!-- fate -->
  * <tr>
  * <th>Old Name</th>
  * <th>Hadoop Metrics2 Type</th>
