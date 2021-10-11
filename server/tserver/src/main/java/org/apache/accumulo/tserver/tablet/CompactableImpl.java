@@ -845,7 +845,7 @@ public class CompactableImpl implements Compactable {
 
     /*
      * The rest of the code sanity checks user compaction metadata and extracts needed information.
-     * <p>
+     *
      * For user compactions a set of files is selected. Those files then get compacted by one or
      * more compactions until the set is empty. This method attempts to reconstruct the selected set
      * of files when a tablet is loaded with an external user compaction. It avoids repeating work
