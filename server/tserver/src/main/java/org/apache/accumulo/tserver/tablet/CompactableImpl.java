@@ -812,7 +812,7 @@ public class CompactableImpl implements Compactable {
   }
 
   /**
-   * This method sanity checks metadata about external compactions. It also extracts specific
+   * This method validates metadata about external compactions. It also extracts specific
    * information needed for user and selector compactions.
    */
   static Optional<SelectedInfo> processExternalMetadata(
@@ -844,7 +844,7 @@ public class CompactableImpl implements Compactable {
     }
 
     /*
-     * The rest of the code sanity checks user compaction metadata and extracts needed information.
+     * The rest of the code validates user compaction metadata and extracts needed information.
      *
      * For user compactions a set of files is selected. Those files then get compacted by one or
      * more compactions until the set is empty. This method attempts to reconstruct the selected set
