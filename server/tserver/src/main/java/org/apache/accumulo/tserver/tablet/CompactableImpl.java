@@ -603,7 +603,7 @@ public class CompactableImpl implements Compactable {
     Map<ExternalCompactionId,String> extCompactionsToRemove = new HashMap<>();
 
     // Memoize the supplier so it only calls tablet.getCompactionID() once, because the impl goes to
-    // zookeeper. Its a supplier because it may not be needed.
+    // zookeeper. It's a supplier because it may not be needed.
     Supplier<Optional<Pair<Long,CompactionConfig>>> tabletCompactionId = Suppliers.memoize(() -> {
       try {
         return Optional.of(tablet.getCompactionID());
