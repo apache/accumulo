@@ -19,25 +19,25 @@
 package org.apache.accumulo.monitor.rest.gc;
 
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Metrics about a single cycle of the garbage collector
+ * Metrics about one type of garbage collection
  *
- * @since 2.0.0
+ * @since 2.1.0
  */
-public class GarbageCollectorCycle {
-
-  private static final GarbageCollectorCycle EMPTY = new GarbageCollectorCycle();
+public class GarbageCollectorStats {
+  private static final Logger log = LoggerFactory.getLogger(GarbageCollectorStats.class);
 
   // Variable names become JSON key
-  public long started = 0L;
-  public long finished = 0L;
-  public long candidates = 0L;
-  public long inUse = 0L;
-  public long deleted = 0L;
-  public long errors = 0L;
-
-  public GarbageCollectorCycle() {}
+  public final String type;
+  public final long finished;
+  public final long candidates;
+  public final long inUse;
+  public final long deleted;
+  public final long errors;
+  public final long duration;
 
   /**
    * Creates a new garbage collector cycle
@@ -45,16 +45,14 @@ public class GarbageCollectorCycle {
    * @param thriftStats
    *          used to find cycle information
    */
-  public GarbageCollectorCycle(GcCycleStats thriftStats) {
-    this.started = thriftStats.started;
+  public GarbageCollectorStats(String type, GcCycleStats thriftStats) {
+    log.info("Creating {} stats using thriftStats = {}", type, thriftStats);
+    this.type = type;
     this.finished = thriftStats.finished;
     this.candidates = thriftStats.candidates;
     this.inUse = thriftStats.inUse;
     this.deleted = thriftStats.deleted;
     this.errors = thriftStats.errors;
-  }
-
-  public static GarbageCollectorCycle getEmpty() {
-    return EMPTY;
+    this.duration = this.finished - thriftStats.started;
   }
 }

@@ -363,16 +363,6 @@ function getBulkImports() {
 }
 
 /**
- * REST GET call for the garbage collector,
- * stores it on a sessionStorage variable
- */
-function getGarbageCollector() {
-  return $.getJSON('/rest/gc', function(data) {
-    sessionStorage.gc = JSON.stringify(data);
-  });
-}
-
-/**
  * REST GET call for the server stats, stores it on a sessionStorage variable
  */
 function getServerStats() {

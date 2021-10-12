@@ -156,6 +156,8 @@ import com.google.common.base.Preconditions;
 public class TableOperationsImpl extends TableOperationsHelper {
 
   public static final String CLONE_EXCLUDE_PREFIX = "!";
+  public static final String COMPACTION_CANCELED_MSG = "Compaction canceled";
+  public static final String TABLE_DELETED_MSG = "Table is being deleted";
 
   private static final Logger log = LoggerFactory.getLogger(TableOperations.class);
   private final ClientContext context;
@@ -1244,7 +1246,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         if (currentState != expectedState) {
           context.requireNotDeleted(tableId);
           if (currentState == TableState.DELETING)
-            throw new TableNotFoundException(tableId.canonical(), "", "Table is being deleted.");
+            throw new TableNotFoundException(tableId.canonical(), "", TABLE_DELETED_MSG);
           throw new AccumuloException("Unexpected table state " + tableId + " "
               + Tables.getTableState(context, tableId) + " != " + expectedState);
         }
