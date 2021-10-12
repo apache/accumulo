@@ -285,21 +285,6 @@ public class TabletServer extends AbstractServer {
           }), logBusyTabletsDelay, logBusyTabletsDelay, TimeUnit.MILLISECONDS);
     }
 
-    context.getScheduledExecutor()
-        .scheduleWithFixedDelay(Threads.createNamedRunnable("TabletRateUpdater", new Runnable() {
-          @Override
-          public void run() {
-            long now = System.currentTimeMillis();
-            for (Tablet tablet : getOnlineTablets().values()) {
-              try {
-                tablet.updateRates(now);
-              } catch (Exception ex) {
-                log.error("Error updating rates for {}", tablet.getExtent(), ex);
-              }
-            }
-          }
-        }), 5000, 5000, TimeUnit.MILLISECONDS);
-
     @SuppressWarnings("deprecation")
     final long walMaxSize =
         aconf.getAsBytes(aconf.resolve(Property.TSERV_WAL_MAX_SIZE, Property.TSERV_WALOG_MAX_SIZE));
@@ -1039,11 +1024,11 @@ public class TabletServer extends AbstractServer {
       table.tablets++;
       table.onlineTablets++;
       table.recs += recs;
-      table.queryRate += tablet.queryRate();
-      table.queryByteRate += tablet.queryByteRate();
-      table.ingestRate += tablet.ingestRate();
-      table.ingestByteRate += tablet.ingestByteRate();
-      table.scanRate += tablet.scanRate();
+      table.query += tablet.totalQueries();
+      table.queryBytes += tablet.totalQueryBytes();
+      table.ingest += tablet.totalIngest();
+      table.ingestBytes += tablet.totalIngestBytes();
+      table.scan += tablet.getScannedCount().get();
       long recsInMemory = tablet.getNumEntriesInMemory();
       table.recsInMemory += recsInMemory;
       if (tablet.isMinorCompactionRunning()) {

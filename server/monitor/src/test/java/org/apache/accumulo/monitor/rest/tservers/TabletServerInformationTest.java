@@ -59,10 +59,10 @@ public class TabletServerInformationTest {
     ts.setSyncs(101);
     TableInfo tableInfo = new TableInfo();
     tableInfo.tablets = 202;
-    tableInfo.ingestRate = 2.34;
-    tableInfo.queryRate = 3.45;
-    tableInfo.ingestByteRate = 4.56;
-    tableInfo.queryByteRate = 5.67;
+    tableInfo.ingest = 2.34;
+    tableInfo.query = 3.45;
+    tableInfo.ingestBytes = 4.56;
+    tableInfo.queryBytes = 5.67;
     tableInfo.scans = new Compacting(301, 401);
     tableInfo.recs = 502;
     tableInfo.majors = new Compacting(501, 601);

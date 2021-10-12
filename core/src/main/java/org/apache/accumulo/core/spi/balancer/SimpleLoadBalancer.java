@@ -343,7 +343,7 @@ public class SimpleLoadBalancer implements TabletBalancer {
     double busiest = Double.NEGATIVE_INFINITY;
     for (Entry<String,TableStatistics> entry : tables.entrySet()) {
       TableStatistics info = entry.getValue();
-      double busy = info.getIngestRate() + info.getQueryRate();
+      double busy = info.getIngestCount() + info.getQueryCount();
       if (busy > busiest) {
         busiest = busy;
         result = TableId.of(entry.getKey());

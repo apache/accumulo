@@ -61,28 +61,28 @@ public class TableStatisticsImpl implements TableStatistics {
   }
 
   @Override
-  public double getIngestRate() {
-    return thriftInfo.getIngestRate();
+  public double getIngestCount() {
+    return thriftInfo.getIngest();
   }
 
   @Override
-  public double getIngestByteRate() {
-    return thriftInfo.getIngestByteRate();
+  public double getIngestBytes() {
+    return thriftInfo.getIngestBytes();
   }
 
   @Override
-  public double getQueryRate() {
-    return thriftInfo.getQueryRate();
+  public double getQueryCount() {
+    return thriftInfo.getQuery();
   }
 
   @Override
-  public double getQueryByteRate() {
-    return thriftInfo.getQueryByteRate();
+  public double getQueryBytes() {
+    return thriftInfo.getQueryBytes();
   }
 
   @Override
-  public double getScanRate() {
-    return thriftInfo.getScanRate();
+  public double getScanCount() {
+    return thriftInfo.getScan();
   }
 
   @Override

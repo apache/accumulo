@@ -51,11 +51,11 @@ public class TableInfoUtil {
     total.recs += more.recs;
     total.recsInMemory += more.recsInMemory;
     total.tablets += more.tablets;
-    total.ingestRate += more.ingestRate;
-    total.ingestByteRate += more.ingestByteRate;
-    total.queryRate += more.queryRate;
-    total.queryByteRate += more.queryByteRate;
-    total.scanRate += more.scanRate;
+    total.ingest += more.ingest;
+    total.ingestBytes += more.ingestBytes;
+    total.query += more.query;
+    total.queryBytes += more.queryBytes;
+    total.scan += more.scan;
   }
 
   public static TableInfo summarizeTableStats(TabletServerStatus status) {

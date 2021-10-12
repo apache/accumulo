@@ -64,8 +64,8 @@ public class ChaoticLoadBalancerTest {
           thriftStatus.tableMap.put(table.canonical(), info = new TableInfo());
         info.onlineTablets++;
         info.recs = info.onlineTablets;
-        info.ingestRate = 123.;
-        info.queryRate = 456.;
+        info.ingest = 123.;
+        info.query = 456.;
       }
 
       return new TServerStatusImpl(thriftStatus);

@@ -50,42 +50,42 @@ public class TabletServerMetricsUtil {
     return result;
   }
 
-  public double getIngest() {
+  public double getIngestCount() {
     double result = 0;
     for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.ingestRate();
+      result += tablet.totalIngest();
     }
     return result;
   }
 
-  public double getIngestByteRate() {
+  public double getIngestBytes() {
     double result = 0;
     for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.ingestByteRate();
+      result += tablet.totalIngestBytes();
     }
     return result;
   }
 
-  public double getQueryRate() {
+  public double getQueryCount() {
     double result = 0;
     for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.queryRate();
+      result += tablet.totalQueries();
     }
     return result;
   }
 
-  public double getQueryByteRate() {
+  public double getQueryBytes() {
     double result = 0;
     for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.queryByteRate();
+      result += tablet.totalQueryBytes();
     }
     return result;
   }
 
-  public double getScannedRate() {
+  public double getScannedCount() {
     double result = 0;
     for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.scanRate();
+      result += tablet.getScannedCount().get();
     }
     return result;
   }

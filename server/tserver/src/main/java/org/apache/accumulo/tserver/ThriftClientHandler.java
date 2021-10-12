@@ -1321,8 +1321,8 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         Tablet tablet = entry.getValue();
         TabletStats stats = tablet.getTabletStats();
         stats.extent = ke.toThrift();
-        stats.ingestRate = tablet.ingestRate();
-        stats.queryRate = tablet.queryRate();
+        stats.ingestRate = tablet.totalIngest();
+        stats.queryRate = tablet.totalQueries();
         stats.splitCreationTime = tablet.getSplitCreationTime();
         stats.numEntries = tablet.getNumEntries();
         result.add(stats);

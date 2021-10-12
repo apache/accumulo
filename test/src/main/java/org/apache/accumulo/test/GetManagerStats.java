@@ -95,8 +95,8 @@ public class GetManagerStats {
         out(2, "Records in Memory: %d", v.recsInMemory);
         out(2, "Tablets: %d", v.tablets);
         out(2, "Online Tablets: %d", v.onlineTablets);
-        out(2, "Ingest Rate: %.2f", v.ingestRate);
-        out(2, "Query Rate: %.2f", v.queryRate);
+        out(2, "Ingest: %.2f", v.ingest);
+        out(2, "Query: %.2f", v.query);
       }
     }
     if (stats.tServerInfo != null && !stats.tServerInfo.isEmpty()) {
@@ -105,10 +105,10 @@ public class GetManagerStats {
       for (TabletServerStatus server : stats.tServerInfo) {
         TableInfo summary = TableInfoUtil.summarizeTableStats(server);
         out(1, "Name: %s", server.name);
-        out(2, "Ingest: %.2f", summary.ingestRate);
+        out(2, "Ingest: %.2f", summary.ingest);
         out(2, "Last Contact: %s", server.lastContact);
         out(2, "OS Load Average: %.2f", server.osLoad);
-        out(2, "Queries: %.2f", summary.queryRate);
+        out(2, "Queries: %.2f", summary.query);
         out(2, "Time Difference: %.1f", ((now - server.lastContact) / 1000.));
         out(2, "Total Records: %d", summary.recs);
         out(2, "Lookups: %d", server.lookups);
@@ -123,8 +123,8 @@ public class GetManagerStats {
             out(4, "Tablets: %d", info.onlineTablets);
             out(4, "Records: %d", info.recs);
             out(4, "Records in Memory: %d", info.recsInMemory);
-            out(4, "Ingest: %.2f", info.ingestRate);
-            out(4, "Queries: %.2f", info.queryRate);
+            out(4, "Ingest: %.2f", info.ingest);
+            out(4, "Queries: %.2f", info.query);
             out(4, "Major Compacting: %d", info.majors == null ? 0 : info.majors.running);
             out(4, "Queued for Major Compaction: %d", info.majors == null ? 0 : info.majors.queued);
             out(4, "Minor Compacting: %d", info.minors == null ? 0 : info.minors.running);

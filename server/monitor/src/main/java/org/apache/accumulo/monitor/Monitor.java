@@ -96,6 +96,33 @@ import org.slf4j.LoggerFactory;
  */
 public class Monitor extends AbstractServer implements HighlyAvailableService {
 
+  private static class Rate {
+    private long lastCounter = -1;
+    private long lastTime = -1;
+    private double current = 0.0;
+    final double ratio = 0.95;
+
+    public synchronized double update(long when, long counter) {
+      if (lastCounter < 0) {
+        lastTime = when;
+        lastCounter = counter;
+        return current;
+      }
+      if (lastTime == when) {
+        throw new IllegalArgumentException("update time < last value");
+      }
+      double keep = 1. - ratio;
+      current = (keep * current + ratio * ((counter - lastCounter)) * 1000. / (when - lastTime));
+      lastTime = when;
+      lastCounter = counter;
+      return current;
+    }
+
+    public synchronized double rate() {
+      return this.current;
+    }
+  }
+
   private static final Logger log = LoggerFactory.getLogger(Monitor.class);
   private static final int REFRESH_TIME = 5;
 
@@ -113,9 +140,9 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   }
 
   private final AtomicLong lastRecalc = new AtomicLong(0L);
-  private double totalIngestRate = 0.0;
-  private double totalQueryRate = 0.0;
-  private double totalScanRate = 0.0;
+  private Rate totalIngestRate = new Rate();
+  private Rate totalQueryRate = new Rate();
+  private Rate totalScanRate = new Rate();
   private long totalEntries = 0L;
   private int totalTabletCount = 0;
   private long totalHoldTime = 0;
@@ -227,11 +254,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   public void fetchData() {
     ServerContext context = getContext();
-    double totalIngestRate = 0.;
-    double totalIngestByteRate = 0.;
-    double totalQueryRate = 0.;
-    double totalQueryByteRate = 0.;
-    double totalScanRate = 0.;
+    long totalIngest = 0;
+    double totalIngestBytes = 0.;
+    long totalQuery = 0;
+    double totalQueryBytes = 0.;
+    long totalScan = 0;
     long totalEntries = 0;
     int totalTabletCount = 0;
     long totalHoldTime = 0;
@@ -287,11 +314,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
         for (TabletServerStatus server : mmi.tServerInfo) {
           TableInfo summary = TableInfoUtil.summarizeTableStats(server);
-          totalIngestRate += summary.ingestRate;
-          totalIngestByteRate += summary.ingestByteRate;
-          totalQueryRate += summary.queryRate;
-          totalScanRate += summary.scanRate;
-          totalQueryByteRate += summary.queryByteRate;
+          totalIngest += summary.ingest;
+          totalIngestBytes += summary.ingestBytes;
+          totalQuery += summary.query;
+          totalScan += summary.scan;
+          totalQueryBytes += summary.queryBytes;
           totalEntries += summary.recs;
           totalHoldTime += server.holdTime;
           totalLookups += server.lookups;
@@ -319,19 +346,19 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
           totalTabletCount += tInfo.tablets;
           totalTables++;
         }
-        this.totalIngestRate = totalIngestRate;
+        this.totalIngestRate.update(currentTime, totalIngest);
         this.totalTables = totalTables;
-        totalIngestByteRate = totalIngestByteRate / 1000000.0;
-        this.totalQueryRate = totalQueryRate;
-        this.totalScanRate = totalScanRate;
-        totalQueryByteRate = totalQueryByteRate / 1000000.0;
+        totalIngestBytes = totalIngestBytes / 1000000.0;
+        this.totalQueryRate.update(currentTime, totalQuery);
+        this.totalScanRate.update(currentTime, totalScan);
+        totalQueryBytes = totalQueryBytes / 1000000.0;
         this.totalEntries = totalEntries;
         this.totalTabletCount = totalTabletCount;
         this.totalHoldTime = totalHoldTime;
         this.totalLookups = totalLookups;
 
-        ingestRateOverTime.add(new Pair<>(currentTime, totalIngestRate));
-        ingestByteRateOverTime.add(new Pair<>(currentTime, totalIngestByteRate));
+        ingestRateOverTime.add(new Pair<>(currentTime, totalIngest * 1.0D));
+        ingestByteRateOverTime.add(new Pair<>(currentTime, totalIngestBytes));
 
         double totalLoad = 0.;
         for (TabletServerStatus status : mmi.tServerInfo) {
@@ -346,10 +373,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
         lookupsOverTime.add(new Pair<>(currentTime, lookupRateTracker.calculateRate()));
 
-        queryRateOverTime.add(new Pair<>(currentTime, (long) totalQueryRate));
-        queryByteRateOverTime.add(new Pair<>(currentTime, totalQueryByteRate));
+        queryRateOverTime.add(new Pair<>(currentTime, totalQuery));
+        queryByteRateOverTime.add(new Pair<>(currentTime, totalQueryBytes));
 
-        scanRateOverTime.add(new Pair<>(currentTime, (long) totalScanRate));
+        scanRateOverTime.add(new Pair<>(currentTime, totalScan));
 
         calcCacheHitRate(indexCacheHitRateOverTime, currentTime, indexCacheHitTracker,
             indexCacheRequestTracker);
@@ -777,15 +804,15 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   }
 
   public double getTotalIngestRate() {
-    return totalIngestRate;
+    return totalIngestRate.rate();
   }
 
   public double getTotalQueryRate() {
-    return totalQueryRate;
+    return totalQueryRate.rate();
   }
 
   public double getTotalScanRate() {
-    return totalScanRate;
+    return totalScanRate.rate();
   }
 
   public long getTotalHoldTime() {

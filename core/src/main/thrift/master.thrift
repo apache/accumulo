@@ -34,14 +34,14 @@ struct TableInfo {
   2:i64 recsInMemory
   3:i32 tablets
   4:i32 onlineTablets
-  5:double ingestRate
-  6:double ingestByteRate
-  7:double queryRate
-  8:double queryByteRate
+  5:double ingest
+  6:double ingestBytes
+  7:double query
+  8:double queryBytes
   9:Compacting minors
   10:Compacting majors
   11:Compacting scans
-  12:double scanRate
+  12:double scan
 }
 
 struct RecoveryStatus {

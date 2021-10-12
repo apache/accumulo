@@ -32,14 +32,14 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
   private static final org.apache.thrift.protocol.TField RECS_IN_MEMORY_FIELD_DESC = new org.apache.thrift.protocol.TField("recsInMemory", org.apache.thrift.protocol.TType.I64, (short)2);
   private static final org.apache.thrift.protocol.TField TABLETS_FIELD_DESC = new org.apache.thrift.protocol.TField("tablets", org.apache.thrift.protocol.TType.I32, (short)3);
   private static final org.apache.thrift.protocol.TField ONLINE_TABLETS_FIELD_DESC = new org.apache.thrift.protocol.TField("onlineTablets", org.apache.thrift.protocol.TType.I32, (short)4);
-  private static final org.apache.thrift.protocol.TField INGEST_RATE_FIELD_DESC = new org.apache.thrift.protocol.TField("ingestRate", org.apache.thrift.protocol.TType.DOUBLE, (short)5);
-  private static final org.apache.thrift.protocol.TField INGEST_BYTE_RATE_FIELD_DESC = new org.apache.thrift.protocol.TField("ingestByteRate", org.apache.thrift.protocol.TType.DOUBLE, (short)6);
-  private static final org.apache.thrift.protocol.TField QUERY_RATE_FIELD_DESC = new org.apache.thrift.protocol.TField("queryRate", org.apache.thrift.protocol.TType.DOUBLE, (short)7);
-  private static final org.apache.thrift.protocol.TField QUERY_BYTE_RATE_FIELD_DESC = new org.apache.thrift.protocol.TField("queryByteRate", org.apache.thrift.protocol.TType.DOUBLE, (short)8);
+  private static final org.apache.thrift.protocol.TField INGEST_FIELD_DESC = new org.apache.thrift.protocol.TField("ingest", org.apache.thrift.protocol.TType.DOUBLE, (short)5);
+  private static final org.apache.thrift.protocol.TField INGEST_BYTES_FIELD_DESC = new org.apache.thrift.protocol.TField("ingestBytes", org.apache.thrift.protocol.TType.DOUBLE, (short)6);
+  private static final org.apache.thrift.protocol.TField QUERY_FIELD_DESC = new org.apache.thrift.protocol.TField("query", org.apache.thrift.protocol.TType.DOUBLE, (short)7);
+  private static final org.apache.thrift.protocol.TField QUERY_BYTES_FIELD_DESC = new org.apache.thrift.protocol.TField("queryBytes", org.apache.thrift.protocol.TType.DOUBLE, (short)8);
   private static final org.apache.thrift.protocol.TField MINORS_FIELD_DESC = new org.apache.thrift.protocol.TField("minors", org.apache.thrift.protocol.TType.STRUCT, (short)9);
   private static final org.apache.thrift.protocol.TField MAJORS_FIELD_DESC = new org.apache.thrift.protocol.TField("majors", org.apache.thrift.protocol.TType.STRUCT, (short)10);
   private static final org.apache.thrift.protocol.TField SCANS_FIELD_DESC = new org.apache.thrift.protocol.TField("scans", org.apache.thrift.protocol.TType.STRUCT, (short)11);
-  private static final org.apache.thrift.protocol.TField SCAN_RATE_FIELD_DESC = new org.apache.thrift.protocol.TField("scanRate", org.apache.thrift.protocol.TType.DOUBLE, (short)12);
+  private static final org.apache.thrift.protocol.TField SCAN_FIELD_DESC = new org.apache.thrift.protocol.TField("scan", org.apache.thrift.protocol.TType.DOUBLE, (short)12);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TableInfoStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TableInfoTupleSchemeFactory();
@@ -48,14 +48,14 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
   public long recsInMemory; // required
   public int tablets; // required
   public int onlineTablets; // required
-  public double ingestRate; // required
-  public double ingestByteRate; // required
-  public double queryRate; // required
-  public double queryByteRate; // required
+  public double ingest; // required
+  public double ingestBytes; // required
+  public double query; // required
+  public double queryBytes; // required
   public @org.apache.thrift.annotation.Nullable Compacting minors; // required
   public @org.apache.thrift.annotation.Nullable Compacting majors; // required
   public @org.apache.thrift.annotation.Nullable Compacting scans; // required
-  public double scanRate; // required
+  public double scan; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -63,14 +63,14 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     RECS_IN_MEMORY((short)2, "recsInMemory"),
     TABLETS((short)3, "tablets"),
     ONLINE_TABLETS((short)4, "onlineTablets"),
-    INGEST_RATE((short)5, "ingestRate"),
-    INGEST_BYTE_RATE((short)6, "ingestByteRate"),
-    QUERY_RATE((short)7, "queryRate"),
-    QUERY_BYTE_RATE((short)8, "queryByteRate"),
+    INGEST((short)5, "ingest"),
+    INGEST_BYTES((short)6, "ingestBytes"),
+    QUERY((short)7, "query"),
+    QUERY_BYTES((short)8, "queryBytes"),
     MINORS((short)9, "minors"),
     MAJORS((short)10, "majors"),
     SCANS((short)11, "scans"),
-    SCAN_RATE((short)12, "scanRate");
+    SCAN((short)12, "scan");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -94,22 +94,22 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
           return TABLETS;
         case 4: // ONLINE_TABLETS
           return ONLINE_TABLETS;
-        case 5: // INGEST_RATE
-          return INGEST_RATE;
-        case 6: // INGEST_BYTE_RATE
-          return INGEST_BYTE_RATE;
-        case 7: // QUERY_RATE
-          return QUERY_RATE;
-        case 8: // QUERY_BYTE_RATE
-          return QUERY_BYTE_RATE;
+        case 5: // INGEST
+          return INGEST;
+        case 6: // INGEST_BYTES
+          return INGEST_BYTES;
+        case 7: // QUERY
+          return QUERY;
+        case 8: // QUERY_BYTES
+          return QUERY_BYTES;
         case 9: // MINORS
           return MINORS;
         case 10: // MAJORS
           return MAJORS;
         case 11: // SCANS
           return SCANS;
-        case 12: // SCAN_RATE
-          return SCAN_RATE;
+        case 12: // SCAN
+          return SCAN;
         default:
           return null;
       }
@@ -155,11 +155,11 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
   private static final int __RECSINMEMORY_ISSET_ID = 1;
   private static final int __TABLETS_ISSET_ID = 2;
   private static final int __ONLINETABLETS_ISSET_ID = 3;
-  private static final int __INGESTRATE_ISSET_ID = 4;
-  private static final int __INGESTBYTERATE_ISSET_ID = 5;
-  private static final int __QUERYRATE_ISSET_ID = 6;
-  private static final int __QUERYBYTERATE_ISSET_ID = 7;
-  private static final int __SCANRATE_ISSET_ID = 8;
+  private static final int __INGEST_ISSET_ID = 4;
+  private static final int __INGESTBYTES_ISSET_ID = 5;
+  private static final int __QUERY_ISSET_ID = 6;
+  private static final int __QUERYBYTES_ISSET_ID = 7;
+  private static final int __SCAN_ISSET_ID = 8;
   private short __isset_bitfield = 0;
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
@@ -172,13 +172,13 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
     tmpMap.put(_Fields.ONLINE_TABLETS, new org.apache.thrift.meta_data.FieldMetaData("onlineTablets", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
-    tmpMap.put(_Fields.INGEST_RATE, new org.apache.thrift.meta_data.FieldMetaData("ingestRate", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.INGEST, new org.apache.thrift.meta_data.FieldMetaData("ingest", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
-    tmpMap.put(_Fields.INGEST_BYTE_RATE, new org.apache.thrift.meta_data.FieldMetaData("ingestByteRate", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.INGEST_BYTES, new org.apache.thrift.meta_data.FieldMetaData("ingestBytes", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
-    tmpMap.put(_Fields.QUERY_RATE, new org.apache.thrift.meta_data.FieldMetaData("queryRate", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.QUERY, new org.apache.thrift.meta_data.FieldMetaData("query", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
-    tmpMap.put(_Fields.QUERY_BYTE_RATE, new org.apache.thrift.meta_data.FieldMetaData("queryByteRate", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.QUERY_BYTES, new org.apache.thrift.meta_data.FieldMetaData("queryBytes", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
     tmpMap.put(_Fields.MINORS, new org.apache.thrift.meta_data.FieldMetaData("minors", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Compacting.class)));
@@ -186,7 +186,7 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Compacting.class)));
     tmpMap.put(_Fields.SCANS, new org.apache.thrift.meta_data.FieldMetaData("scans", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Compacting.class)));
-    tmpMap.put(_Fields.SCAN_RATE, new org.apache.thrift.meta_data.FieldMetaData("scanRate", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.SCAN, new org.apache.thrift.meta_data.FieldMetaData("scan", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TableInfo.class, metaDataMap);
@@ -200,14 +200,14 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     long recsInMemory,
     int tablets,
     int onlineTablets,
-    double ingestRate,
-    double ingestByteRate,
-    double queryRate,
-    double queryByteRate,
+    double ingest,
+    double ingestBytes,
+    double query,
+    double queryBytes,
     Compacting minors,
     Compacting majors,
     Compacting scans,
-    double scanRate)
+    double scan)
   {
     this();
     this.recs = recs;
@@ -218,19 +218,19 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     setTabletsIsSet(true);
     this.onlineTablets = onlineTablets;
     setOnlineTabletsIsSet(true);
-    this.ingestRate = ingestRate;
-    setIngestRateIsSet(true);
-    this.ingestByteRate = ingestByteRate;
-    setIngestByteRateIsSet(true);
-    this.queryRate = queryRate;
-    setQueryRateIsSet(true);
-    this.queryByteRate = queryByteRate;
-    setQueryByteRateIsSet(true);
+    this.ingest = ingest;
+    setIngestIsSet(true);
+    this.ingestBytes = ingestBytes;
+    setIngestBytesIsSet(true);
+    this.query = query;
+    setQueryIsSet(true);
+    this.queryBytes = queryBytes;
+    setQueryBytesIsSet(true);
     this.minors = minors;
     this.majors = majors;
     this.scans = scans;
-    this.scanRate = scanRate;
-    setScanRateIsSet(true);
+    this.scan = scan;
+    setScanIsSet(true);
   }
 
   /**
@@ -242,10 +242,10 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     this.recsInMemory = other.recsInMemory;
     this.tablets = other.tablets;
     this.onlineTablets = other.onlineTablets;
-    this.ingestRate = other.ingestRate;
-    this.ingestByteRate = other.ingestByteRate;
-    this.queryRate = other.queryRate;
-    this.queryByteRate = other.queryByteRate;
+    this.ingest = other.ingest;
+    this.ingestBytes = other.ingestBytes;
+    this.query = other.query;
+    this.queryBytes = other.queryBytes;
     if (other.isSetMinors()) {
       this.minors = new Compacting(other.minors);
     }
@@ -255,7 +255,7 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     if (other.isSetScans()) {
       this.scans = new Compacting(other.scans);
     }
-    this.scanRate = other.scanRate;
+    this.scan = other.scan;
   }
 
   public TableInfo deepCopy() {
@@ -272,19 +272,19 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     this.tablets = 0;
     setOnlineTabletsIsSet(false);
     this.onlineTablets = 0;
-    setIngestRateIsSet(false);
-    this.ingestRate = 0.0;
-    setIngestByteRateIsSet(false);
-    this.ingestByteRate = 0.0;
-    setQueryRateIsSet(false);
-    this.queryRate = 0.0;
-    setQueryByteRateIsSet(false);
-    this.queryByteRate = 0.0;
+    setIngestIsSet(false);
+    this.ingest = 0.0;
+    setIngestBytesIsSet(false);
+    this.ingestBytes = 0.0;
+    setQueryIsSet(false);
+    this.query = 0.0;
+    setQueryBytesIsSet(false);
+    this.queryBytes = 0.0;
     this.minors = null;
     this.majors = null;
     this.scans = null;
-    setScanRateIsSet(false);
-    this.scanRate = 0.0;
+    setScanIsSet(false);
+    this.scan = 0.0;
   }
 
   public long getRecs() {
@@ -379,96 +379,96 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __ONLINETABLETS_ISSET_ID, value);
   }
 
-  public double getIngestRate() {
-    return this.ingestRate;
+  public double getIngest() {
+    return this.ingest;
   }
 
-  public TableInfo setIngestRate(double ingestRate) {
-    this.ingestRate = ingestRate;
-    setIngestRateIsSet(true);
+  public TableInfo setIngest(double ingest) {
+    this.ingest = ingest;
+    setIngestIsSet(true);
     return this;
   }
 
-  public void unsetIngestRate() {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __INGESTRATE_ISSET_ID);
+  public void unsetIngest() {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __INGEST_ISSET_ID);
   }
 
-  /** Returns true if field ingestRate is set (has been assigned a value) and false otherwise */
-  public boolean isSetIngestRate() {
-    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __INGESTRATE_ISSET_ID);
+  /** Returns true if field ingest is set (has been assigned a value) and false otherwise */
+  public boolean isSetIngest() {
+    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __INGEST_ISSET_ID);
   }
 
-  public void setIngestRateIsSet(boolean value) {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __INGESTRATE_ISSET_ID, value);
+  public void setIngestIsSet(boolean value) {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __INGEST_ISSET_ID, value);
   }
 
-  public double getIngestByteRate() {
-    return this.ingestByteRate;
+  public double getIngestBytes() {
+    return this.ingestBytes;
   }
 
-  public TableInfo setIngestByteRate(double ingestByteRate) {
-    this.ingestByteRate = ingestByteRate;
-    setIngestByteRateIsSet(true);
+  public TableInfo setIngestBytes(double ingestBytes) {
+    this.ingestBytes = ingestBytes;
+    setIngestBytesIsSet(true);
     return this;
   }
 
-  public void unsetIngestByteRate() {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __INGESTBYTERATE_ISSET_ID);
+  public void unsetIngestBytes() {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __INGESTBYTES_ISSET_ID);
   }
 
-  /** Returns true if field ingestByteRate is set (has been assigned a value) and false otherwise */
-  public boolean isSetIngestByteRate() {
-    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __INGESTBYTERATE_ISSET_ID);
+  /** Returns true if field ingestBytes is set (has been assigned a value) and false otherwise */
+  public boolean isSetIngestBytes() {
+    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __INGESTBYTES_ISSET_ID);
   }
 
-  public void setIngestByteRateIsSet(boolean value) {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __INGESTBYTERATE_ISSET_ID, value);
+  public void setIngestBytesIsSet(boolean value) {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __INGESTBYTES_ISSET_ID, value);
   }
 
-  public double getQueryRate() {
-    return this.queryRate;
+  public double getQuery() {
+    return this.query;
   }
 
-  public TableInfo setQueryRate(double queryRate) {
-    this.queryRate = queryRate;
-    setQueryRateIsSet(true);
+  public TableInfo setQuery(double query) {
+    this.query = query;
+    setQueryIsSet(true);
     return this;
   }
 
-  public void unsetQueryRate() {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __QUERYRATE_ISSET_ID);
+  public void unsetQuery() {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __QUERY_ISSET_ID);
   }
 
-  /** Returns true if field queryRate is set (has been assigned a value) and false otherwise */
-  public boolean isSetQueryRate() {
-    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __QUERYRATE_ISSET_ID);
+  /** Returns true if field query is set (has been assigned a value) and false otherwise */
+  public boolean isSetQuery() {
+    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __QUERY_ISSET_ID);
   }
 
-  public void setQueryRateIsSet(boolean value) {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __QUERYRATE_ISSET_ID, value);
+  public void setQueryIsSet(boolean value) {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __QUERY_ISSET_ID, value);
   }
 
-  public double getQueryByteRate() {
-    return this.queryByteRate;
+  public double getQueryBytes() {
+    return this.queryBytes;
   }
 
-  public TableInfo setQueryByteRate(double queryByteRate) {
-    this.queryByteRate = queryByteRate;
-    setQueryByteRateIsSet(true);
+  public TableInfo setQueryBytes(double queryBytes) {
+    this.queryBytes = queryBytes;
+    setQueryBytesIsSet(true);
     return this;
   }
 
-  public void unsetQueryByteRate() {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __QUERYBYTERATE_ISSET_ID);
+  public void unsetQueryBytes() {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __QUERYBYTES_ISSET_ID);
   }
 
-  /** Returns true if field queryByteRate is set (has been assigned a value) and false otherwise */
-  public boolean isSetQueryByteRate() {
-    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __QUERYBYTERATE_ISSET_ID);
+  /** Returns true if field queryBytes is set (has been assigned a value) and false otherwise */
+  public boolean isSetQueryBytes() {
+    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __QUERYBYTES_ISSET_ID);
   }
 
-  public void setQueryByteRateIsSet(boolean value) {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __QUERYBYTERATE_ISSET_ID, value);
+  public void setQueryBytesIsSet(boolean value) {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __QUERYBYTES_ISSET_ID, value);
   }
 
   @org.apache.thrift.annotation.Nullable
@@ -546,27 +546,27 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     }
   }
 
-  public double getScanRate() {
-    return this.scanRate;
+  public double getScan() {
+    return this.scan;
   }
 
-  public TableInfo setScanRate(double scanRate) {
-    this.scanRate = scanRate;
-    setScanRateIsSet(true);
+  public TableInfo setScan(double scan) {
+    this.scan = scan;
+    setScanIsSet(true);
     return this;
   }
 
-  public void unsetScanRate() {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __SCANRATE_ISSET_ID);
+  public void unsetScan() {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __SCAN_ISSET_ID);
   }
 
-  /** Returns true if field scanRate is set (has been assigned a value) and false otherwise */
-  public boolean isSetScanRate() {
-    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __SCANRATE_ISSET_ID);
+  /** Returns true if field scan is set (has been assigned a value) and false otherwise */
+  public boolean isSetScan() {
+    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __SCAN_ISSET_ID);
   }
 
-  public void setScanRateIsSet(boolean value) {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __SCANRATE_ISSET_ID, value);
+  public void setScanIsSet(boolean value) {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __SCAN_ISSET_ID, value);
   }
 
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
@@ -603,35 +603,35 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
       }
       break;
 
-    case INGEST_RATE:
+    case INGEST:
       if (value == null) {
-        unsetIngestRate();
+        unsetIngest();
       } else {
-        setIngestRate((java.lang.Double)value);
+        setIngest((java.lang.Double)value);
       }
       break;
 
-    case INGEST_BYTE_RATE:
+    case INGEST_BYTES:
       if (value == null) {
-        unsetIngestByteRate();
+        unsetIngestBytes();
       } else {
-        setIngestByteRate((java.lang.Double)value);
+        setIngestBytes((java.lang.Double)value);
       }
       break;
 
-    case QUERY_RATE:
+    case QUERY:
       if (value == null) {
-        unsetQueryRate();
+        unsetQuery();
       } else {
-        setQueryRate((java.lang.Double)value);
+        setQuery((java.lang.Double)value);
       }
       break;
 
-    case QUERY_BYTE_RATE:
+    case QUERY_BYTES:
       if (value == null) {
-        unsetQueryByteRate();
+        unsetQueryBytes();
       } else {
-        setQueryByteRate((java.lang.Double)value);
+        setQueryBytes((java.lang.Double)value);
       }
       break;
 
@@ -659,11 +659,11 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
       }
       break;
 
-    case SCAN_RATE:
+    case SCAN:
       if (value == null) {
-        unsetScanRate();
+        unsetScan();
       } else {
-        setScanRate((java.lang.Double)value);
+        setScan((java.lang.Double)value);
       }
       break;
 
@@ -685,17 +685,17 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     case ONLINE_TABLETS:
       return getOnlineTablets();
 
-    case INGEST_RATE:
-      return getIngestRate();
+    case INGEST:
+      return getIngest();
 
-    case INGEST_BYTE_RATE:
-      return getIngestByteRate();
+    case INGEST_BYTES:
+      return getIngestBytes();
 
-    case QUERY_RATE:
-      return getQueryRate();
+    case QUERY:
+      return getQuery();
 
-    case QUERY_BYTE_RATE:
-      return getQueryByteRate();
+    case QUERY_BYTES:
+      return getQueryBytes();
 
     case MINORS:
       return getMinors();
@@ -706,8 +706,8 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     case SCANS:
       return getScans();
 
-    case SCAN_RATE:
-      return getScanRate();
+    case SCAN:
+      return getScan();
 
     }
     throw new java.lang.IllegalStateException();
@@ -728,22 +728,22 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
       return isSetTablets();
     case ONLINE_TABLETS:
       return isSetOnlineTablets();
-    case INGEST_RATE:
-      return isSetIngestRate();
-    case INGEST_BYTE_RATE:
-      return isSetIngestByteRate();
-    case QUERY_RATE:
-      return isSetQueryRate();
-    case QUERY_BYTE_RATE:
-      return isSetQueryByteRate();
+    case INGEST:
+      return isSetIngest();
+    case INGEST_BYTES:
+      return isSetIngestBytes();
+    case QUERY:
+      return isSetQuery();
+    case QUERY_BYTES:
+      return isSetQueryBytes();
     case MINORS:
       return isSetMinors();
     case MAJORS:
       return isSetMajors();
     case SCANS:
       return isSetScans();
-    case SCAN_RATE:
-      return isSetScanRate();
+    case SCAN:
+      return isSetScan();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -797,39 +797,39 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
         return false;
     }
 
-    boolean this_present_ingestRate = true;
-    boolean that_present_ingestRate = true;
-    if (this_present_ingestRate || that_present_ingestRate) {
-      if (!(this_present_ingestRate && that_present_ingestRate))
+    boolean this_present_ingest = true;
+    boolean that_present_ingest = true;
+    if (this_present_ingest || that_present_ingest) {
+      if (!(this_present_ingest && that_present_ingest))
         return false;
-      if (this.ingestRate != that.ingestRate)
-        return false;
-    }
-
-    boolean this_present_ingestByteRate = true;
-    boolean that_present_ingestByteRate = true;
-    if (this_present_ingestByteRate || that_present_ingestByteRate) {
-      if (!(this_present_ingestByteRate && that_present_ingestByteRate))
-        return false;
-      if (this.ingestByteRate != that.ingestByteRate)
+      if (this.ingest != that.ingest)
         return false;
     }
 
-    boolean this_present_queryRate = true;
-    boolean that_present_queryRate = true;
-    if (this_present_queryRate || that_present_queryRate) {
-      if (!(this_present_queryRate && that_present_queryRate))
+    boolean this_present_ingestBytes = true;
+    boolean that_present_ingestBytes = true;
+    if (this_present_ingestBytes || that_present_ingestBytes) {
+      if (!(this_present_ingestBytes && that_present_ingestBytes))
         return false;
-      if (this.queryRate != that.queryRate)
+      if (this.ingestBytes != that.ingestBytes)
         return false;
     }
 
-    boolean this_present_queryByteRate = true;
-    boolean that_present_queryByteRate = true;
-    if (this_present_queryByteRate || that_present_queryByteRate) {
-      if (!(this_present_queryByteRate && that_present_queryByteRate))
+    boolean this_present_query = true;
+    boolean that_present_query = true;
+    if (this_present_query || that_present_query) {
+      if (!(this_present_query && that_present_query))
         return false;
-      if (this.queryByteRate != that.queryByteRate)
+      if (this.query != that.query)
+        return false;
+    }
+
+    boolean this_present_queryBytes = true;
+    boolean that_present_queryBytes = true;
+    if (this_present_queryBytes || that_present_queryBytes) {
+      if (!(this_present_queryBytes && that_present_queryBytes))
+        return false;
+      if (this.queryBytes != that.queryBytes)
         return false;
     }
 
@@ -860,12 +860,12 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
         return false;
     }
 
-    boolean this_present_scanRate = true;
-    boolean that_present_scanRate = true;
-    if (this_present_scanRate || that_present_scanRate) {
-      if (!(this_present_scanRate && that_present_scanRate))
+    boolean this_present_scan = true;
+    boolean that_present_scan = true;
+    if (this_present_scan || that_present_scan) {
+      if (!(this_present_scan && that_present_scan))
         return false;
-      if (this.scanRate != that.scanRate)
+      if (this.scan != that.scan)
         return false;
     }
 
@@ -884,13 +884,13 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
 
     hashCode = hashCode * 8191 + onlineTablets;
 
-    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(ingestRate);
+    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(ingest);
 
-    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(ingestByteRate);
+    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(ingestBytes);
 
-    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(queryRate);
+    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(query);
 
-    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(queryByteRate);
+    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(queryBytes);
 
     hashCode = hashCode * 8191 + ((isSetMinors()) ? 131071 : 524287);
     if (isSetMinors())
@@ -904,7 +904,7 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     if (isSetScans())
       hashCode = hashCode * 8191 + scans.hashCode();
 
-    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(scanRate);
+    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(scan);
 
     return hashCode;
   }
@@ -957,42 +957,42 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.compare(isSetIngestRate(), other.isSetIngestRate());
+    lastComparison = java.lang.Boolean.compare(isSetIngest(), other.isSetIngest());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetIngestRate()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.ingestRate, other.ingestRate);
+    if (isSetIngest()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.ingest, other.ingest);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.compare(isSetIngestByteRate(), other.isSetIngestByteRate());
+    lastComparison = java.lang.Boolean.compare(isSetIngestBytes(), other.isSetIngestBytes());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetIngestByteRate()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.ingestByteRate, other.ingestByteRate);
+    if (isSetIngestBytes()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.ingestBytes, other.ingestBytes);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.compare(isSetQueryRate(), other.isSetQueryRate());
+    lastComparison = java.lang.Boolean.compare(isSetQuery(), other.isSetQuery());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetQueryRate()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.queryRate, other.queryRate);
+    if (isSetQuery()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.query, other.query);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.compare(isSetQueryByteRate(), other.isSetQueryByteRate());
+    lastComparison = java.lang.Boolean.compare(isSetQueryBytes(), other.isSetQueryBytes());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetQueryByteRate()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.queryByteRate, other.queryByteRate);
+    if (isSetQueryBytes()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.queryBytes, other.queryBytes);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -1027,12 +1027,12 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.compare(isSetScanRate(), other.isSetScanRate());
+    lastComparison = java.lang.Boolean.compare(isSetScan(), other.isSetScan());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetScanRate()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.scanRate, other.scanRate);
+    if (isSetScan()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.scan, other.scan);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -1074,20 +1074,20 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     sb.append(this.onlineTablets);
     first = false;
     if (!first) sb.append(", ");
-    sb.append("ingestRate:");
-    sb.append(this.ingestRate);
+    sb.append("ingest:");
+    sb.append(this.ingest);
     first = false;
     if (!first) sb.append(", ");
-    sb.append("ingestByteRate:");
-    sb.append(this.ingestByteRate);
+    sb.append("ingestBytes:");
+    sb.append(this.ingestBytes);
     first = false;
     if (!first) sb.append(", ");
-    sb.append("queryRate:");
-    sb.append(this.queryRate);
+    sb.append("query:");
+    sb.append(this.query);
     first = false;
     if (!first) sb.append(", ");
-    sb.append("queryByteRate:");
-    sb.append(this.queryByteRate);
+    sb.append("queryBytes:");
+    sb.append(this.queryBytes);
     first = false;
     if (!first) sb.append(", ");
     sb.append("minors:");
@@ -1114,8 +1114,8 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("scanRate:");
-    sb.append(this.scanRate);
+    sb.append("scan:");
+    sb.append(this.scan);
     first = false;
     sb.append(")");
     return sb.toString();
@@ -1203,34 +1203,34 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 5: // INGEST_RATE
+          case 5: // INGEST
             if (schemeField.type == org.apache.thrift.protocol.TType.DOUBLE) {
-              struct.ingestRate = iprot.readDouble();
-              struct.setIngestRateIsSet(true);
+              struct.ingest = iprot.readDouble();
+              struct.setIngestIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 6: // INGEST_BYTE_RATE
+          case 6: // INGEST_BYTES
             if (schemeField.type == org.apache.thrift.protocol.TType.DOUBLE) {
-              struct.ingestByteRate = iprot.readDouble();
-              struct.setIngestByteRateIsSet(true);
+              struct.ingestBytes = iprot.readDouble();
+              struct.setIngestBytesIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 7: // QUERY_RATE
+          case 7: // QUERY
             if (schemeField.type == org.apache.thrift.protocol.TType.DOUBLE) {
-              struct.queryRate = iprot.readDouble();
-              struct.setQueryRateIsSet(true);
+              struct.query = iprot.readDouble();
+              struct.setQueryIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 8: // QUERY_BYTE_RATE
+          case 8: // QUERY_BYTES
             if (schemeField.type == org.apache.thrift.protocol.TType.DOUBLE) {
-              struct.queryByteRate = iprot.readDouble();
-              struct.setQueryByteRateIsSet(true);
+              struct.queryBytes = iprot.readDouble();
+              struct.setQueryBytesIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -1262,10 +1262,10 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 12: // SCAN_RATE
+          case 12: // SCAN
             if (schemeField.type == org.apache.thrift.protocol.TType.DOUBLE) {
-              struct.scanRate = iprot.readDouble();
-              struct.setScanRateIsSet(true);
+              struct.scan = iprot.readDouble();
+              struct.setScanIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -1297,17 +1297,17 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
       oprot.writeFieldBegin(ONLINE_TABLETS_FIELD_DESC);
       oprot.writeI32(struct.onlineTablets);
       oprot.writeFieldEnd();
-      oprot.writeFieldBegin(INGEST_RATE_FIELD_DESC);
-      oprot.writeDouble(struct.ingestRate);
+      oprot.writeFieldBegin(INGEST_FIELD_DESC);
+      oprot.writeDouble(struct.ingest);
       oprot.writeFieldEnd();
-      oprot.writeFieldBegin(INGEST_BYTE_RATE_FIELD_DESC);
-      oprot.writeDouble(struct.ingestByteRate);
+      oprot.writeFieldBegin(INGEST_BYTES_FIELD_DESC);
+      oprot.writeDouble(struct.ingestBytes);
       oprot.writeFieldEnd();
-      oprot.writeFieldBegin(QUERY_RATE_FIELD_DESC);
-      oprot.writeDouble(struct.queryRate);
+      oprot.writeFieldBegin(QUERY_FIELD_DESC);
+      oprot.writeDouble(struct.query);
       oprot.writeFieldEnd();
-      oprot.writeFieldBegin(QUERY_BYTE_RATE_FIELD_DESC);
-      oprot.writeDouble(struct.queryByteRate);
+      oprot.writeFieldBegin(QUERY_BYTES_FIELD_DESC);
+      oprot.writeDouble(struct.queryBytes);
       oprot.writeFieldEnd();
       if (struct.minors != null) {
         oprot.writeFieldBegin(MINORS_FIELD_DESC);
@@ -1324,8 +1324,8 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
         struct.scans.write(oprot);
         oprot.writeFieldEnd();
       }
-      oprot.writeFieldBegin(SCAN_RATE_FIELD_DESC);
-      oprot.writeDouble(struct.scanRate);
+      oprot.writeFieldBegin(SCAN_FIELD_DESC);
+      oprot.writeDouble(struct.scan);
       oprot.writeFieldEnd();
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -1357,16 +1357,16 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
       if (struct.isSetOnlineTablets()) {
         optionals.set(3);
       }
-      if (struct.isSetIngestRate()) {
+      if (struct.isSetIngest()) {
         optionals.set(4);
       }
-      if (struct.isSetIngestByteRate()) {
+      if (struct.isSetIngestBytes()) {
         optionals.set(5);
       }
-      if (struct.isSetQueryRate()) {
+      if (struct.isSetQuery()) {
         optionals.set(6);
       }
-      if (struct.isSetQueryByteRate()) {
+      if (struct.isSetQueryBytes()) {
         optionals.set(7);
       }
       if (struct.isSetMinors()) {
@@ -1378,7 +1378,7 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
       if (struct.isSetScans()) {
         optionals.set(10);
       }
-      if (struct.isSetScanRate()) {
+      if (struct.isSetScan()) {
         optionals.set(11);
       }
       oprot.writeBitSet(optionals, 12);
@@ -1394,17 +1394,17 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
       if (struct.isSetOnlineTablets()) {
         oprot.writeI32(struct.onlineTablets);
       }
-      if (struct.isSetIngestRate()) {
-        oprot.writeDouble(struct.ingestRate);
+      if (struct.isSetIngest()) {
+        oprot.writeDouble(struct.ingest);
       }
-      if (struct.isSetIngestByteRate()) {
-        oprot.writeDouble(struct.ingestByteRate);
+      if (struct.isSetIngestBytes()) {
+        oprot.writeDouble(struct.ingestBytes);
       }
-      if (struct.isSetQueryRate()) {
-        oprot.writeDouble(struct.queryRate);
+      if (struct.isSetQuery()) {
+        oprot.writeDouble(struct.query);
       }
-      if (struct.isSetQueryByteRate()) {
-        oprot.writeDouble(struct.queryByteRate);
+      if (struct.isSetQueryBytes()) {
+        oprot.writeDouble(struct.queryBytes);
       }
       if (struct.isSetMinors()) {
         struct.minors.write(oprot);
@@ -1415,8 +1415,8 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
       if (struct.isSetScans()) {
         struct.scans.write(oprot);
       }
-      if (struct.isSetScanRate()) {
-        oprot.writeDouble(struct.scanRate);
+      if (struct.isSetScan()) {
+        oprot.writeDouble(struct.scan);
       }
     }
 
@@ -1441,20 +1441,20 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
         struct.setOnlineTabletsIsSet(true);
       }
       if (incoming.get(4)) {
-        struct.ingestRate = iprot.readDouble();
-        struct.setIngestRateIsSet(true);
+        struct.ingest = iprot.readDouble();
+        struct.setIngestIsSet(true);
       }
       if (incoming.get(5)) {
-        struct.ingestByteRate = iprot.readDouble();
-        struct.setIngestByteRateIsSet(true);
+        struct.ingestBytes = iprot.readDouble();
+        struct.setIngestBytesIsSet(true);
       }
       if (incoming.get(6)) {
-        struct.queryRate = iprot.readDouble();
-        struct.setQueryRateIsSet(true);
+        struct.query = iprot.readDouble();
+        struct.setQueryIsSet(true);
       }
       if (incoming.get(7)) {
-        struct.queryByteRate = iprot.readDouble();
-        struct.setQueryByteRateIsSet(true);
+        struct.queryBytes = iprot.readDouble();
+        struct.setQueryBytesIsSet(true);
       }
       if (incoming.get(8)) {
         struct.minors = new Compacting();
@@ -1472,8 +1472,8 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
         struct.setScansIsSet(true);
       }
       if (incoming.get(11)) {
-        struct.scanRate = iprot.readDouble();
-        struct.setScanRateIsSet(true);
+        struct.scan = iprot.readDouble();
+        struct.setScanIsSet(true);
       }
     }
   }
