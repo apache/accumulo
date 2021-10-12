@@ -108,7 +108,7 @@ JAVA_OPTS=("${JAVA_OPTS[@]}"
 #)
 
 case "$cmd" in
-  monitor|gc|manager|master|tserver|tracer|compaction-coordinator|compactor)
+  monitor|gc|manager|master|tserver|compaction-coordinator|compactor)
     JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configurationFile=log4j2-service.properties")
     ;;
   *)

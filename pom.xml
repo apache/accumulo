@@ -130,7 +130,6 @@
     <failsafe.reuseForks>false</failsafe.reuseForks>
     <hadoop.version>3.3.0</hadoop.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
-    <htrace.version>3.2.0-incubating</htrace.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
     <!-- prevent introduction of new compiler warnings -->
     <maven.compiler.failOnWarning>true</maven.compiler.failOnWarning>
@@ -446,11 +445,6 @@
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-tools</artifactId>
         <version>${hadoop.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.htrace</groupId>
-        <artifactId>htrace-core</artifactId>
-        <version>${htrace.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.htrace</groupId>

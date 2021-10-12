@@ -241,7 +241,7 @@ public class StandaloneClusterControl implements ClusterControl {
 
   @Override
   public void stop(ServerType server, String hostname) throws IOException {
-    // TODO Use `accumulo admin stop` for tservers, instrument clean stop for GC, monitor, tracer
+    // TODO Use `accumulo admin stop` for tservers, instrument clean stop for GC, monitor
     // instead kill
 
     kill(server, hostname);

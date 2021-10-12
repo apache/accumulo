@@ -282,11 +282,6 @@
     </dependency>
     <dependency>
       <groupId>org.apache.htrace</groupId>
-      <artifactId>htrace-core</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.htrace</groupId>
       <artifactId>htrace-core4</artifactId>
       <optional>true</optional>
     </dependency>
