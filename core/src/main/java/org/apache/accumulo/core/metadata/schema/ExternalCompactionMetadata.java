@@ -57,7 +57,7 @@ public class ExternalCompactionMetadata {
     if (!initiallySelectedAll && !propagateDeletes
         && (kind == CompactionKind.SELECTOR || kind == CompactionKind.USER)) {
       throw new IllegalArgumentException(
-          "When a user or selector compactions does not propgates deletes, its expected that all "
+          "When user or selector compactions do not propagate deletes, it's expected that all "
               + "files were selected initially.");
     }
     this.jobFiles = Objects.requireNonNull(jobFiles);
