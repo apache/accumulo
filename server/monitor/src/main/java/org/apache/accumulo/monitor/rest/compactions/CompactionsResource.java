@@ -46,7 +46,7 @@ public class CompactionsResource {
   /**
    * Generates a new JSON object with compaction information
    *
-   * @return Scan JSON object
+   * @return JSON object
    */
   @GET
   public Compactions getActiveCompactions() {

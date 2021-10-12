@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.spi.compaction.CompactionKind.USER;
 import static org.apache.accumulo.tserver.tablet.CompactableImplFileManagerTest.TestFileManager.SELECTION_EXPIRATION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.time.Duration;
@@ -379,10 +380,11 @@ public class CompactableImplFileManagerTest {
     tabletFiles = newFiles("C00004.rf", "C00006.rf", "F00003.rf", "F00004.rf");
     assertFalse(fileMgr.finishChop(tabletFiles));
     assertEquals(ChopSelectionStatus.SELECTED, fileMgr.getChopStatus());
+    assertThrows(IllegalStateException.class, fileMgr::finishMarkingChop);
 
     assertEquals(newFiles("F00004.rf"), fileMgr.getCandidates(tabletFiles, CHOP, false));
 
-    // simulate compacting the last file to chop.. should cause the chop finish
+    // simulate compacting the last file to chop. should cause the chop finish
     var job3 = newJob(CHOP, "F00004.rf");
     assertTrue(fileMgr.reserveFiles(job3));
     fileMgr.completed(job3, newFile("C00007.rf"));
@@ -390,8 +392,11 @@ public class CompactableImplFileManagerTest {
     assertTrue(fileMgr.finishChop(tabletFiles));
 
     assertEquals(Set.of(), fileMgr.getCandidates(tabletFiles, CHOP, false));
-    assertEquals(ChopSelectionStatus.NOT_ACTIVE, fileMgr.getChopStatus());
+    assertEquals(ChopSelectionStatus.MARKING, fileMgr.getChopStatus());
     assertEquals(Set.of(), fileMgr.getCompactingFiles());
+
+    fileMgr.finishMarkingChop();
+    assertEquals(ChopSelectionStatus.NOT_ACTIVE, fileMgr.getChopStatus());
 
   }
 
