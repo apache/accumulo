@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
+import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -180,7 +181,7 @@ public class SlowOps {
           completed = true;
         } catch (Throwable ex) {
           // test cancels compaction on complete, so ignore it as an exception.
-          if (ex.getMessage().contains("Compaction canceled")) {
+          if (ex.getMessage().contains(TableOperationsImpl.COMPACTION_CANCELED_MSG)) {
             return;
           }
           log.info("Exception thrown while waiting for compaction - will retry", ex);

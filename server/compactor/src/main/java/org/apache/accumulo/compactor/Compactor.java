@@ -236,7 +236,6 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
    *
    * @param clientAddress
    *          address of this Compactor
-   *
    * @throws KeeperException
    *           zookeeper error
    * @throws InterruptedException
@@ -687,7 +686,8 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
               CompactionInfo info = running.get(0);
               if (info != null) {
                 if (inputEntries > 0) {
-                  percentComplete = Float.toString((info.getEntriesRead() / inputEntries) * 100);
+                  percentComplete =
+                      Float.toString((info.getEntriesRead() / (float) inputEntries) * 100);
                 }
                 String message = String.format(
                     "Compaction in progress, read %d of %d input entries ( %s %s ), written %d entries",
