@@ -31,9 +31,9 @@ import com.google.common.base.Preconditions;
 /**
  * A utility class for validating {@link AccumuloConfiguration} instances.
  */
-public class ConfigSanityCheck {
+public class ConfigCheckUtil {
 
-  private static final Logger log = LoggerFactory.getLogger(ConfigSanityCheck.class);
+  private static final Logger log = LoggerFactory.getLogger(ConfigCheckUtil.class);
   private static final String PREFIX = "BAD CONFIG ";
 
   /**
@@ -44,7 +44,7 @@ public class ConfigSanityCheck {
    *
    * @param entries
    *          iterable through configuration keys and values
-   * @throws SanityCheckException
+   * @throws ConfigCheckException
    *           if a fatal configuration error is found
    */
   public static void validate(Iterable<Entry<String,String>> entries) {
@@ -126,15 +126,15 @@ public class ConfigSanityCheck {
   }
 
   /**
-   * The exception thrown when {@link ConfigSanityCheck#validate(Iterable)} fails.
+   * The exception thrown when {@link ConfigCheckUtil#validate(Iterable)} fails.
    */
-  public static class SanityCheckException extends RuntimeException {
+  public static class ConfigCheckException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
     /**
      * Creates a new exception with the given message.
      */
-    public SanityCheckException(String msg) {
+    public ConfigCheckException(String msg) {
       super(msg);
     }
   }
@@ -143,7 +143,7 @@ public class ConfigSanityCheck {
     // ACCUMULO-3651 Level changed from fatal to error and FATAL added to message for slf4j
     // compatibility
     log.error("FATAL: {}", msg);
-    throw new SanityCheckException(msg);
+    throw new ConfigCheckException(msg);
   }
 
   /**

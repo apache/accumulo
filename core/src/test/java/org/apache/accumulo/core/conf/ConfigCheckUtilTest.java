@@ -20,11 +20,11 @@ package org.apache.accumulo.core.conf;
 
 import java.util.Map;
 
-import org.apache.accumulo.core.conf.ConfigSanityCheck.SanityCheckException;
+import org.apache.accumulo.core.conf.ConfigCheckUtil.ConfigCheckException;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ConfigSanityCheckTest {
+public class ConfigCheckUtilTest {
   private Map<String,String> m;
 
   @Before
@@ -38,51 +38,51 @@ public class ConfigSanityCheckTest {
     m.put(Property.MANAGER_TABLET_BALANCER.getKey(),
         "org.apache.accumulo.server.manager.balancer.TableLoadBalancer");
     m.put(Property.MANAGER_BULK_RETRIES.getKey(), "3");
-    ConfigSanityCheck.validate(m.entrySet());
+    ConfigCheckUtil.validate(m.entrySet());
   }
 
   @Test
   public void testPass_Empty() {
-    ConfigSanityCheck.validate(m.entrySet());
+    ConfigCheckUtil.validate(m.entrySet());
   }
 
   @Test
   public void testPass_UnrecognizedValidProperty() {
     m.put(Property.MANAGER_CLIENTPORT.getKey(), "9999");
     m.put(Property.MANAGER_PREFIX.getKey() + "something", "abcdefg");
-    ConfigSanityCheck.validate(m.entrySet());
+    ConfigCheckUtil.validate(m.entrySet());
   }
 
   @Test
   public void testPass_UnrecognizedProperty() {
     m.put(Property.MANAGER_CLIENTPORT.getKey(), "9999");
     m.put("invalid.prefix.value", "abcdefg");
-    ConfigSanityCheck.validate(m.entrySet());
+    ConfigCheckUtil.validate(m.entrySet());
   }
 
-  @Test(expected = SanityCheckException.class)
+  @Test(expected = ConfigCheckException.class)
   public void testFail_Prefix() {
     m.put(Property.MANAGER_CLIENTPORT.getKey(), "9999");
     m.put(Property.MANAGER_PREFIX.getKey(), "oops");
-    ConfigSanityCheck.validate(m.entrySet());
+    ConfigCheckUtil.validate(m.entrySet());
   }
 
-  @Test(expected = SanityCheckException.class)
+  @Test(expected = ConfigCheckException.class)
   public void testFail_InstanceZkTimeoutOutOfRange() {
     m.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "10ms");
-    ConfigSanityCheck.validate(m.entrySet());
+    ConfigCheckUtil.validate(m.entrySet());
   }
 
-  @Test(expected = SanityCheckException.class)
+  @Test(expected = ConfigCheckException.class)
   public void testFail_badCryptoService() {
     m.put(Property.INSTANCE_CRYPTO_SERVICE.getKey(), "DoesNotExistCryptoService");
-    ConfigSanityCheck.validate(m.entrySet());
+    ConfigCheckUtil.validate(m.entrySet());
   }
 
   @Test
   public void testPass_defaultCryptoService() {
     m.put(Property.INSTANCE_CRYPTO_SERVICE.getKey(),
         Property.INSTANCE_CRYPTO_SERVICE.getDefaultValue());
-    ConfigSanityCheck.validate(m.entrySet());
+    ConfigCheckUtil.validate(m.entrySet());
   }
 }

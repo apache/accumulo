@@ -25,7 +25,7 @@ import org.apache.accumulo.start.spi.KeywordExecutable;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class ConfigSanityCheck implements KeywordExecutable {
+public class CheckServerConfig implements KeywordExecutable {
 
   public static void main(String[] args) {
     try (var context = new ServerContext(SiteConfiguration.auto())) {

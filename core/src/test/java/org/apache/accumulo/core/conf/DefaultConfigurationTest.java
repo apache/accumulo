@@ -52,6 +52,6 @@ public class DefaultConfigurationTest {
 
   @Test
   public void testSanityCheck() {
-    ConfigSanityCheck.validate(c);
+    ConfigCheckUtil.validate(c);
   }
 }
