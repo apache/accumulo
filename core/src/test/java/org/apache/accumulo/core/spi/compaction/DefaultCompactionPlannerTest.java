@@ -234,6 +234,168 @@ public class DefaultCompactionPlannerTest {
     assertEquals(CompactionExecutorIdImpl.externalId("large"), job.getExecutor());
   }
 
+  /**
+   * Tests internal type executor with no numThreads set throws error
+   */
+  @Test
+  public void testErrorInternalTypeNoNumThreads() {
+    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    Configuration conf = EasyMock.createMock(Configuration.class);
+    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+
+    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
+    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
+    EasyMock.replay(conf, senv);
+
+    try {
+      String executors = getExecutors("'type': 'internal','maxSize':'32M'",
+          "'type': 'internal','maxSize':'128M','numThreads':2",
+          "'type': 'internal','maxSize':'512M','numThreads':3");
+      planner.init(getInitParams(senv, executors));
+      fail("Failed to throw error");
+    } catch (NullPointerException e) {
+      assertTrue("Error message didn't contain numThreads", e.getMessage().contains("numThreads"));
+    }
+  }
+
+  /**
+   * Test external type executor with numThreads set throws error.
+   */
+  @Test
+  public void testErrorExternalTypeNumThreads() {
+    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    Configuration conf = EasyMock.createMock(Configuration.class);
+    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+
+    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
+    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
+    EasyMock.replay(conf, senv);
+
+    try {
+      String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
+          "'type': 'internal','maxSize':'128M','numThreads':2",
+          "'type': 'external','maxSize':'512M','numThreads':3");
+      planner.init(getInitParams(senv, executors));
+      fail("Failed to throw error");
+    } catch (IllegalArgumentException e) {
+      assertTrue("Error message didn't contain numThreads", e.getMessage().contains("numThreads"));
+    }
+  }
+
+  /**
+   * Tests external type executor missing queue throws error
+   */
+  @Test
+  public void testErrorExternalNoQueue() {
+    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    Configuration conf = EasyMock.createMock(Configuration.class);
+    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+
+    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
+    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
+    EasyMock.replay(conf, senv);
+
+    try {
+      String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
+          "'type': 'internal','maxSize':'128M','numThreads':2",
+          "'type': 'external','maxSize':'512M'");
+      planner.init(getInitParams(senv, executors));
+      fail("Failed to throw error");
+    } catch (NullPointerException e) {
+      assertTrue("Error message didn't contain queue", e.getMessage().contains("queue"));
+    }
+  }
+
+  /**
+   * Tests executors can only have one without a max size.
+   */
+  @Test
+  public void testErrorOnlyOneMaxSize() {
+    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    Configuration conf = EasyMock.createMock(Configuration.class);
+    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+
+    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
+    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
+    EasyMock.replay(conf, senv);
+
+    try {
+      String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
+          "'type': 'internal','numThreads':2", "'type': 'external','queue':'q1'");
+      planner.init(getInitParams(senv, executors));
+      fail("Failed to throw error");
+    } catch (IllegalArgumentException e) {
+      assertTrue("Error message didn't contain maxSize", e.getMessage().contains("maxSize"));
+    }
+  }
+
+  /**
+   * Tests executors can only have one without a max size.
+   */
+  @Test
+  public void testErrorDuplicateMaxSize() {
+    DefaultCompactionPlanner planner = new DefaultCompactionPlanner();
+    Configuration conf = EasyMock.createMock(Configuration.class);
+    EasyMock.expect(conf.isSet(EasyMock.anyString())).andReturn(false).anyTimes();
+
+    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
+    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
+    EasyMock.replay(conf, senv);
+
+    try {
+      String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
+          "'type': 'internal','maxSize':'128M','numThreads':2",
+          "'type': 'external','maxSize':'128M','queue':'q1'");
+      planner.init(getInitParams(senv, executors));
+      fail("Failed to throw error");
+    } catch (IllegalArgumentException e) {
+      assertTrue("Error message didn't contain maxSize", e.getMessage().contains("maxSize"));
+    }
+  }
+
+  private CompactionPlanner.InitParameters getInitParams(ServiceEnvironment senv,
+      String executors) {
+    return new CompactionPlanner.InitParameters() {
+
+      @Override
+      public ServiceEnvironment getServiceEnvironment() {
+        return senv;
+      }
+
+      @Override
+      public Map<String,String> getOptions() {
+        return Map.of("executors", executors, "maxOpen", "15");
+      }
+
+      @Override
+      public String getFullyQualifiedOption(String key) {
+        assertEquals("maxOpen", key);
+        return Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts." + key;
+      }
+
+      @Override
+      public ExecutorManager getExecutorManager() {
+        return new ExecutorManager() {
+          @Override
+          public CompactionExecutorId createExecutor(String name, int threads) {
+            return CompactionExecutorIdImpl.externalId(name);
+          }
+
+          @Override
+          public CompactionExecutorId getExternalExecutor(String name) {
+            return CompactionExecutorIdImpl.externalId(name);
+          }
+        };
+      }
+    };
+  }
+
+  private String getExecutors(String small, String medium, String large) {
+    String execBldr = "[{'name':'small'," + small + "}," + "{'name':'medium'," + medium + "},"
+        + "{'name':'large'," + large + "}]";
+    return execBldr.replaceAll("'", "\"");
+  }
+
   private CompactionJob createJob(CompactionKind kind, Set<CompactableFile> all,
       Set<CompactableFile> files) {
     return new CompactionPlanImpl.BuilderImpl(kind, all, all)
