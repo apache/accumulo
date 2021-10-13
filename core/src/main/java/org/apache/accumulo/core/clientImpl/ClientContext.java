@@ -921,7 +921,7 @@ public class ClientContext implements AccumuloClient {
   }
 
   public synchronized ThriftTransportPool getTransportPool() {
-   ensureOpen();
+    ensureOpen();
     if (thriftTransportPool == null) {
       thriftTransportPool = new ThriftTransportPool();
       thriftTransportPool.startCheckerThread();
