@@ -206,7 +206,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
   private final Map<String,String> config;
 
   private SiteConfiguration(Map<String,String> config) {
-    ConfigSanityCheck.validate(config.entrySet());
+    ConfigCheckUtil.validate(config.entrySet());
     this.config = config;
   }
 

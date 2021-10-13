@@ -66,7 +66,7 @@ public class ServerConfigurationFactoryTest {
 
     expect(zc.getChildren(anyObject(String.class))).andReturn(null);
     expectLastCall().anyTimes();
-    // ConfigSanityCheck looks at timeout
+    // CheckServerConfig looks at timeout
     expect(zc.get(endsWith("timeout"))).andReturn(("" + ZK_TIMEOUT + "ms").getBytes(UTF_8));
     replay(zc);
   }
