@@ -30,13 +30,13 @@ public interface TableStatistics extends Comparable<TableStatistics> {
 
   int getOnlineTabletCount();
 
-  double getIngestCount();
+  double getIngestRate();
 
-  double getIngestBytes();
+  double getIngestByteRate();
 
-  double getQueryCount();
+  double getQueryRate();
 
-  double getQueryBytes();
+  double getQueryByteRate();
 
-  double getScanCount();
+  double getScanRate();
 }

@@ -120,8 +120,8 @@ public class TabletServerInformation {
     this.lastContact = now - thriftStatus.lastContact;
     this.responseTime = thriftStatus.responseTime;
     this.entries = summary.recs;
-    this.ingest = cleanNumber(summary.ingest);
-    this.query = cleanNumber(summary.query);
+    this.ingest = cleanNumber(summary.ingestRate);
+    this.query = cleanNumber(summary.queryRate);
 
     this.holdtime = thriftStatus.holdTime;
 
@@ -159,8 +159,8 @@ public class TabletServerInformation {
     this.indexCacheHitRate = this.indexCacheHits / (double) Math.max(this.indexCacheRequests, 1);
     this.dataCacheHitRate = this.dataCacheHits / (double) Math.max(this.dataCacheRequests, 1);
 
-    this.ingestMB = cleanNumber(summary.ingestBytes);
-    this.queryMB = cleanNumber(summary.queryBytes);
+    this.ingestMB = cleanNumber(summary.ingestByteRate);
+    this.queryMB = cleanNumber(summary.queryByteRate);
 
     this.scansessions = monitor.getLookupRate();
     this.scanssessions = this.scansessions; // For backwards compatibility

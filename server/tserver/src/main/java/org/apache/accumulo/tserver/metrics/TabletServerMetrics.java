@@ -69,15 +69,17 @@ public class TabletServerMetrics implements MetricsProducer {
         .description("Number of files per tablet").register(registry);
     Gauge.builder(METRICS_TSERVER_HOLD, util, TabletServerMetricsUtil::getHoldTime)
         .description("Time commits held").register(registry);
-    Gauge.builder(METRICS_TSERVER_INGEST_MUTATIONS, util, TabletServerMetricsUtil::getIngestCount)
-        .description("Ingest entries").register(registry);
-    Gauge.builder(METRICS_TSERVER_INGEST_BYTES, util, TabletServerMetricsUtil::getIngestBytes)
-        .description("Ingest bytes").register(registry);
-    Gauge.builder(METRICS_TSERVER_SCAN_RESULTS, util, TabletServerMetricsUtil::getQueryCount)
-        .description("Query count").register(registry);
-    Gauge.builder(METRICS_TSERVER_SCAN_RESULTS_BYTES, util, TabletServerMetricsUtil::getQueryBytes)
-        .description("Query bytes").register(registry);
-    Gauge.builder(METRICS_TSERVER_SCANNED_ENTRIES, util, TabletServerMetricsUtil::getScannedCount)
-        .description("Scanned key count").register(registry);
+    Gauge.builder(METRICS_TSERVER_INGEST_MUTATIONS, util, TabletServerMetricsUtil::getIngest)
+        .description("Ingest rate (entries/sec)").register(registry);
+    Gauge.builder(METRICS_TSERVER_INGEST_BYTES, util, TabletServerMetricsUtil::getIngestByteRate)
+        .description("Ingest rate (bytes/sec)").register(registry);
+    Gauge.builder(METRICS_TSERVER_SCAN_RESULTS, util, TabletServerMetricsUtil::getQueryRate)
+        .description("Query rate (entries/sec)").register(registry);
+    Gauge
+        .builder(METRICS_TSERVER_SCAN_RESULTS_BYTES, util,
+            TabletServerMetricsUtil::getQueryByteRate)
+        .description("Query rate (bytes/sec)").register(registry);
+    Gauge.builder(METRICS_TSERVER_SCANNED_ENTRIES, util, TabletServerMetricsUtil::getScannedRate)
+        .description("Scanned rate").register(registry);
   }
 }

@@ -208,9 +208,16 @@ public class Tablet {
 
   private final TabletStatsKeeper timer = new TabletStatsKeeper();
 
+  private final Rate queryRate = new Rate(0.95);
   private long queryCount = 0;
+
+  private final Rate queryByteRate = new Rate(0.95);
   private long queryBytes = 0;
+
+  private final Rate ingestRate = new Rate(0.95);
   private long ingestCount = 0;
+
+  private final Rate ingestByteRate = new Rate(0.95);
   private long ingestBytes = 0;
 
   private final Deriver<byte[]> defaultSecurityLabel;
@@ -221,6 +228,7 @@ public class Tablet {
   private volatile long numEntries = 0;
   private volatile long numEntriesInMemory = 0;
 
+  private final Rate scannedRate = new Rate(0.95);
   private final AtomicLong scannedCount = new AtomicLong(0);
 
   // Files that are currently in the process of bulk importing. Access to this is protected by the
@@ -1746,20 +1754,41 @@ public class Tablet {
     return getDatafileManager().getDatafileSizes();
   }
 
-  public long totalQueries() {
-    return this.queryCount;
+  public double queryRate() {
+    return queryRate.rate();
   }
 
-  public long totalQueryBytes() {
-    return this.queryBytes;
+  public double queryByteRate() {
+    return queryByteRate.rate();
+  }
+
+  public double ingestRate() {
+    return ingestRate.rate();
+  }
+
+  public double ingestByteRate() {
+    return ingestByteRate.rate();
+  }
+
+  public double scanRate() {
+    return scannedRate.rate();
+  }
+
+  public long totalQueries() {
+    return this.queryCount;
   }
 
   public long totalIngest() {
     return this.ingestCount;
   }
 
-  public long totalIngestBytes() {
-    return this.ingestBytes;
+  // synchronized?
+  public void updateRates(long now) {
+    queryRate.update(now, queryCount);
+    queryByteRate.update(now, queryBytes);
+    ingestRate.update(now, ingestCount);
+    ingestByteRate.update(now, ingestBytes);
+    scannedRate.update(now, scannedCount.get());
   }
 
   public long getSplitCreationTime() {
@@ -2222,7 +2251,7 @@ public class Tablet {
     return timer.getTabletStats();
   }
 
-  public AtomicLong getScannedCount() {
+  public AtomicLong getScannedCounter() {
     return scannedCount;
   }
 

@@ -178,7 +178,8 @@ class ScanDataSource implements DataSource {
             tablet.getTableConfiguration(), tablet.getExtent().tableId(), fileManager, files,
             scanParams.getAuthorizations(), samplerConfig, new ArrayList<>());
 
-    statsIterator = new StatsIterator(multiIter, TabletServer.seekCount, tablet.getScannedCount());
+    statsIterator =
+        new StatsIterator(multiIter, TabletServer.seekCount, tablet.getScannedCounter());
 
     SortedKeyValueIterator<Key,Value> visFilter =
         SystemIteratorUtil.setupSystemScanIterators(statsIterator, scanParams.getColumnSet(),

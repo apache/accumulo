@@ -320,7 +320,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
     double busiest = Double.NEGATIVE_INFINITY;
     for (Entry<String,TableInfo> entry : tables.entrySet()) {
       TableInfo info = entry.getValue();
-      double busy = info.ingest + info.query;
+      double busy = info.ingestRate + info.queryRate;
       if (busy > busiest) {
         busiest = busy;
         result = TableId.of(entry.getKey());

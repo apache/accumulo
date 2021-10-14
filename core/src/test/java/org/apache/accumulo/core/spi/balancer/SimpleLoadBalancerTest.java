@@ -66,8 +66,8 @@ public class SimpleLoadBalancerTest {
           result.tableMap.put(tabletId.getTable().canonical(), info = new TableInfo());
         info.onlineTablets++;
         info.recs = info.onlineTablets;
-        info.ingest = 123.;
-        info.query = 456.;
+        info.ingestRate = 123.;
+        info.queryRate = 456.;
       }
       return new TServerStatusImpl(result);
     }

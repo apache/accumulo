@@ -46,9 +46,9 @@ public class TableInformation {
   public long recsInMemory;
 
   public double ingestRate;
-  public double ingestBytes;
+  public double ingestByteRate;
   public double query;
-  public double queryBytes;
+  public double queryByteRate;
 
   public CompactionsList majorCompactions;
   // running compactions with queued in parenthesis
@@ -96,9 +96,9 @@ public class TableInformation {
     this.recs = 0;
     this.recsInMemory = 0;
     this.ingestRate = 0;
-    this.ingestBytes = 0;
+    this.ingestByteRate = 0;
     this.query = 0;
-    this.queryBytes = 0;
+    this.queryByteRate = 0;
     this.entriesRead = 0;
     this.entriesReturned = 0;
     this.holdTime = 0.0;
@@ -136,14 +136,14 @@ public class TableInformation {
     this.recs = info.recs;
     this.recsInMemory = info.recsInMemory;
 
-    this.ingestRate = cleanNumber(info.getIngest());
-    this.ingestBytes = cleanNumber(info.getIngestBytes());
+    this.ingestRate = cleanNumber(info.getIngestRate());
+    this.ingestByteRate = cleanNumber(info.getIngestByteRate());
 
-    this.query = cleanNumber(info.getQuery());
-    this.queryBytes = cleanNumber(info.getQueryBytes());
+    this.query = cleanNumber(info.getQueryRate());
+    this.queryByteRate = cleanNumber(info.getQueryByteRate());
 
-    this.entriesRead = cleanNumber(info.scan);
-    this.entriesReturned = cleanNumber(info.query);
+    this.entriesRead = cleanNumber(info.scanRate);
+    this.entriesReturned = cleanNumber(info.queryRate);
 
     this.holdTime = holdTime;
 
