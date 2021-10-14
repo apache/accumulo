@@ -251,7 +251,7 @@ public class DefaultCompactionPlannerTest {
     String executors = getExecutors("'type': 'internal','maxSize':'32M'",
         "'type': 'internal','maxSize':'128M','numThreads':2",
         "'type': 'internal','maxSize':'512M','numThreads':3");
-    var e = assertThrows("Failed to throw error", IllegalArgumentException.class,
+    var e = assertThrows("Failed to throw error", NullPointerException.class,
         () -> planner.init(getInitParams(senv, executors)));
     assertTrue("Error message didn't contain numThreads", e.getMessage().contains("numThreads"));
   }
