@@ -791,6 +791,27 @@ public class TabletServer extends AbstractServer {
       }
     }, 0, 5000, TimeUnit.MILLISECONDS);
 
+    ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
+      final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
+      final SortedMap<KeyExtent,Pair<Long,TabletMetadata>> tabletValidationInfo = new TreeMap<>();
+
+      // gather update counters and metadata for all tablets
+      for (var entry : onlineTabletsSnapshot.entrySet()) {
+        KeyExtent keyExtent = entry.getKey();
+        Long counter = entry.getValue().getUpdateCounter();
+        TabletMetadata tm = getContext().getAmple().readTablet(keyExtent,
+            TabletMetadata.ColumnType.FILES, TabletMetadata.ColumnType.LOGS,
+            TabletMetadata.ColumnType.ECOMP, TabletMetadata.ColumnType.PREV_ROW);
+        tabletValidationInfo.put(keyExtent, new Pair<>(counter, tm));
+      }
+
+      // compare gathered info
+      for (var entry : tabletValidationInfo.entrySet()) {
+        Tablet tablet = onlineTabletsSnapshot.get(entry.getKey());
+        tablet.compareTabletInfo(entry.getValue());
+      }
+    }, 1, 1, TimeUnit.MINUTES);
+
     final long CLEANUP_BULK_LOADED_CACHE_MILLIS = 15 * 60 * 1000;
     context.getScheduledExecutor().scheduleWithFixedDelay(new BulkImportCacheCleaner(this),
         CLEANUP_BULK_LOADED_CACHE_MILLIS, CLEANUP_BULK_LOADED_CACHE_MILLIS, TimeUnit.MILLISECONDS);

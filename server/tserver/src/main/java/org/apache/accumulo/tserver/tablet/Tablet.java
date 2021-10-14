@@ -81,6 +81,7 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
@@ -156,6 +157,9 @@ public class Tablet {
   private final DatafileManager datafileManager;
   private final TableConfiguration tableConfiguration;
   private final String dirName;
+
+  // when should this be updated?
+  private final AtomicLong updateCounter = new AtomicLong(0L);
 
   private final TabletMemory tabletMemory;
 
@@ -874,6 +878,7 @@ public class Tablet {
         } else {
           initiateMinor = true;
         }
+        updateCounter.getAndIncrement();
       }
 
       if (updateMetadata) {
@@ -1380,12 +1385,7 @@ public class Tablet {
         throw new RuntimeException(msg);
       }
 
-      if (!tabletMeta.getFilesMap().equals(getDatafileManager().getDatafileSizes())) {
-        String msg = "Data files in differ from in memory data " + extent + "  "
-            + tabletMeta.getFilesMap() + "  " + getDatafileManager().getDatafileSizes();
-        log.error(msg);
-        throw new RuntimeException(msg);
-      }
+      compareToDataInMemory(tabletMeta);
     } catch (Exception e) {
       String msg = "Failed to do close consistency check for tablet " + extent;
       log.error(msg, e);
@@ -1401,6 +1401,23 @@ public class Tablet {
     }
 
     // TODO check lastFlushID and lostCompactID - ACCUMULO-1290
+  }
+
+  private void compareToDataInMemory(TabletMetadata tabletMeta) {
+    if (!tabletMeta.getFilesMap().equals(getDatafileManager().getDatafileSizes())) {
+      String msg = "Data files in differ from in memory data " + extent + "  "
+          + tabletMeta.getFilesMap() + "  " + getDatafileManager().getDatafileSizes();
+      log.error(msg);
+      throw new RuntimeException(msg);
+    }
+  }
+
+  public void compareTabletInfo(Pair<Long,TabletMetadata> tabletInfo) {
+    // if the counter didn't change, compare metadata to what is in memory
+    if (tabletInfo.getFirst() == getUpdateCounter()) {
+      this.compareToDataInMemory(tabletInfo.getSecond());
+    }
+    // if counter did change, don't compare metadata and try again later
   }
 
   /**
@@ -2274,6 +2291,10 @@ public class Tablet {
 
   public String getDirName() {
     return dirName;
+  }
+
+  public long getUpdateCounter() {
+    return updateCounter.get();
   }
 
   public Compactable asCompactable() {
