@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.spi.compaction;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -247,15 +248,12 @@ public class DefaultCompactionPlannerTest {
     EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
     EasyMock.replay(conf, senv);
 
-    try {
-      String executors = getExecutors("'type': 'internal','maxSize':'32M'",
-          "'type': 'internal','maxSize':'128M','numThreads':2",
-          "'type': 'internal','maxSize':'512M','numThreads':3");
-      planner.init(getInitParams(senv, executors));
-      fail("Failed to throw error");
-    } catch (NullPointerException e) {
-      assertTrue("Error message didn't contain numThreads", e.getMessage().contains("numThreads"));
-    }
+    String executors = getExecutors("'type': 'internal','maxSize':'32M'",
+        "'type': 'internal','maxSize':'128M','numThreads':2",
+        "'type': 'internal','maxSize':'512M','numThreads':3");
+    var e = assertThrows("Failed to throw error", IllegalArgumentException.class,
+        () -> planner.init(getInitParams(senv, executors)));
+    assertTrue("Error message didn't contain numThreads", e.getMessage().contains("numThreads"));
   }
 
   /**
@@ -271,15 +269,12 @@ public class DefaultCompactionPlannerTest {
     EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
     EasyMock.replay(conf, senv);
 
-    try {
-      String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
-          "'type': 'internal','maxSize':'128M','numThreads':2",
-          "'type': 'external','maxSize':'512M','numThreads':3");
-      planner.init(getInitParams(senv, executors));
-      fail("Failed to throw error");
-    } catch (IllegalArgumentException e) {
-      assertTrue("Error message didn't contain numThreads", e.getMessage().contains("numThreads"));
-    }
+    String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
+        "'type': 'internal','maxSize':'128M','numThreads':2",
+        "'type': 'external','maxSize':'512M','numThreads':3");
+    var e = assertThrows("Failed to throw error", IllegalArgumentException.class,
+        () -> planner.init(getInitParams(senv, executors)));
+    assertTrue("Error message didn't contain numThreads", e.getMessage().contains("numThreads"));
   }
 
   /**
@@ -295,15 +290,12 @@ public class DefaultCompactionPlannerTest {
     EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
     EasyMock.replay(conf, senv);
 
-    try {
-      String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
-          "'type': 'internal','maxSize':'128M','numThreads':2",
-          "'type': 'external','maxSize':'512M'");
-      planner.init(getInitParams(senv, executors));
-      fail("Failed to throw error");
-    } catch (NullPointerException e) {
-      assertTrue("Error message didn't contain queue", e.getMessage().contains("queue"));
-    }
+    String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
+        "'type': 'internal','maxSize':'128M','numThreads':2",
+        "'type': 'external','maxSize':'512M'");
+    var e = assertThrows("Failed to throw error", NullPointerException.class,
+        () -> planner.init(getInitParams(senv, executors)));
+    assertTrue("Error message didn't contain queue", e.getMessage().contains("queue"));
   }
 
   /**
@@ -319,14 +311,11 @@ public class DefaultCompactionPlannerTest {
     EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
     EasyMock.replay(conf, senv);
 
-    try {
-      String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
-          "'type': 'internal','numThreads':2", "'type': 'external','queue':'q1'");
-      planner.init(getInitParams(senv, executors));
-      fail("Failed to throw error");
-    } catch (IllegalArgumentException e) {
-      assertTrue("Error message didn't contain maxSize", e.getMessage().contains("maxSize"));
-    }
+    String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
+        "'type': 'internal','numThreads':2", "'type': 'external','queue':'q1'");
+    var e = assertThrows("Failed to throw error", IllegalArgumentException.class,
+        () -> planner.init(getInitParams(senv, executors)));
+    assertTrue("Error message didn't contain maxSize", e.getMessage().contains("maxSize"));
   }
 
   /**
@@ -342,15 +331,12 @@ public class DefaultCompactionPlannerTest {
     EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
     EasyMock.replay(conf, senv);
 
-    try {
-      String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
-          "'type': 'internal','maxSize':'128M','numThreads':2",
-          "'type': 'external','maxSize':'128M','queue':'q1'");
-      planner.init(getInitParams(senv, executors));
-      fail("Failed to throw error");
-    } catch (IllegalArgumentException e) {
-      assertTrue("Error message didn't contain maxSize", e.getMessage().contains("maxSize"));
-    }
+    String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
+        "'type': 'internal','maxSize':'128M','numThreads':2",
+        "'type': 'external','maxSize':'128M','queue':'q1'");
+    var e = assertThrows("Failed to throw error", IllegalArgumentException.class,
+        () -> planner.init(getInitParams(senv, executors)));
+    assertTrue("Error message didn't contain maxSize", e.getMessage().contains("maxSize"));
   }
 
   private CompactionPlanner.InitParameters getInitParams(ServiceEnvironment senv,
