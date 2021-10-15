@@ -473,12 +473,12 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
    *           when unable to get client
    */
   protected CompactionCoordinatorService.Client getCoordinatorClient() throws TTransportException {
-    HostAndPort coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(getContext());
-    if (null == coordinatorHost) {
+    var coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(getContext());
+    if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
-    LOG.trace("CompactionCoordinator address is: {}", coordinatorHost);
-    return ThriftUtil.getClient(COORDINATOR_CLIENT_FACTORY, coordinatorHost, getContext());
+    LOG.trace("CompactionCoordinator address is: {}", coordinatorHost.get());
+    return ThriftUtil.getClient(COORDINATOR_CLIENT_FACTORY, coordinatorHost.get(), getContext());
   }
 
   /**

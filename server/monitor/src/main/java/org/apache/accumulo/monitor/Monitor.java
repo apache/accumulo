@@ -34,6 +34,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -55,6 +56,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
+import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
@@ -62,12 +64,14 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.monitor.rest.compactions.external.ExternalCompactionInfo;
 import org.apache.accumulo.monitor.util.logging.RecentLogs;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
@@ -163,6 +167,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private Map<TableId,Map<ProblemType,Integer>> problemSummary = Collections.emptyMap();
   private Exception problemException;
   private GCStatus gcStatus;
+  private Optional<HostAndPort> coordinatorHost = Optional.empty();
+  private final ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
 
   private EmbeddedWebServer server;
 
@@ -363,6 +369,12 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         log.info("Failed to obtain problem reports ", e);
         this.problemSummary = Collections.emptyMap();
         this.problemException = e;
+      }
+
+      if (coordinatorHost.isEmpty()) {
+        coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
+      } else {
+        log.info("External Compaction Coordinator found at {}", coordinatorHost.get());
       }
 
     } finally {
@@ -566,6 +578,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final RecentLogs recentLogs = new RecentLogs();
   private long scansFetchedNanos = 0L;
   private long compactsFetchedNanos = 0L;
+  private long ecInfoFetchedNanos = 0L;
   private final long fetchTimeNanos = TimeUnit.MINUTES.toNanos(1);
   private final long ageOffEntriesMillis = TimeUnit.MINUTES.toMillis(15);
 
@@ -589,6 +602,15 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       fetchCompactions();
     }
     return Map.copyOf(allCompactions);
+  }
+
+  public synchronized ExternalCompactionInfo getEcInfo() {
+    // TODO add back when done testing
+    // if (System.nanoTime() - ecInfoFetchedNanos > fetchTimeNanos) {
+    log.info("User initiated fetch of External Compactions");
+    fetchExternalCompactionInfo();
+    // }
+    return ecInfo;
   }
 
   private void fetchScans() {
@@ -645,6 +667,24 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         entryIter.remove();
       }
     }
+  }
+
+  private void fetchExternalCompactionInfo() {
+    /*
+     * if (coordinatorHost.isEmpty()) { throw new
+     * IllegalStateException("Compaction Coordinator not found."); }
+     */
+    var compactors = ExternalCompactionUtil.getCompactorAddrs(getContext());
+    log.info("Got compactors: " + compactors);
+    ecInfo.setCompactors(compactors);
+    ecInfo.setCoordinatorHost(coordinatorHost);
+    Map<HostAndPort,TExternalCompactionJob> compactorsToJobsMap = new HashMap<>();
+    compactors.forEach(hostAndPort -> {
+      var running = ExternalCompactionUtil.getRunningCompaction(hostAndPort, getContext());
+      compactorsToJobsMap.put(hostAndPort, running);
+    });
+    ecInfo.setCompactorsToJobsMap(compactorsToJobsMap);
+    ecInfoFetchedNanos = System.nanoTime();
   }
 
   /**

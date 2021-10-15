@@ -210,6 +210,28 @@ public class WebViews {
   }
 
   /**
+   * Returns the compactions template
+   *
+   * @return Scans model
+   */
+  @GET
+  @Path("ec")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getExternalCompactions() {
+    // TODO remove if not needed here
+    var ecInfo = monitor.getEcInfo();
+    var ccHost = ecInfo.getCoordinatorHost();
+
+    Map<String,Object> model = getModel();
+    model.put("title", "External Compactions");
+    model.put("template", "ec.ftl");
+    model.put("js", "ec.js");
+    model.put("coordinatorHost", ccHost.toString());
+
+    return model;
+  }
+
+  /**
    * Returns the bulk import template
    *
    * @return Bulk Import model
