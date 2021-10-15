@@ -28,12 +28,14 @@ public class RunningCompaction {
 
   private final TExternalCompactionJob job;
   private final String compactorAddress;
+  private final String queueName;
   private final Map<Long,TCompactionStatusUpdate> updates = new TreeMap<>();
 
-  RunningCompaction(TExternalCompactionJob job, String compactorAddress) {
+  RunningCompaction(TExternalCompactionJob job, String compactorAddress, String queueName) {
     super();
     this.job = job;
     this.compactorAddress = compactorAddress;
+    this.queueName = queueName;
   }
 
   public Map<Long,TCompactionStatusUpdate> getUpdates() {
@@ -50,6 +52,10 @@ public class RunningCompaction {
 
   public String getCompactorAddress() {
     return compactorAddress;
+  }
+
+  public String getQueueName() {
+    return queueName;
   }
 
 }

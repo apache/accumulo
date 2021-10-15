@@ -50,6 +50,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil.QueueAndHostAndPort;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
@@ -189,7 +190,7 @@ public class CompactionCoordinatorTest {
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
 
     PowerMock.mockStatic(ExternalCompactionUtil.class);
-    Map<HostAndPort,TExternalCompactionJob> runningCompactions = new HashMap<>();
+    Map<QueueAndHostAndPort,TExternalCompactionJob> runningCompactions = new HashMap<>();
     EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
 
@@ -242,7 +243,7 @@ public class CompactionCoordinatorTest {
     EasyMock.expect(context.rpcCreds()).andReturn(creds);
 
     PowerMock.mockStatic(ExternalCompactionUtil.class);
-    Map<HostAndPort,TExternalCompactionJob> runningCompactions = new HashMap<>();
+    Map<QueueAndHostAndPort,TExternalCompactionJob> runningCompactions = new HashMap<>();
     EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
 
@@ -321,7 +322,7 @@ public class CompactionCoordinatorTest {
     tservers.startListeningForTabletServerChanges();
 
     PowerMock.mockStatic(ExternalCompactionUtil.class);
-    Map<HostAndPort,TExternalCompactionJob> runningCompactions = new HashMap<>();
+    Map<QueueAndHostAndPort,TExternalCompactionJob> runningCompactions = new HashMap<>();
     EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
 
@@ -395,13 +396,13 @@ public class CompactionCoordinatorTest {
     tservers.startListeningForTabletServerChanges();
 
     PowerMock.mockStatic(ExternalCompactionUtil.class);
-    Map<HostAndPort,TExternalCompactionJob> runningCompactions = new HashMap<>();
+    Map<QueueAndHostAndPort,TExternalCompactionJob> runningCompactions = new HashMap<>();
     ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
     TExternalCompactionJob job = PowerMock.createNiceMock(TExternalCompactionJob.class);
     EasyMock.expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
     TKeyExtent extent = new TKeyExtent();
     extent.setTable("1".getBytes());
-    runningCompactions.put(tserverAddress, job);
+    runningCompactions.put(new QueueAndHostAndPort("queue", tserverAddress), job);
     EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
 
@@ -468,7 +469,7 @@ public class CompactionCoordinatorTest {
     EasyMock.expect(context.rpcCreds()).andReturn(creds).anyTimes();
 
     PowerMock.mockStatic(ExternalCompactionUtil.class);
-    Map<HostAndPort,TExternalCompactionJob> runningCompactions = new HashMap<>();
+    Map<QueueAndHostAndPort,TExternalCompactionJob> runningCompactions = new HashMap<>();
     EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
 

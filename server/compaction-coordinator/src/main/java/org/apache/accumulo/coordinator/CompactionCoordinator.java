@@ -59,6 +59,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil.QueueAndHostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
@@ -251,15 +252,15 @@ public class CompactionCoordinator extends AbstractServer
     // the external compaction came from to re-populate the RUNNING collection.
     LOG.info("Checking for running external compactions");
     // On re-start contact the running Compactors to try and seed the list of running compactions
-    Map<HostAndPort,TExternalCompactionJob> running =
+    Map<QueueAndHostAndPort,TExternalCompactionJob> running =
         ExternalCompactionUtil.getCompactionsRunningOnCompactors(getContext());
     if (running.isEmpty()) {
       LOG.info("No running external compactions found");
     } else {
       LOG.info("Found {} running external compactions", running.size());
-      running.forEach((hp, job) -> {
-        RUNNING.put(ExternalCompactionId.of(job.getExternalCompactionId()),
-            new RunningCompaction(job, ExternalCompactionUtil.getHostPortString(hp)));
+      running.forEach((qhp, job) -> {
+        RUNNING.put(ExternalCompactionId.of(job.getExternalCompactionId()), new RunningCompaction(
+            job, ExternalCompactionUtil.getHostPortString(qhp.getSecond()), qhp.getFirst()));
       });
     }
 
@@ -407,7 +408,7 @@ public class CompactionCoordinator extends AbstractServer
 
     TExternalCompactionJob result = null;
 
-    PrioTserver prioTserver = QUEUE_SUMMARIES.getNextTserver(queueName);
+    PrioTserver prioTserver = QUEUE_SUMMARIES.getNextTserver(queue);
 
     while (prioTserver != null) {
       TServerInstance tserver = prioTserver.tserver;
@@ -424,20 +425,20 @@ public class CompactionCoordinator extends AbstractServer
           LOG.trace("No compactions found for queue {} on tserver {}, trying next tserver", queue,
               tserver.getHostAndPort(), compactorAddress);
 
-          QUEUE_SUMMARIES.removeSummary(tserver, queueName, prioTserver.prio);
-          prioTserver = QUEUE_SUMMARIES.getNextTserver(queueName);
+          QUEUE_SUMMARIES.removeSummary(tserver, queue, prioTserver.prio);
+          prioTserver = QUEUE_SUMMARIES.getNextTserver(queue);
           continue;
         }
         RUNNING.put(ExternalCompactionId.of(job.getExternalCompactionId()),
-            new RunningCompaction(job, compactorAddress));
+            new RunningCompaction(job, compactorAddress, queue));
         LOG.debug("Returning external job {} to {}", job.externalCompactionId, compactorAddress);
         result = job;
         break;
       } catch (TException e) {
         LOG.warn("Error from tserver {} while trying to reserve compaction, trying next tserver",
             ExternalCompactionUtil.getHostPortString(tserver.getHostAndPort()), e);
-        QUEUE_SUMMARIES.removeSummary(tserver, queueName, prioTserver.prio);
-        prioTserver = QUEUE_SUMMARIES.getNextTserver(queueName);
+        QUEUE_SUMMARIES.removeSummary(tserver, queue, prioTserver.prio);
+        prioTserver = QUEUE_SUMMARIES.getNextTserver(queue);
       } finally {
         ThriftUtil.returnClient(client);
       }
@@ -550,10 +551,8 @@ public class CompactionCoordinator extends AbstractServer
    *          tcredentials object
    * @param externalCompactionId
    *          compaction id
-   * @param state
-   *          compaction state
-   * @param message
-   *          informational message
+   * @param update
+   *          compaction status update
    * @param timestamp
    *          timestamp of the message
    * @throws ThriftSecurityException
@@ -599,6 +598,7 @@ public class CompactionCoordinator extends AbstractServer
     RUNNING.forEach((ecid, rc) -> {
       TRunningCompaction trc = new TRunningCompaction();
       trc.setExternalCompactionId(ecid.canonical());
+      trc.setQueueName(rc.getQueueName());
       trc.setExtent(rc.getJob().getExtent());
       trc.setFiles(rc.getJob().getFiles());
       trc.setOutputFile(rc.getJob().getOutputFile());

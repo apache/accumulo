@@ -50,11 +50,12 @@ struct TCompactionStatusUpdate {
 
 struct TRunningCompaction {
   1:string externalCompactionId
-  2:data.TKeyExtent extent
-  3:list<tabletserver.InputFile> files
-  4:string outputFile
-  5:string compactor
-  6:map<i64,TCompactionStatusUpdate> updates
+  2:string queueName
+  3:data.TKeyExtent extent
+  4:list<tabletserver.InputFile> files
+  5:string outputFile
+  6:string compactor
+  7:map<i64,TCompactionStatusUpdate> updates
 }
 
 struct TRunningCompactions {

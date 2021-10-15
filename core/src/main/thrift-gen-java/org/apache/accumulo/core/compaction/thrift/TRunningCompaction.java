@@ -29,16 +29,18 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TRunningCompaction");
 
   private static final org.apache.thrift.protocol.TField EXTERNAL_COMPACTION_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("externalCompactionId", org.apache.thrift.protocol.TType.STRING, (short)1);
-  private static final org.apache.thrift.protocol.TField EXTENT_FIELD_DESC = new org.apache.thrift.protocol.TField("extent", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-  private static final org.apache.thrift.protocol.TField FILES_FIELD_DESC = new org.apache.thrift.protocol.TField("files", org.apache.thrift.protocol.TType.LIST, (short)3);
-  private static final org.apache.thrift.protocol.TField OUTPUT_FILE_FIELD_DESC = new org.apache.thrift.protocol.TField("outputFile", org.apache.thrift.protocol.TType.STRING, (short)4);
-  private static final org.apache.thrift.protocol.TField COMPACTOR_FIELD_DESC = new org.apache.thrift.protocol.TField("compactor", org.apache.thrift.protocol.TType.STRING, (short)5);
-  private static final org.apache.thrift.protocol.TField UPDATES_FIELD_DESC = new org.apache.thrift.protocol.TField("updates", org.apache.thrift.protocol.TType.MAP, (short)6);
+  private static final org.apache.thrift.protocol.TField QUEUE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("queueName", org.apache.thrift.protocol.TType.STRING, (short)2);
+  private static final org.apache.thrift.protocol.TField EXTENT_FIELD_DESC = new org.apache.thrift.protocol.TField("extent", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+  private static final org.apache.thrift.protocol.TField FILES_FIELD_DESC = new org.apache.thrift.protocol.TField("files", org.apache.thrift.protocol.TType.LIST, (short)4);
+  private static final org.apache.thrift.protocol.TField OUTPUT_FILE_FIELD_DESC = new org.apache.thrift.protocol.TField("outputFile", org.apache.thrift.protocol.TType.STRING, (short)5);
+  private static final org.apache.thrift.protocol.TField COMPACTOR_FIELD_DESC = new org.apache.thrift.protocol.TField("compactor", org.apache.thrift.protocol.TType.STRING, (short)6);
+  private static final org.apache.thrift.protocol.TField UPDATES_FIELD_DESC = new org.apache.thrift.protocol.TField("updates", org.apache.thrift.protocol.TType.MAP, (short)7);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TRunningCompactionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TRunningCompactionTupleSchemeFactory();
 
   public @org.apache.thrift.annotation.Nullable java.lang.String externalCompactionId; // required
+  public @org.apache.thrift.annotation.Nullable java.lang.String queueName; // required
   public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
   public @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.tabletserver.thrift.InputFile> files; // required
   public @org.apache.thrift.annotation.Nullable java.lang.String outputFile; // required
@@ -48,11 +50,12 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     EXTERNAL_COMPACTION_ID((short)1, "externalCompactionId"),
-    EXTENT((short)2, "extent"),
-    FILES((short)3, "files"),
-    OUTPUT_FILE((short)4, "outputFile"),
-    COMPACTOR((short)5, "compactor"),
-    UPDATES((short)6, "updates");
+    QUEUE_NAME((short)2, "queueName"),
+    EXTENT((short)3, "extent"),
+    FILES((short)4, "files"),
+    OUTPUT_FILE((short)5, "outputFile"),
+    COMPACTOR((short)6, "compactor"),
+    UPDATES((short)7, "updates");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -70,15 +73,17 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
       switch(fieldId) {
         case 1: // EXTERNAL_COMPACTION_ID
           return EXTERNAL_COMPACTION_ID;
-        case 2: // EXTENT
+        case 2: // QUEUE_NAME
+          return QUEUE_NAME;
+        case 3: // EXTENT
           return EXTENT;
-        case 3: // FILES
+        case 4: // FILES
           return FILES;
-        case 4: // OUTPUT_FILE
+        case 5: // OUTPUT_FILE
           return OUTPUT_FILE;
-        case 5: // COMPACTOR
+        case 6: // COMPACTOR
           return COMPACTOR;
-        case 6: // UPDATES
+        case 7: // UPDATES
           return UPDATES;
         default:
           return null;
@@ -126,6 +131,8 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.EXTERNAL_COMPACTION_ID, new org.apache.thrift.meta_data.FieldMetaData("externalCompactionId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.QUEUE_NAME, new org.apache.thrift.meta_data.FieldMetaData("queueName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.EXTENT, new org.apache.thrift.meta_data.FieldMetaData("extent", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent.class)));
     tmpMap.put(_Fields.FILES, new org.apache.thrift.meta_data.FieldMetaData("files", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -148,6 +155,7 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
 
   public TRunningCompaction(
     java.lang.String externalCompactionId,
+    java.lang.String queueName,
     org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent,
     java.util.List<org.apache.accumulo.core.tabletserver.thrift.InputFile> files,
     java.lang.String outputFile,
@@ -156,6 +164,7 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
   {
     this();
     this.externalCompactionId = externalCompactionId;
+    this.queueName = queueName;
     this.extent = extent;
     this.files = files;
     this.outputFile = outputFile;
@@ -169,6 +178,9 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
   public TRunningCompaction(TRunningCompaction other) {
     if (other.isSetExternalCompactionId()) {
       this.externalCompactionId = other.externalCompactionId;
+    }
+    if (other.isSetQueueName()) {
+      this.queueName = other.queueName;
     }
     if (other.isSetExtent()) {
       this.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent(other.extent);
@@ -210,6 +222,7 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
   @Override
   public void clear() {
     this.externalCompactionId = null;
+    this.queueName = null;
     this.extent = null;
     this.files = null;
     this.outputFile = null;
@@ -239,6 +252,31 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
   public void setExternalCompactionIdIsSet(boolean value) {
     if (!value) {
       this.externalCompactionId = null;
+    }
+  }
+
+  @org.apache.thrift.annotation.Nullable
+  public java.lang.String getQueueName() {
+    return this.queueName;
+  }
+
+  public TRunningCompaction setQueueName(@org.apache.thrift.annotation.Nullable java.lang.String queueName) {
+    this.queueName = queueName;
+    return this;
+  }
+
+  public void unsetQueueName() {
+    this.queueName = null;
+  }
+
+  /** Returns true if field queueName is set (has been assigned a value) and false otherwise */
+  public boolean isSetQueueName() {
+    return this.queueName != null;
+  }
+
+  public void setQueueNameIsSet(boolean value) {
+    if (!value) {
+      this.queueName = null;
     }
   }
 
@@ -404,6 +442,14 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
       }
       break;
 
+    case QUEUE_NAME:
+      if (value == null) {
+        unsetQueueName();
+      } else {
+        setQueueName((java.lang.String)value);
+      }
+      break;
+
     case EXTENT:
       if (value == null) {
         unsetExtent();
@@ -453,6 +499,9 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
     case EXTERNAL_COMPACTION_ID:
       return getExternalCompactionId();
 
+    case QUEUE_NAME:
+      return getQueueName();
+
     case EXTENT:
       return getExtent();
 
@@ -481,6 +530,8 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
     switch (field) {
     case EXTERNAL_COMPACTION_ID:
       return isSetExternalCompactionId();
+    case QUEUE_NAME:
+      return isSetQueueName();
     case EXTENT:
       return isSetExtent();
     case FILES:
@@ -514,6 +565,15 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
       if (!(this_present_externalCompactionId && that_present_externalCompactionId))
         return false;
       if (!this.externalCompactionId.equals(that.externalCompactionId))
+        return false;
+    }
+
+    boolean this_present_queueName = true && this.isSetQueueName();
+    boolean that_present_queueName = true && that.isSetQueueName();
+    if (this_present_queueName || that_present_queueName) {
+      if (!(this_present_queueName && that_present_queueName))
+        return false;
+      if (!this.queueName.equals(that.queueName))
         return false;
     }
 
@@ -573,6 +633,10 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
     if (isSetExternalCompactionId())
       hashCode = hashCode * 8191 + externalCompactionId.hashCode();
 
+    hashCode = hashCode * 8191 + ((isSetQueueName()) ? 131071 : 524287);
+    if (isSetQueueName())
+      hashCode = hashCode * 8191 + queueName.hashCode();
+
     hashCode = hashCode * 8191 + ((isSetExtent()) ? 131071 : 524287);
     if (isSetExtent())
       hashCode = hashCode * 8191 + extent.hashCode();
@@ -610,6 +674,16 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
     }
     if (isSetExternalCompactionId()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.externalCompactionId, other.externalCompactionId);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = java.lang.Boolean.compare(isSetQueueName(), other.isSetQueueName());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetQueueName()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.queueName, other.queueName);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -690,6 +764,14 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
       sb.append("null");
     } else {
       sb.append(this.externalCompactionId);
+    }
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("queueName:");
+    if (this.queueName == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.queueName);
     }
     first = false;
     if (!first) sb.append(", ");
@@ -786,7 +868,15 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 2: // EXTENT
+          case 2: // QUEUE_NAME
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+              struct.queueName = iprot.readString();
+              struct.setQueueNameIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 3: // EXTENT
             if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
               struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
               struct.extent.read(iprot);
@@ -795,7 +885,7 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 3: // FILES
+          case 4: // FILES
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
                 org.apache.thrift.protocol.TList _list0 = iprot.readListBegin();
@@ -814,7 +904,7 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 4: // OUTPUT_FILE
+          case 5: // OUTPUT_FILE
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
               struct.outputFile = iprot.readString();
               struct.setOutputFileIsSet(true);
@@ -822,7 +912,7 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 5: // COMPACTOR
+          case 6: // COMPACTOR
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
               struct.compactor = iprot.readString();
               struct.setCompactorIsSet(true);
@@ -830,7 +920,7 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 6: // UPDATES
+          case 7: // UPDATES
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
                 org.apache.thrift.protocol.TMap _map3 = iprot.readMapBegin();
@@ -869,6 +959,11 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
       if (struct.externalCompactionId != null) {
         oprot.writeFieldBegin(EXTERNAL_COMPACTION_ID_FIELD_DESC);
         oprot.writeString(struct.externalCompactionId);
+        oprot.writeFieldEnd();
+      }
+      if (struct.queueName != null) {
+        oprot.writeFieldBegin(QUEUE_NAME_FIELD_DESC);
+        oprot.writeString(struct.queueName);
         oprot.writeFieldEnd();
       }
       if (struct.extent != null) {
@@ -932,24 +1027,30 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
       if (struct.isSetExternalCompactionId()) {
         optionals.set(0);
       }
-      if (struct.isSetExtent()) {
+      if (struct.isSetQueueName()) {
         optionals.set(1);
       }
-      if (struct.isSetFiles()) {
+      if (struct.isSetExtent()) {
         optionals.set(2);
       }
-      if (struct.isSetOutputFile()) {
+      if (struct.isSetFiles()) {
         optionals.set(3);
       }
-      if (struct.isSetCompactor()) {
+      if (struct.isSetOutputFile()) {
         optionals.set(4);
       }
-      if (struct.isSetUpdates()) {
+      if (struct.isSetCompactor()) {
         optionals.set(5);
       }
-      oprot.writeBitSet(optionals, 6);
+      if (struct.isSetUpdates()) {
+        optionals.set(6);
+      }
+      oprot.writeBitSet(optionals, 7);
       if (struct.isSetExternalCompactionId()) {
         oprot.writeString(struct.externalCompactionId);
+      }
+      if (struct.isSetQueueName()) {
+        oprot.writeString(struct.queueName);
       }
       if (struct.isSetExtent()) {
         struct.extent.write(oprot);
@@ -984,17 +1085,21 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, TRunningCompaction struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(6);
+      java.util.BitSet incoming = iprot.readBitSet(7);
       if (incoming.get(0)) {
         struct.externalCompactionId = iprot.readString();
         struct.setExternalCompactionIdIsSet(true);
       }
       if (incoming.get(1)) {
+        struct.queueName = iprot.readString();
+        struct.setQueueNameIsSet(true);
+      }
+      if (incoming.get(2)) {
         struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
         struct.extent.read(iprot);
         struct.setExtentIsSet(true);
       }
-      if (incoming.get(2)) {
+      if (incoming.get(3)) {
         {
           org.apache.thrift.protocol.TList _list11 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
           struct.files = new java.util.ArrayList<org.apache.accumulo.core.tabletserver.thrift.InputFile>(_list11.size);
@@ -1008,15 +1113,15 @@ public class TRunningCompaction implements org.apache.thrift.TBase<TRunningCompa
         }
         struct.setFilesIsSet(true);
       }
-      if (incoming.get(3)) {
+      if (incoming.get(4)) {
         struct.outputFile = iprot.readString();
         struct.setOutputFileIsSet(true);
       }
-      if (incoming.get(4)) {
+      if (incoming.get(5)) {
         struct.compactor = iprot.readString();
         struct.setCompactorIsSet(true);
       }
-      if (incoming.get(5)) {
+      if (incoming.get(6)) {
         {
           org.apache.thrift.protocol.TMap _map14 = iprot.readMapBegin(org.apache.thrift.protocol.TType.I64, org.apache.thrift.protocol.TType.STRUCT); 
           struct.updates = new java.util.HashMap<java.lang.Long,TCompactionStatusUpdate>(2*_map14.size);

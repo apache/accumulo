@@ -348,10 +348,8 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
    *
    * @param job
    *          compactionJob
-   * @param state
-   *          updated state
-   * @param message
-   *          updated message
+   * @param update
+   *          status update
    * @throws RetriesExceededException
    *           thrown when retries have been exceeded
    */

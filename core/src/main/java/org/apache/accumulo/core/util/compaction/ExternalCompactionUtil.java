@@ -51,6 +51,14 @@ import org.slf4j.LoggerFactory;
 
 public class ExternalCompactionUtil {
 
+  public static class QueueAndHostAndPort extends Pair<String,HostAndPort> {
+
+    public QueueAndHostAndPort(String queue, HostAndPort hp) {
+      super(queue, hp);
+    }
+
+  }
+
   private static final Logger LOG = LoggerFactory.getLogger(ExternalCompactionUtil.class);
 
   /**
@@ -90,14 +98,15 @@ public class ExternalCompactionUtil {
   /**
    * @return list of Compactors
    */
-  public static List<HostAndPort> getCompactorAddrs(ClientContext context) {
+  public static Map<String,List<HostAndPort>> getCompactorAddrs(ClientContext context) {
     try {
-      final List<HostAndPort> compactAddrs = new ArrayList<>();
+      final Map<String,List<HostAndPort>> queuesAndAddresses = new HashMap<>();
       final String compactorQueuesPath = context.getZooKeeperRoot() + Constants.ZCOMPACTORS;
       ZooReader zooReader =
           new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
       List<String> queues = zooReader.getChildren(compactorQueuesPath);
       for (String queue : queues) {
+        queuesAndAddresses.putIfAbsent(queue, new ArrayList<HostAndPort>());
         try {
           List<String> compactors = zooReader.getChildren(compactorQueuesPath + "/" + queue);
           for (String compactor : compactors) {
@@ -107,7 +116,7 @@ public class ExternalCompactionUtil {
                 zooReader.getChildren(compactorQueuesPath + "/" + queue + "/" + compactor);
             if (!children.isEmpty()) {
               LOG.trace("Found live compactor {} ", compactor);
-              compactAddrs.add(HostAndPort.fromString(compactor));
+              queuesAndAddresses.get(queue).add(HostAndPort.fromString(compactor));
             }
           }
         } catch (NoNodeException e) {
@@ -115,7 +124,7 @@ public class ExternalCompactionUtil {
         }
       }
 
-      return compactAddrs;
+      return queuesAndAddresses;
     } catch (KeeperException e) {
       throw new RuntimeException(e);
     } catch (InterruptedException e) {
@@ -191,20 +200,24 @@ public class ExternalCompactionUtil {
    *          server context
    * @return map of compactor and external compaction jobs
    */
-  public static Map<HostAndPort,TExternalCompactionJob>
+  public static Map<QueueAndHostAndPort,TExternalCompactionJob>
       getCompactionsRunningOnCompactors(ClientContext context) {
 
-    final List<Pair<HostAndPort,Future<TExternalCompactionJob>>> running = new ArrayList<>();
+    final List<Pair<QueueAndHostAndPort,Future<TExternalCompactionJob>>> running =
+        new ArrayList<>();
     final ExecutorService executor =
         ThreadPools.createFixedThreadPool(16, "CompactorRunningCompactions", false);
 
-    getCompactorAddrs(context).forEach(hp -> {
-      running.add(new Pair<HostAndPort,Future<TExternalCompactionJob>>(hp,
-          executor.submit(() -> getRunningCompaction(hp, context))));
+    getCompactorAddrs(context).forEach((q, hp) -> {
+      hp.forEach(hostAndPort -> {
+        final QueueAndHostAndPort qhp = new QueueAndHostAndPort(q, hostAndPort);
+        running.add(new Pair<QueueAndHostAndPort,Future<TExternalCompactionJob>>(qhp,
+            executor.submit(() -> getRunningCompaction(hostAndPort, context))));
+      });
     });
     executor.shutdown();
 
-    final Map<HostAndPort,TExternalCompactionJob> results = new HashMap<>();
+    final Map<QueueAndHostAndPort,TExternalCompactionJob> results = new HashMap<>();
     running.forEach(p -> {
       try {
         TExternalCompactionJob job = p.getSecond().get();
@@ -227,8 +240,10 @@ public class ExternalCompactionUtil {
 
     List<Future<ExternalCompactionId>> futures = new ArrayList<>();
 
-    getCompactorAddrs(context).forEach(hp -> {
-      futures.add(executor.submit(() -> getRunningCompactionId(hp, context)));
+    getCompactorAddrs(context).forEach((q, hp) -> {
+      hp.forEach(hostAndPort -> {
+        futures.add(executor.submit(() -> getRunningCompactionId(hostAndPort, context)));
+      });
     });
     executor.shutdown();
 
