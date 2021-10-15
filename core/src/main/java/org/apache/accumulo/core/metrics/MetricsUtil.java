@@ -100,7 +100,7 @@ public class MetricsUtil {
       MeterRegistry registry = factory.create();
       registry.config().commonTags(commonTags);
       registry.config().meterFilter(replicationFilter);
-      Metrics.globalRegistry.add(registry);
+      Metrics.addRegistry(registry);
 
       if (jvmMetricsEnabled) {
         new ClassLoaderMetrics(commonTags).bindTo(Metrics.globalRegistry);
@@ -116,6 +116,7 @@ public class MetricsUtil {
   public static void initializeProducers(MetricsProducer... producer) {
     for (MetricsProducer p : producer) {
       p.registerMetrics(Metrics.globalRegistry);
+      LOG.info("Metric producer {} initialize", p.getClass().getSimpleName());
     }
   }
 

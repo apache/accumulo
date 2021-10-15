@@ -297,35 +297,40 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Gauge</td>
  * <td>{@link #METRICS_TSERVER_SCANNED_ENTRIES}</td>
  * <td>Gauge</td>
- * <td></td>
+ * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
+ * derived</td>
  * </tr>
  * <tr>
  * <td>queryRate</td>
  * <td>Gauge</td>
  * <td>{@link #METRICS_TSERVER_SCAN_RESULTS}</td>
  * <td>Gauge</td>
- * <td></td>
+ * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
+ * derived</td>
  * </tr>
  * <tr>
  * <td>queryByteRate</td>
  * <td>Gauge</td>
  * <td>{@link #METRICS_TSERVER_SCAN_RESULTS_BYTES}</td>
  * <td>Gauge</td>
- * <td></td>
+ * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
+ * derived</td>
  * </tr>
  * <tr>
  * <td>ingestRate</td>
  * <td>Gauge</td>
  * <td>{@link #METRICS_TSERVER_INGEST_MUTATIONS}</td>
  * <td>Gauge</td>
- * <td></td>
+ * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
+ * derived</td>
  * </tr>
  * <tr>
  * <td>ingestByteRate</td>
  * <td>Gauge</td>
  * <td>{@link #METRICS_TSERVER_INGEST_BYTES}</td>
  * <td>Gauge</td>
- * <td></td>
+ * <td>Prior to 2.1.0 this metric was reported as a rate, it is now the count and the rate can be
+ * derived</td>
  * </tr>
  * <tr>
  * <td>holdTime</td>

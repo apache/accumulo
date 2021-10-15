@@ -56,7 +56,7 @@ public class TabletServerMetrics implements MetricsProducer {
         .description("Number of opening tablets").register(registry);
     Gauge.builder(METRICS_TSERVER_TABLETS_UNOPENED, util, TabletServerMetricsUtil::getUnopenedCount)
         .description("Number of unopened tablets").register(registry);
-    Gauge.builder(METRICS_TSERVER_QUERIES, util, TabletServerMetricsUtil::getQueries)
+    Gauge.builder(METRICS_TSERVER_QUERIES, util, TabletServerMetricsUtil::getLookupCount)
         .description("Number of queries").register(registry);
     Gauge
         .builder(METRICS_TSERVER_MINC_TOTAL, util,
@@ -69,17 +69,17 @@ public class TabletServerMetrics implements MetricsProducer {
         .description("Number of files per tablet").register(registry);
     Gauge.builder(METRICS_TSERVER_HOLD, util, TabletServerMetricsUtil::getHoldTime)
         .description("Time commits held").register(registry);
-    Gauge.builder(METRICS_TSERVER_INGEST_MUTATIONS, util, TabletServerMetricsUtil::getIngest)
+    Gauge.builder(METRICS_TSERVER_INGEST_MUTATIONS, util, TabletServerMetricsUtil::getIngestCount)
         .description("Ingest rate (entries/sec)").register(registry);
-    Gauge.builder(METRICS_TSERVER_INGEST_BYTES, util, TabletServerMetricsUtil::getIngestByteRate)
+    Gauge.builder(METRICS_TSERVER_INGEST_BYTES, util, TabletServerMetricsUtil::getIngestByteCount)
         .description("Ingest rate (bytes/sec)").register(registry);
-    Gauge.builder(METRICS_TSERVER_SCAN_RESULTS, util, TabletServerMetricsUtil::getQueryRate)
+    Gauge.builder(METRICS_TSERVER_SCAN_RESULTS, util, TabletServerMetricsUtil::getQueryResultCount)
         .description("Query rate (entries/sec)").register(registry);
     Gauge
         .builder(METRICS_TSERVER_SCAN_RESULTS_BYTES, util,
-            TabletServerMetricsUtil::getQueryByteRate)
+            TabletServerMetricsUtil::getQueryByteCount)
         .description("Query rate (bytes/sec)").register(registry);
-    Gauge.builder(METRICS_TSERVER_SCANNED_ENTRIES, util, TabletServerMetricsUtil::getScannedRate)
+    Gauge.builder(METRICS_TSERVER_SCANNED_ENTRIES, util, TabletServerMetricsUtil::getScannedCount)
         .description("Scanned rate").register(registry);
   }
 }

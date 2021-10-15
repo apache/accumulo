@@ -176,6 +176,7 @@ public class TabletServer extends AbstractServer {
 
   final TabletServerLogger logger;
 
+  private TabletServerMetrics metrics;
   TabletServerUpdateMetrics updateMetrics;
   TabletServerScanMetrics scanMetrics;
   TabletServerMinCMetrics mincMetrics;
@@ -737,12 +738,12 @@ public class TabletServer extends AbstractServer {
       log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
 
+    metrics = new TabletServerMetrics(this);
     updateMetrics = new TabletServerUpdateMetrics();
     scanMetrics = new TabletServerScanMetrics();
     mincMetrics = new TabletServerMinCMetrics();
     ceMetrics = new CompactionExecutorsMetrics();
-    MetricsUtil.initializeProducers(new TabletServerMetrics(this), updateMetrics, scanMetrics,
-        mincMetrics, ceMetrics);
+    MetricsUtil.initializeProducers(metrics, updateMetrics, scanMetrics, mincMetrics, ceMetrics);
 
     this.compactionManager = new CompactionManager(new Iterable<Compactable>() {
       @Override
