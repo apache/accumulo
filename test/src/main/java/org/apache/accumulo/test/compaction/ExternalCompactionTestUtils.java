@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -76,6 +77,7 @@ import org.apache.accumulo.test.compaction.ExternalCompaction_1_IT.TestFilter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
+import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -144,11 +146,11 @@ public class ExternalCompactionTestUtils {
 
   }
 
-  public static void writeData(AccumuloClient client, String table1)
+  public static void writeData(AccumuloClient client, String table1, int rows)
       throws MutationsRejectedException, TableNotFoundException, AccumuloException,
       AccumuloSecurityException {
     try (BatchWriter bw = client.createBatchWriter(table1)) {
-      for (int i = 0; i < MAX_DATA; i++) {
+      for (int i = 0; i < rows; i++) {
         Mutation m = new Mutation(row(i));
         m.put("", "", "" + i);
         bw.addMutation(m);
@@ -158,7 +160,18 @@ public class ExternalCompactionTestUtils {
     client.tableOperations().flush(table1);
   }
 
+  public static void writeData(AccumuloClient client, String table1)
+      throws MutationsRejectedException, TableNotFoundException, AccumuloException,
+      AccumuloSecurityException {
+    writeData(client, table1, MAX_DATA);
+  }
+
   public static void verify(AccumuloClient client, String table1, int modulus)
+      throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
+    verify(client, table1, modulus, MAX_DATA);
+  }
+
+  public static void verify(AccumuloClient client, String table1, int modulus, int rows)
       throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     try (Scanner scanner = client.createScanner(table1)) {
       int count = 0;
@@ -169,7 +182,7 @@ public class ExternalCompactionTestUtils {
       }
 
       int expectedCount = 0;
-      for (int i = 0; i < MAX_DATA; i++) {
+      for (int i = 0; i < rows; i++) {
         if (i % modulus == 0)
           expectedCount++;
       }
@@ -237,13 +250,14 @@ public class ExternalCompactionTestUtils {
   }
 
   public static TExternalCompactionList getRunningCompactions(ClientContext context)
-      throws Exception {
-    HostAndPort coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
-    if (null == coordinatorHost) {
+      throws TException {
+    Optional<HostAndPort> coordinatorHost =
+        ExternalCompactionUtil.findCompactionCoordinator(context);
+    if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
-    CompactionCoordinatorService.Client client = ThriftUtil
-        .getClient(new CompactionCoordinatorService.Client.Factory(), coordinatorHost, context);
+    CompactionCoordinatorService.Client client = ThriftUtil.getClient(
+        new CompactionCoordinatorService.Client.Factory(), coordinatorHost.get(), context);
     try {
       TExternalCompactionList running =
           client.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
@@ -255,12 +269,13 @@ public class ExternalCompactionTestUtils {
 
   private static TExternalCompactionList getCompletedCompactions(ClientContext context)
       throws Exception {
-    HostAndPort coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
-    if (null == coordinatorHost) {
+    Optional<HostAndPort> coordinatorHost =
+        ExternalCompactionUtil.findCompactionCoordinator(context);
+    if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
-    CompactionCoordinatorService.Client client = ThriftUtil
-        .getClient(new CompactionCoordinatorService.Client.Factory(), coordinatorHost, context);
+    CompactionCoordinatorService.Client client = ThriftUtil.getClient(
+        new CompactionCoordinatorService.Client.Factory(), coordinatorHost.get(), context);
     try {
       TExternalCompactionList completed =
           client.getCompletedCompactions(TraceUtil.traceInfo(), context.rpcCreds());
