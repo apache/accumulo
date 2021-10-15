@@ -341,7 +341,7 @@ public class CompactionManager {
                 this::getExternalExecutor));
       } catch (RuntimeException e) {
         log.error("Failed to create compaction service {} with planner:{} options:{}", serviceName,
-            plannerClassName, currentCfg.options.getOrDefault(serviceName, Map.of()));
+            plannerClassName, currentCfg.options.getOrDefault(serviceName, Map.of()), e);
       }
     });
 

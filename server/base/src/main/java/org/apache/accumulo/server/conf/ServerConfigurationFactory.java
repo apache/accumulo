@@ -24,7 +24,7 @@ import java.util.Map;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ConfigSanityCheck;
+import org.apache.accumulo.core.conf.ConfigCheckUtil;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -129,7 +129,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     // default visibility labels will never be updated in a Tablet until it is reloaded.
     if (conf == null && Tables.exists(context, tableId)) {
       conf = new TableConfiguration(context, tableId, getNamespaceConfigurationForTable(tableId));
-      ConfigSanityCheck.validate(conf);
+      ConfigCheckUtil.validate(conf);
       synchronized (tableConfigs) {
         Map<TableId,TableConfiguration> configs = tableConfigs.get(instanceID);
         TableConfiguration existingConf = configs.get(tableId);
@@ -160,7 +160,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
         throw new RuntimeException(e);
       }
       conf = new NamespaceConfiguration(namespaceId, context, getSystemConfiguration());
-      ConfigSanityCheck.validate(conf);
+      ConfigCheckUtil.validate(conf);
       synchronized (tableParentConfigs) {
         tableParentConfigs.get(instanceID).put(tableId, conf);
       }
@@ -180,7 +180,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       // changed - include instance in constructor call
       conf = new NamespaceConfiguration(namespaceId, context, getSystemConfiguration());
       conf.setZooCacheFactory(zcf);
-      ConfigSanityCheck.validate(conf);
+      ConfigCheckUtil.validate(conf);
       synchronized (namespaceConfigs) {
         namespaceConfigs.get(instanceID).put(namespaceId, conf);
       }
