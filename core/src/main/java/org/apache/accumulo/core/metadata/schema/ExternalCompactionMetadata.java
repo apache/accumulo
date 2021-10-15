@@ -54,6 +54,12 @@ public class ExternalCompactionMetadata {
       TabletFile compactTmpName, String compactorId, CompactionKind kind, short priority,
       CompactionExecutorId ceid, boolean propagateDeletes, boolean initiallySelectedAll,
       Long compactionId) {
+    if (!initiallySelectedAll && !propagateDeletes
+        && (kind == CompactionKind.SELECTOR || kind == CompactionKind.USER)) {
+      throw new IllegalArgumentException(
+          "When user or selector compactions do not propagate deletes, it's expected that all "
+              + "files were selected initially.");
+    }
     this.jobFiles = Objects.requireNonNull(jobFiles);
     this.nextFiles = Objects.requireNonNull(nextFiles);
     this.compactTmpName = Objects.requireNonNull(compactTmpName);
