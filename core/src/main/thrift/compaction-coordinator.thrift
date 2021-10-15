@@ -48,6 +48,19 @@ struct TCompactionStatusUpdate {
   5:i64 bytesWritten
 }
 
+struct TRunningCompaction {
+  1:string externalCompactionId
+  2:data.TKeyExtent extent
+  3:list<tabletserver.InputFile> files
+  4:string outputFile
+  5:string compactor
+  6:map<i64,TCompactionStatusUpdate> updates
+}
+
+struct TRunningCompactions {
+  1:list<TRunningCompaction> runningCompactions
+}
+
 exception UnknownCompactionIdException {}
 
 service CompactionCoordinatorService {
@@ -93,6 +106,14 @@ service CompactionCoordinatorService {
     2:security.TCredentials credentials
     3:string externalCompactionId
     4:data.TKeyExtent extent
+  )
+
+  /*
+   * Called by the Monitor to get progress information
+   */
+  TRunningCompactions getRunningCompactions(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
   )
 
 }

@@ -41,6 +41,8 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.Iface;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
+import org.apache.accumulo.core.compaction.thrift.TRunningCompaction;
+import org.apache.accumulo.core.compaction.thrift.TRunningCompactions;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -572,6 +574,39 @@ public class CompactionCoordinator extends AbstractServer
     if (null != rc) {
       rc.addUpdate(timestamp, update);
     }
+  }
+
+  /**
+   * Return information about running compactions
+   *
+   * @param tinfo
+   *          trace info
+   * @param credentials
+   *          tcredentials object
+   * @return list of TRunningCompaction objects
+   * @throws ThriftSecurityException
+   *           when permission error
+   */
+  @Override
+  public TRunningCompactions getRunningCompactions(TInfo tinfo, TCredentials credentials)
+      throws ThriftSecurityException {
+    // do not expect users to call this directly, expect other tservers to call this method
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+    final TRunningCompactions result = new TRunningCompactions();
+    RUNNING.forEach((ecid, rc) -> {
+      TRunningCompaction trc = new TRunningCompaction();
+      trc.setExternalCompactionId(ecid.canonical());
+      trc.setExtent(rc.getJob().getExtent());
+      trc.setFiles(rc.getJob().getFiles());
+      trc.setOutputFile(rc.getJob().getOutputFile());
+      trc.setCompactor(rc.getCompactorAddress());
+      trc.setUpdates(rc.getUpdates());
+      result.addToRunningCompactions(trc);
+    });
+    return result;
   }
 
   private void deleteEmpty(ZooReaderWriter zoorw, String path)
