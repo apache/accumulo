@@ -40,7 +40,7 @@ import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.Iface;
-import org.apache.accumulo.core.compaction.thrift.TCompactionState;
+import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -559,18 +559,18 @@ public class CompactionCoordinator extends AbstractServer
    */
   @Override
   public void updateCompactionStatus(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TCompactionState state, String message, long timestamp)
+      String externalCompactionId, TCompactionStatusUpdate update, long timestamp)
       throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    LOG.debug("Compaction status update, id: {}, timestamp: {}, state: {}, message: {}",
-        externalCompactionId, timestamp, state, message);
+    LOG.debug("Compaction status update, id: {}, timestamp: {}, update: {}", externalCompactionId,
+        timestamp, update);
     final RunningCompaction rc = RUNNING.get(ExternalCompactionId.of(externalCompactionId));
     if (null != rc) {
-      rc.addUpdate(timestamp, message, state);
+      rc.addUpdate(timestamp, update);
     }
   }
 

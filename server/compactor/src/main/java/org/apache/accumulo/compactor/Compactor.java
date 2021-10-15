@@ -46,6 +46,7 @@ import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.C
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.CompactorService.Iface;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
+import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -354,8 +355,8 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
    * @throws RetriesExceededException
    *           thrown when retries have been exceeded
    */
-  protected void updateCompactionState(TExternalCompactionJob job, TCompactionState state,
-      String message) throws RetriesExceededException {
+  protected void updateCompactionState(TExternalCompactionJob job, TCompactionStatusUpdate update)
+      throws RetriesExceededException {
     RetryableThriftCall<String> thriftCall = new RetryableThriftCall<>(1000,
         RetryableThriftCall.MAX_WAIT_TIME, 25, new RetryableThriftFunction<String>() {
           @Override
@@ -363,7 +364,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
             Client coordinatorClient = getCoordinatorClient();
             try {
               coordinatorClient.updateCompactionStatus(TraceUtil.traceInfo(),
-                  getContext().rpcCreds(), job.getExternalCompactionId(), state, message,
+                  getContext().rpcCreds(), job.getExternalCompactionId(), update,
                   System.currentTimeMillis());
               return "";
             } finally {
@@ -513,7 +514,10 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
         Preconditions.checkState(compactionRunning.compareAndSet(false, true));
         try {
           LOG.info("Starting up compaction runnable for job: {}", job);
-          updateCompactionState(job, TCompactionState.STARTED, "Compaction started");
+          TCompactionStatusUpdate update = new TCompactionStatusUpdate();
+          update.setState(TCompactionState.STARTED);
+          update.setMessage("Compaction started");
+          updateCompactionState(job, update);
 
           final AccumuloConfiguration tConfig;
 
@@ -557,8 +561,10 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
 
           LOG.info("Compaction completed successfully {} ", job.getExternalCompactionId());
           // Update state when completed
-          updateCompactionState(job, TCompactionState.SUCCEEDED,
-              "Compaction completed successfully");
+          TCompactionStatusUpdate update2 = new TCompactionStatusUpdate();
+          update2.setState(TCompactionState.SUCCEEDED);
+          update2.setMessage("Compaction completed successfully");
+          updateCompactionState(job, update2);
         } catch (Exception e) {
           LOG.error("Compaction failed", e);
           err.set(e);
@@ -687,7 +693,10 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
                     info.getEntriesWritten());
                 try {
                   LOG.debug("Updating coordinator with compaction progress: {}.", message);
-                  updateCompactionState(job, TCompactionState.IN_PROGRESS, message);
+                  TCompactionStatusUpdate update =
+                      new TCompactionStatusUpdate(TCompactionState.IN_PROGRESS, message,
+                          inputEntries, info.getEntriesRead(), info.getEntriesWritten());
+                  updateCompactionState(job, update);
                 } catch (RetriesExceededException e) {
                   LOG.warn("Error updating coordinator with compaction progress, error: {}",
                       e.getMessage());
@@ -704,7 +713,10 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
               || ((err.get() != null && err.get().getClass().equals(InterruptedException.class)))) {
             LOG.warn("Compaction thread was interrupted, sending CANCELLED state");
             try {
-              updateCompactionState(job, TCompactionState.CANCELLED, "Compaction cancelled");
+              TCompactionStatusUpdate update = new TCompactionStatusUpdate();
+              update.setMessage("Compaction cancelled");
+              update.setState(TCompactionState.CANCELLED);
+              updateCompactionState(job, update);
               updateCompactionFailed(job);
             } catch (RetriesExceededException e) {
               LOG.error("Error updating coordinator with compaction cancellation.", e);
@@ -714,8 +726,10 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
           } else if (err.get() != null) {
             try {
               LOG.info("Updating coordinator with compaction failure.");
-              updateCompactionState(job, TCompactionState.FAILED,
-                  "Compaction failed due to: " + err.get().getMessage());
+              TCompactionStatusUpdate update = new TCompactionStatusUpdate();
+              update.setMessage("Compaction failed due to: " + err.get().getMessage());
+              update.setState(TCompactionState.FAILED);
+              updateCompactionState(job, update);
               updateCompactionFailed(job);
             } catch (RetriesExceededException e) {
               LOG.error("Error updating coordinator with compaction failure.", e);

@@ -33,7 +33,7 @@ public class CompactionCoordinatorService {
 
     public org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob getCompactionJob(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String queueName, java.lang.String compactor, java.lang.String externalCompactionId) throws org.apache.thrift.TException;
 
-    public void updateCompactionStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionState state, java.lang.String message, long timestamp) throws org.apache.thrift.TException;
+    public void updateCompactionStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionStatusUpdate status, long timestamp) throws org.apache.thrift.TException;
 
     public void compactionFailed(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) throws org.apache.thrift.TException;
 
@@ -45,7 +45,7 @@ public class CompactionCoordinatorService {
 
     public void getCompactionJob(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String queueName, java.lang.String compactor, java.lang.String externalCompactionId, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob> resultHandler) throws org.apache.thrift.TException;
 
-    public void updateCompactionStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionState state, java.lang.String message, long timestamp, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void updateCompactionStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionStatusUpdate status, long timestamp, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
     public void compactionFailed(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
@@ -122,20 +122,19 @@ public class CompactionCoordinatorService {
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getCompactionJob failed: unknown result");
     }
 
-    public void updateCompactionStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionState state, java.lang.String message, long timestamp) throws org.apache.thrift.TException
+    public void updateCompactionStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionStatusUpdate status, long timestamp) throws org.apache.thrift.TException
     {
-      send_updateCompactionStatus(tinfo, credentials, externalCompactionId, state, message, timestamp);
+      send_updateCompactionStatus(tinfo, credentials, externalCompactionId, status, timestamp);
       recv_updateCompactionStatus();
     }
 
-    public void send_updateCompactionStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionState state, java.lang.String message, long timestamp) throws org.apache.thrift.TException
+    public void send_updateCompactionStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionStatusUpdate status, long timestamp) throws org.apache.thrift.TException
     {
       updateCompactionStatus_args args = new updateCompactionStatus_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setExternalCompactionId(externalCompactionId);
-      args.setState(state);
-      args.setMessage(message);
+      args.setStatus(status);
       args.setTimestamp(timestamp);
       sendBase("updateCompactionStatus", args);
     }
@@ -276,9 +275,9 @@ public class CompactionCoordinatorService {
       }
     }
 
-    public void updateCompactionStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionState state, java.lang.String message, long timestamp, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void updateCompactionStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionStatusUpdate status, long timestamp, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      updateCompactionStatus_call method_call = new updateCompactionStatus_call(tinfo, credentials, externalCompactionId, state, message, timestamp, resultHandler, this, ___protocolFactory, ___transport);
+      updateCompactionStatus_call method_call = new updateCompactionStatus_call(tinfo, credentials, externalCompactionId, status, timestamp, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -287,16 +286,14 @@ public class CompactionCoordinatorService {
       private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
       private java.lang.String externalCompactionId;
-      private TCompactionState state;
-      private java.lang.String message;
+      private TCompactionStatusUpdate status;
       private long timestamp;
-      public updateCompactionStatus_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionState state, java.lang.String message, long timestamp, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public updateCompactionStatus_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionStatusUpdate status, long timestamp, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
         this.externalCompactionId = externalCompactionId;
-        this.state = state;
-        this.message = message;
+        this.status = status;
         this.timestamp = timestamp;
       }
 
@@ -306,8 +303,7 @@ public class CompactionCoordinatorService {
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setExternalCompactionId(externalCompactionId);
-        args.setState(state);
-        args.setMessage(message);
+        args.setStatus(status);
         args.setTimestamp(timestamp);
         args.write(prot);
         prot.writeMessageEnd();
@@ -454,7 +450,7 @@ public class CompactionCoordinatorService {
 
       public updateCompactionStatus_result getResult(I iface, updateCompactionStatus_args args) throws org.apache.thrift.TException {
         updateCompactionStatus_result result = new updateCompactionStatus_result();
-        iface.updateCompactionStatus(args.tinfo, args.credentials, args.externalCompactionId, args.state, args.message, args.timestamp);
+        iface.updateCompactionStatus(args.tinfo, args.credentials, args.externalCompactionId, args.status, args.timestamp);
         return result;
       }
     }
@@ -681,7 +677,7 @@ public class CompactionCoordinatorService {
       }
 
       public void start(I iface, updateCompactionStatus_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
-        iface.updateCompactionStatus(args.tinfo, args.credentials, args.externalCompactionId, args.state, args.message, args.timestamp,resultHandler);
+        iface.updateCompactionStatus(args.tinfo, args.credentials, args.externalCompactionId, args.status, args.timestamp,resultHandler);
       }
     }
 
@@ -2975,8 +2971,7 @@ public class CompactionCoordinatorService {
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField EXTERNAL_COMPACTION_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("externalCompactionId", org.apache.thrift.protocol.TType.STRING, (short)3);
-    private static final org.apache.thrift.protocol.TField STATE_FIELD_DESC = new org.apache.thrift.protocol.TField("state", org.apache.thrift.protocol.TType.I32, (short)4);
-    private static final org.apache.thrift.protocol.TField MESSAGE_FIELD_DESC = new org.apache.thrift.protocol.TField("message", org.apache.thrift.protocol.TType.STRING, (short)5);
+    private static final org.apache.thrift.protocol.TField STATUS_FIELD_DESC = new org.apache.thrift.protocol.TField("status", org.apache.thrift.protocol.TType.STRUCT, (short)4);
     private static final org.apache.thrift.protocol.TField TIMESTAMP_FIELD_DESC = new org.apache.thrift.protocol.TField("timestamp", org.apache.thrift.protocol.TType.I64, (short)6);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new updateCompactionStatus_argsStandardSchemeFactory();
@@ -2985,12 +2980,7 @@ public class CompactionCoordinatorService {
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.trace.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
     public @org.apache.thrift.annotation.Nullable java.lang.String externalCompactionId; // required
-    /**
-     * 
-     * @see TCompactionState
-     */
-    public @org.apache.thrift.annotation.Nullable TCompactionState state; // required
-    public @org.apache.thrift.annotation.Nullable java.lang.String message; // required
+    public @org.apache.thrift.annotation.Nullable TCompactionStatusUpdate status; // required
     public long timestamp; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -2998,12 +2988,7 @@ public class CompactionCoordinatorService {
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
       EXTERNAL_COMPACTION_ID((short)3, "externalCompactionId"),
-      /**
-       * 
-       * @see TCompactionState
-       */
-      STATE((short)4, "state"),
-      MESSAGE((short)5, "message"),
+      STATUS((short)4, "status"),
       TIMESTAMP((short)6, "timestamp");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
@@ -3026,10 +3011,8 @@ public class CompactionCoordinatorService {
             return CREDENTIALS;
           case 3: // EXTERNAL_COMPACTION_ID
             return EXTERNAL_COMPACTION_ID;
-          case 4: // STATE
-            return STATE;
-          case 5: // MESSAGE
-            return MESSAGE;
+          case 4: // STATUS
+            return STATUS;
           case 6: // TIMESTAMP
             return TIMESTAMP;
           default:
@@ -3084,10 +3067,8 @@ public class CompactionCoordinatorService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.EXTERNAL_COMPACTION_ID, new org.apache.thrift.meta_data.FieldMetaData("externalCompactionId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-      tmpMap.put(_Fields.STATE, new org.apache.thrift.meta_data.FieldMetaData("state", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, TCompactionState.class)));
-      tmpMap.put(_Fields.MESSAGE, new org.apache.thrift.meta_data.FieldMetaData("message", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.STATUS, new org.apache.thrift.meta_data.FieldMetaData("status", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TCompactionStatusUpdate.class)));
       tmpMap.put(_Fields.TIMESTAMP, new org.apache.thrift.meta_data.FieldMetaData("timestamp", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
@@ -3101,16 +3082,14 @@ public class CompactionCoordinatorService {
       org.apache.accumulo.core.trace.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
       java.lang.String externalCompactionId,
-      TCompactionState state,
-      java.lang.String message,
+      TCompactionStatusUpdate status,
       long timestamp)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.externalCompactionId = externalCompactionId;
-      this.state = state;
-      this.message = message;
+      this.status = status;
       this.timestamp = timestamp;
       setTimestampIsSet(true);
     }
@@ -3129,11 +3108,8 @@ public class CompactionCoordinatorService {
       if (other.isSetExternalCompactionId()) {
         this.externalCompactionId = other.externalCompactionId;
       }
-      if (other.isSetState()) {
-        this.state = other.state;
-      }
-      if (other.isSetMessage()) {
-        this.message = other.message;
+      if (other.isSetStatus()) {
+        this.status = new TCompactionStatusUpdate(other.status);
       }
       this.timestamp = other.timestamp;
     }
@@ -3147,8 +3123,7 @@ public class CompactionCoordinatorService {
       this.tinfo = null;
       this.credentials = null;
       this.externalCompactionId = null;
-      this.state = null;
-      this.message = null;
+      this.status = null;
       setTimestampIsSet(false);
       this.timestamp = 0;
     }
@@ -3228,61 +3203,28 @@ public class CompactionCoordinatorService {
       }
     }
 
-    /**
-     * 
-     * @see TCompactionState
-     */
     @org.apache.thrift.annotation.Nullable
-    public TCompactionState getState() {
-      return this.state;
+    public TCompactionStatusUpdate getStatus() {
+      return this.status;
     }
 
-    /**
-     * 
-     * @see TCompactionState
-     */
-    public updateCompactionStatus_args setState(@org.apache.thrift.annotation.Nullable TCompactionState state) {
-      this.state = state;
+    public updateCompactionStatus_args setStatus(@org.apache.thrift.annotation.Nullable TCompactionStatusUpdate status) {
+      this.status = status;
       return this;
     }
 
-    public void unsetState() {
-      this.state = null;
+    public void unsetStatus() {
+      this.status = null;
     }
 
-    /** Returns true if field state is set (has been assigned a value) and false otherwise */
-    public boolean isSetState() {
-      return this.state != null;
+    /** Returns true if field status is set (has been assigned a value) and false otherwise */
+    public boolean isSetStatus() {
+      return this.status != null;
     }
 
-    public void setStateIsSet(boolean value) {
+    public void setStatusIsSet(boolean value) {
       if (!value) {
-        this.state = null;
-      }
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public java.lang.String getMessage() {
-      return this.message;
-    }
-
-    public updateCompactionStatus_args setMessage(@org.apache.thrift.annotation.Nullable java.lang.String message) {
-      this.message = message;
-      return this;
-    }
-
-    public void unsetMessage() {
-      this.message = null;
-    }
-
-    /** Returns true if field message is set (has been assigned a value) and false otherwise */
-    public boolean isSetMessage() {
-      return this.message != null;
-    }
-
-    public void setMessageIsSet(boolean value) {
-      if (!value) {
-        this.message = null;
+        this.status = null;
       }
     }
 
@@ -3335,19 +3277,11 @@ public class CompactionCoordinatorService {
         }
         break;
 
-      case STATE:
+      case STATUS:
         if (value == null) {
-          unsetState();
+          unsetStatus();
         } else {
-          setState((TCompactionState)value);
-        }
-        break;
-
-      case MESSAGE:
-        if (value == null) {
-          unsetMessage();
-        } else {
-          setMessage((java.lang.String)value);
+          setStatus((TCompactionStatusUpdate)value);
         }
         break;
 
@@ -3374,11 +3308,8 @@ public class CompactionCoordinatorService {
       case EXTERNAL_COMPACTION_ID:
         return getExternalCompactionId();
 
-      case STATE:
-        return getState();
-
-      case MESSAGE:
-        return getMessage();
+      case STATUS:
+        return getStatus();
 
       case TIMESTAMP:
         return getTimestamp();
@@ -3400,10 +3331,8 @@ public class CompactionCoordinatorService {
         return isSetCredentials();
       case EXTERNAL_COMPACTION_ID:
         return isSetExternalCompactionId();
-      case STATE:
-        return isSetState();
-      case MESSAGE:
-        return isSetMessage();
+      case STATUS:
+        return isSetStatus();
       case TIMESTAMP:
         return isSetTimestamp();
       }
@@ -3450,21 +3379,12 @@ public class CompactionCoordinatorService {
           return false;
       }
 
-      boolean this_present_state = true && this.isSetState();
-      boolean that_present_state = true && that.isSetState();
-      if (this_present_state || that_present_state) {
-        if (!(this_present_state && that_present_state))
+      boolean this_present_status = true && this.isSetStatus();
+      boolean that_present_status = true && that.isSetStatus();
+      if (this_present_status || that_present_status) {
+        if (!(this_present_status && that_present_status))
           return false;
-        if (!this.state.equals(that.state))
-          return false;
-      }
-
-      boolean this_present_message = true && this.isSetMessage();
-      boolean that_present_message = true && that.isSetMessage();
-      if (this_present_message || that_present_message) {
-        if (!(this_present_message && that_present_message))
-          return false;
-        if (!this.message.equals(that.message))
+        if (!this.status.equals(that.status))
           return false;
       }
 
@@ -3496,13 +3416,9 @@ public class CompactionCoordinatorService {
       if (isSetExternalCompactionId())
         hashCode = hashCode * 8191 + externalCompactionId.hashCode();
 
-      hashCode = hashCode * 8191 + ((isSetState()) ? 131071 : 524287);
-      if (isSetState())
-        hashCode = hashCode * 8191 + state.getValue();
-
-      hashCode = hashCode * 8191 + ((isSetMessage()) ? 131071 : 524287);
-      if (isSetMessage())
-        hashCode = hashCode * 8191 + message.hashCode();
+      hashCode = hashCode * 8191 + ((isSetStatus()) ? 131071 : 524287);
+      if (isSetStatus())
+        hashCode = hashCode * 8191 + status.hashCode();
 
       hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(timestamp);
 
@@ -3547,22 +3463,12 @@ public class CompactionCoordinatorService {
           return lastComparison;
         }
       }
-      lastComparison = java.lang.Boolean.compare(isSetState(), other.isSetState());
+      lastComparison = java.lang.Boolean.compare(isSetStatus(), other.isSetStatus());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetState()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.state, other.state);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetMessage(), other.isSetMessage());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetMessage()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.message, other.message);
+      if (isSetStatus()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.status, other.status);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -3622,19 +3528,11 @@ public class CompactionCoordinatorService {
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("state:");
-      if (this.state == null) {
+      sb.append("status:");
+      if (this.status == null) {
         sb.append("null");
       } else {
-        sb.append(this.state);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("message:");
-      if (this.message == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.message);
+        sb.append(this.status);
       }
       first = false;
       if (!first) sb.append(", ");
@@ -3653,6 +3551,9 @@ public class CompactionCoordinatorService {
       }
       if (credentials != null) {
         credentials.validate();
+      }
+      if (status != null) {
+        status.validate();
       }
     }
 
@@ -3718,18 +3619,11 @@ public class CompactionCoordinatorService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 4: // STATE
-              if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
-                struct.state = org.apache.accumulo.core.compaction.thrift.TCompactionState.findByValue(iprot.readI32());
-                struct.setStateIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 5: // MESSAGE
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.message = iprot.readString();
-                struct.setMessageIsSet(true);
+            case 4: // STATUS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.status = new TCompactionStatusUpdate();
+                struct.status.read(iprot);
+                struct.setStatusIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -3772,14 +3666,9 @@ public class CompactionCoordinatorService {
           oprot.writeString(struct.externalCompactionId);
           oprot.writeFieldEnd();
         }
-        if (struct.state != null) {
-          oprot.writeFieldBegin(STATE_FIELD_DESC);
-          oprot.writeI32(struct.state.getValue());
-          oprot.writeFieldEnd();
-        }
-        if (struct.message != null) {
-          oprot.writeFieldBegin(MESSAGE_FIELD_DESC);
-          oprot.writeString(struct.message);
+        if (struct.status != null) {
+          oprot.writeFieldBegin(STATUS_FIELD_DESC);
+          struct.status.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldBegin(TIMESTAMP_FIELD_DESC);
@@ -3812,16 +3701,13 @@ public class CompactionCoordinatorService {
         if (struct.isSetExternalCompactionId()) {
           optionals.set(2);
         }
-        if (struct.isSetState()) {
+        if (struct.isSetStatus()) {
           optionals.set(3);
         }
-        if (struct.isSetMessage()) {
+        if (struct.isSetTimestamp()) {
           optionals.set(4);
         }
-        if (struct.isSetTimestamp()) {
-          optionals.set(5);
-        }
-        oprot.writeBitSet(optionals, 6);
+        oprot.writeBitSet(optionals, 5);
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
@@ -3831,11 +3717,8 @@ public class CompactionCoordinatorService {
         if (struct.isSetExternalCompactionId()) {
           oprot.writeString(struct.externalCompactionId);
         }
-        if (struct.isSetState()) {
-          oprot.writeI32(struct.state.getValue());
-        }
-        if (struct.isSetMessage()) {
-          oprot.writeString(struct.message);
+        if (struct.isSetStatus()) {
+          struct.status.write(oprot);
         }
         if (struct.isSetTimestamp()) {
           oprot.writeI64(struct.timestamp);
@@ -3845,7 +3728,7 @@ public class CompactionCoordinatorService {
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, updateCompactionStatus_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(6);
+        java.util.BitSet incoming = iprot.readBitSet(5);
         if (incoming.get(0)) {
           struct.tinfo = new org.apache.accumulo.core.trace.thrift.TInfo();
           struct.tinfo.read(iprot);
@@ -3861,14 +3744,11 @@ public class CompactionCoordinatorService {
           struct.setExternalCompactionIdIsSet(true);
         }
         if (incoming.get(3)) {
-          struct.state = org.apache.accumulo.core.compaction.thrift.TCompactionState.findByValue(iprot.readI32());
-          struct.setStateIsSet(true);
+          struct.status = new TCompactionStatusUpdate();
+          struct.status.read(iprot);
+          struct.setStatusIsSet(true);
         }
         if (incoming.get(4)) {
-          struct.message = iprot.readString();
-          struct.setMessageIsSet(true);
-        }
-        if (incoming.get(5)) {
           struct.timestamp = iprot.readI64();
           struct.setTimestampIsSet(true);
         }

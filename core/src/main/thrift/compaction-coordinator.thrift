@@ -40,12 +40,12 @@ enum TCompactionState {
   CANCELLED
 }
 
-struct Status {
-  1:i64 timestamp
-  2:string externalCompactionId
-  3:string compactor
-  4:TCompactionState state
-  5:string message
+struct TCompactionStatusUpdate {
+  1:TCompactionState state
+  2:string message
+  3:i64 bytesToBeCompacted
+  4:i64 bytesRead
+  5:i64 bytesWritten
 }
 
 exception UnknownCompactionIdException {}
@@ -81,8 +81,7 @@ service CompactionCoordinatorService {
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
     3:string externalCompactionId
-    4:TCompactionState state
-    5:string message
+    4:TCompactionStatusUpdate status
     6:i64 timestamp
   )
   
