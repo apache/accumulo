@@ -158,7 +158,6 @@ public class Tablet {
   private final TableConfiguration tableConfiguration;
   private final String dirName;
 
-  // when should this be updated?
   private final AtomicLong updateCounter = new AtomicLong(0L);
 
   private final TabletMemory tabletMemory;
@@ -1403,10 +1402,10 @@ public class Tablet {
     // TODO check lastFlushID and lostCompactID - ACCUMULO-1290
   }
 
-  private void compareToDataInMemory(TabletMetadata tabletMeta) {
-    if (!tabletMeta.getFilesMap().equals(getDatafileManager().getDatafileSizes())) {
-      String msg = "Data files in differ from in memory data " + extent + "  "
-          + tabletMeta.getFilesMap() + "  " + getDatafileManager().getDatafileSizes();
+  private void compareToDataInMemory(TabletMetadata tabletMetadata) {
+    if (!tabletMetadata.getFilesMap().equals(getDatafileManager().getDatafileSizes())) {
+      String msg = "Data files in " + extent + " differ from in-memory data "
+          + tabletMetadata.getFilesMap() + " " + getDatafileManager().getDatafileSizes();
       log.error(msg);
       throw new RuntimeException(msg);
     }
@@ -1414,7 +1413,7 @@ public class Tablet {
 
   public void compareTabletInfo(Pair<Long,TabletMetadata> tabletInfo) {
     // if the counter didn't change, compare metadata to what is in memory
-    if (tabletInfo.getFirst() == getUpdateCounter()) {
+    if (tabletInfo.getFirst() == this.getUpdateCounter()) {
       this.compareToDataInMemory(tabletInfo.getSecond());
     }
     // if counter did change, don't compare metadata and try again later
