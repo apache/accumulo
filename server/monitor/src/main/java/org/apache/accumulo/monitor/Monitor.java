@@ -865,6 +865,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     return monitorInitialized.get();
   }
 
+  @Override
+  public boolean isUpgrading() {
+    return false;
+  }
+
   public RecentLogs recentLogs() {
     return recentLogs;
   }

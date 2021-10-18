@@ -217,6 +217,7 @@ public class Manager extends AbstractServer
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
+  private final AtomicBoolean managerUpgrading = new AtomicBoolean(false);
 
   @Override
   public synchronized ManagerState getManagerState() {
@@ -1043,6 +1044,12 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Exception getting manager lock", e);
     }
 
+    // If UpgradeStatus is not at complete by this moment, then things are currently
+    // upgrading.
+    if (!upgradeCoordinator.getStatus().equals(UpgradeCoordinator.UpgradeStatus.COMPLETE)) {
+      managerUpgrading.set(true);
+    }
+
     recoveryManager = new RecoveryManager(this, TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE);
 
     context.getTableManager().addObserver(this);
@@ -1205,8 +1212,9 @@ public class Manager extends AbstractServer
     // checking stored user hashes if any of them uses an outdated algorithm
     security.validateStoredUserCreditentials();
 
-    // The manager is fully initialized. Clients are allowed to connect now.
+    // The manager is fully initialized and upgraded. Clients are allowed to connect now.
     managerInitialized.set(true);
+    managerUpgrading.set(false);
 
     while (clientService.isServing()) {
       sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
@@ -1712,6 +1720,11 @@ public class Manager extends AbstractServer
   @Override
   public boolean isActiveService() {
     return managerInitialized.get();
+  }
+
+  @Override
+  public boolean isUpgrading() {
+    return managerUpgrading.get();
   }
 
   void initializeBalancer() {
