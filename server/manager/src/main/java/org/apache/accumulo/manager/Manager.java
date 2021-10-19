@@ -1213,8 +1213,8 @@ public class Manager extends AbstractServer
     security.validateStoredUserCreditentials();
 
     // The manager is fully initialized and upgraded. Clients are allowed to connect now.
-    managerInitialized.set(true);
     managerUpgrading.set(false);
+    managerInitialized.set(true);
 
     while (clientService.isServing()) {
       sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
