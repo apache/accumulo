@@ -40,9 +40,10 @@ import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.Iface;
+import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
-import org.apache.accumulo.core.compaction.thrift.TRunningCompaction;
-import org.apache.accumulo.core.compaction.thrift.TRunningCompactions;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -82,6 +83,9 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 public class CompactionCoordinator extends AbstractServer
     implements CompactionCoordinatorService.Iface, LiveTServerSet.Listener {
 
@@ -95,6 +99,9 @@ public class CompactionCoordinator extends AbstractServer
   /* Map of compactionId to RunningCompactions */
   protected static final Map<ExternalCompactionId,RunningCompaction> RUNNING =
       new ConcurrentHashMap<>();
+
+  private static final Cache<ExternalCompactionId,RunningCompaction> COMPLETED =
+      Caffeine.newBuilder().maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES).build();
 
   /* Map of queue name to last time compactor called to get a compaction job */
   private static final Map<String,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
@@ -259,8 +266,13 @@ public class CompactionCoordinator extends AbstractServer
     } else {
       LOG.info("Found {} running external compactions", running.size());
       running.forEach((qhp, job) -> {
-        RUNNING.put(ExternalCompactionId.of(job.getExternalCompactionId()), new RunningCompaction(
-            job, ExternalCompactionUtil.getHostPortString(qhp.getSecond()), qhp.getFirst()));
+        RunningCompaction rc = new RunningCompaction(job,
+            ExternalCompactionUtil.getHostPortString(qhp.getSecond()), qhp.getFirst());
+        TCompactionStatusUpdate update = new TCompactionStatusUpdate();
+        update.setState(TCompactionState.IN_PROGRESS);
+        update.setMessage("Coorindator restarted, compaction found in progress");
+        rc.addUpdate(System.currentTimeMillis(), update);
+        RUNNING.put(ExternalCompactionId.of(job.getExternalCompactionId()), rc);
       });
     }
 
@@ -508,6 +520,7 @@ public class CompactionCoordinator extends AbstractServer
     final RunningCompaction rc = RUNNING.get(ecid);
     if (null != rc) {
       RUNNING.remove(ecid, rc);
+      COMPLETED.put(ecid, rc);
     } else {
       LOG.warn(
           "Compaction completed called by Compactor for {}, but no running compaction for that id.",
@@ -534,6 +547,7 @@ public class CompactionCoordinator extends AbstractServer
       final RunningCompaction rc = RUNNING.get(k);
       if (null != rc) {
         RUNNING.remove(k, rc);
+        COMPLETED.put(k, rc);
       } else {
         LOG.warn(
             "Compaction failed called by Compactor for {}, but no running compaction for that id.",
@@ -582,29 +596,61 @@ public class CompactionCoordinator extends AbstractServer
    *          trace info
    * @param credentials
    *          tcredentials object
-   * @return list of TRunningCompaction objects
+   * @return map of ECID to TExternalCompaction objects
    * @throws ThriftSecurityException
    *           when permission error
    */
   @Override
-  public TRunningCompactions getRunningCompactions(TInfo tinfo, TCredentials credentials)
+  public TExternalCompactionList getRunningCompactions(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    final TRunningCompactions result = new TRunningCompactions();
+    final TExternalCompactionList result = new TExternalCompactionList();
     RUNNING.forEach((ecid, rc) -> {
-      TRunningCompaction trc = new TRunningCompaction();
-      trc.setExternalCompactionId(ecid.canonical());
+      TExternalCompaction trc = new TExternalCompaction();
       trc.setQueueName(rc.getQueueName());
       trc.setExtent(rc.getJob().getExtent());
       trc.setFiles(rc.getJob().getFiles());
       trc.setOutputFile(rc.getJob().getOutputFile());
       trc.setCompactor(rc.getCompactorAddress());
       trc.setUpdates(rc.getUpdates());
-      result.addToRunningCompactions(trc);
+      result.putToCompactions(ecid.canonical(), trc);
+    });
+    return result;
+  }
+
+  /**
+   * Return information about recently completed compactions
+   *
+   * @param tinfo
+   *          trace info
+   * @param credentials
+   *          tcredentials object
+   * @return map of ECID to TExternalCompaction objects
+   * @throws ThriftSecurityException
+   *           when permission error
+   */
+  @Override
+  public TExternalCompactionList getCompletedCompactions(TInfo tinfo, TCredentials credentials)
+      throws ThriftSecurityException {
+    // do not expect users to call this directly, expect other tservers to call this method
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+    final TExternalCompactionList result = new TExternalCompactionList();
+    COMPLETED.asMap().forEach((ecid, rc) -> {
+      TExternalCompaction trc = new TExternalCompaction();
+      trc.setQueueName(rc.getQueueName());
+      trc.setExtent(rc.getJob().getExtent());
+      trc.setFiles(rc.getJob().getFiles());
+      trc.setOutputFile(rc.getJob().getOutputFile());
+      trc.setCompactor(rc.getCompactorAddress());
+      trc.setUpdates(rc.getUpdates());
+      result.putToCompactions(ecid.canonical(), trc);
     });
     return result;
   }

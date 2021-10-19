@@ -96,7 +96,7 @@ public class ExternalCompactionUtil {
   }
 
   /**
-   * @return list of Compactors
+   * @return map of queue names to compactor addresses
    */
   public static Map<String,List<HostAndPort>> getCompactorAddrs(ClientContext context) {
     try {
@@ -133,6 +133,15 @@ public class ExternalCompactionUtil {
     }
   }
 
+  /**
+   *
+   * @param compactor
+   *          compactor address
+   * @param context
+   *          client context
+   * @return
+   * @throws ThriftSecurityException
+   */
   public static List<ActiveCompaction> getActiveCompaction(HostAndPort compactor,
       ClientContext context) throws ThriftSecurityException {
     CompactorService.Client client = null;
@@ -167,7 +176,7 @@ public class ExternalCompactionUtil {
       TExternalCompactionJob job =
           client.getRunningCompaction(TraceUtil.traceInfo(), context.rpcCreds());
       if (job.getExternalCompactionId() != null) {
-        LOG.debug("Compactor is running {}", job.getExternalCompactionId());
+        LOG.debug("Compactor {} is running {}", compactorAddr, job.getExternalCompactionId());
         return job;
       }
     } catch (TException e) {

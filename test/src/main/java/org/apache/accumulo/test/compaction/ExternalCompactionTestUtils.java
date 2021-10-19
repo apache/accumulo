@@ -23,24 +23,19 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.http.HttpClient;
-import java.net.http.HttpClient.Redirect;
-import java.net.http.HttpClient.Version;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.net.http.HttpResponse.BodyHandlers;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.coordinator.CompactionCoordinator;
-import org.apache.accumulo.coordinator.ExternalCompactionMetrics;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -51,6 +46,11 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
+import org.apache.accumulo.core.compaction.thrift.TCompactionState;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -58,25 +58,33 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
+import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.compaction.ExternalCompaction_1_IT.TestFilter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
+import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.internal.Maps;
-import com.google.gson.Gson;
 
-public class ExternalCompactionUtils {
+public class ExternalCompactionTestUtils {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ExternalCompactionUtils.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ExternalCompactionTestUtils.class);
 
   public static final int MAX_DATA = 1000;
 
@@ -212,41 +220,114 @@ public class ExternalCompactionUtils {
     coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  private static HttpRequest req = null;
-  static {
-    try {
-      req = HttpRequest.newBuilder().GET().uri(new URI("http://localhost:9099/metrics")).build();
-    } catch (URISyntaxException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private static final HttpClient hc =
-      HttpClient.newBuilder().version(Version.HTTP_1_1).followRedirects(Redirect.NORMAL).build();
-
-  public static ExternalCompactionMetrics getCoordinatorMetrics() throws Exception {
-    HttpResponse<String> res = hc.send(req, BodyHandlers.ofString());
-    assertEquals(200, res.statusCode());
-    String metrics = res.body();
-    assertNotNull(metrics);
-    return new Gson().fromJson(metrics, ExternalCompactionMetrics.class);
-  }
-
   public static ProcessInfo startCoordinator(MiniAccumuloClusterImpl cluster,
-      Class<? extends CompactionCoordinator> coord) throws IOException {
+      Class<? extends CompactionCoordinator> coord, ClientContext context) throws IOException {
     ProcessInfo pi = cluster.exec(coord);
-    if (TestCompactionCoordinator.class.isAssignableFrom(coord)) {
-      // Wait for coordinator to start
-      ExternalCompactionMetrics metrics = null;
-      while (null == metrics) {
-        try {
-          metrics = getCoordinatorMetrics();
-        } catch (Exception e) {
-          UtilWaitThread.sleep(250);
-        }
+    UtilWaitThread.sleep(1000);
+    // Wait for coordinator to start
+    TExternalCompactionList metrics = null;
+    while (null == metrics) {
+      try {
+        metrics = getRunningCompactions(context);
+      } catch (Exception e) {
+        UtilWaitThread.sleep(250);
       }
     }
     return pi;
   }
 
+  public static TExternalCompactionList getRunningCompactions(ClientContext context)
+      throws Exception {
+    HostAndPort coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
+    if (null == coordinatorHost) {
+      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
+    }
+    CompactionCoordinatorService.Client client = ThriftUtil
+        .getClient(new CompactionCoordinatorService.Client.Factory(), coordinatorHost, context);
+    try {
+      TExternalCompactionList running =
+          client.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
+      return running;
+    } finally {
+      ThriftUtil.returnClient(client);
+    }
+  }
+
+  private static TExternalCompactionList getCompletedCompactions(ClientContext context)
+      throws Exception {
+    HostAndPort coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
+    if (null == coordinatorHost) {
+      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
+    }
+    CompactionCoordinatorService.Client client = ThriftUtil
+        .getClient(new CompactionCoordinatorService.Client.Factory(), coordinatorHost, context);
+    try {
+      TExternalCompactionList completed =
+          client.getCompletedCompactions(TraceUtil.traceInfo(), context.rpcCreds());
+      return completed;
+    } finally {
+      ThriftUtil.returnClient(client);
+    }
+  }
+
+  public static TCompactionState getLastState(TExternalCompaction status) {
+    ArrayList<Long> timestamps = new ArrayList<>(status.getUpdates().size());
+    status.getUpdates().keySet().forEach(k -> timestamps.add(k));
+    Collections.sort(timestamps);
+    return status.getUpdates().get(timestamps.get(timestamps.size() - 1)).getState();
+  }
+
+  public static Set<ExternalCompactionId> waitForCompactionStartAndReturnEcids(ServerContext ctx,
+      TableId tid) {
+    Set<ExternalCompactionId> ecids = new HashSet<>();
+    do {
+      UtilWaitThread.sleep(50);
+      try (TabletsMetadata tm =
+          ctx.getAmple().readTablets().forTable(tid).fetch(ColumnType.ECOMP).build()) {
+        tm.stream().flatMap(t -> t.getExternalCompactions().keySet().stream()).forEach(ecids::add);
+      }
+    } while (ecids.isEmpty());
+    return ecids;
+  }
+
+  public static int confirmCompactionRunning(ServerContext ctx, Set<ExternalCompactionId> ecids)
+      throws Exception {
+    int matches = 0;
+    while (matches == 0) {
+      TExternalCompactionList running = ExternalCompactionTestUtils.getRunningCompactions(ctx);
+      if (running.getCompactions() != null) {
+        for (ExternalCompactionId ecid : ecids) {
+          TExternalCompaction tec = running.getCompactions().get(ecid.canonical());
+          if (tec != null && tec.getUpdates() != null && !tec.getUpdates().isEmpty()) {
+            matches++;
+            assertEquals(TCompactionState.STARTED, ExternalCompactionTestUtils.getLastState(tec));
+          }
+        }
+      }
+      UtilWaitThread.sleep(250);
+    }
+    return matches;
+  }
+
+  public static void confirmCompactionCompleted(ServerContext ctx, Set<ExternalCompactionId> ecids,
+      TCompactionState expectedState) throws Exception {
+    // The running compaction should be removed
+    TExternalCompactionList running = ExternalCompactionTestUtils.getRunningCompactions(ctx);
+    while (running.getCompactions() != null) {
+      UtilWaitThread.sleep(250);
+      running = ExternalCompactionTestUtils.getRunningCompactions(ctx);
+    }
+    // The compaction should be in the completed list with the expected state
+    TExternalCompactionList completed = ExternalCompactionTestUtils.getCompletedCompactions(ctx);
+    while (completed.getCompactions() == null) {
+      UtilWaitThread.sleep(250);
+      completed = ExternalCompactionTestUtils.getCompletedCompactions(ctx);
+    }
+    for (ExternalCompactionId e : ecids) {
+      TExternalCompaction tec = completed.getCompactions().get(e.canonical());
+      assertNotNull(tec);
+      assertEquals(expectedState, ExternalCompactionTestUtils.getLastState(tec));
+    }
+
+  }
 }
