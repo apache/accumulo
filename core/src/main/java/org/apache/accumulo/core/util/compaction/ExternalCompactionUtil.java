@@ -51,6 +51,32 @@ import org.slf4j.LoggerFactory;
 
 public class ExternalCompactionUtil {
 
+  private static class RunningCompactionInformation {
+    private final String queue;
+    private final HostAndPort compactor;
+    private final Future<TExternalCompactionJob> future;
+
+    public RunningCompactionInformation(String queue, HostAndPort compactor,
+        Future<TExternalCompactionJob> future) {
+      super();
+      this.queue = queue;
+      this.compactor = compactor;
+      this.future = future;
+    }
+
+    public String getQueue() {
+      return queue;
+    }
+
+    public HostAndPort getCompactor() {
+      return compactor;
+    }
+
+    public Future<TExternalCompactionJob> getFuture() {
+      return future;
+    }
+  }
+
   public static class QueueAndHostAndPort extends Pair<String,HostAndPort> {
 
     public QueueAndHostAndPort(String queue, HostAndPort hp) {
@@ -213,26 +239,24 @@ public class ExternalCompactionUtil {
   public static Map<QueueAndHostAndPort,TExternalCompactionJob>
       getCompactionsRunningOnCompactors(ClientContext context) {
 
-    final List<Pair<QueueAndHostAndPort,Future<TExternalCompactionJob>>> running =
-        new ArrayList<>();
+    final List<RunningCompactionInformation> running = new ArrayList<>();
     final ExecutorService executor =
         ThreadPools.createFixedThreadPool(16, "CompactorRunningCompactions", false);
 
     getCompactorAddrs(context).forEach((q, hp) -> {
       hp.forEach(hostAndPort -> {
-        final QueueAndHostAndPort qhp = new QueueAndHostAndPort(q, hostAndPort);
-        running.add(new Pair<QueueAndHostAndPort,Future<TExternalCompactionJob>>(qhp,
+        running.add(new RunningCompactionInformation(q, hostAndPort,
             executor.submit(() -> getRunningCompaction(hostAndPort, context))));
       });
     });
     executor.shutdown();
 
     final Map<QueueAndHostAndPort,TExternalCompactionJob> results = new HashMap<>();
-    running.forEach(p -> {
+    running.forEach(info -> {
       try {
-        TExternalCompactionJob job = p.getSecond().get();
+        TExternalCompactionJob job = info.getFuture().get();
         if (null != job && null != job.getExternalCompactionId()) {
-          results.put(p.getFirst(), job);
+          results.put(new QueueAndHostAndPort(info.getQueue(), info.getCompactor()), job);
         }
       } catch (InterruptedException e) {
         throw new RuntimeException(e);
