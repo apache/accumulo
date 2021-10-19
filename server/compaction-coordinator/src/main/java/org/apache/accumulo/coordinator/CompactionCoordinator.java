@@ -270,7 +270,7 @@ public class CompactionCoordinator extends AbstractServer
             ExternalCompactionUtil.getHostPortString(qhp.getSecond()), qhp.getFirst());
         TCompactionStatusUpdate update = new TCompactionStatusUpdate();
         update.setState(TCompactionState.IN_PROGRESS);
-        update.setMessage("Coorindator restarted, compaction found in progress");
+        update.setMessage("Coordinator restarted, compaction found in progress");
         rc.addUpdate(System.currentTimeMillis(), update);
         RUNNING.put(ExternalCompactionId.of(job.getExternalCompactionId()), rc);
       });
@@ -598,7 +598,7 @@ public class CompactionCoordinator extends AbstractServer
    *          tcredentials object
    * @return map of ECID to TExternalCompaction objects
    * @throws ThriftSecurityException
-   *           when permission error
+   *           permission error
    */
   @Override
   public TExternalCompactionList getRunningCompactions(TInfo tinfo, TCredentials credentials)
@@ -631,7 +631,7 @@ public class CompactionCoordinator extends AbstractServer
    *          tcredentials object
    * @return map of ECID to TExternalCompaction objects
    * @throws ThriftSecurityException
-   *           when permission error
+   *           permission error
    */
   @Override
   public TExternalCompactionList getCompletedCompactions(TInfo tinfo, TCredentials credentials)

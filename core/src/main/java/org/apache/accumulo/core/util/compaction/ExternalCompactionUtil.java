@@ -139,8 +139,9 @@ public class ExternalCompactionUtil {
    *          compactor address
    * @param context
    *          client context
-   * @return
+   * @return list of active compaction
    * @throws ThriftSecurityException
+   *           tserver permission error
    */
   public static List<ActiveCompaction> getActiveCompaction(HostAndPort compactor,
       ClientContext context) throws ThriftSecurityException {
