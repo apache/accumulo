@@ -54,6 +54,7 @@ public class HighlyAvailableServiceInvocationHandler<I> implements InvocationHan
         throw new ThriftNotActiveServiceException();
       }
       LOG.warn("Cannot access service as it is in the process of upgrading.");
+      return null;
     }
     try {
       // Otherwise, call the real method
