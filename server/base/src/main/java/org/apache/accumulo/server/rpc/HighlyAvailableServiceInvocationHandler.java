@@ -53,7 +53,7 @@ public class HighlyAvailableServiceInvocationHandler<I> implements InvocationHan
         LOG.trace("Denying access to RPC service as this instance is not the active instance.");
         throw new ThriftNotActiveServiceException();
       }
-      // What to do when upgrading?
+      LOG.warn("Cannot access service as it is in the process of upgrading.");
     }
     try {
       // Otherwise, call the real method
