@@ -24,6 +24,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 
+import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
 import org.apache.accumulo.core.clientImpl.lexicoder.FixedByteArrayOutputStream;
 
 /**

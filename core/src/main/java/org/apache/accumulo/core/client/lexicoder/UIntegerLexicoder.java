@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.client.lexicoder;
 
+import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoder;
+
 /**
  * A lexicoder for an unsigned integer. It sorts 0 before -1 and does not preserve the native sort
  * order of a Java integer because Java does not contain an unsigned integer. If Java had an
