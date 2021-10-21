@@ -74,6 +74,11 @@ public class ZooReader {
     return retryLoop(zk -> zk.getData(zPath, requireNonNull(watcher), null));
   }
 
+  public byte[] getData(String zPath, Watcher watcher, Stat stat)
+      throws KeeperException, InterruptedException {
+    return retryLoop(zk -> zk.getData(zPath, requireNonNull(watcher), stat));
+  }
+
   public Stat getStatus(String zPath) throws KeeperException, InterruptedException {
     return retryLoop(zk -> zk.exists(zPath, null));
   }

@@ -30,6 +30,7 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -58,6 +59,10 @@ import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.conf.ZooConfiguration;
+import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
+import org.apache.accumulo.server.conf.codec.VersionedPropGzipCodec;
+import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
 import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
@@ -91,6 +96,9 @@ public class ServerContext extends ClientContext {
   private AuthenticationTokenSecretManager secretManager;
   private CryptoService cryptoService = null;
   private ScheduledThreadPoolExecutor sharedScheduledThreadPool = null;
+  private PropStore propStore;
+  // TODO - should be defined by configuration.
+  private final VersionedPropCodec propCodec = VersionedPropGzipCodec.codec(true);
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(new ServerInfo(siteConfig));
@@ -445,6 +453,18 @@ public class ServerContext extends ClientContext {
           .createExecutorService(getConfiguration(), Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE);
     }
     return sharedScheduledThreadPool;
+  }
+
+  public synchronized PropStore getPropStore() {
+    if (Objects.isNull(propStore)) {
+      propStore = new ZooPropStore.Builder(this).build();
+    }
+    return propStore;
+  }
+
+  // TODO - this is returning a fixed codec. It would need to change to support other options,
+  public VersionedPropCodec getVersionedPropertiesCodec() {
+    return propCodec;
   }
 
 }
