@@ -1125,6 +1125,7 @@ public class Manager extends AbstractServer
       if (null != upgradeMetadataFuture) {
         upgradeMetadataFuture.get();
       }
+      managerUpgrading.set(false);
     } catch (ExecutionException | InterruptedException e) {
       throw new IllegalStateException("Metadata upgrade failed", e);
     }
