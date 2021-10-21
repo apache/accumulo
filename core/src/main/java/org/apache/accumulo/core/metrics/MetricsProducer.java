@@ -488,7 +488,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td></td>
  * </tr>
  * <tr>
- * <td>executie</td>
+ * <td>execute</td>
  * <td>Stat</td>
  * <td>{@link #METRICS_THRIFT_EXECUTE}</td>
  * <td>Distribution Summary</td>
