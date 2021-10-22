@@ -620,7 +620,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     try {
       announceExistence(clientAddress);
     } catch (KeeperException | InterruptedException e) {
-      throw new RuntimeException("Erroring registering in ZooKeeper", e);
+      throw new RuntimeException("Error registering compactor in ZooKeeper", e);
     }
 
     LOG.info("Compactor started, waiting for work");

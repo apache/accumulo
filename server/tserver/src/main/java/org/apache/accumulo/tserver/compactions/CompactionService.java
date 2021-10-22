@@ -132,7 +132,8 @@ public class CompactionService {
         @Override
         public CompactionExecutorId getExternalExecutor(String name) {
           var ceid = CompactionExecutorIdImpl.externalId(name);
-          Preconditions.checkArgument(!requestedExternalExecutors.contains(ceid));
+          Preconditions.checkArgument(!requestedExternalExecutors.contains(ceid),
+              "Duplicate external executor for queue " + name);
           requestedExternalExecutors.add(ceid);
           return ceid;
         }

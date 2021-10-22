@@ -198,6 +198,15 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
           "Can only have one executor w/o a maxSize. " + params.getOptions().get("executors"));
     }
 
+    // use the add method on the Set interface to check for duplicate maxSizes
+    Set<Long> maxSizes = new HashSet<>();
+    executors.forEach(e -> {
+      if (!maxSizes.add(e.getMaxSize())) {
+        throw new IllegalArgumentException(
+            "Duplicate maxSize set in executors. " + params.getOptions().get("executors"));
+      }
+    });
+
     determineMaxFilesToCompact(params);
   }
 
