@@ -333,7 +333,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * no additional action is required.
    *
    * @param id
-   *          the prop chace id.
+   *          the prop cache id.
    */
   @Override
   public void cacheChangeEvent(PropCacheId id) {
