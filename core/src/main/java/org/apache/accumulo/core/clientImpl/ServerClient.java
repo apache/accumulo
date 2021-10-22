@@ -102,7 +102,7 @@ public class ServerClient {
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         if (client != null)
-          ServerClient.close(client);
+          ServerClient.close(client, context);
       }
     }
   }
@@ -126,7 +126,7 @@ public class ServerClient {
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         if (client != null)
-          ServerClient.close(client);
+          ServerClient.close(client, context);
       }
     }
   }
@@ -158,7 +158,7 @@ public class ServerClient {
     boolean opened = false;
     try {
       Pair<String,TTransport> pair =
-          ThriftTransportPool.getInstance().getAnyTransport(servers, preferCachedConnections);
+          context.getTransportPool().getAnyTransport(servers, preferCachedConnections);
       CT client = ThriftUtil.createClient(factory, pair.getSecond());
       opened = true;
       warnedAboutTServersBeingDown = false;
@@ -177,10 +177,10 @@ public class ServerClient {
     }
   }
 
-  public static void close(TServiceClient client) {
+  public static void close(TServiceClient client, ClientContext context) {
     if (client != null && client.getInputProtocol() != null
         && client.getInputProtocol().getTransport() != null) {
-      ThriftTransportPool.getInstance().returnTransport(client.getInputProtocol().getTransport());
+      context.getTransportPool().returnTransport(client.getInputProtocol().getTransport());
     } else {
       log.debug("Attempt to close null connection to a server", new Exception());
     }

@@ -267,7 +267,7 @@ public abstract class TabletBalancer
     } catch (TTransportException e) {
       log.error("Unable to connect to {}: ", tserver, e);
     } finally {
-      ThriftUtil.returnClient(client);
+      ThriftUtil.returnClient(client, context);
     }
     return null;
   }
