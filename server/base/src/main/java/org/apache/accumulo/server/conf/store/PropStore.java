@@ -89,9 +89,9 @@ public interface PropStore {
 
   /**
    * Get a fixed set of defined properties (designated in Properties as fixed). Certain properties
-   * are stored for persistence across restarts, they are read during start-up and remain
-   * unchanged for the life of the instance. Any updates to the properties will only be reflected
-   * with a restart.
+   * are stored for persistence across restarts, they are read during start-up and remain unchanged
+   * for the life of the instance. Any updates to the properties will only be reflected with a
+   * restart.
    *
    * @return the properties read from the store at start-up
    */
