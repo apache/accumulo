@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.coordinator;
+package org.apache.accumulo.core.util.compaction;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -31,7 +31,7 @@ public class RunningCompaction {
   private final String queueName;
   private final Map<Long,TCompactionStatusUpdate> updates = new TreeMap<>();
 
-  RunningCompaction(TExternalCompactionJob job, String compactorAddress, String queueName) {
+  public RunningCompaction(TExternalCompactionJob job, String compactorAddress, String queueName) {
     super();
     this.job = job;
     this.compactorAddress = compactorAddress;

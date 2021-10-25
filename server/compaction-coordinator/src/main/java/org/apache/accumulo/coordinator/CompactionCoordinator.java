@@ -60,7 +60,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
-import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil.QueueAndHostAndPort;
+import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
@@ -259,20 +259,18 @@ public class CompactionCoordinator extends AbstractServer
     // the external compaction came from to re-populate the RUNNING collection.
     LOG.info("Checking for running external compactions");
     // On re-start contact the running Compactors to try and seed the list of running compactions
-    Map<QueueAndHostAndPort,TExternalCompactionJob> running =
+    List<RunningCompaction> running =
         ExternalCompactionUtil.getCompactionsRunningOnCompactors(getContext());
     if (running.isEmpty()) {
       LOG.info("No running external compactions found");
     } else {
       LOG.info("Found {} running external compactions", running.size());
-      running.forEach((qhp, job) -> {
-        RunningCompaction rc = new RunningCompaction(job,
-            ExternalCompactionUtil.getHostPortString(qhp.getSecond()), qhp.getFirst());
+      running.forEach(rc -> {
         TCompactionStatusUpdate update = new TCompactionStatusUpdate();
         update.setState(TCompactionState.IN_PROGRESS);
         update.setMessage("Coordinator restarted, compaction found in progress");
         rc.addUpdate(System.currentTimeMillis(), update);
-        RUNNING.put(ExternalCompactionId.of(job.getExternalCompactionId()), rc);
+        RUNNING.put(ExternalCompactionId.of(rc.getJob().getExternalCompactionId()), rc);
       });
     }
 

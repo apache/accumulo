@@ -38,7 +38,6 @@ import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
@@ -51,12 +50,12 @@ import org.slf4j.LoggerFactory;
 
 public class ExternalCompactionUtil {
 
-  private static class RunningCompactionInformation {
+  private static class RunningCompactionFuture {
     private final String queue;
     private final HostAndPort compactor;
     private final Future<TExternalCompactionJob> future;
 
-    public RunningCompactionInformation(String queue, HostAndPort compactor,
+    public RunningCompactionFuture(String queue, HostAndPort compactor,
         Future<TExternalCompactionJob> future) {
       super();
       this.queue = queue;
@@ -75,14 +74,6 @@ public class ExternalCompactionUtil {
     public Future<TExternalCompactionJob> getFuture() {
       return future;
     }
-  }
-
-  public static class QueueAndHostAndPort extends Pair<String,HostAndPort> {
-
-    public QueueAndHostAndPort(String queue, HostAndPort hp) {
-      super(queue, hp);
-    }
-
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(ExternalCompactionUtil.class);
@@ -236,31 +227,28 @@ public class ExternalCompactionUtil {
    *          server context
    * @return map of compactor and external compaction jobs
    */
-  public static Map<QueueAndHostAndPort,TExternalCompactionJob>
-      getCompactionsRunningOnCompactors(ClientContext context) {
-
-    final List<RunningCompactionInformation> running = new ArrayList<>();
+  public static List<RunningCompaction> getCompactionsRunningOnCompactors(ClientContext context) {
+    final List<RunningCompactionFuture> rcFutures = new ArrayList<>();
     final ExecutorService executor =
         ThreadPools.createFixedThreadPool(16, "CompactorRunningCompactions", false);
 
     getCompactorAddrs(context).forEach((q, hp) -> {
       hp.forEach(hostAndPort -> {
-        running.add(new RunningCompactionInformation(q, hostAndPort,
+        rcFutures.add(new RunningCompactionFuture(q, hostAndPort,
             executor.submit(() -> getRunningCompaction(hostAndPort, context))));
       });
     });
     executor.shutdown();
 
-    final Map<QueueAndHostAndPort,TExternalCompactionJob> results = new HashMap<>();
-    running.forEach(info -> {
+    final List<RunningCompaction> results = new ArrayList<>();
+    rcFutures.forEach(rcf -> {
       try {
-        TExternalCompactionJob job = info.getFuture().get();
+        TExternalCompactionJob job = rcf.getFuture().get();
         if (null != job && null != job.getExternalCompactionId()) {
-          results.put(new QueueAndHostAndPort(info.getQueue(), info.getCompactor()), job);
+          var compactorAddress = getHostPortString(rcf.getCompactor());
+          results.add(new RunningCompaction(job, compactorAddress, rcf.getQueue()));
         }
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      } catch (ExecutionException e) {
+      } catch (InterruptedException | ExecutionException e) {
         throw new RuntimeException(e);
       }
     });
