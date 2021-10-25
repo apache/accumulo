@@ -249,7 +249,7 @@ public class ExternalCompactionTestUtils {
           client.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
       return running;
     } finally {
-      ThriftUtil.returnClient(client);
+      ThriftUtil.returnClient(client, context);
     }
   }
 
@@ -266,7 +266,7 @@ public class ExternalCompactionTestUtils {
           client.getCompletedCompactions(TraceUtil.traceInfo(), context.rpcCreds());
       return completed;
     } finally {
-      ThriftUtil.returnClient(client);
+      ThriftUtil.returnClient(client, context);
     }
   }
 
