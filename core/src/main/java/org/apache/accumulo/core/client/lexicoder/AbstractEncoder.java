@@ -23,7 +23,7 @@ import static java.util.Objects.requireNonNull;
 
 /**
  * AbstractEncoder is an {@link Encoder} that implements all of Encoder's methods validating the
- * input, but has those methods defer logic to to a new method,
+ * input, but has those methods defer logic to a new method,
  * {@link #decodeUnchecked(byte[], int, int)}.
  *
  * @since 1.7.0
