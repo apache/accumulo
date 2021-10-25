@@ -32,10 +32,9 @@ public interface HighlyAvailableService {
   boolean isActiveService();
 
   /**
-   * Is this service instance is currently in the process of upgrading
+   * Is this service instance currently in the process of upgrading
    *
-   * @return True if the service is the service is upgrading, false otherwise.
+   * @return True if the service is upgrading, false otherwise.
    */
   boolean isUpgrading();
-
 }
