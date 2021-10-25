@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.conf.store.impl;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -25,6 +26,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.conf.store.PropCacheId;
@@ -91,17 +93,16 @@ public class PropStoreWatcher implements Watcher {
   @Override
   public void process(final WatchedEvent event) {
 
-    log.info("ZK event: {} - {}", event, event.getPath());
-
     String path;
     switch (event.getType()) {
       case NodeDataChanged:
         path = event.getPath();
-        log.info("handle change event");
+        log.trace("handle change event for path: {}", path);
         PropCacheId.fromPath(path).ifPresent(this::signalZkChangeEvent);
         break;
       case NodeDeleted:
         path = event.getPath();
+        log.trace("handle delete event for path: {}", path);
         PropCacheId.fromPath(path).ifPresent(cacheId -> {
           // notify listeners
           Set<PropChangeListener> snapshot = getListenerSnapshot(cacheId);
@@ -121,21 +122,26 @@ public class PropStoreWatcher implements Watcher {
           // pause - could reconnect
           case ConnectedReadOnly:
           case Disconnected:
-            log.info("disconnected");
+            log.info("ZooKeeper disconnected event received");
             zkReadyMonitor.clearReady();
+            executorService.submit(new PropStoreEventTask.PropStoreConnectionEventTask(null,
+                getAllListenersSnapshot()));
             break;
 
           // okay
           case SyncConnected:
-            log.info("Connected");
+            log.info("ZooKeeper connected event received");
             zkReadyMonitor.setReady();
             break;
 
           // terminal - never coming back.
           case Expired:
           case Closed:
-            log.info("connection closed");
+            log.info("ZooKeeper connection closed event received");
             zkReadyMonitor.clearReady();
+            zkReadyMonitor.setClosed(); // terminal condition
+            executorService.submit(new PropStoreEventTask.PropStoreConnectionEventTask(null,
+                getAllListenersSnapshot()));
             break;
 
           default:
@@ -157,7 +163,7 @@ public class PropStoreWatcher implements Watcher {
    *          the cache id
    */
   public void signalZkChangeEvent(final PropCacheId propCacheId) {
-    log.info("Zk change event: {}", propCacheId);
+    log.debug("signal ZooKeeper change event: {}", propCacheId);
     Set<PropChangeListener> snapshot = getListenerSnapshot(propCacheId);
     if (Objects.nonNull(snapshot)) {
       executorService
@@ -197,6 +203,14 @@ public class PropStoreWatcher implements Watcher {
     }
   }
 
+  /**
+   * Get an immutable snapshot of the listeners for a prop cache id. The set is intended for
+   * notification of changes for a specific prop cache id.
+   *
+   * @param PropCacheId
+   *          the prop cache id
+   * @return an immutable copy of listeners.
+   */
   private Set<PropChangeListener> getListenerSnapshot(final PropCacheId PropCacheId) {
 
     Set<PropChangeListener> snapshot = null;
@@ -211,5 +225,26 @@ public class PropStoreWatcher implements Watcher {
       listenerReadLock.unlock();
     }
     return snapshot;
+  }
+
+  /**
+   * Get an immutable snapshot of the all listeners registered for event. The set is intended for
+   * connection event notifications that are not specific to an individual prop cache id.
+   *
+   * @return an immutable copy of all registered listeners.
+   */
+  private Set<PropChangeListener> getAllListenersSnapshot() {
+
+    Set<PropChangeListener> snapshot;
+    listenerReadLock.lock();
+    try {
+
+      snapshot = listeners.keySet().stream().flatMap(key -> listeners.get(key).stream())
+          .collect(Collectors.toSet());
+
+    } finally {
+      listenerReadLock.unlock();
+    }
+    return Collections.unmodifiableSet(snapshot);
   }
 }

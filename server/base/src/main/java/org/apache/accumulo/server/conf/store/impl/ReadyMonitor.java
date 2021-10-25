@@ -40,7 +40,8 @@ public class ReadyMonitor {
   private final long timeout;
 
   // used to preserve memory ordering consistency (volatile semantics)
-  private final AtomicBoolean isReady = new AtomicBoolean(false);
+  private final AtomicBoolean haveConnection = new AtomicBoolean(false);
+  private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
   private final ReentrantLock lock = new ReentrantLock();
   private final Condition readySignal = lock.newCondition();
@@ -59,12 +60,16 @@ public class ReadyMonitor {
   }
 
   /**
-   * Non-blocking call to get ready state
+   * Non-blocking call to get ready state. It will throw is the ZooKeeper connection has closed
+   * (non-recoverable condition)
    *
    * @return true if resource is ready, false otherwise
    */
   public boolean test() {
-    return isReady.get();
+    if (isClosed.get()) {
+      throw new IllegalStateException("ZooKeeper has closed the connection - cannot continue");
+    }
+    return haveConnection.get();
   }
 
   /**
@@ -76,12 +81,12 @@ public class ReadyMonitor {
    */
   public void isReady() {
 
-    if (isReady.get()) {
+    if (test()) {
       return;
     }
 
     // loop handles a spurious notification
-    while (!isReady.get()) {
+    while (!haveConnection.get()) {
       try {
         lock.lock();
         if (!readySignal.await(timeout, TimeUnit.MILLISECONDS)) {
@@ -100,6 +105,14 @@ public class ReadyMonitor {
   }
 
   /**
+   * ZooKeeper has closed the connection. This is a terminal state that cannot be recoved from
+   * without creating a new ZooKeeper client.
+   */
+  public void setClosed() {
+    isClosed.set(true);
+  }
+
+  /**
    * Indicate that the resource is ready.
    */
   public void setReady() {
@@ -111,7 +124,7 @@ public class ReadyMonitor {
 
     try {
       lock.lock();
-      isReady.set(true);
+      haveConnection.set(true);
       readySignal.signalAll();
     } finally {
       lock.unlock();
@@ -122,13 +135,13 @@ public class ReadyMonitor {
    * Indicate that resource is NOT available and that calls to {@link #isReady()} should block.
    */
   public void clearReady() {
-    isReady.set(false);
+    haveConnection.set(false);
   }
 
   @Override
   public String toString() {
     return new StringJoiner(", ", ReadyMonitor.class.getSimpleName() + "[", "]")
         .add("resourceName='" + resourceName + "'").add("timeout=" + timeout)
-        .add("isReady=" + isReady).toString();
+        .add("haveConnection=" + haveConnection).toString();
   }
 }

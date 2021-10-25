@@ -35,6 +35,14 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
+/**
+ * Provides a strongly-typed id for storing properties in ZooKeeper. The path is ZooKeeper is
+ * determined by the instance id and the type (system, namespace and table), with different root
+ * paths.
+ * <p>
+ * Provides utility methods from constructing different id based on type and methods to parse a
+ * ZooKeeper path and return a prop cache id.
+ */
 public class PropCacheId implements Comparable<PropCacheId> {
 
   public static final String PROP_NODE_NAME = "encoded_props";
@@ -61,34 +69,91 @@ public class PropCacheId implements Comparable<PropCacheId> {
     this.tableId = tableId;
   }
 
+  /**
+   * Instantiate a system prop cache id using the instance id from the context.
+   *
+   * @param context
+   *          the system context specifying the instance id
+   * @return a prop cache id for system properties,
+   */
   public static PropCacheId forSystem(final ServerContext context) {
     return forSystem(context.getInstanceID());
   }
 
+  /**
+   * Instantiate a system prop cache id.
+   *
+   * @param instanceId
+   *          the instance id.
+   * @return a prop cache id for system properties,
+   */
   public static PropCacheId forSystem(final String instanceId) {
     return new PropCacheId(ZooUtil.getRoot(instanceId) + ZCONFIG + "/" + PROP_NODE_NAME,
         IdType.SYSTEM, null, null);
   }
 
+  /**
+   * Instantiate a namespace prop cache id using the instance id from the context.
+   *
+   * @param context
+   *          the system context specifying the instance id
+   * @param namespaceId
+   *          the namespace id
+   * @return a prop cache id a namespaces properties,
+   */
   public static PropCacheId forNamespace(final ServerContext context,
       final NamespaceId namespaceId) {
     return forNamespace(context.getInstanceID(), namespaceId);
   }
 
+  /**
+   * Instantiate a namespace prop cache id using the instance id from the context.
+   *
+   * @param instanceId
+   *          the instance id
+   * @param namespaceId
+   *          the namespace id
+   * @return a prop cache id a namespaces properties,
+   */
   public static PropCacheId forNamespace(final String instanceId, final NamespaceId namespaceId) {
     return new PropCacheId(ZooUtil.getRoot(instanceId) + ZNAMESPACES + "/" + namespaceId.canonical()
         + ZNAMESPACE_CONF + "/" + PROP_NODE_NAME, IdType.NAMESPACE, namespaceId, null);
   }
 
+  /**
+   * Instantiate a namespace prop cache id using the instance id from the context.
+   *
+   * @param context
+   *          the system context specifying the instance id
+   * @param tableId
+   *          the table id
+   * @return a prop cache id a namespaces properties,
+   */
   public static PropCacheId forTable(final ServerContext context, final TableId tableId) {
     return forTable(context.getInstanceID(), tableId);
   }
 
+  /**
+   * Instantiate a namespace prop cache id using the instance id from the context.
+   *
+   * @param instanceId
+   *          the instance id
+   * @param tableId
+   *          the table id
+   * @return a prop cache id a namespaces properties,
+   */
   public static PropCacheId forTable(final String instanceId, final TableId tableId) {
     return new PropCacheId(ZooUtil.getRoot(instanceId) + ZTABLES + "/" + tableId.canonical()
         + ZTABLE_CONF + "/" + PROP_NODE_NAME, IdType.TABLE, null, tableId);
   }
 
+  /**
+   * Determine the prop cache id from a ZooKeeper path
+   *
+   * @param path
+   *          the path
+   * @return the prop cache id
+   */
   public static Optional<PropCacheId> fromPath(final String path) {
     String[] tokens = path.split("/");
 
@@ -110,9 +175,18 @@ public class PropCacheId implements Comparable<PropCacheId> {
     }
   }
 
+  /**
+   * Determine if the IdType is system, namespace or table from a tokenized path. To be a valid id,
+   * the final token is PROP_NODE_NAME and then the type is defined if the path has table or
+   * namespace in the path, otherwise it is assumed to be system.
+   *
+   * @param tokens
+   *          a path split into String[] of tokens
+   * @return the id type.
+   */
   public static IdType extractType(final String[] tokens) {
-    // have tokens and ends with PROP_NODE_NAME
     if (tokens.length == 0 || !tokens[tokens.length - 1].equals(PROP_NODE_NAME)) {
+      // without tokens or it does not end with PROP_NAME_NAME
       return IdType.UNKNOWN;
     }
     if (tokens[TYPE_TOKEN_POSITION].equals(TABLES_NODE_NAME)) {
@@ -138,10 +212,20 @@ public class PropCacheId implements Comparable<PropCacheId> {
         .compare(this, other);
   }
 
+  /**
+   * If the prop cache is for a namespace, return the namespace id.
+   *
+   * @return the namespace id.
+   */
   public Optional<NamespaceId> getNamespaceId() {
     return Optional.ofNullable(namespaceId);
   }
 
+  /**
+   * if the prop cache is for a table, return the table id.
+   *
+   * @return the table id.
+   */
   public Optional<TableId> getTableId() {
     return Optional.ofNullable(tableId);
   }
@@ -169,7 +253,8 @@ public class PropCacheId implements Comparable<PropCacheId> {
   }
 
   /**
-   * Define types stored in zookeeper - defaults are not in zookeeper but come from code.
+   * Define types of properties stored in zookeeper. Note: default properties are not in zookeeper
+   * but come from code.
    */
   public enum IdType {
     UNKNOWN, SYSTEM, NAMESPACE, TABLE

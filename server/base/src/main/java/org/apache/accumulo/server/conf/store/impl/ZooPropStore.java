@@ -305,20 +305,19 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     if (zkReadyMon.test()) {
       return;
     }
+
+    cache.removeAll();
+
     // not ready block or throw error if it times out.
     try {
       zkReadyMon.isReady();
     } catch (IllegalStateException ex) {
-      cache.removeAll();
       if (Thread.interrupted()) {
         Thread.currentThread().interrupt();
         throw new PropStoreException("Interrupted waiting for ZooKeeper connection", ex);
       }
       throw new PropStoreException("Failed to get zooKeeper connection", ex);
     }
-
-    cache.removeAll();
-
   }
 
   @Override
