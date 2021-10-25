@@ -140,10 +140,10 @@ public class ReplicationClient {
     }
   }
 
-  private static void close(TServiceClient client) {
+  private static void close(TServiceClient client, ClientContext context) {
     if (client != null && client.getInputProtocol() != null
         && client.getInputProtocol().getTransport() != null) {
-      ThriftTransportPool.getInstance().returnTransport(client.getInputProtocol().getTransport());
+      context.getTransportPool().returnTransport(client.getInputProtocol().getTransport());
     } else {
       log.debug("Attempt to close null connection to the remote system", new Exception());
     }
@@ -172,7 +172,7 @@ public class ReplicationClient {
         throw new AccumuloException(e);
       } finally {
         if (client != null)
-          close(client);
+          close(client, context);
       }
     }
 
@@ -195,7 +195,7 @@ public class ReplicationClient {
       throw new AccumuloException(e);
     } finally {
       if (client != null)
-        close(client);
+        close(client, context);
     }
   }
 

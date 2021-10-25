@@ -179,7 +179,7 @@ class LoadFiles extends ManagerRepo {
               log.error(
                   "rpc failed server:" + server + ", tid:" + FateTxId.formatTid(tid) + " " + ex);
             } finally {
-              ThriftUtil.returnClient(client);
+              ThriftUtil.returnClient(client, manager.getContext());
             }
             return null;
           }));

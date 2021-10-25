@@ -177,7 +177,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throw new AccumuloException(e);
     } finally {
       if (client != null)
-        returnClient(client);
+        returnClient(client, context);
     }
   }
 
@@ -207,7 +207,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throw new AccumuloException(e);
     } finally {
       if (client != null)
-        returnClient(client);
+        returnClient(client, context);
     }
   }
 

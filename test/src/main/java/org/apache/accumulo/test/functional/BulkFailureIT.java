@@ -268,7 +268,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
         throw tae;
       }
     } finally {
-      ThriftUtil.returnClient((TServiceClient) client);
+      ThriftUtil.returnClient((TServiceClient) client, context);
     }
   }
 
@@ -293,7 +293,7 @@ public class BulkFailureIT extends AccumuloClusterHarness {
       }
 
     } finally {
-      ThriftUtil.returnClient((TServiceClient) client);
+      ThriftUtil.returnClient((TServiceClient) client, context);
     }
   }
 

@@ -584,7 +584,7 @@ public class TabletServer extends AbstractServer {
   }
 
   private void returnManagerConnection(ManagerClientService.Client client) {
-    ThriftUtil.returnClient(client);
+    ThriftUtil.returnClient(client, context);
   }
 
   private HostAndPort startTabletClientService() throws UnknownHostException {

@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.coordinator.QueueSummaries.PrioTserver;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
@@ -67,6 +66,7 @@ import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.GarbageCollectionLogger;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
@@ -348,7 +348,7 @@ public class CompactionCoordinator extends AbstractServer
           queuesSeen.add(summary.getQueue());
         });
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, getContext());
       }
     } catch (TException e) {
       LOG.warn("Error getting external compaction summaries from tablet server: {}",
@@ -450,7 +450,7 @@ public class CompactionCoordinator extends AbstractServer
         QUEUE_SUMMARIES.removeSummary(tserver, queue, prioTserver.prio);
         prioTserver = QUEUE_SUMMARIES.getNextTserver(queue);
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, getContext());
       }
     }
 
@@ -476,8 +476,9 @@ public class CompactionCoordinator extends AbstractServer
   protected TabletClientService.Client getTabletServerConnection(TServerInstance tserver)
       throws TTransportException {
     TServerConnection connection = tserverSet.getConnection(tserver);
+    ServerContext serverContext = getContext();
     TTransport transport =
-        ThriftTransportPool.getInstance().getTransport(connection.getAddress(), 0, getContext());
+        serverContext.getTransportPool().getTransport(connection.getAddress(), 0, serverContext);
     return ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
   }
 

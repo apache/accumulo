@@ -105,7 +105,7 @@ public class LiveTServerSet implements Watcher {
         try {
           loadTablet(client, lock, extent);
         } finally {
-          ThriftUtil.returnClient(client);
+          ThriftUtil.returnClient(client, context);
         }
       }
     }
@@ -118,7 +118,7 @@ public class LiveTServerSet implements Watcher {
         client.unloadTablet(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock),
             extent.toThrift(), goal, requestTime);
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, context);
       }
     }
 
@@ -148,7 +148,7 @@ public class LiveTServerSet implements Watcher {
       try {
         client.halt(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock));
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, context);
       }
     }
 
@@ -158,7 +158,7 @@ public class LiveTServerSet implements Watcher {
       try {
         client.fastHalt(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock));
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, context);
       }
     }
 
@@ -171,7 +171,7 @@ public class LiveTServerSet implements Watcher {
             tableId.canonical(), startRow == null ? null : ByteBuffer.wrap(startRow),
             endRow == null ? null : ByteBuffer.wrap(endRow));
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, context);
       }
     }
 
@@ -181,7 +181,7 @@ public class LiveTServerSet implements Watcher {
       try {
         client.chop(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock), extent.toThrift());
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, context);
       }
     }
 
@@ -193,7 +193,7 @@ public class LiveTServerSet implements Watcher {
         client.splitTablet(TraceUtil.traceInfo(), context.rpcCreds(), extent.toThrift(),
             ByteBuffer.wrap(splitPoint.getBytes(), 0, splitPoint.getLength()));
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, context);
       }
     }
 
@@ -206,7 +206,7 @@ public class LiveTServerSet implements Watcher {
             startRow == null ? null : ByteBuffer.wrap(startRow),
             endRow == null ? null : ByteBuffer.wrap(endRow));
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, context);
       }
     }
 
@@ -216,7 +216,7 @@ public class LiveTServerSet implements Watcher {
       try {
         return client.isActive(TraceUtil.traceInfo(), tid);
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, context);
       }
     }
 
