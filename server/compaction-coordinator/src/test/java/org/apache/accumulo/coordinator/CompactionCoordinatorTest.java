@@ -24,8 +24,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -50,7 +51,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
-import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil.QueueAndHostAndPort;
+import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
@@ -190,7 +191,7 @@ public class CompactionCoordinatorTest {
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
 
     PowerMock.mockStatic(ExternalCompactionUtil.class);
-    Map<QueueAndHostAndPort,TExternalCompactionJob> runningCompactions = new HashMap<>();
+    List<RunningCompaction> runningCompactions = new ArrayList<>();
     EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
 
@@ -243,7 +244,7 @@ public class CompactionCoordinatorTest {
     EasyMock.expect(context.rpcCreds()).andReturn(creds);
 
     PowerMock.mockStatic(ExternalCompactionUtil.class);
-    Map<QueueAndHostAndPort,TExternalCompactionJob> runningCompactions = new HashMap<>();
+    List<RunningCompaction> runningCompactions = new ArrayList<>();
     EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
 
@@ -322,7 +323,7 @@ public class CompactionCoordinatorTest {
     tservers.startListeningForTabletServerChanges();
 
     PowerMock.mockStatic(ExternalCompactionUtil.class);
-    Map<QueueAndHostAndPort,TExternalCompactionJob> runningCompactions = new HashMap<>();
+    List<RunningCompaction> runningCompactions = new ArrayList<>();
     EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
 
@@ -396,13 +397,13 @@ public class CompactionCoordinatorTest {
     tservers.startListeningForTabletServerChanges();
 
     PowerMock.mockStatic(ExternalCompactionUtil.class);
-    Map<QueueAndHostAndPort,TExternalCompactionJob> runningCompactions = new HashMap<>();
+    List<RunningCompaction> runningCompactions = new ArrayList<>();
     ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
     TExternalCompactionJob job = PowerMock.createNiceMock(TExternalCompactionJob.class);
     EasyMock.expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
     TKeyExtent extent = new TKeyExtent();
     extent.setTable("1".getBytes());
-    runningCompactions.put(new QueueAndHostAndPort("queue", tserverAddress), job);
+    runningCompactions.add(new RunningCompaction(job, tserverAddress.toString(), "queue"));
     EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
 
@@ -411,8 +412,6 @@ public class CompactionCoordinatorTest {
     EasyMock.expect(client.getAddress()).andReturn(address).anyTimes();
 
     EasyMock.expect(instance.getHostPort()).andReturn("localhost:9997").anyTimes();
-    EasyMock.expect(ExternalCompactionUtil.getHostPortString(EasyMock.isA(HostAndPort.class)))
-        .andReturn("localhost:9997");
 
     TabletClientService.Client tsc = PowerMock.createNiceMock(TabletClientService.Client.class);
     TCompactionQueueSummary queueSummary = PowerMock.createNiceMock(TCompactionQueueSummary.class);
@@ -469,7 +468,7 @@ public class CompactionCoordinatorTest {
     EasyMock.expect(context.rpcCreds()).andReturn(creds).anyTimes();
 
     PowerMock.mockStatic(ExternalCompactionUtil.class);
-    Map<QueueAndHostAndPort,TExternalCompactionJob> runningCompactions = new HashMap<>();
+    List<RunningCompaction> runningCompactions = new ArrayList<>();
     EasyMock.expect(ExternalCompactionUtil.getCompactionsRunningOnCompactors(context))
         .andReturn(runningCompactions);
 
