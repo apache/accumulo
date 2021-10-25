@@ -43,7 +43,7 @@ public class CaffeineCache implements PropCache {
   public static final int EXPIRE_MIN = 60;
   private static final Logger log = LoggerFactory.getLogger(CaffeineCache.class);
   private static final Executor executor =
-      ThreadPools.createThreadPool(4, 20, 60, TimeUnit.SECONDS, "cache-refresh", false);
+      ThreadPools.createThreadPool(1, 20, 60, TimeUnit.SECONDS, "cache-refresh", false);
 
   private final PropStoreMetrics metrics;
 

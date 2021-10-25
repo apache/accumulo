@@ -39,7 +39,7 @@ import org.slf4j.LoggerFactory;
 /**
  * This class serves as a translator between ZooKeeper events and converts them to PropStore events.
  * Using this as an intermediary, the external listeners do not need to set / manage external
- * ZooKeeper watchers, they can register a for PropStore events if the need to take active action on
+ * ZooKeeper watchers, they can register for PropStore events if they need to take active action on
  * change detection.
  * <p>
  * Users of the PropStore.get() will get properties that match what is stored in ZooKeeper for each

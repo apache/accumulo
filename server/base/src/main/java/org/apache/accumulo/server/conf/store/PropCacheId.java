@@ -36,7 +36,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
- * Provides a strongly-typed id for storing properties in ZooKeeper. The path is ZooKeeper is
+ * Provides a strongly-typed id for storing properties in ZooKeeper. The path in ZooKeeper is
  * determined by the instance id and the type (system, namespace and table), with different root
  * paths.
  * <p>
