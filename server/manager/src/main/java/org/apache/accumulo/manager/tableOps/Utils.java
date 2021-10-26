@@ -40,6 +40,8 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.accumulo.fate.zookeeper.FateLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReservation;
 import org.apache.accumulo.manager.Manager;
@@ -86,12 +88,12 @@ public class Utils {
   static final Lock tableNameLock = new ReentrantLock();
   static final Lock idLock = new ReentrantLock();
 
-  public static long reserveTable(Manager env, TableId tableId, long tid, boolean writeLock,
-      boolean tableMustExist, TableOperation op) throws Exception {
-    if (getLock(env.getContext(), tableId, tid, writeLock).tryLock()) {
+  public static long reserveTable(Manager manager, TableId tableId, long tid, boolean writeLock,
+      boolean tableMustExist, TableOperation op, boolean cancelWriteLockBlockers) throws Exception {
+    if (getLock(manager, tableId, tid, writeLock, cancelWriteLockBlockers).tryLock()) {
       if (tableMustExist) {
-        ZooReaderWriter zk = env.getContext().getZooReaderWriter();
-        if (!zk.exists(env.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId))
+        ZooReaderWriter zk = manager.getContext().getZooReaderWriter();
+        if (!zk.exists(manager.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId))
           throw new AcceptableThriftTableOperationException(tableId.canonical(), "", op,
               TableOperationExceptionType.NOTFOUND, "Table does not exist");
       }
@@ -102,26 +104,26 @@ public class Utils {
       return 100;
   }
 
-  public static void unreserveTable(Manager env, TableId tableId, long tid, boolean writeLock) {
-    getLock(env.getContext(), tableId, tid, writeLock).unlock();
+  public static void unreserveTable(Manager manager, TableId tableId, long tid, boolean writeLock) {
+    getLock(manager, tableId, tid, writeLock, false).unlock();
     log.info("table {} ({}) unlocked for {}", tableId, Long.toHexString(tid),
         (writeLock ? "write" : "read"));
   }
 
-  public static void unreserveNamespace(Manager env, NamespaceId namespaceId, long id,
+  public static void unreserveNamespace(Manager manager, NamespaceId namespaceId, long id,
       boolean writeLock) {
-    getLock(env.getContext(), namespaceId, id, writeLock).unlock();
+    getLock(manager, namespaceId, id, writeLock, false).unlock();
     log.info("namespace {} ({}) unlocked for {}", namespaceId, Long.toHexString(id),
         (writeLock ? "write" : "read"));
   }
 
-  public static long reserveNamespace(Manager env, NamespaceId namespaceId, long id,
+  public static long reserveNamespace(Manager manager, NamespaceId namespaceId, long id,
       boolean writeLock, boolean mustExist, TableOperation op) throws Exception {
-    if (getLock(env.getContext(), namespaceId, id, writeLock).tryLock()) {
+    if (getLock(manager, namespaceId, id, writeLock, false).tryLock()) {
       if (mustExist) {
-        ZooReaderWriter zk = env.getContext().getZooReaderWriter();
+        ZooReaderWriter zk = manager.getContext().getZooReaderWriter();
         if (!zk.exists(
-            env.getContext().getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId))
+            manager.getContext().getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId))
           throw new AcceptableThriftTableOperationException(namespaceId.canonical(), "", op,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "Namespace does not exist");
       }
@@ -132,12 +134,12 @@ public class Utils {
       return 100;
   }
 
-  public static long reserveHdfsDirectory(Manager env, String directory, long tid)
+  public static long reserveHdfsDirectory(Manager manager, String directory, long tid)
       throws KeeperException, InterruptedException {
-    String resvPath = env.getContext().getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
+    String resvPath = manager.getContext().getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
 
-    ZooReaderWriter zk = env.getContext().getZooReaderWriter();
+    ZooReaderWriter zk = manager.getContext().getZooReaderWriter();
 
     if (ZooReservation.attempt(zk, resvPath, String.format("%016x", tid), "")) {
       return 0;
@@ -145,23 +147,26 @@ public class Utils {
       return 50;
   }
 
-  public static void unreserveHdfsDirectory(Manager env, String directory, long tid)
+  public static void unreserveHdfsDirectory(Manager manager, String directory, long tid)
       throws KeeperException, InterruptedException {
-    String resvPath = env.getContext().getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
+    String resvPath = manager.getContext().getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
-    ZooReservation.release(env.getContext().getZooReaderWriter(), resvPath,
+    ZooReservation.release(manager.getContext().getZooReaderWriter(), resvPath,
         String.format("%016x", tid));
   }
 
-  private static Lock getLock(ServerContext context, AbstractId<?> id, long tid,
-      boolean writeLock) {
+  private static Lock getLock(Manager manager, AbstractId<?> id, long tid,
+      boolean writeLock, boolean cancelWriteLockBlockers) {
     byte[] lockData = String.format("%016x", tid).getBytes(UTF_8);
     var fLockPath =
-        FateLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
-    FateLock qlock = new FateLock(context.getZooReaderWriter(), fLockPath);
-    Lock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
+        FateLock.path(manager.getContext().getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
+    final ZooReaderWriter zrw = manager.getContext().getZooReaderWriter();
+    final String zooFatePath = manager.getZooKeeperRoot() + Constants.ZFATE;
+    ServiceLockPath zooManagerPath = ServiceLock.path(manager.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
+    FateLock qlock = new FateLock(zrw, fLockPath);
+    Lock lock = DistributedReadWriteLock.recoverLock(zrw, zooFatePath, zooManagerPath, cancelWriteLockBlockers, qlock, lockData);
     if (lock == null) {
-      DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, lockData);
+      DistributedReadWriteLock locker = new DistributedReadWriteLock(zrw, zooFatePath, zooManagerPath, cancelWriteLockBlockers, qlock, lockData);
       if (writeLock)
         lock = locker.writeLock();
       else
@@ -178,8 +183,8 @@ public class Utils {
     return tableNameLock;
   }
 
-  public static Lock getReadLock(Manager env, AbstractId<?> id, long tid) {
-    return Utils.getLock(env.getContext(), id, tid, false);
+  public static Lock getReadLock(Manager manager, AbstractId<?> id, long tid) {
+    return Utils.getLock(manager, id, tid, false, false);
   }
 
   public static void checkNamespaceDoesNotExist(ServerContext context, String namespace,
