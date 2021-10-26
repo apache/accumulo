@@ -203,6 +203,6 @@ public class VerifyTabletAssignments {
 
     client.closeMultiScan(tinfo, is.scanID);
 
-    ThriftUtil.returnClient((TServiceClient) client);
+    ThriftUtil.returnClient((TServiceClient) client, context);
   }
 }

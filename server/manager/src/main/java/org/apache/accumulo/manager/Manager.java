@@ -52,7 +52,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Tables;
-import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
@@ -382,8 +381,7 @@ public class Manager extends AbstractServer
     log.info("Version {}", Constants.VERSION);
     log.info("Instance {}", getInstanceID());
     timeKeeper = new ManagerTime(this, aconf);
-    ThriftTransportPool.getInstance()
-        .setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+    context.getTransportPool().setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     tserverSet = new LiveTServerSet(context, this);
     initializeBalancer();
 

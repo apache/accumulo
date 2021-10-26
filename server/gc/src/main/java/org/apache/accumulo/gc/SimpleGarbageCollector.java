@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
@@ -98,7 +99,6 @@ import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.apache.htrace.impl.ProbabilitySampler;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -117,8 +117,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollector.class);
+
   private final GCStatus status =
       new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
+
   private final GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
 
   SimpleGarbageCollector(ServerOpts opts, String[] args) {
@@ -197,7 +199,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     }
 
     @Override
-    public Iterator<String> getCandidates() throws TableNotFoundException {
+    public Iterator<String> getCandidates() {
       return getContext().getAmple().getGcCandidates(level);
     }
 
@@ -310,7 +312,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
               // volume switching when something needs to be deleted. Since the rest of the code
               // uses suffixes to compare delete entries, there is no danger
               // of deleting something that should not be deleted. Must not change value of delete
-              // variable because thats whats stored in metadata table.
+              // variable because that's what's stored in metadata table.
               log.debug("Volume replaced {} -> {}", delete, switchedDelete);
               fullPath = TabletFileUtil.validate(switchedDelete);
             } else {
@@ -479,7 +481,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         TraceUtil.probabilitySampler(getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
 
     // This is created outside of the run loop and passed to the walogCollector so that
-    // only a single timed task is created (internal to LiveTServerSet using SimpleTimer.
+    // only a single timed task is created (internal to LiveTServerSet) using SimpleTimer.
     final LiveTServerSet liveTServerSet =
         new LiveTServerSet(getContext(), (current, deleted, added) -> {
           log.debug("Number of current servers {}, tservers added {}, removed {}",
@@ -491,8 +493,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         });
 
     while (true) {
-      try (TraceScope gcOuterSpan = Trace.startSpan("gc", sampler)) {
-        try (TraceScope gcSpan = Trace.startSpan("loop")) {
+      try (var ignored = Trace.startSpan("gc", sampler)) {
+        try (var ignored1 = Trace.startSpan("loop")) {
           final long tStart = System.nanoTime();
           try {
             System.gc(); // make room
@@ -526,7 +528,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
            * are no longer referenced in the metadata table before running
            * GarbageCollectWriteAheadLogs to ensure we delete as many files as possible.
            */
-          try (TraceScope replSpan = Trace.startSpan("replicationClose")) {
+          try (var ignored2 = Trace.startSpan("replicationClose")) {
             CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(getContext());
             closeWals.run();
           } catch (Exception e) {
@@ -534,7 +536,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           }
 
           // Clean up any unused write-ahead logs
-          try (TraceScope waLogs = Trace.startSpan("walogs")) {
+          try (var ignored2 = Trace.startSpan("walogs")) {
             GarbageCollectWriteAheadLogs walogCollector =
                 new GarbageCollectWriteAheadLogs(getContext(), fs, liveTServerSet, isUsingTrash());
             log.info("Beginning garbage collection of write-ahead logs");
@@ -695,8 +697,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       List<String> processedDeletes, VolumeManager fs) {
     Set<Path> seenVolumes = new HashSet<>();
 
-    // when deleting a dir and all files in that dir, only need to delete the dir
-    // the dir will sort right before the files... so remove the files in this case
+    // when deleting a dir and all files in that dir, only need to delete the dir.
+    // The dir will sort right before the files... so remove the files in this case
     // to minimize namenode ops
     Iterator<Entry<String,String>> cdIter = confirmedDeletes.entrySet().iterator();
 
@@ -728,7 +730,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
               }
             }
           } else {
-            sameVol = FileType.TABLE.getVolume(lastDirAbs).equals(vol);
+            sameVol = Objects.equals(FileType.TABLE.getVolume(lastDirAbs), vol);
           }
 
           if (sameVol) {
