@@ -36,5 +36,7 @@ public interface HighlyAvailableService {
    *
    * @return True if the service is upgrading, false otherwise.
    */
-  boolean isUpgrading();
+  default boolean isUpgrading() {
+    return false;
+  }
 }

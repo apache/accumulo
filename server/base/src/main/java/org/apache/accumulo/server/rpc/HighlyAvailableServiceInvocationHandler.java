@@ -47,14 +47,17 @@ public class HighlyAvailableServiceInvocationHandler<I> implements InvocationHan
 
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+
+    // If the service is upgrading, throw an exception
+    if (service.isUpgrading()) {
+      throw new ThriftNotActiveServiceException(service.toString(),
+          "Service can not be accessed while it is upgrading");
+    }
+
     // If the service is not active, throw an exception
     if (!service.isActiveService()) {
-      if (!service.isUpgrading()) {
-        LOG.trace("Denying access to RPC service as this instance is not the active instance.");
-        throw new ThriftNotActiveServiceException();
-      }
-      LOG.warn("Cannot access service while it is upgrading.");
-      return null;
+      throw new ThriftNotActiveServiceException(service.toString(),
+          "Denying access to RPC service as this instance is not the active instance");
     }
     try {
       // Otherwise, call the real method
