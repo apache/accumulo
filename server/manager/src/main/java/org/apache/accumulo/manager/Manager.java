@@ -1125,6 +1125,7 @@ public class Manager extends AbstractServer
       if (null != upgradeMetadataFuture) {
         upgradeMetadataFuture.get();
       }
+      // Everything is fully upgraded by this point.
       managerUpgrading.set(false);
     } catch (ExecutionException | InterruptedException e) {
       throw new IllegalStateException("Metadata upgrade failed", e);
@@ -1213,8 +1214,7 @@ public class Manager extends AbstractServer
     // checking stored user hashes if any of them uses an outdated algorithm
     security.validateStoredUserCreditentials();
 
-    // The manager is fully initialized and upgraded. Clients are allowed to connect now.
-    managerUpgrading.set(false);
+    // The manager is fully initialized. Clients are allowed to connect now.
     managerInitialized.set(true);
 
     while (clientService.isServing()) {
