@@ -58,7 +58,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>{@link #METRICS_FATE_TYPE_IN_PROGRESS}</td>
  * <td>Gauge</td>
  * <td>Previously there was a metric per operation type with the count of in-progress transactions
- * of that type. Now there is one metric and the type is in the tag OpType</td>
+ * of that type. Now there is one metric and the type is in the tag op.type</td>
  * </tr>
  * <tr>
  * <td>totalFateOps</td>

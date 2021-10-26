@@ -45,7 +45,7 @@ public class FateMetrics implements MetricsProducer {
   // limit calls to update fate counters to guard against hammering zookeeper.
   private static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(5);
 
-  private static final String OP_TYPE_TAG = "OpType";
+  private static final String OP_TYPE_TAG = "op.type";
 
   private final ServerContext context;
   private final ReadOnlyTStore<FateMetrics> zooStore;
