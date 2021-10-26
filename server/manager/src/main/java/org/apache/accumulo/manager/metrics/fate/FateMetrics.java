@@ -35,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tags;
 
 public class FateMetrics implements MetricsProducer {
@@ -44,12 +45,14 @@ public class FateMetrics implements MetricsProducer {
   // limit calls to update fate counters to guard against hammering zookeeper.
   private static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(5);
 
+  private static final String OP_TYPE_TAG = "OpType";
+
   private final ServerContext context;
   private final ReadOnlyTStore<FateMetrics> zooStore;
   private final String fateRootPath;
   private final long refreshDelay;
 
-  private AtomicLong currentOpsGauge;
+  private AtomicLong totalCurrentOpsGauge;
   private AtomicLong totalOpsGauge;
   private AtomicLong fateErrorsGauge;
   private AtomicLong newTxGauge;
@@ -81,16 +84,16 @@ public class FateMetrics implements MetricsProducer {
   /**
    * For testing only: force refresh delay, over riding the enforced minimum.
    */
-  public void overrideRefresh() {
-    update();
+  public void overrideRefresh(MeterRegistry registry) {
+    update(registry);
   }
 
-  public void update() {
+  private void update(MeterRegistry registry) {
 
     FateMetricValues metricValues =
         FateMetricValues.getFromZooKeeper(context, fateRootPath, zooStore);
 
-    currentOpsGauge.set(metricValues.getCurrentFateOps());
+    totalCurrentOpsGauge.set(metricValues.getCurrentFateOps());
     totalOpsGauge.set(metricValues.getZkFateChildOpsTotal());
     fateErrorsGauge.set(metricValues.getZkConnectionErrors());
 
@@ -118,12 +121,16 @@ public class FateMetrics implements MetricsProducer {
           log.warn("Unhandled status type: {}", vals.getKey());
       }
     }
+
+    metricValues.getOpTypeCounters().forEach((name, count) -> {
+      Metrics.gauge(METRICS_FATE_CURRENT_OPS, Tags.of(OP_TYPE_TAG, name), count);
+    });
   }
 
   @Override
-  public void registerMetrics(MeterRegistry registry) {
-    currentOpsGauge =
-        registry.gauge(METRICS_FATE_CURRENT_OPS, MetricsUtil.getCommonTags(), new AtomicLong(0));
+  public void registerMetrics(final MeterRegistry registry) {
+    totalCurrentOpsGauge = registry.gauge(METRICS_FATE_TOTAL_CURRENT_OPS,
+        MetricsUtil.getCommonTags(), new AtomicLong(0));
     totalOpsGauge =
         registry.gauge(METRICS_FATE_TOTAL_OPS, MetricsUtil.getCommonTags(), new AtomicLong(0));
     fateErrorsGauge = registry.gauge(METRICS_FATE_ERRORS,
@@ -142,7 +149,7 @@ public class FateMetrics implements MetricsProducer {
     unknownTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
         "state", ReadOnlyTStore.TStatus.UNKNOWN.name().toLowerCase()), new AtomicLong(0));
 
-    update();
+    update(registry);
 
     // get fate status is read only operation - no reason to be nice on shutdown.
     ScheduledExecutorService scheduler =
@@ -151,7 +158,7 @@ public class FateMetrics implements MetricsProducer {
 
     scheduler.scheduleAtFixedRate(() -> {
       try {
-        update();
+        update(registry);
       } catch (Exception ex) {
         log.info("Failed to update fate metrics due to exception", ex);
       }
