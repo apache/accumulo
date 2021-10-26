@@ -93,8 +93,7 @@ public class MetricsUtil {
       };
 
       Class<? extends MeterRegistryFactory> clazz =
-          (Class<? extends MeterRegistryFactory>) ClassLoaderUtil.loadClass(factoryClass,
-              MeterRegistryFactory.class);
+          ClassLoaderUtil.loadClass(factoryClass, MeterRegistryFactory.class);
       MeterRegistryFactory factory = clazz.getDeclaredConstructor().newInstance();
 
       MeterRegistry registry = factory.create();

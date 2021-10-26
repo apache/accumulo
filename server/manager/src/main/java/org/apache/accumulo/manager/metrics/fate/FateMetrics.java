@@ -81,14 +81,7 @@ public class FateMetrics implements MetricsProducer {
 
   }
 
-  /**
-   * For testing only: force refresh delay, over riding the enforced minimum.
-   */
-  public void overrideRefresh(MeterRegistry registry) {
-    update(registry);
-  }
-
-  private void update(MeterRegistry registry) {
+  private void update() {
 
     FateMetricValues metricValues =
         FateMetricValues.getFromZooKeeper(context, fateRootPath, zooStore);
@@ -115,10 +108,9 @@ public class FateMetrics implements MetricsProducer {
           successfulTxGauge.set(vals.getValue());
           break;
         case UNKNOWN:
-          unknownTxGauge.set(vals.getValue());
-          break;
         default:
           log.warn("Unhandled status type: {}", vals.getKey());
+          unknownTxGauge.set(vals.getValue());
       }
     }
 
@@ -149,7 +141,7 @@ public class FateMetrics implements MetricsProducer {
     unknownTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
         "state", ReadOnlyTStore.TStatus.UNKNOWN.name().toLowerCase()), new AtomicLong(0));
 
-    update(registry);
+    update();
 
     // get fate status is read only operation - no reason to be nice on shutdown.
     ScheduledExecutorService scheduler =
@@ -158,7 +150,7 @@ public class FateMetrics implements MetricsProducer {
 
     scheduler.scheduleAtFixedRate(() -> {
       try {
-        update(registry);
+        update();
       } catch (Exception ex) {
         log.info("Failed to update fate metrics due to exception", ex);
       }
