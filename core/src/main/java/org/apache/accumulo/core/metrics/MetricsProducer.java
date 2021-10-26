@@ -48,14 +48,14 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>currentFateOps</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_FATE_TOTAL_CURRENT_OPS}</td>
+ * <td>{@link #METRICS_FATE_TOTAL_IN_PROGRESS}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
  * <tr>
  * <td>FateTxOpType_{name}</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_FATE_CURRENT_OPS}</td>
+ * <td>{@link #METRICS_FATE_TYPE_IN_PROGRESS}</td>
  * <td>Gauge</td>
  * <td>Previously there was a metric per operation type with the count of in-progress transactions
  * of that type. Now there is one metric and the type is in the tag OpType</td>
@@ -63,7 +63,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <tr>
  * <td>totalFateOps</td>
  * <td>Gauge</td>
- * <td>{@link #METRICS_FATE_TOTAL_OPS}</td>
+ * <td>{@link #METRICS_FATE_OPS_ACTIVITY}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
@@ -511,9 +511,9 @@ public interface MetricsProducer {
   Logger LOG = LoggerFactory.getLogger(MetricsProducer.class);
 
   String METRICS_FATE_PREFIX = "accumulo.fate.";
-  String METRICS_FATE_CURRENT_OPS = METRICS_FATE_PREFIX + "ops.current";
-  String METRICS_FATE_TOTAL_CURRENT_OPS = METRICS_FATE_PREFIX + "ops.total.current";
-  String METRICS_FATE_TOTAL_OPS = METRICS_FATE_PREFIX + "ops.total";
+  String METRICS_FATE_TYPE_IN_PROGRESS = METRICS_FATE_PREFIX + "ops.in_progress_by_type";
+  String METRICS_FATE_TOTAL_IN_PROGRESS = METRICS_FATE_PREFIX + "ops.in_progress";
+  String METRICS_FATE_OPS_ACTIVITY = METRICS_FATE_PREFIX + "ops.activity";
   String METRICS_FATE_ERRORS = METRICS_FATE_PREFIX + "errors";
   String METRICS_FATE_TX = METRICS_FATE_PREFIX + "tx";
 

@@ -123,16 +123,16 @@ public class FateMetrics implements MetricsProducer {
     }
 
     metricValues.getOpTypeCounters().forEach((name, count) -> {
-      Metrics.gauge(METRICS_FATE_CURRENT_OPS, Tags.of(OP_TYPE_TAG, name), count);
+      Metrics.gauge(METRICS_FATE_TYPE_IN_PROGRESS, Tags.of(OP_TYPE_TAG, name), count);
     });
   }
 
   @Override
   public void registerMetrics(final MeterRegistry registry) {
-    totalCurrentOpsGauge = registry.gauge(METRICS_FATE_TOTAL_CURRENT_OPS,
+    totalCurrentOpsGauge = registry.gauge(METRICS_FATE_TOTAL_IN_PROGRESS,
         MetricsUtil.getCommonTags(), new AtomicLong(0));
     totalOpsGauge =
-        registry.gauge(METRICS_FATE_TOTAL_OPS, MetricsUtil.getCommonTags(), new AtomicLong(0));
+        registry.gauge(METRICS_FATE_OPS_ACTIVITY, MetricsUtil.getCommonTags(), new AtomicLong(0));
     fateErrorsGauge = registry.gauge(METRICS_FATE_ERRORS,
         Tags.concat(MetricsUtil.getCommonTags(), "type", "zk.connection"), new AtomicLong(0));
     newTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(), "state",
