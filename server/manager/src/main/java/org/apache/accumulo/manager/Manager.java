@@ -1048,7 +1048,7 @@ public class Manager extends AbstractServer
     if (!upgradeCoordinator.getStatus().equals(UpgradeCoordinator.UpgradeStatus.COMPLETE)) {
       managerUpgrading.set(true);
     }
-    
+
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
           sa.getAddress());
