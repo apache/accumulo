@@ -192,7 +192,7 @@ public class TabletServerResource {
         }
         historical = client.getHistoricalStats(TraceUtil.traceInfo(), context.rpcCreds());
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, context);
       }
     } catch (Exception e) {
       return null;

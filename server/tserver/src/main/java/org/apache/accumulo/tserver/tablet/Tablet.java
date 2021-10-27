@@ -208,17 +208,26 @@ public class Tablet {
 
   private final TabletStatsKeeper timer = new TabletStatsKeeper();
 
-  private final Rate queryRate = new Rate(0.95);
-  private long queryCount = 0;
-
-  private final Rate queryByteRate = new Rate(0.95);
-  private long queryBytes = 0;
-
-  private final Rate ingestRate = new Rate(0.95);
+  /**
+   * Counts are maintained in this object and reported out with the Micrometer metrics via
+   * TabletServerMetricsUtil
+   */
+  private long lookupCount = 0;
+  private long queryResultCount = 0;
+  private long queryResultBytes = 0;
   private long ingestCount = 0;
-
-  private final Rate ingestByteRate = new Rate(0.95);
   private long ingestBytes = 0;
+  private final AtomicLong scannedCount = new AtomicLong(0);
+
+  /**
+   * Rates are calculated here in the Tablet for use in the Monitor but we do not emit them as
+   * metrics. Rates can be calculated from the "Count" metrics above by downstream systems.
+   */
+  private final Rate queryRate = new Rate(0.95);
+  private final Rate queryByteRate = new Rate(0.95);
+  private final Rate ingestRate = new Rate(0.95);
+  private final Rate ingestByteRate = new Rate(0.95);
+  private final Rate scannedRate = new Rate(0.95);
 
   private final Deriver<byte[]> defaultSecurityLabel;
 
@@ -227,9 +236,6 @@ public class Tablet {
 
   private volatile long numEntries = 0;
   private volatile long numEntriesInMemory = 0;
-
-  private final Rate scannedRate = new Rate(0.95);
-  private final AtomicLong scannedCount = new AtomicLong(0);
 
   // Files that are currently in the process of bulk importing. Access to this is protected by the
   // tablet lock.
@@ -663,6 +669,7 @@ public class Tablet {
 
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
+      lookupCount++;
       result = lookup(iter, ranges, results, scanParams, maxResultSize);
       return result;
     } catch (IOException ioe) {
@@ -674,9 +681,9 @@ public class Tablet {
       dataSource.close(false);
 
       synchronized (this) {
-        queryCount += results.size();
+        queryResultCount += results.size();
         if (result != null) {
-          queryBytes += result.dataSize;
+          queryResultBytes += result.dataSize;
         }
       }
     }
@@ -1774,18 +1781,34 @@ public class Tablet {
     return scannedRate.rate();
   }
 
-  public long totalQueries() {
-    return this.queryCount;
+  public long totalQueriesResults() {
+    return this.queryResultCount;
   }
 
   public long totalIngest() {
     return this.ingestCount;
   }
 
+  public long totalIngestBytes() {
+    return this.ingestBytes;
+  }
+
+  public long totalQueryResultsBytes() {
+    return this.queryResultBytes;
+  }
+
+  public long totalScannedCount() {
+    return this.scannedCount.get();
+  }
+
+  public long totalLookupCount() {
+    return this.lookupCount;
+  }
+
   // synchronized?
   public void updateRates(long now) {
-    queryRate.update(now, queryCount);
-    queryByteRate.update(now, queryBytes);
+    queryRate.update(now, queryResultCount);
+    queryByteRate.update(now, queryResultBytes);
     ingestRate.update(now, ingestCount);
     ingestByteRate.update(now, ingestBytes);
     scannedRate.update(now, scannedCount.get());
@@ -2140,8 +2163,8 @@ public class Tablet {
   }
 
   public synchronized void updateQueryStats(int size, long numBytes) {
-    queryCount += size;
-    queryBytes += numBytes;
+    queryResultCount += size;
+    queryResultBytes += numBytes;
   }
 
   public void updateTimer(Operation operation, long queued, long start, long count,

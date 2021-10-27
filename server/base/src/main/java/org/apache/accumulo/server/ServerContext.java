@@ -338,7 +338,7 @@ public class ServerContext extends ClientContext {
         /* Unwrap the UnknownHostException so we can deal with it directly */
         if (e.getCause() instanceof UnknownHostException) {
           if (unknownHostTries > 0) {
-            log.warn("Unable to connect to HDFS, will retry. cause: {}", e.getCause());
+            log.warn("Unable to connect to HDFS, will retry. cause: ", e.getCause());
             /*
              * We need to make sure our sleep period is long enough to avoid getting a cached
              * failure of the host lookup.
@@ -398,7 +398,7 @@ public class ServerContext extends ClientContext {
       }
     }
 
-    monitorSwappiness(conf);
+    monitorSwappiness();
 
     // Encourage users to configure TLS
     final String SSL = "SSL";
@@ -411,7 +411,7 @@ public class ServerContext extends ClientContext {
     }
   }
 
-  private void monitorSwappiness(AccumuloConfiguration config) {
+  private void monitorSwappiness() {
     getScheduledExecutor().scheduleWithFixedDelay(() -> {
       try {
         String procFile = "/proc/sys/vm/swappiness";

@@ -135,7 +135,7 @@ public class ExternalCompactionUtil {
     } catch (TException e) {
       LOG.debug("Failed to contact compactor {}", compactor, e);
     } finally {
-      ThriftUtil.returnClient(client);
+      ThriftUtil.returnClient(client, context);
     }
     return List.of();
   }
@@ -164,7 +164,7 @@ public class ExternalCompactionUtil {
     } catch (TException e) {
       LOG.debug("Failed to contact compactor {}", compactorAddr, e);
     } finally {
-      ThriftUtil.returnClient(client);
+      ThriftUtil.returnClient(client, context);
     }
     return null;
   }
@@ -181,7 +181,7 @@ public class ExternalCompactionUtil {
     } catch (TException e) {
       LOG.debug("Failed to contact compactor {}", compactorAddr, e);
     } finally {
-      ThriftUtil.returnClient(client);
+      ThriftUtil.returnClient(client, context);
     }
     return null;
   }

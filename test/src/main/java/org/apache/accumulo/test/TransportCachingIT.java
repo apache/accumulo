@@ -68,7 +68,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
       // only want to use one server for all subsequent test
       servers = servers.subList(0, 1);
 
-      ThriftTransportPool pool = ThriftTransportPool.getInstance();
+      ThriftTransportPool pool = context.getTransportPool();
       TTransport first = getAnyTransport(servers, pool, true);
 
       assertNotNull(first);

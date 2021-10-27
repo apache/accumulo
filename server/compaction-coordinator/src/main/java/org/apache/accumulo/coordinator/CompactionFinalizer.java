@@ -137,7 +137,7 @@ public class CompactionFinalizer {
     } catch (TException e) {
       LOG.warn("Failed to notify tserver {}", loc.getHostAndPort(), e);
     } finally {
-      ThriftUtil.returnClient(client);
+      ThriftUtil.returnClient(client, context);
     }
   }
 

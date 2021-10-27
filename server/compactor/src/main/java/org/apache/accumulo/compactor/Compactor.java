@@ -58,6 +58,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
@@ -315,7 +316,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     final CompactorService.Processor<Iface> processor = new CompactorService.Processor<>(rpcProxy);
     Property maxMessageSizeProperty = (aconf.get(Property.COMPACTOR_MAX_MESSAGE_SIZE) != null
         ? Property.COMPACTOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
-    ServerAddress sp = TServerUtils.startServer(getMetricsSystem(), getContext(), getHostname(),
+    ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
         Property.COMPACTOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.COMPACTOR_PORTSEARCH, Property.COMPACTOR_MINTHREADS,
         Property.COMPACTOR_MINTHREADS_TIMEOUT, Property.COMPACTOR_THREADCHECK,
@@ -367,7 +368,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
                   System.currentTimeMillis());
               return "";
             } finally {
-              ThriftUtil.returnClient(coordinatorClient);
+              ThriftUtil.returnClient(coordinatorClient, getContext());
             }
           }
         });
@@ -394,7 +395,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
                   job.getExternalCompactionId(), job.extent);
               return "";
             } finally {
-              ThriftUtil.returnClient(coordinatorClient);
+              ThriftUtil.returnClient(coordinatorClient, getContext());
             }
           }
         });
@@ -423,7 +424,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
                   job.getExternalCompactionId(), job.extent, stats);
               return "";
             } finally {
-              ThriftUtil.returnClient(coordinatorClient);
+              ThriftUtil.returnClient(coordinatorClient, getContext());
             }
           }
         });
@@ -458,7 +459,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
                   currentCompactionId.set(null);
                   throw e;
                 } finally {
-                  ThriftUtil.returnClient(coordinatorClient);
+                  ThriftUtil.returnClient(coordinatorClient, getContext());
                 }
               }
             });
@@ -620,7 +621,14 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     try {
       announceExistence(clientAddress);
     } catch (KeeperException | InterruptedException e) {
-      throw new RuntimeException("Erroring registering in ZooKeeper", e);
+      throw new RuntimeException("Error registering compactor in ZooKeeper", e);
+    }
+
+    try {
+      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
+          clientAddress);
+    } catch (Exception e1) {
+      LOG.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
 
     LOG.info("Compactor started, waiting for work");

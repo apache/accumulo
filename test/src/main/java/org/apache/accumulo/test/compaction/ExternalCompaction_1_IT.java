@@ -24,23 +24,17 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -69,7 +63,6 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState.FinalState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -85,9 +78,6 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.miniclusterImpl.ProcessReference;
-import org.apache.commons.io.input.Tailer;
-import org.apache.commons.io.input.TailerListenerAdapter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -520,97 +510,6 @@ public class ExternalCompaction_1_IT extends AccumuloClusterHarness
 
     } finally {
       ExternalCompactionUtils.stopProcesses(c1, coord);
-    }
-  }
-
-  private static Optional<String> extract(String input, String regex) {
-    Pattern pattern = Pattern.compile(regex);
-    Matcher matcher = pattern.matcher(input);
-    if (matcher.matches()) {
-      return Optional.of(matcher.group(1));
-    }
-
-    return Optional.empty();
-  }
-
-  @Test
-  public void testMetrics() throws Exception {
-    Collection<ProcessReference> tservers =
-        ((MiniAccumuloClusterImpl) getCluster()).getProcesses().get(ServerType.TABLET_SERVER);
-    assertEquals(2, tservers.size());
-    // kill one tserver so that queue metrics are not spread across tservers
-    ((MiniAccumuloClusterImpl) getCluster()).killProcess(TABLET_SERVER, tservers.iterator().next());
-    ProcessInfo c1 = null, c2 = null, coord = null;
-    String[] names = getUniqueNames(2);
-    try (final AccumuloClient client =
-        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
-      String table1 = names[0];
-      ExternalCompactionUtils.createTable(client, table1, "cs1", 5);
-
-      String table2 = names[1];
-      ExternalCompactionUtils.createTable(client, table2, "cs2", 10);
-
-      ExternalCompactionUtils.writeData(client, table1);
-      ExternalCompactionUtils.writeData(client, table2);
-
-      LinkedBlockingQueue<String> queueMetrics = new LinkedBlockingQueue<>();
-
-      Tailer tailer =
-          Tailer.create(new File("./target/tserver.metrics"), new TailerListenerAdapter() {
-            @Override
-            public void handle(final String line) {
-              extract(line, ".*(DCQ1_queued=[0-9]+).*").ifPresent(queueMetrics::add);
-              extract(line, ".*(DCQ2_queued=[0-9]+).*").ifPresent(queueMetrics::add);
-            }
-          });
-
-      ExternalCompactionUtils.compact(client, table1, 7, "DCQ1", false);
-      ExternalCompactionUtils.compact(client, table2, 13, "DCQ2", false);
-
-      boolean sawDCQ1_5 = false;
-      boolean sawDCQ2_10 = false;
-
-      // wait until expected number of queued are seen in metrics
-      while (!sawDCQ1_5 || !sawDCQ2_10) {
-        String qm = queueMetrics.take();
-        sawDCQ1_5 |= qm.equals("DCQ1_queued=5");
-        sawDCQ2_10 |= qm.equals("DCQ2_queued=10");
-      }
-
-      // start compactors
-      c1 = ((MiniAccumuloClusterImpl) getCluster()).exec(Compactor.class, "-q", "DCQ1");
-      c2 = ((MiniAccumuloClusterImpl) getCluster()).exec(Compactor.class, "-q", "DCQ2");
-      coord = ((MiniAccumuloClusterImpl) getCluster()).exec(CompactionCoordinator.class);
-
-      boolean sawDCQ1_0 = false;
-      boolean sawDCQ2_0 = false;
-
-      // wait until queued goes to zero in metrics
-      while (!sawDCQ1_0 || !sawDCQ2_0) {
-        String qm = queueMetrics.take();
-        sawDCQ1_0 |= qm.equals("DCQ1_queued=0");
-        sawDCQ2_0 |= qm.equals("DCQ2_queued=0");
-      }
-
-      tailer.stop();
-
-      // Wait for all external compactions to complete
-      long count;
-      do {
-        UtilWaitThread.sleep(100);
-        try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
-            .forLevel(DataLevel.USER).fetch(ColumnType.ECOMP).build()) {
-          count = tm.stream().flatMap(t -> t.getExternalCompactions().keySet().stream()).count();
-        }
-      } while (count > 0);
-
-      ExternalCompactionUtils.verify(client, table1, 7);
-      ExternalCompactionUtils.verify(client, table2, 13);
-
-    } finally {
-      ExternalCompactionUtils.stopProcesses(c1, c2, coord);
-      // We stopped the TServer and started our own, restart the original TabletServers
-      ((MiniAccumuloClusterImpl) getCluster()).getClusterControl().start(ServerType.TABLET_SERVER);
     }
   }
 

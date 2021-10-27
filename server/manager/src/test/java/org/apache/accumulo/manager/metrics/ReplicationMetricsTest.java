@@ -19,7 +19,10 @@
 package org.apache.accumulo.manager.metrics;
 
 import java.lang.reflect.Field;
+import java.time.Duration;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
@@ -27,13 +30,13 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.metrics2.lib.MutableQuantiles;
-import org.apache.hadoop.metrics2.lib.MutableStat;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+
 public class ReplicationMetricsTest {
-  private long currentTime = 1000L;
 
   /**
    * Extend the class to override the current time for testing
@@ -43,10 +46,6 @@ public class ReplicationMetricsTest {
       super(manager);
     }
 
-    @Override
-    public long getCurrentTime() {
-      return currentTime;
-    }
   }
 
   @Test
@@ -55,14 +54,23 @@ public class ReplicationMetricsTest {
     ServerContext context = EasyMock.createMock(ServerContext.class);
     VolumeManager fileSystem = EasyMock.createMock(VolumeManager.class);
     ReplicationUtil util = EasyMock.createMock(ReplicationUtil.class);
-    MutableStat stat = EasyMock.createMock(MutableStat.class);
-    MutableQuantiles quantiles = EasyMock.createMock(MutableQuantiles.class);
+    MeterRegistry meterRegistry = EasyMock.createMock(MeterRegistry.class);
+    Timer timer = EasyMock.createMock(Timer.class);
 
     Path path1 = new Path("hdfs://localhost:9000/accumulo/wal/file1");
     Path path2 = new Path("hdfs://localhost:9000/accumulo/wal/file2");
 
     // First call will initialize the map of paths to modification time
     EasyMock.expect(manager.getContext()).andReturn(context).anyTimes();
+    EasyMock.expect(meterRegistry.timer("replicationQueue")).andReturn(timer).anyTimes();
+    EasyMock.expect(meterRegistry.gauge(EasyMock.eq("filesPendingReplication"),
+        EasyMock.anyObject(AtomicLong.class))).andReturn(new AtomicLong(0)).anyTimes();
+    EasyMock
+        .expect(
+            meterRegistry.gauge(EasyMock.eq("numPeers"), EasyMock.anyObject(AtomicInteger.class)))
+        .andReturn(new AtomicInteger(0)).anyTimes();
+    EasyMock.expect(meterRegistry.gauge(EasyMock.eq("maxReplicationThreads"),
+        EasyMock.anyObject(AtomicInteger.class))).andReturn(new AtomicInteger(0)).anyTimes();
     EasyMock.expect(util.getPendingReplicationPaths()).andReturn(Set.of(path1, path2));
     EasyMock.expect(manager.getVolumeManager()).andReturn(fileSystem);
     EasyMock.expect(fileSystem.getFileStatus(path1)).andReturn(createStatus(100));
@@ -72,31 +80,22 @@ public class ReplicationMetricsTest {
     // Second call will recognize the missing path1 and add the latency stat
     EasyMock.expect(util.getPendingReplicationPaths()).andReturn(Set.of(path2));
 
-    // Expect a call to reset the min/max
-    stat.resetMinMax();
+    timer.record(EasyMock.isA(Duration.class));
     EasyMock.expectLastCall();
 
-    // Expect the calls of adding the stats
-    quantiles.add(currentTime - 100);
-    EasyMock.expectLastCall();
-
-    stat.add(currentTime - 100);
-    EasyMock.expectLastCall();
-
-    EasyMock.replay(manager, fileSystem, util, stat, quantiles);
+    EasyMock.replay(manager, fileSystem, util, meterRegistry, timer);
 
     ReplicationMetrics metrics = new ReplicationMetricsTestMetrics(manager);
 
     // Inject our mock objects
     replaceField(metrics, "replicationUtil", util);
-    replaceField(metrics, "replicationQueueTimeQuantiles", quantiles);
-    replaceField(metrics, "replicationQueueTimeStat", stat);
+    replaceField(metrics, "replicationQueueTimer", timer);
 
     // Two calls to this will initialize the map and then add metrics
     metrics.addReplicationQueueTimeMetrics();
     metrics.addReplicationQueueTimeMetrics();
 
-    EasyMock.verify(manager, fileSystem, util, stat, quantiles);
+    EasyMock.verify(manager, fileSystem, util, meterRegistry, timer);
   }
 
   private void replaceField(Object instance, String fieldName, Object target)
