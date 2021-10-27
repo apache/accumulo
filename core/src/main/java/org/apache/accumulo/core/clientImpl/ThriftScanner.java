@@ -131,7 +131,7 @@ public class ThriftScanner {
 
         return isr.result.more;
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, context);
       }
     } catch (TApplicationException tae) {
       throw new AccumuloServerException(server, tae);
@@ -573,7 +573,7 @@ public class ThriftScanner {
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } finally {
-      ThriftUtil.returnClient(client);
+      ThriftUtil.returnClient(client, context);
       Thread.currentThread().setName(old);
     }
   }
@@ -593,7 +593,7 @@ public class ThriftScanner {
         log.debug("Failed to close active scan " + scanState.prevLoc + " " + scanState.scanID, e);
       } finally {
         if (client != null)
-          ThriftUtil.returnClient(client);
+          ThriftUtil.returnClient(client, scanState.context);
       }
     }
   }

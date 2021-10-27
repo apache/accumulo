@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
@@ -62,6 +63,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
@@ -80,7 +82,7 @@ import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockWatcher;
 import org.apache.accumulo.gc.metrics.GcCycleMetrics;
-import org.apache.accumulo.gc.metrics.GcMetricsFactory;
+import org.apache.accumulo.gc.metrics.GcMetrics;
 import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerOpts;
@@ -110,38 +112,22 @@ import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
-// Could/Should implement HighlyAvaialbleService but the Thrift server is already started before
+// Could/Should implement HighlyAvailableService but the Thrift server is already started before
 // the ZK lock is acquired. The server is only for metrics, there are no concerns about clients
 // using the service before the lock is acquired.
 public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollector.class);
 
-  private ServiceLock lock;
-
-  private GCStatus status =
+  private final GCStatus status =
       new GCStatus(new GcCycleStats(), new GcCycleStats(), new GcCycleStats(), new GcCycleStats());
 
-  private GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
-
-  public static void main(String[] args) throws Exception {
-    try (SimpleGarbageCollector gc = new SimpleGarbageCollector(new ServerOpts(), args)) {
-      gc.runServer();
-    }
-  }
+  private final GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
 
   SimpleGarbageCollector(ServerOpts opts, String[] args) {
     super("gc", opts, args);
 
     final AccumuloConfiguration conf = getConfiguration();
-
-    boolean gcMetricsRegistered = new GcMetricsFactory(conf).register(this);
-
-    if (gcMetricsRegistered) {
-      log.info("gc metrics modules registered with metrics system");
-    } else {
-      log.info("Failed to register gc metrics module");
-    }
 
     final long gcDelay = conf.getTimeInMillis(Property.GC_CYCLE_DELAY);
     final String useFullCompaction = conf.get(Property.GC_USE_FULL_COMPACTION);
@@ -152,6 +138,12 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     log.info("candidate batch size: {} bytes", getCandidateBatchSize());
     log.info("delete threads: {}", getNumDeleteThreads());
     log.info("gc post metadata action: {}", useFullCompaction);
+  }
+
+  public static void main(String[] args) throws Exception {
+    try (SimpleGarbageCollector gc = new SimpleGarbageCollector(new ServerOpts(), args)) {
+      gc.runServer();
+    }
   }
 
   /**
@@ -201,14 +193,14 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   private class GCEnv implements GarbageCollectionEnvironment {
 
-    private DataLevel level;
+    private final DataLevel level;
 
     GCEnv(Ample.DataLevel level) {
       this.level = level;
     }
 
     @Override
-    public Iterator<String> getCandidates() throws TableNotFoundException {
+    public Iterator<String> getCandidates() {
       return getContext().getAmple().getGcCandidates(level);
     }
 
@@ -262,7 +254,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
             .checkConsistency().fetch(DIR, FILES, SCANS).build().stream();
       }
 
-      Stream<Reference> refStream = tabletStream.flatMap(tm -> {
+      return tabletStream.flatMap(tm -> {
         Stream<Reference> refs = Stream.concat(tm.getFiles().stream(), tm.getScans().stream())
             .map(f -> new Reference(tm.getTableId(), f.getMetaUpdateDelete(), false));
         if (tm.getDirName() != null) {
@@ -271,8 +263,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         }
         return refs;
       });
-
-      return refStream;
     }
 
     @Override
@@ -323,7 +313,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
               // volume switching when something needs to be deleted. Since the rest of the code
               // uses suffixes to compare delete entries, there is no danger
               // of deleting something that should not be deleted. Must not change value of delete
-              // variable because thats whats stored in metadata table.
+              // variable because that's what's stored in metadata table.
               log.debug("Volume replaced {} -> {}", delete, switchedDelete);
               fullPath = TabletFileUtil.validate(switchedDelete);
             } else {
@@ -388,7 +378,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       deleteThreadPool.shutdown();
 
       try {
-        while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) {}
+        while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) { // empty
+        }
       } catch (InterruptedException e1) {
         log.error("{}", e1.getMessage(), e1);
       }
@@ -402,7 +393,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       // if dir exist and is empty, then empty list is returned...
       // hadoop 2.0 will throw an exception if the file does not exist
       for (String dir : getContext().getTablesDirs()) {
-        FileStatus[] tabletDirs = null;
+        FileStatus[] tabletDirs;
         try {
           tabletDirs = fs.listStatus(new Path(dir + "/" + tableID));
         } catch (FileNotFoundException ex) {
@@ -462,11 +453,20 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     // old data files to be unused
     log.info("Trying to acquire ZooKeeper lock for garbage collector");
 
+    HostAndPort address = startStatsService();
+
     try {
-      getZooLock(startStatsService());
+      getZooLock(address);
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);
       System.exit(1);
+    }
+
+    try {
+      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName, address);
+      MetricsUtil.initializeProducers(new GcMetrics(this));
+    } catch (Exception e1) {
+      log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
 
     try {
@@ -479,7 +479,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     }
 
     // This is created outside of the run loop and passed to the walogCollector so that
-    // only a single timed task is created (internal to LiveTServerSet using SimpleTimer.
+    // only a single timed task is created (internal to LiveTServerSet) using SimpleTimer.
     final LiveTServerSet liveTServerSet =
         new LiveTServerSet(getContext(), (current, deleted, added) -> {
           log.debug("Number of current servers {}, tservers added {}, removed {}",
@@ -581,7 +581,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
               accumuloClient.tableOperations().flush(RootTable.NAME, null, null, true);
               break;
             default:
-              log.trace("\'none - no action\' or invalid value provided: {}", action);
+              log.trace("'none - no action' or invalid value provided: {}", action);
           }
 
           final long actionComplete = System.nanoTime();
@@ -602,6 +602,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         outerSpan.end();
       }
       try {
+
         gcCycleMetrics.incrementRunCycleCount();
         long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
         log.debug("Sleeping for {} milliseconds", gcDelay);
@@ -653,7 +654,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
     UUID zooLockUUID = UUID.randomUUID();
     while (true) {
-      lock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, zooLockUUID);
+      ServiceLock lock =
+          new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(), path, zooLockUUID);
       if (lock.tryLock(lockWatcher,
           new ServerServices(addr.toString(), Service.GC_CLIENT).toString().getBytes())) {
         log.debug("Got GC ZooKeeper lock");
@@ -677,7 +679,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {
-      ServerAddress server = TServerUtils.startTServer(getMetricsSystem(), getConfiguration(),
+      ServerAddress server = TServerUtils.startTServer(getConfiguration(),
           getContext().getThriftServerType(), processor, this.getClass().getSimpleName(),
           "GC Monitor Service", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, maxMessageSize,
           getContext().getServerSslParams(), getContext().getSaslParams(), 0, addresses);
@@ -716,8 +718,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       List<String> processedDeletes, VolumeManager fs) {
     Set<Path> seenVolumes = new HashSet<>();
 
-    // when deleting a dir and all files in that dir, only need to delete the dir
-    // the dir will sort right before the files... so remove the files in this case
+    // when deleting a dir and all files in that dir, only need to delete the dir.
+    // The dir will sort right before the files... so remove the files in this case
     // to minimize namenode ops
     Iterator<Entry<String,String>> cdIter = confirmedDeletes.entrySet().iterator();
 
@@ -749,7 +751,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
               }
             }
           } else {
-            sameVol = FileType.TABLE.getVolume(lastDirAbs).equals(vol);
+            sameVol = Objects.equals(FileType.TABLE.getVolume(lastDirAbs), vol);
           }
 
           if (sameVol) {
@@ -773,4 +775,5 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   public GcCycleMetrics getGcCycleMetrics() {
     return gcCycleMetrics;
   }
+
 }

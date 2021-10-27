@@ -69,7 +69,6 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -649,7 +648,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     }
 
     timeoutTracker.startingScan();
-    TTransport transport = null;
     try {
       final HostAndPort parsedServer = HostAndPort.fromString(server);
       final TabletClientService.Client client;
@@ -756,7 +754,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         client.closeMultiScan(TraceUtil.traceInfo(), imsr.scanID);
 
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, context);
       }
     } catch (TTransportException e) {
       log.debug("Server : {} msg : {}", server, e.getMessage());
@@ -784,8 +782,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       timeoutTracker.errorOccured();
       throw new IOException(e);
-    } finally {
-      ThriftTransportPool.getInstance().returnTransport(transport);
     }
   }
 

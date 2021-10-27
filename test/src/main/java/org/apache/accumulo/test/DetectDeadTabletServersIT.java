@@ -101,7 +101,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         if (client != null) {
-          ManagerClient.close(client);
+          ManagerClient.close(client, context);
         }
       }
     }

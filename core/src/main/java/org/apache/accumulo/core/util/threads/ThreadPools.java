@@ -33,6 +33,7 @@ import java.util.function.IntSupplier;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -243,6 +244,7 @@ public class ThreadPools {
     if (timeOut > 0) {
       result.allowCoreThreadTimeOut(true);
     }
+    MetricsUtil.addExecutorServiceMetrics(result, name);
     return result;
   }
 
@@ -275,58 +277,61 @@ public class ThreadPools {
 
   public static ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
       final String name, OptionalInt priority) {
-    return new ScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory(name, priority)) {
+    ScheduledThreadPoolExecutor result =
+        new ScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory(name, priority)) {
 
-      @Override
-      public void execute(Runnable command) {
-        super.execute(Context.current().wrap(command));
-      }
+          @Override
+          public void execute(Runnable command) {
+            super.execute(Context.current().wrap(command));
+          }
 
-      @Override
-      public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
-        return super.schedule(Context.current().wrap(callable), delay, unit);
-      }
+          @Override
+          public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
+            return super.schedule(Context.current().wrap(callable), delay, unit);
+          }
 
-      @Override
-      public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
-        return super.schedule(Context.current().wrap(command), delay, unit);
-      }
+          @Override
+          public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
+            return super.schedule(Context.current().wrap(command), delay, unit);
+          }
 
-      @Override
-      public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay,
-          long period, TimeUnit unit) {
-        return super.scheduleAtFixedRate(Context.current().wrap(command), initialDelay, period,
-            unit);
-      }
+          @Override
+          public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay,
+              long period, TimeUnit unit) {
+            return super.scheduleAtFixedRate(Context.current().wrap(command), initialDelay, period,
+                unit);
+          }
 
-      @Override
-      public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay,
-          long delay, TimeUnit unit) {
-        return super.scheduleWithFixedDelay(Context.current().wrap(command), initialDelay, delay,
-            unit);
-      }
+          @Override
+          public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay,
+              long delay, TimeUnit unit) {
+            return super.scheduleWithFixedDelay(Context.current().wrap(command), initialDelay,
+                delay, unit);
+          }
 
-      @Override
-      public <T> Future<T> submit(Callable<T> task) {
-        return super.submit(Context.current().wrap(task));
-      }
+          @Override
+          public <T> Future<T> submit(Callable<T> task) {
+            return super.submit(Context.current().wrap(task));
+          }
 
-      @Override
-      public <T> Future<T> submit(Runnable task, T result) {
-        return super.submit(Context.current().wrap(task), result);
-      }
+          @Override
+          public <T> Future<T> submit(Runnable task, T result) {
+            return super.submit(Context.current().wrap(task), result);
+          }
 
-      @Override
-      public Future<?> submit(Runnable task) {
-        return super.submit(Context.current().wrap(task));
-      }
+          @Override
+          public Future<?> submit(Runnable task) {
+            return super.submit(Context.current().wrap(task));
+          }
 
-      @Override
-      public boolean remove(Runnable task) {
-        return super.remove(Context.current().wrap(task));
-      }
+          @Override
+          public boolean remove(Runnable task) {
+            return super.remove(Context.current().wrap(task));
+          }
 
-    };
+        };
+    MetricsUtil.addExecutorServiceMetrics(result, name);
+    return result;
   }
 
 }

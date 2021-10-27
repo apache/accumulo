@@ -994,7 +994,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
           }
           return allFailures;
         } finally {
-          ThriftUtil.returnClient((TServiceClient) client);
+          ThriftUtil.returnClient((TServiceClient) client, context);
         }
       } catch (TTransportException e) {
         timeoutTracker.errorOccured();

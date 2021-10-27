@@ -65,7 +65,7 @@ public class ListBulkCommand extends Command {
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         if (client != null)
-          ManagerClient.close(client);
+          ManagerClient.close(client, context);
       }
     }
 

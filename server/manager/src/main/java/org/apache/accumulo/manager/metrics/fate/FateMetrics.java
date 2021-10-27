@@ -18,63 +18,58 @@
  */
 package org.apache.accumulo.manager.metrics.fate;
 
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.Map.Entry;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.ReadOnlyTStore;
 import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.hadoop.metrics2.lib.MetricsRegistry;
-import org.apache.hadoop.metrics2.lib.MutableGaugeLong;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FateMetrics extends ManagerMetrics {
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Metrics;
+import io.micrometer.core.instrument.Tags;
+
+public class FateMetrics implements MetricsProducer {
 
   private static final Logger log = LoggerFactory.getLogger(FateMetrics.class);
 
   // limit calls to update fate counters to guard against hammering zookeeper.
-  private static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(10);
-  private long minimumRefreshDelay;
+  private static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(5);
 
-  private static final String FATE_TX_STATE_METRIC_PREFIX = "FateTxState_";
-  private static final String FATE_OP_TYPE_METRIC_PREFIX = "FateTxOpType_";
-
-  private final MutableGaugeLong currentFateOps;
-  private final MutableGaugeLong zkChildFateOpsTotal;
-  private final MutableGaugeLong zkConnectionErrorsTotal;
-
-  private final Map<String,MutableGaugeLong> fateTypeCounts = new TreeMap<>();
-  private final Map<String,MutableGaugeLong> fateOpCounts = new TreeMap<>();
-
-  /*
-   * lock should be used to guard read and write access to metricValues and the lastUpdate
-   * timestamp.
-   */
-  private final Lock metricsValuesLock = new ReentrantLock();
-  private FateMetricValues metricValues;
-  private volatile long lastUpdate = 0;
+  private static final String OP_TYPE_TAG = "op.type";
 
   private final ServerContext context;
   private final ReadOnlyTStore<FateMetrics> zooStore;
   private final String fateRootPath;
+  private final long refreshDelay;
+
+  private AtomicLong totalCurrentOpsGauge;
+  private AtomicLong totalOpsGauge;
+  private AtomicLong fateErrorsGauge;
+  private AtomicLong newTxGauge;
+  private AtomicLong inProgressTxGauge;
+  private AtomicLong failedInProgressTxGauge;
+  private AtomicLong failedTxGauge;
+  private AtomicLong successfulTxGauge;
+  private AtomicLong unknownTxGauge;
 
   public FateMetrics(final ServerContext context, final long minimumRefreshDelay) {
-    super("Fate", "Fate Metrics", "fate");
 
     this.context = context;
-    fateRootPath = context.getZooKeeperRoot() + Constants.ZFATE;
+    this.fateRootPath = context.getZooKeeperRoot() + Constants.ZFATE;
+    this.refreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
 
     try {
-
-      zooStore = new ZooStore<>(fateRootPath, context.getZooReaderWriter());
-
+      this.zooStore = new ZooStore<>(fateRootPath, context.getZooReaderWriter());
     } catch (KeeperException ex) {
       throw new IllegalStateException(
           "FATE Metrics - Failed to create zoo store - metrics unavailable", ex);
@@ -84,103 +79,83 @@ public class FateMetrics extends ManagerMetrics {
           "FATE Metrics - Interrupt received while initializing zoo store");
     }
 
-    this.minimumRefreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
-
-    // lock not necessary in constructor.
-    metricValues = FateMetricValues.getFromZooKeeper(context, fateRootPath, zooStore);
-
-    MetricsRegistry registry = super.getRegistry();
-
-    currentFateOps = registry.newGauge("currentFateOps", "Current number of FATE Ops", 0L);
-    zkChildFateOpsTotal = registry.newGauge("totalFateOps", "Total FATE Ops", 0L);
-    zkConnectionErrorsTotal =
-        registry.newGauge("totalZkConnErrors", "Total ZK Connection Errors", 0L);
-
-    for (ReadOnlyTStore.TStatus t : ReadOnlyTStore.TStatus.values()) {
-      MutableGaugeLong g = registry.newGauge(FATE_TX_STATE_METRIC_PREFIX + t.name().toUpperCase(),
-          "Transaction count for " + t.name() + " transactions", 0L);
-      fateTypeCounts.put(t.name(), g);
-    }
   }
 
-  /**
-   * For testing only: allow refresh delay to be set to any value, over riding the enforced minimum.
-   *
-   * @param minimumRefreshDelay
-   *          set new min refresh value, in seconds.
-   */
-  public void overrideRefresh(final long minimumRefreshDelay) {
-    long delay = Math.max(0, minimumRefreshDelay);
-    this.minimumRefreshDelay = TimeUnit.SECONDS.toMillis(delay);
+  private void update() {
+
+    FateMetricValues metricValues =
+        FateMetricValues.getFromZooKeeper(context, fateRootPath, zooStore);
+
+    totalCurrentOpsGauge.set(metricValues.getCurrentFateOps());
+    totalOpsGauge.set(metricValues.getZkFateChildOpsTotal());
+    fateErrorsGauge.set(metricValues.getZkConnectionErrors());
+
+    for (Entry<String,Long> vals : metricValues.getTxStateCounters().entrySet()) {
+      switch (ReadOnlyTStore.TStatus.valueOf(vals.getKey())) {
+        case NEW:
+          newTxGauge.set(vals.getValue());
+          break;
+        case IN_PROGRESS:
+          inProgressTxGauge.set(vals.getValue());
+          break;
+        case FAILED_IN_PROGRESS:
+          failedInProgressTxGauge.set(vals.getValue());
+          break;
+        case FAILED:
+          failedTxGauge.set(vals.getValue());
+          break;
+        case SUCCESSFUL:
+          successfulTxGauge.set(vals.getValue());
+          break;
+        case UNKNOWN:
+        default:
+          log.warn("Unhandled status type: {}", vals.getKey());
+          unknownTxGauge.set(vals.getValue());
+      }
+    }
+
+    metricValues.getOpTypeCounters().forEach((name, count) -> {
+      Metrics.gauge(METRICS_FATE_TYPE_IN_PROGRESS, Tags.of(OP_TYPE_TAG, name), count);
+    });
   }
 
   @Override
-  protected void prepareMetrics() {
+  public void registerMetrics(final MeterRegistry registry) {
+    totalCurrentOpsGauge = registry.gauge(METRICS_FATE_TOTAL_IN_PROGRESS,
+        MetricsUtil.getCommonTags(), new AtomicLong(0));
+    totalOpsGauge =
+        registry.gauge(METRICS_FATE_OPS_ACTIVITY, MetricsUtil.getCommonTags(), new AtomicLong(0));
+    fateErrorsGauge = registry.gauge(METRICS_FATE_ERRORS,
+        Tags.concat(MetricsUtil.getCommonTags(), "type", "zk.connection"), new AtomicLong(0));
+    newTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(), "state",
+        ReadOnlyTStore.TStatus.NEW.name().toLowerCase()), new AtomicLong(0));
+    inProgressTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
+        "state", ReadOnlyTStore.TStatus.IN_PROGRESS.name().toLowerCase()), new AtomicLong(0));
+    failedInProgressTxGauge =
+        registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(), "state",
+            ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS.name().toLowerCase()), new AtomicLong(0));
+    failedTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
+        "state", ReadOnlyTStore.TStatus.FAILED.name().toLowerCase()), new AtomicLong(0));
+    successfulTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
+        "state", ReadOnlyTStore.TStatus.SUCCESSFUL.name().toLowerCase()), new AtomicLong(0));
+    unknownTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
+        "state", ReadOnlyTStore.TStatus.UNKNOWN.name().toLowerCase()), new AtomicLong(0));
 
-    metricsValuesLock.lock();
-    try {
+    update();
 
-      long now = System.currentTimeMillis();
+    // get fate status is read only operation - no reason to be nice on shutdown.
+    ScheduledExecutorService scheduler =
+        ThreadPools.createScheduledExecutorService(1, "fateMetricsPoller", false);
+    Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
 
-      if ((lastUpdate + minimumRefreshDelay) < now) {
-        metricValues = FateMetricValues.getFromZooKeeper(context, fateRootPath, zooStore);
-        lastUpdate = now;
-
-        recordValues();
+    scheduler.scheduleAtFixedRate(() -> {
+      try {
+        update();
+      } catch (Exception ex) {
+        log.info("Failed to update fate metrics due to exception", ex);
       }
-    } finally {
-      metricsValuesLock.unlock();
-    }
-  }
+    }, refreshDelay, refreshDelay, TimeUnit.MILLISECONDS);
 
-  /**
-   * Update the metrics gauges from the measured values - this method assumes that concurrent access
-   * is controlled externally to this method with the metricsValueLock, and that the lock has been
-   * acquired before calling this method, and then released by the caller.
-   */
-  private void recordValues() {
-
-    // update individual gauges that are reported.
-    currentFateOps.set(metricValues.getCurrentFateOps());
-    zkChildFateOpsTotal.set(metricValues.getZkFateChildOpsTotal());
-    zkConnectionErrorsTotal.set(metricValues.getZkConnectionErrors());
-
-    // the number FATE Tx states (NEW< IN_PROGRESS...) are fixed - the underlying
-    // getTxStateCounters call will return a current valid count for each possible state.
-    Map<String,Long> states = metricValues.getTxStateCounters();
-
-    states.forEach((key,
-        value) -> fateTypeCounts.computeIfAbsent(key,
-            v -> super.getRegistry().newGauge(metricNameHelper(FATE_TX_STATE_METRIC_PREFIX, key),
-                "By transaction state count for " + key, value))
-            .set(value));
-
-    // the op types are dynamic and the metric gauges generated when first seen. After
-    // that the values need to be cleared and set to any new values present. This is so
-    // that the metrics system will report "known" values once seen. In operation, the
-    // number of types will be a fairly small set and should populate a consistent set
-    // with normal operations.
-
-    // clear current values.
-    fateOpCounts.forEach((key, value) -> value.set(0));
-
-    // update new counts, create new gauge if first time seen.
-    Map<String,Long> opTypes = metricValues.getOpTypeCounters();
-
-    log.trace("OP Counts Before: prev {}, updates {}", fateOpCounts, opTypes);
-
-    opTypes.forEach((key,
-        value) -> fateOpCounts.computeIfAbsent(key,
-            gauge -> super.getRegistry().newGauge(metricNameHelper(FATE_OP_TYPE_METRIC_PREFIX, key),
-                "By transaction op type count for " + key, value))
-            .set(value));
-
-    log.trace("OP Counts After: prev {}, updates {}", fateOpCounts, opTypes);
-
-  }
-
-  private String metricNameHelper(final String prefix, final String name) {
-    return prefix + name;
   }
 
 }

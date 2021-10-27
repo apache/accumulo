@@ -234,7 +234,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
           client = getClient(sid.location);
           client.closeConditionalUpdate(tinfo, sid.sessionID);
         } catch (Exception e) {} finally {
-          ThriftUtil.returnClient((TServiceClient) client);
+          ThriftUtil.returnClient((TServiceClient) client, context);
         }
 
       }
@@ -603,7 +603,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     } finally {
       if (sessionId != null)
         unreserveSessionID(location);
-      ThriftUtil.returnClient((TServiceClient) client);
+      ThriftUtil.returnClient((TServiceClient) client, context);
     }
   }
 
@@ -692,7 +692,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       client = getClient(location);
       client.invalidateConditionalUpdate(tinfo, sessionId);
     } finally {
-      ThriftUtil.returnClient((TServiceClient) client);
+      ThriftUtil.returnClient((TServiceClient) client, context);
     }
   }
 

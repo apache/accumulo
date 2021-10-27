@@ -76,7 +76,7 @@ public class Writer {
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code);
     } finally {
-      ThriftUtil.returnClient((TServiceClient) client);
+      ThriftUtil.returnClient((TServiceClient) client, context);
     }
   }
 

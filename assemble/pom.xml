@@ -130,6 +130,11 @@
       <optional>true</optional>
     </dependency>
     <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-core</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-api</artifactId>
       <optional>true</optional>
@@ -456,6 +461,12 @@
       <optional>true</optional>
     </dependency>
     <dependency>
+      <groupId>org.hdrhistogram</groupId>
+      <artifactId>HdrHistogram</artifactId>
+      <version>2.1.12</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>org.hibernate.validator</groupId>
       <artifactId>hibernate-validator</artifactId>
       <optional>true</optional>
@@ -474,6 +485,18 @@
       <groupId>org.jline</groupId>
       <artifactId>jline</artifactId>
       <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.latencyutils</groupId>
+      <artifactId>LatencyUtils</artifactId>
+      <version>2.0.3</version>
+      <optional>true</optional>
+      <exclusions>
+        <exclusion>
+          <groupId>org.hdrhistogram</groupId>
+          <artifactId>HdrHistogram</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>

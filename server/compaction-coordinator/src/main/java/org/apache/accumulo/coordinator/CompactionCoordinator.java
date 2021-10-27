@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.coordinator.QueueSummaries.PrioTserver;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
@@ -47,6 +46,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
@@ -63,6 +63,7 @@ import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.GarbageCollectionLogger;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
@@ -217,7 +218,7 @@ public class CompactionCoordinator extends AbstractServer
     Property maxMessageSizeProperty =
         (aconf.get(Property.COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE) != null
             ? Property.COMPACTION_COORDINATOR_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
-    ServerAddress sp = TServerUtils.startServer(getMetricsSystem(), getContext(), getHostname(),
+    ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
         Property.COMPACTION_COORDINATOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.COMPACTION_COORDINATOR_THRIFTCLIENT_PORTSEARCH,
         Property.COMPACTION_COORDINATOR_MINTHREADS,
@@ -242,6 +243,13 @@ public class CompactionCoordinator extends AbstractServer
       getCoordinatorLock(clientAddress);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting Coordinator lock", e);
+    }
+
+    try {
+      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
+          clientAddress);
+    } catch (Exception e1) {
+      LOG.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
 
     // On a re-start of the coordinator it's possible that external compactions are in-progress.
@@ -335,7 +343,7 @@ public class CompactionCoordinator extends AbstractServer
           queuesSeen.add(summary.getQueue());
         });
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, getContext());
       }
     } catch (TException e) {
       LOG.warn("Error getting external compaction summaries from tablet server: {}",
@@ -437,7 +445,7 @@ public class CompactionCoordinator extends AbstractServer
         QUEUE_SUMMARIES.removeSummary(tserver, queueName, prioTserver.prio);
         prioTserver = QUEUE_SUMMARIES.getNextTserver(queueName);
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, getContext());
       }
     }
 
@@ -463,8 +471,9 @@ public class CompactionCoordinator extends AbstractServer
   protected TabletClientService.Client getTabletServerConnection(TServerInstance tserver)
       throws TTransportException {
     TServerConnection connection = tserverSet.getConnection(tserver);
+    ServerContext serverContext = getContext();
     TTransport transport =
-        ThriftTransportPool.getInstance().getTransport(connection.getAddress(), 0, getContext());
+        serverContext.getTransportPool().getTransport(connection.getAddress(), 0, serverContext);
     return ThriftUtil.createClient(new TabletClientService.Client.Factory(), transport);
   }
 
