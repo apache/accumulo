@@ -22,6 +22,7 @@ import static org.apache.accumulo.core.conf.Property.GC_PORT;
 import static org.apache.accumulo.core.conf.Property.MANAGER_CLIENTPORT;
 import static org.apache.accumulo.core.conf.Property.TABLE_BULK_MAX_TABLETS;
 import static org.apache.accumulo.core.conf.Property.TABLE_FILE_BLOCK_SIZE;
+import static org.apache.accumulo.core.conf.Property.TABLE_SPLIT_THRESHOLD;
 import static org.apache.accumulo.core.conf.Property.TSERV_CLIENTPORT;
 import static org.apache.accumulo.core.conf.Property.TSERV_NATIVEMAP_ENABLED;
 import static org.apache.accumulo.core.conf.Property.TSERV_SCAN_MAX_OPENFILES;
@@ -39,6 +40,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -203,6 +205,46 @@ public class ZooPropStoreTest {
 
     PropStore propStore = new ZooPropStore.Builder(context).build();
     assertNull(propStore.get(tid));
+  }
+
+  /**
+   * Test that putAll will add and also overwrite properties.
+   *
+   * @throws Exception
+   *           any exception is a test error.
+   */
+  @Test
+  public void putAllTest() throws Exception {
+
+    PropCacheId tid = PropCacheId.forTable(IID, TableId.of("table1"));
+
+    var initialProps = new VersionedProperties(0, Instant.now(),
+        Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M"));
+
+    // not cached - will load from ZooKeeper
+    expect(zrw.getData(eq(tid.getPath()))).andReturn(propCodec.toBytes(initialProps)).once();
+
+    Capture<byte[]> bytes = newCapture();
+    expect(zrw.overwritePersistentData(eq(tid.getPath()), capture(bytes), eq(1))).andAnswer(() -> {
+      var stored = propCodec.fromBytes(bytes.getValue());
+      assertEquals(3, stored.getProperties().size());
+      // overwritten
+      assertEquals("4321", stored.getProperties().get(TABLE_BULK_MAX_TABLETS.getKey()));
+      // unchanged
+      assertEquals("512M", stored.getProperties().get(TABLE_FILE_BLOCK_SIZE.getKey()));
+      // new
+      assertEquals("123M", stored.getProperties().get(TABLE_SPLIT_THRESHOLD.getKey()));
+      return true;
+    }).once();
+
+    replay(context, zrw);
+
+    PropStore propStore = new ZooPropStore.Builder(context).build();
+
+    Map<String,String> updateProps =
+        Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "4321", TABLE_SPLIT_THRESHOLD.getKey(), "123M");
+
+    assertTrue(propStore.putAll(tid, updateProps));
   }
 
   @Test

@@ -202,15 +202,15 @@ public class ZooPropStore implements PropStore, PropChangeListener {
 
       VersionedProperties updates = vProps.addOrUpdate(props);
 
-      zrw.getZooKeeper().setData(propCacheId.getPath(), propCodec.toBytes(updates),
+      return zrw.overwritePersistentData(propCacheId.getPath(), propCodec.toBytes(updates),
           updates.getDataVersion());
+
     } catch (IOException ex) {
       throw new PropStoreException("failed to encode properties for " + propCacheId, ex);
     } catch (InterruptedException | KeeperException ex) {
       throw new PropStoreException("failed to write properties to zooKeeper for " + propCacheId,
           ex);
     }
-    return false;
   }
 
   @Override
