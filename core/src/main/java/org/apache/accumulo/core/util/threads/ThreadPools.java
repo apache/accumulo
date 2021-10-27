@@ -30,6 +30,7 @@ import java.util.function.IntSupplier;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -186,6 +187,7 @@ public class ThreadPools {
     if (timeOut > 0) {
       result.allowCoreThreadTimeOut(true);
     }
+    MetricsUtil.addExecutorServiceMetrics(result, name);
     return result;
   }
 
@@ -206,12 +208,15 @@ public class ThreadPools {
 
   public static ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
       final String name, OptionalInt priority, boolean enableTracing) {
+    ScheduledThreadPoolExecutor result = null;
     if (enableTracing) {
-      return new TracingScheduledThreadPoolExecutor(numThreads,
+      result = new TracingScheduledThreadPoolExecutor(numThreads,
           new NamedThreadFactory(name, priority));
     } else {
-      return new ScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory(name, priority));
+      result = new ScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory(name, priority));
     }
+    MetricsUtil.addExecutorServiceMetrics(result, name);
+    return result;
   }
 
 }

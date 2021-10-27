@@ -267,7 +267,12 @@ public enum Property {
       PropertyType.TIMEDURATION,
       "The maximum amount of time that a Scanner should wait before retrying a failed RPC",
       "1.7.3"),
-
+  GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "false", PropertyType.BOOLEAN,
+      "Enables metrics functionality using Micrometer", "2.1.0"),
+  GENERAL_MICROMETER_JVM_METRICS_ENABLED("general.micrometer.jvm.metrics.enabled", "false",
+      PropertyType.BOOLEAN, "Enables JVM metrics functionality using Micrometer", "2.1.0"),
+  GENERAL_MICROMETER_FACTORY("general.micrometer.factory", "", PropertyType.CLASSNAME,
+      "Name of class that implements MeterRegistryFactory", "2.1.0"),
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the manager server. "
@@ -332,6 +337,7 @@ public enum Property {
   MANAGER_WALOG_CLOSER_IMPLEMETATION("manager.walog.closer.implementation",
       "org.apache.accumulo.server.manager.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
       "A class that implements a mechanism to steal write access to a write-ahead log", "1.5.0"),
+  @Deprecated
   MANAGER_FATE_METRICS_ENABLED("manager.fate.metrics.enabled", "true", PropertyType.BOOLEAN,
       "Enable reporting of FATE metrics in JMX (and logging with Hadoop Metrics2", "1.9.3"),
   MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL("manager.fate.metrics.min.update.interval", "60s",
@@ -767,6 +773,7 @@ public enum Property {
           + " and possibly compacted. Legal values are: compact - which both flushes and compacts the"
           + " metadata; flush - which flushes only (compactions may be triggered if required); or none",
       "1.10.0"),
+  @Deprecated
   GC_METRICS_ENABLED("gc.metrics.enabled", "true", PropertyType.BOOLEAN,
       "Enable detailed gc metrics reporting with hadoop metrics.", "1.10.0"),
 
