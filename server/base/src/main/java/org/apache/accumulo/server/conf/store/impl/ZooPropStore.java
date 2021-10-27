@@ -245,7 +245,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
 
       VersionedProperties updates = vProps.remove(keys);
 
-      zrw.getZooKeeper().setData(propCacheId.getPath(), propCodec.toBytes(updates),
+      zrw.overwritePersistentData(propCacheId.getPath(), propCodec.toBytes(updates),
           updates.getDataVersion());
 
       return true;

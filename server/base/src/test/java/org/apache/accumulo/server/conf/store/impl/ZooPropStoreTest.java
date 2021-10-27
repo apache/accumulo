@@ -45,6 +45,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.conf.Property;
@@ -245,6 +246,39 @@ public class ZooPropStoreTest {
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "4321", TABLE_SPLIT_THRESHOLD.getKey(), "123M");
 
     assertTrue(propStore.putAll(tid, updateProps));
+  }
+
+  @Test public void removeTest() throws Exception {
+
+    PropCacheId tid = PropCacheId.forTable(IID, TableId.of("table1"));
+
+    var initialProps = new VersionedProperties(0, Instant.now(),
+        Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M"));
+
+    // not cached - will load from ZooKeeper
+    expect(zrw.getData(eq(tid.getPath()))).andReturn(propCodec.toBytes(initialProps)).once();
+
+    Capture<byte[]> bytes = newCapture();
+    expect(zrw.overwritePersistentData(eq(tid.getPath()), capture(bytes), eq(1))).andAnswer(() -> {
+      var stored = propCodec.fromBytes(bytes.getValue());
+      assertEquals(1, stored.getProperties().size());
+      // deleted
+      assertNull(stored.getProperties().get(TABLE_BULK_MAX_TABLETS.getKey()));
+      // unchanged
+      assertEquals("512M", stored.getProperties().get(TABLE_FILE_BLOCK_SIZE.getKey()));
+      // never existed
+      assertNull("123M", stored.getProperties().get(TABLE_SPLIT_THRESHOLD.getKey()));
+      return true;
+    }).once();
+
+    replay(context, zrw);
+
+    PropStore propStore = new ZooPropStore.Builder(context).build();
+
+    Set<String> deleteNames =
+        Set.of(TABLE_BULK_MAX_TABLETS.getKey(), TABLE_SPLIT_THRESHOLD.getKey());
+
+    assertTrue(propStore.removeProperties(tid, deleteNames));
   }
 
   @Test
