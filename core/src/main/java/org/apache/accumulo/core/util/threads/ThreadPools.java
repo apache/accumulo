@@ -153,23 +153,9 @@ public class ThreadPools {
     }
   }
 
-  /* THIS SHOULD BE DELETED */
-  public static ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
-      boolean enableTracing) {
-    return createFixedThreadPool(numThreads, DEFAULT_TIMEOUT_MILLISECS, TimeUnit.MILLISECONDS,
-        name);
-  }
-
   public static ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name) {
     return createFixedThreadPool(numThreads, DEFAULT_TIMEOUT_MILLISECS, TimeUnit.MILLISECONDS,
         name);
-  }
-
-  /* THIS SHOULD BE DELETED */
-  public static ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
-      BlockingQueue<Runnable> queue, boolean enableTracing) {
-    return createThreadPool(numThreads, numThreads, DEFAULT_TIMEOUT_MILLISECS,
-        TimeUnit.MILLISECONDS, name, queue, OptionalInt.empty());
   }
 
   public static ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
@@ -178,23 +164,9 @@ public class ThreadPools {
         TimeUnit.MILLISECONDS, name, queue, OptionalInt.empty());
   }
 
-  /* THIS SHOULD BE DELETED */
-  public static ThreadPoolExecutor createFixedThreadPool(int numThreads, long timeOut,
-      TimeUnit units, final String name, boolean enableTracing) {
-    return createThreadPool(numThreads, numThreads, timeOut, units, name,
-        new LinkedBlockingQueue<Runnable>(), OptionalInt.empty());
-  }
-
   public static ThreadPoolExecutor createFixedThreadPool(int numThreads, long timeOut,
       TimeUnit units, final String name) {
     return createThreadPool(numThreads, numThreads, timeOut, units, name,
-        new LinkedBlockingQueue<Runnable>(), OptionalInt.empty());
-  }
-
-  /* THIS SHOULD BE DELETED */
-  public static ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
-      TimeUnit units, final String name, boolean enableTracing) {
-    return createThreadPool(coreThreads, maxThreads, timeOut, units, name,
         new LinkedBlockingQueue<Runnable>(), OptionalInt.empty());
   }
 
@@ -202,13 +174,6 @@ public class ThreadPools {
       TimeUnit units, final String name) {
     return createThreadPool(coreThreads, maxThreads, timeOut, units, name,
         new LinkedBlockingQueue<Runnable>(), OptionalInt.empty());
-  }
-
-  /* THIS SHOULD BE DELETED */
-  public static ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
-      TimeUnit units, final String name, BlockingQueue<Runnable> queue, OptionalInt priority,
-      boolean enableTracing) {
-    return createThreadPool(coreThreads, maxThreads, timeOut, units, name, queue, priority);
   }
 
   public static ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
@@ -258,21 +223,9 @@ public class ThreadPools {
         Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE);
   }
 
-  /* THIS SHOULD BE DELETED */
-  public static ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
-      final String name, boolean enableTracing) {
-    return createScheduledExecutorService(numThreads, name, OptionalInt.empty());
-  }
-
   public static ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
       final String name) {
     return createScheduledExecutorService(numThreads, name, OptionalInt.empty());
-  }
-
-  /* THIS SHOULD BE DELETED */
-  public static ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
-      final String name, OptionalInt priority, boolean enableTracing) {
-    return createScheduledExecutorService(numThreads, name, priority);
   }
 
   public static ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,

@@ -646,11 +646,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<>();
       queued = new HashSet<>();
-      sendThreadPool =
-          ThreadPools.createFixedThreadPool(numSendThreads, this.getClass().getName(), false);
+      sendThreadPool = ThreadPools.createFixedThreadPool(numSendThreads, this.getClass().getName());
       locators = new HashMap<>();
       binningThreadPool =
-          ThreadPools.createFixedThreadPool(1, "BinMutations", new SynchronousQueue<>(), false);
+          ThreadPools.createFixedThreadPool(1, "BinMutations", new SynchronousQueue<>());
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 

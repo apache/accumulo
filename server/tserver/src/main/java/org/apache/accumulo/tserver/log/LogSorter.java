@@ -214,8 +214,7 @@ public class LogSorter {
     @SuppressWarnings("deprecation")
     int threadPoolSize = conf.getCount(conf.resolve(Property.TSERV_WAL_SORT_MAX_CONCURRENT,
         Property.TSERV_RECOVERY_MAX_CONCURRENT));
-    this.threadPool =
-        ThreadPools.createFixedThreadPool(threadPoolSize, this.getClass().getName(), false);
+    this.threadPool = ThreadPools.createFixedThreadPool(threadPoolSize, this.getClass().getName());
     this.walBlockSize = DfsLogger.getWalBlockSize(conf);
   }
 
