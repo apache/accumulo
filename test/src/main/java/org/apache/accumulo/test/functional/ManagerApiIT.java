@@ -213,8 +213,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     // To shutdown, user needs SystemPermission.SYSTEM
     op = user -> client -> client.shutdown(null, user, false);
     expectPermissionDenied(op, regularUser);
-    // We should be able to do both of the following RPC calls before it actually shuts down
-    expectPermissionSuccess(op, rootUser);
+    // We should be able to do the following RPC call before it actually shuts down
     expectPermissionSuccess(op, privilegedUser);
   }
 
