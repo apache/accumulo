@@ -248,7 +248,8 @@ public class ZooPropStoreTest {
     assertTrue(propStore.putAll(tid, updateProps));
   }
 
-  @Test public void removeTest() throws Exception {
+  @Test
+  public void removeTest() throws Exception {
 
     PropCacheId tid = PropCacheId.forTable(IID, TableId.of("table1"));
 
