@@ -210,11 +210,19 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   // see the junit annotation to control test ordering at the top of this class
   @Test
   public void z99_testPermissions_shutdown() throws Exception {
+    // grab connections before shutting down
+    AccumuloClient rootUserClient = Accumulo.newClient().from(getClientProps())
+        .as(rootUser.getPrincipal(), rootUser.getToken()).build();
+    AccumuloClient privilegedUserClient = Accumulo.newClient().from(getClientProps())
+        .as(privilegedUser.getPrincipal(), privilegedUser.getToken()).build();
     // To shutdown, user needs SystemPermission.SYSTEM
     op = user -> client -> client.shutdown(null, user, false);
     expectPermissionDenied(op, regularUser);
-    // We should be able to do the following RPC call before it actually shuts down
-    expectPermissionSuccess(op, privilegedUser);
+    // We should be able to do both of the following RPC calls before it actually shuts down
+    expectPermissionSuccess(op, (ClientContext) rootUserClient);
+    expectPermissionSuccess(op, (ClientContext) privilegedUserClient);
+    rootUserClient.close();
+    privilegedUserClient.close();
   }
 
   private static void expectPermissionSuccess(
@@ -225,6 +233,12 @@ public class ManagerApiIT extends SharedMiniClusterBase {
       ClientContext context = (ClientContext) client;
       ManagerClient.executeVoid(context, op.apply(context.rpcCreds()));
     }
+  }
+
+  private static void expectPermissionSuccess(
+      Function<TCredentials,ClientExec<ManagerClientService.Client>> op, ClientContext context)
+      throws Exception {
+    ManagerClient.executeVoid(context, op.apply(context.rpcCreds()));
   }
 
   private static void expectPermissionDenied(
