@@ -848,7 +848,6 @@ public class TabletServer extends AbstractServer {
       } catch (InterruptedException e) {
         log.info("Interrupt Exception received, shutting down");
         serverStopRequested = true;
-
       } catch (Exception e) {
         // may have lost connection with manager
         // loop back to the beginning and wait for a new one

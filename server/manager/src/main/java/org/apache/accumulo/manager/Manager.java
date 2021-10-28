@@ -217,6 +217,7 @@ public class Manager extends AbstractServer
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
+  private final AtomicBoolean managerUpgrading = new AtomicBoolean(false);
 
   @Override
   public synchronized ManagerState getManagerState() {
@@ -1042,6 +1043,12 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Exception getting manager lock", e);
     }
 
+    // If UpgradeStatus is not at complete by this moment, then things are currently
+    // upgrading.
+    if (upgradeCoordinator.getStatus() != UpgradeCoordinator.UpgradeStatus.COMPLETE) {
+      managerUpgrading.set(true);
+    }
+
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
           sa.getAddress());
@@ -1125,6 +1132,8 @@ public class Manager extends AbstractServer
       if (null != upgradeMetadataFuture) {
         upgradeMetadataFuture.get();
       }
+      // Everything is fully upgraded by this point.
+      managerUpgrading.set(false);
     } catch (ExecutionException | InterruptedException e) {
       throw new IllegalStateException("Metadata upgrade failed", e);
     }
@@ -1710,6 +1719,11 @@ public class Manager extends AbstractServer
   @Override
   public boolean isActiveService() {
     return managerInitialized.get();
+  }
+
+  @Override
+  public boolean isUpgrading() {
+    return managerUpgrading.get();
   }
 
   void initializeBalancer() {
