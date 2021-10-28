@@ -1045,7 +1045,7 @@ public class Manager extends AbstractServer
 
     // If UpgradeStatus is not at complete by this moment, then things are currently
     // upgrading.
-    if (!upgradeCoordinator.getStatus().equals(UpgradeCoordinator.UpgradeStatus.COMPLETE)) {
+    if (upgradeCoordinator.getStatus() != UpgradeCoordinator.UpgradeStatus.COMPLETE) {
       managerUpgrading.set(true);
     }
 

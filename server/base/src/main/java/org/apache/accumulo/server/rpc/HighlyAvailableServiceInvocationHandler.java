@@ -50,12 +50,14 @@ public class HighlyAvailableServiceInvocationHandler<I> implements InvocationHan
 
     // If the service is upgrading, throw an exception
     if (service.isUpgrading()) {
+      LOG.trace("Service can not be accessed while it is upgrading.");
       throw new ThriftNotActiveServiceException(service.toString(),
           "Service can not be accessed while it is upgrading");
     }
 
     // If the service is not active, throw an exception
     if (!service.isActiveService()) {
+      LOG.trace("Denying access to RPC service as this instance is not the active instance.");
       throw new ThriftNotActiveServiceException(service.toString(),
           "Denying access to RPC service as this instance is not the active instance");
     }
