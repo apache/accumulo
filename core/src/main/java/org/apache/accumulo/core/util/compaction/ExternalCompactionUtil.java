@@ -222,8 +222,8 @@ public class ExternalCompactionUtil {
   }
 
   /**
-   * This method returns information from the Compactor about the job that is currently running.
-   * The RunningCompactions are not fully populated. This method is used from the CompactionCoordinator
+   * This method returns information from the Compactor about the job that is currently running. The
+   * RunningCompactions are not fully populated. This method is used from the CompactionCoordinator
    * on a restart to re-populate the set of running compactions on the compactors.
    *
    * @param context
