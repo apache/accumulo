@@ -228,7 +228,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
         futures.add(executorService.submit(() -> getActiveCompactions(tserver)));
       }
 
-      compactors.forEach((queue, compactorList) -> {
+      compactors.values().forEach(compactorList -> {
         for (HostAndPort compactorAddr : compactorList) {
           Callable<List<ActiveCompaction>> task =
               () -> ExternalCompactionUtil.getActiveCompaction(compactorAddr, context).stream()

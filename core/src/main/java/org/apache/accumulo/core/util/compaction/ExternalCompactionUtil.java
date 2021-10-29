@@ -57,7 +57,6 @@ public class ExternalCompactionUtil {
 
     public RunningCompactionFuture(String queue, HostAndPort compactor,
         Future<TExternalCompactionJob> future) {
-      super();
       this.queue = queue;
       this.compactor = compactor;
       this.future = future;
@@ -223,6 +222,10 @@ public class ExternalCompactionUtil {
   }
 
   /**
+   * This method returns information from the Compactor about the job that is currently running.
+   * The RunningCompactions are not fully populated. This method is used from the CompactionCoordinator
+   * on a restart to re-populate the set of running compactions on the compactors.
+   *
    * @param context
    *          server context
    * @return map of compactor and external compaction jobs

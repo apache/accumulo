@@ -3274,7 +3274,7 @@ public class CompactionCoordinatorService {
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField EXTERNAL_COMPACTION_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("externalCompactionId", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField STATUS_FIELD_DESC = new org.apache.thrift.protocol.TField("status", org.apache.thrift.protocol.TType.STRUCT, (short)4);
-    private static final org.apache.thrift.protocol.TField TIMESTAMP_FIELD_DESC = new org.apache.thrift.protocol.TField("timestamp", org.apache.thrift.protocol.TType.I64, (short)6);
+    private static final org.apache.thrift.protocol.TField TIMESTAMP_FIELD_DESC = new org.apache.thrift.protocol.TField("timestamp", org.apache.thrift.protocol.TType.I64, (short)5);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new updateCompactionStatus_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new updateCompactionStatus_argsTupleSchemeFactory();
@@ -3291,7 +3291,7 @@ public class CompactionCoordinatorService {
       CREDENTIALS((short)2, "credentials"),
       EXTERNAL_COMPACTION_ID((short)3, "externalCompactionId"),
       STATUS((short)4, "status"),
-      TIMESTAMP((short)6, "timestamp");
+      TIMESTAMP((short)5, "timestamp");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -3315,7 +3315,7 @@ public class CompactionCoordinatorService {
             return EXTERNAL_COMPACTION_ID;
           case 4: // STATUS
             return STATUS;
-          case 6: // TIMESTAMP
+          case 5: // TIMESTAMP
             return TIMESTAMP;
           default:
             return null;
@@ -3930,7 +3930,7 @@ public class CompactionCoordinatorService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 6: // TIMESTAMP
+            case 5: // TIMESTAMP
               if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
                 struct.timestamp = iprot.readI64();
                 struct.setTimestampIsSet(true);

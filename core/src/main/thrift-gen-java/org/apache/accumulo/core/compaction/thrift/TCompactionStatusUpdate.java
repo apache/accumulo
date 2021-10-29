@@ -30,9 +30,9 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
 
   private static final org.apache.thrift.protocol.TField STATE_FIELD_DESC = new org.apache.thrift.protocol.TField("state", org.apache.thrift.protocol.TType.I32, (short)1);
   private static final org.apache.thrift.protocol.TField MESSAGE_FIELD_DESC = new org.apache.thrift.protocol.TField("message", org.apache.thrift.protocol.TType.STRING, (short)2);
-  private static final org.apache.thrift.protocol.TField BYTES_TO_BE_COMPACTED_FIELD_DESC = new org.apache.thrift.protocol.TField("bytesToBeCompacted", org.apache.thrift.protocol.TType.I64, (short)3);
-  private static final org.apache.thrift.protocol.TField BYTES_READ_FIELD_DESC = new org.apache.thrift.protocol.TField("bytesRead", org.apache.thrift.protocol.TType.I64, (short)4);
-  private static final org.apache.thrift.protocol.TField BYTES_WRITTEN_FIELD_DESC = new org.apache.thrift.protocol.TField("bytesWritten", org.apache.thrift.protocol.TType.I64, (short)5);
+  private static final org.apache.thrift.protocol.TField ENTRIES_TO_BE_COMPACTED_FIELD_DESC = new org.apache.thrift.protocol.TField("entriesToBeCompacted", org.apache.thrift.protocol.TType.I64, (short)3);
+  private static final org.apache.thrift.protocol.TField ENTRIES_READ_FIELD_DESC = new org.apache.thrift.protocol.TField("entriesRead", org.apache.thrift.protocol.TType.I64, (short)4);
+  private static final org.apache.thrift.protocol.TField ENTRIES_WRITTEN_FIELD_DESC = new org.apache.thrift.protocol.TField("entriesWritten", org.apache.thrift.protocol.TType.I64, (short)5);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TCompactionStatusUpdateStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TCompactionStatusUpdateTupleSchemeFactory();
@@ -43,9 +43,9 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
    */
   public @org.apache.thrift.annotation.Nullable TCompactionState state; // required
   public @org.apache.thrift.annotation.Nullable java.lang.String message; // required
-  public long bytesToBeCompacted; // required
-  public long bytesRead; // required
-  public long bytesWritten; // required
+  public long entriesToBeCompacted; // required
+  public long entriesRead; // required
+  public long entriesWritten; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -55,9 +55,9 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
      */
     STATE((short)1, "state"),
     MESSAGE((short)2, "message"),
-    BYTES_TO_BE_COMPACTED((short)3, "bytesToBeCompacted"),
-    BYTES_READ((short)4, "bytesRead"),
-    BYTES_WRITTEN((short)5, "bytesWritten");
+    ENTRIES_TO_BE_COMPACTED((short)3, "entriesToBeCompacted"),
+    ENTRIES_READ((short)4, "entriesRead"),
+    ENTRIES_WRITTEN((short)5, "entriesWritten");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -77,12 +77,12 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
           return STATE;
         case 2: // MESSAGE
           return MESSAGE;
-        case 3: // BYTES_TO_BE_COMPACTED
-          return BYTES_TO_BE_COMPACTED;
-        case 4: // BYTES_READ
-          return BYTES_READ;
-        case 5: // BYTES_WRITTEN
-          return BYTES_WRITTEN;
+        case 3: // ENTRIES_TO_BE_COMPACTED
+          return ENTRIES_TO_BE_COMPACTED;
+        case 4: // ENTRIES_READ
+          return ENTRIES_READ;
+        case 5: // ENTRIES_WRITTEN
+          return ENTRIES_WRITTEN;
         default:
           return null;
       }
@@ -124,9 +124,9 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
   }
 
   // isset id assignments
-  private static final int __BYTESTOBECOMPACTED_ISSET_ID = 0;
-  private static final int __BYTESREAD_ISSET_ID = 1;
-  private static final int __BYTESWRITTEN_ISSET_ID = 2;
+  private static final int __ENTRIESTOBECOMPACTED_ISSET_ID = 0;
+  private static final int __ENTRIESREAD_ISSET_ID = 1;
+  private static final int __ENTRIESWRITTEN_ISSET_ID = 2;
   private byte __isset_bitfield = 0;
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
@@ -135,11 +135,11 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
         new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, TCompactionState.class)));
     tmpMap.put(_Fields.MESSAGE, new org.apache.thrift.meta_data.FieldMetaData("message", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.BYTES_TO_BE_COMPACTED, new org.apache.thrift.meta_data.FieldMetaData("bytesToBeCompacted", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.ENTRIES_TO_BE_COMPACTED, new org.apache.thrift.meta_data.FieldMetaData("entriesToBeCompacted", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
-    tmpMap.put(_Fields.BYTES_READ, new org.apache.thrift.meta_data.FieldMetaData("bytesRead", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.ENTRIES_READ, new org.apache.thrift.meta_data.FieldMetaData("entriesRead", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
-    tmpMap.put(_Fields.BYTES_WRITTEN, new org.apache.thrift.meta_data.FieldMetaData("bytesWritten", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.ENTRIES_WRITTEN, new org.apache.thrift.meta_data.FieldMetaData("entriesWritten", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TCompactionStatusUpdate.class, metaDataMap);
@@ -151,19 +151,19 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
   public TCompactionStatusUpdate(
     TCompactionState state,
     java.lang.String message,
-    long bytesToBeCompacted,
-    long bytesRead,
-    long bytesWritten)
+    long entriesToBeCompacted,
+    long entriesRead,
+    long entriesWritten)
   {
     this();
     this.state = state;
     this.message = message;
-    this.bytesToBeCompacted = bytesToBeCompacted;
-    setBytesToBeCompactedIsSet(true);
-    this.bytesRead = bytesRead;
-    setBytesReadIsSet(true);
-    this.bytesWritten = bytesWritten;
-    setBytesWrittenIsSet(true);
+    this.entriesToBeCompacted = entriesToBeCompacted;
+    setEntriesToBeCompactedIsSet(true);
+    this.entriesRead = entriesRead;
+    setEntriesReadIsSet(true);
+    this.entriesWritten = entriesWritten;
+    setEntriesWrittenIsSet(true);
   }
 
   /**
@@ -177,9 +177,9 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
     if (other.isSetMessage()) {
       this.message = other.message;
     }
-    this.bytesToBeCompacted = other.bytesToBeCompacted;
-    this.bytesRead = other.bytesRead;
-    this.bytesWritten = other.bytesWritten;
+    this.entriesToBeCompacted = other.entriesToBeCompacted;
+    this.entriesRead = other.entriesRead;
+    this.entriesWritten = other.entriesWritten;
   }
 
   public TCompactionStatusUpdate deepCopy() {
@@ -190,12 +190,12 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
   public void clear() {
     this.state = null;
     this.message = null;
-    setBytesToBeCompactedIsSet(false);
-    this.bytesToBeCompacted = 0;
-    setBytesReadIsSet(false);
-    this.bytesRead = 0;
-    setBytesWrittenIsSet(false);
-    this.bytesWritten = 0;
+    setEntriesToBeCompactedIsSet(false);
+    this.entriesToBeCompacted = 0;
+    setEntriesReadIsSet(false);
+    this.entriesRead = 0;
+    setEntriesWrittenIsSet(false);
+    this.entriesWritten = 0;
   }
 
   /**
@@ -256,73 +256,73 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
     }
   }
 
-  public long getBytesToBeCompacted() {
-    return this.bytesToBeCompacted;
+  public long getEntriesToBeCompacted() {
+    return this.entriesToBeCompacted;
   }
 
-  public TCompactionStatusUpdate setBytesToBeCompacted(long bytesToBeCompacted) {
-    this.bytesToBeCompacted = bytesToBeCompacted;
-    setBytesToBeCompactedIsSet(true);
+  public TCompactionStatusUpdate setEntriesToBeCompacted(long entriesToBeCompacted) {
+    this.entriesToBeCompacted = entriesToBeCompacted;
+    setEntriesToBeCompactedIsSet(true);
     return this;
   }
 
-  public void unsetBytesToBeCompacted() {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __BYTESTOBECOMPACTED_ISSET_ID);
+  public void unsetEntriesToBeCompacted() {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __ENTRIESTOBECOMPACTED_ISSET_ID);
   }
 
-  /** Returns true if field bytesToBeCompacted is set (has been assigned a value) and false otherwise */
-  public boolean isSetBytesToBeCompacted() {
-    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __BYTESTOBECOMPACTED_ISSET_ID);
+  /** Returns true if field entriesToBeCompacted is set (has been assigned a value) and false otherwise */
+  public boolean isSetEntriesToBeCompacted() {
+    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __ENTRIESTOBECOMPACTED_ISSET_ID);
   }
 
-  public void setBytesToBeCompactedIsSet(boolean value) {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __BYTESTOBECOMPACTED_ISSET_ID, value);
+  public void setEntriesToBeCompactedIsSet(boolean value) {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __ENTRIESTOBECOMPACTED_ISSET_ID, value);
   }
 
-  public long getBytesRead() {
-    return this.bytesRead;
+  public long getEntriesRead() {
+    return this.entriesRead;
   }
 
-  public TCompactionStatusUpdate setBytesRead(long bytesRead) {
-    this.bytesRead = bytesRead;
-    setBytesReadIsSet(true);
+  public TCompactionStatusUpdate setEntriesRead(long entriesRead) {
+    this.entriesRead = entriesRead;
+    setEntriesReadIsSet(true);
     return this;
   }
 
-  public void unsetBytesRead() {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __BYTESREAD_ISSET_ID);
+  public void unsetEntriesRead() {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __ENTRIESREAD_ISSET_ID);
   }
 
-  /** Returns true if field bytesRead is set (has been assigned a value) and false otherwise */
-  public boolean isSetBytesRead() {
-    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __BYTESREAD_ISSET_ID);
+  /** Returns true if field entriesRead is set (has been assigned a value) and false otherwise */
+  public boolean isSetEntriesRead() {
+    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __ENTRIESREAD_ISSET_ID);
   }
 
-  public void setBytesReadIsSet(boolean value) {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __BYTESREAD_ISSET_ID, value);
+  public void setEntriesReadIsSet(boolean value) {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __ENTRIESREAD_ISSET_ID, value);
   }
 
-  public long getBytesWritten() {
-    return this.bytesWritten;
+  public long getEntriesWritten() {
+    return this.entriesWritten;
   }
 
-  public TCompactionStatusUpdate setBytesWritten(long bytesWritten) {
-    this.bytesWritten = bytesWritten;
-    setBytesWrittenIsSet(true);
+  public TCompactionStatusUpdate setEntriesWritten(long entriesWritten) {
+    this.entriesWritten = entriesWritten;
+    setEntriesWrittenIsSet(true);
     return this;
   }
 
-  public void unsetBytesWritten() {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __BYTESWRITTEN_ISSET_ID);
+  public void unsetEntriesWritten() {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __ENTRIESWRITTEN_ISSET_ID);
   }
 
-  /** Returns true if field bytesWritten is set (has been assigned a value) and false otherwise */
-  public boolean isSetBytesWritten() {
-    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __BYTESWRITTEN_ISSET_ID);
+  /** Returns true if field entriesWritten is set (has been assigned a value) and false otherwise */
+  public boolean isSetEntriesWritten() {
+    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __ENTRIESWRITTEN_ISSET_ID);
   }
 
-  public void setBytesWrittenIsSet(boolean value) {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __BYTESWRITTEN_ISSET_ID, value);
+  public void setEntriesWrittenIsSet(boolean value) {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __ENTRIESWRITTEN_ISSET_ID, value);
   }
 
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
@@ -343,27 +343,27 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
       }
       break;
 
-    case BYTES_TO_BE_COMPACTED:
+    case ENTRIES_TO_BE_COMPACTED:
       if (value == null) {
-        unsetBytesToBeCompacted();
+        unsetEntriesToBeCompacted();
       } else {
-        setBytesToBeCompacted((java.lang.Long)value);
+        setEntriesToBeCompacted((java.lang.Long)value);
       }
       break;
 
-    case BYTES_READ:
+    case ENTRIES_READ:
       if (value == null) {
-        unsetBytesRead();
+        unsetEntriesRead();
       } else {
-        setBytesRead((java.lang.Long)value);
+        setEntriesRead((java.lang.Long)value);
       }
       break;
 
-    case BYTES_WRITTEN:
+    case ENTRIES_WRITTEN:
       if (value == null) {
-        unsetBytesWritten();
+        unsetEntriesWritten();
       } else {
-        setBytesWritten((java.lang.Long)value);
+        setEntriesWritten((java.lang.Long)value);
       }
       break;
 
@@ -379,14 +379,14 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
     case MESSAGE:
       return getMessage();
 
-    case BYTES_TO_BE_COMPACTED:
-      return getBytesToBeCompacted();
+    case ENTRIES_TO_BE_COMPACTED:
+      return getEntriesToBeCompacted();
 
-    case BYTES_READ:
-      return getBytesRead();
+    case ENTRIES_READ:
+      return getEntriesRead();
 
-    case BYTES_WRITTEN:
-      return getBytesWritten();
+    case ENTRIES_WRITTEN:
+      return getEntriesWritten();
 
     }
     throw new java.lang.IllegalStateException();
@@ -403,12 +403,12 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
       return isSetState();
     case MESSAGE:
       return isSetMessage();
-    case BYTES_TO_BE_COMPACTED:
-      return isSetBytesToBeCompacted();
-    case BYTES_READ:
-      return isSetBytesRead();
-    case BYTES_WRITTEN:
-      return isSetBytesWritten();
+    case ENTRIES_TO_BE_COMPACTED:
+      return isSetEntriesToBeCompacted();
+    case ENTRIES_READ:
+      return isSetEntriesRead();
+    case ENTRIES_WRITTEN:
+      return isSetEntriesWritten();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -444,30 +444,30 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
         return false;
     }
 
-    boolean this_present_bytesToBeCompacted = true;
-    boolean that_present_bytesToBeCompacted = true;
-    if (this_present_bytesToBeCompacted || that_present_bytesToBeCompacted) {
-      if (!(this_present_bytesToBeCompacted && that_present_bytesToBeCompacted))
+    boolean this_present_entriesToBeCompacted = true;
+    boolean that_present_entriesToBeCompacted = true;
+    if (this_present_entriesToBeCompacted || that_present_entriesToBeCompacted) {
+      if (!(this_present_entriesToBeCompacted && that_present_entriesToBeCompacted))
         return false;
-      if (this.bytesToBeCompacted != that.bytesToBeCompacted)
-        return false;
-    }
-
-    boolean this_present_bytesRead = true;
-    boolean that_present_bytesRead = true;
-    if (this_present_bytesRead || that_present_bytesRead) {
-      if (!(this_present_bytesRead && that_present_bytesRead))
-        return false;
-      if (this.bytesRead != that.bytesRead)
+      if (this.entriesToBeCompacted != that.entriesToBeCompacted)
         return false;
     }
 
-    boolean this_present_bytesWritten = true;
-    boolean that_present_bytesWritten = true;
-    if (this_present_bytesWritten || that_present_bytesWritten) {
-      if (!(this_present_bytesWritten && that_present_bytesWritten))
+    boolean this_present_entriesRead = true;
+    boolean that_present_entriesRead = true;
+    if (this_present_entriesRead || that_present_entriesRead) {
+      if (!(this_present_entriesRead && that_present_entriesRead))
         return false;
-      if (this.bytesWritten != that.bytesWritten)
+      if (this.entriesRead != that.entriesRead)
+        return false;
+    }
+
+    boolean this_present_entriesWritten = true;
+    boolean that_present_entriesWritten = true;
+    if (this_present_entriesWritten || that_present_entriesWritten) {
+      if (!(this_present_entriesWritten && that_present_entriesWritten))
+        return false;
+      if (this.entriesWritten != that.entriesWritten)
         return false;
     }
 
@@ -486,11 +486,11 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
     if (isSetMessage())
       hashCode = hashCode * 8191 + message.hashCode();
 
-    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(bytesToBeCompacted);
+    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(entriesToBeCompacted);
 
-    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(bytesRead);
+    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(entriesRead);
 
-    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(bytesWritten);
+    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(entriesWritten);
 
     return hashCode;
   }
@@ -523,32 +523,32 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.compare(isSetBytesToBeCompacted(), other.isSetBytesToBeCompacted());
+    lastComparison = java.lang.Boolean.compare(isSetEntriesToBeCompacted(), other.isSetEntriesToBeCompacted());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetBytesToBeCompacted()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.bytesToBeCompacted, other.bytesToBeCompacted);
+    if (isSetEntriesToBeCompacted()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.entriesToBeCompacted, other.entriesToBeCompacted);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.compare(isSetBytesRead(), other.isSetBytesRead());
+    lastComparison = java.lang.Boolean.compare(isSetEntriesRead(), other.isSetEntriesRead());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetBytesRead()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.bytesRead, other.bytesRead);
+    if (isSetEntriesRead()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.entriesRead, other.entriesRead);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.compare(isSetBytesWritten(), other.isSetBytesWritten());
+    lastComparison = java.lang.Boolean.compare(isSetEntriesWritten(), other.isSetEntriesWritten());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetBytesWritten()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.bytesWritten, other.bytesWritten);
+    if (isSetEntriesWritten()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.entriesWritten, other.entriesWritten);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -590,16 +590,16 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("bytesToBeCompacted:");
-    sb.append(this.bytesToBeCompacted);
+    sb.append("entriesToBeCompacted:");
+    sb.append(this.entriesToBeCompacted);
     first = false;
     if (!first) sb.append(", ");
-    sb.append("bytesRead:");
-    sb.append(this.bytesRead);
+    sb.append("entriesRead:");
+    sb.append(this.entriesRead);
     first = false;
     if (!first) sb.append(", ");
-    sb.append("bytesWritten:");
-    sb.append(this.bytesWritten);
+    sb.append("entriesWritten:");
+    sb.append(this.entriesWritten);
     first = false;
     sb.append(")");
     return sb.toString();
@@ -662,26 +662,26 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 3: // BYTES_TO_BE_COMPACTED
+          case 3: // ENTRIES_TO_BE_COMPACTED
             if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
-              struct.bytesToBeCompacted = iprot.readI64();
-              struct.setBytesToBeCompactedIsSet(true);
+              struct.entriesToBeCompacted = iprot.readI64();
+              struct.setEntriesToBeCompactedIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 4: // BYTES_READ
+          case 4: // ENTRIES_READ
             if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
-              struct.bytesRead = iprot.readI64();
-              struct.setBytesReadIsSet(true);
+              struct.entriesRead = iprot.readI64();
+              struct.setEntriesReadIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 5: // BYTES_WRITTEN
+          case 5: // ENTRIES_WRITTEN
             if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
-              struct.bytesWritten = iprot.readI64();
-              struct.setBytesWrittenIsSet(true);
+              struct.entriesWritten = iprot.readI64();
+              struct.setEntriesWrittenIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -711,14 +711,14 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
         oprot.writeString(struct.message);
         oprot.writeFieldEnd();
       }
-      oprot.writeFieldBegin(BYTES_TO_BE_COMPACTED_FIELD_DESC);
-      oprot.writeI64(struct.bytesToBeCompacted);
+      oprot.writeFieldBegin(ENTRIES_TO_BE_COMPACTED_FIELD_DESC);
+      oprot.writeI64(struct.entriesToBeCompacted);
       oprot.writeFieldEnd();
-      oprot.writeFieldBegin(BYTES_READ_FIELD_DESC);
-      oprot.writeI64(struct.bytesRead);
+      oprot.writeFieldBegin(ENTRIES_READ_FIELD_DESC);
+      oprot.writeI64(struct.entriesRead);
       oprot.writeFieldEnd();
-      oprot.writeFieldBegin(BYTES_WRITTEN_FIELD_DESC);
-      oprot.writeI64(struct.bytesWritten);
+      oprot.writeFieldBegin(ENTRIES_WRITTEN_FIELD_DESC);
+      oprot.writeI64(struct.entriesWritten);
       oprot.writeFieldEnd();
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -744,13 +744,13 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
       if (struct.isSetMessage()) {
         optionals.set(1);
       }
-      if (struct.isSetBytesToBeCompacted()) {
+      if (struct.isSetEntriesToBeCompacted()) {
         optionals.set(2);
       }
-      if (struct.isSetBytesRead()) {
+      if (struct.isSetEntriesRead()) {
         optionals.set(3);
       }
-      if (struct.isSetBytesWritten()) {
+      if (struct.isSetEntriesWritten()) {
         optionals.set(4);
       }
       oprot.writeBitSet(optionals, 5);
@@ -760,14 +760,14 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
       if (struct.isSetMessage()) {
         oprot.writeString(struct.message);
       }
-      if (struct.isSetBytesToBeCompacted()) {
-        oprot.writeI64(struct.bytesToBeCompacted);
+      if (struct.isSetEntriesToBeCompacted()) {
+        oprot.writeI64(struct.entriesToBeCompacted);
       }
-      if (struct.isSetBytesRead()) {
-        oprot.writeI64(struct.bytesRead);
+      if (struct.isSetEntriesRead()) {
+        oprot.writeI64(struct.entriesRead);
       }
-      if (struct.isSetBytesWritten()) {
-        oprot.writeI64(struct.bytesWritten);
+      if (struct.isSetEntriesWritten()) {
+        oprot.writeI64(struct.entriesWritten);
       }
     }
 
@@ -784,16 +784,16 @@ public class TCompactionStatusUpdate implements org.apache.thrift.TBase<TCompact
         struct.setMessageIsSet(true);
       }
       if (incoming.get(2)) {
-        struct.bytesToBeCompacted = iprot.readI64();
-        struct.setBytesToBeCompactedIsSet(true);
+        struct.entriesToBeCompacted = iprot.readI64();
+        struct.setEntriesToBeCompactedIsSet(true);
       }
       if (incoming.get(3)) {
-        struct.bytesRead = iprot.readI64();
-        struct.setBytesReadIsSet(true);
+        struct.entriesRead = iprot.readI64();
+        struct.setEntriesReadIsSet(true);
       }
       if (incoming.get(4)) {
-        struct.bytesWritten = iprot.readI64();
-        struct.setBytesWrittenIsSet(true);
+        struct.entriesWritten = iprot.readI64();
+        struct.setEntriesWrittenIsSet(true);
       }
     }
   }

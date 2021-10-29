@@ -513,9 +513,8 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
         Preconditions.checkState(compactionRunning.compareAndSet(false, true));
         try {
           LOG.info("Starting up compaction runnable for job: {}", job);
-          TCompactionStatusUpdate update = new TCompactionStatusUpdate();
-          update.setState(TCompactionState.STARTED);
-          update.setMessage("Compaction started");
+          TCompactionStatusUpdate update = new TCompactionStatusUpdate(TCompactionState.STARTED,
+              "Compaction started", -1, -1, -1);
           updateCompactionState(job, update);
 
           final AccumuloConfiguration tConfig;
@@ -560,9 +559,8 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
 
           LOG.info("Compaction completed successfully {} ", job.getExternalCompactionId());
           // Update state when completed
-          TCompactionStatusUpdate update2 = new TCompactionStatusUpdate();
-          update2.setState(TCompactionState.SUCCEEDED);
-          update2.setMessage("Compaction completed successfully");
+          TCompactionStatusUpdate update2 = new TCompactionStatusUpdate(TCompactionState.SUCCEEDED,
+              "Compaction completed successfully", -1, -1, -1);
           updateCompactionState(job, update2);
         } catch (Exception e) {
           LOG.error("Compaction failed", e);
@@ -719,9 +717,8 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
               || ((err.get() != null && err.get().getClass().equals(InterruptedException.class)))) {
             LOG.warn("Compaction thread was interrupted, sending CANCELLED state");
             try {
-              TCompactionStatusUpdate update = new TCompactionStatusUpdate();
-              update.setMessage("Compaction cancelled");
-              update.setState(TCompactionState.CANCELLED);
+              TCompactionStatusUpdate update = new TCompactionStatusUpdate(
+                  TCompactionState.CANCELLED, "Compaction cancelled", -1, -1, -1);
               updateCompactionState(job, update);
               updateCompactionFailed(job);
             } catch (RetriesExceededException e) {
@@ -732,9 +729,8 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
           } else if (err.get() != null) {
             try {
               LOG.info("Updating coordinator with compaction failure.");
-              TCompactionStatusUpdate update = new TCompactionStatusUpdate();
-              update.setMessage("Compaction failed due to: " + err.get().getMessage());
-              update.setState(TCompactionState.FAILED);
+              TCompactionStatusUpdate update = new TCompactionStatusUpdate(TCompactionState.FAILED,
+                  "Compaction failed due to: " + err.get().getMessage(), -1, -1, -1);
               updateCompactionState(job, update);
               updateCompactionFailed(job);
             } catch (RetriesExceededException e) {

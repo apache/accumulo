@@ -43,9 +43,9 @@ enum TCompactionState {
 struct TCompactionStatusUpdate {
   1:TCompactionState state
   2:string message
-  3:i64 bytesToBeCompacted
-  4:i64 bytesRead
-  5:i64 bytesWritten
+  3:i64 entriesToBeCompacted
+  4:i64 entriesRead
+  5:i64 entriesWritten
 }
 
 struct TExternalCompaction {
@@ -95,7 +95,7 @@ service CompactionCoordinatorService {
     2:security.TCredentials credentials
     3:string externalCompactionId
     4:TCompactionStatusUpdate status
-    6:i64 timestamp
+    5:i64 timestamp
   )
   
   /*
