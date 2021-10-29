@@ -19,8 +19,13 @@
 package org.apache.accumulo.fate.zookeeper;
 
 import java.math.BigInteger;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.zookeeper.KeeperException;
@@ -29,6 +34,7 @@ import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooDefs.Perms;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Stat;
 
 public class ZooUtil {
 
@@ -39,6 +45,10 @@ public class ZooUtil {
   public enum NodeMissingPolicy {
     SKIP, CREATE, FAIL
   }
+
+  // used for zookeeper stat print formatting
+  private static final DateTimeFormatter fmt =
+      DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss 'UTC' yyyy");
 
   public static class LockID {
     public long eid;
@@ -119,6 +129,35 @@ public class ZooUtil {
       }
       throw e;
     }
+  }
+
+  /**
+   * For debug: print the ZooKeeper Stat with value labels for a more user friendly string. The
+   * format matches the zookeeper cli stat command.
+   *
+   * @param stat
+   *          Zookeeper Stat structure
+   * @return a formatted string.
+   */
+  public static String printStat(final Stat stat) {
+
+    if (Objects.isNull(stat)) {
+      return "null";
+    }
+
+    return "\ncZxid = " + String.format("0x%x", stat.getCzxid()) + "\nctime = "
+        + getFmtTime(stat.getCtime()) + "\nmZxid = " + String.format("0x%x", stat.getMzxid())
+        + "\nmtime = " + getFmtTime(stat.getMtime()) + "\npZxid = "
+        + String.format("0x%x", stat.getPzxid()) + "\ncversion = " + stat.getCversion()
+        + "\ndataVersion = " + stat.getVersion() + "\naclVersion = " + stat.getAversion()
+        + "\nephemeralOwner = " + String.format("0x%x", stat.getEphemeralOwner())
+        + "\ndataLength = " + stat.getDataLength() + "\nnumChildren = " + stat.getNumChildren();
+  }
+
+  private static String getFmtTime(final long epoch) {
+    OffsetDateTime timestamp =
+        OffsetDateTime.ofInstant(Instant.ofEpochMilli(epoch), ZoneOffset.UTC);
+    return fmt.format(timestamp);
   }
 
 }

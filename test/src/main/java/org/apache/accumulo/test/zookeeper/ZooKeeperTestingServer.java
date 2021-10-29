@@ -18,10 +18,13 @@
  */
 package org.apache.accumulo.test.zookeeper;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 
@@ -46,15 +49,21 @@ public class ZooKeeperTestingServer implements AutoCloseable {
 
   private static final Random rand = new SecureRandom();
 
+  private byte[] auth;
+
   /**
    * Instantiate a running zookeeper server - this call will block until the server is ready for
    * client connections. It will try three times, with a 5 second pause to connect.
    */
   public ZooKeeperTestingServer() {
-    this(getPort());
+    this(getPort(), null);
   }
 
-  private ZooKeeperTestingServer(int port) {
+  public ZooKeeperTestingServer(final String secret) {
+    this(getPort(), ("accumulo" + ":" + secret).getBytes(UTF_8));
+  }
+
+  private ZooKeeperTestingServer(int port, byte[] auth) {
 
     try {
 
@@ -89,6 +98,10 @@ public class ZooKeeperTestingServer implements AutoCloseable {
       });
 
       connectionLatch.await();
+
+      if (Objects.nonNull(auth)) {
+        zoo.addAuthInfo("digest", auth);
+      }
 
     } catch (Exception ex) {
       throw new IllegalStateException("Failed to start testing zookeeper", ex);
