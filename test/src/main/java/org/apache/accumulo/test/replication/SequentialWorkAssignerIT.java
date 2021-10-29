@@ -51,6 +51,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 @Ignore("Replication ITs are not stable and not currently maintained")
+@Deprecated
 public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
   private AccumuloClient client;

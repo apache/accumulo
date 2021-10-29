@@ -323,6 +323,7 @@ public interface AccumuloClient extends AutoCloseable {
    *
    * @return an object to modify replication configuration
    */
+  @Deprecated
   ReplicationOperations replicationOperations();
 
   /**

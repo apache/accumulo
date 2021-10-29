@@ -54,6 +54,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
  * Update the status record in the replication table with work that has been replicated to each
  * configured peer.
  */
+@Deprecated
 public class FinishedWorkUpdater implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(FinishedWorkUpdater.class);
 

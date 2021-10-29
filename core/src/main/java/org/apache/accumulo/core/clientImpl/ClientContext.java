@@ -121,6 +121,7 @@ public class ClientContext implements AccumuloClient {
   private TableOperationsImpl tableops = null;
   private NamespaceOperations namespaceops = null;
   private InstanceOperations instanceops = null;
+  @SuppressWarnings("deprecation")
   private ReplicationOperations replicationops = null;
   private final SingletonReservation singletonReservation;
 
@@ -683,6 +684,7 @@ public class ClientContext implements AccumuloClient {
   }
 
   @Override
+  @Deprecated
   public synchronized ReplicationOperations replicationOperations() {
     ensureOpen();
     if (replicationops == null) {

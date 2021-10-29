@@ -1151,11 +1151,7 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
 
-    try {
-      ZooKeeperInitialization.ensureZooKeeperInitialized(zReaderWriter, zroot);
-    } catch (KeeperException | InterruptedException e) {
-      throw new IllegalStateException("Exception while ensuring ZooKeeper is initialized", e);
-    }
+    initializeZkForReplication(zReaderWriter, zroot);
 
     // Make sure that we have a secret key (either a new one or an old one from ZK) before we start
     // the manager client service.
@@ -1199,9 +1195,10 @@ public class Manager extends AbstractServer
     final AtomicReference<TServer> replServer = new AtomicReference<>();
     context.getScheduledExecutor().scheduleWithFixedDelay(() -> {
       try {
-        if ((replServer.get() == null)
-            && !getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
-          log.info("{} was set, starting repl services.", Property.REPLICATION_NAME.getKey());
+        @SuppressWarnings("deprecation")
+        Property p = Property.REPLICATION_NAME;
+        if ((replServer.get() == null) && !getConfiguration().get(p).isEmpty()) {
+          log.info("{} was set, starting repl services.", p.getKey());
           replServer.set(setupReplication());
         }
       } catch (UnknownHostException | KeeperException | InterruptedException e) {
@@ -1257,6 +1254,15 @@ public class Manager extends AbstractServer
       }
     }
     log.info("exiting");
+  }
+
+  @Deprecated
+  private void initializeZkForReplication(ZooReaderWriter zReaderWriter, String zroot) {
+    try {
+      ZooKeeperInitialization.ensureZooKeeperInitialized(zReaderWriter, zroot);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Exception while ensuring ZooKeeper is initialized", e);
+    }
   }
 
   /**
@@ -1343,6 +1349,7 @@ public class Manager extends AbstractServer
     }
   }
 
+  @Deprecated
   private TServer setupReplication()
       throws UnknownHostException, KeeperException, InterruptedException {
     ServerContext context = getContext();

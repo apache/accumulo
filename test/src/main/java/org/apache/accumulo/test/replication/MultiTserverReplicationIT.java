@@ -48,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterables;
 
 @Ignore("Replication ITs are not stable and not currently maintained")
+@Deprecated
 public class MultiTserverReplicationIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(MultiTserverReplicationIT.class);
 

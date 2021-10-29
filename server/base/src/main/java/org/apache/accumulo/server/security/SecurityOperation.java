@@ -367,8 +367,11 @@ public class SecurityOperation {
       boolean useCached) throws ThriftSecurityException {
     targetUserExists(user);
 
+    @SuppressWarnings("deprecation")
+    TableId replicationTableId = ReplicationTable.ID;
+
     if ((table.equals(MetadataTable.ID) || table.equals(RootTable.ID)
-        || table.equals(ReplicationTable.ID)) && permission.equals(TablePermission.READ))
+        || table.equals(replicationTableId)) && permission.equals(TablePermission.READ))
       return true;
 
     try {

@@ -45,6 +45,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Choose a tserver to service a replication task
  */
+@Deprecated
 public class ManagerReplicationCoordinator implements ReplicationCoordinator.Iface {
   private static final Logger log = LoggerFactory.getLogger(ManagerReplicationCoordinator.class);
 

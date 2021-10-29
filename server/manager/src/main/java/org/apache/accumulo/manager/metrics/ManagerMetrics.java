@@ -34,7 +34,9 @@ public class ManagerMetrics {
 
   public static void init(AccumuloConfiguration conf, Manager m) {
     requireNonNull(conf, "AccumuloConfiguration must not be null");
-    MetricsUtil.initializeProducers(new ReplicationMetrics(m));
+    @SuppressWarnings("deprecation")
+    ReplicationMetrics replMetrics = new ReplicationMetrics(m);
+    MetricsUtil.initializeProducers(replMetrics);
     log.info("Registered replication metrics module");
     MetricsUtil.initializeProducers(new FateMetrics(m.getContext(),
         conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));

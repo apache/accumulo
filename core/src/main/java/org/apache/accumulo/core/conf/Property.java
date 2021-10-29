@@ -347,16 +347,20 @@ public enum Property {
       "The number of threads used to run fault-tolerant executions (FATE)."
           + " These are primarily table operations like merge.",
       "1.4.3"),
+  @Deprecated
   MANAGER_REPLICATION_SCAN_INTERVAL("manager.replication.status.scan.interval", "30s",
       PropertyType.TIMEDURATION,
       "Amount of time to sleep before scanning the status section of the "
           + "replication table for new data",
       "1.7.0"),
+  @Deprecated
   MANAGER_REPLICATION_COORDINATOR_PORT("manager.replication.coordinator.port", "10001",
       PropertyType.PORT, "Port for the replication coordinator service", "1.7.0"),
+  @Deprecated
   MANAGER_REPLICATION_COORDINATOR_MINTHREADS("manager.replication.coordinator.minthreads", "4",
       PropertyType.COUNT, "Minimum number of threads dedicated to answering coordinator requests",
       "1.7.0"),
+  @Deprecated
   MANAGER_REPLICATION_COORDINATOR_THREADCHECK("manager.replication.coordinator.threadcheck.time",
       "5s", PropertyType.TIMEDURATION,
       "The time between adjustments of the coordinator thread pool", "1.7.0"),
@@ -708,11 +712,14 @@ public enum Property {
           + " warning along with the current stack trace. Meant to help debug stuck"
           + " assignments",
       "1.6.2"),
+  @Deprecated
   TSERV_REPLICATION_REPLAYERS("tserver.replication.replayer.", null, PropertyType.PREFIX,
       "Allows configuration of implementation used to apply replicated data", "1.7.0"),
+  @Deprecated
   TSERV_REPLICATION_DEFAULT_HANDLER("tserver.replication.default.replayer",
       "org.apache.accumulo.tserver.replication.BatchWriterReplicationReplayer",
       PropertyType.CLASSNAME, "Default AccumuloReplicationReplayer implementation", "1.7.0"),
+  @Deprecated
   TSERV_REPLICATION_BW_REPLAYER_MEMORY("tserver.replication.batchwriter.replayer.memory", "50M",
       PropertyType.BYTES, "Memory to provide to batchwriter to replay mutations for replication",
       "1.7.0"),
@@ -1090,8 +1097,10 @@ public enum Property {
   @ReplacedBy(property = TABLE_CLASSLOADER_CONTEXT)
   TABLE_CLASSPATH("table.classpath.context", "", PropertyType.STRING, "Per table classpath context",
       "1.5.0"),
+  @Deprecated
   TABLE_REPLICATION("table.replication", "false", PropertyType.BOOLEAN,
       "Is replication enabled for the given table", "1.7.0"),
+  @Deprecated
   TABLE_REPLICATION_TARGET("table.replication.target.", null, PropertyType.PREFIX,
       "Enumerate a mapping of other systems which this table should replicate"
           + " their data to. The key suffix is the identifying cluster name and the"
@@ -1178,58 +1187,78 @@ public enum Property {
       "1.5.0"),
 
   // General properties for configuring replication
+  @Deprecated
   REPLICATION_PREFIX("replication.", null, PropertyType.PREFIX,
       "Properties in this category affect the replication of data to other Accumulo instances.",
       "1.7.0"),
+  @Deprecated
   REPLICATION_PEERS("replication.peer.", null, PropertyType.PREFIX,
       "Properties in this category control what systems data can be replicated to", "1.7.0"),
+  @Deprecated
   REPLICATION_PEER_USER("replication.peer.user.", null, PropertyType.PREFIX,
       "The username to provide when authenticating with the given peer", "1.7.0"),
   @Sensitive
+  @Deprecated
   REPLICATION_PEER_PASSWORD("replication.peer.password.", null, PropertyType.PREFIX,
       "The password to provide when authenticating with the given peer", "1.7.0"),
+  @Deprecated
   REPLICATION_PEER_KEYTAB("replication.peer.keytab.", null, PropertyType.PREFIX,
       "The keytab to use when authenticating with the given peer", "1.7.0"),
+  @Deprecated
   REPLICATION_NAME("replication.name", "", PropertyType.STRING,
       "Name of this cluster with respect to replication. Used to identify this"
           + " instance from other peers",
       "1.7.0"),
+  @Deprecated
   REPLICATION_MAX_WORK_QUEUE("replication.max.work.queue", "1000", PropertyType.COUNT,
       "Upper bound of the number of files queued for replication", "1.7.0"),
+  @Deprecated
   REPLICATION_WORK_ASSIGNMENT_SLEEP("replication.work.assignment.sleep", "30s",
       PropertyType.TIMEDURATION, "Amount of time to sleep between replication work assignment",
       "1.7.0"),
+  @Deprecated
   REPLICATION_WORKER_THREADS("replication.worker.threads", "4", PropertyType.COUNT,
       "Size of the threadpool that each tabletserver devotes to replicating data", "1.7.0"),
+  @Deprecated
   REPLICATION_RECEIPT_SERVICE_PORT("replication.receipt.service.port", "10002", PropertyType.PORT,
       "Listen port used by thrift service in tserver listening for replication", "1.7.0"),
+  @Deprecated
   REPLICATION_WORK_ATTEMPTS("replication.work.attempts", "10", PropertyType.COUNT,
       "Number of attempts to try to replicate some data before giving up and"
           + " letting it naturally be retried later",
       "1.7.0"),
+  @Deprecated
   REPLICATION_MIN_THREADS("replication.receiver.min.threads", "1", PropertyType.COUNT,
       "Minimum number of threads for replication", "1.7.0"),
+  @Deprecated
   REPLICATION_THREADCHECK("replication.receiver.threadcheck.time", "30s", PropertyType.TIMEDURATION,
       "The time between adjustments of the replication thread pool.", "1.7.0"),
+  @Deprecated
   REPLICATION_MAX_UNIT_SIZE("replication.max.unit.size", "64M", PropertyType.BYTES,
       "Maximum size of data to send in a replication message", "1.7.0"),
+  @Deprecated
   REPLICATION_WORK_ASSIGNER("replication.work.assigner",
       "org.apache.accumulo.manager.replication.UnorderedWorkAssigner", PropertyType.CLASSNAME,
       "Replication WorkAssigner implementation to use", "1.7.0"),
+  @Deprecated
   REPLICATION_DRIVER_DELAY("replication.driver.delay", "0s", PropertyType.TIMEDURATION,
       "Amount of time to wait before the replication work loop begins in the manager.", "1.7.0"),
+  @Deprecated
   REPLICATION_WORK_PROCESSOR_DELAY("replication.work.processor.delay", "0s",
       PropertyType.TIMEDURATION,
       "Amount of time to wait before first checking for replication work, not"
           + " useful outside of tests",
       "1.7.0"),
+  @Deprecated
   REPLICATION_WORK_PROCESSOR_PERIOD("replication.work.processor.period", "0s",
       PropertyType.TIMEDURATION,
       "Amount of time to wait before re-checking for replication work, not"
           + " useful outside of tests",
       "1.7.0"),
+  @Deprecated
   REPLICATION_TRACE_PERCENT("replication.trace.percent", "0.1", PropertyType.FRACTION,
       "The sampling percentage to use for replication traces", "1.7.0"),
+  @Deprecated
   REPLICATION_RPC_TIMEOUT("replication.rpc.timeout", "2m", PropertyType.TIMEDURATION,
       "Amount of time for a single replication RPC call to last before failing"
           + " the attempt. See replication.work.attempts.",

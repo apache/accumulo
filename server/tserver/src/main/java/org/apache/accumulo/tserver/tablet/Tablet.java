@@ -325,6 +325,7 @@ public class Tablet {
     this.tableConfiguration = tblConf;
 
     // translate any volume changes
+    @SuppressWarnings("deprecation")
     boolean replicationEnabled =
         ReplicationConfigurationUtil.isEnabled(extent, this.tableConfiguration);
     TabletFiles tabletPaths =
@@ -385,14 +386,17 @@ public class Tablet {
         }
         commitSession.updateMaxCommittedTime(tabletTime.getTime());
 
+        @SuppressWarnings("deprecation")
+        boolean replicationEnabledForTable = ReplicationConfigurationUtil.isEnabled(extent,
+            tabletServer.getTableConfiguration(extent));
         if (entriesUsedOnTablet.get() == 0) {
           log.debug("No replayed mutations applied, removing unused entries for {}", extent);
           MetadataTableUtil.removeUnusedWALEntries(getTabletServer().getContext(), extent,
               logEntries, tabletServer.getLock());
           logEntries.clear();
-        } else if (ReplicationConfigurationUtil.isEnabled(extent,
-            tabletServer.getTableConfiguration(extent))) {
+        } else if (replicationEnabledForTable) {
           // record that logs may have data for this extent
+          @SuppressWarnings("deprecation")
           Status status = StatusUtil.openWithUnknownLength();
           for (LogEntry logEntry : logEntries) {
             log.debug("Writing updated status to metadata table for {} {}", logEntry.filename,

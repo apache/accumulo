@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -105,6 +106,8 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
       cluster.killProcess(ServerType.TABLET_SERVER,
           cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
       Set<TServerInstance> replStates = new HashSet<>();
+      @SuppressWarnings("deprecation")
+      TableId repTable = ReplicationTable.ID;
       // Find out which tablet server remains
       while (true) {
         UtilWaitThread.sleep(1000);
@@ -114,8 +117,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
         for (TabletLocationState tls : store) {
           if (tls != null && tls.current != null) {
             states.add(tls.current);
-          } else if (tls != null
-              && tls.extent.equals(new KeyExtent(ReplicationTable.ID, null, null))) {
+          } else if (tls != null && tls.extent.equals(new KeyExtent(repTable, null, null))) {
             replStates.add(tls.current);
           } else {
             allAssigned = false;

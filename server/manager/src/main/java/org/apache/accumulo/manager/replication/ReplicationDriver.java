@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Daemon wrapper around the {@link WorkMaker} that separates it from the Manager
  */
+@Deprecated
 public class ReplicationDriver implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(ReplicationDriver.class);
 

@@ -48,6 +48,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Deprecated
 public class ReplicationUtil {
   private static final Logger log = LoggerFactory.getLogger(ReplicationUtil.class);
   public static final String STATUS_FORMATTER_CLASS_NAME = StatusFormatter.class.getName();

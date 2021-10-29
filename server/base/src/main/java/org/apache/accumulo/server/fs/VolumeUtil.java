@@ -180,6 +180,7 @@ public class VolumeUtil {
       MetadataTableUtil.updateTabletVolumes(extent, logsToRemove, logsToAdd, filesToRemove,
           filesToAdd, zooLock, context);
       if (replicate) {
+        @SuppressWarnings("deprecation")
         Status status = StatusUtil.fileClosed();
         log.debug("Tablet directory switched, need to record old log files {} {}", logsToRemove,
             ProtobufUtil.toString(status));

@@ -420,6 +420,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     }
 
     @Override
+    @Deprecated
     public Iterator<Entry<String,Status>> getReplicationNeededIterator() {
       AccumuloClient client = getContext();
       try {
@@ -529,6 +530,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
            * GarbageCollectWriteAheadLogs to ensure we delete as many files as possible.
            */
           try (var ignored2 = Trace.startSpan("replicationClose")) {
+            @SuppressWarnings("deprecation")
             CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(getContext());
             closeWals.run();
           } catch (Exception e) {

@@ -24,6 +24,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.replication.thrift.RemoteReplicationException;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
 
+@Deprecated
 public interface AccumuloReplicationReplayer {
 
   long replicateLog(ClientContext context, String tableName, WalEdits data)

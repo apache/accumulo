@@ -45,6 +45,7 @@ import org.slf4j.LoggerFactory;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 
+@Deprecated
 public class ReplicationMetrics implements MetricsProducer {
 
   private static final Logger log = LoggerFactory.getLogger(ReplicationMetrics.class);

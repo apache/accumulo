@@ -23,6 +23,7 @@ package org.apache.accumulo.monitor.rest.replication;
  *
  * @since 2.0.0
  */
+@Deprecated
 public class ReplicationInformation {
 
   // Variable names become JSON keys

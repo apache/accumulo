@@ -29,6 +29,7 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
+@Deprecated
 public class ReplicationSchemaTest {
 
   @Test
