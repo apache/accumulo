@@ -211,18 +211,18 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   @Test
   public void z99_testPermissions_shutdown() throws Exception {
     // grab connections before shutting down
-    AccumuloClient rootUserClient = Accumulo.newClient().from(getClientProps())
-        .as(rootUser.getPrincipal(), rootUser.getToken()).build();
-    AccumuloClient privilegedUserClient = Accumulo.newClient().from(getClientProps())
-        .as(privilegedUser.getPrincipal(), privilegedUser.getToken()).build();
-    // To shutdown, user needs SystemPermission.SYSTEM
-    op = user -> client -> client.shutdown(null, user, false);
-    expectPermissionDenied(op, regularUser);
-    // We should be able to do both of the following RPC calls before it actually shuts down
-    expectPermissionSuccess(op, (ClientContext) rootUserClient);
-    expectPermissionSuccess(op, (ClientContext) privilegedUserClient);
-    rootUserClient.close();
-    privilegedUserClient.close();
+    var rootUserBuilder = Accumulo.newClient().from(getClientProps()).as(rootUser.getPrincipal(),
+        rootUser.getToken());
+    var privUserBuilder = Accumulo.newClient().from(getClientProps())
+        .as(privilegedUser.getPrincipal(), privilegedUser.getToken());
+    try (var rootClient = rootUserBuilder.build(); var privClient = privUserBuilder.build()) {
+      // To shutdown, user needs SystemPermission.SYSTEM
+      op = user -> client -> client.shutdown(null, user, false);
+      expectPermissionDenied(op, regularUser);
+      // We should be able to do both of the following RPC calls before it actually shuts down
+      expectPermissionSuccess(op, (ClientContext) rootClient);
+      expectPermissionSuccess(op, (ClientContext) privClient);
+    }
   }
 
   private static void expectPermissionSuccess(
