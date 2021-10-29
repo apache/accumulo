@@ -917,43 +917,6 @@ public class TabletServer extends AbstractServer {
         30000, TimeUnit.MILLISECONDS);
   }
 
-  static boolean checkTabletMetadata(KeyExtent extent, TServerInstance instance,
-      TabletMetadata meta) throws AccumuloException {
-
-    if (meta == null) {
-      log.info("Not loading tablet {}, its metadata was not found.", extent);
-      return false;
-    }
-
-    if (!meta.sawPrevEndRow()) {
-      throw new AccumuloException("Metadata entry does not have prev row (" + meta.getTableId()
-          + " " + meta.getEndRow() + ")");
-    }
-
-    if (!extent.equals(meta.getExtent())) {
-      log.info("Tablet extent mismatch {} {}", extent, meta.getExtent());
-      return false;
-    }
-
-    if (meta.getDirName() == null) {
-      throw new AccumuloException(
-          "Metadata entry does not have directory (" + meta.getExtent() + ")");
-    }
-
-    if (meta.getTime() == null && !extent.equals(RootTable.EXTENT)) {
-      throw new AccumuloException("Metadata entry does not have time (" + meta.getExtent() + ")");
-    }
-
-    Location loc = meta.getLocation();
-
-    if (loc == null || loc.getType() != LocationType.FUTURE || !instance.equals(loc)) {
-      log.info("Unexpected location {} {}", extent, loc);
-      return false;
-    }
-
-    return true;
-  }
-
   public String getClientAddressString() {
     if (clientAddress == null) {
       return null;
