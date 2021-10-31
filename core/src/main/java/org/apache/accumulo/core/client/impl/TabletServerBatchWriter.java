@@ -763,7 +763,7 @@ public class TabletServerBatchWriter {
               log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
                   mutationsToSend.size());
               addMutations(mutationsToSend);
-            } catch (Exception e) {
+            } catch (Throwable e) {
               updateUnknownErrors("Error processing mutation set", e);
             }
           }
