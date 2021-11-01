@@ -59,11 +59,10 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-@SuppressWarnings("deprecation")
+@Deprecated
 public class AccumuloReplicaSystemTest {
 
   @Test
-  @Deprecated
   public void onlyChooseMutationsForDesiredTableWithOpenStatus() throws Exception {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
@@ -171,7 +170,6 @@ public class AccumuloReplicaSystemTest {
   }
 
   @Test
-  @Deprecated
   public void onlyChooseMutationsForDesiredTableWithClosedStatus() throws Exception {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
@@ -283,7 +281,6 @@ public class AccumuloReplicaSystemTest {
   }
 
   @Test
-  @Deprecated
   public void mutationsNotReReplicatedToPeers() throws Exception {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
     Map<String,String> confMap = new HashMap<>();
@@ -329,7 +326,6 @@ public class AccumuloReplicaSystemTest {
   }
 
   @Test
-  @Deprecated
   public void endOfFileExceptionOnClosedWalImpliesFullyReplicated() throws Exception {
     Map<String,String> confMap = new HashMap<>();
     confMap.put(Property.REPLICATION_NAME.getKey(), "source");
@@ -355,7 +351,6 @@ public class AccumuloReplicaSystemTest {
   }
 
   @Test
-  @Deprecated
   public void endOfFileExceptionOnOpenWalImpliesMoreReplication() throws Exception {
     Map<String,String> confMap = new HashMap<>();
     confMap.put(Property.REPLICATION_NAME.getKey(), "source");
@@ -381,7 +376,6 @@ public class AccumuloReplicaSystemTest {
   }
 
   @Test
-  @Deprecated
   public void restartInFileKnowsAboutPreviousTableDefines() throws Exception {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
@@ -460,7 +454,6 @@ public class AccumuloReplicaSystemTest {
   }
 
   @Test
-  @Deprecated
   public void dontSendEmptyDataToPeer() throws Exception {
     Client replClient = createMock(Client.class);
     AccumuloReplicaSystem ars = createMock(AccumuloReplicaSystem.class);
@@ -491,7 +484,6 @@ public class AccumuloReplicaSystemTest {
   }
 
   @Test
-  @Deprecated
   public void consumedButNotSentDataShouldBeRecorded() throws Exception {
     Client replClient = createMock(Client.class);
     AccumuloReplicaSystem ars = createMock(AccumuloReplicaSystem.class);
@@ -522,7 +514,6 @@ public class AccumuloReplicaSystemTest {
   }
 
   @Test
-  @Deprecated
   public void testUserPassword() {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
     ReplicationTarget target = new ReplicationTarget("peer", "peer_table", TableId.of("1"));
@@ -538,7 +529,6 @@ public class AccumuloReplicaSystemTest {
   }
 
   @Test
-  @Deprecated
   public void testUserKeytab() {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
     ReplicationTarget target = new ReplicationTarget("peer", "peer_table", TableId.of("1"));
