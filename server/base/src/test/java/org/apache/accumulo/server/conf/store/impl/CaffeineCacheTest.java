@@ -36,6 +36,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropGzipCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
@@ -67,7 +68,9 @@ public class CaffeineCacheTest {
   public void init() {
     ticker = new TestTicker();
     IID = UUID.randomUUID().toString();
+
     PropStoreMetrics cacheMetrics = new PropStoreMetrics();
+    MetricsUtil.initializeProducers(cacheMetrics);
 
     tableId =
         PropCacheId.forTable(IID, TableId.of("t" + ThreadLocalRandom.current().nextInt(1, 1000)));

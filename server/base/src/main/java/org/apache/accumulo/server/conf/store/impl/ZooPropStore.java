@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
@@ -75,6 +76,8 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     this.propStoreWatcher = propStoreWatcher;
 
     this.propCodec = context.getVersionedPropertiesCodec();
+
+    MetricsUtil.initializeProducers(cacheMetrics);
 
     ZooPropLoader propLoader = new ZooPropLoader(zrw, context.getVersionedPropertiesCodec(),
         propStoreWatcher, cacheMetrics);
@@ -163,8 +166,8 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       Stat stat = zrw.getStatus(path, propStoreWatcher);
 
       if (stat.getVersion() != vProps.getNextVersion()) {
-        throw new PropStoreException(
-            "Invalid data version on create, received " + stat.getVersion(),
+        throw new PropStoreException("Invalid data version on create, have: "
+            + vProps.getNextVersion() + " received " + stat.getVersion(),
             new IllegalStateException());
       }
 
@@ -236,19 +239,23 @@ public class ZooPropStore implements PropStore, PropChangeListener {
 
       VersionedProperties vProps = cache.getWithoutCaching(propCacheId);
       if (vProps == null) {
+        Stat stat = new Stat();
         log.trace("removeProperties - not in cache");
-        byte[] bytes = zrw.getData(propCacheId.getPath());
+        byte[] bytes = zrw.getData(propCacheId.getPath(), stat);
         vProps = propCodec.fromBytes(bytes);
+        if (stat.getVersion() != vProps.getDataVersion()) {
+          throw new PropStoreException("Invalid data version on remove, have: "
+              + vProps.getDataVersion() + " received " + stat.getVersion(),
+              new IllegalStateException());
+        }
       } else {
         log.trace("removeProperties - read from cache");
       }
 
       VersionedProperties updates = vProps.remove(keys);
 
-      zrw.overwritePersistentData(propCacheId.getPath(), propCodec.toBytes(updates),
+      return zrw.overwritePersistentData(propCacheId.getPath(), propCodec.toBytes(updates),
           updates.getDataVersion());
-
-      return true;
 
     } catch (IOException ex) {
       throw new PropStoreException("failed to encode properties for " + propCacheId, ex);

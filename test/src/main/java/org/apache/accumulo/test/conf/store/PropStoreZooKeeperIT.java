@@ -154,7 +154,6 @@ public class PropStoreZooKeeperIT {
     assertNotNull(zooKeeper.exists(tableA.getPath(), false));
     assertNotNull(propStore.get(tableA));
 
-    assertEquals(1, propStore.getMetrics().getLoadCounter());
   }
 
   @Test

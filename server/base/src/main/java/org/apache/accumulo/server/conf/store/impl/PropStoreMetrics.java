@@ -18,72 +18,75 @@
  */
 package org.apache.accumulo.server.conf.store.impl;
 
-import java.util.StringJoiner;
-import java.util.concurrent.atomic.AtomicLong;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PropStoreMetrics {
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+
+public class PropStoreMetrics implements MetricsProducer {
 
   private static final Logger log = LoggerFactory.getLogger(PropStoreMetrics.class);
 
-  private final AtomicLong loadCounter = new AtomicLong(0);
-  private final AtomicLong refreshCounter = new AtomicLong(0);
-  private final AtomicLong refreshLoadCounter = new AtomicLong(0);
-  private final AtomicLong evictionCounter = new AtomicLong(0);
-  private final AtomicLong zkCacheErrorCounter = new AtomicLong(0);
+  private Timer load;
+  private Counter refresh;
+  private Counter refreshLoad;
+  private Counter eviction;
+  private Counter zkError;
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+
+    load = Timer.builder(METRICS_PROPSTORE_LOAD_TIMER).description("prop store load time")
+        .tags(MetricsUtil.getCommonTags()).register(registry);
+
+    refresh =
+        Counter.builder(METRICS_PROPSTORE_REFRESH_COUNT).description("prop store refresh count")
+            .tags(MetricsUtil.getCommonTags()).register(registry);
+
+    refreshLoad = Counter.builder(METRICS_PROPSTORE_REFRESH_LOAD_COUNT)
+        .description("prop store refresh load count").tags(MetricsUtil.getCommonTags())
+        .register(registry);
+
+    eviction =
+        Counter.builder(METRICS_PROPSTORE_EVICTION_COUNT).description("prop store eviction count")
+            .tags(MetricsUtil.getCommonTags()).register(registry);
+
+    zkError = Counter.builder(METRICS_PROPSTORE_ZK_ERROR_COUNT)
+        .description("prop store ZooKeeper error count").tags(MetricsUtil.getCommonTags())
+        .register(registry);
+
+  }
 
   public PropStoreMetrics() {
     log.info("Creating PropStore metrics");
   }
 
-  public void updateLoadCounter() {
-    loadCounter.incrementAndGet();
+  public void addLoadTime(final long value) {
+    log.info("Load time: {}", value);
+    load.record(Duration.ofMillis(value));
+    log.info("Load count: {} time:{}", load.count(), load.totalTime(TimeUnit.MILLISECONDS));
   }
 
-  public void updateRefreshCounter() {
-    refreshCounter.incrementAndGet();
+  public void incrRefresh() {
+    refresh.increment();
   }
 
-  public void updateRefreshLoadCounter() {
-    refreshLoadCounter.incrementAndGet();
+  public void incrRefreshLoad() {
+    refreshLoad.increment();
   }
 
-  public void updateEvictionCounter() {
-    evictionCounter.incrementAndGet();
+  public void incrEviction() {
+    eviction.increment();
   }
 
-  public void updateZkCacheErrorCounter() {
-    zkCacheErrorCounter.incrementAndGet();
-  }
-
-  public long getLoadCounter() {
-    return loadCounter.get();
-  }
-
-  public long getRefreshCounter() {
-    return refreshCounter.get();
-  }
-
-  public long getRefreshLoadCounter() {
-    return refreshLoadCounter.get();
-  }
-
-  public long getEvictionCounter() {
-    return evictionCounter.get();
-  }
-
-  public long getZkCacheErrorCounter() {
-    return zkCacheErrorCounter.get();
-  }
-
-  @Override
-  public String toString() {
-    return new StringJoiner(", ", PropStoreMetrics.class.getSimpleName() + "[", "]")
-        .add("loadCounter=" + loadCounter.get()).add("refreshCounter=" + refreshCounter.get())
-        .add("refreshLoadCounter=" + refreshLoadCounter.get())
-        .add("evictionCounter=" + evictionCounter.get())
-        .add("zkCacheErrorCounter=" + zkCacheErrorCounter.get()).toString();
+  public void incrZkError() {
+    zkError.increment();
   }
 }

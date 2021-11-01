@@ -70,7 +70,7 @@ public class CaffeineCache implements PropCache {
 
   void evictionNotifier(PropCacheId cacheId, VersionedProperties value, RemovalCause cause) {
     log.debug("Evicted: ID: {} was evicted from cache. Reason: {}", cacheId, cause);
-    metrics.updateEvictionCounter();
+    metrics.incrEviction();
   }
 
   @Override
@@ -80,7 +80,7 @@ public class CaffeineCache implements PropCache {
       return cache.get(propCacheId);
     } catch (Exception ex) {
       log.info("Failed to get properties " + propCacheId, ex);
-      metrics.updateZkCacheErrorCounter();
+      metrics.incrZkError();
       return null;
     }
   }

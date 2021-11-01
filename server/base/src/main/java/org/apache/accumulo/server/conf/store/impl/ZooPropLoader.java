@@ -20,6 +20,7 @@ package org.apache.accumulo.server.conf.store.impl;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
@@ -56,9 +57,14 @@ public class ZooPropLoader implements CacheLoader<PropCacheId,VersionedPropertie
   public @Nullable VersionedProperties load(PropCacheId propCacheId) {
     try {
       log.trace("load called for {}", propCacheId);
-      metrics.updateLoadCounter();
       Stat stat = new Stat();
+      long startNanos = System.nanoTime();
+
       var vProps = propCodec.fromBytes(zrw.getData(propCacheId.getPath(), propStoreWatcher, stat));
+
+      metrics.addLoadTime(
+          TimeUnit.MILLISECONDS.convert(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS));
+
       if (stat.getVersion() != vProps.getDataVersion()) {
         log.warn("data versions between decoded value {} and zk value {} do not match",
             vProps.getDataVersion(), stat.getVersion());
@@ -66,7 +72,7 @@ public class ZooPropLoader implements CacheLoader<PropCacheId,VersionedPropertie
       }
       return vProps;
     } catch (Exception ex) {
-      metrics.updateZkCacheErrorCounter();
+      metrics.incrZkError();
       log.warn("Failed to load: {} from ZooKeeper, returning null", propCacheId, ex);
       propStoreWatcher.signalZkChangeEvent(propCacheId);
       return null;
@@ -84,7 +90,7 @@ public class ZooPropLoader implements CacheLoader<PropCacheId,VersionedPropertie
   public CompletableFuture<? extends VersionedProperties> asyncReload(PropCacheId propCacheId,
       VersionedProperties oldValue, Executor executor) throws Exception {
     log.trace("asyncReload called for key: {}", propCacheId);
-    metrics.updateRefreshCounter();
+    metrics.incrRefresh();
 
     return CompletableFuture.supplyAsync(() -> loadIfDifferentVersion(propCacheId, oldValue));
   }
@@ -93,7 +99,7 @@ public class ZooPropLoader implements CacheLoader<PropCacheId,VersionedPropertie
   public @Nullable VersionedProperties reload(PropCacheId propCacheId, VersionedProperties oldValue)
       throws Exception {
     log.trace("reload called for: {}", propCacheId);
-    metrics.updateRefreshCounter();
+    metrics.incrRefresh();
     return loadIfDifferentVersion(propCacheId, oldValue);
   }
 
@@ -131,7 +137,7 @@ public class ZooPropLoader implements CacheLoader<PropCacheId,VersionedPropertie
         return null;
       }
 
-      metrics.updateRefreshLoadCounter();
+      metrics.incrRefreshLoad();
 
       // The cache will be updated - notify external listeners value changed.
       propStoreWatcher.signalCacheChangeEvent(propCacheId);
@@ -139,7 +145,7 @@ public class ZooPropLoader implements CacheLoader<PropCacheId,VersionedPropertie
       return updatedValue;
     } catch (Exception ex) {
       log.warn("async exception occurred - returning null", ex);
-      metrics.updateZkCacheErrorCounter();
+      metrics.incrZkError();
       propStoreWatcher.signalZkChangeEvent(propCacheId);
       return null;
     }

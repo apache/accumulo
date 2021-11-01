@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
@@ -242,6 +243,7 @@ public class PropStoreEventTest {
     replay(context, zrw, readyMonitor);
 
     PropStoreMetrics metrics = new PropStoreMetrics();
+    MetricsUtil.initializeProducers(metrics);
 
     ZooPropLoader loader = new ZooPropLoader(zrw, propCodec, watcher, metrics);
 

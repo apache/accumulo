@@ -257,7 +257,16 @@ public class ZooPropStoreTest {
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M"));
 
     // not cached - will load from ZooKeeper
-    expect(zrw.getData(eq(tid.getPath()))).andReturn(propCodec.toBytes(initialProps)).once();
+    Capture<Stat> stat = newCapture();
+
+    expect(zrw.getData(eq(tid.getPath()), capture(stat))).andAnswer(() -> {
+      Stat s = stat.getValue();
+      s.setVersion(1);
+      stat.setValue(s);
+      return propCodec.toBytes(initialProps);
+    }).once();
+
+    // .andReturn(propCodec.toBytes(initialProps)).once();
 
     Capture<byte[]> bytes = newCapture();
     expect(zrw.overwritePersistentData(eq(tid.getPath()), capture(bytes), eq(1))).andAnswer(() -> {
