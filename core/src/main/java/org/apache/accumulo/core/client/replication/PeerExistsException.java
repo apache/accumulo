@@ -21,7 +21,7 @@ package org.apache.accumulo.core.client.replication;
 /**
  * The peer already exists
  */
-@Deprecated
+@Deprecated(since = "2.1.0")
 public class PeerExistsException extends Exception {
   private static final long serialVersionUID = 1L;
 
