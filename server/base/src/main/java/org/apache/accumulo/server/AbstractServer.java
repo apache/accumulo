@@ -24,20 +24,18 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.security.SecurityUtil;
-import org.apache.hadoop.metrics2.MetricsSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class AbstractServer implements AutoCloseable, Runnable {
 
   private final ServerContext context;
-  private final String applicationName;
+  protected final String applicationName;
   private final String hostname;
   private final Logger log;
-  private final MetricsSystem metricsSystem;
 
   protected AbstractServer(String appName, ServerOpts opts, String[] args) {
     this.log = LoggerFactory.getLogger(getClass().getName());
@@ -51,7 +49,6 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
     log.info("Instance " + context.getInstanceID());
     context.init(appName);
     ClassLoaderUtil.initContextFactory(context.getConfiguration());
-    this.metricsSystem = Metrics.initSystem(getClass().getSimpleName());
     TraceUtil.enableServerTraces(hostname, appName, context.getConfiguration());
     if (context.getSaslParams() != null) {
       // Server-side "client" check to make sure we're logged in as a user we expect to be
@@ -94,13 +91,10 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
     return getContext().getConfiguration();
   }
 
-  public MetricsSystem getMetricsSystem() {
-    return metricsSystem;
-  }
-
   @Override
   public void close() {
     TraceUtil.disable();
+    MetricsUtil.close();
   }
 
 }

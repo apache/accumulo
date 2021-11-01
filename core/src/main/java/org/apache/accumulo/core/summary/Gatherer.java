@@ -338,7 +338,7 @@ public class Gatherer {
       } catch (TTransportException e1) {
         pfiles.failedFiles.addAll(allFiles.keySet());
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, ctx);
       }
 
       if (cancelFlag.get()) {

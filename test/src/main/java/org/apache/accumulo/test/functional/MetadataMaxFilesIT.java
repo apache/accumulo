@@ -95,7 +95,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
           continue;
         } finally {
           if (client != null)
-            ManagerClient.close(client);
+            ManagerClient.close(client, (ClientContext) c);
         }
         int tablets = 0;
         for (TabletServerStatus tserver : stats.tServerInfo) {

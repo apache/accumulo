@@ -508,5 +508,6 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
             t.getTableName());
       }
     });
+
   }
 }

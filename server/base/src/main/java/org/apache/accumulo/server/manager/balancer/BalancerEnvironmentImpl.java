@@ -95,7 +95,7 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
       } catch (TTransportException e) {
         log.error("Unable to connect to {}: ", tabletServerId, e);
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, getContext());
       }
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e);

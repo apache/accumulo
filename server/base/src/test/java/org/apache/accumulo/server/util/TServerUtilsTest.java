@@ -44,7 +44,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
-import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
@@ -350,10 +349,9 @@ public class TServerUtilsTest {
     // misconfiguration)
     String hostname = "localhost";
 
-    return TServerUtils.startServer(Metrics.initSystem(getClass().getSimpleName()), context,
-        hostname, Property.TSERV_CLIENTPORT, processor, "TServerUtilsTest",
-        "TServerUtilsTestThread", Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS,
-        Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK,
+    return TServerUtils.startServer(context, hostname, Property.TSERV_CLIENTPORT, processor,
+        "TServerUtilsTest", "TServerUtilsTestThread", Property.TSERV_PORTSEARCH,
+        Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK,
         Property.GENERAL_MAX_MESSAGE_SIZE);
 
   }

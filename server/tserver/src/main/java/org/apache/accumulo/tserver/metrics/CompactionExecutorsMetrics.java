@@ -24,115 +24,137 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.tserver.compactions.CompactionManager.ExtCompMetric;
-import org.apache.hadoop.metrics2.lib.MetricsRegistry;
-import org.apache.hadoop.metrics2.lib.MutableGaugeInt;
 
 import com.google.common.collect.Sets;
 
-public class CompactionExecutorsMetrics extends TServerMetrics {
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
 
-  private volatile List<CeMetrics> ceml = List.of();
-  private Map<CompactionExecutorId,CeMetrics> metrics = new HashMap<>();
-  private Map<CompactionExecutorId,ExMetrics> exMetrics = new HashMap<>();
+public class CompactionExecutorsMetrics implements MetricsProducer {
+
   private volatile Supplier<Collection<ExtCompMetric>> externalMetricsSupplier;
 
+  private volatile List<CeMetrics> ceMetricsList = List.of();
+  private final Map<CompactionExecutorId,CeMetrics> ceMetricsMap = new HashMap<>();
+  private final Map<CompactionExecutorId,ExMetrics> exCeMetricsMap = new HashMap<>();
+  private MeterRegistry registry = null;
+
   private static class CeMetrics {
-    MutableGaugeInt queuedGauge;
-    MutableGaugeInt runningGauge;
+    AtomicInteger queued;
+    AtomicInteger running;
 
     IntSupplier runningSupplier;
     IntSupplier queuedSupplier;
   }
 
   private static class ExMetrics {
-    MutableGaugeInt queuedGauge;
-    MutableGaugeInt runningGauge;
-
+    AtomicInteger queued;
+    AtomicInteger running;
   }
 
   public CompactionExecutorsMetrics() {
-    super("compactionExecutors");
+
+    ScheduledExecutorService scheduler =
+        ThreadPools.createScheduledExecutorService(1, "compactionExecutorsMetricsPoller", false);
+    Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
+    long minimumRefreshDelay = TimeUnit.SECONDS.toMillis(5);
+    scheduler.scheduleAtFixedRate(this::update, minimumRefreshDelay, minimumRefreshDelay,
+        TimeUnit.MILLISECONDS);
+
   }
 
   public synchronized AutoCloseable addExecutor(CompactionExecutorId ceid,
       IntSupplier runningSupplier, IntSupplier queuedSupplier) {
 
-    MetricsRegistry registry = super.getRegistry();
+    synchronized (ceMetricsMap) {
 
-    synchronized (metrics) {
-      CeMetrics cem = metrics.computeIfAbsent(ceid, id -> {
+      CeMetrics cem = ceMetricsMap.computeIfAbsent(ceid, id -> {
         CeMetrics m = new CeMetrics();
-        m.queuedGauge = registry.newGauge(id.canonical().replace('.', '_') + "_queued",
-            "Queued compactions for executor " + id, 0);
-        m.runningGauge = registry.newGauge(id.canonical().replace('.', '_') + "_running",
-            "Running compactions for executor " + id, 0);
+        if (registry != null) {
+          m.queued = registry.gauge(METRICS_MAJC_QUEUED, Tags.of("id", ceid.canonical()),
+              new AtomicInteger(0));
+          m.running = registry.gauge(METRICS_MAJC_RUNNING, Tags.of("id", ceid.canonical()),
+              new AtomicInteger(0));
+        }
         return m;
       });
 
       cem.runningSupplier = runningSupplier;
       cem.queuedSupplier = queuedSupplier;
 
-      ceml = List.copyOf(metrics.values());
+      ceMetricsList = List.copyOf(ceMetricsMap.values());
 
       return () -> {
+
         cem.runningSupplier = () -> 0;
         cem.queuedSupplier = () -> 0;
 
-        cem.runningGauge.set(0);
-        cem.queuedGauge.set(0);
+        cem.running.set(0);
+        cem.queued.set(0);
       };
     }
 
   }
 
-  @Override
-  public void prepareMetrics() {
+  public void update() {
 
     if (externalMetricsSupplier != null) {
 
       Set<CompactionExecutorId> seenIds = new HashSet<>();
 
-      MetricsRegistry registry = super.getRegistry();
-
-      synchronized (exMetrics) {
+      synchronized (exCeMetricsMap) {
         externalMetricsSupplier.get().forEach(ecm -> {
           seenIds.add(ecm.ceid);
 
-          ExMetrics exm = exMetrics.computeIfAbsent(ecm.ceid, id -> {
+          ExMetrics exm = exCeMetricsMap.computeIfAbsent(ecm.ceid, id -> {
             ExMetrics m = new ExMetrics();
-            m.queuedGauge = registry.newGauge(id.canonical().replace('.', '_') + "_queued",
-                "Queued compactions for executor " + id, 0);
-            m.runningGauge = registry.newGauge(id.canonical().replace('.', '_') + "_running",
-                "Running compactions for executor " + id, 0);
+            if (registry != null) {
+              m.queued = registry.gauge(METRICS_MAJC_QUEUED, Tags.of("id", ecm.ceid.canonical()),
+                  new AtomicInteger(0));
+              m.running = registry.gauge(METRICS_MAJC_RUNNING, Tags.of("id", ecm.ceid.canonical()),
+                  new AtomicInteger(0));
+            }
             return m;
           });
 
-          exm.queuedGauge.set(ecm.queued);
-          exm.runningGauge.set(ecm.running);
+          exm.queued.set(ecm.queued);
+          exm.running.set(ecm.running);
 
         });
 
-        Sets.difference(exMetrics.keySet(), seenIds).forEach(unusedId -> {
-          ExMetrics exm = exMetrics.get(unusedId);
-          exm.queuedGauge.set(0);
-          exm.runningGauge.set(0);
+        Sets.difference(exCeMetricsMap.keySet(), seenIds).forEach(unusedId -> {
+          ExMetrics exm = exCeMetricsMap.get(unusedId);
+          exm.queued.set(0);
+          exm.running.set(0);
         });
 
       }
     }
-    ceml.forEach(cem -> {
-      cem.runningGauge.set(cem.runningSupplier.getAsInt());
-      cem.queuedGauge.set(cem.queuedSupplier.getAsInt());
+    ceMetricsList.forEach(cem -> {
+      cem.running.set(cem.runningSupplier.getAsInt());
+      cem.queued.set(cem.queuedSupplier.getAsInt());
     });
   }
 
   public void setExternalMetricsSupplier(Supplier<Collection<ExtCompMetric>> ems) {
     this.externalMetricsSupplier = ems;
+  }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    // Meters are registered dynamically. Save off the reference to the
+    // registry to use at that time.
+    this.registry = registry;
   }
 
 }
