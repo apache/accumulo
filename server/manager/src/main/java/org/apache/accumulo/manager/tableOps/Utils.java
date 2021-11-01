@@ -40,8 +40,6 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.accumulo.fate.zookeeper.FateLock;
-import org.apache.accumulo.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReservation;
 import org.apache.accumulo.manager.Manager;
@@ -162,11 +160,10 @@ public class Utils {
         FateLock.path(manager.getContext().getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
     final ZooReaderWriter zrw = manager.getContext().getZooReaderWriter();
     final String zooFatePath = manager.getZooKeeperRoot() + Constants.ZFATE;
-    ServiceLockPath zooManagerPath = ServiceLock.path(manager.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
     FateLock qlock = new FateLock(zrw, fLockPath);
-    Lock lock = DistributedReadWriteLock.recoverLock(zrw, zooFatePath, zooManagerPath, cancelWriteLockBlockers, qlock, lockData);
+    Lock lock = DistributedReadWriteLock.recoverLock(zrw, zooFatePath, cancelWriteLockBlockers, qlock, lockData);
     if (lock == null) {
-      DistributedReadWriteLock locker = new DistributedReadWriteLock(zrw, zooFatePath, zooManagerPath, cancelWriteLockBlockers, qlock, lockData);
+      DistributedReadWriteLock locker = new DistributedReadWriteLock(zrw, zooFatePath, cancelWriteLockBlockers, qlock, lockData);
       if (writeLock)
         lock = locker.writeLock();
       else

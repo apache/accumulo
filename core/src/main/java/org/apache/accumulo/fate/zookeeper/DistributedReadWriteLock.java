@@ -28,10 +28,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
-import org.apache.accumulo.fate.AdminUtil;
+import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -202,24 +201,21 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
     private final ZooReaderWriter zrw;
     private final String zooPath;
-    private final ServiceLockPath zooManagerPath;
     private final boolean failBlockers;
 
-    WriteLock(ZooReaderWriter zrw, String zooPath, ServiceLockPath zooManagerPath,
-        boolean failBlockers, QueueLock qlock, byte[] userData) {
+    WriteLock(ZooReaderWriter zrw, String zooPath, boolean failBlockers, QueueLock qlock,
+        byte[] userData) {
       super(qlock, userData);
       this.zrw = zrw;
       this.zooPath = zooPath;
-      this.zooManagerPath = zooManagerPath;
       this.failBlockers = failBlockers;
     }
 
-    WriteLock(ZooReaderWriter zrw, String zooPath, ServiceLockPath zooManagerPath,
-        boolean failBlockers, QueueLock qlock, byte[] userData, long entry) {
+    WriteLock(ZooReaderWriter zrw, String zooPath, boolean failBlockers, QueueLock qlock,
+        byte[] userData, long entry) {
       super(qlock, userData, entry);
       this.zrw = zrw;
       this.zooPath = zooPath;
-      this.zooManagerPath = zooManagerPath;
       this.failBlockers = failBlockers;
     }
 
@@ -251,40 +247,68 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
           log.error("Error creating zoo store", e1);
           return false;
         }
-        final AdminUtil<DistributedReadWriteLock> util = new AdminUtil<>();
+        // Loop through all of the prior transactions that are waiting to
+        // acquire this write lock. If the transaction has not succeeded or failed,
+        // then fail it and return false from this method so that Utils.reserveX()
+        // will call this method again and will re-check the prior transactions.
         boolean result = true;
         while (iterator.hasNext()) {
           Entry<Long,byte[]> e = iterator.next();
-          if (!e.getKey().equals(entry)) {
-            result &= util.prepFail(zs, zrw, zooManagerPath, Long.toString(e.getKey(), 16));
+          Long txid = e.getKey();
+          if (!txid.equals(entry)) {
+            if (zs.isReserved(txid)) {
+              result &= false;
+            } else {
+              zs.reserve(txid);
+              TStatus status = zs.getStatus(txid);
+              if (status.equals(TStatus.FAILED)) {
+                result = false;
+                continue;
+              } else {
+                switch (status) {
+                  case UNKNOWN:
+                    // not sure what to do here, we have an invalid txid
+                    break;
+                  case SUCCESSFUL:
+                    // already succeeded, lock should be removed
+                    break;
+                  case FAILED:
+                  case FAILED_IN_PROGRESS:
+                    // transaction failed or in process of failing
+                    break;
+                  default:
+                    zs.setStatus(txid, TStatus.FAILED_IN_PROGRESS);
+                    result &= false;
+                }
+              }
+              zs.unreserve(txid, 0);
+            }
           } else {
-            break;
+            return result && txid.equals(entry);
           }
         }
-        return result && iterator.next().getKey().equals(entry);
+        return result;
       }
     }
   }
 
   private final ZooReaderWriter zrw;
   private final String zooPath;
-  private final ServiceLockPath zooManagerPath;
   private final boolean failBlockers;
   private final QueueLock qlock;
   private final byte[] data;
 
-  public DistributedReadWriteLock(ZooReaderWriter zrw, String zooPath,
-      ServiceLockPath zooManagerPath, boolean failBlockers, QueueLock qlock, byte[] data) {
+  public DistributedReadWriteLock(ZooReaderWriter zrw, String zooPath, boolean failBlockers,
+      QueueLock qlock, byte[] data) {
     this.zrw = zrw;
     this.zooPath = zooPath;
-    this.zooManagerPath = zooManagerPath;
     this.failBlockers = failBlockers;
     this.qlock = qlock;
     this.data = Arrays.copyOf(data, data.length);
   }
 
-  public static Lock recoverLock(ZooReaderWriter zrw, String zooPath,
-      ServiceLockPath zooManagerPath, boolean failBlockers, QueueLock qlock, byte[] data) {
+  public static Lock recoverLock(ZooReaderWriter zrw, String zooPath, boolean failBlockers,
+      QueueLock qlock, byte[] data) {
     SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(Long.MAX_VALUE);
     for (Entry<Long,byte[]> entry : entries.entrySet()) {
       ParsedLock parsed = new ParsedLock(entry.getValue());
@@ -293,8 +317,8 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
           case READ:
             return new ReadLock(qlock, parsed.getUserData(), entry.getKey());
           case WRITE:
-            return new WriteLock(zrw, zooPath, zooManagerPath, failBlockers, qlock,
-                parsed.getUserData(), entry.getKey());
+            return new WriteLock(zrw, zooPath, failBlockers, qlock, parsed.getUserData(),
+                entry.getKey());
         }
       }
     }
@@ -308,6 +332,6 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
   @Override
   public Lock writeLock() {
-    return new WriteLock(zrw, zooPath, zooManagerPath, failBlockers, qlock, data);
+    return new WriteLock(zrw, zooPath, failBlockers, qlock, data);
   }
 }
