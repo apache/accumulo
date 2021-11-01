@@ -52,7 +52,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.hadoop.metrics2.MetricsSystem;
 import org.apache.hadoop.security.SaslRpcServer;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.thrift.TProcessor;
@@ -136,11 +135,11 @@ public class TServerUtils {
    * @throws UnknownHostException
    *           when we don't know our own address
    */
-  public static ServerAddress startServer(MetricsSystem metricsSystem, ServerContext context,
-      String hostname, Property portHintProperty, TProcessor processor, String serverName,
-      String threadName, Property portSearchProperty, Property minThreadProperty,
-      Property threadTimeOutProperty, Property timeBetweenThreadChecksProperty,
-      Property maxMessageSizeProperty) throws UnknownHostException {
+  public static ServerAddress startServer(ServerContext context, String hostname,
+      Property portHintProperty, TProcessor processor, String serverName, String threadName,
+      Property portSearchProperty, Property minThreadProperty, Property threadTimeOutProperty,
+      Property timeBetweenThreadChecksProperty, Property maxMessageSizeProperty)
+      throws UnknownHostException {
     final AccumuloConfiguration config = context.getConfiguration();
 
     final IntStream portHint = config.getPortStream(portHintProperty);
@@ -179,8 +178,7 @@ public class TServerUtils {
     // create the TimedProcessor outside the port search loop so we don't try to
     // register the same
     // metrics mbean more than once
-    TimedProcessor timedProcessor =
-        new TimedProcessor(metricsSystem, config, processor, serverName, threadName);
+    TimedProcessor timedProcessor = new TimedProcessor(config, processor, serverName, threadName);
 
     HostAndPort[] addresses = getHostAndPorts(hostname, portHint);
     try {
@@ -575,21 +573,19 @@ public class TServerUtils {
     return new ServerAddress(server, address);
   }
 
-  public static ServerAddress startTServer(MetricsSystem metricsSystem,
-      final AccumuloConfiguration conf, ThriftServerType serverType, TProcessor processor,
-      String serverName, String threadName, int numThreads, long threadTimeOut,
-      long timeBetweenThreadChecks, long maxMessageSize, SslConnectionParams sslParams,
-      SaslServerConnectionParams saslParams, long serverSocketTimeout, HostAndPort... addresses)
-      throws TTransportException {
+  public static ServerAddress startTServer(final AccumuloConfiguration conf,
+      ThriftServerType serverType, TProcessor processor, String serverName, String threadName,
+      int numThreads, long threadTimeOut, long timeBetweenThreadChecks, long maxMessageSize,
+      SslConnectionParams sslParams, SaslServerConnectionParams saslParams,
+      long serverSocketTimeout, HostAndPort... addresses) throws TTransportException {
 
     if (serverType == ThriftServerType.SASL) {
       processor = updateSaslProcessor(serverType, processor);
     }
 
-    return startTServer(serverType,
-        new TimedProcessor(metricsSystem, conf, processor, serverName, threadName), serverName,
-        threadName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize,
-        sslParams, saslParams, serverSocketTimeout, addresses);
+    return startTServer(serverType, new TimedProcessor(conf, processor, serverName, threadName),
+        serverName, threadName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks,
+        maxMessageSize, sslParams, saslParams, serverSocketTimeout, addresses);
   }
 
   /**

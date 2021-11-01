@@ -19,62 +19,62 @@
 package org.apache.accumulo.manager.metrics;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.replication.ReplicationUtil;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.metrics2.lib.MetricsRegistry;
-import org.apache.hadoop.metrics2.lib.MutableQuantiles;
-import org.apache.hadoop.metrics2.lib.MutableStat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ReplicationMetrics extends ManagerMetrics {
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+
+public class ReplicationMetrics implements MetricsProducer {
 
   private static final Logger log = LoggerFactory.getLogger(ReplicationMetrics.class);
 
   private final Manager manager;
   private final ReplicationUtil replicationUtil;
-  private final MutableQuantiles replicationQueueTimeQuantiles;
-  private final MutableStat replicationQueueTimeStat;
   private final Map<Path,Long> pathModTimes;
 
+  private Timer replicationQueueTimer;
+  private AtomicLong pendingFiles;
+  private AtomicInteger numPeers;
+  private AtomicInteger maxReplicationThreads;
+
   ReplicationMetrics(Manager manager) {
-    super("Replication", "Data-Center Replication Metrics", "ManagerReplication");
     this.manager = manager;
-
     pathModTimes = new HashMap<>();
-
     replicationUtil = new ReplicationUtil(manager.getContext());
-    MetricsRegistry registry = super.getRegistry();
-    replicationQueueTimeQuantiles = registry.newQuantiles("replicationQueue10m",
-        "Replication queue time quantiles in milliseconds", "ops", "latency", 600);
-    replicationQueueTimeStat = registry.newStat("replicationQueue",
-        "Replication queue time statistics in milliseconds", "ops", "latency", true);
   }
 
-  @Override
-  protected void prepareMetrics() {
-    final String PENDING_FILES = "filesPendingReplication";
+  protected void update() {
     // Only add these metrics if the replication table is online and there are peers
     if (TableState.ONLINE == Tables.getTableState(manager.getContext(), ReplicationTable.ID)
         && !replicationUtil.getPeers().isEmpty()) {
-      getRegistry().add(PENDING_FILES, getNumFilesPendingReplication());
+      pendingFiles.set(getNumFilesPendingReplication());
       addReplicationQueueTimeMetrics();
     } else {
-      getRegistry().add(PENDING_FILES, 0);
+      pendingFiles.set(0);
     }
-
-    getRegistry().add("numPeers", getNumConfiguredPeers());
-    getRegistry().add("maxReplicationThreads", getMaxReplicationThreads());
+    numPeers.set(getNumConfiguredPeers());
+    maxReplicationThreads.set(getMaxReplicationThreads());
   }
 
   protected long getNumFilesPendingReplication() {
@@ -112,7 +112,7 @@ public class ReplicationMetrics extends ManagerMetrics {
     // We'll take a snap of the current time and use this as a diff between any deleted
     // file's modification time and now. The reported latency will be off by at most a
     // number of seconds equal to the metric polling period
-    long currentTime = getCurrentTime();
+    long currentTime = System.currentTimeMillis();
 
     // Iterate through all the pending paths and update the mod time if we don't know it yet
     for (Path path : paths) {
@@ -122,8 +122,8 @@ public class ReplicationMetrics extends ManagerMetrics {
               manager.getVolumeManager().getFileStatus(path).getModificationTime());
         } catch (IOException e) {
           // Ignore all IOExceptions
-          // Either the system is unavailable or the file was deleted
-          // since the initial scan and this check
+          // Either the system is unavailable, or the file was deleted since the initial scan and
+          // this check
           log.trace(
               "Failed to get file status for {}, file system is unavailable or it does not exist",
               path);
@@ -140,20 +140,33 @@ public class ReplicationMetrics extends ManagerMetrics {
       return;
     }
 
-    replicationQueueTimeStat.resetMinMax();
-
     for (Path path : deletedPaths) {
       // Remove this path and add the latency
       Long modTime = pathModTimes.remove(path);
       if (modTime != null) {
         long diff = Math.max(0, currentTime - modTime);
-        replicationQueueTimeQuantiles.add(diff);
-        replicationQueueTimeStat.add(diff);
+        // micrometer timer
+        replicationQueueTimer.record(Duration.ofMillis(diff));
       }
     }
   }
 
-  protected long getCurrentTime() {
-    return System.currentTimeMillis();
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    replicationQueueTimer = registry.timer(METRICS_REPLICATION_QUEUE, MetricsUtil.getCommonTags());
+    pendingFiles = registry.gauge(METRICS_REPLICATION_PENDING_FILES, MetricsUtil.getCommonTags(),
+        new AtomicLong(0));
+    numPeers = registry.gauge(METRICS_REPLICATION_PEERS, MetricsUtil.getCommonTags(),
+        new AtomicInteger(0));
+    maxReplicationThreads = registry.gauge(METRICS_REPLICATION_THREADS, MetricsUtil.getCommonTags(),
+        new AtomicInteger(0));
+
+    ScheduledExecutorService scheduler =
+        ThreadPools.createScheduledExecutorService(1, "replicationMetricsPoller", false);
+    Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
+    long minimumRefreshDelay = TimeUnit.SECONDS.toMillis(5);
+    scheduler.scheduleAtFixedRate(this::update, minimumRefreshDelay, minimumRefreshDelay,
+        TimeUnit.MILLISECONDS);
   }
+
 }

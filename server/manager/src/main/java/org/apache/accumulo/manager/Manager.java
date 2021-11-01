@@ -52,7 +52,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Tables;
-import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
@@ -82,6 +81,7 @@ import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
@@ -105,7 +105,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.manager.metrics.ManagerMetricsFactory;
+import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.replication.ManagerReplicationCoordinator;
 import org.apache.accumulo.manager.replication.ReplicationDriver;
@@ -217,6 +217,7 @@ public class Manager extends AbstractServer
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
+  private final AtomicBoolean managerUpgrading = new AtomicBoolean(false);
 
   @Override
   public synchronized ManagerState getManagerState() {
@@ -381,8 +382,7 @@ public class Manager extends AbstractServer
     log.info("Version {}", Constants.VERSION);
     log.info("Instance {}", getInstanceID());
     timeKeeper = new ManagerTime(this, aconf);
-    ThriftTransportPool.getInstance()
-        .setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+    context.getTransportPool().setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     tserverSet = new LiveTServerSet(context, this);
     initializeBalancer();
 
@@ -1026,10 +1026,10 @@ public class Manager extends AbstractServer
     }
     ServerAddress sa;
     try {
-      sa = TServerUtils.startServer(getMetricsSystem(), context, getHostname(),
-          Property.MANAGER_CLIENTPORT, processor, "Manager", "Manager Client Service Handler", null,
-          Property.MANAGER_MINTHREADS, Property.MANAGER_MINTHREADS_TIMEOUT,
-          Property.MANAGER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
+      sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
+          "Manager", "Manager Client Service Handler", null, Property.MANAGER_MINTHREADS,
+          Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK,
+          Property.GENERAL_MAX_MESSAGE_SIZE);
     } catch (UnknownHostException e) {
       throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
     }
@@ -1041,6 +1041,20 @@ public class Manager extends AbstractServer
       getManagerLock(ServiceLock.path(zroot + Constants.ZMANAGER_LOCK));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
+    }
+
+    // If UpgradeStatus is not at complete by this moment, then things are currently
+    // upgrading.
+    if (upgradeCoordinator.getStatus() != UpgradeCoordinator.UpgradeStatus.COMPLETE) {
+      managerUpgrading.set(true);
+    }
+
+    try {
+      MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
+          sa.getAddress());
+      ManagerMetrics.init(getConfiguration(), this);
+    } catch (Exception e1) {
+      log.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
 
     recoveryManager = new RecoveryManager(this, TIME_TO_CACHE_RECOVERY_WAL_EXISTENCE);
@@ -1118,6 +1132,8 @@ public class Manager extends AbstractServer
       if (null != upgradeMetadataFuture) {
         upgradeMetadataFuture.get();
       }
+      // Everything is fully upgraded by this point.
+      managerUpgrading.set(false);
     } catch (ExecutionException | InterruptedException e) {
       throw new IllegalStateException("Metadata upgrade failed", e);
     }
@@ -1192,15 +1208,6 @@ public class Manager extends AbstractServer
         log.error("Error occurred starting replication services. ", e);
       }
     }, 0, 5000, TimeUnit.MILLISECONDS);
-
-    // Register metrics modules
-    int failureCount = new ManagerMetricsFactory(getConfiguration()).register(this);
-
-    if (failureCount > 0) {
-      log.info("Failed to register {} metrics modules", failureCount);
-    } else {
-      log.info("All metrics modules registered");
-    }
 
     // checking stored user hashes if any of them uses an outdated algorithm
     security.validateStoredUserCreditentials();
@@ -1345,7 +1352,7 @@ public class Manager extends AbstractServer
         HighlyAvailableServiceWrapper.service(impl, this);
     ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor =
         new ReplicationCoordinator.Processor<>(TraceUtil.wrapService(haReplicationProxy));
-    ServerAddress replAddress = TServerUtils.startServer(getMetricsSystem(), context, getHostname(),
+    ServerAddress replAddress = TServerUtils.startServer(context, getHostname(),
         Property.MANAGER_REPLICATION_COORDINATOR_PORT, replicationCoordinatorProcessor,
         "Manager Replication Coordinator", "Replication Coordinator", null,
         Property.MANAGER_REPLICATION_COORDINATOR_MINTHREADS, null,
@@ -1712,6 +1719,11 @@ public class Manager extends AbstractServer
   @Override
   public boolean isActiveService() {
     return managerInitialized.get();
+  }
+
+  @Override
+  public boolean isUpgrading() {
+    return managerUpgrading.get();
   }
 
   void initializeBalancer() {

@@ -42,26 +42,30 @@ public class CompactionPrioritizerTest {
       files.add(CompactableFile
           .create(URI.create("hdfs://foonn/accumulo/tables/5/" + tablet + "/" + i + ".rf"), 4, 4));
     }
-    return new CompactionJobImpl(CompactionJobPrioritizer.createPriority(kind, totalFiles),
+    // TODO pass numFiles
+    return new CompactionJobImpl(
+        CompactionJobPrioritizer.createPriority(kind, totalFiles, numFiles),
         CompactionExecutorIdImpl.externalId("test"), files, kind, Optional.of(false));
   }
 
   @Test
   public void testPrioritizer() throws Exception {
-    assertEquals((short) 0, CompactionJobPrioritizer.createPriority(CompactionKind.USER, 0));
+    assertEquals((short) 0, CompactionJobPrioritizer.createPriority(CompactionKind.USER, 0, 0));
     assertEquals((short) 10000,
-        CompactionJobPrioritizer.createPriority(CompactionKind.USER, 10000));
+        CompactionJobPrioritizer.createPriority(CompactionKind.USER, 10000, 0));
     assertEquals((short) 32767,
-        CompactionJobPrioritizer.createPriority(CompactionKind.USER, 32767));
+        CompactionJobPrioritizer.createPriority(CompactionKind.USER, 32767, 0));
     assertEquals((short) 32767,
-        CompactionJobPrioritizer.createPriority(CompactionKind.USER, Integer.MAX_VALUE));
+        CompactionJobPrioritizer.createPriority(CompactionKind.USER, Integer.MAX_VALUE, 0));
 
-    assertEquals((short) -32768, CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, 0));
+    assertEquals((short) -32768,
+        CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, 0, 0));
     assertEquals((short) -22768,
-        CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, 10000));
-    assertEquals((short) -1, CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, 32767));
+        CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, 10000, 0));
     assertEquals((short) -1,
-        CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, Integer.MAX_VALUE));
+        CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, 32767, 0));
+    assertEquals((short) -1,
+        CompactionJobPrioritizer.createPriority(CompactionKind.SYSTEM, Integer.MAX_VALUE, 0));
   }
 
   @Test
@@ -74,7 +78,7 @@ public class CompactionPrioritizerTest {
     var j6 = createJob(CompactionKind.CHOP, "t-014", 5, 40);
     var j7 = createJob(CompactionKind.CHOP, "t-015", 5, 7);
     var j8 = createJob(CompactionKind.SELECTOR, "t-014", 5, 21);
-    var j9 = createJob(CompactionKind.SELECTOR, "t-015", 7, 21);
+    var j9 = createJob(CompactionKind.SELECTOR, "t-015", 7, 20);
 
     var expected = List.of(j6, j2, j3, j1, j7, j4, j9, j8, j5);
 

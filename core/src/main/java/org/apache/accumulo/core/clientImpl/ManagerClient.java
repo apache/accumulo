@@ -82,11 +82,11 @@ public class ManagerClient {
     }
   }
 
-  public static void close(ManagerClientService.Iface iface) {
+  public static void close(ManagerClientService.Iface iface, ClientContext context) {
     TServiceClient client = (TServiceClient) iface;
     if (client != null && client.getInputProtocol() != null
         && client.getInputProtocol().getTransport() != null) {
-      ThriftTransportPool.getInstance().returnTransport(client.getInputProtocol().getTransport());
+      context.getTransportPool().returnTransport(client.getInputProtocol().getTransport());
     } else {
       log.debug("Attempt to close null connection to the manager", new Exception());
     }
@@ -124,7 +124,7 @@ public class ManagerClient {
         throw new AccumuloException(e);
       } finally {
         if (client != null)
-          close(client);
+          close(client, context);
       }
     }
   }
@@ -162,7 +162,7 @@ public class ManagerClient {
         throw new AccumuloException(e);
       } finally {
         if (client != null)
-          close(client);
+          close(client, context);
       }
     }
   }

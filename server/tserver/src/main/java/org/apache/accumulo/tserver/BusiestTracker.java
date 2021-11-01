@@ -91,7 +91,7 @@ public abstract class BusiestTracker {
     return new BusiestTracker(numBusiestTabletsToLog) {
       @Override
       protected long extractCount(Tablet tablet) {
-        return tablet.totalQueries();
+        return tablet.totalQueriesResults();
       }
     };
   }

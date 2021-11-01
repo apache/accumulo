@@ -21,6 +21,8 @@ package org.apache.accumulo.core.util;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.clientImpl.ConnectorImpl;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.slf4j.Logger;
@@ -47,10 +49,17 @@ public class CleanUp {
   /**
    * kills all threads created by internal Accumulo singleton resources. After this method is
    * called, no Connector will work in the current classloader.
+   *
+   * @param conn
+   *          If available, Connector object to close resources on. Will accept null otherwise.
    */
-  public static void shutdownNow() {
+  public static void shutdownNow(Connector conn) {
     SingletonManager.setMode(Mode.CLIENT);
     waitForZooKeeperClientThreads();
+    if (conn != null) {
+      ConnectorImpl connImpl = (ConnectorImpl) conn;
+      connImpl.getAccumuloClient().close();
+    }
   }
 
   /**

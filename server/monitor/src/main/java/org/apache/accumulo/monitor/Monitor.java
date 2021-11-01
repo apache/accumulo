@@ -268,7 +268,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
           log.info("Error fetching stats: ", e);
         } finally {
           if (client != null) {
-            ManagerClient.close(client);
+            ManagerClient.close(client, context);
           }
         }
         if (mmi == null) {
@@ -402,7 +402,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         try {
           result = client.getStatus(TraceUtil.traceInfo(), context.rpcCreds());
         } finally {
-          ThriftUtil.returnClient(client);
+          ThriftUtil.returnClient(client, context);
         }
       }
     } catch (Exception ex) {
@@ -604,7 +604,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       } catch (Exception ex) {
         log.error("Failed to get active scans from {}", server, ex);
       } finally {
-        ThriftUtil.returnClient(tserver);
+        ThriftUtil.returnClient(tserver, context);
       }
     }
     // Age off old scan information
@@ -632,7 +632,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       } catch (Exception ex) {
         log.debug("Failed to get active compactions from {}", server, ex);
       } finally {
-        ThriftUtil.returnClient(tserver);
+        ThriftUtil.returnClient(tserver, context);
       }
     }
     // Age off old compaction information

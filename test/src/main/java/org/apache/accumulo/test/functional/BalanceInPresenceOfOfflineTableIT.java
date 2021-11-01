@@ -173,7 +173,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
           throw new AccumuloException(exception);
         } finally {
           if (client != null) {
-            ManagerClient.close(client);
+            ManagerClient.close(client, (ClientContext) accumuloClient);
           }
         }
       }
