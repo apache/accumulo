@@ -30,7 +30,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -73,6 +72,7 @@ import org.slf4j.LoggerFactory;
  * the user's K/V types.
  */
 public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
+  private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(AccumuloRecordReader.class);
   // class to serialize configuration under in the job
   private final Class<?> CLASS;
@@ -318,7 +318,6 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
   public static List<InputSplit> getSplits(JobContext context, Class<?> callingClass)
       throws IOException {
     validateOptions(context, callingClass);
-    Random random = new SecureRandom();
     LinkedList<InputSplit> splits = new LinkedList<>();
     try (AccumuloClient client = createClient(context, callingClass)) {
       Map<String,InputTableConfig> tableConfigs =

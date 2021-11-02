@@ -30,7 +30,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -72,6 +71,8 @@ import org.slf4j.LoggerFactory;
  * @see org.apache.accumulo.hadoopImpl.mapreduce.AccumuloRecordReader
  */
 public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
+
+  private static final SecureRandom random = new SecureRandom();
   // class to serialize configuration under in the job
   private final Class<?> CLASS;
   private static final Logger log = LoggerFactory.getLogger(AccumuloRecordReader.class);
@@ -286,7 +287,6 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
   public static InputSplit[] getSplits(JobConf job, Class<?> callingClass) throws IOException {
     validateOptions(job, callingClass);
 
-    Random random = new SecureRandom();
     LinkedList<InputSplit> splits = new LinkedList<>();
     Map<String,InputTableConfig> tableConfigs =
         InputConfigurator.getInputTableConfigs(callingClass, job);

@@ -24,8 +24,8 @@ import static org.junit.Assert.assertFalse;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.security.SecureRandom;
-import java.util.Random;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -47,6 +47,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.junit.Test;
 
 public class MultiLevelIndexTest {
+  private static final SecureRandom random = new SecureRandom();
   private Configuration hadoopConf = new Configuration();
 
   @Test
@@ -118,18 +119,19 @@ public class MultiLevelIndexTest {
     liter = reader.lookup(new Key(String.format("%05d000", num + 1)));
     assertFalse(liter.hasNext());
 
-    Random rand = new SecureRandom();
-    for (int i = 0; i < 100; i++) {
-      int k = rand.nextInt(num * 1000);
+    random.ints(100, 0, num * 1_000).forEach(k -> {
       int expected;
       if (k % 1000 == 0)
         expected = k / 1000; // end key is inclusive
       else
         expected = k / 1000 + 1;
-      liter = reader.lookup(new Key(String.format("%08d", k)));
-      IndexEntry ie = liter.next();
-      assertEquals(expected, ie.getNumEntries());
-    }
+      try {
+        IndexEntry ie = reader.lookup(new Key(String.format("%08d", k))).next();
+        assertEquals(expected, ie.getNumEntries());
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    });
 
   }
 

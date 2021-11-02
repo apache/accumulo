@@ -26,7 +26,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.security.SecureRandom;
 import java.util.Arrays;
-import java.util.Random;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -52,6 +51,8 @@ import org.junit.Test;
  * and do what they should, and that cached blocks are accessible when expected to be.
  */
 public class TestLruBlockCache {
+
+  private static final SecureRandom random = new SecureRandom();
 
   @Test
   public void testConfiguration() {
@@ -506,9 +507,8 @@ public class TestLruBlockCache {
 
   private Block[] generateRandomBlocks(int numBlocks, long maxSize) {
     Block[] blocks = new Block[numBlocks];
-    Random r = new SecureRandom();
     for (int i = 0; i < numBlocks; i++) {
-      blocks[i] = new Block("block" + i, r.nextInt((int) maxSize) + 1);
+      blocks[i] = new Block("block" + i, random.nextInt((int) maxSize) + 1);
     }
     return blocks;
   }

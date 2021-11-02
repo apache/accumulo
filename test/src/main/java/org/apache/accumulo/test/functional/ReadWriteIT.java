@@ -26,7 +26,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
-import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -154,7 +153,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
               "Using HTTPS since monitor ssl keystore configuration was observed in accumulo configuration");
           SSLContext ctx = SSLContext.getInstance("TLSv1.2");
           TrustManager[] tm = {new TestTrustManager()};
-          ctx.init(new KeyManager[0], tm, new SecureRandom());
+          ctx.init(new KeyManager[0], tm, random);
           SSLContext.setDefault(ctx);
           HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
           HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());

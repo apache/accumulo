@@ -24,11 +24,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -155,13 +153,11 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     client.tableOperations().flush(tablename, null, null, true);
   }
 
-  static final Random r = new SecureRandom();
-
   private void makeFile(AccumuloClient client, String tablename) throws Exception {
     try (BatchWriter bw = client.createBatchWriter(tablename)) {
       byte[] empty = {};
       byte[] row = new byte[10];
-      r.nextBytes(row);
+      random.nextBytes(row);
       Mutation m = new Mutation(row, 0, 10);
       m.put(empty, empty, empty);
       bw.addMutation(m);

@@ -24,7 +24,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,7 +33,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -110,6 +108,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterables;
 
 public class ConditionalWriterIT extends SharedMiniClusterBase {
+
   private static final Logger log = LoggerFactory.getLogger(ConditionalWriterIT.class);
 
   @Override
@@ -875,11 +874,10 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       ArrayList<byte[]> rows = new ArrayList<>(num);
       ArrayList<ConditionalMutation> cml = new ArrayList<>(num);
 
-      Random r = new SecureRandom();
       byte[] e = new byte[0];
 
       for (int i = 0; i < num; i++) {
-        rows.add(FastFormat.toZeroPaddedString(abs(r.nextLong()), 16, 16, e));
+        rows.add(FastFormat.toZeroPaddedString(abs(random.nextLong()), 16, 16, e));
       }
 
       for (int i = 0; i < num; i++) {
@@ -949,7 +947,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       ColumnVisibility cvaob = new ColumnVisibility("A|B");
       ColumnVisibility cvaab = new ColumnVisibility("A&B");
 
-      switch ((new SecureRandom()).nextInt(3)) {
+      switch (random.nextInt(3)) {
         case 1:
           client.tableOperations().addSplits(tableName, nss("6"));
           break;
@@ -1172,21 +1170,20 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
     public void run() {
       try (Scanner scanner =
           new IsolatedScanner(client.createScanner(tableName, Authorizations.EMPTY))) {
-        Random rand = new SecureRandom();
 
         for (int i = 0; i < 20; i++) {
-          int numRows = rand.nextInt(10) + 1;
+          int numRows = random.nextInt(10) + 1;
 
           ArrayList<ByteSequence> changes = new ArrayList<>(numRows);
           ArrayList<ConditionalMutation> mutations = new ArrayList<>();
 
           for (int j = 0; j < numRows; j++)
-            changes.add(rows.get(rand.nextInt(rows.size())));
+            changes.add(rows.get(random.nextInt(rows.size())));
 
           for (ByteSequence row : changes) {
             scanner.setRange(new Range(row.toString()));
             Stats stats = new Stats(scanner.iterator());
-            stats.set(rand.nextInt(10), rand.nextInt(Integer.MAX_VALUE));
+            stats.set(random.nextInt(10), random.nextInt(Integer.MAX_VALUE));
             mutations.add(stats.toMutation());
           }
 
@@ -1218,9 +1215,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
       NewTableConfiguration ntc = new NewTableConfiguration();
 
-      Random rand = new SecureRandom();
-
-      switch (rand.nextInt(3)) {
+      switch (random.nextInt(3)) {
         case 1:
           ntc = ntc.withSplits(nss("4"));
           break;
@@ -1237,7 +1232,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         for (int i = 0; i < 1000; i++) {
           rows.add(new ArrayByteSequence(
-              FastFormat.toZeroPaddedString(abs(rand.nextLong()), 16, 16, new byte[0])));
+              FastFormat.toZeroPaddedString(abs(random.nextLong()), 16, 16, new byte[0])));
         }
 
         ArrayList<ConditionalMutation> mutations = new ArrayList<>();
