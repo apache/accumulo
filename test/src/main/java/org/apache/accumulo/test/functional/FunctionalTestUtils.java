@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
@@ -35,6 +36,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -58,6 +60,8 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.AdminUtil.FateStatus;
@@ -216,6 +220,37 @@ public class FunctionalTestUtils {
           null);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Verify that flush ID gets updated properly and is the same for all tablets.
+   */
+  static long checkFlushId(ClientContext c, TableId tableId, long prevFlushID) throws Exception {
+    try (TabletsMetadata metaScan =
+        c.getAmple().readTablets().forTable(tableId).fetch(FLUSH_ID).checkConsistency().build()) {
+
+      long flushId = 0, prevTabletFlushId = 0;
+      for (TabletMetadata tabletMetadata : metaScan) {
+        OptionalLong optFlushId = tabletMetadata.getFlushId();
+        if (optFlushId.isPresent()) {
+          flushId = optFlushId.getAsLong();
+          if (prevTabletFlushId > 0 && prevTabletFlushId != flushId) {
+            throw new Exception("Flush ID different between tablets");
+          } else {
+            prevTabletFlushId = flushId;
+          }
+        } else {
+          throw new Exception("Missing flush ID");
+        }
+      }
+
+      if (prevFlushID >= flushId) {
+        throw new Exception(
+            "Flush ID did not increase. prevFlushID: " + prevFlushID + " current: " + flushId);
+      }
+
+      return flushId;
     }
   }
 }

@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -819,7 +820,7 @@ public class Tablet {
         var storedFile = getDatafileManager().bringMinorCompactionOnline(tmpDatafile, newDatafile,
             new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()), commitSession,
             flushId);
-        compactable.filesAdded(true, List.of(storedFile));
+        storedFile.ifPresent(stf -> compactable.filesAdded(true, List.of(stf)));
       } catch (Exception e) {
         TraceUtil.setException(span2, e, true);
         throw e;
@@ -2204,8 +2205,11 @@ public class Tablet {
 
   }
 
-  public StoredTabletFile updateTabletDataFile(long maxCommittedTime, TabletFile newDatafile,
-      DataFileValue dfv, Set<String> unusedWalLogs, long flushId) {
+  /**
+   * Update tablet file data from flush. Returns a StoredTabletFile if there are data entries.
+   */
+  public Optional<StoredTabletFile> updateTabletDataFile(long maxCommittedTime,
+      TabletFile newDatafile, DataFileValue dfv, Set<String> unusedWalLogs, long flushId) {
     synchronized (timeLock) {
       if (maxCommittedTime > persistedTime) {
         persistedTime = maxCommittedTime;
