@@ -27,7 +27,7 @@ public interface ClientThreadPools {
 
   class ThreadPoolConfig {
 
-    public static ThreadPoolConfig EMPTY_CONFIG =
+    public static final ThreadPoolConfig EMPTY_CONFIG =
         new ThreadPoolConfig(Optional.empty(), Optional.empty(), Optional.empty());
 
     private final Optional<Iterable<Entry<String,String>>> configuration;

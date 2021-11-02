@@ -229,7 +229,16 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     return ret;
   }
 
-  @Override
+  /**
+   * Set ExecutorService to use for bulk imports tasks
+   *
+   * @param service
+   *          ExecutorService to use
+   * @return ImportMappingOptions
+   *
+   * @since 2.0.0
+   * @deprecated see ClientThreadPools
+   */
   @Deprecated(since = "2.1.0")
   public ImportMappingOptions executor(Executor service) {
     this.executor = Objects.requireNonNull(service);
