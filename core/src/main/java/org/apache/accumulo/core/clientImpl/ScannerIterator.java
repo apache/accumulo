@@ -25,8 +25,12 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import org.apache.accumulo.core.client.ClientThreadPools.ScheduledThreadPoolUsage;
+import org.apache.accumulo.core.client.ClientThreadPools.ThreadPoolConfig;
+import org.apache.accumulo.core.client.ClientThreadPools.ThreadPoolUsage;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableOfflineException;
@@ -62,7 +66,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   private ScannerImpl.Reporter reporter;
 
   private final ThreadPoolExecutor readaheadPool;
-  private final ThreadPoolExecutor poolCloser;
+  private final ScheduledThreadPoolExecutor poolCloser;
 
   private boolean closed = false;
 
@@ -71,10 +75,11 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       long readaheadThreshold, ScannerImpl.Reporter reporter) {
     this.timeOut = timeOut;
     this.readaheadThreshold = readaheadThreshold;
-    this.readaheadPool =
-        context.getClientThreadPools().getScannerReadAheadPool(context.getConfiguration());
-    this.poolCloser =
-        context.getClientThreadPools().getSharedScheduledExecutor(context.getConfiguration());
+    this.readaheadPool = context.getClientThreadPools().getThreadPool(
+        ThreadPoolUsage.SCANNER_READ_AHEAD_POOL, new ThreadPoolConfig(context.getConfiguration()));
+    this.poolCloser = context.getClientThreadPools().getScheduledThreadPool(
+        ScheduledThreadPoolUsage.SHARED_GENERAL_SCHEDULED_TASK_POOL,
+        new ThreadPoolConfig(context.getConfiguration()));
     this.options = new ScannerOptions(options);
 
     this.reporter = reporter;

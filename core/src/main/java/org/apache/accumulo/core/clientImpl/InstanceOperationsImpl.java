@@ -38,6 +38,8 @@ import java.util.concurrent.Future;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ClientThreadPools.ThreadPoolConfig;
+import org.apache.accumulo.core.client.ClientThreadPools.ThreadPoolUsage;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
@@ -218,8 +220,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
     List<String> tservers = getTabletServers();
 
     int numThreads = Math.max(4, Math.min((tservers.size() + compactors.size()) / 10, 256));
-    var executorService = context.getClientThreadPools()
-        .getExternalCompactionActiveCompactionsPool(context.getConfiguration(), numThreads);
+    var executorService = context.getClientThreadPools().getThreadPool(
+        ThreadPoolUsage.ACTIVE_EXTERNAL_COMPACTION_POOL,
+        new ThreadPoolConfig(context.getConfiguration(), numThreads));
     try {
       List<Future<List<ActiveCompaction>>> futures = new ArrayList<>();
 

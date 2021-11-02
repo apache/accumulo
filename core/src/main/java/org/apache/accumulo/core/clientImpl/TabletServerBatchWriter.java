@@ -45,6 +45,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.ClientThreadPools.ScheduledThreadPoolUsage;
+import org.apache.accumulo.core.client.ClientThreadPools.ThreadPoolConfig;
+import org.apache.accumulo.core.client.ClientThreadPools.ThreadPoolUsage;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableDeletedException;
@@ -197,8 +200,9 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   public TabletServerBatchWriter(ClientContext context, BatchWriterConfig config) {
     this.context = context;
-    this.executor = context.getClientThreadPools()
-        .getBatchWriterLatencyTasksThreadPool(context.getConfiguration());
+    this.executor = context.getClientThreadPools().getScheduledThreadPool(
+        ScheduledThreadPoolUsage.BATCH_WRITER_LATENCY_TASK_POOL,
+        new ThreadPoolConfig(context.getConfiguration()));
     this.failedMutations = new FailedMutations();
     this.maxMem = config.getMaxMemory();
     this.maxLatency = config.getMaxLatency(TimeUnit.MILLISECONDS) <= 0 ? Long.MAX_VALUE
@@ -631,11 +635,13 @@ public class TabletServerBatchWriter implements AutoCloseable {
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<>();
       queued = new HashSet<>();
-      sendThreadPool = context.getClientThreadPools()
-          .getBatchWriterSendThreadPool(context.getConfiguration(), numSendThreads);
+      sendThreadPool =
+          context.getClientThreadPools().getThreadPool(ThreadPoolUsage.BATCH_WRITER_SEND_POOL,
+              new ThreadPoolConfig(context.getConfiguration(), numSendThreads));
       locators = new HashMap<>();
-      binningThreadPool = context.getClientThreadPools()
-          .getBatchWriterBinningThreadPool(context.getConfiguration());
+      binningThreadPool =
+          context.getClientThreadPools().getThreadPool(ThreadPoolUsage.BATCH_WRITER_BINNING_POOL,
+              new ThreadPoolConfig(context.getConfiguration()));
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 

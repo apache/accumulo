@@ -43,6 +43,9 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ClientThreadPools.ScheduledThreadPoolUsage;
+import org.apache.accumulo.core.client.ClientThreadPools.ThreadPoolConfig;
+import org.apache.accumulo.core.client.ClientThreadPools.ThreadPoolUsage;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
@@ -359,10 +362,12 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.context = context;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
-    this.threadPool = context.getClientThreadPools()
-        .getConditionalWriterThreadPool(context.getConfiguration(), config);
-    this.cleanupThreadPool = context.getClientThreadPools()
-        .getConditionalWriterCleanupTaskThreadPool(context.getConfiguration());
+    this.threadPool = context.getClientThreadPools().getScheduledThreadPool(
+        ScheduledThreadPoolUsage.CONDITIONAL_WRITER_RETRY_POOL,
+        new ThreadPoolConfig(context.getConfiguration(), config.getMaxWriteThreads()));
+    this.cleanupThreadPool = context.getClientThreadPools().getThreadPool(
+        ThreadPoolUsage.CONDITIONAL_WRITER_CLEANUP_TASK_POOL,
+        new ThreadPoolConfig(context.getConfiguration()));
     this.cleanupThreadPool.allowCoreThreadTimeOut(true);
     this.locator = new SyncingTabletLocator(context, tableId);
     this.serverQueues = new HashMap<>();

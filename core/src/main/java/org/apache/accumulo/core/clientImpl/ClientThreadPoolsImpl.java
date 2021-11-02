@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
@@ -26,7 +26,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.ClientThreadPools;
-import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -35,75 +34,73 @@ public class ClientThreadPoolsImpl implements ClientThreadPools {
 
   private ScheduledThreadPoolExecutor sharedScheduledThreadPool = null;
 
-  public synchronized ScheduledThreadPoolExecutor
-      getSharedScheduledExecutor(Iterable<Entry<String,String>> conf) {
-    if (sharedScheduledThreadPool == null) {
-      sharedScheduledThreadPool = (ScheduledThreadPoolExecutor) ThreadPools.createExecutorService(
-          new ConfigurationCopy(conf), Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE);
+  @Override
+  public ThreadPoolExecutor getThreadPool(ThreadPoolUsage usage, ThreadPoolConfig config) {
+    switch (usage) {
+      case BULK_IMPORT_POOL:
+        Objects.requireNonNull(config.getNumThreads().get(), "Number of threads must be set");
+        return ThreadPools.createFixedThreadPool(config.getNumThreads().get(), "BulkImportThread",
+            false);
+      case ACTIVE_EXTERNAL_COMPACTION_POOL:
+        Objects.requireNonNull(config.getNumThreads().get(), "Number of threads must be set");
+        return ThreadPools.createFixedThreadPool(config.getNumThreads().get(),
+            "getactivecompactions", false);
+      case SCANNER_READ_AHEAD_POOL:
+        return ThreadPools.createThreadPool(0, Integer.MAX_VALUE, 3L, TimeUnit.SECONDS,
+            "Accumulo scanner read ahead thread", new SynchronousQueue<>(), OptionalInt.empty(),
+            false);
+      case ADD_SPLITS_THREAD_POOL:
+        return ThreadPools.createFixedThreadPool(16, "addSplits", false);
+      case BATCH_SCANNER_READ_AHEAD_POOL:
+        Objects.requireNonNull(config.getNumThreads().get(), "Number of threads must be set");
+        Objects.requireNonNull(config.getThreadName().get(), "Name of threads must be set");
+        return ThreadPools.createFixedThreadPool(config.getNumThreads().get(),
+            "batch scanner " + config.getThreadName().get() + "-", false);
+      case BATCH_WRITER_BINNING_POOL:
+        return ThreadPools.createFixedThreadPool(1, "BinMutations", new SynchronousQueue<>(),
+            false);
+      case BATCH_WRITER_SEND_POOL:
+        Objects.requireNonNull(config.getNumThreads().get(), "Number of threads must be set");
+        return ThreadPools.createFixedThreadPool(config.getNumThreads().get(), "MutationWriter",
+            false);
+      case CONDITIONAL_WRITER_CLEANUP_TASK_POOL:
+        return ThreadPools.createFixedThreadPool(1, 3, TimeUnit.SECONDS,
+            "Conditional Writer Cleanup Thread", false);
+      case BLOOM_FILTER_LAYER_LOADER_POOL:
+        Objects.requireNonNull(config.getConfiguration().get(), "Configuration must be set");
+        return ThreadPools.createThreadPool(0,
+            new ConfigurationCopy(config.getConfiguration().get())
+                .getCount(Property.TSERV_BLOOM_LOAD_MAXCONCURRENT),
+            60, TimeUnit.SECONDS, "bloom-loader", false);
+      default:
+        throw new IllegalArgumentException("Unhandled thread pool usage value: " + usage.name());
     }
-    return sharedScheduledThreadPool;
-  }
-
-  public ThreadPoolExecutor getBulkImportThreadPool(Iterable<Entry<String,String>> conf,
-      int numThreads) {
-    return ThreadPools.createFixedThreadPool(numThreads, "BulkImportThread", false);
-  }
-
-  public ThreadPoolExecutor getExternalCompactionActiveCompactionsPool(
-      Iterable<Entry<String,String>> conf, int numThreads) {
-    return ThreadPools.createFixedThreadPool(numThreads, "getactivecompactions", false);
-  }
-
-  public ThreadPoolExecutor getScannerReadAheadPool(Iterable<Entry<String,String>> conf) {
-    return ThreadPools.createThreadPool(0, Integer.MAX_VALUE, 3L, TimeUnit.SECONDS,
-        "Accumulo scanner read ahead thread", new SynchronousQueue<>(), OptionalInt.empty(), false);
-  }
-
-  public ThreadPoolExecutor getAddSplitsThreadPool(Iterable<Entry<String,String>> conf) {
-    return ThreadPools.createFixedThreadPool(16, "addSplits", false);
-  }
-
-  public ThreadPoolExecutor getBatchReaderThreadPool(Iterable<Entry<String,String>> conf,
-      int numQueryThreads, int batchReaderInstance) {
-    return ThreadPools.createFixedThreadPool(numQueryThreads,
-        "batch scanner " + batchReaderInstance + "-", false);
-  }
-
-  public ScheduledThreadPoolExecutor
-      getBatchWriterLatencyTasksThreadPool(Iterable<Entry<String,String>> conf) {
-    return ThreadPools.createGeneralScheduledExecutorService(new ConfigurationCopy(conf));
   }
 
   @Override
-  public ThreadPoolExecutor getBatchWriterBinningThreadPool(Iterable<Entry<String,String>> conf) {
-    return ThreadPools.createFixedThreadPool(1, "BinMutations", new SynchronousQueue<>(), false);
-  }
+  public ScheduledThreadPoolExecutor getScheduledThreadPool(ScheduledThreadPoolUsage usage,
+      ThreadPoolConfig config) {
+    switch (usage) {
+      case SHARED_GENERAL_SCHEDULED_TASK_POOL:
+        Objects.requireNonNull(config.getConfiguration().get(), "Configuration must be set");
+        if (sharedScheduledThreadPool == null) {
+          sharedScheduledThreadPool = (ScheduledThreadPoolExecutor) ThreadPools
+              .createExecutorService(new ConfigurationCopy(config.getConfiguration().get()),
+                  Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE);
+        }
+        return sharedScheduledThreadPool;
+      case BATCH_WRITER_LATENCY_TASK_POOL:
+        Objects.requireNonNull(config.getConfiguration().get(), "Configuration must be set");
+        return ThreadPools.createGeneralScheduledExecutorService(
+            new ConfigurationCopy(config.getConfiguration().get()));
+      case CONDITIONAL_WRITER_RETRY_POOL:
+        Objects.requireNonNull(config.getNumThreads().get(), "Number of threads must be set");
+        return ThreadPools.createScheduledExecutorService(config.getNumThreads().get(),
+            "ConiditionalWriterImpl", false);
+      default:
+        throw new IllegalArgumentException("Unhandled thread pool usage value: " + usage.name());
 
-  @Override
-  public ThreadPoolExecutor getBatchWriterSendThreadPool(Iterable<Entry<String,String>> conf,
-      int numSendThreads) {
-    return ThreadPools.createFixedThreadPool(numSendThreads, "MutationWriter", false);
-  }
-
-  @Override
-  public ThreadPoolExecutor
-      getConditionalWriterCleanupTaskThreadPool(Iterable<Entry<String,String>> conf) {
-    return ThreadPools.createFixedThreadPool(1, 3, TimeUnit.SECONDS,
-        "Conditional Writer Cleanup Thread", false);
-  }
-
-  @Override
-  public ScheduledThreadPoolExecutor getConditionalWriterThreadPool(
-      Iterable<Entry<String,String>> conf, ConditionalWriterConfig config) {
-    return ThreadPools.createScheduledExecutorService(config.getMaxWriteThreads(),
-        "ConiditionalWriterImpl", false);
-  }
-
-  @Override
-  public ThreadPoolExecutor getBloomFilterLayerLoadThreadPool(Iterable<Entry<String,String>> conf) {
-    return ThreadPools.createThreadPool(0,
-        new ConfigurationCopy(conf).getCount(Property.TSERV_BLOOM_LOAD_MAXCONCURRENT), 60,
-        TimeUnit.SECONDS, "bloom-loader", false);
+    }
   }
 
 }

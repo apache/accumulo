@@ -30,6 +30,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.ClientThreadPools.ThreadPoolConfig;
+import org.apache.accumulo.core.client.ClientThreadPools.ThreadPoolUsage;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -71,8 +73,10 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     this.tableName = tableName;
     this.numThreads = numQueryThreads;
 
-    queryThreadPool = context.getClientThreadPools()
-        .getBatchReaderThreadPool(context.getConfiguration(), numQueryThreads, batchReaderInstance);
+    queryThreadPool =
+        context.getClientThreadPools().getThreadPool(ThreadPoolUsage.BATCH_SCANNER_READ_AHEAD_POOL,
+            new ThreadPoolConfig(context.getConfiguration(), numQueryThreads,
+                Integer.toString(batchReaderInstance)));
     // Call shutdown on this thread pool in case the caller does not call close().
     cleanable = CleanerUtil.shutdownThreadPoolExecutor(queryThreadPool, closed, log);
   }
