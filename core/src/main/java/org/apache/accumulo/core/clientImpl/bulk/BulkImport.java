@@ -77,7 +77,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.commons.io.FilenameUtils;
@@ -229,6 +228,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   @Override
+  @Deprecated(since = "2.1.0")
   public ImportMappingOptions executor(Executor service) {
     this.executor = Objects.requireNonNull(service);
     return this;
@@ -478,11 +478,12 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     if (this.executor != null) {
       executor = this.executor;
     } else if (numThreads > 0) {
-      executor = service = ThreadPools.createFixedThreadPool(numThreads, "BulkImportThread", false);
+      executor =
+          service = context.getClientThreadPools().getBulkImportThreadPool(context, numThreads);
     } else {
       String threads = context.getConfiguration().get(ClientProperty.BULK_LOAD_THREADS.getKey());
-      executor = service = ThreadPools.createFixedThreadPool(
-          ConfigurationTypeHelper.getNumThreads(threads), "BulkImportThread", false);
+      executor = service = context.getClientThreadPools().getBulkImportThreadPool(context,
+          ConfigurationTypeHelper.getNumThreads(threads));
     }
 
     try {

@@ -73,7 +73,6 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
@@ -87,13 +86,6 @@ import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 
 class ConditionalWriterImpl implements ConditionalWriter {
-
-  private static ThreadPoolExecutor cleanupThreadPool = ThreadPools.createFixedThreadPool(1, 3,
-      TimeUnit.SECONDS, "Conditional Writer Cleanup Thread", false);
-
-  static {
-    cleanupThreadPool.allowCoreThreadTimeOut(true);
-  }
 
   private static final int MAX_SLEEP = 30000;
 
@@ -115,7 +107,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
 
   private Map<String,ServerQueue> serverQueues;
   private DelayQueue<QCMutation> failedMutations = new DelayQueue<>();
-  private ScheduledThreadPoolExecutor threadPool;
+  private final ScheduledThreadPoolExecutor threadPool;
+  private final ThreadPoolExecutor cleanupThreadPool;
 
   private class RQIterator implements Iterator<Result> {
 
@@ -366,8 +359,11 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.context = context;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
-    this.threadPool = ThreadPools.createScheduledExecutorService(config.getMaxWriteThreads(),
-        this.getClass().getSimpleName(), false);
+    this.threadPool =
+        context.getClientThreadPools().getConditionalWriterThreadPool(context, config);
+    this.cleanupThreadPool =
+        context.getClientThreadPools().getConditionalWriterCleanupTaskThreadPool(context);
+    this.cleanupThreadPool.allowCoreThreadTimeOut(true);
     this.locator = new SyncingTabletLocator(context, tableId);
     this.serverQueues = new HashMap<>();
     this.tableId = tableId;

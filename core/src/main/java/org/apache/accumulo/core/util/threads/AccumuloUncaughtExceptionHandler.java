@@ -20,6 +20,8 @@ package org.apache.accumulo.core.util.threads;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 
+import org.apache.accumulo.core.singletons.SingletonManager;
+import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +46,10 @@ class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandler {
         // If e == OutOfMemoryError, then it's probably that another Error might be
         // thrown when trying to print to System.err.
       } finally {
-        Runtime.getRuntime().halt(-1);
+        Mode m = SingletonManager.getMode();
+        if (m != null && m.equals(Mode.SERVER)) {
+          Runtime.getRuntime().halt(-1);
+        }
       }
     }
   }

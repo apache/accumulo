@@ -180,7 +180,6 @@ public class SingletonManager {
     transition();
   }
 
-  @VisibleForTesting
   public static synchronized Mode getMode() {
     return mode;
   }

@@ -37,7 +37,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -71,7 +70,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
@@ -199,8 +197,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   public TabletServerBatchWriter(ClientContext context, BatchWriterConfig config) {
     this.context = context;
-    this.executor =
-        ThreadPools.createGeneralScheduledExecutorService(this.context.getConfiguration());
+    this.executor = context.getClientThreadPools().getBatchWriterLatencyTasksThreadPool(context);
     this.failedMutations = new FailedMutations();
     this.maxMem = config.getMaxMemory();
     this.maxLatency = config.getMaxLatency(TimeUnit.MILLISECONDS) <= 0 ? Long.MAX_VALUE
@@ -634,10 +631,9 @@ public class TabletServerBatchWriter implements AutoCloseable {
       serversMutations = new HashMap<>();
       queued = new HashSet<>();
       sendThreadPool =
-          ThreadPools.createFixedThreadPool(numSendThreads, this.getClass().getName(), false);
+          context.getClientThreadPools().getBatchWriterSendThreadPool(context, numSendThreads);
       locators = new HashMap<>();
-      binningThreadPool =
-          ThreadPools.createFixedThreadPool(1, "BinMutations", new SynchronousQueue<>(), false);
+      binningThreadPool = context.getClientThreadPools().getBatchWriterBinningThreadPool(context);
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
