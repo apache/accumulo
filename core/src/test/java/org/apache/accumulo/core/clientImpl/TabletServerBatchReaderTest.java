@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
 import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.security.Authorizations;
 import org.easymock.EasyMock;
@@ -35,7 +36,9 @@ public class TabletServerBatchReaderTest {
   @Before
   public void setup() {
     context = EasyMock.createStrictMock(ClientContext.class);
+    AccumuloConfiguration conf = EasyMock.createStrictMock(AccumuloConfiguration.class);
     EasyMock.expect(context.getClientThreadPools()).andReturn(new ClientThreadPoolsImpl());
+    EasyMock.expect(context.getConfiguration()).andReturn(conf);
     EasyMock.replay(context);
   }
 
