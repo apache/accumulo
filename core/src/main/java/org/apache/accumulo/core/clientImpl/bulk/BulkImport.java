@@ -478,12 +478,12 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     if (this.executor != null) {
       executor = this.executor;
     } else if (numThreads > 0) {
-      executor =
-          service = context.getClientThreadPools().getBulkImportThreadPool(context, numThreads);
+      executor = service = context.getClientThreadPools()
+          .getBulkImportThreadPool(context.getConfiguration(), numThreads);
     } else {
       String threads = context.getConfiguration().get(ClientProperty.BULK_LOAD_THREADS.getKey());
-      executor = service = context.getClientThreadPools().getBulkImportThreadPool(context,
-          ConfigurationTypeHelper.getNumThreads(threads));
+      executor = service = context.getClientThreadPools().getBulkImportThreadPool(
+          context.getConfiguration(), ConfigurationTypeHelper.getNumThreads(threads));
     }
 
     try {

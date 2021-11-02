@@ -359,10 +359,10 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.context = context;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
-    this.threadPool =
-        context.getClientThreadPools().getConditionalWriterThreadPool(context, config);
-    this.cleanupThreadPool =
-        context.getClientThreadPools().getConditionalWriterCleanupTaskThreadPool(context);
+    this.threadPool = context.getClientThreadPools()
+        .getConditionalWriterThreadPool(context.getConfiguration(), config);
+    this.cleanupThreadPool = context.getClientThreadPools()
+        .getConditionalWriterCleanupTaskThreadPool(context.getConfiguration());
     this.cleanupThreadPool.allowCoreThreadTimeOut(true);
     this.locator = new SyncingTabletLocator(context, tableId);
     this.serverQueues = new HashMap<>();

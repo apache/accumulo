@@ -71,8 +71,10 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       long readaheadThreshold, ScannerImpl.Reporter reporter) {
     this.timeOut = timeOut;
     this.readaheadThreshold = readaheadThreshold;
-    this.readaheadPool = context.getClientThreadPools().getScannerReadAheadPool(context);
-    this.poolCloser = context.getClientThreadPools().getSharedScheduledExecutor(context);
+    this.readaheadPool =
+        context.getClientThreadPools().getScannerReadAheadPool(context.getConfiguration());
+    this.poolCloser =
+        context.getClientThreadPools().getSharedScheduledExecutor(context.getConfiguration());
     this.options = new ScannerOptions(options);
 
     this.reporter = reporter;

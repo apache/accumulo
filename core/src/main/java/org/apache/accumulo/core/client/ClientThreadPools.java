@@ -18,119 +18,135 @@
  */
 package org.apache.accumulo.core.client;
 
+import java.util.Map.Entry;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
-
-import org.apache.accumulo.core.clientImpl.ClientContext;
 
 public interface ClientThreadPools {
 
   /**
    * return a shared scheduled executor for trivial tasks
    *
-   * @param ctx
+   * @param conf
+   *          configuration properties
    * @return ScheduledThreadPoolExecutor
    */
-  ScheduledThreadPoolExecutor getSharedScheduledExecutor(ClientContext context);
+  ScheduledThreadPoolExecutor getSharedScheduledExecutor(Iterable<Entry<String,String>> conf);
 
   /**
    * ThreadPoolExecutor that runs bulk import tasks
    *
-   * @param ctx
+   * @param conf
+   *          configuration properties
    * @param numThreads
+   *          number of threads for the pool
    * @return ThreadPoolExecutor
    */
-  ThreadPoolExecutor getBulkImportThreadPool(ClientContext ctx, int numThreads);
+  ThreadPoolExecutor getBulkImportThreadPool(Iterable<Entry<String,String>> conf, int numThreads);
 
   /**
    * ThreadPoolExecutor that runs tasks to contact Compactors to get running compaction information
    *
+   * @param conf
+   *          configuration properties
    * @param numThreads
+   *          number of threads for the pool
    * @return ThreadPoolExecutor
    */
-  ThreadPoolExecutor getExternalCompactionActiveCompactionsPool(ClientContext ctx, int numThreads);
+  ThreadPoolExecutor getExternalCompactionActiveCompactionsPool(Iterable<Entry<String,String>> conf,
+      int numThreads);
 
   /**
    * ThreadPoolExecutor used for fetching data from the TabletServers
    *
-   * @param ctx
+   * @param conf
+   *          configuration properties
    * @return ThreadPoolExecutor
    */
-  ThreadPoolExecutor getScannerReadAheadPool(ClientContext ctx);
+  ThreadPoolExecutor getScannerReadAheadPool(Iterable<Entry<String,String>> conf);
 
   /**
    * ThreadPoolExecutor used for adding splits to a table
    *
-   * @param ctx
+   * @param conf
+   *          configuration properties
    * @return ThreadPoolExecutor
    */
-  ThreadPoolExecutor getAddSplitsThreadPool(ClientContext ctx);
+  ThreadPoolExecutor getAddSplitsThreadPool(Iterable<Entry<String,String>> conf);
 
   /**
    * ThreadPoolExecutor used for fetching data from the TabletServers
    *
-   * @param ctx
+   * @param conf
+   *          configuration properties
    * @param numQueryThreads
+   *          number of threads for the pool
    * @param batchReaderInstance
+   *          instance name
    * @return ThreadPoolExecutor
    */
-  ThreadPoolExecutor getBatchReaderThreadPool(ClientContext ctx, int numQueryThreads,
-      int batchReaderInstance);
+  ThreadPoolExecutor getBatchReaderThreadPool(Iterable<Entry<String,String>> conf,
+      int numQueryThreads, int batchReaderInstance);
 
   /**
    * ScheduledThreadPoolExecutor that runs tasks for the BatchWriter to meet the users latency
    * goals.
-   * 
-   * @param ctx
-   *          client context object
+   *
+   * @param conf
+   *          configuration properties
    * @return ScheduledThreadPoolExecutor
    */
-  ScheduledThreadPoolExecutor getBatchWriterLatencyTasksThreadPool(ClientContext ctx);
+  ScheduledThreadPoolExecutor
+      getBatchWriterLatencyTasksThreadPool(Iterable<Entry<String,String>> conf);
 
   /**
    * ThreadPoolExecutor that runs the tasks of binning mutations
-   * 
-   * @param ctx
-   *          client context object
+   *
+   * @param conf
+   *          configuration properties
    * @return ThreadPoolExecutor
    */
-  ThreadPoolExecutor getBatchWriterBinningThreadPool(ClientContext ctx);
+  ThreadPoolExecutor getBatchWriterBinningThreadPool(Iterable<Entry<String,String>> conf);
 
   /**
    * ThreadPoolExecutor that runs the tasks of sending mutations to TabletServers
    *
-   * @param ctx
-   *          client context object
+   * @param conf
+   *          configuration properties
    * @return ThreadPoolExecutor
    */
-  ThreadPoolExecutor getBatchWriterSendThreadPool(ClientContext ctx, int numSendThreads);
+  ThreadPoolExecutor getBatchWriterSendThreadPool(Iterable<Entry<String,String>> conf,
+      int numSendThreads);
 
   /**
    * ThreadPoolExecutor that runs clean up tasks when close is called on the ConditionalWriter
    *
-   * @param ctx
+   * @param conf
+   *          configuration properties
    * @return ThreadPoolExecutor
    */
-  ThreadPoolExecutor getConditionalWriterCleanupTaskThreadPool(ClientContext ctx);
+  ThreadPoolExecutor getConditionalWriterCleanupTaskThreadPool(Iterable<Entry<String,String>> conf);
 
   /**
    * ScheduledThreadPoolExecutor that periodically runs tasks to handle failed write mutations and
    * send mutations to TabletServers
    *
-   * @param ctx
+   * @param conf
+   *          configuration properties
    * @param config
+   *          conditional writer config
    * @return ScheduledThreadPoolExecutor
    */
-  ScheduledThreadPoolExecutor getConditionalWriterThreadPool(ClientContext ctx,
+  ScheduledThreadPoolExecutor getConditionalWriterThreadPool(Iterable<Entry<String,String>> conf,
       ConditionalWriterConfig config);
 
   /**
    * ThreadPoolExecutor responsible for loading bloom filters
-   * 
-   * @param ctx
-   *          client context object
+   *
+   * @param conf
+   *          configuration properties
    * @return ThreadPoolExecutor
    */
-  ThreadPoolExecutor getBloomFilterLayerLoadThreadPool(ClientContext ctx);
+  ThreadPoolExecutor getBloomFilterLayerLoadThreadPool(Iterable<Entry<String,String>> conf);
 
 }

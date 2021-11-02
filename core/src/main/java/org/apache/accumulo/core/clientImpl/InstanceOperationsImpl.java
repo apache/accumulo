@@ -219,7 +219,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
     int numThreads = Math.max(4, Math.min((tservers.size() + compactors.size()) / 10, 256));
     var executorService = context.getClientThreadPools()
-        .getExternalCompactionActiveCompactionsPool(context, numThreads);
+        .getExternalCompactionActiveCompactionsPool(context.getConfiguration(), numThreads);
     try {
       List<Future<List<ActiveCompaction>>> futures = new ArrayList<>();
 
