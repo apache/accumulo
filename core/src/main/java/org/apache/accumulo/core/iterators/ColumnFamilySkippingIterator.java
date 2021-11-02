@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.iteratorsImpl.system;
+package org.apache.accumulo.core.iterators;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -30,9 +30,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.ServerSkippingIterator;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 public class ColumnFamilySkippingIterator extends ServerSkippingIterator
     implements InterruptibleIterator {
