@@ -84,12 +84,6 @@ public class KeywordStartIT {
   }
 
   @Test
-  public void test() throws IOException {
-    String propsFile = "/home/dgarguilo/Desktop/config.json";
-    CheckCompactionConfig.main(new String[] {propsFile});
-  }
-
-  @Test
   public void testCheckDuplicates() {
     NoOp one = new NoOp("one");
     NoOp anotherOne = new NoOp("another");
