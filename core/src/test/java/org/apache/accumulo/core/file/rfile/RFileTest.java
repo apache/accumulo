@@ -135,7 +135,7 @@ public class RFileTest {
 
   @BeforeClass
   public static void setupCryptoKeyFile() throws Exception {
-    CryptoTest.setupKeyFiles();
+    CryptoTest.setupKeyFiles(RFileTest.class);
   }
 
   static class SeekableByteArrayInputStream extends ByteArrayInputStream
@@ -1805,7 +1805,7 @@ public class RFileTest {
       case CryptoTest.CRYPTO_ON_CONF:
         cfg.set(Property.INSTANCE_CRYPTO_SERVICE,
             "org.apache.accumulo.core.spi.crypto.AESCryptoService");
-        cfg.set(INSTANCE_CRYPTO_PREFIX.getKey() + "key.uri", CryptoTest.keyPath);
+        cfg.set(INSTANCE_CRYPTO_PREFIX.getKey() + "key.uri", CryptoTest.keyPath(RFileTest.class));
         break;
     }
     return cfg;

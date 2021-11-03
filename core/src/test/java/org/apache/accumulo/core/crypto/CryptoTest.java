@@ -86,23 +86,32 @@ public class CryptoTest {
   public static final String CRYPTO_ON_CONF = "ON";
   public static final String CRYPTO_ON_DISABLED_CONF = "ON_DISABLED";
   public static final String CRYPTO_OFF_CONF = "OFF";
-  public static final String keyPath =
-      System.getProperty("user.dir") + "/target/CryptoTest-testkeyfile";
-  private static final String emptyKeyPath =
-      System.getProperty("user.dir") + "/target/CryptoTest-emptykeyfile";
   private static Configuration hadoopConf = new Configuration();
 
   @BeforeClass
-  public static void setupKeyFiles() throws Exception {
+  public static void setupKeyFiles() throws IOException {
+    setupKeyFiles(CryptoTest.class);
+  }
+
+  public static void setupKeyFiles(Class<?> testClass) throws IOException {
     FileSystem fs = FileSystem.getLocal(hadoopConf);
-    Path aesPath = new Path(keyPath);
+    Path aesPath = new Path(keyPath(testClass));
     try (FSDataOutputStream out = fs.create(aesPath)) {
       out.writeUTF("sixteenbytekey"); // 14 + 2 from writeUTF
     }
-    try (FSDataOutputStream out = fs.create(new Path(emptyKeyPath))) {
+    try (FSDataOutputStream out = fs.create(new Path(emptyKeyPath(testClass)))) {
       // auto close after creating
       assertNotNull(out);
     }
+  }
+
+  public static String keyPath(Class<?> testClass) {
+    return System.getProperty("user.dir") + "/target/" + testClass.getSimpleName() + "-testkeyfile";
+  }
+
+  public static String emptyKeyPath(Class<?> testClass) {
+    return System.getProperty("user.dir") + "/target/" + testClass.getSimpleName()
+        + "-emptykeyfile";
   }
 
   @Test
@@ -366,7 +375,7 @@ public class CryptoTest {
 
   @Test
   public void testAESKeyUtilsLoadKekFromUri() throws IOException {
-    java.security.Key fileKey = AESCryptoService.loadKekFromUri(keyPath);
+    java.security.Key fileKey = AESCryptoService.loadKekFromUri(keyPath(getClass()));
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
     dos.writeUTF("sixteenbytekey");
@@ -382,7 +391,8 @@ public class CryptoTest {
 
   @Test
   public void testAESKeyUtilsLoadKekFromEmptyFile() {
-    assertThrows(CryptoException.class, () -> AESCryptoService.loadKekFromUri(emptyKeyPath));
+    assertThrows(CryptoException.class,
+        () -> AESCryptoService.loadKekFromUri(emptyKeyPath(getClass())));
   }
 
   private ArrayList<Key> testData() {
