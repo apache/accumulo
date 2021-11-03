@@ -38,11 +38,9 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TabletServerBatchReader extends ScannerOptions implements BatchScanner {
-  private static final Logger log = LoggerFactory.getLogger(TabletServerBatchReader.class);
   private static final AtomicInteger nextBatchReaderInstance = new AtomicInteger(1);
 
   private final int batchReaderInstance = nextBatchReaderInstance.getAndIncrement();
@@ -73,12 +71,13 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     this.tableName = tableName;
     this.numThreads = numQueryThreads;
 
-    queryThreadPool =
-        context.getClientThreadPools().getThreadPool(ThreadPoolUsage.BATCH_SCANNER_READ_AHEAD_POOL,
-            new ThreadPoolConfig(context.getConfiguration(), numQueryThreads,
-                Integer.toString(batchReaderInstance)));
+    ThreadPoolConfig poolConfig = new ThreadPoolConfig(context.getConfiguration(), numQueryThreads,
+        Integer.toString(batchReaderInstance));
+    queryThreadPool = context.getClientThreadPools()
+        .getThreadPool(ThreadPoolUsage.BATCH_SCANNER_READ_AHEAD_POOL, poolConfig);
     // Call shutdown on this thread pool in case the caller does not call close().
-    cleanable = CleanerUtil.shutdownThreadPoolExecutor(queryThreadPool, closed, log);
+    cleanable = CleanerUtil.shutdownThreadPoolExecutor(queryThreadPool, () -> {},
+        LoggerFactory.getLogger(TabletServerBatchReader.class));
   }
 
   @Override

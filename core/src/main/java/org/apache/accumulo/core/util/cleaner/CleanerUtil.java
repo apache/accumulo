@@ -103,14 +103,15 @@ public class CleanerUtil {
     });
   }
 
-  public static Cleanable shutdownThreadPoolExecutor(ThreadPoolExecutor pool, AtomicBoolean closed,
-      Logger log) {
+  public static Cleanable shutdownThreadPoolExecutor(ThreadPoolExecutor pool,
+      Runnable preShutdownFunction, Logger log) {
     requireNonNull(pool);
     requireNonNull(log);
     return CLEANER.register(pool, () -> {
-      if (closed.get()) {
+      if (pool.isShutdown()) {
         return;
       }
+      preShutdownFunction.run();
       log.warn("{} found unreferenced without calling shutdown() or shutdownNow()",
           pool.getClass().getSimpleName());
       try {

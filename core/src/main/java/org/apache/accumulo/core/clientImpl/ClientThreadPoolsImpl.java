@@ -103,4 +103,10 @@ public class ClientThreadPoolsImpl implements ClientThreadPools {
     }
   }
 
+  public void close() {
+    if (sharedScheduledThreadPool != null) {
+      sharedScheduledThreadPool.shutdownNow();
+      sharedScheduledThreadPool = null;
+    }
+  }
 }

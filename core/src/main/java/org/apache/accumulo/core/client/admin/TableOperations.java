@@ -781,7 +781,10 @@ public interface TableOperations {
      *
      * @param service
      *          Use this executor to run file examination task
+     *
+     * @deprecated see ClientThreadPools
      */
+    @Deprecated
     ImportOptions executor(Executor service);
 
     // The javadoc below intentionally use a fully qualified class name in the value tag, otherwise

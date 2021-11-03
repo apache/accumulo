@@ -719,6 +719,9 @@ public class ClientContext implements AccumuloClient {
       thriftTransportPool.shutdown();
     }
     singletonReservation.close();
+    if (threadPools != null) {
+      threadPools.close();
+    }
   }
 
   public static class ClientBuilderImpl<T>

@@ -37,8 +37,9 @@ public class TabletServerBatchReaderTest {
   public void setup() {
     context = EasyMock.createStrictMock(ClientContext.class);
     AccumuloConfiguration conf = EasyMock.createStrictMock(AccumuloConfiguration.class);
-    EasyMock.expect(context.getClientThreadPools()).andReturn(new ClientThreadPoolsImpl());
-    EasyMock.expect(context.getConfiguration()).andReturn(conf);
+    EasyMock.expect(context.getConfiguration()).andReturn(conf).anyTimes();
+    EasyMock.expect(context.getClientThreadPools()).andReturn(new ClientThreadPoolsImpl())
+        .anyTimes();
     EasyMock.replay(context);
   }
 

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import java.lang.ref.Cleaner.Cleanable;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
@@ -66,6 +68,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   private ScannerImpl.Reporter reporter;
 
   private final ThreadPoolExecutor readaheadPool;
+  private final Cleanable readaheadPoolCleanable;
   private final ScheduledThreadPoolExecutor poolCloser;
 
   private boolean closed = false;
@@ -77,6 +80,9 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     this.readaheadThreshold = readaheadThreshold;
     this.readaheadPool = context.getClientThreadPools().getThreadPool(
         ThreadPoolUsage.SCANNER_READ_AHEAD_POOL, new ThreadPoolConfig(context.getConfiguration()));
+    this.readaheadPoolCleanable = CleanerUtil.shutdownThreadPoolExecutor(readaheadPool, () -> {
+      closeThriftScanner();
+    }, LoggerFactory.getLogger(ScannerIterator.class));
     this.poolCloser = context.getClientThreadPools().getScheduledThreadPool(
         ScheduledThreadPoolUsage.SHARED_GENERAL_SCHEDULED_TASK_POOL,
         new ThreadPoolConfig(context.getConfiguration()));
@@ -127,20 +133,25 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     throw new NoSuchElementException();
   }
 
+  void closeThriftScanner() {
+    synchronized (scanState) {
+      // this is synchronized so its mutually exclusive with readBatch()
+      try {
+        closed = true;
+        ThriftScanner.close(scanState);
+      } catch (Exception e) {
+        LoggerFactory.getLogger(ScannerIterator.class).debug("Exception when closing scan session",
+            e);
+      }
+    }
+  }
+
   void close() {
     // run actual close operation in the background so this does not block.
     readaheadPool.execute(() -> {
-      synchronized (scanState) {
-        // this is synchronized so its mutually exclusive with readBatch()
-        try {
-          closed = true;
-          ThriftScanner.close(scanState);
-        } catch (Exception e) {
-          LoggerFactory.getLogger(ScannerIterator.class)
-              .debug("Exception when closing scan session", e);
-        }
-      }
+      closeThriftScanner();
     });
+    readaheadPoolCleanable.clean();
     this.poolCloser.execute(() -> readaheadPool.shutdownNow());
   }
 

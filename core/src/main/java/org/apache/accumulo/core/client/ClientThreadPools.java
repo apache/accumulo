@@ -23,6 +23,16 @@ import java.util.Optional;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 
+/**
+ * Factory object for ThreadPoolExecutor instances that are used in the Accumulo client code.
+ * ThreadPoolExecutor instances created from this class will be closed when the object is finished
+ * with the thread pool, when the object using the thread pool is closed, or when the object using
+ * the thread pool is no longer referenced and eligible for garbage collection. Users can supply
+ * their own implementation using {@link AccumuloClient#setClientThreadPools(ClientThreadPools)} but
+ * the returned thread pools should not be shared.
+ *
+ * @since 2.1.0
+ */
 public interface ClientThreadPools {
 
   class ThreadPoolConfig {
@@ -125,26 +135,30 @@ public interface ClientThreadPools {
   }
 
   /**
-   * return a ThreadPoolExecutor configured for the specified usage
+   * return a {@link ThreadPoolExecutor} configured for the specified usage
    *
    * @param usage
    *          thread pool usage
    * @param config
    *          thread pool configuration
-   * @return ThreadPoolExecutor
+   * @return {@link ThreadPoolExecutor}
    */
   ThreadPoolExecutor getThreadPool(ThreadPoolUsage usage, ThreadPoolConfig config);
 
   /**
-   * return a ScheduledThreadPoolExecutor configured for the specified usage
+   * return a {@link ScheduledThreadPoolExecutor} configured for the specified usage
    *
    * @param usage
    *          thread pool usage
    * @param config
    *          thread pool configuration
-   * @return ScheduledThreadPoolExecutor
+   * @return {@link ScheduledThreadPoolExecutor}
    */
   ScheduledThreadPoolExecutor getScheduledThreadPool(ScheduledThreadPoolUsage usage,
       ThreadPoolConfig config);
 
+  /**
+   * release resources
+   */
+  void close();
 }

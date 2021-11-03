@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.lang.management.CompilationMXBean;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
+import java.lang.ref.Cleaner.Cleanable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -73,6 +74,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.htrace.Trace;
 import org.apache.htrace.TraceScope;
@@ -126,6 +128,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   // latency timers
   private final ScheduledThreadPoolExecutor executor;
+  private final Cleanable executorCleaner;
   private final Map<String,TimeoutTracker> timeoutTrackers =
       Collections.synchronizedMap(new HashMap<>());
 
@@ -203,6 +206,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     this.executor = context.getClientThreadPools().getScheduledThreadPool(
         ScheduledThreadPoolUsage.BATCH_WRITER_LATENCY_TASK_POOL,
         new ThreadPoolConfig(context.getConfiguration()));
+    this.executorCleaner = CleanerUtil.shutdownThreadPoolExecutor(executor, () -> {}, log);
     this.failedMutations = new FailedMutations();
     this.maxMem = config.getMaxMemory();
     this.maxLatency = config.getMaxLatency(TimeUnit.MILLISECONDS) <= 0 ? Long.MAX_VALUE
@@ -349,8 +353,11 @@ public class TabletServerBatchWriter implements AutoCloseable {
     } finally {
       // make a best effort to release these resources
       writer.binningThreadPool.shutdownNow();
+      writer.binningThreadPoolCleanable.clean();
       writer.sendThreadPool.shutdownNow();
+      writer.sendThreadPoolCleanable.clean();
       executor.shutdownNow();
+      executorCleaner.clean();
     }
   }
 
@@ -627,7 +634,9 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
     private static final int MUTATION_BATCH_SIZE = 1 << 17;
     private final ThreadPoolExecutor sendThreadPool;
+    private final Cleanable sendThreadPoolCleanable;
     private final ThreadPoolExecutor binningThreadPool;
+    private final Cleanable binningThreadPoolCleanable;
     private final Map<String,TabletServerMutations<Mutation>> serversMutations;
     private final Set<String> queued;
     private final Map<TableId,TabletLocator> locators;
@@ -638,10 +647,14 @@ public class TabletServerBatchWriter implements AutoCloseable {
       sendThreadPool =
           context.getClientThreadPools().getThreadPool(ThreadPoolUsage.BATCH_WRITER_SEND_POOL,
               new ThreadPoolConfig(context.getConfiguration(), numSendThreads));
+      sendThreadPoolCleanable =
+          CleanerUtil.shutdownThreadPoolExecutor(sendThreadPool, () -> {}, log);
       locators = new HashMap<>();
       binningThreadPool =
           context.getClientThreadPools().getThreadPool(ThreadPoolUsage.BATCH_WRITER_BINNING_POOL,
               new ThreadPoolConfig(context.getConfiguration()));
+      binningThreadPoolCleanable =
+          CleanerUtil.shutdownThreadPoolExecutor(binningThreadPool, () -> {}, log);
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
