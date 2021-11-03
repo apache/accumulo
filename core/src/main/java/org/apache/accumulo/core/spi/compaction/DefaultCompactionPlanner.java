@@ -113,14 +113,20 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class DefaultCompactionPlanner implements CompactionPlanner {
 
-  private static Logger log = LoggerFactory.getLogger(DefaultCompactionPlanner.class);
+  private static final Logger log = LoggerFactory.getLogger(DefaultCompactionPlanner.class);
 
   public static class ExecutorConfig {
-    String type;
+    public String type;
     String name;
-    String maxSize;
-    Integer numThreads;
-    String queue;
+    public String maxSize;
+    public Integer numThreads;
+    public String queue;
+
+    @Override
+    public String toString() {
+      return "type:" + type + " name:" + name + " maxSize:" + maxSize + " numThreads:" + numThreads
+          + " queue:" + queue;
+    }
   }
 
   private static class Executor {
