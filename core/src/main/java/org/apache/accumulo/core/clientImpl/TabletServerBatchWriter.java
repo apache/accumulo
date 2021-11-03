@@ -161,7 +161,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
   private final FailedMutations failedMutations;
   private int unknownErrors = 0;
   private boolean somethingFailed = false;
-  private Exception lastUnknownError = null;
+  private Throwable lastUnknownError = null;
 
   private static class TimeoutTracker {
 
@@ -226,7 +226,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
                 > TabletServerBatchWriter.this.maxLatency)
               startProcessing();
           }
-        } catch (Exception e) {
+        } catch (Throwable e) {
           updateUnknownErrors("Max latency task failed " + e.getMessage(), e);
         }
       }), 0, this.maxLatency / 4, TimeUnit.MILLISECONDS);
@@ -522,7 +522,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     log.error("Server side error on {}", server, e);
   }
 
-  private synchronized void updateUnknownErrors(String msg, Exception t) {
+  private synchronized void updateUnknownErrors(String msg, Throwable t) {
     somethingFailed = true;
     unknownErrors++;
     this.lastUnknownError = t;
@@ -618,7 +618,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
                 rf.size());
           addFailedMutations(rf);
         }
-      } catch (Exception t) {
+      } catch (Throwable t) {
         updateUnknownErrors("tid=" + Thread.currentThread().getId()
             + "  Failed to requeue failed mutations " + t.getMessage(), t);
         executor.remove(task);
@@ -720,7 +720,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
             log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
                 mutationsToSend.size());
             addMutations(mutationsToSend);
-          } catch (Exception e) {
+          } catch (Throwable e) {
             updateUnknownErrors("Error processing mutation set", e);
           }
         }
@@ -808,7 +808,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
           }
 
           return;
-        } catch (Exception t) {
+        } catch (Throwable t) {
           updateUnknownErrors(
               "Failed to send tablet server " + location + " its batch : " + t.getMessage(), t);
         }

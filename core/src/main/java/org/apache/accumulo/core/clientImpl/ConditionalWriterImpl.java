@@ -36,7 +36,9 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Delayed;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -89,9 +91,12 @@ import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 class ConditionalWriterImpl implements ConditionalWriter {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ConditionalWriterImpl.class);
 
   private static final int MAX_SLEEP = 30000;
 
@@ -114,6 +119,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private Map<String,ServerQueue> serverQueues;
   private DelayQueue<QCMutation> failedMutations = new DelayQueue<>();
   private final ScheduledThreadPoolExecutor threadPool;
+  private final ScheduledFuture<?> backgroundTask;
   private final ThreadPoolExecutor cleanupThreadPool;
   private final Cleanable threadPoolCleanable;
 
@@ -369,8 +375,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.threadPool = context.getClientThreadPools().getScheduledThreadPool(
         ScheduledThreadPoolUsage.CONDITIONAL_WRITER_RETRY_POOL,
         new ThreadPoolConfig(context.getConfiguration(), config.getMaxWriteThreads()));
-    this.threadPoolCleanable = CleanerUtil.shutdownThreadPoolExecutor(threadPool, () -> {},
-        LoggerFactory.getLogger(ConditionalWriterImpl.class));
+    this.threadPoolCleanable = CleanerUtil.shutdownThreadPoolExecutor(threadPool, () -> {}, LOG);
     this.cleanupThreadPool = context.getClientThreadPools().getThreadPool(
         ThreadPoolUsage.CONDITIONAL_WRITER_CLEANUP_TASK_POOL,
         new ThreadPoolConfig(context.getConfiguration()));
@@ -393,11 +398,30 @@ class ConditionalWriterImpl implements ConditionalWriter {
         queue(mutations);
     };
 
-    threadPool.scheduleAtFixedRate(failureHandler, 250, 250, TimeUnit.MILLISECONDS);
+    this.backgroundTask =
+        threadPool.scheduleAtFixedRate(failureHandler, 250, 250, TimeUnit.MILLISECONDS);
   }
 
   @Override
   public Iterator<Result> write(Iterator<ConditionalMutation> mutations) {
+
+    if (this.backgroundTask.isDone()) {
+      // The failure handled failed or otherwise exited
+      try {
+        this.backgroundTask.get();
+      } catch (ExecutionException e) {
+        Throwable t = e.getCause();
+        LOG.error("The failureHandler background task failed.", t);
+        if (t instanceof Error) {
+          throw (Error) t;
+        } else {
+          throw new RuntimeException(e);
+        }
+      } catch (InterruptedException e) {
+        LOG.error("The failureHandler background task was interrupted.");
+        throw new RuntimeException(e);
+      }
+    }
 
     BlockingQueue<Result> resultQueue = new LinkedBlockingQueue<>();
 

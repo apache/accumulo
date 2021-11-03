@@ -192,6 +192,9 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
         readAheadOperation = null;
       }
     } catch (ExecutionException ee) {
+      if (ee.getCause() instanceof Error) {
+        throw (Error) ee.getCause();
+      }
       wrapExecutionException(ee);
       throw new RuntimeException(ee);
     } catch (RuntimeException e) {
