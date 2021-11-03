@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
@@ -37,6 +38,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.compactor.CompactorExecutable;
 import org.apache.accumulo.coordinator.CoordinatorExecutable;
 import org.apache.accumulo.core.file.rfile.PrintInfo;
+import org.apache.accumulo.core.spi.compaction.CheckCompactionConfig;
 import org.apache.accumulo.core.util.CreateToken;
 import org.apache.accumulo.core.util.Help;
 import org.apache.accumulo.core.util.Version;
@@ -82,6 +84,12 @@ public class KeywordStartIT {
   }
 
   @Test
+  public void test() throws IOException {
+    String propsFile = "/home/dgarguilo/Desktop/config.json";
+    CheckCompactionConfig.main(new String[] {propsFile});
+  }
+
+  @Test
   public void testCheckDuplicates() {
     NoOp one = new NoOp("one");
     NoOp anotherOne = new NoOp("another");
@@ -105,6 +113,7 @@ public class KeywordStartIT {
     assumeTrue(new File(System.getProperty("user.dir") + "/src").exists());
     TreeMap<String,Class<? extends KeywordExecutable>> expectSet = new TreeMap<>();
     expectSet.put("admin", Admin.class);
+    expectSet.put("check-compaction-config", CheckCompactionConfig.class);
     expectSet.put("check-server-config", CheckServerConfig.class);
     expectSet.put("compaction-coordinator", CoordinatorExecutable.class);
     expectSet.put("compactor", CompactorExecutable.class);
@@ -164,10 +173,12 @@ public class KeywordStartIT {
 
     HashSet<Class<?>> expectSet = new HashSet<>();
     expectSet.add(Admin.class);
+    expectSet.add(CheckCompactionConfig.class);
     expectSet.add(CreateToken.class);
     expectSet.add(Info.class);
     expectSet.add(Initialize.class);
     expectSet.add(LoginProperties.class);
+    // should this be replaced?
     expectSet.add(org.apache.accumulo.master.Master.class);
     expectSet.add(MiniAccumuloRunner.class);
     expectSet.add(Monitor.class);
@@ -188,12 +199,11 @@ public class KeywordStartIT {
   private static boolean hasMain(Class<?> classToCheck) {
     Method main;
     try {
-      main = classToCheck.getMethod("main", new String[0].getClass());
+      main = classToCheck.getMethod("main", String[].class);
     } catch (NoSuchMethodException e) {
       return false;
     }
-    return main != null && Modifier.isPublic(main.getModifiers())
-        && Modifier.isStatic(main.getModifiers());
+    return Modifier.isPublic(main.getModifiers()) && Modifier.isStatic(main.getModifiers());
   }
 
   private static class NoOp implements KeywordExecutable {

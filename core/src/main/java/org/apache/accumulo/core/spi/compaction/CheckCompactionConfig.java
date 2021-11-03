@@ -19,13 +19,11 @@
 package org.apache.accumulo.core.spi.compaction;
 
 import java.io.IOException;
-import java.io.Reader;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Objects;
 
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
@@ -34,22 +32,18 @@ import com.google.gson.Gson;
 @AutoService(KeywordExecutable.class)
 public class CheckCompactionConfig implements KeywordExecutable {
 
+  private final static Logger log = LoggerFactory.getLogger(CheckCompactionConfig.class);
+
   public static void main(String[] args) throws IOException {
     Preconditions.checkArgument(args.length == 1, "only one argument is accepted");
-    Path propsPath = Paths.get(args[0]);
-    System.out.println("file path provided: " + propsPath);
 
-    DefaultCompactionPlanner.ExecutorConfig[] executorConfigs = null;
-    try (Reader reader = Files.newBufferedReader(propsPath)) {
-      System.out.println("Creating json from file");
-      executorConfigs =
-          new Gson().fromJson(reader, DefaultCompactionPlanner.ExecutorConfig[].class);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+    String inputJSON = args[0];
+    log.debug("Provided input: {}", inputJSON);
 
-    assert executorConfigs != null;
-    System.out.println("map size: " + executorConfigs.length);
+    DefaultCompactionPlanner.ExecutorConfig[] executorConfigs =
+        new Gson().fromJson(inputJSON, DefaultCompactionPlanner.ExecutorConfig[].class);
+    Objects.requireNonNull(executorConfigs);
+    log.debug("parsed input: {}", executorConfigs.length);
 
     boolean hasSeenNullMaxSize = false;
 
@@ -57,14 +51,14 @@ public class CheckCompactionConfig implements KeywordExecutable {
       System.out.println(executorConfig);
 
       // If not supplied, GSON will leave type null. Default to internal
-      // warn user
       if (executorConfig.type == null) {
         System.out.println("WARNING: type is null. Defaulting to 'internal'. Please specify type.");
         executorConfig.type = "internal";
       }
 
       // check requirements for internal vs. external
-      // lots of overlap with DefaultCompactionPlanner.init - Maybe refactor to extract commonality
+      // lots of overlap with DefaultCompactionPlanner.init
+      // TODO: Maybe refactor to extract commonalities
       switch (executorConfig.type) {
         case "internal":
           Preconditions.checkArgument(null == executorConfig.queue,
