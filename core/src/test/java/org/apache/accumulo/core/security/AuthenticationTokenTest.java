@@ -20,10 +20,9 @@ package org.apache.accumulo.core.security;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 import java.security.SecureRandom;
-import java.util.Random;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
@@ -32,15 +31,16 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.junit.Test;
 
 public class AuthenticationTokenTest {
+
+  private static final SecureRandom random = new SecureRandom();
+
   @Test
   public void testSerializeDeserializeToken() {
-    Random random = new SecureRandom();
     byte[] randomBytes = new byte[12];
-    random.nextBytes(randomBytes);
-    boolean allZero = true;
-    for (byte b : randomBytes)
-      allZero = allZero && b == 0;
-    assertFalse(allZero);
+    do {
+      // random fill, but avoid all zeros case
+      random.nextBytes(randomBytes);
+    } while (IntStream.range(0, randomBytes.length).allMatch(i -> randomBytes[i] == 0));
 
     byte[] serialized = AuthenticationTokenSerializer.serialize(new PasswordToken(randomBytes));
     PasswordToken passwordToken =

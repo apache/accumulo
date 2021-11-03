@@ -45,7 +45,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.sample.RowSampler;
@@ -105,6 +104,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class RFileTest {
+
+  private static final SecureRandom random = new SecureRandom();
 
   public static class SampleIE implements IteratorEnvironment {
 
@@ -537,9 +538,8 @@ public class RFileTest {
 
     // test seeking to random location and reading all data from that point
     // there was an off by one bug with this in the transient index
-    Random rand = new SecureRandom();
     for (int i = 0; i < 12; i++) {
-      index = rand.nextInt(expectedKeys.size());
+      index = random.nextInt(expectedKeys.size());
       trf.seek(expectedKeys.get(index));
       for (; index < expectedKeys.size(); index++) {
         assertTrue(trf.iter.hasTop());
@@ -1659,17 +1659,15 @@ public class RFileTest {
 
     Set<ByteSequence> cfs = Collections.emptySet();
 
-    Random rand = new SecureRandom();
-
     for (int count = 0; count < 100; count++) {
 
-      int start = rand.nextInt(2300);
+      int start = random.nextInt(2300);
       Range range = new Range(newKey(formatString("r_", start), "cf1", "cq1", "L1", 42),
           newKey(formatString("r_", start + 100), "cf1", "cq1", "L1", 42));
 
       trf.reader.seek(range, cfs, false);
 
-      int numToScan = rand.nextInt(100);
+      int numToScan = random.nextInt(100);
 
       for (int j = 0; j < numToScan; j++) {
         assertTrue(trf.reader.hasTop());
@@ -1685,8 +1683,8 @@ public class RFileTest {
       // seek a little forward from the last range and read a few keys within the unconsumed portion
       // of the last range
 
-      int start2 = start + numToScan + rand.nextInt(3);
-      int end2 = start2 + rand.nextInt(3);
+      int start2 = start + numToScan + random.nextInt(3);
+      int end2 = start2 + random.nextInt(3);
 
       range = new Range(newKey(formatString("r_", start2), "cf1", "cq1", "L1", 42),
           newKey(formatString("r_", end2), "cf1", "cq1", "L1", 42));
@@ -2020,10 +2018,6 @@ public class RFileTest {
     sample.seek(new Range(), columnFamilies, inclusive);
     assertEquals(sampleData, toList(sample));
 
-    Random rand = new SecureRandom();
-    long seed = rand.nextLong();
-    rand.setSeed(seed);
-
     // randomly seek sample iterator and verify
     for (int i = 0; i < 33; i++) {
       Key startKey = null;
@@ -2034,29 +2028,29 @@ public class RFileTest {
       boolean endInclusive = false;
       int endIndex = sampleData.size();
 
-      if (rand.nextBoolean()) {
-        startIndex = rand.nextInt(sampleData.size());
+      if (random.nextBoolean()) {
+        startIndex = random.nextInt(sampleData.size());
         startKey = sampleData.get(startIndex).getKey();
-        startInclusive = rand.nextBoolean();
+        startInclusive = random.nextBoolean();
         if (!startInclusive) {
           startIndex++;
         }
       }
 
-      if (startIndex < endIndex && rand.nextBoolean()) {
-        endIndex -= rand.nextInt(endIndex - startIndex);
+      if (startIndex < endIndex && random.nextBoolean()) {
+        endIndex -= random.nextInt(endIndex - startIndex);
         endKey = sampleData.get(endIndex - 1).getKey();
-        endInclusive = rand.nextBoolean();
+        endInclusive = random.nextBoolean();
         if (!endInclusive) {
           endIndex--;
         }
       } else if (startIndex == endIndex) {
-        endInclusive = rand.nextBoolean();
+        endInclusive = random.nextBoolean();
       }
 
       sample.seek(new Range(startKey, startInclusive, endKey, endInclusive), columnFamilies,
           inclusive);
-      assertEquals("seed: " + seed, sampleData.subList(startIndex, endIndex), toList(sample));
+      assertEquals(sampleData.subList(startIndex, endIndex), toList(sample));
     }
   }
 

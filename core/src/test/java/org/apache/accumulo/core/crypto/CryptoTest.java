@@ -80,14 +80,15 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CryptoTest {
 
-  public static final int MARKER_INT = 0xCADEFEDD;
-  public static final String MARKER_STRING = "1 2 3 4 5 6 7 8 a b c d e f g h ";
+  private static final SecureRandom random = new SecureRandom();
+  private static final int MARKER_INT = 0xCADEFEDD;
+  private static final String MARKER_STRING = "1 2 3 4 5 6 7 8 a b c d e f g h ";
   public static final String CRYPTO_ON_CONF = "ON";
   public static final String CRYPTO_ON_DISABLED_CONF = "ON_DISABLED";
   public static final String CRYPTO_OFF_CONF = "OFF";
   public static final String keyPath =
       System.getProperty("user.dir") + "/target/CryptoTest-testkeyfile";
-  public static final String emptyKeyPath =
+  private static final String emptyKeyPath =
       System.getProperty("user.dir") + "/target/CryptoTest-emptykeyfile";
   private static Configuration hadoopConf = new Configuration();
 
@@ -320,14 +321,13 @@ public class CryptoTest {
   @Test
   public void testAESKeyUtilsGeneratesKey() throws NoSuchAlgorithmException,
       NoSuchProviderException, NoSuchPaddingException, InvalidKeyException {
-    SecureRandom sr = SecureRandom.getInstance("SHA1PRNG", "SUN");
     // verify valid key sizes (corresponds to 128, 192, and 256 bits)
     for (int i : new int[] {16, 24, 32}) {
-      verifyKeySizeForCBC(sr, i);
+      verifyKeySizeForCBC(random, i);
     }
     // verify invalid key sizes
     for (int i : new int[] {1, 2, 8, 11, 15, 64, 128}) {
-      assertThrows(InvalidKeyException.class, () -> verifyKeySizeForCBC(sr, i));
+      assertThrows(InvalidKeyException.class, () -> verifyKeySizeForCBC(random, i));
     }
   }
 
@@ -343,9 +343,8 @@ public class CryptoTest {
   @Test
   public void testAESKeyUtilsWrapAndUnwrap()
       throws NoSuchAlgorithmException, NoSuchProviderException {
-    SecureRandom sr = SecureRandom.getInstance("SHA1PRNG", "SUN");
-    java.security.Key kek = AESCryptoService.generateKey(sr, 16);
-    java.security.Key fek = AESCryptoService.generateKey(sr, 16);
+    java.security.Key kek = AESCryptoService.generateKey(random, 16);
+    java.security.Key fek = AESCryptoService.generateKey(random, 16);
     byte[] wrapped = AESCryptoService.wrapKey(fek, kek);
     assertFalse(Arrays.equals(fek.getEncoded(), wrapped));
     java.security.Key unwrapped = AESCryptoService.unwrapKey(wrapped, kek);
@@ -355,9 +354,8 @@ public class CryptoTest {
   @Test
   public void testAESKeyUtilsFailUnwrapWithWrongKEK()
       throws NoSuchAlgorithmException, NoSuchProviderException {
-    SecureRandom sr = SecureRandom.getInstance("SHA1PRNG", "SUN");
-    java.security.Key kek = AESCryptoService.generateKey(sr, 16);
-    java.security.Key fek = AESCryptoService.generateKey(sr, 16);
+    java.security.Key kek = AESCryptoService.generateKey(random, 16);
+    java.security.Key fek = AESCryptoService.generateKey(random, 16);
     byte[] wrongBytes = kek.getEncoded();
     wrongBytes[0]++;
     java.security.Key wrongKek = new SecretKeySpec(wrongBytes, "AES");

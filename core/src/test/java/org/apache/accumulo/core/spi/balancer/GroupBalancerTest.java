@@ -28,7 +28,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -49,6 +48,8 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class GroupBalancerTest {
+
+  private static final SecureRandom random = new SecureRandom();
 
   private static final Function<TabletId,String> partitioner =
       input -> (input == null || input.getEndRow() == null) ? null
@@ -323,11 +324,10 @@ public class GroupBalancerTest {
   @Test
   public void bigTest() {
     TabletServers tservers = new TabletServers();
-    Random rand = new SecureRandom();
 
     for (int g = 1; g <= 60; g++) {
       for (int t = 1; t <= 241; t++) {
-        tservers.addTablet(String.format("%02d:%d", g, t), "192.168.1." + (rand.nextInt(249) + 1),
+        tservers.addTablet(String.format("%02d:%d", g, t), "192.168.1." + (random.nextInt(249) + 1),
             9997);
       }
     }
@@ -342,11 +342,10 @@ public class GroupBalancerTest {
   @Test
   public void bigTest2() {
     TabletServers tservers = new TabletServers();
-    Random rand = new SecureRandom();
 
     for (int g = 1; g <= 60; g++) {
-      for (int t = 1; t <= rand.nextInt(1000); t++) {
-        tservers.addTablet(String.format("%02d:%d", g, t), "192.168.1." + (rand.nextInt(249) + 1),
+      for (int t = 1; t <= random.nextInt(1000); t++) {
+        tservers.addTablet(String.format("%02d:%d", g, t), "192.168.1." + (random.nextInt(249) + 1),
             9997);
       }
     }

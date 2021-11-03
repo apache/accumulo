@@ -18,10 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -60,11 +58,10 @@ public class FateStarvationIT extends AccumuloClusterHarness {
       c.tableOperations().flush(tableName, null, null, true);
 
       List<Text> splits = new ArrayList<>(TestIngest.getSplitPoints(0, 100000, 67));
-      Random rand = new SecureRandom();
 
       for (int i = 0; i < 100; i++) {
-        int idx1 = rand.nextInt(splits.size() - 1);
-        int idx2 = rand.nextInt(splits.size() - (idx1 + 1)) + idx1 + 1;
+        int idx1 = random.nextInt(splits.size() - 1);
+        int idx2 = random.nextInt(splits.size() - (idx1 + 1)) + idx1 + 1;
 
         c.tableOperations().compact(tableName, splits.get(idx1), splits.get(idx2), false, false);
       }
