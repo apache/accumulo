@@ -21,9 +21,7 @@ package org.apache.accumulo.test;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -115,7 +113,6 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
 
     @Override
     public Exception call() {
-      Random r = new SecureRandom();
       countDown.countDown();
       try {
         countDown.await();
@@ -126,17 +123,13 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
 
       String t = Thread.currentThread().getName() + " ";
       try {
-        for (int i = 0; i < iterations; i++) {
-          // if (i % 10000 == 0) {
-          // log.info(t + " " + i);
-          // }
-          int choice = r.nextInt(randMax);
+        random.ints(iterations, 0, randMax).forEach(choice -> {
           if (choice < 1) {
             tableConf.invalidateCache();
           } else {
             tableConf.get(prop);
           }
-        }
+        });
       } catch (Exception e) {
         log.error(t, e);
         return e;

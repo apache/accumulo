@@ -37,7 +37,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -167,6 +166,7 @@ import com.google.common.collect.Iterators;
 
 public class TabletServer extends AbstractServer {
 
+  private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
   private static final long TIME_BETWEEN_GC_CHECKS = 5000;
   private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = 60 * 60 * 1000;
@@ -375,9 +375,9 @@ public class TabletServer extends AbstractServer {
   }
 
   private static long jitter() {
-    Random r = new SecureRandom();
     // add a random 10% wait
-    return (long) ((1. + (r.nextDouble() / 10)) * TabletServer.TIME_BETWEEN_LOCATOR_CACHE_CLEARS);
+    return (long) ((1. + (random.nextDouble() / 10))
+        * TabletServer.TIME_BETWEEN_LOCATOR_CACHE_CLEARS);
   }
 
   final SessionManager sessionManager;
@@ -848,7 +848,6 @@ public class TabletServer extends AbstractServer {
       } catch (InterruptedException e) {
         log.info("Interrupt Exception received, shutting down");
         serverStopRequested = true;
-
       } catch (Exception e) {
         // may have lost connection with manager
         // loop back to the beginning and wait for a new one

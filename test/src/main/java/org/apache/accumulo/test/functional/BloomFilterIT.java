@@ -18,14 +18,12 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -181,7 +179,6 @@ public class BloomFilterIT extends AccumuloClusterHarness {
 
   private long query(AccumuloClient c, String table, int depth, long start, long end, int num,
       int step) throws Exception {
-    Random r = new SecureRandom();
 
     HashSet<Long> expected = new HashSet<>();
     List<Range> ranges = new ArrayList<>(num);
@@ -189,7 +186,7 @@ public class BloomFilterIT extends AccumuloClusterHarness {
     Text row = new Text("row"), cq = new Text("cq"), cf = new Text("cf");
 
     for (int i = 0; i < num; ++i) {
-      Long k = ((r.nextLong() & 0x7fffffffffffffffL) % (end - start)) + start;
+      Long k = ((random.nextLong() & 0x7fffffffffffffffL) % (end - start)) + start;
       key.set(String.format("k_%010d", k));
       Range range = null;
       Key acuKey;

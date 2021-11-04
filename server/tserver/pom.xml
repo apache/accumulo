@@ -159,32 +159,50 @@
             </excludes>
           </configuration>
         </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <configuration>
-            <!-- Tests that cannot run with reuseForks=true -->
-            <excludes>
-              <exclude>**/AssignmentWatcherTest.java</exclude>
-            </excludes>
-          </configuration>
-          <executions>
-            <execution>
-              <id>reuseForks-false-tests</id>
-              <goals>
-                <goal>test</goal>
-              </goals>
-              <configuration>
-                <reuseForks>false</reuseForks>
-                <excludes combine.self="override" />
-                <includes>
-                  <include>**/AssignmentWatcherTest.java</include>
-                </includes>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
       </plugins>
     </pluginManagement>
   </build>
+  <profiles>
+    <profile>
+      <!-- profile for running second execution of surefire without reusing forks -->
+      <!-- on by default, but disable with '-P !reuseForksFalse' or '-Dtest=SomeTest' -->
+      <id>reuseForksFalse</id>
+      <activation>
+        <property>
+          <name>!test</name>
+        </property>
+      </activation>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-surefire-plugin</artifactId>
+              <configuration>
+                <!-- Tests that cannot run with reuseForks=true -->
+                <excludes>
+                  <exclude>**/AssignmentWatcherTest.java</exclude>
+                </excludes>
+              </configuration>
+              <executions>
+                <execution>
+                  <id>reuseForks-false-tests</id>
+                  <goals>
+                    <goal>test</goal>
+                  </goals>
+                  <configuration>
+                    <reuseForks>false</reuseForks>
+                    <excludes combine.self="override" />
+                    <includes>
+                      <include>**/AssignmentWatcherTest.java</include>
+                    </includes>
+                  </configuration>
+                </execution>
+              </executions>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
+    </profile>
+  </profiles>
 </project>

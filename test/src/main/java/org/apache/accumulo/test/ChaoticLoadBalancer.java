@@ -18,13 +18,13 @@
  */
 package org.apache.accumulo.test;
 
-import java.security.SecureRandom;
+import static org.apache.accumulo.harness.AccumuloITBase.random;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -54,7 +54,6 @@ public class ChaoticLoadBalancer implements TabletBalancer {
   private static final Logger log = LoggerFactory.getLogger(ChaoticLoadBalancer.class);
 
   protected BalancerEnvironment environment;
-  Random r = new SecureRandom();
 
   public ChaoticLoadBalancer() {}
 
@@ -86,7 +85,7 @@ public class ChaoticLoadBalancer implements TabletBalancer {
     }
 
     for (TabletId tabletId : params.unassignedTablets().keySet()) {
-      int index = r.nextInt(tServerArray.size());
+      int index = random.nextInt(tServerArray.size());
       TabletServerId dest = tServerArray.get(index);
       params.addAssignment(tabletId, dest);
       long remaining = toAssign.get(dest) - 1;
@@ -116,7 +115,7 @@ public class ChaoticLoadBalancer implements TabletBalancer {
     }
     problemReporter.clearProblemReportTimes();
 
-    boolean moveMetadata = r.nextInt(4) == 0;
+    boolean moveMetadata = random.nextInt(4) == 0;
     long totalTablets = 0;
     for (Entry<TabletServerId,TServerStatus> e : params.currentStatus().entrySet()) {
       long tabletCount = 0;
@@ -138,7 +137,7 @@ public class ChaoticLoadBalancer implements TabletBalancer {
           continue;
         try {
           for (TabletStatistics ts : getOnlineTabletsForTable(e.getKey(), id)) {
-            int index = r.nextInt(underCapacityTServer.size());
+            int index = random.nextInt(underCapacityTServer.size());
             TabletServerId dest = underCapacityTServer.get(index);
             if (dest.equals(e.getKey()))
               continue;

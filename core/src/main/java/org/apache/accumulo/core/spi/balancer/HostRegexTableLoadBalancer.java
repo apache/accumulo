@@ -29,7 +29,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -94,6 +93,7 @@ import com.google.common.collect.Multimap;
  */
 public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
+  private static final SecureRandom random = new SecureRandom();
   private static final String PROP_PREFIX = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
 
   private static final Logger LOG = LoggerFactory.getLogger(HostRegexTableLoadBalancer.class);
@@ -417,7 +417,6 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
               if (outOfBoundsTablets == null) {
                 continue;
               }
-              Random random = new SecureRandom();
               for (TabletStatistics ts : outOfBoundsTablets) {
                 if (migrations.contains(ts.getTabletId())) {
                   LOG.debug("Migration for out of bounds tablet {} has already been requested",

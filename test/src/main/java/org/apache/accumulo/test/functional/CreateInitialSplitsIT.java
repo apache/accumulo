@@ -24,7 +24,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Base64;
 import java.util.Collection;
-import java.util.Random;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -47,8 +46,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CreateInitialSplitsIT extends AccumuloClusterHarness {
 
@@ -207,15 +204,12 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     return generateBinarySplits(numItems, len, false);
   }
 
-  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
-      justification = "predictable random is okay for testing")
   private SortedSet<Text> generateBinarySplits(final int numItems, final int len,
       final boolean useB64) {
     SortedSet<Text> splits = new TreeSet<>();
-    Random rand = new Random();
     for (int i = 0; i < numItems; i++) {
       byte[] split = new byte[len];
-      rand.nextBytes(split);
+      random.nextBytes(split);
       splits.add(encode(new Text(split), useB64));
     }
     return splits;

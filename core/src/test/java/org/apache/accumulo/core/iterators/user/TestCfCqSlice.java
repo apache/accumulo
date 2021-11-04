@@ -26,7 +26,6 @@ import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -46,6 +45,7 @@ import org.junit.Test;
 
 public abstract class TestCfCqSlice {
 
+  private static final SecureRandom random = new SecureRandom();
   private static final Range INFINITY = new Range();
   private static final Lexicoder<Long> LONG_LEX = new ReadableLongLexicoder(4);
   private static final AtomicLong ROW_ID_GEN = new AtomicLong();
@@ -380,8 +380,6 @@ public abstract class TestCfCqSlice {
           getFilterClass().getDeclaredConstructor().newInstance();
       skvi.init(parent, options, null);
       skvi.seek(range, EMPTY_CF_SET, false);
-
-      Random random = new SecureRandom();
 
       while (skvi.hasTop()) {
         Key k = skvi.getTopKey();

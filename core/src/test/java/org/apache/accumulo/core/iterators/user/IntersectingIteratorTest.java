@@ -26,7 +26,6 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Random;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -46,6 +45,7 @@ import org.junit.rules.TestName;
 
 public class IntersectingIteratorTest {
 
+  private static final SecureRandom random = new SecureRandom();
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
   private static IteratorEnvironment env = new DefaultIteratorEnvironment();
 
@@ -60,7 +60,6 @@ public class IntersectingIteratorTest {
   private TreeMap<Key,Value> createSortedMap(float hitRatio, int numRows, int numDocsPerRow,
       Text[] columnFamilies, Text[] otherColumnFamilies, HashSet<Text> docs,
       Text[] negatedColumns) {
-    Random r = new SecureRandom();
     Value v = new Value();
     TreeMap<Key,Value> map = new TreeMap<>();
     boolean[] negateMask = new boolean[columnFamilies.length];
@@ -78,7 +77,7 @@ public class IntersectingIteratorTest {
         boolean docHits = true;
         Text doc = new Text(String.format("%010d", docid));
         for (int j = 0; j < columnFamilies.length; j++) {
-          if (r.nextFloat() < hitRatio) {
+          if (random.nextFloat() < hitRatio) {
             Key k = new Key(row, columnFamilies[j], doc);
             map.put(k, v);
             if (negateMask[j])
@@ -92,7 +91,7 @@ public class IntersectingIteratorTest {
           docs.add(doc);
         }
         for (Text cf : otherColumnFamilies) {
-          if (r.nextFloat() < hitRatio) {
+          if (random.nextFloat() < hitRatio) {
             Key k = new Key(row, cf, doc);
             map.put(k, v);
           }

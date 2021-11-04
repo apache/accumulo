@@ -21,7 +21,6 @@ package org.apache.accumulo.core.file.rfile;
 import static org.junit.Assert.assertTrue;
 
 import java.security.SecureRandom;
-import java.util.Random;
 import java.util.function.IntSupplier;
 
 import org.apache.commons.math3.distribution.NormalDistribution;
@@ -32,9 +31,10 @@ import org.junit.Test;
 
 import com.google.common.math.DoubleMath;
 
-public class RolllingStatsTest {
+public class RollingStatsTest {
 
   private static final double TOLERANCE = 1.0 / 1000;
+  private static final SecureRandom random = new SecureRandom();
 
   private static void assertFuzzyEquals(double expected, double actual) {
     assertTrue(String.format("expected: %f, actual: %f diff: %f", expected, actual,
@@ -62,7 +62,6 @@ public class RolllingStatsTest {
 
   private static class StatTester {
 
-    Random rand = new SecureRandom();
     private DescriptiveStatistics ds;
     private RollingStats rs;
     private RollingStats rsp;
@@ -81,7 +80,7 @@ public class RolllingStatsTest {
       rsp.addValue(v);
       checkAgreement(ds, rs);
 
-      if (rand.nextDouble() < 0.001) {
+      if (random.nextDouble() < 0.001) {
         checkAgreement(ds, rsp);
       }
     }
@@ -95,9 +94,8 @@ public class RolllingStatsTest {
   public void testFewSizes() {
     StatTester st = new StatTester(1019);
     int[] keySizes = {103, 113, 123, 2345};
-    Random rand = new SecureRandom();
     for (int i = 0; i < 10000; i++) {
-      st.addValue(keySizes[rand.nextInt(keySizes.length)]);
+      st.addValue(keySizes[random.nextInt(keySizes.length)]);
     }
     st.check();
   }
@@ -121,10 +119,8 @@ public class RolllingStatsTest {
 
       StatTester st = new StatTester(windowSize);
 
-      Random rand = new SecureRandom();
-
       for (int i = 0; i < 1000; i++) {
-        int v = 200 + rand.nextInt(50);
+        int v = 200 + random.nextInt(50);
 
         st.addValue(v);
       }
@@ -176,16 +172,14 @@ public class RolllingStatsTest {
   @Test
   public void testSpikes() {
 
-    Random rand = new SecureRandom();
-
     StatTester st = new StatTester(3017);
 
     for (int i = 0; i < 13; i++) {
 
       // write small keys
-      int numSmall = 1000 + rand.nextInt(1000);
+      int numSmall = 1000 + random.nextInt(1000);
       for (int s = 0; s < numSmall; s++) {
-        int sks = 50 + rand.nextInt(100);
+        int sks = 50 + random.nextInt(100);
         // simulate row with multiple cols
         for (int c = 0; c < 3; c++) {
           st.addValue(sks);
@@ -193,9 +187,9 @@ public class RolllingStatsTest {
       }
 
       // write a few large keys
-      int numLarge = 1 + rand.nextInt(1);
+      int numLarge = 1 + random.nextInt(1);
       for (int l = 0; l < numLarge; l++) {
-        int lks = 500000 + rand.nextInt(1000000);
+        int lks = 500000 + random.nextInt(1000000);
         for (int c = 0; c < 3; c++) {
           st.addValue(lks);
         }

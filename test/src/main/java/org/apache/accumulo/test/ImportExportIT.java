@@ -26,7 +26,6 @@ import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -67,8 +66,6 @@ import org.slf4j.LoggerFactory;
 public class ImportExportIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ImportExportIT.class);
-
-  private SecureRandom r = new SecureRandom();
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -142,7 +139,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       while ((line = reader.readLine()) != null) {
         Path p = new Path(line.substring(5));
         assertTrue("File doesn't exist: " + p, fs.exists(p));
-        Path importDir = importDirAry[r.nextInt(importDirAry.length)];
+        Path importDir = importDirAry[random.nextInt(importDirAry.length)];
         Path dest = new Path(importDir, p.getName());
         assertFalse("Did not expect " + dest + " to exist", fs.exists(dest));
         FileUtil.copy(fs, p, fs, dest, false, fs.getConf());

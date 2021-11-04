@@ -21,12 +21,10 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
@@ -274,9 +272,8 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
   private void writeData(AccumuloClient c, String table)
       throws TableNotFoundException, MutationsRejectedException {
     try (BatchWriter bw = c.createBatchWriter(table)) {
-      Random rand = new SecureRandom();
       for (int i = 0; i < 1_000; i++) {
-        Mutation m = new Mutation(String.format("%09x", rand.nextInt(100_000 * 1_000)));
+        Mutation m = new Mutation(String.format("%09x", random.nextInt(100_000_000)));
         m.put("m", "order", "" + i);
         bw.addMutation(m);
       }

@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.lang.StackWalker.StackFrame;
-import java.security.SecureRandom;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Function;
@@ -126,7 +125,7 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
         StackWalker.getInstance(RETAIN_CLASS_REFERENCE).walk(findCallerITClass).map(Class::getName);
     // use the calling class name, or default to a unique name if IT class can't be found
     return callerClassName.orElse(String.format("UnknownITClass-{}-{}", System.currentTimeMillis(),
-        new SecureRandom().nextInt(Short.MAX_VALUE)));
+        random.nextInt(Short.MAX_VALUE)));
   }
 
   /**

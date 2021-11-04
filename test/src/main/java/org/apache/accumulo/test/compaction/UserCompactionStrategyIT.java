@@ -25,13 +25,11 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -321,13 +319,11 @@ public class UserCompactionStrategyIT extends AccumuloClusterHarness {
   }
 
   void writeRandomValue(AccumuloClient c, String tableName, int size) throws Exception {
-    Random rand = new SecureRandom();
-
     byte[] data1 = new byte[size];
-    rand.nextBytes(data1);
+    random.nextBytes(data1);
 
     try (BatchWriter bw = c.createBatchWriter(tableName)) {
-      Mutation m1 = new Mutation("r" + rand.nextInt(909090));
+      Mutation m1 = new Mutation("r" + random.nextInt(909090));
       m1.put("data", "bl0b", new Value(data1));
       bw.addMutation(m1);
     }

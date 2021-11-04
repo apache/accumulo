@@ -19,8 +19,8 @@
 package org.apache.accumulo.core.spi.fs;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.NavigableMap;
-import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
@@ -46,6 +46,8 @@ import com.google.common.cache.LoadingCache;
  * @since 2.1.0
  */
 public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
+
+  private static final SecureRandom random = new SecureRandom();
 
   public static final String RECOMPUTE_INTERVAL = "spaceaware.volume.chooser.recompute.interval";
 
@@ -86,7 +88,7 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
           .build(new CacheLoader<>() {
             @Override
             public WeightedRandomCollection load(Set<String> key) {
-              return new WeightedRandomCollection(key, env, random);
+              return new WeightedRandomCollection(key, env);
             }
           });
     }
@@ -96,12 +98,9 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
 
   private class WeightedRandomCollection {
     private final NavigableMap<Double,String> map = new TreeMap<>();
-    private final Random random;
     private double total = 0;
 
-    public WeightedRandomCollection(Set<String> options, VolumeChooserEnvironment env,
-        Random random) {
-      this.random = random;
+    private WeightedRandomCollection(Set<String> options, VolumeChooserEnvironment env) {
 
       if (options.size() < 1) {
         throw new IllegalStateException("Options was empty! No valid volumes to choose from.");
