@@ -35,7 +35,6 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,7 +43,6 @@ import java.util.List;
 import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -878,7 +876,6 @@ public class SummaryIT extends SharedMiniClusterBase {
     final String table = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
-      Random rand = new SecureRandom();
       int q = 0;
 
       SortedSet<Text> partitionKeys = new TreeSet<>();
@@ -895,8 +892,8 @@ public class SummaryIT extends SharedMiniClusterBase {
         // this loop should cause a varying number of files and compactions
         try (BatchWriter bw = c.createBatchWriter(table)) {
           for (int i = 0; i < 10000; i++) {
-            String row = String.format("%06d", rand.nextInt(1_000_000));
-            String fam = String.format("%03d", rand.nextInt(100));
+            String row = String.format("%06d", random.nextInt(1_000_000));
+            String fam = String.format("%03d", random.nextInt(100));
             String qual = String.format("%06d", q++);
             write(bw, row, fam, qual, "val");
             famCounts.merge(fam, 1L, Long::sum);

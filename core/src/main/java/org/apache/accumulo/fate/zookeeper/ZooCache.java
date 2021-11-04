@@ -62,7 +62,7 @@ public class ZooCache {
   private final HashMap<String,List<String>> childrenCache;
 
   private final ZooReader zReader;
-  private final SecureRandom secureRandom = new SecureRandom();
+  private static final SecureRandom random = new SecureRandom();
 
   private volatile boolean closed = false;
 
@@ -302,7 +302,7 @@ public class ZooCache {
         }
         LockSupport.parkNanos(sleepTime);
         if (sleepTime < 10_000) {
-          sleepTime = (int) (sleepTime + sleepTime * secureRandom.nextDouble());
+          sleepTime = (int) (sleepTime + sleepTime * random.nextDouble());
         }
       }
     }

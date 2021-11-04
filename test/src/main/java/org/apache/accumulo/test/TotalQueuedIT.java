@@ -21,8 +21,6 @@ package org.apache.accumulo.test;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertTrue;
 
-import java.security.SecureRandom;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -61,7 +59,6 @@ public class TotalQueuedIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    Random random = new SecureRandom();
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(),
           "" + SMALL_QUEUE_SIZE);

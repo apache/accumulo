@@ -54,6 +54,8 @@ import javax.crypto.spec.SecretKeySpec;
  */
 public class VersionedPropEncryptCodec extends VersionedPropCodec {
 
+  private static final SecureRandom random = new SecureRandom();
+
   // testing version (999 or higher)
   public static final int EXPERIMENTAL_CIPHER_ENCODING_1_0 = 999;
 
@@ -220,7 +222,7 @@ public class VersionedPropEncryptCodec extends VersionedPropCodec {
     // utils
     public static GCMParameterSpec buildGCMParameterSpec() {
       byte[] iv = new byte[16];
-      new SecureRandom().nextBytes(iv);
+      random.nextBytes(iv);
       return new GCMParameterSpec(128, iv);
     }
 
