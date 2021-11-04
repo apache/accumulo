@@ -224,8 +224,10 @@ public class TestIngest {
     return new Text(FastFormat.toZeroPaddedString(rowid + startRow, 10, 10, ROW_PREFIX));
   }
 
-  public static byte[] genRandomValue(Random random, byte[] dest, int seed, int row, int col) {
-    random.setSeed((row ^ seed) ^ col);
+  @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "DMI_RANDOM_USED_ONLY_ONCE"},
+      justification = "predictable random with specific seed is intended for this test")
+  public static byte[] genRandomValue(byte[] dest, int seed, int row, int col) {
+    var random = new Random((row ^ seed) ^ col);
     random.nextBytes(dest);
     toPrintableChars(dest);
     return dest;
@@ -248,8 +250,6 @@ public class TestIngest {
     }
   }
 
-  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
-      justification = "predictable random is okay for testing")
   public static void ingest(AccumuloClient accumuloClient, FileSystem fs, IngestParams params)
       throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException,
       MutationsRejectedException, TableExistsException {
@@ -258,7 +258,6 @@ public class TestIngest {
     byte[][] bytevals = generateValues(params.dataSize);
 
     byte[] randomValue = new byte[params.dataSize];
-    Random random = new Random();
 
     long bytesWritten = 0;
 
@@ -317,8 +316,7 @@ public class TestIngest {
           } else {
             byte[] value;
             if (params.random != null) {
-              value =
-                  genRandomValue(random, randomValue, params.random, rowid + params.startRow, j);
+              value = genRandomValue(randomValue, params.random, rowid + params.startRow, j);
             } else {
               value = bytevals[j % bytevals.length];
             }
@@ -341,8 +339,7 @@ public class TestIngest {
           } else {
             byte[] value;
             if (params.random != null) {
-              value =
-                  genRandomValue(random, randomValue, params.random, rowid + params.startRow, j);
+              value = genRandomValue(randomValue, params.random, rowid + params.startRow, j);
             } else {
               value = bytevals[j % bytevals.length];
             }

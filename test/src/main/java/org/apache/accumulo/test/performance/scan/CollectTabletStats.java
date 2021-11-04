@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.test.performance.scan;
 
+import static org.apache.accumulo.harness.AccumuloITBase.random;
+
 import java.io.IOException;
 import java.net.InetAddress;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,7 +30,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
@@ -88,6 +88,7 @@ import com.beust.jcommander.Parameter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CollectTabletStats {
+
   private static final Logger log = LoggerFactory.getLogger(CollectTabletStats.class);
 
   static class CollectOptions extends ServerUtilOpts {
@@ -378,9 +379,8 @@ public class CollectTabletStats {
   private static List<KeyExtent> selectRandomTablets(int numThreads, List<KeyExtent> candidates) {
     List<KeyExtent> tabletsToTest = new ArrayList<>();
 
-    Random rand = new SecureRandom();
     for (int i = 0; i < numThreads; i++) {
-      int rindex = rand.nextInt(candidates.size());
+      int rindex = random.nextInt(candidates.size());
       tabletsToTest.add(candidates.get(rindex));
       Collections.swap(candidates, rindex, candidates.size() - 1);
       candidates = candidates.subList(0, candidates.size() - 1);

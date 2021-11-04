@@ -28,7 +28,6 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -68,7 +67,7 @@ public class ZooTraceClient extends AsyncSpanReceiver<String,Client> implements 
   private ZooReader zoo = null;
   private String path;
   private boolean pathExists = false;
-  private final Random random = new SecureRandom();
+  private static final SecureRandom random = new SecureRandom();
   private final List<String> hosts = new ArrayList<>();
   private long retryPause = 5000L;
   private SingletonReservation reservation;

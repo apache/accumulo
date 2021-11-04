@@ -21,6 +21,7 @@ package org.apache.accumulo.harness;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
@@ -36,6 +37,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Methods, setup and/or infrastructure which are common to any Accumulo integration test.
  */
 public class AccumuloITBase {
+  public static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(AccumuloITBase.class);
 
   @Rule

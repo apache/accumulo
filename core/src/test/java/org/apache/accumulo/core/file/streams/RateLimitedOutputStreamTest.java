@@ -22,7 +22,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.OutputStream;
 import java.security.SecureRandom;
-import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
@@ -34,9 +33,10 @@ import com.google.common.io.CountingOutputStream;
 
 public class RateLimitedOutputStreamTest {
 
+  private static final SecureRandom random = new SecureRandom();
+
   @Test
   public void permitsAreProperlyAcquired() throws Exception {
-    Random randGen = new SecureRandom();
     // Create variables for tracking behaviors of mock object
     AtomicLong rateLimiterPermitsAcquired = new AtomicLong();
     // Construct mock object
@@ -52,7 +52,7 @@ public class RateLimitedOutputStreamTest {
     try (RateLimitedOutputStream os =
         new RateLimitedOutputStream(new NullOutputStream(), rateLimiter)) {
       for (int i = 0; i < 100; ++i) {
-        byte[] bytes = new byte[Math.abs(randGen.nextInt() % 65536)];
+        byte[] bytes = new byte[Math.abs(random.nextInt() % 65536)];
         os.write(bytes);
         bytesWritten += bytes.length;
       }

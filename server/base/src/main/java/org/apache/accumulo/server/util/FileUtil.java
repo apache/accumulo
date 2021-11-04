@@ -59,6 +59,8 @@ import org.slf4j.LoggerFactory;
 
 public class FileUtil {
 
+  private static final SecureRandom random = new SecureRandom();
+
   public static class FileInfo {
     Key firstKey = new Key();
     Key lastKey = new Key();
@@ -87,7 +89,7 @@ public class FileUtil {
     Path result = null;
     while (result == null) {
       result = new Path(tabletDirectory + Path.SEPARATOR + "tmp/idxReduce_"
-          + String.format("%09d", new SecureRandom().nextInt(Integer.MAX_VALUE)));
+          + String.format("%09d", random.nextInt(Integer.MAX_VALUE)));
       try {
         fs.getFileStatus(result);
         result = null;

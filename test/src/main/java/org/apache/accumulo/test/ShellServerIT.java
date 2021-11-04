@@ -39,7 +39,6 @@ import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -51,7 +50,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -1039,11 +1037,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertEquals(2, countFiles(cloneId));
 
     // create two large files
-    Random rand = new SecureRandom();
     StringBuilder sb = new StringBuilder("insert b v q ");
-    for (int i = 0; i < 10000; i++) {
-      sb.append('a' + rand.nextInt(26));
-    }
+    random.ints(10_000, 0, 26).forEach(i -> sb.append('a' + i));
 
     ts.exec(sb.toString());
     ts.exec("flush -w");
@@ -2953,14 +2948,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     return splits;
   }
 
-  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
-      justification = "predictable random is okay for testing")
   private Collection<Text> generateBinarySplits(final int numItems, final int len) {
     Set<Text> splits = new HashSet<>();
-    Random rand = new Random();
     for (int i = 0; i < numItems; i++) {
       byte[] split = new byte[len];
-      rand.nextBytes(split);
+      random.nextBytes(split);
       splits.add(new Text(split));
     }
     return splits;

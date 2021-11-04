@@ -19,14 +19,13 @@
 package org.apache.accumulo.core.spi.fs;
 
 import java.security.SecureRandom;
-import java.util.Random;
 import java.util.Set;
 
 /**
  * @since 2.1.0
  */
 public class RandomVolumeChooser implements VolumeChooser {
-  protected final Random random = new SecureRandom();
+  private static final SecureRandom random = new SecureRandom();
 
   @Override
   public String choose(VolumeChooserEnvironment env, Set<String> options) {

@@ -22,7 +22,6 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.security.SecureRandom;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
@@ -49,7 +48,7 @@ public class Retry {
 
   private boolean hasNeverLogged;
   private long lastRetryLog;
-  private static Random rand = new SecureRandom();
+  private static final SecureRandom random = new SecureRandom();
   private double currentBackOffFactor;
   private boolean doTimeJitter = true;
 
@@ -178,7 +177,7 @@ public class Retry {
 
   public void waitForNextAttempt() throws InterruptedException {
 
-    double waitFactor = (1 + (rand.nextDouble() - 0.5) / 10.0) * currentBackOffFactor;
+    double waitFactor = (1 + (random.nextDouble() - 0.5) / 10.0) * currentBackOffFactor;
     if (!doTimeJitter)
       waitFactor = currentBackOffFactor;
     currentBackOffFactor = currentBackOffFactor * backOffFactor;
