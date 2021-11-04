@@ -32,9 +32,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableOfflineException;
-import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ScheduledThreadPoolUsage;
-import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolConfig;
-import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolUsage;
+import org.apache.accumulo.core.clientImpl.ClientThreadPools.ScheduledThreadPoolType;
+import org.apache.accumulo.core.clientImpl.ClientThreadPools.ThreadPoolConfig;
+import org.apache.accumulo.core.clientImpl.ClientThreadPools.ThreadPoolType;
 import org.apache.accumulo.core.clientImpl.ThriftScanner.ScanState;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
@@ -78,13 +78,13 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       long readaheadThreshold, ScannerImpl.Reporter reporter) {
     this.timeOut = timeOut;
     this.readaheadThreshold = readaheadThreshold;
-    this.readaheadPool = context.getClientThreadPools().getThreadPool(
-        ThreadPoolUsage.SCANNER_READ_AHEAD_POOL, new ThreadPoolConfig(context.getConfiguration()));
+    this.readaheadPool = context.getThreadPools().newThreadPool(
+        ThreadPoolType.SCANNER_READ_AHEAD_POOL, new ThreadPoolConfig(context.getConfiguration()));
     this.readaheadPoolCleanable = CleanerUtil.shutdownThreadPoolExecutor(readaheadPool, () -> {
       closeThriftScanner();
     }, LoggerFactory.getLogger(ScannerIterator.class));
-    this.poolCloser = context.getClientThreadPools().getScheduledThreadPool(
-        ScheduledThreadPoolUsage.SHARED_GENERAL_SCHEDULED_TASK_POOL,
+    this.poolCloser = context.getThreadPools().newScheduledThreadPool(
+        ScheduledThreadPoolType.SHARED_GENERAL_SCHEDULED_TASK_POOL,
         new ThreadPoolConfig(context.getConfiguration()));
     this.options = new ScannerOptions(options);
 
@@ -192,9 +192,6 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
         readAheadOperation = null;
       }
     } catch (ExecutionException ee) {
-      if (ee.getCause() instanceof Error) {
-        throw (Error) ee.getCause();
-      }
       wrapExecutionException(ee);
       throw new RuntimeException(ee);
     } catch (RuntimeException e) {
@@ -231,6 +228,8 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       throw new TableOfflineException(ee);
     if (ee.getCause() instanceof SampleNotPresentException)
       throw new SampleNotPresentException(ee.getCause().getMessage(), ee);
+
+    throw new RuntimeException(ee.getCause().getMessage(), ee);
   }
 
 }

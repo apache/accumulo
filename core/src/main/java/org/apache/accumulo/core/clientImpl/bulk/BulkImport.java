@@ -57,8 +57,8 @@ import org.apache.accumulo.core.client.admin.TableOperations.ImportDestinationAr
 import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOptions;
 import org.apache.accumulo.core.clientImpl.AccumuloBulkMergeException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolConfig;
-import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolUsage;
+import org.apache.accumulo.core.clientImpl.ClientThreadPools.ThreadPoolConfig;
+import org.apache.accumulo.core.clientImpl.ClientThreadPools.ThreadPoolType;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.FileInfo;
@@ -479,15 +479,13 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     if (this.executor != null) {
       executor = this.executor;
     } else if (numThreads > 0) {
-      executor =
-          service = context.getClientThreadPools().getThreadPool(ThreadPoolUsage.BULK_IMPORT_POOL,
-              new ThreadPoolConfig(context.getConfiguration(), numThreads));
+      executor = service = context.getThreadPools().newThreadPool(ThreadPoolType.BULK_IMPORT_POOL,
+          new ThreadPoolConfig(context.getConfiguration(), numThreads));
     } else {
       String threads = context.getConfiguration().get(ClientProperty.BULK_LOAD_THREADS.getKey());
-      executor =
-          service = context.getClientThreadPools().getThreadPool(ThreadPoolUsage.BULK_IMPORT_POOL,
-              new ThreadPoolConfig(context.getConfiguration(),
-                  ConfigurationTypeHelper.getNumThreads(threads)));
+      executor = service = context.getThreadPools().newThreadPool(ThreadPoolType.BULK_IMPORT_POOL,
+          new ThreadPoolConfig(context.getConfiguration(),
+              ConfigurationTypeHelper.getNumThreads(threads)));
     }
 
     try {

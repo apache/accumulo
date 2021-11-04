@@ -87,8 +87,8 @@ import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
-import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolConfig;
-import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolUsage;
+import org.apache.accumulo.core.clientImpl.ClientThreadPools.ThreadPoolConfig;
+import org.apache.accumulo.core.clientImpl.ClientThreadPools.ThreadPoolType;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
@@ -488,8 +488,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     CountDownLatch latch = new CountDownLatch(splits.size());
     AtomicReference<Exception> exception = new AtomicReference<>(null);
 
-    ExecutorService executor = context.getClientThreadPools()
-        .getThreadPool(ThreadPoolUsage.ADD_SPLITS_THREAD_POOL, ThreadPoolConfig.EMPTY_CONFIG);
+    ExecutorService executor = context.getThreadPools()
+        .newThreadPool(ThreadPoolType.ADD_SPLITS_THREAD_POOL, ThreadPoolConfig.EMPTY_CONFIG);
     try {
       executor.execute(
           new SplitTask(new SplitEnv(tableName, tableId, executor, latch, exception), splits));

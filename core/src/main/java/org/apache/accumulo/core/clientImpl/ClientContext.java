@@ -123,7 +123,7 @@ public class ClientContext implements AccumuloClient {
   private InstanceOperations instanceops = null;
   private ReplicationOperations replicationops = null;
   private final SingletonReservation singletonReservation;
-  private final ClientThreadPoolsImpl threadPools;
+  private final ClientThreadPools threadPools;
 
   private void ensureOpen() {
     if (closed) {
@@ -157,7 +157,7 @@ public class ClientContext implements AccumuloClient {
     this.singletonReservation = Objects.requireNonNull(reservation);
     this.tableops = new TableOperationsImpl(this);
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
-    this.threadPools = new ClientThreadPoolsImpl();
+    this.threadPools = new ClientThreadPools();
   }
 
   /**
@@ -934,7 +934,7 @@ public class ClientContext implements AccumuloClient {
     return thriftTransportPool;
   }
 
-  public ClientThreadPoolsImpl getClientThreadPools() {
+  public ClientThreadPools getThreadPools() {
     return this.threadPools;
   }
 }

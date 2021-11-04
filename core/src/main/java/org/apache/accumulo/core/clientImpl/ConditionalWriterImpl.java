@@ -50,9 +50,9 @@ import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.TimedOutException;
-import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ScheduledThreadPoolUsage;
-import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolConfig;
-import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolUsage;
+import org.apache.accumulo.core.clientImpl.ClientThreadPools.ScheduledThreadPoolType;
+import org.apache.accumulo.core.clientImpl.ClientThreadPools.ThreadPoolConfig;
+import org.apache.accumulo.core.clientImpl.ClientThreadPools.ThreadPoolType;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -372,13 +372,13 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.context = context;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
-    this.threadPool = context.getClientThreadPools().getScheduledThreadPool(
-        ScheduledThreadPoolUsage.CONDITIONAL_WRITER_RETRY_POOL,
+    this.threadPool = context.getThreadPools().newScheduledThreadPool(
+        ScheduledThreadPoolType.CONDITIONAL_WRITER_RETRY_POOL,
         new ThreadPoolConfig(context.getConfiguration(), config.getMaxWriteThreads()));
     this.threadPoolCleanable = CleanerUtil.shutdownThreadPoolExecutor(threadPool, () -> {}, LOG);
-    this.cleanupThreadPool = context.getClientThreadPools().getThreadPool(
-        ThreadPoolUsage.CONDITIONAL_WRITER_CLEANUP_TASK_POOL,
-        new ThreadPoolConfig(context.getConfiguration()));
+    this.cleanupThreadPool =
+        context.getThreadPools().newThreadPool(ThreadPoolType.CONDITIONAL_WRITER_CLEANUP_TASK_POOL,
+            new ThreadPoolConfig(context.getConfiguration()));
     this.cleanupThreadPool.allowCoreThreadTimeOut(true);
     // We are not creating a Cleanable for the cleanupThreadPool on purpose. See the Reclamation
     // section
@@ -410,15 +410,11 @@ class ConditionalWriterImpl implements ConditionalWriter {
       try {
         this.backgroundTask.get();
       } catch (ExecutionException e) {
-        Throwable t = e.getCause();
-        LOG.error("The failureHandler background task failed.", t);
-        if (t instanceof Error) {
-          throw (Error) t;
-        } else {
-          throw new RuntimeException(e);
-        }
+        LOG.error("The failureHandler background task failed.", e);
+        throw new RuntimeException(e);
       } catch (InterruptedException e) {
         LOG.error("The failureHandler background task was interrupted.");
+        Thread.currentThread().interrupt();
         throw new RuntimeException(e);
       }
     }

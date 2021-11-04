@@ -52,9 +52,9 @@ import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
-import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ScheduledThreadPoolUsage;
-import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolConfig;
-import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolUsage;
+import org.apache.accumulo.core.clientImpl.ClientThreadPools.ScheduledThreadPoolType;
+import org.apache.accumulo.core.clientImpl.ClientThreadPools.ThreadPoolConfig;
+import org.apache.accumulo.core.clientImpl.ClientThreadPools.ThreadPoolType;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -203,8 +203,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   public TabletServerBatchWriter(ClientContext context, BatchWriterConfig config) {
     this.context = context;
-    this.executor = context.getClientThreadPools().getScheduledThreadPool(
-        ScheduledThreadPoolUsage.BATCH_WRITER_LATENCY_TASK_POOL,
+    this.executor = context.getThreadPools().newScheduledThreadPool(
+        ScheduledThreadPoolType.BATCH_WRITER_LATENCY_TASK_POOL,
         new ThreadPoolConfig(context.getConfiguration()));
     this.executorCleaner = CleanerUtil.shutdownThreadPoolExecutor(executor, () -> {}, log);
     this.failedMutations = new FailedMutations();
@@ -525,7 +525,14 @@ public class TabletServerBatchWriter implements AutoCloseable {
   private synchronized void updateUnknownErrors(String msg, Throwable t) {
     somethingFailed = true;
     unknownErrors++;
-    this.lastUnknownError = t;
+    // Multiple errors may occur between the time checkForFailures() is called
+    // by the client. Be sure to return an Error if one (or more) occurred.
+    // Set lastUnknownError if it's null, to an Error, or to an Exception if it's not already an
+    // Error
+    if (this.lastUnknownError == null
+        || !(t instanceof Exception && this.lastUnknownError instanceof Error)) {
+      this.lastUnknownError = t;
+    }
     this.notifyAll();
     if (t instanceof TableDeletedException || t instanceof TableOfflineException
         || t instanceof TimedOutException)
@@ -644,14 +651,13 @@ public class TabletServerBatchWriter implements AutoCloseable {
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<>();
       queued = new HashSet<>();
-      sendThreadPool =
-          context.getClientThreadPools().getThreadPool(ThreadPoolUsage.BATCH_WRITER_SEND_POOL,
-              new ThreadPoolConfig(context.getConfiguration(), numSendThreads));
+      sendThreadPool = context.getThreadPools().newThreadPool(ThreadPoolType.BATCH_WRITER_SEND_POOL,
+          new ThreadPoolConfig(context.getConfiguration(), numSendThreads));
       sendThreadPoolCleanable =
           CleanerUtil.shutdownThreadPoolExecutor(sendThreadPool, () -> {}, log);
       locators = new HashMap<>();
       binningThreadPool =
-          context.getClientThreadPools().getThreadPool(ThreadPoolUsage.BATCH_WRITER_BINNING_POOL,
+          context.getThreadPools().newThreadPool(ThreadPoolType.BATCH_WRITER_BINNING_POOL,
               new ThreadPoolConfig(context.getConfiguration()));
       binningThreadPoolCleanable =
           CleanerUtil.shutdownThreadPoolExecutor(binningThreadPool, () -> {}, log);

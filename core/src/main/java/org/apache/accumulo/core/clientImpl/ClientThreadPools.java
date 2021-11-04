@@ -31,7 +31,7 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 
-public class ClientThreadPoolsImpl {
+public class ClientThreadPools {
 
   public static class ThreadPoolConfig {
 
@@ -75,7 +75,7 @@ public class ClientThreadPoolsImpl {
     }
   }
 
-  public static enum ThreadPoolUsage {
+  public static enum ThreadPoolType {
     /**
      * ThreadPoolExecutor that runs bulk import tasks
      */
@@ -115,7 +115,7 @@ public class ClientThreadPoolsImpl {
     BLOOM_FILTER_LAYER_LOADER_POOL
   }
 
-  public static enum ScheduledThreadPoolUsage {
+  public static enum ScheduledThreadPoolType {
     /**
      * shared scheduled executor for trivial tasks
      */
@@ -134,7 +134,7 @@ public class ClientThreadPoolsImpl {
 
   private ScheduledThreadPoolExecutor sharedScheduledThreadPool = null;
 
-  public ThreadPoolExecutor getThreadPool(ThreadPoolUsage usage, ThreadPoolConfig config) {
+  public ThreadPoolExecutor newThreadPool(ThreadPoolType usage, ThreadPoolConfig config) {
     switch (usage) {
       case BULK_IMPORT_POOL:
         Objects.requireNonNull(config.getNumThreads().get(), "Number of threads must be set");
@@ -176,7 +176,7 @@ public class ClientThreadPoolsImpl {
     }
   }
 
-  public ScheduledThreadPoolExecutor getScheduledThreadPool(ScheduledThreadPoolUsage usage,
+  public ScheduledThreadPoolExecutor newScheduledThreadPool(ScheduledThreadPoolType usage,
       ThreadPoolConfig config) {
     switch (usage) {
       case SHARED_GENERAL_SCHEDULED_TASK_POOL:

@@ -43,8 +43,8 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
-import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolConfig;
-import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolUsage;
+import org.apache.accumulo.core.clientImpl.ClientThreadPools.ThreadPoolConfig;
+import org.apache.accumulo.core.clientImpl.ClientThreadPools.ThreadPoolType;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
@@ -220,9 +220,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
     List<String> tservers = getTabletServers();
 
     int numThreads = Math.max(4, Math.min((tservers.size() + compactors.size()) / 10, 256));
-    var executorService = context.getClientThreadPools().getThreadPool(
-        ThreadPoolUsage.ACTIVE_EXTERNAL_COMPACTION_POOL,
-        new ThreadPoolConfig(context.getConfiguration(), numThreads));
+    var executorService =
+        context.getThreadPools().newThreadPool(ThreadPoolType.ACTIVE_EXTERNAL_COMPACTION_POOL,
+            new ThreadPoolConfig(context.getConfiguration(), numThreads));
     try {
       List<Future<List<ActiveCompaction>>> futures = new ArrayList<>();
 
