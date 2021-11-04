@@ -61,6 +61,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Tests iterator class hierarchy bug. See https://github.com/apache/accumulo/issues/2341
  */
@@ -116,6 +118,7 @@ public class IteratorMincClassCastBugIT extends AccumuloClusterHarness {
    * Copied from 2.0 examples. Takes a list of files and archives them into Accumulo keyed on hashes
    * of the files.
    */
+  @SuppressFBWarnings(value = "WEAK_MESSAGE_DIGEST_MD5", justification = "For testing only")
   public static class FileDataIngest {
     public static final Text CHUNK_CF = new Text("~chunk");
     public static final Text REFS_CF = new Text("refs");
