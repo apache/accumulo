@@ -24,7 +24,6 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -51,6 +50,7 @@ import org.slf4j.LoggerFactory;
  */
 public class DistributedWorkQueue {
 
+  private static final SecureRandom random = new SecureRandom();
   private static final String LOCKS_NODE = "locks";
 
   private static final Logger log = LoggerFactory.getLogger(DistributedWorkQueue.class);
@@ -71,7 +71,6 @@ public class DistributedWorkQueue {
     if (numTask.get() >= threadPool.getCorePoolSize())
       return;
 
-    Random random = new SecureRandom();
     Collections.shuffle(children, random);
     try {
       for (final String child : children) {
@@ -166,7 +165,7 @@ public class DistributedWorkQueue {
 
   public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context) {
     // Preserve the old delay and period
-    this(path, config, context, new SecureRandom().nextInt(60 * 1000), 60 * 1000);
+    this(path, config, context, random.nextInt(60_000), 60_000);
   }
 
   public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context,

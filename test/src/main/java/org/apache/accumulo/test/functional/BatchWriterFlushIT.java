@@ -23,7 +23,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -31,7 +30,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -110,7 +108,6 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
   private void runFlushTest(AccumuloClient client, String tableName) throws Exception {
     BatchWriter bw = client.createBatchWriter(tableName);
     try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-      Random r = new SecureRandom();
 
       for (int i = 0; i < 4; i++) {
         for (int j = 0; j < NUM_TO_FLUSH; j++) {
@@ -126,7 +123,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         // do a few random lookups into the data just flushed
 
         for (int k = 0; k < 10; k++) {
-          int rowToLookup = r.nextInt(NUM_TO_FLUSH) + i * NUM_TO_FLUSH;
+          int rowToLookup = random.nextInt(NUM_TO_FLUSH) + i * NUM_TO_FLUSH;
 
           scanner.setRange(new Range(new Text(String.format("r_%10d", rowToLookup))));
 

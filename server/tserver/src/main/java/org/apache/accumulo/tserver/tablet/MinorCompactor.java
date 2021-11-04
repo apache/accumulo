@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -49,6 +48,7 @@ import org.slf4j.LoggerFactory;
 
 public class MinorCompactor extends FileCompactor {
 
+  private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(MinorCompactor.class);
 
   private final TabletServer tabletServer;
@@ -131,8 +131,6 @@ public class MinorCompactor extends FileCompactor {
         } catch (CompactionCanceledException e) {
           throw new IllegalStateException(e);
         }
-
-        Random random = new SecureRandom();
 
         int sleep = sleepTime + random.nextInt(sleepTime);
         log.debug("MinC failed sleeping {} ms before retrying", sleep);

@@ -29,7 +29,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -63,6 +62,8 @@ import org.slf4j.LoggerFactory;
 class LoadFiles extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
+
+  private static final SecureRandom random = new SecureRandom();
 
   private static ExecutorService threadPool = null;
   private static final Logger log = LoggerFactory.getLogger(LoadFiles.class);
@@ -135,7 +136,6 @@ class LoadFiles extends ManagerRepo {
 
       // Use the threadpool to assign files one-at-a-time to the server
       final List<String> loaded = Collections.synchronizedList(new ArrayList<>());
-      final Random random = new SecureRandom();
       final TServerInstance[] servers;
       String prop = conf.get(Property.MANAGER_BULK_TSERVER_REGEX);
       if (prop == null || "".equals(prop)) {

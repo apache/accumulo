@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -75,18 +74,13 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 public class CompactionExecutorIT extends SharedMiniClusterBase {
 
-  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
-      justification = "predictable random is okay for testing")
   public static class TestPlanner implements CompactionPlanner {
 
     private int filesPerCompaction;
     private List<CompactionExecutorId> executorIds;
     private EnumSet<CompactionKind> kindsToProcess = EnumSet.noneOf(CompactionKind.class);
-    private Random rand = new Random();
 
     @Override
     public void init(InitParameters params) {
@@ -110,10 +104,11 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
 
     @Override
     public CompactionPlan makePlan(PlanningParameters params) {
-
       if (Boolean.parseBoolean(params.getExecutionHints().getOrDefault("compact_all", "false"))) {
-        return params.createPlanBuilder().addJob((short) 1,
-            executorIds.get(rand.nextInt(executorIds.size())), params.getCandidates()).build();
+        return params
+            .createPlanBuilder().addJob((short) 1,
+                executorIds.get(random.nextInt(executorIds.size())), params.getCandidates())
+            .build();
       }
 
       if (kindsToProcess.contains(params.getKind())) {
@@ -125,7 +120,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
         params.getCandidates().stream().collect(Collectors.groupingBy(TestPlanner::getFirstChar))
             .values().forEach(files -> {
               for (int i = filesPerCompaction; i <= files.size(); i += filesPerCompaction) {
-                planBuilder.addJob((short) 1, executorIds.get(rand.nextInt(executorIds.size())),
+                planBuilder.addJob((short) 1, executorIds.get(random.nextInt(executorIds.size())),
                     files.subList(i - filesPerCompaction, i));
               }
             });

@@ -50,7 +50,6 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.crypto.streams.BlockedInputStream;
 import org.apache.accumulo.core.crypto.streams.BlockedOutputStream;
 import org.apache.accumulo.core.crypto.streams.DiscardCloseOutputStream;
@@ -75,13 +74,13 @@ public class AESCryptoService implements CryptoService {
   private static final String NO_CRYPTO_VERSION = "U+1F47B";
   private static final String URI = "uri";
   private static final String KEY_WRAP_TRANSFORM = "AESWrap";
+  private static final SecureRandom random = new SecureRandom();
 
   private Key encryptingKek = null;
   private String keyLocation = null;
   private String keyManager = null;
   // Lets just load keks for reading once
   private HashMap<String,Key> decryptingKeys = null;
-  private SecureRandom sr = null;
   private boolean encryptEnabled = true;
 
   private static final FileEncrypter DISABLED = new NoFileEncrypter();
@@ -96,7 +95,6 @@ public class AESCryptoService implements CryptoService {
 
     // get key from URI for now, keyMgr framework could be expanded on in the future
     String keyMgr = "uri";
-    this.sr = CryptoUtils.newSha1SecureRandom();
     this.decryptingKeys = new HashMap<>();
     switch (keyMgr) {
       case URI:
@@ -315,8 +313,8 @@ public class AESCryptoService implements CryptoService {
       private final byte[] initVector = new byte[GCM_IV_LENGTH_IN_BYTES];
 
       AESGCMFileEncrypter() {
-        this.fek = generateKey(sr, KEY_LENGTH_IN_BYTES);
-        sr.nextBytes(this.initVector);
+        this.fek = generateKey(random, KEY_LENGTH_IN_BYTES);
+        random.nextBytes(this.initVector);
         this.firstInitVector = Arrays.copyOf(this.initVector, this.initVector.length);
       }
 
@@ -448,13 +446,13 @@ public class AESCryptoService implements CryptoService {
     @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is provided for WALs")
     public class AESCBCFileEncrypter implements FileEncrypter {
 
-      private Key fek = generateKey(sr, KEY_LENGTH_IN_BYTES);
+      private Key fek = generateKey(random, KEY_LENGTH_IN_BYTES);
       private byte[] initVector = new byte[IV_LENGTH_IN_BYTES];
 
       @Override
       public OutputStream encryptStream(OutputStream outputStream) throws CryptoException {
 
-        sr.nextBytes(initVector);
+        random.nextBytes(initVector);
         try {
           outputStream.write(initVector);
         } catch (IOException e) {
@@ -512,9 +510,9 @@ public class AESCryptoService implements CryptoService {
     }
   }
 
-  public static Key generateKey(SecureRandom sr, int size) {
+  public static Key generateKey(SecureRandom random, int size) {
     byte[] bytes = new byte[size];
-    sr.nextBytes(bytes);
+    random.nextBytes(bytes);
     return new SecretKeySpec(bytes, "AES");
   }
 
