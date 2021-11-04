@@ -52,13 +52,13 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientThreadPools.ThreadPoolConfig;
-import org.apache.accumulo.core.client.ClientThreadPools.ThreadPoolUsage;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportDestinationArguments;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOptions;
 import org.apache.accumulo.core.clientImpl.AccumuloBulkMergeException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolConfig;
+import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolUsage;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.FileInfo;
@@ -229,17 +229,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     return ret;
   }
 
-  /**
-   * Set ExecutorService to use for bulk imports tasks
-   *
-   * @param service
-   *          ExecutorService to use
-   * @return ImportMappingOptions
-   *
-   * @since 2.0.0
-   * @deprecated see ClientThreadPools
-   */
-  @Deprecated(since = "2.1.0")
+  @Override
   public ImportMappingOptions executor(Executor service) {
     this.executor = Objects.requireNonNull(service);
     return this;

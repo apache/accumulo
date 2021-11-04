@@ -29,12 +29,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import org.apache.accumulo.core.client.ClientThreadPools.ScheduledThreadPoolUsage;
-import org.apache.accumulo.core.client.ClientThreadPools.ThreadPoolConfig;
-import org.apache.accumulo.core.client.ClientThreadPools.ThreadPoolUsage;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ScheduledThreadPoolUsage;
+import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolConfig;
+import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolUsage;
 import org.apache.accumulo.core.clientImpl.ThriftScanner.ScanState;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;

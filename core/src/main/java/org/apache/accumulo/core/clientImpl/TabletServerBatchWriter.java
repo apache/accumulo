@@ -46,15 +46,15 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientThreadPools.ScheduledThreadPoolUsage;
-import org.apache.accumulo.core.client.ClientThreadPools.ThreadPoolConfig;
-import org.apache.accumulo.core.client.ClientThreadPools.ThreadPoolUsage;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
+import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ScheduledThreadPoolUsage;
+import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolConfig;
+import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolUsage;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -97,7 +97,7 @@ import com.google.common.base.Joiner;
  *   + Flush holds adding of new mutations so it does not wait indefinitely
  *
  * Considerations
- *   + All background threads must catch and note Exception
+ *   + All background threads must catch and note Throwable
  *   + mutations for a single tablet server are only processed by one thread
  *     concurrently (if new mutations come in for a tablet server while one
  *     thread is processing mutations for it, no other thread should

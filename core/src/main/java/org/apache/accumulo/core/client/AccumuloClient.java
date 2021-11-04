@@ -339,14 +339,6 @@ public interface AccumuloClient extends AutoCloseable {
   void close();
 
   /**
-   * Sets a user-defined ClientThreadPools implementation
-   *
-   * @param impl
-   *          user supplied ClientThreadPools implementation
-   */
-  void setClientThreadPools(ClientThreadPools impl);
-
-  /**
    * Builds AccumuloClient or client Properties after all options have been specified
    *
    * @since 2.0.0

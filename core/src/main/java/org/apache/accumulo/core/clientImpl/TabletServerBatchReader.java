@@ -30,8 +30,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.ClientThreadPools.ThreadPoolConfig;
-import org.apache.accumulo.core.client.ClientThreadPools.ThreadPoolUsage;
+import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolConfig;
+import org.apache.accumulo.core.clientImpl.ClientThreadPoolsImpl.ThreadPoolUsage;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;

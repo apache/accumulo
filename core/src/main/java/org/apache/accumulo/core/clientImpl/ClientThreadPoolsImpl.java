@@ -18,23 +18,122 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.ClientThreadPools;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 
-public class ClientThreadPoolsImpl implements ClientThreadPools {
+public class ClientThreadPoolsImpl {
+
+  public static class ThreadPoolConfig {
+
+    public static final ThreadPoolConfig EMPTY_CONFIG =
+        new ThreadPoolConfig(Optional.empty(), Optional.empty(), Optional.empty());
+
+    private final Optional<Iterable<Entry<String,String>>> configuration;
+    private final Optional<Integer> numThreads;
+    private final Optional<String> threadName;
+
+    public ThreadPoolConfig(Iterable<Entry<String,String>> configuration) {
+      this(Optional.of(configuration), Optional.empty(), Optional.empty());
+    }
+
+    public ThreadPoolConfig(Iterable<Entry<String,String>> configuration, int numThreads) {
+      this(Optional.of(configuration), Optional.of(numThreads), Optional.empty());
+    }
+
+    public ThreadPoolConfig(Iterable<Entry<String,String>> configuration, int numThreads,
+        String threadName) {
+      this(Optional.of(configuration), Optional.of(numThreads), Optional.of(threadName));
+    }
+
+    private ThreadPoolConfig(Optional<Iterable<Entry<String,String>>> configuration,
+        Optional<Integer> numThreads, Optional<String> threadName) {
+      this.configuration = configuration;
+      this.numThreads = numThreads;
+      this.threadName = threadName;
+    }
+
+    public Optional<Iterable<Entry<String,String>>> getConfiguration() {
+      return configuration;
+    }
+
+    public Optional<Integer> getNumThreads() {
+      return numThreads;
+    }
+
+    public Optional<String> getThreadName() {
+      return threadName;
+    }
+  }
+
+  public static enum ThreadPoolUsage {
+    /**
+     * ThreadPoolExecutor that runs bulk import tasks
+     */
+    BULK_IMPORT_POOL,
+    /**
+     * ThreadPoolExecutor that runs tasks to contact Compactors to get running compaction
+     * information
+     */
+    ACTIVE_EXTERNAL_COMPACTION_POOL,
+    /**
+     * ThreadPoolExecutor used for fetching data from the TabletServers
+     */
+    SCANNER_READ_AHEAD_POOL,
+    /**
+     * ThreadPoolExecutor used for adding splits to a table
+     */
+    ADD_SPLITS_THREAD_POOL,
+    /**
+     * ThreadPoolExecutor used for fetching data from the TabletServers
+     */
+    BATCH_SCANNER_READ_AHEAD_POOL,
+    /**
+     * ThreadPoolExecutor that runs the tasks of binning mutations
+     */
+    BATCH_WRITER_BINNING_POOL,
+    /**
+     * ThreadPoolExecutor that runs the tasks of sending mutations to TabletServers
+     */
+    BATCH_WRITER_SEND_POOL,
+    /**
+     * ThreadPoolExecutor that runs clean up tasks when close is called on the ConditionalWriter
+     */
+    CONDITIONAL_WRITER_CLEANUP_TASK_POOL,
+    /**
+     * ThreadPoolExecutor responsible for loading bloom filters
+     */
+    BLOOM_FILTER_LAYER_LOADER_POOL
+  }
+
+  public static enum ScheduledThreadPoolUsage {
+    /**
+     * shared scheduled executor for trivial tasks
+     */
+    SHARED_GENERAL_SCHEDULED_TASK_POOL,
+    /**
+     * ScheduledThreadPoolExecutor that runs tasks for the BatchWriter to meet the users latency
+     * goals.
+     */
+    BATCH_WRITER_LATENCY_TASK_POOL,
+    /**
+     * ScheduledThreadPoolExecutor that periodically runs tasks to handle failed write mutations and
+     * send mutations to TabletServers
+     */
+    CONDITIONAL_WRITER_RETRY_POOL
+  }
 
   private ScheduledThreadPoolExecutor sharedScheduledThreadPool = null;
 
-  @Override
   public ThreadPoolExecutor getThreadPool(ThreadPoolUsage usage, ThreadPoolConfig config) {
     switch (usage) {
       case BULK_IMPORT_POOL:
@@ -77,7 +176,6 @@ public class ClientThreadPoolsImpl implements ClientThreadPools {
     }
   }
 
-  @Override
   public ScheduledThreadPoolExecutor getScheduledThreadPool(ScheduledThreadPoolUsage usage,
       ThreadPoolConfig config) {
     switch (usage) {

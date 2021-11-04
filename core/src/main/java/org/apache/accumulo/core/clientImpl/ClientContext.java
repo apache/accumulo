@@ -42,7 +42,6 @@ import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientThreadPools;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
@@ -124,7 +123,7 @@ public class ClientContext implements AccumuloClient {
   private InstanceOperations instanceops = null;
   private ReplicationOperations replicationops = null;
   private final SingletonReservation singletonReservation;
-  private ClientThreadPools threadPools = null;
+  private final ClientThreadPoolsImpl threadPools;
 
   private void ensureOpen() {
     if (closed) {
@@ -935,13 +934,7 @@ public class ClientContext implements AccumuloClient {
     return thriftTransportPool;
   }
 
-  @Override
-  public void setClientThreadPools(ClientThreadPools impl) {
-    ensureOpen();
-    this.threadPools = impl;
-  }
-
-  public ClientThreadPools getClientThreadPools() {
+  public ClientThreadPoolsImpl getClientThreadPools() {
     return this.threadPools;
   }
 }
