@@ -1401,11 +1401,9 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     synchronized (server.unopenedTablets) {
       synchronized (server.openingTablets) {
         synchronized (server.onlineTablets) {
-
-          // checking if this exact tablet is in any of the sets
-          // below is not a strong enough check
-          // when splits and fix splits occurring
-
+          
+          // With splits occurring, checking if the current tablet
+          // is in any of the sets below may not be a strong enough check
           Set<KeyExtent> unopenedOverlapping =
               KeyExtent.findOverlapping(extent, server.unopenedTablets);
           Set<KeyExtent> openingOverlapping =
@@ -1433,8 +1431,12 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
             all.remove(extent);
 
             if (!all.isEmpty()) {
-              log.error("Tablet {} overlaps previously assigned {} {} {}", extent,
-                  unopenedOverlapping, openingOverlapping, onlineOverlapping + " " + all);
+              log.error("Tablet {} overlaps a previously assigned tablet. It is possibly due to a " +
+                      "recent split (though it tries to ignore them as a reason to throw this error.) ", extent +
+                      "Possible overlapping tablets:\n" +
+                      "Unopened tablet:  {}\n", unopenedOverlapping +
+                      "Opening tablet:   {}\n", openingOverlapping +
+                      "Online tablet:    {}\n", onlineOverlapping);
             }
             return;
           }
