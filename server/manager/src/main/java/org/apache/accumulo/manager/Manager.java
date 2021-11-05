@@ -96,6 +96,7 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.AgeOffStore;
 import org.apache.accumulo.fate.Fate;
+import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
@@ -210,6 +211,7 @@ public class Manager extends AbstractServer
   private ManagerState state = ManagerState.INITIAL;
 
   Fate<Manager> fate;
+  private final ZooStore<Manager> zooStore;
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = emptySortedMap();
   volatile SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancer = emptySortedMap();
@@ -370,7 +372,7 @@ public class Manager extends AbstractServer
     }
   }
 
-  Manager(ServerOpts opts, String[] args) throws IOException {
+  Manager(ServerOpts opts, String[] args) throws IOException, InterruptedException, KeeperException {
     super("manager", opts, args);
     ServerContext context = super.getContext();
     balancerEnvironment = new BalancerEnvironmentImpl(context);
@@ -390,6 +392,8 @@ public class Manager extends AbstractServer
     final long tokenLifetime = aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME);
     context.setSecretManager(new AuthenticationTokenSecretManager(getInstanceID(), tokenLifetime));
 
+    this.zooStore = new ZooStore<>(getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter());
+    
     authenticationTokenKeyManager = null;
     keyDistributor = null;
     if (getConfiguration().getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
@@ -407,6 +411,10 @@ public class Manager extends AbstractServer
       log.info("SASL is not enabled, delegation tokens will not be available");
       delegationTokensAvailable = false;
     }
+  }
+  
+  public ZooStore<Manager> getZooStore() {
+    return this.zooStore;
   }
 
   public String getInstanceID() {
@@ -1120,18 +1128,13 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Metadata upgrade failed", e);
     }
 
-    try {
-      final AgeOffStore<Manager> store = new AgeOffStore<>(new org.apache.accumulo.fate.ZooStore<>(
-          getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()), 1000 * 60 * 60 * 8);
+    final AgeOffStore<Manager> store = new AgeOffStore<>(zooStore, 1000 * 60 * 60 * 8);
 
-      fate = new Fate<>(this, store, TraceRepo::toLogString);
-      fate.startTransactionRunners(getConfiguration());
+    fate = new Fate<>(this, store, TraceRepo::toLogString);
+    fate.startTransactionRunners(getConfiguration());
 
-      context.getScheduledExecutor().scheduleWithFixedDelay(store::ageOff, 63000, 63000,
-          TimeUnit.MILLISECONDS);
-    } catch (KeeperException | InterruptedException e) {
-      throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
-    }
+    context.getScheduledExecutor().scheduleWithFixedDelay(store::ageOff, 63000, 63000,
+        TimeUnit.MILLISECONDS);
 
     try {
       ZooKeeperInitialization.ensureZooKeeperInitialized(zReaderWriter, zroot);

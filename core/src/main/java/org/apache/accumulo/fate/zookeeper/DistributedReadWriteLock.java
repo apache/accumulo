@@ -31,7 +31,6 @@ import java.util.concurrent.locks.Lock;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -199,23 +198,19 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
   static class WriteLock extends ReadLock {
 
-    private final ZooReaderWriter zrw;
-    private final String zooPath;
+    private final ZooStore<?> store;
     private final boolean failBlockers;
 
-    WriteLock(ZooReaderWriter zrw, String zooPath, boolean failBlockers, QueueLock qlock,
-        byte[] userData) {
+    WriteLock(ZooStore<?> store, boolean failBlockers, QueueLock qlock, byte[] userData) {
       super(qlock, userData);
-      this.zrw = zrw;
-      this.zooPath = zooPath;
+      this.store = store;
       this.failBlockers = failBlockers;
     }
 
-    WriteLock(ZooReaderWriter zrw, String zooPath, boolean failBlockers, QueueLock qlock,
-        byte[] userData, long entry) {
+    WriteLock(ZooStore<?> store, boolean failBlockers, QueueLock qlock, byte[] userData,
+        long entry) {
       super(qlock, userData, entry);
-      this.zrw = zrw;
-      this.zooPath = zooPath;
+      this.store = store;
       this.failBlockers = failBlockers;
     }
 
@@ -237,16 +232,10 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
         throw new IllegalStateException("Did not find our own lock in the queue: " + this.entry
             + " userData " + new String(this.userData, UTF_8) + " lockType " + lockType());
       }
-      if (!failBlockers) {
-        return iterator.next().getKey().equals(entry);
-      } else {
-        ZooStore<DistributedReadWriteLock> zs;
-        try {
-          zs = new ZooStore<>(zooPath, zrw);
-        } catch (KeeperException | InterruptedException e1) {
-          log.error("Error creating zoo store", e1);
-          return false;
-        }
+      if (iterator.next().getKey().equals(entry)) {
+        return true;
+      }
+      if (failBlockers) {
         // Loop through all of the prior transactions that are waiting to
         // acquire this write lock. If the transaction has not succeeded or failed,
         // then fail it and return false from this method so that Utils.reserveX()
@@ -256,32 +245,26 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
           Entry<Long,byte[]> e = iterator.next();
           Long txid = e.getKey();
           if (!txid.equals(entry)) {
-            if (zs.isReserved(txid)) {
+            if (store.isReserved(txid)) {
               result &= false;
             } else {
-              zs.reserve(txid);
-              TStatus status = zs.getStatus(txid);
+              store.reserve(txid);
+              TStatus status = store.getStatus(txid);
               if (status.equals(TStatus.FAILED)) {
                 result = false;
                 continue;
               } else {
                 switch (status) {
-                  case UNKNOWN:
-                    // not sure what to do here, we have an invalid txid
-                    break;
-                  case SUCCESSFUL:
-                    // already succeeded, lock should be removed
-                    break;
-                  case FAILED:
                   case FAILED_IN_PROGRESS:
-                    // transaction failed or in process of failing
+                  case IN_PROGRESS:
+                    store.setStatus(txid, TStatus.FAILED_IN_PROGRESS);
+                    result &= false;
                     break;
                   default:
-                    zs.setStatus(txid, TStatus.FAILED_IN_PROGRESS);
-                    result &= false;
+                   log.error("Attempting to fail a transaction in an unhandled state: {}", status);
                 }
               }
-              zs.unreserve(txid, 0);
+              store.unreserve(txid, 0);
             }
           } else {
             return result && txid.equals(entry);
@@ -289,26 +272,25 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
         }
         return result;
       }
+      return false;
     }
   }
 
-  private final ZooReaderWriter zrw;
-  private final String zooPath;
+  private final ZooStore<?> store;
   private final boolean failBlockers;
   private final QueueLock qlock;
   private final byte[] data;
 
-  public DistributedReadWriteLock(ZooReaderWriter zrw, String zooPath, boolean failBlockers,
-      QueueLock qlock, byte[] data) {
-    this.zrw = zrw;
-    this.zooPath = zooPath;
+  public DistributedReadWriteLock(ZooStore<?> store, boolean failBlockers, QueueLock qlock,
+      byte[] data) {
+    this.store = store;
     this.failBlockers = failBlockers;
     this.qlock = qlock;
     this.data = Arrays.copyOf(data, data.length);
   }
 
-  public static Lock recoverLock(ZooReaderWriter zrw, String zooPath, boolean failBlockers,
-      QueueLock qlock, byte[] data) {
+  public static Lock recoverLock(ZooStore<?> store, boolean failBlockers, QueueLock qlock,
+      byte[] data) {
     SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(Long.MAX_VALUE);
     for (Entry<Long,byte[]> entry : entries.entrySet()) {
       ParsedLock parsed = new ParsedLock(entry.getValue());
@@ -317,8 +299,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
           case READ:
             return new ReadLock(qlock, parsed.getUserData(), entry.getKey());
           case WRITE:
-            return new WriteLock(zrw, zooPath, failBlockers, qlock, parsed.getUserData(),
-                entry.getKey());
+            return new WriteLock(store, failBlockers, qlock, parsed.getUserData(), entry.getKey());
         }
       }
     }
@@ -332,6 +313,6 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
   @Override
   public Lock writeLock() {
-    return new WriteLock(zrw, zooPath, failBlockers, qlock, data);
+    return new WriteLock(store, failBlockers, qlock, data);
   }
 }

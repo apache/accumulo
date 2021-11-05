@@ -158,12 +158,10 @@ public class Utils {
     byte[] lockData = String.format("%016x", tid).getBytes(UTF_8);
     var fLockPath =
         FateLock.path(manager.getContext().getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
-    final ZooReaderWriter zrw = manager.getContext().getZooReaderWriter();
-    final String zooFatePath = manager.getZooKeeperRoot() + Constants.ZFATE;
-    FateLock qlock = new FateLock(zrw, fLockPath);
-    Lock lock = DistributedReadWriteLock.recoverLock(zrw, zooFatePath, cancelWriteLockBlockers, qlock, lockData);
+    FateLock qlock = new FateLock(manager.getContext().getZooReaderWriter(), fLockPath);
+    Lock lock = DistributedReadWriteLock.recoverLock(manager.getZooStore(), cancelWriteLockBlockers, qlock, lockData);
     if (lock == null) {
-      DistributedReadWriteLock locker = new DistributedReadWriteLock(zrw, zooFatePath, cancelWriteLockBlockers, qlock, lockData);
+      DistributedReadWriteLock locker = new DistributedReadWriteLock(manager.getZooStore(), cancelWriteLockBlockers, qlock, lockData);
       if (writeLock)
         lock = locker.writeLock();
       else
