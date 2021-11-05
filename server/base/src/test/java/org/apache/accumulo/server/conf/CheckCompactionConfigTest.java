@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.conf;
+package org.apache.accumulo.server.conf;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
-import org.apache.accumulo.core.spi.compaction.CheckCompactionConfig;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -35,9 +34,12 @@ import org.junit.rules.TestName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path not set by user input")
 public class CheckCompactionConfigTest {
 
-  Logger log = LoggerFactory.getLogger(CheckCompactionConfigTest.class);
+  private final static Logger log = LoggerFactory.getLogger(CheckCompactionConfigTest.class);
 
   @Rule
   public TestName testName = new TestName();

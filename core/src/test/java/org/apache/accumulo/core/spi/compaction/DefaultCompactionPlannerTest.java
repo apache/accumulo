@@ -376,7 +376,7 @@ public class DefaultCompactionPlannerTest {
     };
   }
 
-  public String getExecutors(String small, String medium, String large) {
+  private String getExecutors(String small, String medium, String large) {
     String execBldr = "[{'name':'small'," + small + "}," + "{'name':'medium'," + medium + "},"
         + "{'name':'large'," + large + "}]";
     return execBldr.replaceAll("'", "\"");

@@ -116,16 +116,30 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
   private static final Logger log = LoggerFactory.getLogger(DefaultCompactionPlanner.class);
 
   public static class ExecutorConfig {
-    public String type;
+    String type;
     String name;
-    public String maxSize;
-    public Integer numThreads;
-    public String queue;
+    String maxSize;
+    Integer numThreads;
+    String queue;
 
-    @Override
-    public String toString() {
-      return "type:" + type + " name:" + name + " maxSize:" + maxSize + " numThreads:" + numThreads
-          + " queue:" + queue;
+    public String getType() {
+      return type;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public String getMaxSize() {
+      return maxSize;
+    }
+
+    public Integer getNumThreads() {
+      return numThreads;
+    }
+
+    public String getQueue() {
+      return queue;
     }
   }
 

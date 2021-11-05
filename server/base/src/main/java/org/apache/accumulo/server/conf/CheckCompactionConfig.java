@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.spi.compaction;
+package org.apache.accumulo.server.conf;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.Properties;
 
 import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
+import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,26 +75,25 @@ public class CheckCompactionConfig implements KeywordExecutable {
 
     for (var executorConfig : executorConfigs) {
 
-      // If not supplied, GSON will leave type null. Default to internal
-      if (executorConfig.type == null) {
-        System.out.println("WARNING: type is null. Defaulting to 'internal'. Please specify type.");
-        executorConfig.type = "internal";
+      // If not supplied, GSON will leave type null.
+      if (executorConfig.getType() == null) {
+        throw new IllegalArgumentException("WARNING: 'type' is null. Please specify type.");
       }
 
       // check requirements for internal vs. external
       // lots of overlap with DefaultCompactionPlanner.init
       // TODO: Maybe refactor to extract commonalities
-      switch (executorConfig.type) {
+      switch (executorConfig.getType()) {
         case "internal":
-          Preconditions.checkArgument(null == executorConfig.queue,
+          Preconditions.checkArgument(null == executorConfig.getQueue(),
               "'queue' should not be specified for internal compactions");
-          Objects.requireNonNull(executorConfig.numThreads,
+          Objects.requireNonNull(executorConfig.getNumThreads(),
               "'numThreads' must be specified for internal type");
           break;
         case "external":
-          Preconditions.checkArgument(null == executorConfig.numThreads,
+          Preconditions.checkArgument(null == executorConfig.getNumThreads(),
               "'numThreads' should not be specified for external compactions");
-          Objects.requireNonNull(executorConfig.queue,
+          Objects.requireNonNull(executorConfig.getQueue(),
               "'queue' must be specified for external type");
           break;
         default:
@@ -101,7 +101,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
       }
 
       // Ensure maxSize is only seen once
-      if (executorConfig.maxSize == null) {
+      if (executorConfig.getMaxSize() == null) {
         if (hasSeenNullMaxSize) {
           throw new IllegalArgumentException(
               "Can only have one executor w/o a maxSize." + executorConfig);
@@ -110,7 +110,14 @@ public class CheckCompactionConfig implements KeywordExecutable {
         }
       }
     }
+  }
 
+  public static class ExecutorConfig {
+    public String type;
+    public String name;
+    public String maxSize;
+    public Integer numThreads;
+    public String queue;
   }
 
   private static Map<String,String> getPropertiesWithSuffix(Properties serverProps, String suffix) {
