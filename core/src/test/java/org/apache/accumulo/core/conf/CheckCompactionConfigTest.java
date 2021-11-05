@@ -18,24 +18,79 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
-import org.apache.accumulo.core.spi.compaction.CheckCompactionConfig;
-import org.apache.accumulo.test.categories.SunnyDayTests;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 
-@Category(SunnyDayTests.class)
+import org.apache.accumulo.core.spi.compaction.CheckCompactionConfig;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.junit.rules.TestName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class CheckCompactionConfigTest {
 
+  Logger log = LoggerFactory.getLogger(CheckCompactionConfigTest.class);
+
+  @Rule
+  public TestName testName = new TestName();
+
+  @Rule
+  public TemporaryFolder folder =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+
   @Test
-  public void testThrowsErrorForExternalWithNumThreads() {
-    String inputString =
-        "[{'name':'small','type': 'internal','maxSize': '16M','numThreads': 8},{'name': 'medium','type': 'internal','maxSize': '128M','numThreads': 4},{'name': 'large','type': 'external','numThreads': 2}]"
-            .replaceAll("'", "\"");
+  public void testValidInput() throws IOException {
+    //@formatter:off
+    String inputString = "test.ci.common.accumulo.server.props=\\\n" +
+            "tserver.compaction.major.service.cs1.planner=" +
+            "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \\\n" +
+            "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n" +
+            "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n" +
+            "{'name':'medium','type':'internal','maxSize':'128M','numThreads':4},\\\n" +
+            "{'name':'large','type':'internal','numThreads':2}]\n".replaceAll("'","\"");
+    //@formatter:on
+    String filePath = writeToFileAndReturnPath(inputString);
+
+    log.info("Wrote to path: {}\nWith string:\n{}", filePath, inputString);
+
+    CheckCompactionConfig.main(new String[] {filePath});
+  }
+
+  @Test
+  public void testThrowsErrorForExternalWithNumThreads() throws IOException {
+    //@formatter:off
+    String inputString = "test.ci.common.accumulo.server.props=\\\n" +
+            "tserver.compaction.major.service.cs1.planner=" +
+            "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \\\n" +
+            "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n" +
+            "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n" +
+            "{'name':'medium','type':'internal','maxSize':'128M','numThreads':4},\\\n" +
+            "{'name':'large','type':'external','numThreads':2}]\n".replaceAll("'","\"");
+    //@formatter:on
     String expectedErrorMsg = "'numThreads' should not be specified for external compactions";
 
-    assertThrows(expectedErrorMsg, IllegalArgumentException.class,
-        () -> CheckCompactionConfig.main(new String[] {inputString}));
+    String filePath = writeToFileAndReturnPath(inputString);
+    log.info("Wrote to path: {}\nWith string:\n{}", filePath, inputString);
+
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> CheckCompactionConfig.main(new String[] {filePath}));
+    assertEquals(e.getMessage(), expectedErrorMsg);
+  }
+
+  private String writeToFileAndReturnPath(String fileInput) throws IOException {
+    File file = folder.newFile(testName.getMethodName());
+    try (FileWriter fileWriter = new FileWriter(file, UTF_8);
+        BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
+      bufferedWriter.write(fileInput);
+    }
+    return file.getAbsolutePath();
   }
 }
