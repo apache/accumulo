@@ -46,11 +46,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-
 /**
- * Tests iterator class hierarchy bug. See https://github.com/apache/accumulo/issues/2341
- * The failure condition of this test is to hang on the flush due to a class cast exception on
- * the tserver.
+ * Tests iterator class hierarchy bug. The failure condition of this test is to hang on the flush
+ * due to a class cast exception on the tserver. See https://github.com/apache/accumulo/issues/2341
  */
 public class IteratorMincClassCastBugIT extends AccumuloClusterHarness {
 
@@ -104,7 +102,8 @@ public class IteratorMincClassCastBugIT extends AccumuloClusterHarness {
     SortedKeyValueIterator<Key,Value> ref;
 
     @Override
-    public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {
       ref = source.deepCopy(env);
     }
 
@@ -119,7 +118,8 @@ public class IteratorMincClassCastBugIT extends AccumuloClusterHarness {
     }
 
     @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+        throws IOException {
       ref.seek(range, columnFamilies, inclusive);
     }
 
@@ -134,7 +134,7 @@ public class IteratorMincClassCastBugIT extends AccumuloClusterHarness {
     }
 
     @Override
-    public SortedKeyValueIterator<Key, Value> deepCopy(IteratorEnvironment env) {
+    public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
       throw new UnsupportedOperationException();
     }
   }
