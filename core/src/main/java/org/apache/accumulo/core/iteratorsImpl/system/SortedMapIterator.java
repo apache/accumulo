@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.iterators;
+package org.apache.accumulo.core.iteratorsImpl.system;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -31,6 +31,9 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IterationInterruptedException;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
  * A simple iterator over a Java SortedMap
@@ -40,7 +43,7 @@ import org.apache.accumulo.core.data.Value;
  * columnFamilies passed into seek(). If you want a Map-backed Iterator that returns only sought
  * CFs, construct a new ColumnFamilySkippingIterator(new SortedMapIterator(map)).
  *
- * @see org.apache.accumulo.core.iterators.ColumnFamilySkippingIterator
+ * @see ColumnFamilySkippingIterator
  */
 public class SortedMapIterator implements InterruptibleIterator {
   private Iterator<Entry<Key,Value>> iter;

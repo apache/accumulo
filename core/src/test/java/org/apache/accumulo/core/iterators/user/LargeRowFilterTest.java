@@ -33,9 +33,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.junit.Test;
 
 public class LargeRowFilterTest {

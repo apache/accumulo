@@ -23,7 +23,7 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
-import org.apache.accumulo.core.iterators.InterruptibleIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 
 public interface FileSKVIterator extends InterruptibleIterator, AutoCloseable {

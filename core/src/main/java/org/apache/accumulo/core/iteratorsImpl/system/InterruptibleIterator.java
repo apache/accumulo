@@ -16,18 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.iterators;
+package org.apache.accumulo.core.iteratorsImpl.system;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
  * Allows an iterator to be interrupted. Typically, once the interrupt flag is set the iterator will
  * throw an {@link InterruptedException} if the interrupt is detected. Some iterators have been
  * optimized to not always check the flag.
- *
+ * <p>
  * One example of a system interrupt is when a Tablet is being closed. If a Tablet has an active
  * scan and an InterruptibleIterator is configured on that Table, then it will be interrupted when
  * the Tablet is closed.
