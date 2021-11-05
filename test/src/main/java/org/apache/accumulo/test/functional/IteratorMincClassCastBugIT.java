@@ -159,7 +159,6 @@ public class IteratorMincClassCastBugIT extends AccumuloClusterHarness {
       md5digest.reset();
       InputStream fis = null;
       int numRead = 0;
-      // try (var reader = new InputStreamReader(accumuloPropsLocation.openStream(), UTF_8)) {
       try {
         fis = new FileInputStream(filename);
         numRead = fis.read(buf);
