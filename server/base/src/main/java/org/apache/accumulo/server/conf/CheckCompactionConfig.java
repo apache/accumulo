@@ -112,14 +112,6 @@ public class CheckCompactionConfig implements KeywordExecutable {
     }
   }
 
-  public static class ExecutorConfig {
-    public String type;
-    public String name;
-    public String maxSize;
-    public Integer numThreads;
-    public String queue;
-  }
-
   private static Map<String,String> getPropertiesWithSuffix(Properties serverProps, String suffix) {
     final Map<String,String> map = new HashMap<>();
     log.info("Retrieving properties that end with '{}'", suffix);
