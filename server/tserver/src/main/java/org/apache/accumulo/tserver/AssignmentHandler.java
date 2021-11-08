@@ -242,35 +242,35 @@ class AssignmentHandler implements Runnable {
       TabletMetadata meta) throws AccumuloException {
 
     if (meta == null) {
-      log.info(METADETA_ISSUE + "{}, its metadata was not found.", extent);
+      log.info(METADATA_ISSUE + "{}, its metadata was not found.", extent);
       return false;
     }
 
     if (!meta.sawPrevEndRow()) {
-      throw new AccumuloException(METADETA_ISSUE + "metadata entry does not have prev row ("
+      throw new AccumuloException(METADATA_ISSUE + "metadata entry does not have prev row ("
           + meta.getTableId() + " " + meta.getEndRow() + ")");
     }
 
     if (!extent.equals(meta.getExtent())) {
-      log.info(METADETA_ISSUE + "tablet extent mismatch {} {}", extent, meta.getExtent());
+      log.info(METADATA_ISSUE + "tablet extent mismatch {} {}", extent, meta.getExtent());
       return false;
     }
 
     if (meta.getDirName() == null) {
       throw new AccumuloException(
-          METADETA_ISSUE + "metadata entry does not have directory (" + meta.getExtent() + ")");
+          METADATA_ISSUE + "metadata entry does not have directory (" + meta.getExtent() + ")");
     }
 
     if (meta.getTime() == null && !extent.equals(RootTable.EXTENT)) {
       throw new AccumuloException(
-          METADETA_ISSUE + "metadata entry does not have time (" + meta.getExtent() + ")");
+          METADATA_ISSUE + "metadata entry does not have time (" + meta.getExtent() + ")");
     }
 
     TabletMetadata.Location loc = meta.getLocation();
 
     if (loc == null || loc.getType() != TabletMetadata.LocationType.FUTURE
         || !instance.equals(loc)) {
-      log.info(METADETA_ISSUE + "Unexpected location {} {}", extent, loc);
+      log.info(METADATA_ISSUE + "Unexpected location {} {}", extent, loc);
       return false;
     }
 
