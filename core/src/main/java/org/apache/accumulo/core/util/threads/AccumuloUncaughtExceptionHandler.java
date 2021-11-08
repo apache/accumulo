@@ -46,8 +46,7 @@ class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandler {
         // If e == OutOfMemoryError, then it's probably that another Error might be
         // thrown when trying to print to System.err.
       } finally {
-        Mode m = SingletonManager.getMode();
-        if (m != null && m.equals(Mode.SERVER)) {
+        if (SingletonManager.getMode() == Mode.SERVER) {
           Runtime.getRuntime().halt(-1);
         }
       }
