@@ -140,7 +140,7 @@ public class CheckCompactionConfigTest {
   }
 
   private String writeToFileAndReturnPath(String inputString) throws IOException {
-    File file = folder.newFile(testName.getMethodName()+".properties");
+    File file = folder.newFile(testName.getMethodName() + ".properties");
     try (FileWriter fileWriter = new FileWriter(file, UTF_8);
         BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
       bufferedWriter.write(inputString);
