@@ -71,7 +71,6 @@ public class CheckCompactionConfig implements KeywordExecutable {
     StringReader sr = new StringReader(compactionPropertiesString.replace(' ', '\n'));
     Properties serverProps = new Properties();
     serverProps.load(sr);
-    log.info("Server props: {}", serverProps.toString());
 
     // Extract executors options from compactions props
     Map<String,String> executorsProperties =

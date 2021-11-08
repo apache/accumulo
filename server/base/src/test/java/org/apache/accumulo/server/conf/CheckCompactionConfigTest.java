@@ -53,17 +53,15 @@ public class CheckCompactionConfigTest {
   @Test
   public void testValidInput() throws IOException {
     //@formatter:off
-    String inputString = "test.ci.common.accumulo.server.props=\\\n" +
+    String inputString = ("test.ci.common.accumulo.server.props=\\\n" +
             "tserver.compaction.major.service.cs1.planner=" +
             "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \\\n" +
             "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n" +
             "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n" +
             "{'name':'medium','type':'internal','maxSize':'128M','numThreads':4},\\\n" +
-            "{'name':'large','type':'internal','numThreads':2}]\n".replaceAll("'","\"");
+            "{'name':'large','type':'internal','numThreads':2}]").replaceAll("'","\"");
     //@formatter:on
     String filePath = writeToFileAndReturnPath(inputString);
-
-    log.info("Wrote to path: {}\nWith string:\n{}", filePath, inputString);
 
     CheckCompactionConfig.main(new String[] {filePath});
   }
@@ -90,12 +88,11 @@ public class CheckCompactionConfigTest {
     String inputString = "test.ci.common.accumulo.server.props=\\\n" +
             "foo=bar\n\n" +
             "test.bi.common.accumulo.server.props=\\\n" +
-            "foo=bar\n\n".replaceAll("'","\"");
+            "foo=bar";
     //@formatter:on
     String expectedErrorMsg = "expected one element but was:";
 
     String filePath = writeToFileAndReturnPath(inputString);
-    log.info("Wrote to path: {}\nWith string:\n{}", filePath, inputString);
 
     var e = assertThrows(IllegalArgumentException.class,
         () -> CheckCompactionConfig.main(new String[] {filePath}));
@@ -105,18 +102,17 @@ public class CheckCompactionConfigTest {
   @Test
   public void testThrowsErrorWithMultipleNullMaxSize() throws IOException {
     //@formatter:off
-    String inputString = "test.ci.common.accumulo.server.props=\\\n" +
+    String inputString = ("test.ci.common.accumulo.server.props=\\\n" +
             "tserver.compaction.major.service.cs1.planner=" +
             "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \\\n" +
             "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n" +
             "[{'name':'small','type':'internal','numThreads':8},\\\n" +
             "{'name':'medium','type':'internal','numThreads':4},\\\n" +
-            "{'name':'large','type':'internal','numThreads':2}]\n".replaceAll("'","\"");
+            "{'name':'large','type':'internal','numThreads':2}]").replaceAll("'","\"");
     //@formatter:on
     String expectedErrorMsg = "Can only have one executor w/o a maxSize";
 
     String filePath = writeToFileAndReturnPath(inputString);
-    log.info("Wrote to path: {}\nWith string:\n{}", filePath, inputString);
 
     var e = assertThrows(IllegalArgumentException.class,
         () -> CheckCompactionConfig.main(new String[] {filePath}));
@@ -126,30 +122,30 @@ public class CheckCompactionConfigTest {
   @Test
   public void testThrowsErrorForExternalWithNumThreads() throws IOException {
     //@formatter:off
-    String inputString = "test.ci.common.accumulo.server.props=\\\n" +
+    String inputString = ("test.ci.common.accumulo.server.props=\\\n" +
             "tserver.compaction.major.service.cs1.planner=" +
             "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \\\n" +
             "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n" +
             "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n" +
             "{'name':'medium','type':'internal','maxSize':'128M','numThreads':4},\\\n" +
-            "{'name':'large','type':'external','numThreads':2}]\n".replaceAll("'","\"");
+            "{'name':'large','type':'external','numThreads':2}]").replaceAll("'","\"");
     //@formatter:on
     String expectedErrorMsg = "'numThreads' should not be specified for external compactions";
 
     String filePath = writeToFileAndReturnPath(inputString);
-    log.info("Wrote to path: {}\nWith string:\n{}", filePath, inputString);
 
     var e = assertThrows(IllegalArgumentException.class,
         () -> CheckCompactionConfig.main(new String[] {filePath}));
     assertEquals(e.getMessage(), expectedErrorMsg);
   }
 
-  private String writeToFileAndReturnPath(String fileInput) throws IOException {
-    File file = folder.newFile(testName.getMethodName());
+  private String writeToFileAndReturnPath(String inputString) throws IOException {
+    File file = folder.newFile(testName.getMethodName()+".properties");
     try (FileWriter fileWriter = new FileWriter(file, UTF_8);
         BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
-      bufferedWriter.write(fileInput);
+      bufferedWriter.write(inputString);
     }
+    log.info("Wrote to path: {}\nWith string:\n{}", file.getAbsolutePath(), inputString);
     return file.getAbsolutePath();
   }
 }
