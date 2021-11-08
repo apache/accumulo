@@ -21,9 +21,11 @@ package org.apache.accumulo.server.conf;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 
@@ -64,6 +66,61 @@ public class CheckCompactionConfigTest {
     log.info("Wrote to path: {}\nWith string:\n{}", filePath, inputString);
 
     CheckCompactionConfig.main(new String[] {filePath});
+  }
+
+  @Test
+  public void testTooManyArgs() {
+    String[] args = {"too", "many", "args"};
+    String expectedErrorMsg = "Only one argument is accepted (path to properties file)";
+    var e = assertThrows(IllegalArgumentException.class, () -> CheckCompactionConfig.main(args));
+    assertEquals(e.getMessage(), expectedErrorMsg);
+  }
+
+  @Test
+  public void testBadPropsFilePath() {
+    String[] args = {"/home/foo/bar/myProperties.properties"};
+    String expectedErrorMsg = "File at given path could not be found";
+    var e = assertThrows(FileNotFoundException.class, () -> CheckCompactionConfig.main(args));
+    assertEquals(e.getMessage(), expectedErrorMsg);
+  }
+
+  @Test
+  public void testThrowsErrorForMultipleServerProps() throws IOException {
+    //@formatter:off
+    String inputString = "test.ci.common.accumulo.server.props=\\\n" +
+            "foo=bar\n\n" +
+            "test.bi.common.accumulo.server.props=\\\n" +
+            "foo=bar\n\n".replaceAll("'","\"");
+    //@formatter:on
+    String expectedErrorMsg = "expected one element but was:";
+
+    String filePath = writeToFileAndReturnPath(inputString);
+    log.info("Wrote to path: {}\nWith string:\n{}", filePath, inputString);
+
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> CheckCompactionConfig.main(new String[] {filePath}));
+    assertTrue(e.getMessage().contains(expectedErrorMsg));
+  }
+
+  @Test
+  public void testThrowsErrorWithMultipleNullMaxSize() throws IOException {
+    //@formatter:off
+    String inputString = "test.ci.common.accumulo.server.props=\\\n" +
+            "tserver.compaction.major.service.cs1.planner=" +
+            "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \\\n" +
+            "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n" +
+            "[{'name':'small','type':'internal','numThreads':8},\\\n" +
+            "{'name':'medium','type':'internal','numThreads':4},\\\n" +
+            "{'name':'large','type':'internal','numThreads':2}]\n".replaceAll("'","\"");
+    //@formatter:on
+    String expectedErrorMsg = "Can only have one executor w/o a maxSize";
+
+    String filePath = writeToFileAndReturnPath(inputString);
+    log.info("Wrote to path: {}\nWith string:\n{}", filePath, inputString);
+
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> CheckCompactionConfig.main(new String[] {filePath}));
+    assertEquals(e.getMessage(), expectedErrorMsg);
   }
 
   @Test

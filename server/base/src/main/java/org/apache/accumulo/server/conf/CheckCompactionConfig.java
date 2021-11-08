@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.google.gson.Gson;
 
 @AutoService(KeywordExecutable.class)
@@ -44,27 +45,42 @@ public class CheckCompactionConfig implements KeywordExecutable {
 
   public static void main(String[] args) throws IOException {
     if (args.length != 1)
-      throw new IllegalArgumentException("Only one argument is accepted (path to properties file");
+      throw new IllegalArgumentException("Only one argument is accepted (path to properties file)");
 
     Path path = Path.of(args[0]);
     if (!path.toFile().exists())
-      throw new FileNotFoundException("Given input file was not found");
+      throw new FileNotFoundException("File at given path could not be found");
+
+    // Extract properties from props file at given path
+    Properties allProps = ClientInfoImpl.toProperties(path);
+    log.info("All props: {}", allProps);
 
     // Extract server props from set of all props
-    Properties serverProps = getPropertiesFromPath(path, "test.ci.common.accumulo.server.props");
+    Map<String,String> serverPropsMap = new HashMap<>();
+    String suffix = ".accumulo.server.props";
+    allProps.forEach((k, v) -> {
+      if (k.toString().endsWith(suffix))
+        serverPropsMap.put(k.toString(), v.toString());
+    });
 
-    // Extract executors options from server props
+    // Ensure there is exactly one server prop in the map and get its value
+    // The value should be compaction properties
+    String compactionPropertiesString = Iterables.getOnlyElement(serverPropsMap.values());
+
+    // Create a props object for compaction props
+    StringReader sr = new StringReader(compactionPropertiesString.replace(' ', '\n'));
+    Properties serverProps = new Properties();
+    serverProps.load(sr);
+    log.info("Server props: {}", serverProps.toString());
+
+    // Extract executors options from compactions props
     Map<String,String> executorsProperties =
         getPropertiesWithSuffix(serverProps, ".planner.opts.executors");
 
-    // Ensure there is exactly one executor config in the file
-    var executorPropsIterator = executorsProperties.entrySet().iterator();
-    String executorJson = executorPropsIterator.next().getValue();
-    if (executorPropsIterator.hasNext() || Objects.isNull(executorJson)) {
-      throw new RuntimeException("Expected to find a single planner.opts.executors property");
-    }
+    // Ensure there is exactly one executor config in the map and get its value
+    String executorJson = Iterables.getOnlyElement(executorsProperties.values());
 
-    // Convert json to array of ExecutorConfig objects
+    // Convert json string to array of ExecutorConfig objects
     var executorConfigs =
         new Gson().fromJson(executorJson, DefaultCompactionPlanner.ExecutorConfig[].class);
     if (Objects.isNull(executorConfigs)) {
@@ -103,8 +119,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
       // Ensure maxSize is only seen once
       if (executorConfig.getMaxSize() == null) {
         if (hasSeenNullMaxSize) {
-          throw new IllegalArgumentException(
-              "Can only have one executor w/o a maxSize." + executorConfig);
+          throw new IllegalArgumentException("Can only have one executor w/o a maxSize");
         } else {
           hasSeenNullMaxSize = true;
         }
@@ -121,15 +136,6 @@ public class CheckCompactionConfig implements KeywordExecutable {
         map.put((String) k, (String) v);
     });
     return map;
-  }
-
-  private static Properties getPropertiesFromPath(Path path, String property) throws IOException {
-    Properties allProps = ClientInfoImpl.toProperties(path);
-    String serverPropsString = (String) allProps.get(property);
-    StringReader sr = new StringReader(serverPropsString.replace(' ', '\n'));
-    Properties serverProps = new Properties();
-    serverProps.load(sr);
-    return serverProps;
   }
 
   @Override
