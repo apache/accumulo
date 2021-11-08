@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
 
 class AssignmentHandler implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(AssignmentHandler.class);
-  private static final String METADETA_ISSUE = "Saw metadeta issue when loading table : ";
+  private static final String METADATA_ISSUE = "Saw metadata issue when loading tablet : ";
   private final KeyExtent extent;
   private final int retryAttempt;
   private final TabletServer server;
