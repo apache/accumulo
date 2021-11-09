@@ -529,9 +529,16 @@ public class TabletServerBatchWriter implements AutoCloseable {
     // by the client. Be sure to return an Error if one (or more) occurred.
     // Set lastUnknownError if it's null, to an Error, or to an Exception if it's not already an
     // Error
-    if (this.lastUnknownError == null
-        || !(t instanceof Exception && this.lastUnknownError instanceof Error)) {
+    if (this.lastUnknownError == null) {
       this.lastUnknownError = t;
+    } else if (t instanceof Error) {
+      t.addSuppressed(lastUnknownError);
+      for (Throwable suppressed : lastUnknownError.getSuppressed()) {
+        t.addSuppressed(suppressed);
+      }
+      this.lastUnknownError = t;
+    } else {
+      this.lastUnknownError.addSuppressed(t);
     }
     this.notifyAll();
     if (t instanceof TableDeletedException || t instanceof TableOfflineException

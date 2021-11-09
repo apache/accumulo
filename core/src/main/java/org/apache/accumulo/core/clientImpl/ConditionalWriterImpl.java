@@ -40,7 +40,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
@@ -52,7 +51,6 @@ import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.clientImpl.ClientThreadPools.ScheduledThreadPoolType;
 import org.apache.accumulo.core.clientImpl.ClientThreadPools.ThreadPoolConfig;
-import org.apache.accumulo.core.clientImpl.ClientThreadPools.ThreadPoolType;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -120,7 +118,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private DelayQueue<QCMutation> failedMutations = new DelayQueue<>();
   private final ScheduledThreadPoolExecutor threadPool;
   private final ScheduledFuture<?> backgroundTask;
-  private final ThreadPoolExecutor cleanupThreadPool;
+  private final ScheduledThreadPoolExecutor cleanupThreadPool;
   private final Cleanable threadPoolCleanable;
 
   private class RQIterator implements Iterator<Result> {
@@ -376,13 +374,9 @@ class ConditionalWriterImpl implements ConditionalWriter {
         ScheduledThreadPoolType.CONDITIONAL_WRITER_RETRY_POOL,
         new ThreadPoolConfig(context.getConfiguration(), config.getMaxWriteThreads()));
     this.threadPoolCleanable = CleanerUtil.shutdownThreadPoolExecutor(threadPool, () -> {}, LOG);
-    this.cleanupThreadPool =
-        context.getThreadPools().newThreadPool(ThreadPoolType.CONDITIONAL_WRITER_CLEANUP_TASK_POOL,
-            new ThreadPoolConfig(context.getConfiguration()));
-    this.cleanupThreadPool.allowCoreThreadTimeOut(true);
-    // We are not creating a Cleanable for the cleanupThreadPool on purpose. See the Reclamation
-    // section
-    // of the ThreadPoolExecutor javadoc.
+    this.cleanupThreadPool = context.getThreadPools().newScheduledThreadPool(
+        ScheduledThreadPoolType.SHARED_GENERAL_SCHEDULED_TASK_POOL,
+        new ThreadPoolConfig(context.getConfiguration()));
     this.locator = new SyncingTabletLocator(context, tableId);
     this.serverQueues = new HashMap<>();
     this.tableId = tableId;
@@ -831,8 +825,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   @Override
   public void close() {
     threadPool.shutdownNow();
-    threadPoolCleanable.clean(); // deregister the cleaner, will not call shutdownNow() because
-                                 // closed is now true
+    threadPoolCleanable.clean(); // deregister the cleaner
     cleanupThreadPool.execute(Threads.createNamedRunnable("ConditionalWriterCleanupTask",
         new CleanupTask(getActiveSessions())));
   }

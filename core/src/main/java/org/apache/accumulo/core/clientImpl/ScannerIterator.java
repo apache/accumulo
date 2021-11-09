@@ -148,11 +148,11 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   void close() {
     // run actual close operation in the background so this does not block.
-    readaheadPool.execute(() -> {
+    this.poolCloser.execute(() -> {
       closeThriftScanner();
+      readaheadPool.shutdownNow();
     });
-    readaheadPoolCleanable.clean();
-    this.poolCloser.execute(() -> readaheadPool.shutdownNow());
+    readaheadPoolCleanable.clean(); // deregister the cleaner as close has been called
   }
 
   private void initiateReadAhead() {

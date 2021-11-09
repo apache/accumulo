@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static org.easymock.EasyMock.createStrictMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
@@ -25,7 +28,6 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.security.Authorizations;
-import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -35,11 +37,11 @@ public class TabletServerBatchReaderTest {
 
   @Before
   public void setup() {
-    context = EasyMock.createStrictMock(ClientContext.class);
-    AccumuloConfiguration conf = EasyMock.createStrictMock(AccumuloConfiguration.class);
-    EasyMock.expect(context.getConfiguration()).andReturn(conf).anyTimes();
-    EasyMock.expect(context.getThreadPools()).andReturn(new ClientThreadPools()).anyTimes();
-    EasyMock.replay(context);
+    context = createStrictMock(ClientContext.class);
+    AccumuloConfiguration conf = createStrictMock(AccumuloConfiguration.class);
+    expect(context.getConfiguration()).andReturn(conf).anyTimes();
+    expect(context.getThreadPools()).andReturn(new ClientThreadPools()).anyTimes();
+    replay(context);
   }
 
   @Test
