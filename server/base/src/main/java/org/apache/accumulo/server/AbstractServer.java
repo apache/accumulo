@@ -53,7 +53,7 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
     ClassLoaderUtil.initContextFactory(context.getConfiguration());
     try {
       TraceUtil.initializeTracer(context.getConfiguration());
-    } catch (Exception e) {
+    } catch (ReflectiveOperationException e) {
       log.error("Error initializing tracing", e);
     }
     if (context.getSaslParams() != null) {

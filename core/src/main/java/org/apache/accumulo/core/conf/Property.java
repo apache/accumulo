@@ -239,8 +239,10 @@ public enum Property {
       "1.6.5"),
   GENERAL_MAX_MESSAGE_SIZE("general.server.message.size.max", "1G", PropertyType.BYTES,
       "The maximum size of a message that can be sent to a server.", "1.5.0"),
+  @Experimental
   GENERAL_OPENTELEMETRY_ENABLED("general.opentelemetry.enabled", "false", PropertyType.BOOLEAN,
       "Enables tracing functionality using OpenTelemetry.", "2.1.0"),
+  @Experimental
   GENERAL_OPENTELEMETRY_FACTORY("general.opentelemetry.factory", "", PropertyType.CLASSNAME,
       "Name of class that implements OpenTelemetryFactory", "2.1.0"),
   GENERAL_SIMPLETIMER_THREADPOOL_SIZE("general.server.simpletimer.threadpool.size", "1",

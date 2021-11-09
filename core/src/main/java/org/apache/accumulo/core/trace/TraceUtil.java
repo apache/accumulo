@@ -25,9 +25,11 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.trace.OpenTelemetryFactory;
 import org.apache.accumulo.core.trace.thrift.TInfo;
@@ -65,14 +67,18 @@ public class TraceUtil {
   }
 
   /**
-   * Initialize TracerUtil using the OpenTelemetry parameter
+   * Use the property values in the client properties to call
+   * {@link #initializeTracer(boolean, String)}
+   *
+   * @param clientProperties
+   *          the client Properties
+   * @throws ReflectiveOperationException
+   *           unable to find or load class
    */
-  public static void initializeTracer(OpenTelemetry ot) {
-    if (instance != null) {
-      initializeInternals(ot);
-    } else {
-      LOG.warn("Tracer already initialized.");
-    }
+  public static void initializeTracer(Properties clientProperties)
+      throws ReflectiveOperationException {
+    initializeTracer(ClientProperty.GENERAL_OPENTELEMETRY_ENABLED.getBoolean(clientProperties),
+        ClientProperty.GENERAL_OPENTELEMETRY_FACTORY.getValue(clientProperties));
   }
 
   /**
@@ -81,10 +87,11 @@ public class TraceUtil {
    *
    * @param conf
    *          AccumuloConfiguration
-   * @throws Exception
+   * @throws ReflectiveOperationException
    *           unable to find or load class
    */
-  public static void initializeTracer(AccumuloConfiguration conf) throws Exception {
+  public static void initializeTracer(AccumuloConfiguration conf)
+      throws ReflectiveOperationException {
     initializeTracer(conf.getBoolean(Property.GENERAL_OPENTELEMETRY_ENABLED),
         conf.get(Property.GENERAL_OPENTELEMETRY_FACTORY));
   }
@@ -98,10 +105,11 @@ public class TraceUtil {
    *          whether or not tracing is enabled
    * @param factoryClass
    *          name of class to load
-   * @throws Exception
+   * @throws ReflectiveOperationException
    *           unable to find or load class
    */
-  public static void initializeTracer(boolean enabled, String factoryClass) throws Exception {
+  private static void initializeTracer(boolean enabled, String factoryClass)
+      throws ReflectiveOperationException {
     if (instance == null) {
       OpenTelemetry ot = null;
       if (!enabled) {

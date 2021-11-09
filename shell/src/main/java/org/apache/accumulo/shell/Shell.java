@@ -353,9 +353,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         }
       }
       try {
-        TraceUtil.initializeTracer(
-            ClientProperty.GENERAL_OPENTELEMETRY_ENABLED.getBoolean(clientProperties),
-            ClientProperty.GENERAL_OPENTELEMETRY_FACTORY.getValue(clientProperties));
+        TraceUtil.initializeTracer(clientProperties);
         this.setTableName("");
         accumuloClient = Accumulo.newClient().from(clientProperties).as(principal, token).build();
         context = (ClientContext) accumuloClient;
