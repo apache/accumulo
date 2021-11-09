@@ -77,7 +77,7 @@ public class TraceUtil {
 
   /**
    * Use the property values in the AccumuloConfiguration to call
-   * {@link #initializeTracer(boolean, String, String)}
+   * {@link #initializeTracer(boolean, String)}
    *
    * @param conf
    *          AccumuloConfiguration
