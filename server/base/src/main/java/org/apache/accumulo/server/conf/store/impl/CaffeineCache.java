@@ -39,11 +39,11 @@ import com.github.benmanes.caffeine.cache.Ticker;
 public class CaffeineCache implements PropCache {
 
   public static final TimeUnit BASE_TIME_UNITS = TimeUnit.MINUTES;
-  public static final int REFRESH_MIN = 10;
+  public static final int REFRESH_MIN = 15;
   public static final int EXPIRE_MIN = 60;
   private static final Logger log = LoggerFactory.getLogger(CaffeineCache.class);
   private static final Executor executor =
-      ThreadPools.createThreadPool(1, 20, 60, TimeUnit.SECONDS, "cache-refresh", false);
+      ThreadPools.createThreadPool(1, 20, 60, TimeUnit.SECONDS, "cache-refresh");
 
   private final PropStoreMetrics metrics;
 

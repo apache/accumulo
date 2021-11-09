@@ -81,7 +81,7 @@ public class CaffeineCacheZkTest {
   @BeforeClass
   public static void setupZk() {
     // using default zookeeper port - we don't have a full configuration
-    testZk = new ZooKeeperTestingServer("test");
+    testZk = new ZooKeeperTestingServer();
     zooKeeper = testZk.getZooKeeper();
 
     zooReaderWriter = new ZooReaderWriter(testZk.getConn(), 10_000, "test");
