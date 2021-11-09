@@ -104,10 +104,6 @@ function parse_config {
     GC_HOSTS=$manager1
   fi
 
-  if [[ -z $TRACER_HOSTS ]]; then
-    echo "WARN: tracer not found in ${conf}/cluster.yaml, using first manager host $manager1"
-    TRACER_HOSTS=$manager1
-  fi
 }
 
 function get_ip() {
@@ -178,10 +174,6 @@ function start_all() {
     start_service "$monitor" monitor
   done
 
-  for tracer in $TRACER_HOSTS; do
-    start_service "$tracer" tracer
-  done
-
   for coordinator in $COORDINATOR_HOSTS; do
     start_service "$coordinator" compaction-coordinator
   done
@@ -230,15 +222,6 @@ function start_here() {
     for monitor in $MONITOR_HOSTS; do
       if echo "$monitor" | grep -q "^${host}\$"; then
         start_service "$host" monitor
-        break
-      fi
-    done
-  done
-
-  for host in $local_hosts; do
-    for tracer in $TRACER_HOSTS; do
-      if echo "$tracer" | grep -q "^${host}\$"; then
-        start_service "$host" tracer
         break
       fi
     done
@@ -310,10 +293,6 @@ function kill_all() {
     kill_service "$monitor" monitor
   done
 
-  for tracer in $TRACER_HOSTS; do
-    kill_service "$tracer" tracer
-  done
-
   for host in $TSERVER_HOSTS; do
     kill_service "$host" tserver
   done
@@ -330,7 +309,7 @@ function kill_all() {
   done
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -tracers -compaction-coordinators -compactors
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors
 }
 
 
@@ -365,10 +344,6 @@ function stop_all() {
       end_service $end_cmd "$monitor" monitor
     done
 
-    for tracer in $TRACER_HOSTS; do
-      end_service $end_cmd "$tracer" tracer
-    done
-
     for coordinator in $COORDINATOR_HOSTS; do
       end_service $end_cmd "$coordinator" compaction-coordinator
     done
@@ -386,7 +361,7 @@ function stop_all() {
   stop_tservers
 
   echo "Cleaning all server entries in ZooKeeper"
-  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -tracers -compaction-coordinators -compactors
+  ${accumulo_cmd} org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors
 }
 
 function stop_here() {
@@ -407,7 +382,7 @@ function stop_here() {
 
   for host in "${hosts_to_check[@]}"; do
     for end_cmd in "stop" "kill"; do
-      for svc in tserver gc manager monitor tracer compaction-coordinator; do
+      for svc in tserver gc manager monitor compaction-coordinator; do
         end_service $end_cmd "$host" $svc
       done
       for queue in $COMPACTION_QUEUES; do
@@ -447,9 +422,6 @@ manager:
   - localhost
 
 monitor:
-  - localhost
-
-tracer:
   - localhost
 
 gc:

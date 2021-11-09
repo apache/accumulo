@@ -52,7 +52,7 @@ public class ClientConfigGenerate {
       generateSection("Scanner", "scanner.");
       generateSection("SSL", "ssl.");
       generateSection("SASL", "sasl.");
-      generateSection("Tracing", "trace.");
+      generateSection("Tracing", "general.opentelemetry.");
 
       doc.close();
     }

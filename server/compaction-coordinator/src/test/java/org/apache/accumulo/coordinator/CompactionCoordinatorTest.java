@@ -66,7 +66,6 @@ import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.core.classloader.annotations.SuppressStaticInitializationFor;
 import org.powermock.modules.junit4.PowerMockRunner;
-import org.powermock.reflect.Whitebox;
 
 import com.google.common.collect.Sets;
 
@@ -496,7 +495,7 @@ public class CompactionCoordinatorTest {
     ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
     TExternalCompactionJob job = PowerMock.createNiceMock(TExternalCompactionJob.class);
     EasyMock.expect(job.getExternalCompactionId()).andReturn(eci.toString()).anyTimes();
-    TInfo trace = Whitebox.getInternalState(TraceUtil.class, "DONT_TRACE");
+    TInfo trace = TraceUtil.traceInfo();
     EasyMock
         .expect(
             tsc.reserveCompactionJob(trace, creds, "R2DQ", 1, "localhost:10241", eci.toString()))

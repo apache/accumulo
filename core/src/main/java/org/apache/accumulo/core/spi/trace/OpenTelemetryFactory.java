@@ -16,43 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-namespace java org.apache.accumulo.tracer.thrift
-namespace cpp org.apache.accumulo.tracer.thrift
+package org.apache.accumulo.core.spi.trace;
 
-include "trace.thrift"
+import java.util.function.Supplier;
 
-struct Annotation {
-  1:i64 time
-  2:string msg
-}
+import io.opentelemetry.api.OpenTelemetry;
 
-struct RemoteSpan {
-  1:string sender
-  2:string svc
-  3:i64 traceId
-  4:i64 spanId
-  11:list<i64> parentIds
-  6:i64 start
-  7:i64 stop
-  8:string description
-  9:map<string, string> data
-  10:list<Annotation> annotations
-}
-
-service SpanReceiver {
-
-  oneway void span(
-    1:RemoteSpan span
-  )
-
-}
-
-// used for testing trace
-service TestService {
-
-  bool checkTrace(
-    1:trace.TInfo tinfo
-    2:string message
-  )
-
-}
+/**
+ * Configures and returns an instance of OpenTelemetry
+ */
+public interface OpenTelemetryFactory extends Supplier<OpenTelemetry> {}
