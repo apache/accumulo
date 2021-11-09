@@ -54,7 +54,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   static final List<ServerType> ALL_SERVER_TYPES =
       Collections.unmodifiableList(Arrays.asList(ServerType.MANAGER, ServerType.TABLET_SERVER,
-          ServerType.TRACER, ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR));
+          ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR));
 
   private ClientInfo info;
   private String accumuloHome, clientAccumuloConfDir, serverAccumuloConfDir, hadoopConfDir;

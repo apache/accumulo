@@ -133,7 +133,6 @@ public class RestartIT extends AccumuloClusterHarness {
       // TODO implement a kill all too?
       // cluster.stop() would also stop ZooKeeper
       control.stopAllServers(ServerType.MANAGER);
-      control.stopAllServers(ServerType.TRACER);
       control.stopAllServers(ServerType.TABLET_SERVER);
       control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
       control.stopAllServers(ServerType.MONITOR);

@@ -183,7 +183,6 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
       control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
       control.stopAllServers(ServerType.MONITOR);
-      control.stopAllServers(ServerType.TRACER);
       log.debug("success!");
       // Restarting everything
       cluster.start();

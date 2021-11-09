@@ -94,7 +94,6 @@
     <module>server/master</module>
     <module>server/monitor</module>
     <module>server/native</module>
-    <module>server/tracer</module>
     <module>server/tserver</module>
     <module>shell</module>
     <module>start</module>
@@ -131,7 +130,6 @@
     <failsafe.reuseForks>false</failsafe.reuseForks>
     <hadoop.version>3.3.0</hadoop.version>
     <htrace.hadoop.version>4.1.0-incubating</htrace.hadoop.version>
-    <htrace.version>3.2.0-incubating</htrace.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
     <!-- prevent introduction of new compiler warnings -->
     <maven.compiler.failOnWarning>true</maven.compiler.failOnWarning>
@@ -174,6 +172,20 @@
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
         <version>1.7.5</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-bom</artifactId>
+        <version>1.7.1</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-bom-alpha</artifactId>
+        <version>1.7.1-alpha</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -500,11 +512,6 @@
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-tools</artifactId>
         <version>${hadoop.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.htrace</groupId>
-        <artifactId>htrace-core</artifactId>
-        <version>${htrace.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.htrace</groupId>

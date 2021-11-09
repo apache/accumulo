@@ -25,9 +25,6 @@ monitor:
   - localhost1
   - localhost2
 
-tracer:
-  - localhost
-
 gc:
   - localhost
 

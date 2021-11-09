@@ -18,80 +18,32 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-
 import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
-import org.apache.accumulo.tracer.TraceDump;
 import org.apache.commons.cli.CommandLine;
-import org.apache.hadoop.io.Text;
-import org.apache.htrace.Sampler;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
+
+import io.opentelemetry.api.trace.Span;
 
 public class TraceCommand extends Command {
 
-  private TraceScope traceScope = null;
+  private Span span = null;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws IOException {
     if (cl.getArgs().length == 1) {
       if (cl.getArgs()[0].equalsIgnoreCase("on")) {
-        if (traceScope == null) {
-          traceScope =
-              Trace.startSpan("shell:" + shellState.getAccumuloClient().whoami(), Sampler.ALWAYS);
+        if (span == null) {
+          span = TraceUtil.startSpan(Shell.class, shellState.getAccumuloClient().whoami());
         }
       } else if (cl.getArgs()[0].equalsIgnoreCase("off")) {
-        if (traceScope != null) {
-          final long trace = traceScope.getSpan().getTraceId();
-          traceScope.close();
-          traceScope = null;
-          StringBuilder sb = new StringBuilder();
-          int traceCount = 0;
-          for (int i = 0; i < 30; i++) {
-            sb = new StringBuilder();
-            try {
-              final Map<String,String> properties =
-                  shellState.getAccumuloClient().instanceOperations().getSystemConfiguration();
-              final String table = properties.get(Property.TRACE_TABLE.getKey());
-              final String user = shellState.getAccumuloClient().whoami();
-              final Authorizations auths =
-                  shellState.getAccumuloClient().securityOperations().getUserAuthorizations(user);
-              final Scanner scanner = shellState.getAccumuloClient().createScanner(table, auths);
-              scanner.setRange(new Range(new Text(Long.toHexString(trace))));
-              final StringBuilder finalSB = sb;
-              traceCount = TraceDump.printTrace(scanner, line -> {
-                try {
-                  finalSB.append(line + "\n");
-                } catch (Exception ex) {
-                  throw new RuntimeException(ex);
-                }
-              });
-              if (traceCount > 0) {
-                shellState.getWriter().print(sb.toString());
-                break;
-              }
-            } catch (Exception ex) {
-              shellState.printException(ex);
-            }
-            shellState.getWriter().println("Waiting for trace information");
-            shellState.getWriter().flush();
-            sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
-          }
-          if (traceCount < 0) {
-            // display the trace even though there are unrooted spans
-            shellState.getWriter().print(sb.toString());
-          }
+        if (span != null) {
+          span.end();
+          span = null;
         } else {
           shellState.getWriter().println("Not tracing");
         }
@@ -100,7 +52,7 @@ public class TraceCommand extends Command {
             fullCommand.indexOf(cl.getArgs()[0]));
       }
     } else if (cl.getArgs().length == 0) {
-      shellState.getWriter().println(Trace.isTracing() ? "on" : "off");
+      shellState.getWriter().println(TraceUtil.isTracing() ? "on" : "off");
     } else {
       shellState.printException(new IllegalArgumentException(
           "Expected 0 or 1 argument. There were " + cl.getArgs().length + "."));

@@ -41,7 +41,6 @@ import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.tserver.compactions.SubmittedJob.Status;
 import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
-import org.apache.htrace.wrappers.TraceRunnable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -128,9 +127,6 @@ public class InternalCompactionExecutor implements CompactionExecutor {
         // hurting performance.
         queue.removeIf(runnable -> {
           InternalJob internalJob;
-          if (runnable instanceof TraceRunnable) {
-            runnable = ((TraceRunnable) runnable).getRunnable();
-          }
           if (runnable instanceof InternalJob) {
             internalJob = (InternalJob) runnable;
           } else {
@@ -150,14 +146,9 @@ public class InternalCompactionExecutor implements CompactionExecutor {
   }
 
   private static CompactionJob getJob(Runnable r) {
-    if (r instanceof TraceRunnable) {
-      return getJob(((TraceRunnable) r).getRunnable());
-    }
-
     if (r instanceof InternalJob) {
       return ((InternalJob) r).getJob();
     }
-
     throw new IllegalArgumentException("Unknown runnable type " + r.getClass().getName());
   }
 
@@ -170,7 +161,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
     queue = new PriorityBlockingQueue<Runnable>(100, comparator);
 
     threadPool = ThreadPools.createThreadPool(threads, threads, 60, TimeUnit.SECONDS,
-        "compaction." + ceid, queue, OptionalInt.empty(), true);
+        "compaction." + ceid, queue, OptionalInt.empty());
 
     metricCloser =
         ceMetrics.addExecutor(ceid, () -> threadPool.getActiveCount(), () -> queuedJob.size());

@@ -176,7 +176,7 @@ public class UpgradeCoordinator {
 
     if (currentVersion < AccumuloDataVersion.get()) {
       return ThreadPools.createThreadPool(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
-          "UpgradeMetadataThreads", new SynchronousQueue<Runnable>(), OptionalInt.empty(), false)
+          "UpgradeMetadataThreads", new SynchronousQueue<Runnable>(), OptionalInt.empty())
           .submit(() -> {
             try {
               for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {

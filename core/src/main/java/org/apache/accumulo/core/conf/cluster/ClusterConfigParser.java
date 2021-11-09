@@ -36,8 +36,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class ClusterConfigParser {
 
   private static final String PROPERTY_FORMAT = "%s=\"%s\"";
-  private static final String[] SECTIONS =
-      new String[] {"manager", "monitor", "gc", "tracer", "tserver"};
+  private static final String[] SECTIONS = new String[] {"manager", "monitor", "gc", "tserver"};
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
   public static Map<String,String> parseConfiguration(String configFile) throws IOException {
