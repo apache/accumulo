@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.iterators;
+package org.apache.accumulo.core.iteratorsImpl.system;
 
 /**
  * Exception thrown if an interrupt flag is detected.
