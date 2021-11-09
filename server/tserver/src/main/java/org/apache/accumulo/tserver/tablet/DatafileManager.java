@@ -274,9 +274,14 @@ class DatafileManager {
     return newFiles.keySet();
   }
 
-  StoredTabletFile bringMinorCompactionOnline(TabletFile tmpDatafile, TabletFile newDatafile,
-      DataFileValue dfv, CommitSession commitSession, long flushId) {
-    StoredTabletFile newFile;
+  /**
+   * Returns Optional of the new file created. It is possible that the file was just flushed with no
+   * entries so was not inserted into the metadata. In this case empty is returned. If the file was
+   * stored in the metadata table, then StoredTableFile will be returned.
+   */
+  Optional<StoredTabletFile> bringMinorCompactionOnline(TabletFile tmpDatafile,
+      TabletFile newDatafile, DataFileValue dfv, CommitSession commitSession, long flushId) {
+    Optional<StoredTabletFile> newFile;
     // rename before putting in metadata table, so files in metadata table should
     // always exist
     boolean attemptedRename = false;
@@ -284,6 +289,7 @@ class DatafileManager {
     do {
       try {
         if (dfv.getNumEntries() == 0) {
+          log.debug("No data entries so delete temporary file {}", tmpDatafile);
           vm.deleteRecursively(tmpDatafile.getPath());
         } else {
           if (!attemptedRename && vm.exists(newDatafile.getPath())) {
@@ -328,13 +334,9 @@ class DatafileManager {
     }
     try {
       // the order of writing to metadata and walog is important in the face of machine/process
-      // failures
-      // need to write to metadata before writing to walog, when things are done in the reverse
-      // order
-      // data could be lost... the minor compaction start even should be written before the
-      // following metadata
-      // write is made
-
+      // failures need to write to metadata before writing to walog, when things are done in the
+      // reverse order data could be lost... the minor compaction start even should be written
+      // before the following metadata write is made
       newFile = tablet.updateTabletDataFile(commitSession.getMaxCommittedTime(), newDatafile, dfv,
           unusedWalLogs, flushId);
 
@@ -362,8 +364,7 @@ class DatafileManager {
     do {
       try {
         // the purpose of making this update use the new commit session, instead of the old one
-        // passed in,
-        // is because the new one will reference the logs used by current memory...
+        // passed in, is because the new one will reference the logs used by current memory...
 
         tablet.getTabletServer().minorCompactionFinished(
             tablet.getTabletMemory().getCommitSession(), commitSession.getWALogSeq() + 2);
@@ -377,11 +378,12 @@ class DatafileManager {
     synchronized (tablet) {
       t1 = System.currentTimeMillis();
 
-      if (dfv.getNumEntries() > 0) {
-        if (datafileSizes.containsKey(newFile)) {
-          log.error("Adding file that is already in set {}", newFile);
+      if (dfv.getNumEntries() > 0 && newFile.isPresent()) {
+        StoredTabletFile newFileStored = newFile.get();
+        if (datafileSizes.containsKey(newFileStored)) {
+          log.error("Adding file that is already in set {}", newFileStored);
         }
-        datafileSizes.put(newFile, dfv);
+        datafileSizes.put(newFileStored, dfv);
       }
 
       tablet.flushComplete(flushId);
@@ -389,7 +391,7 @@ class DatafileManager {
       t2 = System.currentTimeMillis();
     }
 
-    TabletLogger.flushed(tablet.getExtent(), newDatafile);
+    TabletLogger.flushed(tablet.getExtent(), newFile);
 
     if (log.isTraceEnabled()) {
       log.trace(String.format("MinC finish lock %.2f secs %s", (t2 - t1) / 1000.0,
