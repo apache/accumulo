@@ -18,11 +18,13 @@
  */
 package org.apache.accumulo.core.trace;
 
+import static org.apache.accumulo.core.Constants.APPNAME;
+import static org.apache.accumulo.core.Constants.VERSION;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.util.Map;
-import java.util.Objects;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -53,29 +55,21 @@ public class TraceUtil {
   private static final String SPAN_FORMAT = "%s::%s";
 
   private static Tracer instance = null;
-  private static String name = null;
   private static boolean tracing = false;
 
-  private static void initializeInternals(OpenTelemetry ot, String instrumentationName) {
-    // TODO: Is there a way to get our version to pass to getTracer() ?
-    name = instrumentationName;
-    instance = ot.getTracer(name);
-    tracing = (!ot.equals(OpenTelemetry.noop()));
+  private static void initializeInternals(OpenTelemetry ot) {
+    instance = ot.getTracer(APPNAME, VERSION);
+    tracing = !ot.equals(OpenTelemetry.noop());
     LOG.info("Trace enabled: {}, OpenTelemetry instance: {}, Tracer instance: {}", tracing,
         ot.getClass(), instance.getClass());
   }
 
   /**
-   * Initialize TracerUtil using the OpenTelemetry parameter and instrumentationName
-   *
-   * @param ot
-   *          OpenTelemetry instance
-   * @param instrumentationName
-   *          OpenTelemetry instrumentation library name
+   * Initialize TracerUtil using the OpenTelemetry parameter
    */
-  public static void initializeTracer(OpenTelemetry ot, String instrumentationName) {
+  public static void initializeTracer(OpenTelemetry ot) {
     if (instance != null) {
-      initializeInternals(ot, instrumentationName);
+      initializeInternals(ot);
     } else {
       LOG.warn("Tracer already initialized.");
     }
@@ -92,8 +86,7 @@ public class TraceUtil {
    */
   public static void initializeTracer(AccumuloConfiguration conf) throws Exception {
     initializeTracer(conf.getBoolean(Property.GENERAL_OPENTELEMETRY_ENABLED),
-        conf.get(Property.GENERAL_OPENTELEMETRY_FACTORY),
-        conf.get(Property.GENERAL_OPENTELEMETRY_NAME));
+        conf.get(Property.GENERAL_OPENTELEMETRY_FACTORY));
   }
 
   /**
@@ -105,28 +98,23 @@ public class TraceUtil {
    *          whether or not tracing is enabled
    * @param factoryClass
    *          name of class to load
-   * @param instrumentationName
-   *          OpenTelemetry instrumentation library name
    * @throws Exception
    *           unable to find or load class
    */
-  public static void initializeTracer(boolean enabled, String factoryClass,
-      String instrumentationName) throws Exception {
+  public static void initializeTracer(boolean enabled, String factoryClass) throws Exception {
     if (instance == null) {
       OpenTelemetry ot = null;
       if (!enabled) {
         ot = OpenTelemetry.noop();
       } else if (factoryClass != null && !factoryClass.isEmpty()) {
-        Class<? extends OpenTelemetryFactory> clazz =
-            (Class<? extends OpenTelemetryFactory>) ClassLoaderUtil.loadClass(factoryClass,
-                OpenTelemetryFactory.class);
+        var clazz = ClassLoaderUtil.loadClass(factoryClass, OpenTelemetryFactory.class);
         OpenTelemetryFactory factory = clazz.getDeclaredConstructor().newInstance();
-        ot = factory.getOpenTelemetry();
+        ot = factory.get();
         LOG.info("OpenTelemetry configured and set from {}", clazz);
       } else {
         ot = GlobalOpenTelemetry.get();
       }
-      initializeInternals(ot, instrumentationName);
+      initializeInternals(ot);
     } else {
       LOG.warn("Tracer already initialized.");
     }
@@ -136,10 +124,10 @@ public class TraceUtil {
    * @return the Tracer set on the GlobalOpenTelemetry object
    */
   private static Tracer getTracer() {
-    if (Objects.isNull(instance)) {
+    if (instance == null) {
       LOG.warn("initializeTracer not called, using GlobalOpenTelemetry.getTracer()");
-      instance = GlobalOpenTelemetry.getTracer(name);
-      tracing = (!instance.equals(OpenTelemetry.noop().getTracer(name)));
+      instance = GlobalOpenTelemetry.getTracer(APPNAME, VERSION);
+      tracing = !instance.equals(OpenTelemetry.noop().getTracer(APPNAME, VERSION));
       LOG.info("Trace enabled: {}, Tracer is: {}", tracing, instance.getClass());
     }
     return instance;
@@ -153,30 +141,33 @@ public class TraceUtil {
     return tracing;
   }
 
-  public static Span createSpan(Class<?> caller, String spanName, SpanKind kind) {
-    return createSpan(caller, spanName, kind, null, false, null);
+  public static Span startSpan(Class<?> caller, String spanName) {
+    return startSpan(caller, spanName, null, null, null);
   }
 
-  public static Span createSpan(Class<?> caller, String spanName, SpanKind kind, Context parent) {
-    return createSpan(caller, spanName, kind, null, false, parent);
+  public static Span startSpan(Class<?> caller, String spanName, Map<String,String> attributes) {
+    return startSpan(caller, spanName, null, attributes, null);
   }
 
-  public static Span createSpan(Class<?> caller, String spanName, SpanKind kind,
-      Map<String,String> attributes) {
-    return createSpan(caller, spanName, kind, attributes, false, null);
+  public static Span startClientSpan(Class<?> caller, String spanName) {
+    return startSpan(caller, spanName, SpanKind.CLIENT, null, null);
   }
 
-  public static Span createSpan(Class<?> caller, String spanName, SpanKind kind,
-      Map<String,String> attributes, boolean setNoParent, Context parent) {
+  public static Span startServerSpan(Class<?> caller, String spanName, TInfo tinfo) {
+    return startSpan(caller, spanName, SpanKind.SERVER, null, getContext(tinfo));
+  }
+
+  private static Span startSpan(Class<?> caller, String spanName, SpanKind kind,
+      Map<String,String> attributes, Context parent) {
     final String name = String.format(SPAN_FORMAT, caller.getSimpleName(), spanName);
     final SpanBuilder builder = getTracer().spanBuilder(name);
-    builder.setSpanKind(kind);
-    if (attributes != null) {
-      attributes.forEach((k, v) -> builder.setAttribute(k, v));
+    if (kind != null) {
+      builder.setSpanKind(kind);
     }
-    if (setNoParent) {
-      builder.setNoParent();
-    } else if (parent != null) {
+    if (attributes != null) {
+      attributes.forEach(builder::setAttribute);
+    }
+    if (parent != null) {
       builder.setParent(parent);
     }
     return builder.startSpan();
@@ -226,11 +217,14 @@ public class TraceUtil {
    *          tracing information
    * @return Context
    */
-  public static Context getContext(TInfo tinfo) {
+  private static Context getContext(TInfo tinfo) {
     return W3CTraceContextPropagator.getInstance().extract(Context.current(), tinfo,
         new TextMapGetter<TInfo>() {
           @Override
           public Iterable<String> keys(TInfo carrier) {
+            if (carrier.getHeaders() == null) {
+              return null;
+            }
             return carrier.getHeaders().keySet();
           }
 
@@ -246,23 +240,22 @@ public class TraceUtil {
 
   public static <T> T wrapService(final T instance) {
     InvocationHandler handler = (obj, method, args) -> {
-      try {
-        if (args == null || args.length < 1 || args[0] == null || !(args[0] instanceof TInfo)) {
+      if (args == null || args.length < 1 || args[0] == null || !(args[0] instanceof TInfo)) {
+        try {
           return method.invoke(instance, args);
+        } catch (InvocationTargetException e) {
+          throw e.getCause();
         }
-        TInfo tinfo = (TInfo) args[0];
-        getContext(tinfo).makeCurrent();
-        Span span = createSpan(instance.getClass(), method.getName(), SpanKind.SERVER);
-        try (Scope scope = span.makeCurrent()) {
-          return method.invoke(instance, args);
-        } catch (Exception e) {
-          setException(span, e, true);
-          throw e;
-        } finally {
-          span.end();
-        }
-      } catch (InvocationTargetException ex) {
-        throw ex.getCause();
+      }
+      Span span = startServerSpan(instance.getClass(), method.getName(), (TInfo) args[0]);
+      try (Scope scope = span.makeCurrent()) {
+        return method.invoke(instance, args);
+      } catch (Exception e) {
+        Throwable t = e instanceof InvocationTargetException ? e.getCause() : e;
+        setException(span, t, true);
+        throw t;
+      } finally {
+        span.end();
       }
     };
     return wrapRpc(handler, instance);

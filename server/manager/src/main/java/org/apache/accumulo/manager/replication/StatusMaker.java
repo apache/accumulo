@@ -51,7 +51,6 @@ import org.slf4j.LoggerFactory;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 /**
@@ -85,7 +84,7 @@ public class StatusMaker {
   }
 
   public void run() {
-    Span span = TraceUtil.createSpan(this.getClass(), "replicationStatusMaker", SpanKind.SERVER);
+    Span span = TraceUtil.startSpan(this.getClass(), "replicationStatusMaker");
     try (Scope scope = span.makeCurrent()) {
       // Read from a source table (typically accumulo.metadata)
       final Scanner s;
@@ -129,8 +128,7 @@ public class StatusMaker {
         log.debug("Creating replication status record for {} on table {} with {}.", file, tableId,
             ProtobufUtil.toString(status));
 
-        Span childSpan =
-            TraceUtil.createSpan(this.getClass(), "createStatusMutations", SpanKind.SERVER);
+        Span childSpan = TraceUtil.startSpan(this.getClass(), "createStatusMutations");
         try (Scope childScope = span.makeCurrent()) {
           // Create entries in the replication table from the metadata table
           if (!addStatusRecord(file, tableId, entry.getValue())) {
@@ -144,8 +142,7 @@ public class StatusMaker {
         }
 
         if (status.getClosed()) {
-          Span closedSpan =
-              TraceUtil.createSpan(this.getClass(), "recordStatusOrder", SpanKind.SERVER);
+          Span closedSpan = TraceUtil.startSpan(this.getClass(), "recordStatusOrder");
           try (Scope childScope = closedSpan.makeCurrent()) {
             if (!addOrderRecord(file, tableId, status, entry.getValue())) {
               continue;
@@ -157,8 +154,7 @@ public class StatusMaker {
             closedSpan.end();
           }
 
-          Span deleteSpan =
-              TraceUtil.createSpan(this.getClass(), "deleteClosedStatus", SpanKind.SERVER);
+          Span deleteSpan = TraceUtil.startSpan(this.getClass(), "deleteClosedStatus");
           try (Scope childScope = deleteSpan.makeCurrent()) {
             deleteStatusRecord(entry.getKey());
           } catch (Exception e) {

@@ -46,7 +46,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class FindOfflineTablets {
@@ -55,7 +54,7 @@ public class FindOfflineTablets {
   public static void main(String[] args) throws Exception {
     ServerUtilOpts opts = new ServerUtilOpts();
     opts.parseArgs(FindOfflineTablets.class.getName(), args);
-    Span span = TraceUtil.createSpan(FindOfflineTablets.class, "main", SpanKind.CLIENT);
+    Span span = TraceUtil.startSpan(FindOfflineTablets.class, "main");
     try (Scope scope = span.makeCurrent()) {
       ServerContext context = opts.getServerContext();
       findOffline(context, null);

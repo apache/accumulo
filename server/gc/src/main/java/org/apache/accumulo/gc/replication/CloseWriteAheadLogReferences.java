@@ -53,7 +53,6 @@ import org.slf4j.LoggerFactory;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 /**
@@ -89,7 +88,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
     }
 
     HashSet<String> closed = null;
-    Span span = TraceUtil.createSpan(this.getClass(), "findReferencedWals", SpanKind.SERVER);
+    Span span = TraceUtil.startSpan(this.getClass(), "findReferencedWals");
     try (Scope findWalsSpan = span.makeCurrent()) {
       startTime = System.nanoTime();
       closed = getClosedLogs();
@@ -101,8 +100,7 @@ public class CloseWriteAheadLogReferences implements Runnable {
     log.info("Found {} WALs referenced in metadata in {}", closed.size(), duration);
 
     long recordsClosed = 0;
-    Span updateReplicationSpan =
-        TraceUtil.createSpan(this.getClass(), "updateReplicationTable", SpanKind.SERVER);
+    Span updateReplicationSpan = TraceUtil.startSpan(this.getClass(), "updateReplicationTable");
     try (Scope updateReplicationScope = updateReplicationSpan.makeCurrent()) {
       startTime = System.nanoTime();
       recordsClosed = updateReplicationEntries(context, closed);

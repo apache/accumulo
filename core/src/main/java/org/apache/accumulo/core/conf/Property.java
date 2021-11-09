@@ -243,8 +243,6 @@ public enum Property {
       "Enables tracing functionality using OpenTelemetry.", "2.1.0"),
   GENERAL_OPENTELEMETRY_FACTORY("general.opentelemetry.factory", "", PropertyType.CLASSNAME,
       "Name of class that implements OpenTelemetryFactory", "2.1.0"),
-  GENERAL_OPENTELEMETRY_NAME("general.opentelemetry.instrumentation.name", "", PropertyType.STRING,
-      "Name of the instrumentation library to use.", "2.1.0"),
   GENERAL_SIMPLETIMER_THREADPOOL_SIZE("general.server.simpletimer.threadpool.size", "1",
       PropertyType.COUNT, "The number of threads to use for " + "server-internal scheduled tasks",
       "1.7.0"),

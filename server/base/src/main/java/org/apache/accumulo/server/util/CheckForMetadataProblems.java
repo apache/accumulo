@@ -44,7 +44,6 @@ import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.hadoop.io.Text;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class CheckForMetadataProblems {
@@ -180,7 +179,7 @@ public class CheckForMetadataProblems {
   public static void main(String[] args) throws Exception {
     opts = new ServerUtilOpts();
     opts.parseArgs(CheckForMetadataProblems.class.getName(), args);
-    Span span = TraceUtil.createSpan(CheckForMetadataProblems.class, "main", SpanKind.CLIENT);
+    Span span = TraceUtil.startSpan(CheckForMetadataProblems.class, "main");
     try (Scope scope = span.makeCurrent()) {
 
       checkMetadataAndRootTableEntries(RootTable.NAME, opts);

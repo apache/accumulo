@@ -64,7 +64,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterators;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class GarbageCollectWriteAheadLogs {
@@ -132,7 +131,7 @@ public class GarbageCollectWriteAheadLogs {
       Map<UUID,Pair<WalState,Path>> logsState;
       Map<UUID,Path> recoveryLogs;
 
-      Span span = TraceUtil.createSpan(this.getClass(), "getCandidates", SpanKind.SERVER);
+      Span span = TraceUtil.startSpan(this.getClass(), "getCandidates");
       try (Scope scope = span.makeCurrent()) {
         status.currentLog.started = System.currentTimeMillis();
 
@@ -164,7 +163,7 @@ public class GarbageCollectWriteAheadLogs {
       Set<TServerInstance> currentServers = liveServers.getCurrentServers();
 
       Map<UUID,TServerInstance> uuidToTServer;
-      Span span2 = TraceUtil.createSpan(this.getClass(), "removeEntriesInUse", SpanKind.SERVER);
+      Span span2 = TraceUtil.startSpan(this.getClass(), "removeEntriesInUse");
       try (Scope scope = span2.makeCurrent()) {
         uuidToTServer = removeEntriesInUse(logsByServer, currentServers, logsState, recoveryLogs);
         count = uuidToTServer.size();
@@ -180,8 +179,7 @@ public class GarbageCollectWriteAheadLogs {
       log.info(String.format("%d log entries scanned in %.2f seconds", count,
           (logEntryScanStop - fileScanStop) / 1000.));
 
-      Span span3 =
-          TraceUtil.createSpan(this.getClass(), "removeReplicationEntries", SpanKind.SERVER);
+      Span span3 = TraceUtil.startSpan(this.getClass(), "removeReplicationEntries");
       try (Scope scope = span3.makeCurrent()) {
         count = removeReplicationEntries(uuidToTServer);
       } catch (Exception ex) {
@@ -197,7 +195,7 @@ public class GarbageCollectWriteAheadLogs {
           (replicationEntryScanStop - logEntryScanStop) / 1000.));
 
       long removeStop;
-      Span span4 = TraceUtil.createSpan(this.getClass(), "removeFiles", SpanKind.SERVER);
+      Span span4 = TraceUtil.startSpan(this.getClass(), "removeFiles");
       try (Scope scope = span4.makeCurrent()) {
 
         logsState.keySet().retainAll(uuidToTServer.keySet());
@@ -216,7 +214,7 @@ public class GarbageCollectWriteAheadLogs {
         span4.end();
       }
 
-      Span span5 = TraceUtil.createSpan(this.getClass(), "removeMarkers", SpanKind.SERVER);
+      Span span5 = TraceUtil.startSpan(this.getClass(), "removeMarkers");
       try (Scope scope = span5.makeCurrent()) {
         count = removeTabletServerMarkers(uuidToTServer, logsByServer, currentServers);
         long removeMarkersStop = System.currentTimeMillis();

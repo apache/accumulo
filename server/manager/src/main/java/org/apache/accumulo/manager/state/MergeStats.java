@@ -53,7 +53,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class MergeStats {
@@ -266,7 +265,7 @@ public class MergeStats {
     ServerUtilOpts opts = new ServerUtilOpts();
     opts.parseArgs(MergeStats.class.getName(), args);
 
-    Span span = TraceUtil.createSpan(MergeStats.class, "main", SpanKind.CLIENT);
+    Span span = TraceUtil.startSpan(MergeStats.class, "main");
     try (Scope scope = span.makeCurrent()) {
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
         Map<String,String> tableIdMap = client.tableOperations().tableIdMap();

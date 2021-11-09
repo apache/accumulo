@@ -140,7 +140,6 @@ import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 /**
@@ -801,7 +800,7 @@ public class Tablet {
     try {
       Thread.currentThread().setName("Minor compacting " + this.extent);
       CompactionStats stats;
-      Span span = TraceUtil.createSpan(this.getClass(), "minorCompact::write", SpanKind.SERVER);
+      Span span = TraceUtil.startSpan(this.getClass(), "minorCompact::write");
       try (Scope scope = span.makeCurrent()) {
         count = memTable.getNumEntries();
 
@@ -815,8 +814,7 @@ public class Tablet {
         span.end();
       }
 
-      Span span2 =
-          TraceUtil.createSpan(this.getClass(), "minorCompact::bringOnline", SpanKind.SERVER);
+      Span span2 = TraceUtil.startSpan(this.getClass(), "minorCompact::bringOnline");
       try (Scope scope = span2.makeCurrent()) {
         var storedFile = getDatafileManager().bringMinorCompactionOnline(tmpDatafile, newDatafile,
             new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()), commitSession,

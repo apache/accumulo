@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class RandomWriter {
@@ -102,7 +101,7 @@ public class RandomWriter {
     opts.principal = "root";
     opts.parseArgs(RandomWriter.class.getName(), args);
 
-    Span span = TraceUtil.createSpan(RandomWriter.class, "main", SpanKind.CLIENT);
+    Span span = TraceUtil.startSpan(RandomWriter.class, "main");
     try (Scope scope = span.makeCurrent()) {
       long start = System.currentTimeMillis();
       Properties clientProps = opts.getClientProps();

@@ -127,8 +127,6 @@ public enum ClientProperty {
       "Enables tracing functionality using OpenTelemetry.", "2.1.0", false),
   GENERAL_OPENTELEMETRY_FACTORY("general.opentelemetry.factory", "", PropertyType.CLASSNAME,
       "Name of class that implements OpenTelemetryFactory", "2.1.0", false),
-  GENERAL_OPENTELEMETRY_NAME("general.opentelemetry.instrumentation.name", "", PropertyType.STRING,
-      "Name of the instrumentation library to use.", "2.1.0", false),
   @Deprecated(since = "2.1.0", forRemoval = true)
   TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient",
       "A list of span receiver classes to send trace spans"),

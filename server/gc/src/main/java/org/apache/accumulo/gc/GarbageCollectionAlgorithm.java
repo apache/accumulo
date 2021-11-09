@@ -46,7 +46,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class GarbageCollectionAlgorithm {
@@ -270,8 +269,7 @@ public class GarbageCollectionAlgorithm {
 
   private void confirmDeletesTrace(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) throws TableNotFoundException {
-    Span confirmDeletesSpan =
-        TraceUtil.createSpan(this.getClass(), "confirmDeletes", SpanKind.SERVER);
+    Span confirmDeletesSpan = TraceUtil.startSpan(this.getClass(), "confirmDeletes");
     try (Scope scope = confirmDeletesSpan.makeCurrent()) {
       confirmDeletes(gce, candidateMap);
     } catch (Exception e) {
@@ -284,7 +282,7 @@ public class GarbageCollectionAlgorithm {
 
   private void deleteConfirmed(GarbageCollectionEnvironment gce,
       SortedMap<String,String> candidateMap) throws IOException, TableNotFoundException {
-    Span deleteSpan = TraceUtil.createSpan(this.getClass(), "deleteFiles", SpanKind.SERVER);
+    Span deleteSpan = TraceUtil.startSpan(this.getClass(), "deleteFiles");
     try (Scope deleteScope = deleteSpan.makeCurrent()) {
       gce.delete(candidateMap);
     } catch (Exception e) {
@@ -303,7 +301,7 @@ public class GarbageCollectionAlgorithm {
 
     while (candidatesIter.hasNext()) {
       List<String> batchOfCandidates;
-      Span candidatesSpan = TraceUtil.createSpan(this.getClass(), "getCandidates", SpanKind.SERVER);
+      Span candidatesSpan = TraceUtil.startSpan(this.getClass(), "getCandidates");
       try (Scope candidatesScope = candidatesSpan.makeCurrent()) {
         batchOfCandidates = gce.readCandidatesThatFitInMemory(candidatesIter);
       } catch (Exception e) {

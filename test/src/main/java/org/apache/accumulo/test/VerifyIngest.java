@@ -43,7 +43,6 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class VerifyIngest {
@@ -89,7 +88,7 @@ public class VerifyIngest {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(VerifyIngest.class.getName(), args);
-    Span span = TraceUtil.createSpan(VerifyIngest.class, "main", SpanKind.CLIENT);
+    Span span = TraceUtil.startSpan(VerifyIngest.class, "main");
     try (Scope scope = span.makeCurrent()) {
 
       span.setAttribute("cmdLine", Arrays.asList(args).toString());

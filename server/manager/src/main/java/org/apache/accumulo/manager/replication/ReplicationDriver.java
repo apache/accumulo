@@ -28,7 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 /**
@@ -69,8 +68,7 @@ public class ReplicationDriver implements Runnable {
         rcrr = new RemoveCompleteReplicationRecords(client);
       }
 
-      Span span =
-          TraceUtil.createSpan(this.getClass(), "managerReplicationDriver", SpanKind.SERVER);
+      Span span = TraceUtil.startSpan(this.getClass(), "managerReplicationDriver");
       try (Scope scope = span.makeCurrent()) {
 
         // Make status markers from replication records in metadata, removing entries in

@@ -53,7 +53,6 @@ import org.apache.hadoop.fs.Path;
 import com.beust.jcommander.Parameter;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 /**
@@ -208,7 +207,7 @@ public class RemoveEntriesForMissingFiles {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(RemoveEntriesForMissingFiles.class.getName(), args);
-    Span span = TraceUtil.createSpan(RemoveEntriesForMissingFiles.class, "main", SpanKind.CLIENT);
+    Span span = TraceUtil.startSpan(RemoveEntriesForMissingFiles.class, "main");
     try (Scope scope = span.makeCurrent()) {
       checkAllTables(opts.getServerContext(), opts.fix);
     } finally {

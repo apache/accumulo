@@ -48,7 +48,6 @@ import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class Merge {
@@ -101,7 +100,7 @@ public class Merge {
   public void start(String[] args) throws MergeException {
     Opts opts = new Opts();
     opts.parseArgs(Merge.class.getName(), args);
-    Span span = TraceUtil.createSpan(Merge.class, "start", SpanKind.CLIENT);
+    Span span = TraceUtil.startSpan(Merge.class, "start");
     try (Scope scope = span.makeCurrent()) {
 
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {

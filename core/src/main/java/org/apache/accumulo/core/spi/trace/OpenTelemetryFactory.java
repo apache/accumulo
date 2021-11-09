@@ -18,15 +18,11 @@
  */
 package org.apache.accumulo.core.spi.trace;
 
+import java.util.function.Supplier;
+
 import io.opentelemetry.api.OpenTelemetry;
 
-public interface OpenTelemetryFactory {
-
-  /**
-   * Configures and returns an instance of OpenTelemetry
-   *
-   * @return OpenTelemetry
-   */
-  public OpenTelemetry getOpenTelemetry();
-
-}
+/**
+ * Configures and returns an instance of OpenTelemetry
+ */
+public interface OpenTelemetryFactory extends Supplier<OpenTelemetry> {}

@@ -70,7 +70,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class FileCompactor implements Callable<CompactionStats> {
@@ -339,7 +338,7 @@ public class FileCompactor implements Callable<CompactionStats> {
       boolean inclusive, FileSKVWriter mfw, CompactionStats majCStats)
       throws IOException, CompactionCanceledException {
     ArrayList<FileSKVIterator> readers = new ArrayList<>(filesToCompact.size());
-    Span compactSpan = TraceUtil.createSpan(this.getClass(), "compact", SpanKind.SERVER);
+    Span compactSpan = TraceUtil.startSpan(this.getClass(), "compact");
     try (Scope span = compactSpan.makeCurrent()) {
       long entriesCompacted = 0;
       List<SortedKeyValueIterator<Key,Value>> iters = openMapDataFiles(readers);
@@ -370,7 +369,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         mfw.startDefaultLocalityGroup();
       }
 
-      Span writeSpan = TraceUtil.createSpan(this.getClass(), "write", SpanKind.SERVER);
+      Span writeSpan = TraceUtil.startSpan(this.getClass(), "write");
       try (Scope write = writeSpan.makeCurrent()) {
         while (itr.hasTop() && env.isCompactionEnabled()) {
           mfw.append(itr.getTopKey(), itr.getTopValue());

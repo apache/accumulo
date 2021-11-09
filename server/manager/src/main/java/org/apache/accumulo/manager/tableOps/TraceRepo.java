@@ -26,8 +26,6 @@ import org.apache.accumulo.manager.Manager;
 import com.google.gson.Gson;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
-import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
 
 public class TraceRepo<T> implements Repo<T> {
@@ -44,8 +42,7 @@ public class TraceRepo<T> implements Repo<T> {
 
   @Override
   public long isReady(long tid, T environment) throws Exception {
-    Context ctx = TraceUtil.getContext(tinfo);
-    Span span = TraceUtil.createSpan(repo.getClass(), repo.getDescription(), SpanKind.SERVER, ctx);
+    Span span = TraceUtil.startServerSpan(repo.getClass(), repo.getDescription(), tinfo);
     try (Scope scope = span.makeCurrent()) {
       return repo.isReady(tid, environment);
     } catch (Exception e) {
@@ -58,8 +55,7 @@ public class TraceRepo<T> implements Repo<T> {
 
   @Override
   public Repo<T> call(long tid, T environment) throws Exception {
-    Context ctx = TraceUtil.getContext(tinfo);
-    Span span = TraceUtil.createSpan(repo.getClass(), repo.getDescription(), SpanKind.SERVER, ctx);
+    Span span = TraceUtil.startServerSpan(repo.getClass(), repo.getDescription(), tinfo);
     try (Scope scope = span.makeCurrent()) {
       Repo<T> result = repo.call(tid, environment);
       if (result == null)
@@ -75,8 +71,7 @@ public class TraceRepo<T> implements Repo<T> {
 
   @Override
   public void undo(long tid, T environment) throws Exception {
-    Context ctx = TraceUtil.getContext(tinfo);
-    Span span = TraceUtil.createSpan(repo.getClass(), repo.getDescription(), SpanKind.SERVER, ctx);
+    Span span = TraceUtil.startServerSpan(repo.getClass(), repo.getDescription(), tinfo);
     try (Scope scope = span.makeCurrent()) {
       repo.undo(tid, environment);
     } catch (Exception e) {

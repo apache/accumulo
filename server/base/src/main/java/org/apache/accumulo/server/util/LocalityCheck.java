@@ -44,7 +44,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class LocalityCheck {
@@ -53,7 +52,7 @@ public class LocalityCheck {
     ServerUtilOpts opts = new ServerUtilOpts();
     opts.parseArgs(LocalityCheck.class.getName(), args);
 
-    Span span = TraceUtil.createSpan(LocalityCheck.class, "run", SpanKind.CLIENT);
+    Span span = TraceUtil.startSpan(LocalityCheck.class, "run");
     try (Scope scope = span.makeCurrent()) {
 
       VolumeManager fs = opts.getServerContext().getVolumeManager();

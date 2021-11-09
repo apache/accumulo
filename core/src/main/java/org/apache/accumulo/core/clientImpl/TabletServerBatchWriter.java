@@ -83,7 +83,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Joiner;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 /*
@@ -304,7 +303,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     if (closed)
       throw new IllegalStateException("Closed");
 
-    Span span = TraceUtil.createSpan(this.getClass(), "flush", SpanKind.CLIENT);
+    Span span = TraceUtil.startSpan(this.getClass(), "flush");
     try (Scope scope = span.makeCurrent()) {
       checkForFailures();
 
@@ -342,7 +341,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     if (closed)
       return;
 
-    Span span = TraceUtil.createSpan(this.getClass(), "close", SpanKind.CLIENT);
+    Span span = TraceUtil.startSpan(this.getClass(), "close");
     try (Scope scope = span.makeCurrent()) {
       closed = true;
 
@@ -724,7 +723,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
     private void addMutations(MutationSet mutationsToSend) {
       Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
-      Span span = TraceUtil.createSpan(this.getClass(), "binMutations", SpanKind.CLIENT);
+      Span span = TraceUtil.startSpan(this.getClass(), "binMutations");
       try (Scope scope = span.makeCurrent()) {
         long t1 = System.currentTimeMillis();
         binMutations(mutationsToSend, binnedMutations);
@@ -838,7 +837,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
               + Joiner.on(',').join(tableIds) + ']';
           Thread.currentThread().setName(msg);
 
-          Span span = TraceUtil.createSpan(this.getClass(), "sendMutations", SpanKind.CLIENT);
+          Span span = TraceUtil.startSpan(this.getClass(), "sendMutations");
           try (Scope scope = span.makeCurrent()) {
 
             TimeoutTracker timeoutTracker = timeoutTrackers.get(location);

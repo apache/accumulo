@@ -97,15 +97,11 @@ JAVA_OPTS=("${JAVA_OPTS[@]}"
 
 ## Optionally setup OpenTelemetry SDK AutoConfigure
 ## See https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure
-#JAVA_OPTS=("${JAVA_OPTS[@]}"
-#  "-Dotel.traces.exporter=jaeger"
-#)
+#JAVA_OPTS=("${JAVA_OPTS[@]}"  "-Dotel.traces.exporter=jaeger")
 
 ## Optionally setup OpenTelemetry Java Agent
 ## See https://github.com/open-telemetry/opentelemetry-java-instrumentation for more options
-#JAVA_OPTS=("${JAVA_OPTS[@]}"
-#  "-javaagent:path/to/opentelemetry-javaagent-all.jar"
-#)
+#JAVA_OPTS=("${JAVA_OPTS[@]}"  "-javaagent:path/to/opentelemetry-javaagent-all.jar")
 
 case "$cmd" in
   monitor|gc|manager|master|tserver|compaction-coordinator|compactor)

@@ -58,7 +58,6 @@ import com.beust.jcommander.Parameter;
 import com.google.common.base.Joiner;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class TableDiskUsage {
@@ -305,7 +304,7 @@ public class TableDiskUsage {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(TableDiskUsage.class.getName(), args);
-    Span span = TraceUtil.createSpan(TableDiskUsage.class, "main", SpanKind.CLIENT);
+    Span span = TraceUtil.startSpan(TableDiskUsage.class, "main");
     try (Scope scope = span.makeCurrent()) {
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
         VolumeManager fs = opts.getServerContext().getVolumeManager();

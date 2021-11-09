@@ -50,7 +50,6 @@ import org.apache.zookeeper.data.Stat;
 import com.beust.jcommander.Parameter;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 public class ChangeSecret {
@@ -80,7 +79,7 @@ public class ChangeSecret {
       argsList.addAll(Arrays.asList(args));
 
       opts.parseArgs(ChangeSecret.class.getName(), args);
-      Span span = TraceUtil.createSpan(ChangeSecret.class, "main", SpanKind.CLIENT);
+      Span span = TraceUtil.startSpan(ChangeSecret.class, "main");
       try (Scope scope = span.makeCurrent()) {
 
         verifyAccumuloIsDown(context, opts.oldPass);

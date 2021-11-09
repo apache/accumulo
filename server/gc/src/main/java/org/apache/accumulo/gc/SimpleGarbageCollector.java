@@ -109,7 +109,6 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 // Could/Should implement HighlyAvailableService but the Thrift server is already started before
@@ -491,9 +490,9 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         });
 
     while (true) {
-      Span outerSpan = TraceUtil.createSpan(this.getClass(), "gc", SpanKind.SERVER);
+      Span outerSpan = TraceUtil.startSpan(this.getClass(), "gc");
       try (Scope outerScope = outerSpan.makeCurrent()) {
-        Span innerSpan = TraceUtil.createSpan(this.getClass(), "loop", SpanKind.SERVER);
+        Span innerSpan = TraceUtil.startSpan(this.getClass(), "loop");
         try (Scope innerScope = innerSpan.makeCurrent()) {
           final long tStart = System.nanoTime();
           try {
@@ -529,8 +528,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
            * are no longer referenced in the metadata table before running
            * GarbageCollectWriteAheadLogs to ensure we delete as many files as possible.
            */
-          Span replSpan =
-              TraceUtil.createSpan(this.getClass(), "replicationClose", SpanKind.SERVER);
+          Span replSpan = TraceUtil.startSpan(this.getClass(), "replicationClose");
           try (Scope replScope = replSpan.makeCurrent()) {
             CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(getContext());
             closeWals.run();
@@ -542,7 +540,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           }
 
           // Clean up any unused write-ahead logs
-          Span walSpan = TraceUtil.createSpan(this.getClass(), "walogs", SpanKind.SERVER);
+          Span walSpan = TraceUtil.startSpan(this.getClass(), "walogs");
           try (Scope walScope = walSpan.makeCurrent()) {
             GarbageCollectWriteAheadLogs walogCollector =
                 new GarbageCollectWriteAheadLogs(getContext(), fs, liveTServerSet, isUsingTrash());

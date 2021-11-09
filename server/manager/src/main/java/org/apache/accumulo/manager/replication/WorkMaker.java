@@ -51,7 +51,6 @@ import org.slf4j.LoggerFactory;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.context.Scope;
 
 /**
@@ -77,7 +76,7 @@ public class WorkMaker {
       return;
     }
 
-    Span span = TraceUtil.createSpan(this.getClass(), "replicationWorkMaker", SpanKind.SERVER);
+    Span span = TraceUtil.startSpan(this.getClass(), "replicationWorkMaker");
     try (Scope scope = span.makeCurrent()) {
       final Scanner s;
       try {
@@ -137,8 +136,7 @@ public class WorkMaker {
         if (replicationTargets.isEmpty()) {
           log.warn("No configured targets for table with ID {}", tableId);
         } else {
-          Span childSpan =
-              TraceUtil.createSpan(this.getClass(), "createWorkMutations", SpanKind.SERVER);
+          Span childSpan = TraceUtil.startSpan(this.getClass(), "createWorkMutations");
           try (Scope childScope = childSpan.makeCurrent()) {
             addWorkRecord(file, entry.getValue(), replicationTargets, tableId);
           } catch (Exception e) {

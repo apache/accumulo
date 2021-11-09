@@ -53,7 +53,6 @@ public class ClusterConfigParserTest {
     assertEquals("localhost1 localhost2", contents.get("manager"));
     assertTrue(contents.containsKey("monitor"));
     assertEquals("localhost1 localhost2", contents.get("monitor"));
-    assertFalse(contents.containsKey("tracer"));
     assertTrue(contents.containsKey("gc"));
     assertEquals("localhost", contents.get("gc"));
     assertTrue(contents.containsKey("tserver"));
@@ -79,7 +78,6 @@ public class ClusterConfigParserTest {
     assertEquals("localhost1 localhost2", contents.get("manager"));
     assertTrue(contents.containsKey("monitor"));
     assertEquals("localhost1 localhost2", contents.get("monitor"));
-    assertFalse(contents.containsKey("tracer"));
     assertTrue(contents.containsKey("gc"));
     assertEquals("localhost", contents.get("gc"));
     assertTrue(contents.containsKey("tserver"));
