@@ -21,6 +21,7 @@ package org.apache.accumulo.core.spi.fs;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.slf4j.Logger;
@@ -110,9 +111,10 @@ public class PerTableVolumeChooser implements VolumeChooser {
       clazz = env.getServiceEnv().getConfiguration().getCustom(DEFAULT_SCOPED_VOLUME_CHOOSER);
 
       if (clazz == null || clazz.isEmpty()) {
-        String msg =
-            "Property " + property + " or " + DEFAULT_SCOPED_VOLUME_CHOOSER + " must be a valid "
-                + VolumeChooser.class.getSimpleName() + " to use the " + getClass().getSimpleName();
+        String msg = "Property " + Property.TABLE_ARBITRARY_PROP_PREFIX + property + " or "
+            + Property.GENERAL_ARBITRARY_PROP_PREFIX + DEFAULT_SCOPED_VOLUME_CHOOSER
+            + " must be a valid " + VolumeChooser.class.getSimpleName() + " to use the "
+            + getClass().getSimpleName();
         throw new RuntimeException(msg);
       }
 
