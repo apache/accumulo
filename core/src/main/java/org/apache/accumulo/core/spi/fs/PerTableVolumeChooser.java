@@ -87,7 +87,8 @@ public class PerTableVolumeChooser implements VolumeChooser {
     }
 
     if (clazz == null || clazz.isEmpty()) {
-      String msg = "Property " + TABLE_CUSTOM_SUFFIX + " or " + DEFAULT_SCOPED_VOLUME_CHOOSER
+      String msg = "Property " + Property.TABLE_ARBITRARY_PROP_PREFIX + TABLE_CUSTOM_SUFFIX + " or "
+          + Property.GENERAL_ARBITRARY_PROP_PREFIX + DEFAULT_SCOPED_VOLUME_CHOOSER
           + " must be a valid " + VolumeChooser.class.getSimpleName() + " to use the "
           + getClass().getSimpleName();
       throw new RuntimeException(msg);
@@ -107,7 +108,8 @@ public class PerTableVolumeChooser implements VolumeChooser {
     // fall back to global default scope if this scope isn't configured (and not already default
     // scope)
     if ((clazz == null || clazz.isEmpty()) && scope != Scope.DEFAULT) {
-      log.debug("{} not found; using {}", property, DEFAULT_SCOPED_VOLUME_CHOOSER);
+      log.debug("{} not found; using {}", Property.TABLE_ARBITRARY_PROP_PREFIX + property,
+          Property.GENERAL_ARBITRARY_PROP_PREFIX + DEFAULT_SCOPED_VOLUME_CHOOSER);
       clazz = env.getServiceEnv().getConfiguration().getCustom(DEFAULT_SCOPED_VOLUME_CHOOSER);
 
       if (clazz == null || clazz.isEmpty()) {
