@@ -64,19 +64,6 @@
   </property>
 
   <property>
-    <name>trace.password</name>
-      <!-- 
-        change this to the root user's password, and/or change the user below 
-       -->
-    <value>secret</value>
-  </property>
-
-  <property>
-    <name>trace.user</name>
-    <value>root</value>
-  </property>
-
-  <property>
     <name>tserver.sort.buffer.size</name>
     <value>50M</value>
   </property>

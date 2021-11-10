@@ -20,9 +20,7 @@ package org.apache.accumulo.test.compaction;
 
 import static org.junit.Assert.assertTrue;
 
-import java.security.SecureRandom;
 import java.util.Map;
-import java.util.Random;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -76,16 +74,15 @@ public class CompactionRateLimitingIT extends ConfigurableMacBase {
 
         client.tableOperations().create(tableName, ntc);
         try (BatchWriter bw = client.createBatchWriter(tableName)) {
-          Random r = new SecureRandom();
           while (bytesWritten < BYTES_TO_WRITE) {
             byte[] rowKey = new byte[32];
-            r.nextBytes(rowKey);
+            random.nextBytes(rowKey);
 
             byte[] qual = new byte[32];
-            r.nextBytes(qual);
+            random.nextBytes(qual);
 
             byte[] value = new byte[1024];
-            r.nextBytes(value);
+            random.nextBytes(value);
 
             Mutation m = new Mutation(rowKey);
             m.put(new byte[0], qual, value);

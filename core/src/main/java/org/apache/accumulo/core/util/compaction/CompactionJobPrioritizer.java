@@ -30,25 +30,28 @@ public class CompactionJobPrioritizer {
       Comparator.comparingInt(CompactionJob::getPriority)
           .thenComparingInt(job -> job.getFiles().size()).reversed();
 
-  public static short createPriority(CompactionKind kind, int totalFiles) {
+  public static short createPriority(CompactionKind kind, int totalFiles, int compactingFiles) {
+
+    int prio = totalFiles + compactingFiles;
+
     switch (kind) {
       case USER:
       case CHOP:
         // user-initiated compactions will have a positive priority
         // based on number of files
-        if (totalFiles > Short.MAX_VALUE) {
+        if (prio > Short.MAX_VALUE) {
           return Short.MAX_VALUE;
         }
-        return (short) totalFiles;
+        return (short) prio;
       case SELECTOR:
       case SYSTEM:
         // system-initiated compactions will have a negative priority
         // starting at -32768 and increasing based on number of files
         // maxing out at -1
-        if (totalFiles > Short.MAX_VALUE) {
+        if (prio > Short.MAX_VALUE) {
           return -1;
         } else {
-          return (short) (Short.MIN_VALUE + totalFiles);
+          return (short) (Short.MIN_VALUE + prio);
         }
       default:
         throw new AssertionError("Unknown kind " + kind);

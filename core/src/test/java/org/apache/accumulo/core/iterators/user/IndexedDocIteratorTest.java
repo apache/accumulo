@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -47,6 +46,7 @@ import org.junit.Test;
 
 public class IndexedDocIteratorTest {
 
+  private static final SecureRandom random = new SecureRandom();
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
   private static final byte[] nullByte = {0};
 
@@ -69,7 +69,6 @@ public class IndexedDocIteratorTest {
       Text[] columnFamilies, Text[] otherColumnFamilies, HashSet<Text> docs,
       Text[] negatedColumns) {
     StringBuilder sb = new StringBuilder();
-    Random r = new SecureRandom();
     Value v = new Value();
     TreeMap<Key,Value> map = new TreeMap<>();
     boolean[] negateMask = new boolean[columnFamilies.length];
@@ -94,7 +93,7 @@ public class IndexedDocIteratorTest {
         doc.append(nullByte, 0, 1);
         doc.append(String.format("%010d", docid).getBytes(), 0, 10);
         for (int j = 0; j < columnFamilies.length; j++) {
-          if (r.nextFloat() < hitRatio) {
+          if (random.nextFloat() < hitRatio) {
             Text colq = new Text(columnFamilies[j]);
             colq.append(nullByte, 0, 1);
             colq.append(doc.getBytes(), 0, doc.getLength());
@@ -117,7 +116,7 @@ public class IndexedDocIteratorTest {
           docs.add(doc);
         }
         for (Text cf : otherColumnFamilies) {
-          if (r.nextFloat() < hitRatio) {
+          if (random.nextFloat() < hitRatio) {
             Text colq = new Text(cf);
             colq.append(nullByte, 0, 1);
             colq.append(doc.getBytes(), 0, doc.getLength());

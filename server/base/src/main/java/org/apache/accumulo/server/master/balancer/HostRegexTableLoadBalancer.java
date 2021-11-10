@@ -29,7 +29,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -92,6 +91,7 @@ import com.google.common.collect.Multimap;
 @Deprecated(since = "2.1.0")
 public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
+  private static final SecureRandom random = new SecureRandom();
   private static final String PROP_PREFIX = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
 
   private static final Logger LOG = LoggerFactory.getLogger(HostRegexTableLoadBalancer.class);
@@ -426,7 +426,6 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
               if (outOfBoundsTablets == null) {
                 continue;
               }
-              Random random = new SecureRandom();
               for (TabletStats ts : outOfBoundsTablets) {
                 KeyExtent ke = KeyExtent.fromThrift(ts.getExtent());
                 if (migrations.contains(ke)) {

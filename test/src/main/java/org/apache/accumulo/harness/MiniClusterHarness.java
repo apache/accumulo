@@ -207,10 +207,6 @@ public class MiniClusterHarness {
     cfg.setProperty(Property.INSTANCE_SECURITY_AUTHORIZOR, KerberosAuthorizor.class.getName());
     cfg.setProperty(Property.INSTANCE_SECURITY_PERMISSION_HANDLER,
         KerberosPermissionHandler.class.getName());
-    // Piggy-back on the "system user" credential, but use it as a normal KerberosToken, not the
-    // SystemToken.
-    cfg.setProperty(Property.TRACE_USER, serverUser.getPrincipal());
-    cfg.setProperty(Property.TRACE_TOKEN_TYPE, KerberosToken.CLASS_NAME);
 
     // Pass down some KRB5 debug properties
     Map<String,String> systemProperties = cfg.getSystemProperties();

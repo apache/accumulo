@@ -23,7 +23,6 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Random;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.ByteSequence;
@@ -44,7 +43,7 @@ import org.slf4j.LoggerFactory;
 public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
   private static final Logger log = LoggerFactory.getLogger(IsolatedDeepCopiesTestCase.class);
 
-  private final Random random = new SecureRandom();
+  private static final SecureRandom random = new SecureRandom();
 
   @Override
   public IteratorTestOutput test(IteratorTestInput testInput) {

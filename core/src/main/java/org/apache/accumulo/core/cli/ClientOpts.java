@@ -35,10 +35,6 @@ import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.htrace.NullScope;
-import org.apache.htrace.Sampler;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
@@ -179,11 +175,6 @@ public class ClientOpts extends Help {
 
   public Map<String,String> getOverrides() {
     return ConfigOpts.getOverrides(overrides);
-  }
-
-  public TraceScope parseArgsAndTrace(String programName, String[] args, Object... others) {
-    parseArgs(programName, args, others);
-    return trace ? Trace.startSpan(programName, Sampler.ALWAYS) : NullScope.INSTANCE;
   }
 
   @Override

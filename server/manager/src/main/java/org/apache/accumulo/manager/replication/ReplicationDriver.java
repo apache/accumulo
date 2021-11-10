@@ -24,11 +24,11 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.manager.Manager;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
-import org.apache.htrace.impl.ProbabilitySampler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 /**
  * Daemon wrapper around the {@link WorkMaker} that separates it from the Manager
@@ -53,8 +53,6 @@ public class ReplicationDriver implements Runnable {
 
   @Override
   public void run() {
-    ProbabilitySampler sampler =
-        TraceUtil.probabilitySampler(conf.getFraction(Property.REPLICATION_TRACE_PERCENT));
 
     long millisToWait = conf.getTimeInMillis(Property.REPLICATION_DRIVER_DELAY);
     log.debug("Waiting {}ms before starting main replication loop", millisToWait);
@@ -71,7 +69,8 @@ public class ReplicationDriver implements Runnable {
         rcrr = new RemoveCompleteReplicationRecords(client);
       }
 
-      try (TraceScope replicationDriver = Trace.startSpan("managerReplicationDriver", sampler)) {
+      Span span = TraceUtil.startSpan(this.getClass(), "managerReplicationDriver");
+      try (Scope scope = span.makeCurrent()) {
 
         // Make status markers from replication records in metadata, removing entries in
         // metadata which are no longer needed (closed records)
@@ -79,6 +78,7 @@ public class ReplicationDriver implements Runnable {
         try {
           statusMaker.run();
         } catch (Exception e) {
+          TraceUtil.setException(span, e, false);
           log.error("Caught Exception trying to create Replication status records", e);
         }
 
@@ -86,6 +86,7 @@ public class ReplicationDriver implements Runnable {
         try {
           workMaker.run();
         } catch (Exception e) {
+          TraceUtil.setException(span, e, false);
           log.error("Caught Exception trying to create Replication work records", e);
         }
 
@@ -93,6 +94,7 @@ public class ReplicationDriver implements Runnable {
         try {
           finishedWorkUpdater.run();
         } catch (Exception e) {
+          TraceUtil.setException(span, e, false);
           log.error(
               "Caught Exception trying to update Replication records using finished work records",
               e);
@@ -104,9 +106,15 @@ public class ReplicationDriver implements Runnable {
         try {
           rcrr.run();
         } catch (Exception e) {
+          TraceUtil.setException(span, e, false);
           log.error("Caught Exception trying to remove finished Replication records", e);
         }
 
+      } catch (Exception e) {
+        TraceUtil.setException(span, e, true);
+        throw e;
+      } finally {
+        span.end();
       }
 
       // Sleep for a bit

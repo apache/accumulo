@@ -73,14 +73,13 @@ import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
-import org.apache.htrace.impl.ProbabilitySampler;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 @Deprecated
 public class AccumuloReplicaSystem implements ReplicaSystem {
@@ -201,9 +200,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   private Status _replicate(final Path p, final Status status, final ReplicationTarget target,
       final ReplicaSystemHelper helper, final AccumuloConfiguration localConf,
       final ClientContext peerContext, final UserGroupInformation accumuloUgi) {
-    double tracePercent = localConf.getFraction(Property.REPLICATION_TRACE_PERCENT);
-    ProbabilitySampler sampler = TraceUtil.probabilitySampler(tracePercent);
-    try (TraceScope replicaSpan = Trace.startSpan("AccumuloReplicaSystem", sampler)) {
+
+    Span span = TraceUtil.startSpan(this.getClass(), "_replicate");
+    try (Scope replicaScope = span.makeCurrent()) {
 
       // Remote identifier is an integer (table id) in this case.
       final String remoteTableId = target.getRemoteIdentifier();
@@ -215,7 +214,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         log.debug("Attempt {}", i);
         String peerTserverStr;
         log.debug("Fetching peer tserver address");
-        try (TraceScope span = Trace.startSpan("Fetch peer tserver")) {
+        Span span2 = TraceUtil.startSpan(this.getClass(), "_replicate::Fetch peer tserver");
+        try (Scope scope = span2.makeCurrent()) {
           // Ask the manager on the remote what TServer we should talk with to replicate the data
           peerTserverStr = ReplicationClient.executeCoordinatorWithReturn(peerContext,
               client -> client.getServicerAddress(remoteTableId, peerContext.rpcCreds()));
@@ -224,7 +224,13 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           log.error(
               "Could not connect to manager at {}, cannot proceed with replication. Will retry",
               target, e);
+          TraceUtil.setException(span2, e, false);
           continue;
+        } catch (Exception e) {
+          TraceUtil.setException(span2, e, true);
+          throw e;
+        } finally {
+          span2.end();
         }
 
         if (peerTserverStr == null) {
@@ -243,13 +249,25 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         final long sizeLimit = conf.getAsBytes(Property.REPLICATION_MAX_UNIT_SIZE);
         try {
           if (p.getName().endsWith(RFILE_SUFFIX)) {
-            try (TraceScope span = Trace.startSpan("RFile replication")) {
+            Span span3 = TraceUtil.startSpan(this.getClass(), "_replicate::RFile replication");
+            try (Scope scope = span3.makeCurrent()) {
               finalStatus = replicateRFiles(peerContext, peerTserver, target, p, status, timeout);
+            } catch (Exception e) {
+              TraceUtil.setException(span3, e, true);
+              throw e;
+            } finally {
+              span3.end();
             }
           } else {
-            try (TraceScope span = Trace.startSpan("WAL replication")) {
+            Span span4 = TraceUtil.startSpan(this.getClass(), "_replicate::WAL replication");
+            try (Scope scope = span4.makeCurrent()) {
               finalStatus = replicateLogs(peerContext, peerTserver, target, p, status, sizeLimit,
                   remoteTableId, peerContext.rpcCreds(), helper, accumuloUgi, timeout);
+            } catch (Exception e) {
+              TraceUtil.setException(span4, e, true);
+              throw e;
+            } finally {
+              span4.end();
             }
           }
 
@@ -259,6 +277,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           return finalStatus;
         } catch (TTransportException | AccumuloException | AccumuloSecurityException e) {
           log.warn("Could not connect to remote server {}, will retry", peerTserverStr, e);
+          TraceUtil.setException(span, e, false);
           sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
       }
@@ -268,6 +287,11 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
       // We made no status, punt on it for now, and let it re-queue itself for work
       return status;
+    } catch (Exception e) {
+      TraceUtil.setException(span, e, true);
+      throw e;
+    } finally {
+      span.end();
     }
   }
 
@@ -324,10 +348,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     try (final FSDataInputStream fsinput = context.getVolumeManager().open(p);
         final DataInputStream input = getWalStream(p, fsinput)) {
       log.debug("Skipping unwanted data in WAL");
-      try (TraceScope span = Trace.startSpan("Consume WAL prefix")) {
-        if (span.getSpan() != null) {
-          span.getSpan().addKVAnnotation("file", p.toString());
-        }
+      Span span = TraceUtil.startSpan(this.getClass(), "replicateLogs::Consume WAL prefix");
+      try (Scope scope = span.makeCurrent()) {
+        span.setAttribute("file", p.toString());
         // We want to read all records in the WAL up to the "begin" offset contained in the Status
         // message,
         // building a Set of tids from DEFINE_TABLET events which correspond to table ids for future
@@ -335,7 +358,13 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         tids = consumeWalPrefix(target, input, status);
       } catch (IOException e) {
         log.warn("Unexpected error consuming file.");
+        TraceUtil.setException(span, e, false);
         return status;
+      } catch (Exception e) {
+        TraceUtil.setException(span, e, true);
+        throw e;
+      } finally {
+        span.end();
       }
 
       log.debug("Sending batches of data to peer tserver");
@@ -344,15 +373,13 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
       while (true) {
         ReplicationStats replResult;
-        try (TraceScope span = Trace.startSpan("Replicate WAL batch")) {
-          if (span.getSpan() != null) {
-            // Set some trace context
-            span.getSpan().addKVAnnotation("Batch size (bytes)", Long.toString(sizeLimit));
-            span.getSpan().addKVAnnotation("File", p.toString());
-            span.getSpan().addKVAnnotation("Peer instance name", peerContext.getInstanceName());
-            span.getSpan().addKVAnnotation("Peer tserver", peerTserver.toString());
-            span.getSpan().addKVAnnotation("Remote table ID", remoteTableId);
-          }
+        Span span2 = TraceUtil.startSpan(this.getClass(), "replicateLogs::Replicate WAL batch");
+        try (Scope scope = span2.makeCurrent()) {
+          span2.setAttribute("Batch size (bytes)", Long.toString(sizeLimit));
+          span2.setAttribute("File", p.toString());
+          span2.setAttribute("Peer instance name", peerContext.getInstanceName());
+          span2.setAttribute("Peer tserver", peerTserver.toString());
+          span2.setAttribute("Remote table ID", remoteTableId);
 
           // Read and send a batch of mutations
           replResult = ReplicationClient.executeServicerWithReturn(peerContext, peerTserver,
@@ -362,7 +389,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
         } catch (Exception e) {
           log.error("Caught exception replicating data to {} at {}", peerContext.getInstanceName(),
               peerTserver, e);
+          TraceUtil.setException(span2, e, true);
           throw e;
+        } finally {
+          span2.end();
         }
 
         // Catch the overflow
@@ -386,7 +416,9 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           // we can just not record any updates, and it will be picked up again by the work assigner
           return status;
         } else {
-          try (TraceScope span = Trace.startSpan("Update replication table")) {
+          Span span3 =
+              TraceUtil.startSpan(this.getClass(), "replicateLogs::Update replication table");
+          try (Scope scope = span3.makeCurrent()) {
             if (accumuloUgi != null) {
               final Status copy = currentStatus;
               accumuloUgi.doAs((PrivilegedAction<Void>) () -> {
@@ -417,7 +449,13 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
                 "Tried to update status in replication table for {} as"
                     + " {}, but the table did not exist",
                 p, ProtobufUtil.toString(currentStatus), e);
+            TraceUtil.setException(span3, e, true);
             throw new RuntimeException("Replication table did not exist, will retry", e);
+          } catch (Exception e) {
+            TraceUtil.setException(span3, e, true);
+            throw e;
+          } finally {
+            span3.end();
           }
 
           log.debug("Recorded updated status for {}: {}", p, ProtobufUtil.toString(currentStatus));
@@ -441,13 +479,20 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       } else {
         newStatus = Status.newBuilder(status).setBegin(status.getEnd()).build();
       }
-      try (TraceScope span = Trace.startSpan("Update replication table")) {
+      Span span4 = TraceUtil.startSpan(this.getClass(), "replicateLogs::Update replication table");
+      try (Scope scope = span4.makeCurrent()) {
         helper.recordNewStatus(p, newStatus, target);
       } catch (TableNotFoundException tnfe) {
         log.error(
             "Tried to update status in replication table for {} as {}, but the table did not exist",
             p, ProtobufUtil.toString(newStatus), e);
+        TraceUtil.setException(span4, e, true);
         throw new RuntimeException("Replication table did not exist, will retry", e);
+      } catch (Exception ex) {
+        TraceUtil.setException(span4, e, true);
+        throw ex;
+      } finally {
+        span4.end();
       }
       return newStatus;
     } catch (IOException e) {
@@ -559,11 +604,15 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
   public DataInputStream getWalStream(Path p, FSDataInputStream input)
       throws LogHeaderIncompleteException, IOException {
-    try (TraceScope span = Trace.startSpan("Read WAL header")) {
-      if (span.getSpan() != null) {
-        span.getSpan().addKVAnnotation("file", p.toString());
-      }
+    Span span = TraceUtil.startSpan(this.getClass(), "getWalStream::Read WAL header");
+    try (Scope scope = span.makeCurrent()) {
+      span.setAttribute("file", p.toString());
       return DfsLogger.getDecryptingStream(input, conf);
+    } catch (Exception e) {
+      TraceUtil.setException(span, e, true);
+      throw e;
+    } finally {
+      span.end();
     }
   }
 

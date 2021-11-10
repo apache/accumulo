@@ -163,7 +163,7 @@ public class ReplicationMetrics implements MetricsProducer {
         new AtomicInteger(0));
 
     ScheduledExecutorService scheduler =
-        ThreadPools.createScheduledExecutorService(1, "replicationMetricsPoller", false);
+        ThreadPools.createScheduledExecutorService(1, "replicationMetricsPoller");
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
     long minimumRefreshDelay = TimeUnit.SECONDS.toMillis(5);
     scheduler.scheduleAtFixedRate(this::update, minimumRefreshDelay, minimumRefreshDelay,

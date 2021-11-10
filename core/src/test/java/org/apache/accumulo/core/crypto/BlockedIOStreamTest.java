@@ -28,13 +28,15 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Arrays;
-import java.util.Random;
 
 import org.apache.accumulo.core.crypto.streams.BlockedInputStream;
 import org.apache.accumulo.core.crypto.streams.BlockedOutputStream;
 import org.junit.Test;
 
 public class BlockedIOStreamTest {
+
+  private static final SecureRandom random = new SecureRandom();
+
   @Test
   public void testLargeBlockIO() throws IOException {
     writeRead(1024, 2048);
@@ -85,18 +87,17 @@ public class BlockedIOStreamTest {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     // buffer will be size 12
     BlockedOutputStream blockOut = new BlockedOutputStream(baos, 16, 16);
-    Random r = new SecureRandom();
 
     byte[] undersized = new byte[11];
     byte[] perfectSized = new byte[12];
     byte[] overSized = new byte[13];
     byte[] perfectlyOversized = new byte[13];
-    byte filler = (byte) r.nextInt();
+    byte filler = (byte) random.nextInt();
 
-    r.nextBytes(undersized);
-    r.nextBytes(perfectSized);
-    r.nextBytes(overSized);
-    r.nextBytes(perfectlyOversized);
+    random.nextBytes(undersized);
+    random.nextBytes(perfectSized);
+    random.nextBytes(overSized);
+    random.nextBytes(perfectlyOversized);
 
     // 1 block
     blockOut.write(undersized);
@@ -129,13 +130,12 @@ public class BlockedIOStreamTest {
     int blockSize = 16;
     // buffer will be size 12
     BlockedOutputStream blockOut = new BlockedOutputStream(baos, blockSize, blockSize);
-    Random r = new SecureRandom();
 
     int size = 1024 * 1024 * 128;
     byte[] giant = new byte[size];
     byte[] pattern = new byte[1024];
 
-    r.nextBytes(pattern);
+    random.nextBytes(pattern);
 
     for (int i = 0; i < size / 1024; i++) {
       System.arraycopy(pattern, 0, giant, i * 1024, 1024);
