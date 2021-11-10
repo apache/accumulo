@@ -240,37 +240,34 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
         // acquire this write lock. If the transaction has not succeeded or failed,
         // then fail it and return false from this method so that Utils.reserveX()
         // will call this method again and will re-check the prior transactions.
-        boolean result = true;
         while (iterator.hasNext()) {
           Entry<Long,byte[]> e = iterator.next();
           Long txid = e.getKey();
           if (!txid.equals(entry)) {
-            if (store.isReserved(txid)) {
-              result &= false;
-            } else {
-              store.reserve(txid);
-              TStatus status = store.getStatus(txid);
-              if (status.equals(TStatus.FAILED)) {
-                result = false;
-                continue;
-              } else {
-                switch (status) {
-                  case FAILED_IN_PROGRESS:
-                  case IN_PROGRESS:
-                    store.setStatus(txid, TStatus.FAILED_IN_PROGRESS);
-                    result &= false;
-                    break;
-                  default:
-                   log.error("Attempting to fail a transaction in an unhandled state: {}", status);
+            if (store.tryReserve(txid)) {
+              try {
+                TStatus status = store.getStatus(txid);
+                if (status.equals(TStatus.FAILED)) {
+                  continue;
+                } else {
+                  switch (status) {
+                    case FAILED_IN_PROGRESS:
+                    case IN_PROGRESS:
+                      store.setStatus(txid, TStatus.FAILED_IN_PROGRESS);
+                      break;
+                    default:
+                      log.error("Attempting to fail a transaction in an unhandled state: {}",
+                          status);
+                  }
                 }
+              } finally {
+                store.unreserve(txid, 0);
               }
-              store.unreserve(txid, 0);
             }
           } else {
-            return result && txid.equals(entry);
+            break;
           }
         }
-        return result;
       }
       return false;
     }

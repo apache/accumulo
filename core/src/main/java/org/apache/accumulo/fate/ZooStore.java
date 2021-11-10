@@ -232,6 +232,16 @@ public class ZooStore<T> implements TStore<T> {
     }
   }
 
+  public boolean tryReserve(long tid) {
+    synchronized (this) {
+      if (!isReserved(tid)) {
+        reserve(tid);
+        return true;
+      }
+      return false;
+    }
+  }
+
   private void unreserve(long tid) {
     synchronized (this) {
       if (!reserved.remove(tid))
