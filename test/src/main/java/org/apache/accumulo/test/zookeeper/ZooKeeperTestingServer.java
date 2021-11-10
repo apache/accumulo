@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.test.zookeeper;
 
+import static org.apache.accumulo.harness.AccumuloITBase.random;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.SecureRandom;
-import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.curator.test.TestingServer;
@@ -43,8 +43,6 @@ public class ZooKeeperTestingServer implements AutoCloseable {
 
   private TestingServer zkServer;
   private final ZooKeeper zoo;
-
-  private static final Random rand = new SecureRandom();
 
   /**
    * Instantiate a running zookeeper server - this call will block until the server is ready for
@@ -105,7 +103,7 @@ public class ZooKeeperTestingServer implements AutoCloseable {
   private static int getPort() {
     final int minPort = 50_000;
     final int maxPort = 65_000;
-    return rand.nextInt((maxPort - minPort) + 1) + minPort;
+    return random.nextInt((maxPort - minPort) + 1) + minPort;
   }
 
   public ZooKeeper getZooKeeper() {

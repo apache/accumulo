@@ -16,24 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.metrics;
+package org.apache.accumulo.core.spi.trace;
 
-import org.apache.accumulo.server.metrics.Metrics;
+import java.util.function.Supplier;
 
-abstract class TServerMetrics extends Metrics {
+import io.opentelemetry.api.OpenTelemetry;
 
-  protected static final String TSERVER_NAME = "TabletServer";
-
-  protected TServerMetrics(String record) {
-    // this capitalization thing is just to preserve the capitalization difference between the
-    // "general" record and the "TabletServer,sub=General" metrics name that existed in 1.9 without
-    // duplicating too much code; the description, however, did change between 1.9 and 2.0
-    super("TabletServer,sub=" + capitalize(record),
-        "TabletServer " + capitalize(record) + " Metrics", "tserver", record);
-  }
-
-  private static final String capitalize(String word) {
-    return word.substring(0, 1).toUpperCase() + word.substring(1);
-  }
-
-}
+/**
+ * Configures and returns an instance of OpenTelemetry
+ */
+public interface OpenTelemetryFactory extends Supplier<OpenTelemetry> {}

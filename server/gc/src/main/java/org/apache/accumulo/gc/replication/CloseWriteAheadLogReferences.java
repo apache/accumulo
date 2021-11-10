@@ -38,6 +38,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -46,12 +47,13 @@ import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 /**
  * It's impossible to know when all references to a WAL have been removed from the metadata table as
@@ -86,19 +88,25 @@ public class CloseWriteAheadLogReferences implements Runnable {
     }
 
     HashSet<String> closed = null;
-    try (TraceScope findWalsSpan = Trace.startSpan("findReferencedWals")) {
+    Span span = TraceUtil.startSpan(this.getClass(), "findReferencedWals");
+    try (Scope findWalsSpan = span.makeCurrent()) {
       startTime = System.nanoTime();
       closed = getClosedLogs();
       duration = Duration.ofNanos(System.nanoTime() - startTime);
+    } finally {
+      span.end();
     }
 
     log.info("Found {} WALs referenced in metadata in {}", closed.size(), duration);
 
     long recordsClosed = 0;
-    try (TraceScope updateReplicationSpan = Trace.startSpan("updateReplicationTable")) {
+    Span updateReplicationSpan = TraceUtil.startSpan(this.getClass(), "updateReplicationTable");
+    try (Scope updateReplicationScope = updateReplicationSpan.makeCurrent()) {
       startTime = System.nanoTime();
       recordsClosed = updateReplicationEntries(context, closed);
       duration = Duration.ofNanos(System.nanoTime() - startTime);
+    } finally {
+      updateReplicationSpan.end();
     }
 
     log.info("Closed {} WAL replication references in replication table in {}", recordsClosed,

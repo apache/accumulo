@@ -62,7 +62,7 @@ public class ZooStore<T> implements TStore<T> {
   private String lastReserved = "";
   private Set<Long> reserved;
   private Map<Long,Long> defered;
-  private SecureRandom idgenerator;
+  private static final SecureRandom random = new SecureRandom();
   private long statusChangeEvents = 0;
   private int reservationsWaiting = 0;
 
@@ -107,7 +107,6 @@ public class ZooStore<T> implements TStore<T> {
     this.zk = zk;
     this.reserved = new HashSet<>();
     this.defered = new HashMap<>();
-    this.idgenerator = new SecureRandom();
 
     zk.putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
   }
@@ -117,7 +116,7 @@ public class ZooStore<T> implements TStore<T> {
     while (true) {
       try {
         // looking at the code for SecureRandom, it appears to be thread safe
-        long tid = idgenerator.nextLong() & 0x7fffffffffffffffL;
+        long tid = random.nextLong() & 0x7fffffffffffffffL;
         zk.putPersistentData(getTXPath(tid), TStatus.NEW.name().getBytes(UTF_8),
             NodeExistsPolicy.FAIL);
         return tid;

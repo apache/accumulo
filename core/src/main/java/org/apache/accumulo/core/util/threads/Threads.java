@@ -21,6 +21,8 @@ package org.apache.accumulo.core.util.threads;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.OptionalInt;
 
+import io.opentelemetry.context.Context;
+
 public class Threads {
 
   public static Runnable createNamedRunnable(String name, Runnable r) {
@@ -38,7 +40,7 @@ public class Threads {
   }
 
   public static Thread createThread(String name, OptionalInt priority, Runnable r) {
-    Thread thread = new Thread(r, name);
+    Thread thread = new Thread(Context.current().wrap(r), name);
     boolean prioritySet = false;
     if (r instanceof NamedRunnable) {
       NamedRunnable nr = (NamedRunnable) r;

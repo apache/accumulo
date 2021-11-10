@@ -50,10 +50,10 @@ import org.slf4j.LoggerFactory;
 class ZKSecurityTool {
   private static final Logger log = LoggerFactory.getLogger(ZKSecurityTool.class);
   private static final int SALT_LENGTH = 8;
+  private static final SecureRandom random = new SecureRandom();
 
   // Generates a byte array salt of length SALT_LENGTH
   private static byte[] generateSalt() {
-    final SecureRandom random = new SecureRandom();
     byte[] salt = new byte[SALT_LENGTH];
     random.nextBytes(salt);
     return salt;

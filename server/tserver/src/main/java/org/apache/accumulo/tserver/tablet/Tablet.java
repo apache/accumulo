@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -90,6 +91,7 @@ import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanDispatch;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ShutdownUtil;
@@ -130,8 +132,6 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
@@ -140,6 +140,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 /**
  * Provide access to a single row range in a living TabletServer.
@@ -208,17 +210,26 @@ public class Tablet {
 
   private final TabletStatsKeeper timer = new TabletStatsKeeper();
 
-  private final Rate queryRate = new Rate(0.95);
-  private long queryCount = 0;
-
-  private final Rate queryByteRate = new Rate(0.95);
-  private long queryBytes = 0;
-
-  private final Rate ingestRate = new Rate(0.95);
+  /**
+   * Counts are maintained in this object and reported out with the Micrometer metrics via
+   * TabletServerMetricsUtil
+   */
+  private long lookupCount = 0;
+  private long queryResultCount = 0;
+  private long queryResultBytes = 0;
   private long ingestCount = 0;
-
-  private final Rate ingestByteRate = new Rate(0.95);
   private long ingestBytes = 0;
+  private final AtomicLong scannedCount = new AtomicLong(0);
+
+  /**
+   * Rates are calculated here in the Tablet for use in the Monitor but we do not emit them as
+   * metrics. Rates can be calculated from the "Count" metrics above by downstream systems.
+   */
+  private final Rate queryRate = new Rate(0.95);
+  private final Rate queryByteRate = new Rate(0.95);
+  private final Rate ingestRate = new Rate(0.95);
+  private final Rate ingestByteRate = new Rate(0.95);
+  private final Rate scannedRate = new Rate(0.95);
 
   private final Deriver<byte[]> defaultSecurityLabel;
 
@@ -227,9 +238,6 @@ public class Tablet {
 
   private volatile long numEntries = 0;
   private volatile long numEntriesInMemory = 0;
-
-  private final Rate scannedRate = new Rate(0.95);
-  private final AtomicLong scannedCount = new AtomicLong(0);
 
   // Files that are currently in the process of bulk importing. Access to this is protected by the
   // tablet lock.
@@ -663,6 +671,7 @@ public class Tablet {
 
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
+      lookupCount++;
       result = lookup(iter, ranges, results, scanParams, maxResultSize);
       return result;
     } catch (IOException ioe) {
@@ -674,9 +683,9 @@ public class Tablet {
       dataSource.close(false);
 
       synchronized (this) {
-        queryCount += results.size();
+        queryResultCount += results.size();
         if (result != null) {
-          queryBytes += result.dataSize;
+          queryResultBytes += result.dataSize;
         }
       }
     }
@@ -792,19 +801,31 @@ public class Tablet {
     try {
       Thread.currentThread().setName("Minor compacting " + this.extent);
       CompactionStats stats;
-      try (TraceScope span = Trace.startSpan("write")) {
+      Span span = TraceUtil.startSpan(this.getClass(), "minorCompact::write");
+      try (Scope scope = span.makeCurrent()) {
         count = memTable.getNumEntries();
 
         MinorCompactor compactor = new MinorCompactor(tabletServer, this, memTable, tmpDatafile,
             mincReason, tableConfiguration);
         stats = compactor.call();
+      } catch (Exception e) {
+        TraceUtil.setException(span, e, true);
+        throw e;
+      } finally {
+        span.end();
       }
 
-      try (TraceScope span = Trace.startSpan("bringOnline")) {
+      Span span2 = TraceUtil.startSpan(this.getClass(), "minorCompact::bringOnline");
+      try (Scope scope = span2.makeCurrent()) {
         var storedFile = getDatafileManager().bringMinorCompactionOnline(tmpDatafile, newDatafile,
             new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()), commitSession,
             flushId);
-        compactable.filesAdded(true, List.of(storedFile));
+        storedFile.ifPresent(stf -> compactable.filesAdded(true, List.of(stf)));
+      } catch (Exception e) {
+        TraceUtil.setException(span2, e, true);
+        throw e;
+      } finally {
+        span2.end();
       }
 
       return new DataFileValue(stats.getFileSize(), stats.getEntriesWritten());
@@ -837,10 +858,7 @@ public class Tablet {
     otherLogs = currentLogs;
     currentLogs = new HashSet<>();
 
-    double tracePercent =
-        tabletServer.getConfiguration().getFraction(Property.TSERV_MINC_TRACE_PERCENT);
-
-    return new MinorCompactionTask(this, oldCommitSession, flushId, mincReason, tracePercent);
+    return new MinorCompactionTask(this, oldCommitSession, flushId, mincReason);
 
   }
 
@@ -1774,18 +1792,34 @@ public class Tablet {
     return scannedRate.rate();
   }
 
-  public long totalQueries() {
-    return this.queryCount;
+  public long totalQueriesResults() {
+    return this.queryResultCount;
   }
 
   public long totalIngest() {
     return this.ingestCount;
   }
 
+  public long totalIngestBytes() {
+    return this.ingestBytes;
+  }
+
+  public long totalQueryResultsBytes() {
+    return this.queryResultBytes;
+  }
+
+  public long totalScannedCount() {
+    return this.scannedCount.get();
+  }
+
+  public long totalLookupCount() {
+    return this.lookupCount;
+  }
+
   // synchronized?
   public void updateRates(long now) {
-    queryRate.update(now, queryCount);
-    queryByteRate.update(now, queryBytes);
+    queryRate.update(now, queryResultCount);
+    queryByteRate.update(now, queryResultBytes);
     ingestRate.update(now, ingestCount);
     ingestByteRate.update(now, ingestBytes);
     scannedRate.update(now, scannedCount.get());
@@ -2140,8 +2174,8 @@ public class Tablet {
   }
 
   public synchronized void updateQueryStats(int size, long numBytes) {
-    queryCount += size;
-    queryBytes += numBytes;
+    queryResultCount += size;
+    queryResultBytes += numBytes;
   }
 
   public void updateTimer(Operation operation, long queued, long start, long count,
@@ -2171,8 +2205,11 @@ public class Tablet {
 
   }
 
-  public StoredTabletFile updateTabletDataFile(long maxCommittedTime, TabletFile newDatafile,
-      DataFileValue dfv, Set<String> unusedWalLogs, long flushId) {
+  /**
+   * Update tablet file data from flush. Returns a StoredTabletFile if there are data entries.
+   */
+  public Optional<StoredTabletFile> updateTabletDataFile(long maxCommittedTime,
+      TabletFile newDatafile, DataFileValue dfv, Set<String> unusedWalLogs, long flushId) {
     synchronized (timeLock) {
       if (maxCommittedTime > persistedTime) {
         persistedTime = maxCommittedTime;

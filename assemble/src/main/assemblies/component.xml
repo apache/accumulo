@@ -49,6 +49,10 @@
         <include>commons-io:commons-io</include>
         <include>commons-logging:commons-logging</include>
         <include>com.sun.istack:istack-commons-runtime</include>
+        <include>io.opentelemetry:opentelemetry-api</include>
+        <include>io.opentelemetry:opentelemetry-context</include>
+        <include>io.opentelemetry:opentelemetry-semconv</include>
+        <include>io.micrometer:micrometer-core</include>
         <include>jakarta.activation:jakarta.activation-api</include>
         <include>jakarta.annotation:jakarta.annotation-api</include>
         <include>jakarta.el:jakarta.el-api</include>
@@ -64,7 +68,6 @@
         <include>org.apache.commons:commons-text</include>
         <include>org.apache.commons:commons-vfs2</include>
         <include>org.apache.htrace:htrace-core4</include>
-        <include>org.apache.htrace:htrace-core</include>
         <include>org.apache.logging.log4j:log4j-1.2-api</include>
         <include>org.apache.logging.log4j:log4j-api</include>
         <include>org.apache.logging.log4j:log4j-core</include>
@@ -99,10 +102,12 @@
         <include>org.glassfish.jersey.inject:jersey-hk2</include>
         <include>org.glassfish.jersey.media:jersey-media-jaxb</include>
         <include>org.glassfish.jersey.media:jersey-media-json-jackson</include>
+        <include>org.hdrhistogram:HdrHistogram</include>
         <include>org.hibernate.validator:hibernate-validator</include>
         <include>org.javassist:javassist</include>
         <include>org.jboss.logging:jboss-logging</include>
         <include>org.jline:jline</include>
+        <include>org.latencyutils:LatencyUtils</include>
         <include>org.slf4j:slf4j-api</include>
         <include>org.yaml:snakeyaml</include>
       </includes>
