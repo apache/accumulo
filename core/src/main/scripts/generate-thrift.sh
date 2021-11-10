@@ -30,7 +30,7 @@
 #   Use INCLUDED_MODULES=(-) in calling scripts that require no other modules
 # ========================================================================================================================
 [[ -z $REQUIRED_THRIFT_VERSION ]] && REQUIRED_THRIFT_VERSION='0.15.0'
-[[ -z $INCLUDED_MODULES ]]        && INCLUDED_MODULES=(../server/tracer)
+[[ -z $INCLUDED_MODULES ]]        && INCLUDED_MODULES=()
 [[ -z $BASE_OUTPUT_PACKAGE ]]     && BASE_OUTPUT_PACKAGE='org.apache.accumulo.core'
 [[ -z $PACKAGES_TO_GENERATE ]]    && PACKAGES_TO_GENERATE=(gc master manager tabletserver securityImpl clientImpl dataImpl replication trace compaction)
 [[ -z $BUILD_DIR ]]               && BUILD_DIR='target'

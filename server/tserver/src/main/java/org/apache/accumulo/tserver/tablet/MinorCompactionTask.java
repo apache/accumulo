@@ -25,11 +25,11 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.hadoop.fs.Path;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
-import org.apache.htrace.impl.ProbabilitySampler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 class MinorCompactionTask implements Runnable {
 
@@ -41,33 +41,38 @@ class MinorCompactionTask implements Runnable {
   private DataFileValue stats;
   private long flushId;
   private MinorCompactionReason mincReason;
-  private double tracePercent;
 
   MinorCompactionTask(Tablet tablet, CommitSession commitSession, long flushId,
-      MinorCompactionReason mincReason, double tracePercent) {
+      MinorCompactionReason mincReason) {
     this.tablet = tablet;
     queued = System.currentTimeMillis();
     tablet.minorCompactionWaitingToStart();
     this.commitSession = commitSession;
     this.flushId = flushId;
     this.mincReason = mincReason;
-    this.tracePercent = tracePercent;
   }
 
   @Override
   public void run() {
     tablet.minorCompactionStarted();
-    ProbabilitySampler sampler = TraceUtil.probabilitySampler(tracePercent);
     try {
-      try (TraceScope minorCompaction = Trace.startSpan("minorCompaction", sampler)) {
-        try (TraceScope span = Trace.startSpan("waitForCommits")) {
+      Span span = TraceUtil.startSpan(this.getClass(), "minorCompaction");
+      try (Scope scope = span.makeCurrent()) {
+        Span span2 = TraceUtil.startSpan(this.getClass(), "waitForCommits");
+        try (Scope scope2 = span2.makeCurrent()) {
           synchronized (tablet) {
             commitSession.waitForCommitsToFinish();
           }
+        } catch (Exception e) {
+          TraceUtil.setException(span2, e, true);
+          throw e;
+        } finally {
+          span2.end();
         }
         TabletFile newFile = null;
         TabletFile tmpFile = null;
-        try (TraceScope span = Trace.startSpan("start")) {
+        Span span3 = TraceUtil.startSpan(this.getClass(), "start");
+        try (Scope scope3 = span3.makeCurrent()) {
           while (true) {
             try {
               if (newFile == null) {
@@ -94,18 +99,31 @@ class MinorCompactionTask implements Runnable {
 
             }
           }
+        } catch (Exception e) {
+          TraceUtil.setException(span3, e, true);
+          throw e;
+        } finally {
+          span3.end();
         }
-        try (TraceScope span = Trace.startSpan("compact")) {
+        Span span4 = TraceUtil.startSpan(this.getClass(), "compact");
+        try (Scope scope4 = span4.makeCurrent()) {
           this.stats = tablet.minorCompact(tablet.getTabletMemory().getMinCMemTable(), tmpFile,
               newFile, queued, commitSession, flushId, mincReason);
+        } catch (Exception e) {
+          TraceUtil.setException(span4, e, true);
+          throw e;
+        } finally {
+          span4.end();
         }
 
-        if (minorCompaction.getSpan() != null) {
-          minorCompaction.getSpan().addKVAnnotation("extent", tablet.getExtent().toString());
-          minorCompaction.getSpan().addKVAnnotation("numEntries",
-              Long.toString(this.stats.getNumEntries()));
-          minorCompaction.getSpan().addKVAnnotation("size", Long.toString(this.stats.getSize()));
-        }
+        span.setAttribute("extent", tablet.getExtent().toString());
+        span.setAttribute("numEntries", Long.toString(this.stats.getNumEntries()));
+        span.setAttribute("size", Long.toString(this.stats.getSize()));
+      } catch (Exception e) {
+        TraceUtil.setException(span, e, true);
+        throw e;
+      } finally {
+        span.end();
       }
 
       if (tablet.needsSplit()) {

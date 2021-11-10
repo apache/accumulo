@@ -135,36 +135,32 @@ public class ClientThreadPools {
     switch (usage) {
       case BULK_IMPORT_POOL:
         requireNonNull(config.getNumThreads().get(), "Number of threads must be set");
-        return ThreadPools.createFixedThreadPool(config.getNumThreads().get(), "BulkImportThread",
-            false);
+        return ThreadPools.createFixedThreadPool(config.getNumThreads().get(), "BulkImportThread");
       case ACTIVE_EXTERNAL_COMPACTION_POOL:
         requireNonNull(config.getNumThreads().get(), "Number of threads must be set");
         return ThreadPools.createFixedThreadPool(config.getNumThreads().get(),
-            "getactivecompactions", false);
+            "getactivecompactions");
       case SCANNER_READ_AHEAD_POOL:
         return ThreadPools.createThreadPool(0, Integer.MAX_VALUE, 3L, TimeUnit.SECONDS,
-            "Accumulo scanner read ahead thread", new SynchronousQueue<>(), OptionalInt.empty(),
-            false);
+            "Accumulo scanner read ahead thread", new SynchronousQueue<>(), OptionalInt.empty());
       case ADD_SPLITS_THREAD_POOL:
-        return ThreadPools.createFixedThreadPool(16, "addSplits", false);
+        return ThreadPools.createFixedThreadPool(16, "addSplits");
       case BATCH_SCANNER_READ_AHEAD_POOL:
         requireNonNull(config.getNumThreads().get(), "Number of threads must be set");
         requireNonNull(config.getThreadName().get(), "Name of threads must be set");
         return ThreadPools.createFixedThreadPool(config.getNumThreads().get(),
-            "batch scanner " + config.getThreadName().get() + "-", false);
+            "batch scanner " + config.getThreadName().get() + "-");
       case BATCH_WRITER_BINNING_POOL:
-        return ThreadPools.createFixedThreadPool(1, "BinMutations", new SynchronousQueue<>(),
-            false);
+        return ThreadPools.createFixedThreadPool(1, "BinMutations", new SynchronousQueue<>());
       case BATCH_WRITER_SEND_POOL:
         requireNonNull(config.getNumThreads().get(), "Number of threads must be set");
-        return ThreadPools.createFixedThreadPool(config.getNumThreads().get(), "MutationWriter",
-            false);
+        return ThreadPools.createFixedThreadPool(config.getNumThreads().get(), "MutationWriter");
       case BLOOM_FILTER_LAYER_LOADER_POOL:
         requireNonNull(config.getConfiguration().get(), "Configuration must be set");
         return ThreadPools.createThreadPool(0,
-            new ConfigurationCopy(config.getConfiguration().get())
-                .getCount(Property.TSERV_BLOOM_LOAD_MAXCONCURRENT),
-            60, TimeUnit.SECONDS, "bloom-loader", false);
+            new ConfigurationCopy(config.getConfiguration().get()).getCount(
+                Property.TSERV_BLOOM_LOAD_MAXCONCURRENT),
+            60, TimeUnit.SECONDS, "bloom-loader");
       default:
         throw new IllegalArgumentException("Unhandled thread pool usage value: " + usage.name());
     }
@@ -190,7 +186,7 @@ public class ClientThreadPools {
       case CONDITIONAL_WRITER_RETRY_POOL:
         requireNonNull(config.getNumThreads().get(), "Number of threads must be set");
         return ThreadPools.createScheduledExecutorService(config.getNumThreads().get(),
-            "ConiditionalWriterImpl", false);
+            "ConiditionalWriterImpl");
       default:
         throw new IllegalArgumentException("Unhandled thread pool usage value: " + usage.name());
 

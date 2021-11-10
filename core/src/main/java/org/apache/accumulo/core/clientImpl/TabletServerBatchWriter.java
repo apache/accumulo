@@ -76,8 +76,6 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -86,6 +84,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 /*
  * Differences from previous TabletServerBatchWriter
@@ -308,7 +309,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
     if (closed)
       throw new IllegalStateException("Closed");
 
-    try (TraceScope span = Trace.startSpan("flush")) {
+    Span span = TraceUtil.startSpan(this.getClass(), "flush");
+    try (Scope scope = span.makeCurrent()) {
       checkForFailures();
 
       if (flushing) {
@@ -331,6 +333,11 @@ public class TabletServerBatchWriter implements AutoCloseable {
       this.notifyAll();
 
       checkForFailures();
+    } catch (Exception e) {
+      TraceUtil.setException(span, e, true);
+      throw e;
+    } finally {
+      span.end();
     }
   }
 
@@ -340,7 +347,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
     if (closed)
       return;
 
-    try (TraceScope span = Trace.startSpan("close")) {
+    Span span = TraceUtil.startSpan(this.getClass(), "close");
+    try (Scope scope = span.makeCurrent()) {
       closed = true;
 
       startProcessing();
@@ -350,7 +358,11 @@ public class TabletServerBatchWriter implements AutoCloseable {
       logStats();
 
       checkForFailures();
+    } catch (Exception e) {
+      TraceUtil.setException(span, e, true);
+      throw e;
     } finally {
+      span.end();
       // make a best effort to release these resources
       writer.binningThreadPool.shutdownNow();
       writer.binningThreadPoolCleanable.clean();
@@ -727,7 +739,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     void queueMutations(final MutationSet mutationsToSend) {
       if (mutationsToSend == null)
         return;
-      binningThreadPool.execute(Trace.wrap(() -> {
+      binningThreadPool.execute(() -> {
         if (mutationsToSend != null) {
           try {
             log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
@@ -737,16 +749,22 @@ public class TabletServerBatchWriter implements AutoCloseable {
             updateUnknownErrors("Error processing mutation set", e);
           }
         }
-      }));
+      });
     }
 
     private void addMutations(MutationSet mutationsToSend) {
       Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
-      try (TraceScope span = Trace.startSpan("binMutations")) {
+      Span span = TraceUtil.startSpan(this.getClass(), "binMutations");
+      try (Scope scope = span.makeCurrent()) {
         long t1 = System.currentTimeMillis();
         binMutations(mutationsToSend, binnedMutations);
         long t2 = System.currentTimeMillis();
         updateBinningStats(mutationsToSend.size(), (t2 - t1), binnedMutations);
+      } catch (Exception e) {
+        TraceUtil.setException(span, e, true);
+        throw e;
+      } finally {
+        span.end();
       }
       addMutations(binnedMutations);
     }
@@ -789,7 +807,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       for (String server : servers)
         if (!queued.contains(server)) {
-          sendThreadPool.submit(Trace.wrap(new SendTask(server)));
+          sendThreadPool.submit(new SendTask(server));
           queued.add(server);
         }
     }
@@ -850,7 +868,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
               + Joiner.on(',').join(tableIds) + ']';
           Thread.currentThread().setName(msg);
 
-          try (TraceScope span = Trace.startSpan("sendMutations")) {
+          Span span = TraceUtil.startSpan(this.getClass(), "sendMutations");
+          try (Scope scope = span.makeCurrent()) {
 
             TimeoutTracker timeoutTracker = timeoutTrackers.get(location);
             if (timeoutTracker == null) {
@@ -881,6 +900,11 @@ public class TabletServerBatchWriter implements AutoCloseable {
             updateSendStats(count, st2 - st1);
             decrementMemUsed(successBytes);
 
+          } catch (Exception e) {
+            TraceUtil.setException(span, e, true);
+            throw e;
+          } finally {
+            span.end();
           }
         } catch (IOException e) {
           if (log.isTraceEnabled())

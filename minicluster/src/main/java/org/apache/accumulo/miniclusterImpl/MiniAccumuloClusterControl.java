@@ -37,7 +37,6 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
-import org.apache.accumulo.tracer.TraceServer;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.slf4j.Logger;
@@ -56,7 +55,6 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   Process managerProcess = null;
   Process gcProcess = null;
   Process monitor = null;
-  Process tracer = null;
   final List<Process> tabletServerProcesses = new ArrayList<>();
 
   public MiniAccumuloClusterControl(MiniAccumuloClusterImpl cluster) {
@@ -164,11 +162,6 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           monitor = cluster._exec(Monitor.class, server, configOverrides).getProcess();
         }
         break;
-      case TRACER:
-        if (tracer == null) {
-          tracer = cluster._exec(TraceServer.class, server, configOverrides).getProcess();
-        }
-        break;
       default:
         throw new UnsupportedOperationException("Cannot start process for " + server);
     }
@@ -254,19 +247,6 @@ public class MiniAccumuloClusterControl implements ClusterControl {
             Thread.currentThread().interrupt();
           } finally {
             monitor = null;
-          }
-        }
-        break;
-      case TRACER:
-        if (tracer != null) {
-          try {
-            cluster.stopProcessWithTimeout(tracer, 30, TimeUnit.SECONDS);
-          } catch (ExecutionException | TimeoutException e) {
-            log.warn("Tracer did not fully stop after 30 seconds", e);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-          } finally {
-            tracer = null;
           }
         }
         break;

@@ -84,7 +84,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Trace;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -316,7 +315,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       serverQueue.queue.add(mutations);
       // never execute more than one task per server
       if (!serverQueue.taskQueued) {
-        threadPool.execute(Trace.wrap(new SendTask(location)));
+        threadPool.execute(new SendTask(location));
         serverQueue.taskQueued = true;
       }
     }
@@ -336,7 +335,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       if (serverQueue.queue.isEmpty())
         serverQueue.taskQueued = false;
       else
-        threadPool.execute(Trace.wrap(task));
+        threadPool.execute(task);
     }
 
   }

@@ -44,8 +44,6 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,30 +65,6 @@ public class CleanWalIT extends AccumuloClusterHarness {
     cfg.setNumTservers(1);
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-  }
-
-  @Before
-  public void offlineTraceTable() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String traceTable =
-          client.instanceOperations().getSystemConfiguration().get(Property.TRACE_TABLE.getKey());
-      if (client.tableOperations().exists(traceTable)) {
-        client.tableOperations().offline(traceTable, true);
-      }
-    }
-  }
-
-  @After
-  public void onlineTraceTable() throws Exception {
-    if (cluster != null) {
-      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-        String traceTable =
-            client.instanceOperations().getSystemConfiguration().get(Property.TRACE_TABLE.getKey());
-        if (client.tableOperations().exists(traceTable)) {
-          client.tableOperations().online(traceTable, true);
-        }
-      }
-    }
   }
 
   // test for ACCUMULO-1830

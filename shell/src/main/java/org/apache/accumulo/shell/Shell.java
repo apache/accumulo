@@ -28,7 +28,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.net.InetAddress;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
@@ -354,8 +353,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         }
       }
       try {
-        TraceUtil.enableClientTraces(InetAddress.getLocalHost().getHostName(), "shell",
-            clientProperties);
+        TraceUtil.initializeTracer(clientProperties);
         this.setTableName("");
         accumuloClient = Accumulo.newClient().from(clientProperties).as(principal, token).build();
         context = (ClientContext) accumuloClient;
@@ -528,7 +526,6 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       System.exit(start());
     } finally {
       shutdown();
-      TraceUtil.disable();
     }
   }
 

@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -42,12 +43,14 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.htrace.TraceScope;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
 import com.beust.jcommander.Parameter;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class ChangeSecret {
 
@@ -63,18 +66,21 @@ public class ChangeSecret {
   public static void main(String[] args) throws Exception {
     var siteConfig = SiteConfiguration.auto();
     var hadoopConf = new Configuration();
-    Opts opts = new Opts();
-    List<String> argsList = new ArrayList<>(args.length + 2);
-    argsList.add("--old");
-    argsList.add("--new");
-    argsList.addAll(Arrays.asList(args));
-    try (TraceScope clientSpan =
-        opts.parseArgsAndTrace(ChangeSecret.class.getName(), argsList.toArray(new String[0]))) {
 
-      ServerContext context = opts.getServerContext();
-      try (var fs = context.getVolumeManager()) {
-        ServerDirs serverDirs = new ServerDirs(siteConfig, hadoopConf);
-        verifyHdfsWritePermission(serverDirs, fs);
+    Opts opts = new Opts();
+    ServerContext context = opts.getServerContext();
+    try (var fs = context.getVolumeManager()) {
+      ServerDirs serverDirs = new ServerDirs(siteConfig, hadoopConf);
+      verifyHdfsWritePermission(serverDirs, fs);
+
+      List<String> argsList = new ArrayList<>(args.length + 2);
+      argsList.add("--old");
+      argsList.add("--new");
+      argsList.addAll(Arrays.asList(args));
+
+      opts.parseArgs(ChangeSecret.class.getName(), args);
+      Span span = TraceUtil.startSpan(ChangeSecret.class, "main");
+      try (Scope scope = span.makeCurrent()) {
 
         verifyAccumuloIsDown(context, opts.oldPass);
 
@@ -86,6 +92,8 @@ public class ChangeSecret {
         }
         System.out.println("New instance id is " + newInstanceId);
         System.out.println("Be sure to put your new secret in accumulo.properties");
+      } finally {
+        span.end();
       }
     }
   }
