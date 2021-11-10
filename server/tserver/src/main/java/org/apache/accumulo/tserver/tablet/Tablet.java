@@ -158,8 +158,6 @@ public class Tablet {
   private final TableConfiguration tableConfiguration;
   private final String dirName;
 
-  private final AtomicLong updateCounter = new AtomicLong(0L);
-
   private final TabletMemory tabletMemory;
 
   private final TabletTime tabletTime;
@@ -877,7 +875,6 @@ public class Tablet {
         } else {
           initiateMinor = true;
         }
-        updateCounter.getAndIncrement();
       }
 
       if (updateMetadata) {
@@ -1411,10 +1408,13 @@ public class Tablet {
     }
   }
 
-  public void compareTabletInfo(Pair<Long,TabletMetadata> tabletInfo) {
+  public synchronized void compareTabletInfo(Long updateCounter, TabletMetadata tabletMetadata) {
+    if (isClosed() || isClosing()) {
+      return;
+    }
     // if the counter didn't change, compare metadata to what is in memory
-    if (tabletInfo.getFirst() == this.getUpdateCounter()) {
-      this.compareToDataInMemory(tabletInfo.getSecond());
+    if (updateCounter == this.getUpdateCounter()) {
+      this.compareToDataInMemory(tabletMetadata);
     }
     // if counter did change, don't compare metadata and try again later
   }
@@ -2210,6 +2210,10 @@ public class Tablet {
     return datafileManager;
   }
 
+  public long getUpdateCounter() {
+    return getDatafileManager().getUpdateCounter();
+  }
+
   TabletMemory getTabletMemory() {
     return tabletMemory;
   }
@@ -2290,10 +2294,6 @@ public class Tablet {
 
   public String getDirName() {
     return dirName;
-  }
-
-  public long getUpdateCounter() {
-    return updateCounter.get();
   }
 
   public Compactable asCompactable() {

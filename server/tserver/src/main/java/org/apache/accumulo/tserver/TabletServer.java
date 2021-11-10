@@ -71,8 +71,10 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -793,22 +795,18 @@ public class TabletServer extends AbstractServer {
 
     ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
       final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
-      final SortedMap<KeyExtent,Pair<Long,TabletMetadata>> tabletValidationInfo = new TreeMap<>();
 
-      // gather update counters and metadata for all tablets
-      for (var entry : onlineTabletsSnapshot.entrySet()) {
-        KeyExtent keyExtent = entry.getKey();
-        Long counter = entry.getValue().getUpdateCounter();
-        TabletMetadata tm = getContext().getAmple().readTablet(keyExtent,
-            TabletMetadata.ColumnType.FILES, TabletMetadata.ColumnType.LOGS,
-            TabletMetadata.ColumnType.ECOMP, TabletMetadata.ColumnType.PREV_ROW);
-        tabletValidationInfo.put(keyExtent, new Pair<>(counter, tm));
-      }
-
-      // compare gathered info
-      for (var entry : tabletValidationInfo.entrySet()) {
-        Tablet tablet = onlineTabletsSnapshot.get(entry.getKey());
-        tablet.compareTabletInfo(entry.getValue());
+      // gather metadata for all tablets then compare
+      try (TabletsMetadata tabletsMetadata =
+          getContext().getAmple().readTablets().forTablets(onlineTabletsSnapshot.keySet())
+              .fetch(ColumnType.FILES, ColumnType.LOGS, ColumnType.ECOMP, ColumnType.PREV_ROW)
+              .build()) {
+        for (TabletMetadata tabletMetadata : tabletsMetadata) {
+          KeyExtent extent = tabletMetadata.getExtent();
+          Tablet tablet = onlineTabletsSnapshot.get(extent);
+          Long counter = tablet.getUpdateCounter();
+          tablet.compareTabletInfo(counter, tabletMetadata);
+        }
       }
     }, 1, 1, TimeUnit.MINUTES);
 
