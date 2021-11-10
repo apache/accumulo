@@ -29,30 +29,24 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TExternalCompaction");
 
   private static final org.apache.thrift.protocol.TField QUEUE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("queueName", org.apache.thrift.protocol.TType.STRING, (short)1);
-  private static final org.apache.thrift.protocol.TField EXTENT_FIELD_DESC = new org.apache.thrift.protocol.TField("extent", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-  private static final org.apache.thrift.protocol.TField FILES_FIELD_DESC = new org.apache.thrift.protocol.TField("files", org.apache.thrift.protocol.TType.LIST, (short)3);
-  private static final org.apache.thrift.protocol.TField OUTPUT_FILE_FIELD_DESC = new org.apache.thrift.protocol.TField("outputFile", org.apache.thrift.protocol.TType.STRING, (short)4);
-  private static final org.apache.thrift.protocol.TField COMPACTOR_FIELD_DESC = new org.apache.thrift.protocol.TField("compactor", org.apache.thrift.protocol.TType.STRING, (short)5);
-  private static final org.apache.thrift.protocol.TField UPDATES_FIELD_DESC = new org.apache.thrift.protocol.TField("updates", org.apache.thrift.protocol.TType.MAP, (short)6);
+  private static final org.apache.thrift.protocol.TField COMPACTOR_FIELD_DESC = new org.apache.thrift.protocol.TField("compactor", org.apache.thrift.protocol.TType.STRING, (short)2);
+  private static final org.apache.thrift.protocol.TField UPDATES_FIELD_DESC = new org.apache.thrift.protocol.TField("updates", org.apache.thrift.protocol.TType.MAP, (short)3);
+  private static final org.apache.thrift.protocol.TField JOB_FIELD_DESC = new org.apache.thrift.protocol.TField("job", org.apache.thrift.protocol.TType.STRUCT, (short)4);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TExternalCompactionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TExternalCompactionTupleSchemeFactory();
 
   public @org.apache.thrift.annotation.Nullable java.lang.String queueName; // required
-  public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.tabletserver.thrift.InputFile> files; // required
-  public @org.apache.thrift.annotation.Nullable java.lang.String outputFile; // required
   public @org.apache.thrift.annotation.Nullable java.lang.String compactor; // required
   public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.Long,TCompactionStatusUpdate> updates; // required
+  public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob job; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     QUEUE_NAME((short)1, "queueName"),
-    EXTENT((short)2, "extent"),
-    FILES((short)3, "files"),
-    OUTPUT_FILE((short)4, "outputFile"),
-    COMPACTOR((short)5, "compactor"),
-    UPDATES((short)6, "updates");
+    COMPACTOR((short)2, "compactor"),
+    UPDATES((short)3, "updates"),
+    JOB((short)4, "job");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -70,16 +64,12 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
       switch(fieldId) {
         case 1: // QUEUE_NAME
           return QUEUE_NAME;
-        case 2: // EXTENT
-          return EXTENT;
-        case 3: // FILES
-          return FILES;
-        case 4: // OUTPUT_FILE
-          return OUTPUT_FILE;
-        case 5: // COMPACTOR
+        case 2: // COMPACTOR
           return COMPACTOR;
-        case 6: // UPDATES
+        case 3: // UPDATES
           return UPDATES;
+        case 4: // JOB
+          return JOB;
         default:
           return null;
       }
@@ -126,19 +116,14 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.QUEUE_NAME, new org.apache.thrift.meta_data.FieldMetaData("queueName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.EXTENT, new org.apache.thrift.meta_data.FieldMetaData("extent", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent.class)));
-    tmpMap.put(_Fields.FILES, new org.apache.thrift.meta_data.FieldMetaData("files", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.tabletserver.thrift.InputFile.class))));
-    tmpMap.put(_Fields.OUTPUT_FILE, new org.apache.thrift.meta_data.FieldMetaData("outputFile", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.COMPACTOR, new org.apache.thrift.meta_data.FieldMetaData("compactor", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.UPDATES, new org.apache.thrift.meta_data.FieldMetaData("updates", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64), 
             new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TCompactionStatusUpdate.class))));
+    tmpMap.put(_Fields.JOB, new org.apache.thrift.meta_data.FieldMetaData("job", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob.class)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TExternalCompaction.class, metaDataMap);
   }
@@ -148,19 +133,15 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
 
   public TExternalCompaction(
     java.lang.String queueName,
-    org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent,
-    java.util.List<org.apache.accumulo.core.tabletserver.thrift.InputFile> files,
-    java.lang.String outputFile,
     java.lang.String compactor,
-    java.util.Map<java.lang.Long,TCompactionStatusUpdate> updates)
+    java.util.Map<java.lang.Long,TCompactionStatusUpdate> updates,
+    org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob job)
   {
     this();
     this.queueName = queueName;
-    this.extent = extent;
-    this.files = files;
-    this.outputFile = outputFile;
     this.compactor = compactor;
     this.updates = updates;
+    this.job = job;
   }
 
   /**
@@ -169,19 +150,6 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
   public TExternalCompaction(TExternalCompaction other) {
     if (other.isSetQueueName()) {
       this.queueName = other.queueName;
-    }
-    if (other.isSetExtent()) {
-      this.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent(other.extent);
-    }
-    if (other.isSetFiles()) {
-      java.util.List<org.apache.accumulo.core.tabletserver.thrift.InputFile> __this__files = new java.util.ArrayList<org.apache.accumulo.core.tabletserver.thrift.InputFile>(other.files.size());
-      for (org.apache.accumulo.core.tabletserver.thrift.InputFile other_element : other.files) {
-        __this__files.add(new org.apache.accumulo.core.tabletserver.thrift.InputFile(other_element));
-      }
-      this.files = __this__files;
-    }
-    if (other.isSetOutputFile()) {
-      this.outputFile = other.outputFile;
     }
     if (other.isSetCompactor()) {
       this.compactor = other.compactor;
@@ -201,6 +169,9 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
       }
       this.updates = __this__updates;
     }
+    if (other.isSetJob()) {
+      this.job = new org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob(other.job);
+    }
   }
 
   public TExternalCompaction deepCopy() {
@@ -210,11 +181,9 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
   @Override
   public void clear() {
     this.queueName = null;
-    this.extent = null;
-    this.files = null;
-    this.outputFile = null;
     this.compactor = null;
     this.updates = null;
+    this.job = null;
   }
 
   @org.apache.thrift.annotation.Nullable
@@ -239,97 +208,6 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
   public void setQueueNameIsSet(boolean value) {
     if (!value) {
       this.queueName = null;
-    }
-  }
-
-  @org.apache.thrift.annotation.Nullable
-  public org.apache.accumulo.core.dataImpl.thrift.TKeyExtent getExtent() {
-    return this.extent;
-  }
-
-  public TExternalCompaction setExtent(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) {
-    this.extent = extent;
-    return this;
-  }
-
-  public void unsetExtent() {
-    this.extent = null;
-  }
-
-  /** Returns true if field extent is set (has been assigned a value) and false otherwise */
-  public boolean isSetExtent() {
-    return this.extent != null;
-  }
-
-  public void setExtentIsSet(boolean value) {
-    if (!value) {
-      this.extent = null;
-    }
-  }
-
-  public int getFilesSize() {
-    return (this.files == null) ? 0 : this.files.size();
-  }
-
-  @org.apache.thrift.annotation.Nullable
-  public java.util.Iterator<org.apache.accumulo.core.tabletserver.thrift.InputFile> getFilesIterator() {
-    return (this.files == null) ? null : this.files.iterator();
-  }
-
-  public void addToFiles(org.apache.accumulo.core.tabletserver.thrift.InputFile elem) {
-    if (this.files == null) {
-      this.files = new java.util.ArrayList<org.apache.accumulo.core.tabletserver.thrift.InputFile>();
-    }
-    this.files.add(elem);
-  }
-
-  @org.apache.thrift.annotation.Nullable
-  public java.util.List<org.apache.accumulo.core.tabletserver.thrift.InputFile> getFiles() {
-    return this.files;
-  }
-
-  public TExternalCompaction setFiles(@org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.tabletserver.thrift.InputFile> files) {
-    this.files = files;
-    return this;
-  }
-
-  public void unsetFiles() {
-    this.files = null;
-  }
-
-  /** Returns true if field files is set (has been assigned a value) and false otherwise */
-  public boolean isSetFiles() {
-    return this.files != null;
-  }
-
-  public void setFilesIsSet(boolean value) {
-    if (!value) {
-      this.files = null;
-    }
-  }
-
-  @org.apache.thrift.annotation.Nullable
-  public java.lang.String getOutputFile() {
-    return this.outputFile;
-  }
-
-  public TExternalCompaction setOutputFile(@org.apache.thrift.annotation.Nullable java.lang.String outputFile) {
-    this.outputFile = outputFile;
-    return this;
-  }
-
-  public void unsetOutputFile() {
-    this.outputFile = null;
-  }
-
-  /** Returns true if field outputFile is set (has been assigned a value) and false otherwise */
-  public boolean isSetOutputFile() {
-    return this.outputFile != null;
-  }
-
-  public void setOutputFileIsSet(boolean value) {
-    if (!value) {
-      this.outputFile = null;
     }
   }
 
@@ -394,6 +272,31 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
     }
   }
 
+  @org.apache.thrift.annotation.Nullable
+  public org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob getJob() {
+    return this.job;
+  }
+
+  public TExternalCompaction setJob(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob job) {
+    this.job = job;
+    return this;
+  }
+
+  public void unsetJob() {
+    this.job = null;
+  }
+
+  /** Returns true if field job is set (has been assigned a value) and false otherwise */
+  public boolean isSetJob() {
+    return this.job != null;
+  }
+
+  public void setJobIsSet(boolean value) {
+    if (!value) {
+      this.job = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
     case QUEUE_NAME:
@@ -401,30 +304,6 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
         unsetQueueName();
       } else {
         setQueueName((java.lang.String)value);
-      }
-      break;
-
-    case EXTENT:
-      if (value == null) {
-        unsetExtent();
-      } else {
-        setExtent((org.apache.accumulo.core.dataImpl.thrift.TKeyExtent)value);
-      }
-      break;
-
-    case FILES:
-      if (value == null) {
-        unsetFiles();
-      } else {
-        setFiles((java.util.List<org.apache.accumulo.core.tabletserver.thrift.InputFile>)value);
-      }
-      break;
-
-    case OUTPUT_FILE:
-      if (value == null) {
-        unsetOutputFile();
-      } else {
-        setOutputFile((java.lang.String)value);
       }
       break;
 
@@ -444,6 +323,14 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
       }
       break;
 
+    case JOB:
+      if (value == null) {
+        unsetJob();
+      } else {
+        setJob((org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob)value);
+      }
+      break;
+
     }
   }
 
@@ -453,20 +340,14 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
     case QUEUE_NAME:
       return getQueueName();
 
-    case EXTENT:
-      return getExtent();
-
-    case FILES:
-      return getFiles();
-
-    case OUTPUT_FILE:
-      return getOutputFile();
-
     case COMPACTOR:
       return getCompactor();
 
     case UPDATES:
       return getUpdates();
+
+    case JOB:
+      return getJob();
 
     }
     throw new java.lang.IllegalStateException();
@@ -481,16 +362,12 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
     switch (field) {
     case QUEUE_NAME:
       return isSetQueueName();
-    case EXTENT:
-      return isSetExtent();
-    case FILES:
-      return isSetFiles();
-    case OUTPUT_FILE:
-      return isSetOutputFile();
     case COMPACTOR:
       return isSetCompactor();
     case UPDATES:
       return isSetUpdates();
+    case JOB:
+      return isSetJob();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -517,33 +394,6 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
         return false;
     }
 
-    boolean this_present_extent = true && this.isSetExtent();
-    boolean that_present_extent = true && that.isSetExtent();
-    if (this_present_extent || that_present_extent) {
-      if (!(this_present_extent && that_present_extent))
-        return false;
-      if (!this.extent.equals(that.extent))
-        return false;
-    }
-
-    boolean this_present_files = true && this.isSetFiles();
-    boolean that_present_files = true && that.isSetFiles();
-    if (this_present_files || that_present_files) {
-      if (!(this_present_files && that_present_files))
-        return false;
-      if (!this.files.equals(that.files))
-        return false;
-    }
-
-    boolean this_present_outputFile = true && this.isSetOutputFile();
-    boolean that_present_outputFile = true && that.isSetOutputFile();
-    if (this_present_outputFile || that_present_outputFile) {
-      if (!(this_present_outputFile && that_present_outputFile))
-        return false;
-      if (!this.outputFile.equals(that.outputFile))
-        return false;
-    }
-
     boolean this_present_compactor = true && this.isSetCompactor();
     boolean that_present_compactor = true && that.isSetCompactor();
     if (this_present_compactor || that_present_compactor) {
@@ -562,6 +412,15 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
         return false;
     }
 
+    boolean this_present_job = true && this.isSetJob();
+    boolean that_present_job = true && that.isSetJob();
+    if (this_present_job || that_present_job) {
+      if (!(this_present_job && that_present_job))
+        return false;
+      if (!this.job.equals(that.job))
+        return false;
+    }
+
     return true;
   }
 
@@ -573,18 +432,6 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
     if (isSetQueueName())
       hashCode = hashCode * 8191 + queueName.hashCode();
 
-    hashCode = hashCode * 8191 + ((isSetExtent()) ? 131071 : 524287);
-    if (isSetExtent())
-      hashCode = hashCode * 8191 + extent.hashCode();
-
-    hashCode = hashCode * 8191 + ((isSetFiles()) ? 131071 : 524287);
-    if (isSetFiles())
-      hashCode = hashCode * 8191 + files.hashCode();
-
-    hashCode = hashCode * 8191 + ((isSetOutputFile()) ? 131071 : 524287);
-    if (isSetOutputFile())
-      hashCode = hashCode * 8191 + outputFile.hashCode();
-
     hashCode = hashCode * 8191 + ((isSetCompactor()) ? 131071 : 524287);
     if (isSetCompactor())
       hashCode = hashCode * 8191 + compactor.hashCode();
@@ -592,6 +439,10 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
     hashCode = hashCode * 8191 + ((isSetUpdates()) ? 131071 : 524287);
     if (isSetUpdates())
       hashCode = hashCode * 8191 + updates.hashCode();
+
+    hashCode = hashCode * 8191 + ((isSetJob()) ? 131071 : 524287);
+    if (isSetJob())
+      hashCode = hashCode * 8191 + job.hashCode();
 
     return hashCode;
   }
@@ -614,36 +465,6 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.compare(isSetExtent(), other.isSetExtent());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetExtent()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.extent, other.extent);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
-    lastComparison = java.lang.Boolean.compare(isSetFiles(), other.isSetFiles());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetFiles()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.files, other.files);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
-    lastComparison = java.lang.Boolean.compare(isSetOutputFile(), other.isSetOutputFile());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetOutputFile()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.outputFile, other.outputFile);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
     lastComparison = java.lang.Boolean.compare(isSetCompactor(), other.isSetCompactor());
     if (lastComparison != 0) {
       return lastComparison;
@@ -660,6 +481,16 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
     }
     if (isSetUpdates()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.updates, other.updates);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = java.lang.Boolean.compare(isSetJob(), other.isSetJob());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetJob()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.job, other.job);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -693,30 +524,6 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("extent:");
-    if (this.extent == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.extent);
-    }
-    first = false;
-    if (!first) sb.append(", ");
-    sb.append("files:");
-    if (this.files == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.files);
-    }
-    first = false;
-    if (!first) sb.append(", ");
-    sb.append("outputFile:");
-    if (this.outputFile == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.outputFile);
-    }
-    first = false;
-    if (!first) sb.append(", ");
     sb.append("compactor:");
     if (this.compactor == null) {
       sb.append("null");
@@ -732,6 +539,14 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
       sb.append(this.updates);
     }
     first = false;
+    if (!first) sb.append(", ");
+    sb.append("job:");
+    if (this.job == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.job);
+    }
+    first = false;
     sb.append(")");
     return sb.toString();
   }
@@ -739,8 +554,8 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
   public void validate() throws org.apache.thrift.TException {
     // check for required fields
     // check for sub-struct validity
-    if (extent != null) {
-      extent.validate();
+    if (job != null) {
+      job.validate();
     }
   }
 
@@ -786,43 +601,7 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 2: // EXTENT
-            if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-              struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-              struct.extent.read(iprot);
-              struct.setExtentIsSet(true);
-            } else { 
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-            }
-            break;
-          case 3: // FILES
-            if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
-              {
-                org.apache.thrift.protocol.TList _list0 = iprot.readListBegin();
-                struct.files = new java.util.ArrayList<org.apache.accumulo.core.tabletserver.thrift.InputFile>(_list0.size);
-                @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.InputFile _elem1;
-                for (int _i2 = 0; _i2 < _list0.size; ++_i2)
-                {
-                  _elem1 = new org.apache.accumulo.core.tabletserver.thrift.InputFile();
-                  _elem1.read(iprot);
-                  struct.files.add(_elem1);
-                }
-                iprot.readListEnd();
-              }
-              struct.setFilesIsSet(true);
-            } else { 
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-            }
-            break;
-          case 4: // OUTPUT_FILE
-            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-              struct.outputFile = iprot.readString();
-              struct.setOutputFileIsSet(true);
-            } else { 
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-            }
-            break;
-          case 5: // COMPACTOR
+          case 2: // COMPACTOR
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
               struct.compactor = iprot.readString();
               struct.setCompactorIsSet(true);
@@ -830,23 +609,32 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 6: // UPDATES
+          case 3: // UPDATES
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map3 = iprot.readMapBegin();
-                struct.updates = new java.util.HashMap<java.lang.Long,TCompactionStatusUpdate>(2*_map3.size);
-                long _key4;
-                @org.apache.thrift.annotation.Nullable TCompactionStatusUpdate _val5;
-                for (int _i6 = 0; _i6 < _map3.size; ++_i6)
+                org.apache.thrift.protocol.TMap _map0 = iprot.readMapBegin();
+                struct.updates = new java.util.HashMap<java.lang.Long,TCompactionStatusUpdate>(2*_map0.size);
+                long _key1;
+                @org.apache.thrift.annotation.Nullable TCompactionStatusUpdate _val2;
+                for (int _i3 = 0; _i3 < _map0.size; ++_i3)
                 {
-                  _key4 = iprot.readI64();
-                  _val5 = new TCompactionStatusUpdate();
-                  _val5.read(iprot);
-                  struct.updates.put(_key4, _val5);
+                  _key1 = iprot.readI64();
+                  _val2 = new TCompactionStatusUpdate();
+                  _val2.read(iprot);
+                  struct.updates.put(_key1, _val2);
                 }
                 iprot.readMapEnd();
               }
               struct.setUpdatesIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 4: // JOB
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+              struct.job = new org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob();
+              struct.job.read(iprot);
+              struct.setJobIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -871,28 +659,6 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
         oprot.writeString(struct.queueName);
         oprot.writeFieldEnd();
       }
-      if (struct.extent != null) {
-        oprot.writeFieldBegin(EXTENT_FIELD_DESC);
-        struct.extent.write(oprot);
-        oprot.writeFieldEnd();
-      }
-      if (struct.files != null) {
-        oprot.writeFieldBegin(FILES_FIELD_DESC);
-        {
-          oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.files.size()));
-          for (org.apache.accumulo.core.tabletserver.thrift.InputFile _iter7 : struct.files)
-          {
-            _iter7.write(oprot);
-          }
-          oprot.writeListEnd();
-        }
-        oprot.writeFieldEnd();
-      }
-      if (struct.outputFile != null) {
-        oprot.writeFieldBegin(OUTPUT_FILE_FIELD_DESC);
-        oprot.writeString(struct.outputFile);
-        oprot.writeFieldEnd();
-      }
       if (struct.compactor != null) {
         oprot.writeFieldBegin(COMPACTOR_FIELD_DESC);
         oprot.writeString(struct.compactor);
@@ -902,13 +668,18 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
         oprot.writeFieldBegin(UPDATES_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.I64, org.apache.thrift.protocol.TType.STRUCT, struct.updates.size()));
-          for (java.util.Map.Entry<java.lang.Long, TCompactionStatusUpdate> _iter8 : struct.updates.entrySet())
+          for (java.util.Map.Entry<java.lang.Long, TCompactionStatusUpdate> _iter4 : struct.updates.entrySet())
           {
-            oprot.writeI64(_iter8.getKey());
-            _iter8.getValue().write(oprot);
+            oprot.writeI64(_iter4.getKey());
+            _iter4.getValue().write(oprot);
           }
           oprot.writeMapEnd();
         }
+        oprot.writeFieldEnd();
+      }
+      if (struct.job != null) {
+        oprot.writeFieldBegin(JOB_FIELD_DESC);
+        struct.job.write(oprot);
         oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
@@ -932,39 +703,18 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
       if (struct.isSetQueueName()) {
         optionals.set(0);
       }
-      if (struct.isSetExtent()) {
+      if (struct.isSetCompactor()) {
         optionals.set(1);
       }
-      if (struct.isSetFiles()) {
+      if (struct.isSetUpdates()) {
         optionals.set(2);
       }
-      if (struct.isSetOutputFile()) {
+      if (struct.isSetJob()) {
         optionals.set(3);
       }
-      if (struct.isSetCompactor()) {
-        optionals.set(4);
-      }
-      if (struct.isSetUpdates()) {
-        optionals.set(5);
-      }
-      oprot.writeBitSet(optionals, 6);
+      oprot.writeBitSet(optionals, 4);
       if (struct.isSetQueueName()) {
         oprot.writeString(struct.queueName);
-      }
-      if (struct.isSetExtent()) {
-        struct.extent.write(oprot);
-      }
-      if (struct.isSetFiles()) {
-        {
-          oprot.writeI32(struct.files.size());
-          for (org.apache.accumulo.core.tabletserver.thrift.InputFile _iter9 : struct.files)
-          {
-            _iter9.write(oprot);
-          }
-        }
-      }
-      if (struct.isSetOutputFile()) {
-        oprot.writeString(struct.outputFile);
       }
       if (struct.isSetCompactor()) {
         oprot.writeString(struct.compactor);
@@ -972,65 +722,50 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
       if (struct.isSetUpdates()) {
         {
           oprot.writeI32(struct.updates.size());
-          for (java.util.Map.Entry<java.lang.Long, TCompactionStatusUpdate> _iter10 : struct.updates.entrySet())
+          for (java.util.Map.Entry<java.lang.Long, TCompactionStatusUpdate> _iter5 : struct.updates.entrySet())
           {
-            oprot.writeI64(_iter10.getKey());
-            _iter10.getValue().write(oprot);
+            oprot.writeI64(_iter5.getKey());
+            _iter5.getValue().write(oprot);
           }
         }
+      }
+      if (struct.isSetJob()) {
+        struct.job.write(oprot);
       }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, TExternalCompaction struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(6);
+      java.util.BitSet incoming = iprot.readBitSet(4);
       if (incoming.get(0)) {
         struct.queueName = iprot.readString();
         struct.setQueueNameIsSet(true);
       }
       if (incoming.get(1)) {
-        struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-        struct.extent.read(iprot);
-        struct.setExtentIsSet(true);
-      }
-      if (incoming.get(2)) {
-        {
-          org.apache.thrift.protocol.TList _list11 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-          struct.files = new java.util.ArrayList<org.apache.accumulo.core.tabletserver.thrift.InputFile>(_list11.size);
-          @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.InputFile _elem12;
-          for (int _i13 = 0; _i13 < _list11.size; ++_i13)
-          {
-            _elem12 = new org.apache.accumulo.core.tabletserver.thrift.InputFile();
-            _elem12.read(iprot);
-            struct.files.add(_elem12);
-          }
-        }
-        struct.setFilesIsSet(true);
-      }
-      if (incoming.get(3)) {
-        struct.outputFile = iprot.readString();
-        struct.setOutputFileIsSet(true);
-      }
-      if (incoming.get(4)) {
         struct.compactor = iprot.readString();
         struct.setCompactorIsSet(true);
       }
-      if (incoming.get(5)) {
+      if (incoming.get(2)) {
         {
-          org.apache.thrift.protocol.TMap _map14 = iprot.readMapBegin(org.apache.thrift.protocol.TType.I64, org.apache.thrift.protocol.TType.STRUCT); 
-          struct.updates = new java.util.HashMap<java.lang.Long,TCompactionStatusUpdate>(2*_map14.size);
-          long _key15;
-          @org.apache.thrift.annotation.Nullable TCompactionStatusUpdate _val16;
-          for (int _i17 = 0; _i17 < _map14.size; ++_i17)
+          org.apache.thrift.protocol.TMap _map6 = iprot.readMapBegin(org.apache.thrift.protocol.TType.I64, org.apache.thrift.protocol.TType.STRUCT); 
+          struct.updates = new java.util.HashMap<java.lang.Long,TCompactionStatusUpdate>(2*_map6.size);
+          long _key7;
+          @org.apache.thrift.annotation.Nullable TCompactionStatusUpdate _val8;
+          for (int _i9 = 0; _i9 < _map6.size; ++_i9)
           {
-            _key15 = iprot.readI64();
-            _val16 = new TCompactionStatusUpdate();
-            _val16.read(iprot);
-            struct.updates.put(_key15, _val16);
+            _key7 = iprot.readI64();
+            _val8 = new TCompactionStatusUpdate();
+            _val8.read(iprot);
+            struct.updates.put(_key7, _val8);
           }
         }
         struct.setUpdatesIsSet(true);
+      }
+      if (incoming.get(3)) {
+        struct.job = new org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob();
+        struct.job.read(iprot);
+        struct.setJobIsSet(true);
       }
     }
   }

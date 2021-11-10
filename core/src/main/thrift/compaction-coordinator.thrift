@@ -50,11 +50,9 @@ struct TCompactionStatusUpdate {
 
 struct TExternalCompaction {
   1:string queueName
-  2:data.TKeyExtent extent
-  3:list<tabletserver.InputFile> files
-  4:string outputFile
-  5:string compactor
-  6:map<i64,TCompactionStatusUpdate> updates
+  2:string compactor
+  3:map<i64,TCompactionStatusUpdate> updates
+  4:tabletserver.TExternalCompactionJob job
 }
 
 struct TExternalCompactionList {

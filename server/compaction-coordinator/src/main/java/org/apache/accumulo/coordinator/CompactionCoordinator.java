@@ -618,11 +618,9 @@ public class CompactionCoordinator extends AbstractServer
     RUNNING.forEach((ecid, rc) -> {
       TExternalCompaction trc = new TExternalCompaction();
       trc.setQueueName(rc.getQueueName());
-      trc.setExtent(rc.getJob().getExtent());
-      trc.setFiles(rc.getJob().getFiles());
-      trc.setOutputFile(rc.getJob().getOutputFile());
       trc.setCompactor(rc.getCompactorAddress());
       trc.setUpdates(rc.getUpdates());
+      trc.setJob(rc.getJob());
       result.putToCompactions(ecid.canonical(), trc);
     });
     return result;
@@ -651,10 +649,8 @@ public class CompactionCoordinator extends AbstractServer
     COMPLETED.asMap().forEach((ecid, rc) -> {
       TExternalCompaction trc = new TExternalCompaction();
       trc.setQueueName(rc.getQueueName());
-      trc.setExtent(rc.getJob().getExtent());
-      trc.setFiles(rc.getJob().getFiles());
-      trc.setOutputFile(rc.getJob().getOutputFile());
       trc.setCompactor(rc.getCompactorAddress());
+      trc.setJob(rc.getJob());
       trc.setUpdates(rc.getUpdates());
       result.putToCompactions(ecid.canonical(), trc);
     });

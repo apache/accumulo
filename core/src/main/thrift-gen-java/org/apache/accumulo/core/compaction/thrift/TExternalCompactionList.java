@@ -347,16 +347,16 @@ public class TExternalCompactionList implements org.apache.thrift.TBase<TExterna
           case 1: // COMPACTIONS
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map18 = iprot.readMapBegin();
-                struct.compactions = new java.util.HashMap<java.lang.String,TExternalCompaction>(2*_map18.size);
-                @org.apache.thrift.annotation.Nullable java.lang.String _key19;
-                @org.apache.thrift.annotation.Nullable TExternalCompaction _val20;
-                for (int _i21 = 0; _i21 < _map18.size; ++_i21)
+                org.apache.thrift.protocol.TMap _map10 = iprot.readMapBegin();
+                struct.compactions = new java.util.HashMap<java.lang.String,TExternalCompaction>(2*_map10.size);
+                @org.apache.thrift.annotation.Nullable java.lang.String _key11;
+                @org.apache.thrift.annotation.Nullable TExternalCompaction _val12;
+                for (int _i13 = 0; _i13 < _map10.size; ++_i13)
                 {
-                  _key19 = iprot.readString();
-                  _val20 = new TExternalCompaction();
-                  _val20.read(iprot);
-                  struct.compactions.put(_key19, _val20);
+                  _key11 = iprot.readString();
+                  _val12 = new TExternalCompaction();
+                  _val12.read(iprot);
+                  struct.compactions.put(_key11, _val12);
                 }
                 iprot.readMapEnd();
               }
@@ -384,10 +384,10 @@ public class TExternalCompactionList implements org.apache.thrift.TBase<TExterna
         oprot.writeFieldBegin(COMPACTIONS_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, struct.compactions.size()));
-          for (java.util.Map.Entry<java.lang.String, TExternalCompaction> _iter22 : struct.compactions.entrySet())
+          for (java.util.Map.Entry<java.lang.String, TExternalCompaction> _iter14 : struct.compactions.entrySet())
           {
-            oprot.writeString(_iter22.getKey());
-            _iter22.getValue().write(oprot);
+            oprot.writeString(_iter14.getKey());
+            _iter14.getValue().write(oprot);
           }
           oprot.writeMapEnd();
         }
@@ -418,10 +418,10 @@ public class TExternalCompactionList implements org.apache.thrift.TBase<TExterna
       if (struct.isSetCompactions()) {
         {
           oprot.writeI32(struct.compactions.size());
-          for (java.util.Map.Entry<java.lang.String, TExternalCompaction> _iter23 : struct.compactions.entrySet())
+          for (java.util.Map.Entry<java.lang.String, TExternalCompaction> _iter15 : struct.compactions.entrySet())
           {
-            oprot.writeString(_iter23.getKey());
-            _iter23.getValue().write(oprot);
+            oprot.writeString(_iter15.getKey());
+            _iter15.getValue().write(oprot);
           }
         }
       }
@@ -433,16 +433,16 @@ public class TExternalCompactionList implements org.apache.thrift.TBase<TExterna
       java.util.BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map24 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT); 
-          struct.compactions = new java.util.HashMap<java.lang.String,TExternalCompaction>(2*_map24.size);
-          @org.apache.thrift.annotation.Nullable java.lang.String _key25;
-          @org.apache.thrift.annotation.Nullable TExternalCompaction _val26;
-          for (int _i27 = 0; _i27 < _map24.size; ++_i27)
+          org.apache.thrift.protocol.TMap _map16 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT); 
+          struct.compactions = new java.util.HashMap<java.lang.String,TExternalCompaction>(2*_map16.size);
+          @org.apache.thrift.annotation.Nullable java.lang.String _key17;
+          @org.apache.thrift.annotation.Nullable TExternalCompaction _val18;
+          for (int _i19 = 0; _i19 < _map16.size; ++_i19)
           {
-            _key25 = iprot.readString();
-            _val26 = new TExternalCompaction();
-            _val26.read(iprot);
-            struct.compactions.put(_key25, _val26);
+            _key17 = iprot.readString();
+            _val18 = new TExternalCompaction();
+            _val18.read(iprot);
+            struct.compactions.put(_key17, _val18);
           }
         }
         struct.setCompactionsIsSet(true);

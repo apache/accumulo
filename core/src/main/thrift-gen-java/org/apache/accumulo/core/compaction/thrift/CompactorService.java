@@ -3382,14 +3382,14 @@ public class CompactorService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list28 = iprot.readListBegin();
-                  struct.success = new java.util.ArrayList<org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction>(_list28.size);
-                  @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction _elem29;
-                  for (int _i30 = 0; _i30 < _list28.size; ++_i30)
+                  org.apache.thrift.protocol.TList _list20 = iprot.readListBegin();
+                  struct.success = new java.util.ArrayList<org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction>(_list20.size);
+                  @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction _elem21;
+                  for (int _i22 = 0; _i22 < _list20.size; ++_i22)
                   {
-                    _elem29 = new org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction();
-                    _elem29.read(iprot);
-                    struct.success.add(_elem29);
+                    _elem21 = new org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction();
+                    _elem21.read(iprot);
+                    struct.success.add(_elem21);
                   }
                   iprot.readListEnd();
                 }
@@ -3426,9 +3426,9 @@ public class CompactorService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.success.size()));
-            for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction _iter31 : struct.success)
+            for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction _iter23 : struct.success)
             {
-              _iter31.write(oprot);
+              _iter23.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -3467,9 +3467,9 @@ public class CompactorService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction _iter32 : struct.success)
+            for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction _iter24 : struct.success)
             {
-              _iter32.write(oprot);
+              _iter24.write(oprot);
             }
           }
         }
@@ -3484,14 +3484,14 @@ public class CompactorService {
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TList _list33 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-            struct.success = new java.util.ArrayList<org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction>(_list33.size);
-            @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction _elem34;
-            for (int _i35 = 0; _i35 < _list33.size; ++_i35)
+            org.apache.thrift.protocol.TList _list25 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+            struct.success = new java.util.ArrayList<org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction>(_list25.size);
+            @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction _elem26;
+            for (int _i27 = 0; _i27 < _list25.size; ++_i27)
             {
-              _elem34 = new org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction();
-              _elem34.read(iprot);
-              struct.success.add(_elem34);
+              _elem26 = new org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction();
+              _elem26.read(iprot);
+              struct.success.add(_elem26);
             }
           }
           struct.setSuccessIsSet(true);
