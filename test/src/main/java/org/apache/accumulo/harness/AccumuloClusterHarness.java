@@ -34,11 +34,8 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.conf.AccumuloClusterConfiguration;
 import org.apache.accumulo.harness.conf.AccumuloClusterPropertyConfiguration;
 import org.apache.accumulo.harness.conf.StandaloneAccumuloClusterConfiguration;
@@ -175,46 +172,6 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
       cleanupUsers();
     }
 
-    switch (type) {
-      case MINI:
-        if (krb != null) {
-          final String traceTable = Property.TRACE_TABLE.getDefaultValue();
-          final ClusterUser systemUser = krb.getAccumuloServerUser(), rootUser = krb.getRootUser();
-
-          // Login as the trace user
-          UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
-              systemUser.getKeytab().getAbsolutePath());
-
-          // Create client as the system user (ensures the user will exist for us to assign
-          // permissions to)
-          UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
-              systemUser.getKeytab().getAbsolutePath());
-          AccumuloClient c =
-              cluster.createAccumuloClient(systemUser.getPrincipal(), new KerberosToken());
-          c.close();
-
-          // Then, log back in as the "root" user and do the grant
-          UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
-              rootUser.getKeytab().getAbsolutePath());
-
-          try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-            // Create the trace table
-            client.tableOperations().create(traceTable);
-
-            // Trace user (which is the same kerberos principal as the system user, but using a
-            // normal KerberosToken) needs to be able to read, write and alter the trace table
-            client.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
-                TablePermission.READ);
-            client.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
-                TablePermission.WRITE);
-            client.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
-                TablePermission.ALTER_TABLE);
-          }
-        }
-        break;
-      default:
-        // do nothing
-    }
   }
 
   public void cleanupTables() throws Exception {

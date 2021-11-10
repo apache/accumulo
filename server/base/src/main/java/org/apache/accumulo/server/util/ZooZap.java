@@ -59,8 +59,6 @@ public class ZooZap {
     boolean zapManager = false;
     @Parameter(names = "-tservers", description = "remove tablet server locks")
     boolean zapTservers = false;
-    @Parameter(names = "-tracers", description = "remove tracer locks")
-    boolean zapTracers = false;
     @Parameter(names = "-compaction-coordinators",
         description = "remove compaction coordinator locks")
     boolean zapCoordinators = false;
@@ -74,7 +72,7 @@ public class ZooZap {
     Opts opts = new Opts();
     opts.parseArgs(ZooZap.class.getName(), args);
 
-    if (!opts.zapMaster && !opts.zapManager && !opts.zapTservers && !opts.zapTracers) {
+    if (!opts.zapMaster && !opts.zapManager && !opts.zapTservers) {
       new JCommander(opts).usage();
       return;
     }
@@ -127,13 +125,13 @@ public class ZooZap {
         }
       }
 
-      if (opts.zapTracers) {
-        String path = siteConf.get(Property.TRACE_ZK_PATH);
-        try {
-          zapDirectory(zoo, path, opts);
-        } catch (Exception e) {
-          // do nothing if the /tracers node does not exist.
-        }
+      // Remove the tracers, we don't use them anymore.
+      @SuppressWarnings("deprecation")
+      String path = siteConf.get(Property.TRACE_ZK_PATH);
+      try {
+        zapDirectory(zoo, path, opts);
+      } catch (Exception e) {
+        // do nothing if the /tracers node does not exist.
       }
 
       if (opts.zapCoordinators) {

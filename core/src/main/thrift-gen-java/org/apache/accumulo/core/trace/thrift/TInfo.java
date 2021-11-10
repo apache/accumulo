@@ -28,19 +28,16 @@ package org.apache.accumulo.core.trace.thrift;
 public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, java.io.Serializable, Cloneable, Comparable<TInfo> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TInfo");
 
-  private static final org.apache.thrift.protocol.TField TRACE_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("traceId", org.apache.thrift.protocol.TType.I64, (short)1);
-  private static final org.apache.thrift.protocol.TField PARENT_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("parentId", org.apache.thrift.protocol.TType.I64, (short)2);
+  private static final org.apache.thrift.protocol.TField HEADERS_FIELD_DESC = new org.apache.thrift.protocol.TField("headers", org.apache.thrift.protocol.TType.MAP, (short)3);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TInfoStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TInfoTupleSchemeFactory();
 
-  public long traceId; // required
-  public long parentId; // required
+  public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> headers; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    TRACE_ID((short)1, "traceId"),
-    PARENT_ID((short)2, "parentId");
+    HEADERS((short)3, "headers");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -56,10 +53,8 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
     @org.apache.thrift.annotation.Nullable
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // TRACE_ID
-          return TRACE_ID;
-        case 2: // PARENT_ID
-          return PARENT_ID;
+        case 3: // HEADERS
+          return HEADERS;
         default:
           return null;
       }
@@ -101,16 +96,13 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
   }
 
   // isset id assignments
-  private static final int __TRACEID_ISSET_ID = 0;
-  private static final int __PARENTID_ISSET_ID = 1;
-  private byte __isset_bitfield = 0;
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.TRACE_ID, new org.apache.thrift.meta_data.FieldMetaData("traceId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
-    tmpMap.put(_Fields.PARENT_ID, new org.apache.thrift.meta_data.FieldMetaData("parentId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+    tmpMap.put(_Fields.HEADERS, new org.apache.thrift.meta_data.FieldMetaData("headers", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
+            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TInfo.class, metaDataMap);
   }
@@ -119,23 +111,20 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
   }
 
   public TInfo(
-    long traceId,
-    long parentId)
+    java.util.Map<java.lang.String,java.lang.String> headers)
   {
     this();
-    this.traceId = traceId;
-    setTraceIdIsSet(true);
-    this.parentId = parentId;
-    setParentIdIsSet(true);
+    this.headers = headers;
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
   public TInfo(TInfo other) {
-    __isset_bitfield = other.__isset_bitfield;
-    this.traceId = other.traceId;
-    this.parentId = other.parentId;
+    if (other.isSetHeaders()) {
+      java.util.Map<java.lang.String,java.lang.String> __this__headers = new java.util.HashMap<java.lang.String,java.lang.String>(other.headers);
+      this.headers = __this__headers;
+    }
   }
 
   public TInfo deepCopy() {
@@ -144,73 +133,52 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
 
   @Override
   public void clear() {
-    setTraceIdIsSet(false);
-    this.traceId = 0;
-    setParentIdIsSet(false);
-    this.parentId = 0;
+    this.headers = null;
   }
 
-  public long getTraceId() {
-    return this.traceId;
+  public int getHeadersSize() {
+    return (this.headers == null) ? 0 : this.headers.size();
   }
 
-  public TInfo setTraceId(long traceId) {
-    this.traceId = traceId;
-    setTraceIdIsSet(true);
+  public void putToHeaders(java.lang.String key, java.lang.String val) {
+    if (this.headers == null) {
+      this.headers = new java.util.HashMap<java.lang.String,java.lang.String>();
+    }
+    this.headers.put(key, val);
+  }
+
+  @org.apache.thrift.annotation.Nullable
+  public java.util.Map<java.lang.String,java.lang.String> getHeaders() {
+    return this.headers;
+  }
+
+  public TInfo setHeaders(@org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> headers) {
+    this.headers = headers;
     return this;
   }
 
-  public void unsetTraceId() {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __TRACEID_ISSET_ID);
+  public void unsetHeaders() {
+    this.headers = null;
   }
 
-  /** Returns true if field traceId is set (has been assigned a value) and false otherwise */
-  public boolean isSetTraceId() {
-    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __TRACEID_ISSET_ID);
+  /** Returns true if field headers is set (has been assigned a value) and false otherwise */
+  public boolean isSetHeaders() {
+    return this.headers != null;
   }
 
-  public void setTraceIdIsSet(boolean value) {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __TRACEID_ISSET_ID, value);
-  }
-
-  public long getParentId() {
-    return this.parentId;
-  }
-
-  public TInfo setParentId(long parentId) {
-    this.parentId = parentId;
-    setParentIdIsSet(true);
-    return this;
-  }
-
-  public void unsetParentId() {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __PARENTID_ISSET_ID);
-  }
-
-  /** Returns true if field parentId is set (has been assigned a value) and false otherwise */
-  public boolean isSetParentId() {
-    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __PARENTID_ISSET_ID);
-  }
-
-  public void setParentIdIsSet(boolean value) {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __PARENTID_ISSET_ID, value);
+  public void setHeadersIsSet(boolean value) {
+    if (!value) {
+      this.headers = null;
+    }
   }
 
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
-    case TRACE_ID:
+    case HEADERS:
       if (value == null) {
-        unsetTraceId();
+        unsetHeaders();
       } else {
-        setTraceId((java.lang.Long)value);
-      }
-      break;
-
-    case PARENT_ID:
-      if (value == null) {
-        unsetParentId();
-      } else {
-        setParentId((java.lang.Long)value);
+        setHeaders((java.util.Map<java.lang.String,java.lang.String>)value);
       }
       break;
 
@@ -220,11 +188,8 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
   @org.apache.thrift.annotation.Nullable
   public java.lang.Object getFieldValue(_Fields field) {
     switch (field) {
-    case TRACE_ID:
-      return getTraceId();
-
-    case PARENT_ID:
-      return getParentId();
+    case HEADERS:
+      return getHeaders();
 
     }
     throw new java.lang.IllegalStateException();
@@ -237,10 +202,8 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
     }
 
     switch (field) {
-    case TRACE_ID:
-      return isSetTraceId();
-    case PARENT_ID:
-      return isSetParentId();
+    case HEADERS:
+      return isSetHeaders();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -258,21 +221,12 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
     if (this == that)
       return true;
 
-    boolean this_present_traceId = true;
-    boolean that_present_traceId = true;
-    if (this_present_traceId || that_present_traceId) {
-      if (!(this_present_traceId && that_present_traceId))
+    boolean this_present_headers = true && this.isSetHeaders();
+    boolean that_present_headers = true && that.isSetHeaders();
+    if (this_present_headers || that_present_headers) {
+      if (!(this_present_headers && that_present_headers))
         return false;
-      if (this.traceId != that.traceId)
-        return false;
-    }
-
-    boolean this_present_parentId = true;
-    boolean that_present_parentId = true;
-    if (this_present_parentId || that_present_parentId) {
-      if (!(this_present_parentId && that_present_parentId))
-        return false;
-      if (this.parentId != that.parentId)
+      if (!this.headers.equals(that.headers))
         return false;
     }
 
@@ -283,9 +237,9 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
   public int hashCode() {
     int hashCode = 1;
 
-    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(traceId);
-
-    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(parentId);
+    hashCode = hashCode * 8191 + ((isSetHeaders()) ? 131071 : 524287);
+    if (isSetHeaders())
+      hashCode = hashCode * 8191 + headers.hashCode();
 
     return hashCode;
   }
@@ -298,22 +252,12 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
 
     int lastComparison = 0;
 
-    lastComparison = java.lang.Boolean.compare(isSetTraceId(), other.isSetTraceId());
+    lastComparison = java.lang.Boolean.compare(isSetHeaders(), other.isSetHeaders());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetTraceId()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.traceId, other.traceId);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
-    lastComparison = java.lang.Boolean.compare(isSetParentId(), other.isSetParentId());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetParentId()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.parentId, other.parentId);
+    if (isSetHeaders()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.headers, other.headers);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -339,12 +283,12 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
     java.lang.StringBuilder sb = new java.lang.StringBuilder("TInfo(");
     boolean first = true;
 
-    sb.append("traceId:");
-    sb.append(this.traceId);
-    first = false;
-    if (!first) sb.append(", ");
-    sb.append("parentId:");
-    sb.append(this.parentId);
+    sb.append("headers:");
+    if (this.headers == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.headers);
+    }
     first = false;
     sb.append(")");
     return sb.toString();
@@ -365,8 +309,6 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
 
   private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
     try {
-      // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
-      __isset_bitfield = 0;
       read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
     } catch (org.apache.thrift.TException te) {
       throw new java.io.IOException(te);
@@ -391,18 +333,22 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
           break;
         }
         switch (schemeField.id) {
-          case 1: // TRACE_ID
-            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
-              struct.traceId = iprot.readI64();
-              struct.setTraceIdIsSet(true);
-            } else { 
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-            }
-            break;
-          case 2: // PARENT_ID
-            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
-              struct.parentId = iprot.readI64();
-              struct.setParentIdIsSet(true);
+          case 3: // HEADERS
+            if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
+              {
+                org.apache.thrift.protocol.TMap _map0 = iprot.readMapBegin();
+                struct.headers = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map0.size);
+                @org.apache.thrift.annotation.Nullable java.lang.String _key1;
+                @org.apache.thrift.annotation.Nullable java.lang.String _val2;
+                for (int _i3 = 0; _i3 < _map0.size; ++_i3)
+                {
+                  _key1 = iprot.readString();
+                  _val2 = iprot.readString();
+                  struct.headers.put(_key1, _val2);
+                }
+                iprot.readMapEnd();
+              }
+              struct.setHeadersIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -422,12 +368,19 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      oprot.writeFieldBegin(TRACE_ID_FIELD_DESC);
-      oprot.writeI64(struct.traceId);
-      oprot.writeFieldEnd();
-      oprot.writeFieldBegin(PARENT_ID_FIELD_DESC);
-      oprot.writeI64(struct.parentId);
-      oprot.writeFieldEnd();
+      if (struct.headers != null) {
+        oprot.writeFieldBegin(HEADERS_FIELD_DESC);
+        {
+          oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.headers.size()));
+          for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter4 : struct.headers.entrySet())
+          {
+            oprot.writeString(_iter4.getKey());
+            oprot.writeString(_iter4.getValue());
+          }
+          oprot.writeMapEnd();
+        }
+        oprot.writeFieldEnd();
+      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -446,32 +399,40 @@ public class TInfo implements org.apache.thrift.TBase<TInfo, TInfo._Fields>, jav
     public void write(org.apache.thrift.protocol.TProtocol prot, TInfo struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet optionals = new java.util.BitSet();
-      if (struct.isSetTraceId()) {
+      if (struct.isSetHeaders()) {
         optionals.set(0);
       }
-      if (struct.isSetParentId()) {
-        optionals.set(1);
-      }
-      oprot.writeBitSet(optionals, 2);
-      if (struct.isSetTraceId()) {
-        oprot.writeI64(struct.traceId);
-      }
-      if (struct.isSetParentId()) {
-        oprot.writeI64(struct.parentId);
+      oprot.writeBitSet(optionals, 1);
+      if (struct.isSetHeaders()) {
+        {
+          oprot.writeI32(struct.headers.size());
+          for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter5 : struct.headers.entrySet())
+          {
+            oprot.writeString(_iter5.getKey());
+            oprot.writeString(_iter5.getValue());
+          }
+        }
       }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, TInfo struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(2);
+      java.util.BitSet incoming = iprot.readBitSet(1);
       if (incoming.get(0)) {
-        struct.traceId = iprot.readI64();
-        struct.setTraceIdIsSet(true);
-      }
-      if (incoming.get(1)) {
-        struct.parentId = iprot.readI64();
-        struct.setParentIdIsSet(true);
+        {
+          org.apache.thrift.protocol.TMap _map6 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
+          struct.headers = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map6.size);
+          @org.apache.thrift.annotation.Nullable java.lang.String _key7;
+          @org.apache.thrift.annotation.Nullable java.lang.String _val8;
+          for (int _i9 = 0; _i9 < _map6.size; ++_i9)
+          {
+            _key7 = iprot.readString();
+            _val8 = iprot.readString();
+            struct.headers.put(_key7, _val8);
+          }
+        }
+        struct.setHeadersIsSet(true);
       }
     }
   }

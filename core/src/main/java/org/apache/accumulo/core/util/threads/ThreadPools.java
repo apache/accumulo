@@ -20,8 +20,11 @@ package org.apache.accumulo.core.util.threads;
 
 import java.util.OptionalInt;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -33,6 +36,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.opentelemetry.context.Context;
 
 public class ThreadPools {
 
@@ -102,88 +107,105 @@ public class ThreadPools {
 
     switch (p) {
       case GENERAL_SIMPLETIMER_THREADPOOL_SIZE:
-        return createScheduledExecutorService(conf.getCount(p), "SimpleTimer", false);
+        return createScheduledExecutorService(conf.getCount(p), "SimpleTimer");
       case MANAGER_BULK_THREADPOOL_SIZE:
         return createFixedThreadPool(conf.getCount(p),
             conf.getTimeInMillis(Property.MANAGER_BULK_THREADPOOL_TIMEOUT), TimeUnit.MILLISECONDS,
-            "bulk import", true);
+            "bulk import");
       case MANAGER_RENAME_THREADS:
-        return createFixedThreadPool(conf.getCount(p), "bulk move", false);
+        return createFixedThreadPool(conf.getCount(p), "bulk move");
       case MANAGER_FATE_THREADPOOL_SIZE:
-        return createFixedThreadPool(conf.getCount(p), "Repo Runner", false);
+        return createFixedThreadPool(conf.getCount(p), "Repo Runner");
       case MANAGER_STATUS_THREAD_POOL_SIZE:
         int threads = conf.getCount(p);
         if (threads == 0) {
           return createThreadPool(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
-              "GatherTableInformation", new SynchronousQueue<Runnable>(), OptionalInt.empty(),
-              false);
+              "GatherTableInformation", new SynchronousQueue<Runnable>(), OptionalInt.empty());
         } else {
-          return createFixedThreadPool(threads, "GatherTableInformation", false);
+          return createFixedThreadPool(threads, "GatherTableInformation");
         }
       case TSERV_WORKQ_THREADS:
-        return createFixedThreadPool(conf.getCount(p), "distributed work queue", false);
+        return createFixedThreadPool(conf.getCount(p), "distributed work queue");
       case TSERV_MINC_MAXCONCURRENT:
-        return createFixedThreadPool(conf.getCount(p), 0L, TimeUnit.MILLISECONDS, "minor compactor",
-            true);
+        return createFixedThreadPool(conf.getCount(p), 0L, TimeUnit.MILLISECONDS,
+            "minor compactor");
       case TSERV_MIGRATE_MAXCONCURRENT:
         return createFixedThreadPool(conf.getCount(p), 0L, TimeUnit.MILLISECONDS,
-            "tablet migration", true);
+            "tablet migration");
       case TSERV_ASSIGNMENT_MAXCONCURRENT:
         return createFixedThreadPool(conf.getCount(p), 0L, TimeUnit.MILLISECONDS,
-            "tablet assignment", true);
+            "tablet assignment");
       case TSERV_SUMMARY_RETRIEVAL_THREADS:
         return createThreadPool(conf.getCount(p), conf.getCount(p), 60, TimeUnit.SECONDS,
-            "summary file retriever", true);
+            "summary file retriever");
       case TSERV_SUMMARY_REMOTE_THREADS:
         return createThreadPool(conf.getCount(p), conf.getCount(p), 60, TimeUnit.SECONDS,
-            "summary remote", true);
+            "summary remote");
       case TSERV_SUMMARY_PARTITION_THREADS:
         return createThreadPool(conf.getCount(p), conf.getCount(p), 60, TimeUnit.SECONDS,
-            "summary partition", true);
+            "summary partition");
       case GC_DELETE_THREADS:
-        return createFixedThreadPool(conf.getCount(p), "deleting", false);
+        return createFixedThreadPool(conf.getCount(p), "deleting");
       case REPLICATION_WORKER_THREADS:
-        return createFixedThreadPool(conf.getCount(p), "replication task", false);
+        return createFixedThreadPool(conf.getCount(p), "replication task");
       default:
         throw new RuntimeException("Unhandled thread pool property: " + p);
     }
   }
 
-  public static ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
-      boolean enableTracing) {
-    return createFixedThreadPool(numThreads, DEFAULT_TIMEOUT_MILLISECS, TimeUnit.MILLISECONDS, name,
-        enableTracing);
+  public static ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name) {
+    return createFixedThreadPool(numThreads, DEFAULT_TIMEOUT_MILLISECS, TimeUnit.MILLISECONDS,
+        name);
   }
 
   public static ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
-      BlockingQueue<Runnable> queue, boolean enableTracing) {
+      BlockingQueue<Runnable> queue) {
     return createThreadPool(numThreads, numThreads, DEFAULT_TIMEOUT_MILLISECS,
-        TimeUnit.MILLISECONDS, name, queue, OptionalInt.empty(), enableTracing);
+        TimeUnit.MILLISECONDS, name, queue, OptionalInt.empty());
   }
 
   public static ThreadPoolExecutor createFixedThreadPool(int numThreads, long timeOut,
-      TimeUnit units, final String name, boolean enableTracing) {
+      TimeUnit units, final String name) {
     return createThreadPool(numThreads, numThreads, timeOut, units, name,
-        new LinkedBlockingQueue<Runnable>(), OptionalInt.empty(), enableTracing);
+        new LinkedBlockingQueue<Runnable>(), OptionalInt.empty());
   }
 
   public static ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
-      TimeUnit units, final String name, boolean enableTracing) {
+      TimeUnit units, final String name) {
     return createThreadPool(coreThreads, maxThreads, timeOut, units, name,
-        new LinkedBlockingQueue<Runnable>(), OptionalInt.empty(), enableTracing);
+        new LinkedBlockingQueue<Runnable>(), OptionalInt.empty());
   }
 
   public static ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
-      TimeUnit units, final String name, BlockingQueue<Runnable> queue, OptionalInt priority,
-      boolean enableTracing) {
-    ThreadPoolExecutor result = null;
-    if (enableTracing) {
-      result = new TracingThreadPoolExecutor(coreThreads, maxThreads, timeOut, units, queue,
-          new NamedThreadFactory(name, priority));
-    } else {
-      result = new ThreadPoolExecutor(coreThreads, maxThreads, timeOut, units, queue,
-          new NamedThreadFactory(name, priority));
-    }
+      TimeUnit units, final String name, BlockingQueue<Runnable> queue, OptionalInt priority) {
+    ThreadPoolExecutor result = new ThreadPoolExecutor(coreThreads, maxThreads, timeOut, units,
+        queue, new NamedThreadFactory(name, priority)) {
+
+      @Override
+      public void execute(Runnable arg0) {
+        super.execute(Context.current().wrap(arg0));
+      }
+
+      @Override
+      public boolean remove(Runnable task) {
+        return super.remove(Context.current().wrap(task));
+      }
+
+      @Override
+      public <T> Future<T> submit(Callable<T> task) {
+        return super.submit(Context.current().wrap(task));
+      }
+
+      @Override
+      public <T> Future<T> submit(Runnable task, T result) {
+        return super.submit(Context.current().wrap(task), result);
+      }
+
+      @Override
+      public Future<?> submit(Runnable task) {
+        return super.submit(Context.current().wrap(task));
+      }
+    };
     if (timeOut > 0) {
       result.allowCoreThreadTimeOut(true);
     }
@@ -202,19 +224,65 @@ public class ThreadPools {
   }
 
   public static ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
-      final String name, boolean enableTracing) {
-    return createScheduledExecutorService(numThreads, name, OptionalInt.empty(), enableTracing);
+      final String name) {
+    return createScheduledExecutorService(numThreads, name, OptionalInt.empty());
   }
 
   public static ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
-      final String name, OptionalInt priority, boolean enableTracing) {
-    ScheduledThreadPoolExecutor result = null;
-    if (enableTracing) {
-      result = new TracingScheduledThreadPoolExecutor(numThreads,
-          new NamedThreadFactory(name, priority));
-    } else {
-      result = new ScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory(name, priority));
-    }
+      final String name, OptionalInt priority) {
+    ScheduledThreadPoolExecutor result =
+        new ScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory(name, priority)) {
+
+          @Override
+          public void execute(Runnable command) {
+            super.execute(Context.current().wrap(command));
+          }
+
+          @Override
+          public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
+            return super.schedule(Context.current().wrap(callable), delay, unit);
+          }
+
+          @Override
+          public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
+            return super.schedule(Context.current().wrap(command), delay, unit);
+          }
+
+          @Override
+          public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay,
+              long period, TimeUnit unit) {
+            return super.scheduleAtFixedRate(Context.current().wrap(command), initialDelay, period,
+                unit);
+          }
+
+          @Override
+          public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay,
+              long delay, TimeUnit unit) {
+            return super.scheduleWithFixedDelay(Context.current().wrap(command), initialDelay,
+                delay, unit);
+          }
+
+          @Override
+          public <T> Future<T> submit(Callable<T> task) {
+            return super.submit(Context.current().wrap(task));
+          }
+
+          @Override
+          public <T> Future<T> submit(Runnable task, T result) {
+            return super.submit(Context.current().wrap(task), result);
+          }
+
+          @Override
+          public Future<?> submit(Runnable task) {
+            return super.submit(Context.current().wrap(task));
+          }
+
+          @Override
+          public boolean remove(Runnable task) {
+            return super.remove(Context.current().wrap(task));
+          }
+
+        };
     MetricsUtil.addExecutorServiceMetrics(result, name);
     return result;
   }
