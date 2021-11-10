@@ -207,12 +207,6 @@ public class ZooStore<T> implements TStore<T> {
     }
   }
 
-  public boolean isReserved(long tid) {
-    synchronized (this) {
-      return reserved.contains(tid);
-    }
-  }
-
   @Override
   public void reserve(long tid) {
     synchronized (this) {
@@ -234,7 +228,7 @@ public class ZooStore<T> implements TStore<T> {
 
   public boolean tryReserve(long tid) {
     synchronized (this) {
-      if (!isReserved(tid)) {
+      if (!reserved.contains(tid)) {
         reserve(tid);
         return true;
       }
