@@ -25,13 +25,9 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.util.Map;
-import java.util.Properties;
 
-import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.spi.trace.OpenTelemetryFactory;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,97 +52,32 @@ public class TraceUtil {
 
   private static final String SPAN_FORMAT = "%s::%s";
 
-  private static Tracer instance = null;
-  private static boolean tracing = false;
+  private static volatile boolean enabled = true;
 
-  private static void initializeInternals(OpenTelemetry ot) {
-    instance = ot.getTracer(APPNAME, VERSION);
-    tracing = !ot.equals(OpenTelemetry.noop());
-    LOG.info("Trace enabled: {}, OpenTelemetry instance: {}, Tracer instance: {}", tracing,
-        ot.getClass(), instance.getClass());
+  public static void initializeTracer(AccumuloConfiguration conf) {
+    enabled = conf.getBoolean(Property.GENERAL_OPENTELEMETRY_ENABLED);
+    LOG.info("Trace enabled: {}, OpenTelemetry instance: {}, Tracer instance: {}", enabled,
+        getOpenTelemetry().getClass(), getTracer().getClass());
   }
 
-  /**
-   * Use the property values in the client properties to call
-   * {@link #initializeTracer(boolean, String)}
-   *
-   * @param clientProperties
-   *          the client Properties
-   * @throws ReflectiveOperationException
-   *           unable to find or load class
-   */
-  public static void initializeTracer(Properties clientProperties)
-      throws ReflectiveOperationException {
-    initializeTracer(ClientProperty.GENERAL_OPENTELEMETRY_ENABLED.getBoolean(clientProperties),
-        ClientProperty.GENERAL_OPENTELEMETRY_FACTORY.getValue(clientProperties));
+  public static void enable() {
+    enabled = true;
+    LOG.debug("Trace enabled: {}, OpenTelemetry instance: {}, Tracer instance: {}", enabled,
+        getOpenTelemetry().getClass(), getTracer().getClass());
   }
 
-  /**
-   * Use the property values in the AccumuloConfiguration to call
-   * {@link #initializeTracer(boolean, String)}
-   *
-   * @param conf
-   *          AccumuloConfiguration
-   * @throws ReflectiveOperationException
-   *           unable to find or load class
-   */
-  public static void initializeTracer(AccumuloConfiguration conf)
-      throws ReflectiveOperationException {
-    initializeTracer(conf.getBoolean(Property.GENERAL_OPENTELEMETRY_ENABLED),
-        conf.get(Property.GENERAL_OPENTELEMETRY_FACTORY));
+  public static void disable() {
+    enabled = false;
+    LOG.debug("Trace enabled: {}, OpenTelemetry instance: {}, Tracer instance: {}", enabled,
+        getOpenTelemetry().getClass(), getTracer().getClass());
   }
 
-  /**
-   * If not enabled, the OpenTelemetry implementation will be set to the NoOp implementation. If
-   * enabled and a factoryClass is supplied, then we will get the OpenTelemetry instance from the
-   * factory class.
-   *
-   * @param enabled
-   *          whether or not tracing is enabled
-   * @param factoryClass
-   *          name of class to load
-   * @throws ReflectiveOperationException
-   *           unable to find or load class
-   */
-  private static void initializeTracer(boolean enabled, String factoryClass)
-      throws ReflectiveOperationException {
-    if (instance == null) {
-      OpenTelemetry ot = null;
-      if (!enabled) {
-        ot = OpenTelemetry.noop();
-      } else if (factoryClass != null && !factoryClass.isEmpty()) {
-        var clazz = ClassLoaderUtil.loadClass(factoryClass, OpenTelemetryFactory.class);
-        OpenTelemetryFactory factory = clazz.getDeclaredConstructor().newInstance();
-        ot = factory.get();
-        LOG.info("OpenTelemetry configured and set from {}", clazz);
-      } else {
-        ot = GlobalOpenTelemetry.get();
-      }
-      initializeInternals(ot);
-    } else {
-      LOG.warn("Tracer already initialized.");
-    }
+  private static OpenTelemetry getOpenTelemetry() {
+    return enabled ? GlobalOpenTelemetry.get() : OpenTelemetry.noop();
   }
 
-  /**
-   * @return the Tracer set on the GlobalOpenTelemetry object
-   */
   private static Tracer getTracer() {
-    if (instance == null) {
-      LOG.warn("initializeTracer not called, using GlobalOpenTelemetry.getTracer()");
-      instance = GlobalOpenTelemetry.getTracer(APPNAME, VERSION);
-      tracing = !instance.equals(OpenTelemetry.noop().getTracer(APPNAME, VERSION));
-      LOG.info("Trace enabled: {}, Tracer is: {}", tracing, instance.getClass());
-    }
-    return instance;
-  }
-
-  /**
-   * @return true if an OpenTelemetry Tracer implementation has been set, false if the NoOp Tracer
-   *         is being used.
-   */
-  public static boolean isTracing() {
-    return tracing;
+    return getOpenTelemetry().getTracer(APPNAME, VERSION);
   }
 
   public static Span startSpan(Class<?> caller, String spanName) {
@@ -157,16 +88,23 @@ public class TraceUtil {
     return startSpan(caller, spanName, null, attributes, null);
   }
 
-  public static Span startClientSpan(Class<?> caller, String spanName) {
+  public static Span startClientRpcSpan(Class<?> caller, String spanName) {
     return startSpan(caller, spanName, SpanKind.CLIENT, null, null);
   }
 
-  public static Span startServerSpan(Class<?> caller, String spanName, TInfo tinfo) {
-    return startSpan(caller, spanName, SpanKind.SERVER, null, getContext(tinfo));
+  public static Span startFateSpan(Class<?> caller, String spanName, TInfo tinfo) {
+    return startSpan(caller, spanName, null, null, tinfo);
+  }
+
+  public static Span startServerRpcSpan(Class<?> caller, String spanName, TInfo tinfo) {
+    return startSpan(caller, spanName, SpanKind.SERVER, null, tinfo);
   }
 
   private static Span startSpan(Class<?> caller, String spanName, SpanKind kind,
-      Map<String,String> attributes, Context parent) {
+      Map<String,String> attributes, TInfo tinfo) {
+    if (!enabled) {
+      return Span.getInvalid();
+    }
     final String name = String.format(SPAN_FORMAT, caller.getSimpleName(), spanName);
     final SpanBuilder builder = getTracer().spanBuilder(name);
     if (kind != null) {
@@ -175,8 +113,8 @@ public class TraceUtil {
     if (attributes != null) {
       attributes.forEach(builder::setAttribute);
     }
-    if (parent != null) {
-      builder.setParent(parent);
+    if (tinfo != null) {
+      builder.setParent(getContext(tinfo));
     }
     return builder.startSpan();
   }
@@ -192,7 +130,7 @@ public class TraceUtil {
    *          whether the exception is subsequently re-thrown
    */
   public static void setException(Span span, Throwable e, boolean rethrown) {
-    if (tracing) {
+    if (enabled) {
       span.setStatus(StatusCode.ERROR);
       span.recordException(e,
           Attributes.builder().put(SemanticAttributes.EXCEPTION_TYPE, e.getClass().getName())
@@ -255,7 +193,7 @@ public class TraceUtil {
           throw e.getCause();
         }
       }
-      Span span = startServerSpan(instance.getClass(), method.getName(), (TInfo) args[0]);
+      Span span = startServerRpcSpan(instance.getClass(), method.getName(), (TInfo) args[0]);
       try (Scope scope = span.makeCurrent()) {
         return method.invoke(instance, args);
       } catch (Exception e) {
