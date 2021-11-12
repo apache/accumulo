@@ -63,7 +63,7 @@ public class ZooSession {
 
   private static Map<String,ZooSessionInfo> sessions = new HashMap<>();
 
-  private static final SecureRandom secureRandom = new SecureRandom();
+  private static final SecureRandom random = new SecureRandom();
 
   static {
     SingletonManager.register(new SingletonService() {
@@ -172,7 +172,7 @@ public class ZooSession {
         }
         UtilWaitThread.sleep(sleepTime);
         if (sleepTime < 10000)
-          sleepTime = sleepTime + (long) (sleepTime * secureRandom.nextDouble());
+          sleepTime = sleepTime + (long) (sleepTime * random.nextDouble());
       }
     }
 

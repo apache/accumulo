@@ -19,45 +19,36 @@
 package org.apache.accumulo.server.rpc;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.server.metrics.ThriftMetrics;
-import org.apache.hadoop.metrics2.MetricsSystem;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TProtocol;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A {@link TProcessor} which tracks the duration of an RPC and adds it to the metrics subsystem.
  */
 public class TimedProcessor implements TProcessor {
-  private static final Logger log = LoggerFactory.getLogger(TimedProcessor.class);
 
   private final TProcessor other;
   private final ThriftMetrics thriftMetrics;
   private long idleStart = 0;
 
-  public TimedProcessor(MetricsSystem metricsSystem, AccumuloConfiguration conf, TProcessor next,
-      String serverName, String threadName) {
-    this(metricsSystem, next, serverName, threadName);
+  public TimedProcessor(AccumuloConfiguration conf, TProcessor next, String serverName,
+      String threadName) {
+    this(next, serverName, threadName);
   }
 
-  public TimedProcessor(MetricsSystem metricsSystem, TProcessor next, String serverName,
-      String threadName) {
+  public TimedProcessor(TProcessor next, String serverName, String threadName) {
     this.other = next;
     thriftMetrics = new ThriftMetrics(serverName, threadName);
-    try {
-      thriftMetrics.register(metricsSystem);
-    } catch (Exception e) {
-      log.error("Exception registering MBean with MBean Server", e);
-    }
+    MetricsUtil.initializeProducers(thriftMetrics);
     idleStart = System.currentTimeMillis();
   }
 
   @Override
   public void process(TProtocol in, TProtocol out) throws TException {
-    long now = 0;
-    now = System.currentTimeMillis();
+    long now = System.currentTimeMillis();
     thriftMetrics.addIdle(now - idleStart);
     try {
       other.process(in, out);

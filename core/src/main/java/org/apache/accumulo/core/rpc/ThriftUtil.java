@@ -25,7 +25,6 @@ import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -34,7 +33,6 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -69,7 +67,7 @@ public class ThriftUtil {
 
   public static final String GSSAPI = "GSSAPI", DIGEST_MD5 = "DIGEST-MD5";
 
-  private static final Random SASL_BACKOFF_RAND = new SecureRandom();
+  private static final SecureRandom random = new SecureRandom();
   private static final int RELOGIN_MAX_BACKOFF = 5000;
 
   /**
@@ -128,7 +126,7 @@ public class ThriftUtil {
    */
   public static <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory,
       HostAndPort address, ClientContext context) throws TTransportException {
-    TTransport transport = ThriftTransportPool.getInstance().getTransport(address,
+    TTransport transport = context.getTransportPool().getTransport(address,
         context.getClientTimeoutInMillis(), context);
     return createClient(factory, transport);
   }
@@ -148,8 +146,7 @@ public class ThriftUtil {
    */
   public static <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory,
       HostAndPort address, ClientContext context, long timeout) throws TTransportException {
-    TTransport transport =
-        ThriftTransportPool.getInstance().getTransport(address, timeout, context);
+    TTransport transport = context.getTransportPool().getTransport(address, timeout, context);
     return createClient(factory, transport);
   }
 
@@ -159,9 +156,9 @@ public class ThriftUtil {
    * @param iface
    *          The Client being returned or null.
    */
-  public static void returnClient(TServiceClient iface) { // Eew... the typing here is horrible
+  public static void returnClient(TServiceClient iface, ClientContext context) {
     if (iface != null) {
-      ThriftTransportPool.getInstance().returnTransport(iface.getInputProtocol().getTransport());
+      context.getTransportPool().returnTransport(iface.getInputProtocol().getTransport());
     }
   }
 
@@ -427,7 +424,7 @@ public class ThriftUtil {
 
         // Avoid the replay attack protection, sleep 1 to 5000ms
         try {
-          Thread.sleep((SASL_BACKOFF_RAND.nextInt(RELOGIN_MAX_BACKOFF) + 1));
+          Thread.sleep(random.nextInt(RELOGIN_MAX_BACKOFF) + 1);
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           return;

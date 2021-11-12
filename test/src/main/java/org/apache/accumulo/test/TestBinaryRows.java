@@ -19,11 +19,10 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.harness.AccumuloITBase.random;
 
-import java.security.SecureRandom;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -160,12 +159,10 @@ public class TestBinaryRows {
     } else if (opts.mode.equals("randomLookups")) {
       int numLookups = 1000;
 
-      Random r = new SecureRandom();
-
       long t1 = System.currentTimeMillis();
 
       for (int i = 0; i < numLookups; i++) {
-        long row = ((r.nextLong() & 0x7fffffffffffffffL) % opts.num) + opts.start;
+        long row = ((random.nextLong() & 0x7fffffffffffffffL) % opts.num) + opts.start;
 
         try (Scanner s = accumuloClient.createScanner(opts.tableName, opts.auths)) {
           Key startKey = new Key(encodeLong(row), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);

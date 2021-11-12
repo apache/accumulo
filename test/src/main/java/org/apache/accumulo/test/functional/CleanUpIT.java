@@ -110,7 +110,7 @@ public class CleanUpIT extends SharedMiniClusterBase {
         fail("Not seeing expected threads. Saw " + threadCount);
       }
 
-      org.apache.accumulo.core.util.CleanUp.shutdownNow();
+      org.apache.accumulo.core.util.CleanUp.shutdownNow(conn);
 
       Mutation m2 = new Mutation("r2");
       m2.put("cf1", "cq1", 1, "6");

@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.lang.StackWalker.StackFrame;
-import java.security.SecureRandom;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Function;
@@ -32,14 +31,11 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.cluster.ClusterUsers;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.hadoop.conf.Configuration;
@@ -70,7 +66,6 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   private static final Logger log = LoggerFactory.getLogger(SharedMiniClusterBase.class);
   public static final String TRUE = Boolean.toString(true);
 
-  private static String principal = "root";
   private static String rootPassword;
   private static AuthenticationToken token;
   private static MiniAccumuloClusterImpl cluster;
@@ -120,38 +115,6 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
         miniClusterCallback, krb);
     cluster.start();
 
-    if (krb != null) {
-      final String traceTable = Property.TRACE_TABLE.getDefaultValue();
-      final ClusterUser systemUser = krb.getAccumuloServerUser(), rootUser = krb.getRootUser();
-      // Login as the trace user
-      // Open a client as the system user (ensures the user will exist for us to assign
-      // permissions to)
-      UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
-          systemUser.getKeytab().getAbsolutePath());
-
-      AuthenticationToken tempToken = new KerberosToken();
-      try (AccumuloClient c = cluster.createAccumuloClient(systemUser.getPrincipal(), tempToken)) {
-        c.securityOperations().authenticateUser(systemUser.getPrincipal(), tempToken);
-      }
-
-      // Then, log back in as the "root" user and do the grant
-      UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
-          rootUser.getKeytab().getAbsolutePath());
-
-      try (AccumuloClient c = cluster.createAccumuloClient(principal, token)) {
-        // Create the trace table
-        c.tableOperations().create(traceTable);
-        // Trace user (which is the same kerberos principal as the system user, but using a normal
-        // KerberosToken) needs
-        // to have the ability to read, write and alter the trace table
-        c.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
-            TablePermission.READ);
-        c.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
-            TablePermission.WRITE);
-        c.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
-            TablePermission.ALTER_TABLE);
-      }
-    }
   }
 
   private static String getTestClassName() {
@@ -162,7 +125,7 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
         StackWalker.getInstance(RETAIN_CLASS_REFERENCE).walk(findCallerITClass).map(Class::getName);
     // use the calling class name, or default to a unique name if IT class can't be found
     return callerClassName.orElse(String.format("UnknownITClass-{}-{}", System.currentTimeMillis(),
-        new SecureRandom().nextInt(Short.MAX_VALUE)));
+        random.nextInt(Short.MAX_VALUE)));
   }
 
   /**

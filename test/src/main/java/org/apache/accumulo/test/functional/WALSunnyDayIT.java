@@ -31,7 +31,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -39,7 +38,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -176,18 +174,17 @@ public class WALSunnyDayIT extends ConfigurableMacBase {
 
   private void writeSomeData(AccumuloClient client, String tableName, int row, int col)
       throws Exception {
-    Random rand = new SecureRandom();
     try (BatchWriter bw = client.createBatchWriter(tableName)) {
       byte[] rowData = new byte[10];
       byte[] cq = new byte[10];
       byte[] value = new byte[10];
 
       for (int r = 0; r < row; r++) {
-        rand.nextBytes(rowData);
+        random.nextBytes(rowData);
         Mutation m = new Mutation(rowData);
         for (int c = 0; c < col; c++) {
-          rand.nextBytes(cq);
-          rand.nextBytes(value);
+          random.nextBytes(cq);
+          random.nextBytes(value);
           m.put(CF, new Text(cq), new Value(value));
         }
         bw.addMutation(m);

@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.monitor.rest.trace;
 
-import org.apache.accumulo.tracer.thrift.RemoteSpan;
-
 /**
  * Generates a list of traces per type
  *
@@ -35,46 +33,5 @@ public class TracesForTypeInformation {
   public Long ms;
 
   public TracesForTypeInformation() {}
-
-  /**
-   * Generates the trace information based on a span
-   *
-   * @param span
-   *          Remote span with trace information
-   */
-  public TracesForTypeInformation(RemoteSpan span) {
-    this.id = getIDFromSpan(span);
-    this.start = getDateFromSpan(span);
-    this.ms = getSpanTime(span);
-    this.source = getLocation(span);
-  }
-
-  protected String getIDFromSpan(RemoteSpan span) {
-    if (span == null)
-      return null;
-
-    return String.format("%s", Long.toHexString(span.traceId));
-  }
-
-  protected Long getDateFromSpan(RemoteSpan span) {
-    if (span == null)
-      return null;
-
-    return span.start;
-  }
-
-  protected Long getSpanTime(RemoteSpan span) {
-    if (span == null)
-      return null;
-
-    return span.stop - span.start;
-  }
-
-  protected String getLocation(RemoteSpan span) {
-    if (span == null)
-      return null;
-
-    return span.svc + ":" + span.sender;
-  }
 
 }

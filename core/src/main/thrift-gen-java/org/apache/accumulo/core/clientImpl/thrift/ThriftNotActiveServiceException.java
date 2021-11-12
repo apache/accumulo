@@ -28,14 +28,19 @@ package org.apache.accumulo.core.clientImpl.thrift;
 public class ThriftNotActiveServiceException extends org.apache.thrift.TException implements org.apache.thrift.TBase<ThriftNotActiveServiceException, ThriftNotActiveServiceException._Fields>, java.io.Serializable, Cloneable, Comparable<ThriftNotActiveServiceException> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ThriftNotActiveServiceException");
 
+  private static final org.apache.thrift.protocol.TField SERV_FIELD_DESC = new org.apache.thrift.protocol.TField("serv", org.apache.thrift.protocol.TType.STRING, (short)1);
+  private static final org.apache.thrift.protocol.TField DESCRIPTION_FIELD_DESC = new org.apache.thrift.protocol.TField("description", org.apache.thrift.protocol.TType.STRING, (short)2);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ThriftNotActiveServiceExceptionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ThriftNotActiveServiceExceptionTupleSchemeFactory();
 
+  public @org.apache.thrift.annotation.Nullable java.lang.String serv; // required
+  public @org.apache.thrift.annotation.Nullable java.lang.String description; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-;
+    SERV((short)1, "serv"),
+    DESCRIPTION((short)2, "description");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -51,6 +56,10 @@ public class ThriftNotActiveServiceException extends org.apache.thrift.TExceptio
     @org.apache.thrift.annotation.Nullable
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
+        case 1: // SERV
+          return SERV;
+        case 2: // DESCRIPTION
+          return DESCRIPTION;
         default:
           return null;
       }
@@ -90,9 +99,15 @@ public class ThriftNotActiveServiceException extends org.apache.thrift.TExceptio
       return _fieldName;
     }
   }
+
+  // isset id assignments
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.SERV, new org.apache.thrift.meta_data.FieldMetaData("serv", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.DESCRIPTION, new org.apache.thrift.meta_data.FieldMetaData("description", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ThriftNotActiveServiceException.class, metaDataMap);
   }
@@ -100,10 +115,25 @@ public class ThriftNotActiveServiceException extends org.apache.thrift.TExceptio
   public ThriftNotActiveServiceException() {
   }
 
+  public ThriftNotActiveServiceException(
+    java.lang.String serv,
+    java.lang.String description)
+  {
+    this();
+    this.serv = serv;
+    this.description = description;
+  }
+
   /**
    * Performs a deep copy on <i>other</i>.
    */
   public ThriftNotActiveServiceException(ThriftNotActiveServiceException other) {
+    if (other.isSetServ()) {
+      this.serv = other.serv;
+    }
+    if (other.isSetDescription()) {
+      this.description = other.description;
+    }
   }
 
   public ThriftNotActiveServiceException deepCopy() {
@@ -112,16 +142,90 @@ public class ThriftNotActiveServiceException extends org.apache.thrift.TExceptio
 
   @Override
   public void clear() {
+    this.serv = null;
+    this.description = null;
+  }
+
+  @org.apache.thrift.annotation.Nullable
+  public java.lang.String getServ() {
+    return this.serv;
+  }
+
+  public ThriftNotActiveServiceException setServ(@org.apache.thrift.annotation.Nullable java.lang.String serv) {
+    this.serv = serv;
+    return this;
+  }
+
+  public void unsetServ() {
+    this.serv = null;
+  }
+
+  /** Returns true if field serv is set (has been assigned a value) and false otherwise */
+  public boolean isSetServ() {
+    return this.serv != null;
+  }
+
+  public void setServIsSet(boolean value) {
+    if (!value) {
+      this.serv = null;
+    }
+  }
+
+  @org.apache.thrift.annotation.Nullable
+  public java.lang.String getDescription() {
+    return this.description;
+  }
+
+  public ThriftNotActiveServiceException setDescription(@org.apache.thrift.annotation.Nullable java.lang.String description) {
+    this.description = description;
+    return this;
+  }
+
+  public void unsetDescription() {
+    this.description = null;
+  }
+
+  /** Returns true if field description is set (has been assigned a value) and false otherwise */
+  public boolean isSetDescription() {
+    return this.description != null;
+  }
+
+  public void setDescriptionIsSet(boolean value) {
+    if (!value) {
+      this.description = null;
+    }
   }
 
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
+    case SERV:
+      if (value == null) {
+        unsetServ();
+      } else {
+        setServ((java.lang.String)value);
+      }
+      break;
+
+    case DESCRIPTION:
+      if (value == null) {
+        unsetDescription();
+      } else {
+        setDescription((java.lang.String)value);
+      }
+      break;
+
     }
   }
 
   @org.apache.thrift.annotation.Nullable
   public java.lang.Object getFieldValue(_Fields field) {
     switch (field) {
+    case SERV:
+      return getServ();
+
+    case DESCRIPTION:
+      return getDescription();
+
     }
     throw new java.lang.IllegalStateException();
   }
@@ -133,6 +237,10 @@ public class ThriftNotActiveServiceException extends org.apache.thrift.TExceptio
     }
 
     switch (field) {
+    case SERV:
+      return isSetServ();
+    case DESCRIPTION:
+      return isSetDescription();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -150,12 +258,38 @@ public class ThriftNotActiveServiceException extends org.apache.thrift.TExceptio
     if (this == that)
       return true;
 
+    boolean this_present_serv = true && this.isSetServ();
+    boolean that_present_serv = true && that.isSetServ();
+    if (this_present_serv || that_present_serv) {
+      if (!(this_present_serv && that_present_serv))
+        return false;
+      if (!this.serv.equals(that.serv))
+        return false;
+    }
+
+    boolean this_present_description = true && this.isSetDescription();
+    boolean that_present_description = true && that.isSetDescription();
+    if (this_present_description || that_present_description) {
+      if (!(this_present_description && that_present_description))
+        return false;
+      if (!this.description.equals(that.description))
+        return false;
+    }
+
     return true;
   }
 
   @Override
   public int hashCode() {
     int hashCode = 1;
+
+    hashCode = hashCode * 8191 + ((isSetServ()) ? 131071 : 524287);
+    if (isSetServ())
+      hashCode = hashCode * 8191 + serv.hashCode();
+
+    hashCode = hashCode * 8191 + ((isSetDescription()) ? 131071 : 524287);
+    if (isSetDescription())
+      hashCode = hashCode * 8191 + description.hashCode();
 
     return hashCode;
   }
@@ -168,6 +302,26 @@ public class ThriftNotActiveServiceException extends org.apache.thrift.TExceptio
 
     int lastComparison = 0;
 
+    lastComparison = java.lang.Boolean.compare(isSetServ(), other.isSetServ());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetServ()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.serv, other.serv);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = java.lang.Boolean.compare(isSetDescription(), other.isSetDescription());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetDescription()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.description, other.description);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -189,6 +343,21 @@ public class ThriftNotActiveServiceException extends org.apache.thrift.TExceptio
     java.lang.StringBuilder sb = new java.lang.StringBuilder("ThriftNotActiveServiceException(");
     boolean first = true;
 
+    sb.append("serv:");
+    if (this.serv == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.serv);
+    }
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("description:");
+    if (this.description == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.description);
+    }
+    first = false;
     sb.append(")");
     return sb.toString();
   }
@@ -232,6 +401,22 @@ public class ThriftNotActiveServiceException extends org.apache.thrift.TExceptio
           break;
         }
         switch (schemeField.id) {
+          case 1: // SERV
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+              struct.serv = iprot.readString();
+              struct.setServIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 2: // DESCRIPTION
+            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+              struct.description = iprot.readString();
+              struct.setDescriptionIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -247,6 +432,16 @@ public class ThriftNotActiveServiceException extends org.apache.thrift.TExceptio
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
+      if (struct.serv != null) {
+        oprot.writeFieldBegin(SERV_FIELD_DESC);
+        oprot.writeString(struct.serv);
+        oprot.writeFieldEnd();
+      }
+      if (struct.description != null) {
+        oprot.writeFieldBegin(DESCRIPTION_FIELD_DESC);
+        oprot.writeString(struct.description);
+        oprot.writeFieldEnd();
+      }
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -264,11 +459,34 @@ public class ThriftNotActiveServiceException extends org.apache.thrift.TExceptio
     @Override
     public void write(org.apache.thrift.protocol.TProtocol prot, ThriftNotActiveServiceException struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+      java.util.BitSet optionals = new java.util.BitSet();
+      if (struct.isSetServ()) {
+        optionals.set(0);
+      }
+      if (struct.isSetDescription()) {
+        optionals.set(1);
+      }
+      oprot.writeBitSet(optionals, 2);
+      if (struct.isSetServ()) {
+        oprot.writeString(struct.serv);
+      }
+      if (struct.isSetDescription()) {
+        oprot.writeString(struct.description);
+      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, ThriftNotActiveServiceException struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+      java.util.BitSet incoming = iprot.readBitSet(2);
+      if (incoming.get(0)) {
+        struct.serv = iprot.readString();
+        struct.setServIsSet(true);
+      }
+      if (incoming.get(1)) {
+        struct.description = iprot.readString();
+        struct.setDescriptionIsSet(true);
+      }
     }
   }
 

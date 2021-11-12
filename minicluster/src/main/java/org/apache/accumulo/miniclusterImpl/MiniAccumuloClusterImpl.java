@@ -772,22 +772,24 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    */
   public ManagerMonitorInfo getManagerMonitorInfo()
       throws AccumuloException, AccumuloSecurityException {
-    ManagerClientService.Iface client = null;
-    while (true) {
-      try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-        client = ManagerClient.getConnectionWithRetry((ClientContext) c);
-        return client.getManagerStats(TraceUtil.traceInfo(), ((ClientContext) c).rpcCreds());
-      } catch (ThriftSecurityException exception) {
-        throw new AccumuloSecurityException(exception);
-      } catch (ThriftNotActiveServiceException e) {
-        // Let it loop, fetching a new location
-        log.debug("Contacted a Manager which is no longer active, retrying");
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-      } catch (TException exception) {
-        throw new AccumuloException(exception);
-      } finally {
-        if (client != null) {
-          ManagerClient.close(client);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
+      while (true) {
+        ManagerClientService.Iface client = null;
+        try {
+          client = ManagerClient.getConnectionWithRetry((ClientContext) c);
+          return client.getManagerStats(TraceUtil.traceInfo(), ((ClientContext) c).rpcCreds());
+        } catch (ThriftSecurityException exception) {
+          throw new AccumuloSecurityException(exception);
+        } catch (ThriftNotActiveServiceException e) {
+          // Let it loop, fetching a new location
+          log.debug("Contacted a Manager which is no longer active, retrying");
+          sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        } catch (TException exception) {
+          throw new AccumuloException(exception);
+        } finally {
+          if (client != null) {
+            ManagerClient.close(client, (ClientContext) c);
+          }
         }
       }
     }

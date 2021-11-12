@@ -21,36 +21,14 @@ package org.apache.accumulo.core.crypto;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.SecureRandom;
 import java.util.Objects;
 
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.commons.io.IOUtils;
 
 public class CryptoUtils {
-
-  public static SecureRandom newSha1SecureRandom() {
-    return newSecureRandom("SHA1PRNG", "SUN");
-  }
-
-  private static SecureRandom newSecureRandom(String secureRNG, String secureRNGProvider) {
-    SecureRandom secureRandom = null;
-    try {
-      secureRandom = SecureRandom.getInstance(secureRNG, secureRNGProvider);
-
-      // Immediately seed the generator
-      byte[] throwAway = new byte[16];
-      secureRandom.nextBytes(throwAway);
-    } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
-      throw new CryptoException("Unable to generate secure random.", e);
-    }
-    return secureRandom;
-  }
 
   /**
    * Read the decryption parameters from the DataInputStream

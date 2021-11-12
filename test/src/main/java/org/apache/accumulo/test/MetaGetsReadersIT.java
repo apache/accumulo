@@ -22,10 +22,8 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.security.SecureRandom;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -87,7 +85,6 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
     final String tableName = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       c.tableOperations().create(tableName);
-      Random random = new SecureRandom();
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (int i = 0; i < 50000; i++) {
           byte[] row = new byte[100];

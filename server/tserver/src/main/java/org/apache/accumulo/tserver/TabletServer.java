@@ -41,7 +41,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -79,6 +78,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -160,7 +160,6 @@ import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.metrics2.MetricsSystem;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TServiceClient;
@@ -174,6 +173,7 @@ import com.google.common.collect.Iterators;
 
 public class TabletServer extends AbstractServer {
 
+  private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
   private static final long TIME_BETWEEN_GC_CHECKS = 5000;
   private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = 60 * 60 * 1000;
@@ -183,10 +183,11 @@ public class TabletServer extends AbstractServer {
 
   final TabletServerLogger logger;
 
-  final TabletServerUpdateMetrics updateMetrics;
-  final TabletServerScanMetrics scanMetrics;
-  final TabletServerMinCMetrics mincMetrics;
-  final CompactionExecutorsMetrics ceMetrics;
+  private TabletServerMetrics metrics;
+  TabletServerUpdateMetrics updateMetrics;
+  TabletServerScanMetrics scanMetrics;
+  TabletServerMinCMetrics mincMetrics;
+  CompactionExecutorsMetrics ceMetrics;
 
   public TabletServerScanMetrics getScanMetrics() {
     return scanMetrics;
@@ -353,10 +354,6 @@ public class TabletServer extends AbstractServer {
     this.resourceManager = new TabletServerResourceManager(context);
     this.security = AuditedSecurityOperation.getInstance(context);
 
-    updateMetrics = new TabletServerUpdateMetrics();
-    scanMetrics = new TabletServerScanMetrics();
-    mincMetrics = new TabletServerMinCMetrics();
-    ceMetrics = new CompactionExecutorsMetrics();
     context.getScheduledExecutor().scheduleWithFixedDelay(TabletLocator::clearLocators, jitter(),
         jitter(), TimeUnit.MILLISECONDS);
     walMarker = new WalStateManager(context);
@@ -385,9 +382,9 @@ public class TabletServer extends AbstractServer {
   }
 
   private static long jitter() {
-    Random r = new SecureRandom();
     // add a random 10% wait
-    return (long) ((1. + (r.nextDouble() / 10)) * TabletServer.TIME_BETWEEN_LOCATOR_CACHE_CLEARS);
+    return (long) ((1. + (random.nextDouble() / 10))
+        * TabletServer.TIME_BETWEEN_LOCATOR_CACHE_CLEARS);
   }
 
   final SessionManager sessionManager;
@@ -549,10 +546,10 @@ public class TabletServer extends AbstractServer {
       throws UnknownHostException {
     Property maxMessageSizeProperty = (conf.get(Property.TSERV_MAX_MESSAGE_SIZE) != null
         ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
-    ServerAddress sp = TServerUtils.startServer(getMetricsSystem(), getContext(), address,
-        Property.TSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
-        "Thrift Client Server", Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS,
-        Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK, maxMessageSizeProperty);
+    ServerAddress sp = TServerUtils.startServer(getContext(), address, Property.TSERV_CLIENTPORT,
+        processor, this.getClass().getSimpleName(), "Thrift Client Server",
+        Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT,
+        Property.TSERV_THREADCHECK, maxMessageSizeProperty);
     this.server = sp.server;
     return sp.address;
   }
@@ -591,7 +588,7 @@ public class TabletServer extends AbstractServer {
   }
 
   private void returnManagerConnection(ManagerClientService.Client client) {
-    ThriftUtil.returnClient(client);
+    ThriftUtil.returnClient(client, context);
   }
 
   private HostAndPort startTabletClientService() throws UnknownHostException {
@@ -621,11 +618,10 @@ public class TabletServer extends AbstractServer {
     Property maxMessageSizeProperty =
         getConfiguration().get(Property.TSERV_MAX_MESSAGE_SIZE) != null
             ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE;
-    ServerAddress sp =
-        TServerUtils.startServer(getMetricsSystem(), getContext(), clientAddress.getHost(),
-            Property.REPLICATION_RECEIPT_SERVICE_PORT, processor, "ReplicationServicerHandler",
-            "Replication Servicer", Property.TSERV_PORTSEARCH, Property.REPLICATION_MIN_THREADS,
-            null, Property.REPLICATION_THREADCHECK, maxMessageSizeProperty);
+    ServerAddress sp = TServerUtils.startServer(getContext(), clientAddress.getHost(),
+        Property.REPLICATION_RECEIPT_SERVICE_PORT, processor, "ReplicationServicerHandler",
+        "Replication Servicer", Property.TSERV_PORTSEARCH, Property.REPLICATION_MIN_THREADS, null,
+        Property.REPLICATION_THREADCHECK, maxMessageSizeProperty);
     this.replServer = sp.server;
     log.info("Started replication service on {}", sp.address);
 
@@ -721,17 +717,6 @@ public class TabletServer extends AbstractServer {
       throw new RuntimeException(e);
     }
 
-    try {
-      MetricsSystem metricsSystem = getMetricsSystem();
-      new TabletServerMetrics(this).register(metricsSystem);
-      mincMetrics.register(metricsSystem);
-      scanMetrics.register(metricsSystem);
-      updateMetrics.register(metricsSystem);
-      ceMetrics.register(metricsSystem);
-    } catch (Exception e) {
-      log.error("Error registering metrics", e);
-    }
-
     if (authKeyWatcher != null) {
       log.info("Seeding ZooKeeper watcher for authentication keys");
       try {
@@ -746,6 +731,27 @@ public class TabletServer extends AbstractServer {
       }
     }
 
+    try {
+      clientAddress = startTabletClientService();
+    } catch (UnknownHostException e1) {
+      throw new RuntimeException("Failed to start the tablet client service", e1);
+    }
+    announceExistence();
+
+    try {
+      MetricsUtil.initializeMetrics(context.getConfiguration(), this.applicationName,
+          clientAddress);
+    } catch (Exception e1) {
+      log.error("Error initializing metrics, metrics will not be emitted.", e1);
+    }
+
+    metrics = new TabletServerMetrics(this);
+    updateMetrics = new TabletServerUpdateMetrics();
+    scanMetrics = new TabletServerScanMetrics();
+    mincMetrics = new TabletServerMinCMetrics();
+    ceMetrics = new CompactionExecutorsMetrics();
+    MetricsUtil.initializeProducers(metrics, updateMetrics, scanMetrics, mincMetrics, ceMetrics);
+
     this.compactionManager = new CompactionManager(new Iterable<Compactable>() {
       @Override
       public Iterator<Compactable> iterator() {
@@ -755,12 +761,6 @@ public class TabletServer extends AbstractServer {
     }, getContext(), ceMetrics);
     compactionManager.start();
 
-    try {
-      clientAddress = startTabletClientService();
-    } catch (UnknownHostException e1) {
-      throw new RuntimeException("Failed to start the tablet client service", e1);
-    }
-    announceExistence();
     try {
       walMarker.initWalMarker(getTabletSession());
     } catch (Exception e) {
@@ -899,7 +899,6 @@ public class TabletServer extends AbstractServer {
       } catch (InterruptedException e) {
         log.info("Interrupt Exception received, shutting down");
         serverStopRequested = true;
-
       } catch (Exception e) {
         // may have lost connection with manager
         // loop back to the beginning and wait for a new one

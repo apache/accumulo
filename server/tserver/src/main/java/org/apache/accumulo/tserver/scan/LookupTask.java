@@ -38,7 +38,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TKey;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
-import org.apache.accumulo.core.iterators.IterationInterruptedException;
+import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.session.MultiScanSession;

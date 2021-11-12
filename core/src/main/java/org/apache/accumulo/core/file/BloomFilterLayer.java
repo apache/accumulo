@@ -64,6 +64,8 @@ import org.slf4j.LoggerFactory;
  * functionality.
  */
 public class BloomFilterLayer {
+
+  private static final SecureRandom random = new SecureRandom();
   private static final Logger LOG = LoggerFactory.getLogger(BloomFilterLayer.class);
   public static final String BLOOM_FILE_NAME = "acu_bloom";
   public static final int HASH_COUNT = 5;
@@ -76,8 +78,8 @@ public class BloomFilterLayer {
     }
 
     if (maxLoadThreads > 0) {
-      loadThreadPool = ThreadPools.createThreadPool(0, maxLoadThreads, 60, TimeUnit.SECONDS,
-          "bloom-loader", false);
+      loadThreadPool =
+          ThreadPools.createThreadPool(0, maxLoadThreads, 60, TimeUnit.SECONDS, "bloom-loader");
     }
 
     return loadThreadPool;
@@ -441,12 +443,10 @@ public class BloomFilterLayer {
   public static void main(String[] args) throws IOException {
     PrintStream out = System.out;
 
-    SecureRandom r = new SecureRandom();
-
     HashSet<Integer> valsSet = new HashSet<>();
 
     for (int i = 0; i < 100000; i++) {
-      valsSet.add(r.nextInt(Integer.MAX_VALUE));
+      valsSet.add(random.nextInt(Integer.MAX_VALUE));
     }
 
     ArrayList<Integer> vals = new ArrayList<>(valsSet);
@@ -498,7 +498,7 @@ public class BloomFilterLayer {
 
     int hits = 0;
     for (int i = 0; i < 5000; i++) {
-      int row = r.nextInt(Integer.MAX_VALUE);
+      int row = random.nextInt(Integer.MAX_VALUE);
       String fi = String.format("%010d", row);
       // bmfr.seek(new Range(new Text("r"+fi)));
       org.apache.accumulo.core.data.Key k1 =

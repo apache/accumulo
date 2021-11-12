@@ -113,16 +113,15 @@ public class LargeRowIT extends AccumuloClusterHarness {
     }
   }
 
-  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
-      justification = "predictable random is okay for testing")
+  @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "DMI_RANDOM_USED_ONLY_ONCE"},
+      justification = "predictable random with specific seed is intended for this test")
   @Test
   public void run() throws Exception {
-    Random r = new Random();
+    var random = new Random(SEED + 1);
     byte[] rowData = new byte[ROW_SIZE];
-    r.setSeed(SEED + 1);
     TreeSet<Text> splitPoints = new TreeSet<>();
     for (int i = 0; i < NUM_PRE_SPLITS; i++) {
-      r.nextBytes(rowData);
+      random.nextBytes(rowData);
       TestIngest.toPrintableChars(rowData);
       splitPoints.add(new Text(rowData));
     }
@@ -157,17 +156,16 @@ public class LargeRowIT extends AccumuloClusterHarness {
     basicTest(c, PRE_SPLIT_TABLE_NAME, NUM_PRE_SPLITS);
   }
 
-  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
-      justification = "predictable random is okay for testing")
+  @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "DMI_RANDOM_USED_ONLY_ONCE"},
+      justification = "predictable random with specific seed is intended for this test")
   private void basicTest(AccumuloClient c, String table, int expectedSplits) throws Exception {
     try (BatchWriter bw = c.createBatchWriter(table)) {
 
-      Random r = new Random();
+      var random = new Random(SEED);
       byte[] rowData = new byte[ROW_SIZE];
-      r.setSeed(SEED);
 
       for (int i = 0; i < NUM_ROWS; i++) {
-        r.nextBytes(rowData);
+        random.nextBytes(rowData);
         TestIngest.toPrintableChars(rowData);
         Mutation mut = new Mutation(new Text(rowData));
         mut.put("", "", Integer.toString(i));
@@ -196,19 +194,17 @@ public class LargeRowIT extends AccumuloClusterHarness {
     FunctionalTestUtils.checkSplits(c, table, expectedSplits, expectedSplits);
   }
 
-  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
-      justification = "predictable random is okay for testing")
+  @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "DMI_RANDOM_USED_ONLY_ONCE"},
+      justification = "predictable random with specific seed is intended for this test")
   private void verify(AccumuloClient c, String table) throws Exception {
-    Random r = new Random();
+    var random = new Random(SEED);
     byte[] rowData = new byte[ROW_SIZE];
-
-    r.setSeed(SEED);
 
     try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
 
       for (int i = 0; i < NUM_ROWS; i++) {
 
-        r.nextBytes(rowData);
+        random.nextBytes(rowData);
         TestIngest.toPrintableChars(rowData);
 
         scanner.setRange(new Range(new Text(rowData)));

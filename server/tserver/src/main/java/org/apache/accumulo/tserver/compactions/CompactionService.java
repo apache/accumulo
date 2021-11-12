@@ -132,7 +132,8 @@ public class CompactionService {
         @Override
         public CompactionExecutorId getExternalExecutor(String name) {
           var ceid = CompactionExecutorIdImpl.externalId(name);
-          Preconditions.checkArgument(!requestedExternalExecutors.contains(ceid));
+          Preconditions.checkArgument(!requestedExternalExecutors.contains(ceid),
+              "Duplicate external executor for queue " + name);
           requestedExternalExecutors.add(ceid);
           return ceid;
         }
@@ -179,7 +180,7 @@ public class CompactionService {
     this.executors = Map.copyOf(tmpExecutors);
 
     this.planningExecutor =
-        ThreadPools.createThreadPool(1, 1, 0L, TimeUnit.MILLISECONDS, "CompactionPlanner", false);
+        ThreadPools.createThreadPool(1, 1, 0L, TimeUnit.MILLISECONDS, "CompactionPlanner");
 
     this.queuedForPlanning = new EnumMap<>(CompactionKind.class);
     for (CompactionKind kind : CompactionKind.values()) {

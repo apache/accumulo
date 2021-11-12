@@ -23,9 +23,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -86,7 +84,6 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
       final Thread agitator = agitator(stop);
       agitator.start();
       System.out.println("writing");
-      final Random random = new SecureRandom();
       for (i = 0; i < 1_000_000; i++) {
         // make non-negative avoiding Math.abs, because that can still be negative
         long randomRow = random.nextLong() & Long.MAX_VALUE;

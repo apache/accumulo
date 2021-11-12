@@ -129,8 +129,7 @@ public class BulkImporter {
           Collections.synchronizedSortedMap(new TreeMap<>());
 
       timer.start(Timers.EXAMINE_MAP_FILES);
-      ExecutorService threadPool =
-          ThreadPools.createFixedThreadPool(numThreads, "findOverlapping", true);
+      ExecutorService threadPool = ThreadPools.createFixedThreadPool(numThreads, "findOverlapping");
 
       for (Path path : paths) {
         final Path mapFile = path;
@@ -255,7 +254,7 @@ public class BulkImporter {
       return assignmentStats;
     } finally {
       if (client != null) {
-        ServerClient.close(client);
+        ServerClient.close(client, context);
       }
     }
   }
@@ -350,8 +349,7 @@ public class BulkImporter {
 
     final Map<Path,List<AssignmentInfo>> ais = Collections.synchronizedMap(new TreeMap<>());
 
-    ExecutorService threadPool =
-        ThreadPools.createFixedThreadPool(numThreads, "estimateSizes", true);
+    ExecutorService threadPool = ThreadPools.createFixedThreadPool(numThreads, "estimateSizes");
 
     for (final Entry<Path,List<TabletLocation>> entry : assignments.entrySet()) {
       if (entry.getValue().size() == 1) {
@@ -535,7 +533,7 @@ public class BulkImporter {
       }
     });
 
-    ExecutorService threadPool = ThreadPools.createFixedThreadPool(numThreads, "submit", false);
+    ExecutorService threadPool = ThreadPools.createFixedThreadPool(numThreads, "submit");
 
     for (Entry<String,Map<KeyExtent,List<PathSize>>> entry : assignmentsPerTabletServer
         .entrySet()) {
@@ -589,7 +587,7 @@ public class BulkImporter {
 
         return failures.stream().map(KeyExtent::fromThrift).collect(Collectors.toList());
       } finally {
-        ThriftUtil.returnClient((TServiceClient) client);
+        ThriftUtil.returnClient((TServiceClient) client, context);
       }
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);

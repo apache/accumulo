@@ -80,7 +80,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Trace;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -89,11 +88,7 @@ import org.apache.thrift.transport.TTransportException;
 class ConditionalWriterImpl implements ConditionalWriter {
 
   private static ThreadPoolExecutor cleanupThreadPool = ThreadPools.createFixedThreadPool(1, 3,
-      TimeUnit.SECONDS, "Conditional Writer Cleanup Thread", false);
-
-  static {
-    cleanupThreadPool.allowCoreThreadTimeOut(true);
-  }
+      TimeUnit.SECONDS, "Conditional Writer Cleanup Thread");
 
   private static final int MAX_SLEEP = 30000;
 
@@ -239,7 +234,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
           client = getClient(sid.location);
           client.closeConditionalUpdate(tinfo, sid.sessionID);
         } catch (Exception e) {} finally {
-          ThriftUtil.returnClient((TServiceClient) client);
+          ThriftUtil.returnClient((TServiceClient) client, context);
         }
 
       }
@@ -312,7 +307,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       serverQueue.queue.add(mutations);
       // never execute more than one task per server
       if (!serverQueue.taskQueued) {
-        threadPool.execute(Trace.wrap(new SendTask(location)));
+        threadPool.execute(new SendTask(location));
         serverQueue.taskQueued = true;
       }
     }
@@ -332,7 +327,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       if (serverQueue.queue.isEmpty())
         serverQueue.taskQueued = false;
       else
-        threadPool.execute(Trace.wrap(task));
+        threadPool.execute(task);
     }
 
   }
@@ -367,7 +362,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
     this.threadPool = ThreadPools.createScheduledExecutorService(config.getMaxWriteThreads(),
-        this.getClass().getSimpleName(), false);
+        this.getClass().getSimpleName());
     this.locator = new SyncingTabletLocator(context, tableId);
     this.serverQueues = new HashMap<>();
     this.tableId = tableId;
@@ -608,7 +603,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     } finally {
       if (sessionId != null)
         unreserveSessionID(location);
-      ThriftUtil.returnClient((TServiceClient) client);
+      ThriftUtil.returnClient((TServiceClient) client, context);
     }
   }
 
@@ -697,7 +692,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       client = getClient(location);
       client.invalidateConditionalUpdate(tinfo, sessionId);
     } finally {
-      ThriftUtil.returnClient((TServiceClient) client);
+      ThriftUtil.returnClient((TServiceClient) client, context);
     }
   }
 

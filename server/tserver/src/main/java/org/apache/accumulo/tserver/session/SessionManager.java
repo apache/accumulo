@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.tserver.session;
 
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -58,7 +57,7 @@ import com.google.common.collect.Maps;
 public class SessionManager {
   private static final Logger log = LoggerFactory.getLogger(SessionManager.class);
 
-  private final SecureRandom random;
+  private static final SecureRandom random = new SecureRandom();
   private final ConcurrentMap<Long,Session> sessions = new ConcurrentHashMap<>();
   private final long maxIdle;
   private final long maxUpdateIdle;
@@ -71,22 +70,7 @@ public class SessionManager {
     maxUpdateIdle = aconf.getTimeInMillis(Property.TSERV_UPDATE_SESSION_MAXIDLE);
     maxIdle = aconf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
 
-    SecureRandom sr;
-    try {
-      // This is faster than the default secure random which uses /dev/urandom
-      sr = SecureRandom.getInstance("SHA1PRNG");
-    } catch (NoSuchAlgorithmException e) {
-      log.debug("Unable to create SHA1PRNG secure random, using default");
-      sr = new SecureRandom();
-    }
-    random = sr;
-
-    Runnable r = new Runnable() {
-      @Override
-      public void run() {
-        sweep(maxIdle, maxUpdateIdle);
-      }
-    };
+    Runnable r = () -> sweep(maxIdle, maxUpdateIdle);
 
     context.getScheduledExecutor().scheduleWithFixedDelay(r, 0, Math.max(maxIdle / 2, 1000),
         TimeUnit.MILLISECONDS);

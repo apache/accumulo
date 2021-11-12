@@ -56,13 +56,15 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.TraceScope;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class VerifyTabletAssignments {
   private static final Logger log = LoggerFactory.getLogger(VerifyTabletAssignments.class);
@@ -75,11 +77,14 @@ public class VerifyTabletAssignments {
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    try (TraceScope clientSpan =
-        opts.parseArgsAndTrace(VerifyTabletAssignments.class.getName(), args)) {
+    opts.parseArgs(VerifyTabletAssignments.class.getName(), args);
+    Span span = TraceUtil.startSpan(VerifyTabletAssignments.class, "main");
+    try (Scope scope = span.makeCurrent()) {
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
         for (String table : client.tableOperations().list())
           checkTable((ClientContext) client, opts, table, null);
+      } finally {
+        span.end();
       }
     }
   }
@@ -120,7 +125,7 @@ public class VerifyTabletAssignments {
       }
     }
 
-    ExecutorService tp = ThreadPools.createFixedThreadPool(20, "CheckTabletServer", false);
+    ExecutorService tp = ThreadPools.createFixedThreadPool(20, "CheckTabletServer");
     for (final Entry<HostAndPort,List<KeyExtent>> entry : extentsPerServer.entrySet()) {
       Runnable r = () -> {
         try {
@@ -203,6 +208,6 @@ public class VerifyTabletAssignments {
 
     client.closeMultiScan(tinfo, is.scanID);
 
-    ThriftUtil.returnClient((TServiceClient) client);
+    ThriftUtil.returnClient((TServiceClient) client, context);
   }
 }

@@ -20,12 +20,10 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertTrue;
 
-import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -135,8 +133,6 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
 
       c.tableOperations().create(rollWALsTable);
 
-      Random rand = new SecureRandom();
-
       Set<String> allWalsSeen = new HashSet<>();
 
       addOpenWals(context, allWalsSeen);
@@ -160,7 +156,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
           for (int j = 0; j < 10; j++) {
             int row = startRow + j;
             Mutation m = new Mutation(String.format("%05x", row));
-            rand.nextBytes(val);
+            random.nextBytes(val);
             m.put("f", "q", "v");
 
             manyWALsWriter.addMutation(m);
@@ -170,7 +166,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
           // write a lot of data to second table to forces the logs to roll
           for (int j = 0; j < 1000; j++) {
             Mutation m = new Mutation(String.format("%03d", j));
-            rand.nextBytes(val);
+            random.nextBytes(val);
 
             m.put("f", "q", Base64.getEncoder().encodeToString(val));
 

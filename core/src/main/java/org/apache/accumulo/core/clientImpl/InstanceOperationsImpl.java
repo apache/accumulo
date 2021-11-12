@@ -177,7 +177,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throw new AccumuloException(e);
     } finally {
       if (client != null)
-        returnClient(client);
+        returnClient(client, context);
     }
   }
 
@@ -207,7 +207,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throw new AccumuloException(e);
     } finally {
       if (client != null)
-        returnClient(client);
+        returnClient(client, context);
     }
   }
 
@@ -219,8 +219,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     List<String> tservers = getTabletServers();
 
     int numThreads = Math.max(4, Math.min((tservers.size() + compactors.size()) / 10, 256));
-    var executorService =
-        ThreadPools.createFixedThreadPool(numThreads, "getactivecompactions", false);
+    var executorService = ThreadPools.createFixedThreadPool(numThreads, "getactivecompactions");
     try {
       List<Future<List<ActiveCompaction>>> futures = new ArrayList<>();
 

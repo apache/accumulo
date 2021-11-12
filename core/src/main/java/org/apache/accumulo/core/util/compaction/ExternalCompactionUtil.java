@@ -135,7 +135,7 @@ public class ExternalCompactionUtil {
     } catch (TException e) {
       LOG.debug("Failed to contact compactor {}", compactor, e);
     } finally {
-      ThriftUtil.returnClient(client);
+      ThriftUtil.returnClient(client, context);
     }
     return List.of();
   }
@@ -164,7 +164,7 @@ public class ExternalCompactionUtil {
     } catch (TException e) {
       LOG.debug("Failed to contact compactor {}", compactorAddr, e);
     } finally {
-      ThriftUtil.returnClient(client);
+      ThriftUtil.returnClient(client, context);
     }
     return null;
   }
@@ -181,7 +181,7 @@ public class ExternalCompactionUtil {
     } catch (TException e) {
       LOG.debug("Failed to contact compactor {}", compactorAddr, e);
     } finally {
-      ThriftUtil.returnClient(client);
+      ThriftUtil.returnClient(client, context);
     }
     return null;
   }
@@ -196,7 +196,7 @@ public class ExternalCompactionUtil {
 
     final List<Pair<HostAndPort,Future<TExternalCompactionJob>>> running = new ArrayList<>();
     final ExecutorService executor =
-        ThreadPools.createFixedThreadPool(16, "CompactorRunningCompactions", false);
+        ThreadPools.createFixedThreadPool(16, "CompactorRunningCompactions");
 
     getCompactorAddrs(context).forEach(hp -> {
       running.add(new Pair<HostAndPort,Future<TExternalCompactionJob>>(hp,
@@ -223,7 +223,7 @@ public class ExternalCompactionUtil {
   public static Collection<ExternalCompactionId>
       getCompactionIdsRunningOnCompactors(ClientContext context) {
     final ExecutorService executor =
-        ThreadPools.createFixedThreadPool(16, "CompactorRunningCompactions", false);
+        ThreadPools.createFixedThreadPool(16, "CompactorRunningCompactions");
 
     List<Future<ExternalCompactionId>> futures = new ArrayList<>();
 

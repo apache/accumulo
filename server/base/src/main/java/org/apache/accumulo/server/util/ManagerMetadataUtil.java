@@ -215,23 +215,22 @@ public class ManagerMetadataUtil {
   }
 
   /**
-   * new data file update function adds one data file to a tablet's list
-   *
-   * @param path
-   *          should be relative to the table directory
-   *
+   * Update tablet file data from flush. Returns a StoredTabletFile if there are data entries.
    */
-  public static StoredTabletFile updateTabletDataFile(ServerContext context, KeyExtent extent,
-      TabletFile path, DataFileValue dfv, MetadataTime time, String address, ServiceLock zooLock,
-      Set<String> unusedWalLogs, TServerInstance lastLocation, long flushId) {
+  public static Optional<StoredTabletFile> updateTabletDataFile(ServerContext context,
+      KeyExtent extent, TabletFile newDatafile, DataFileValue dfv, MetadataTime time,
+      String address, ServiceLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation,
+      long flushId) {
 
     TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    StoredTabletFile newFile = null;
+    // if there are no entries, the path doesn't get stored in metadata table, only the flush ID
+    Optional<StoredTabletFile> newFile = Optional.empty();
 
+    // if entries are present, write to path to metadata table
     if (dfv.getNumEntries() > 0) {
-      tablet.putFile(path, dfv);
+      tablet.putFile(newDatafile, dfv);
       tablet.putTime(time);
-      newFile = path.insert();
+      newFile = Optional.of(newDatafile.insert());
 
       TServerInstance self = getTServerInstance(address, zooLock);
       tablet.putLocation(self, LocationType.LAST);

@@ -20,10 +20,9 @@ package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.harness.AccumuloITBase.random;
 
-import java.security.SecureRandom;
 import java.util.HashMap;
-import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -45,7 +44,6 @@ import org.apache.accumulo.fate.zookeeper.ServiceLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
@@ -102,18 +100,15 @@ public class ZombieTServer {
   private static final Logger log = LoggerFactory.getLogger(ZombieTServer.class);
 
   public static void main(String[] args) throws Exception {
-    Random random = new SecureRandom();
-    random.setSeed(System.currentTimeMillis() % 1000);
     int port = random.nextInt(30000) + 2000;
     var context = new ServerContext(SiteConfiguration.auto());
     TransactionWatcher watcher = new TransactionWatcher(context);
     final ThriftClientHandler tch = new ThriftClientHandler(context, watcher);
     Processor<Iface> processor = new Processor<>(tch);
     ServerAddress serverPort =
-        TServerUtils.startTServer(Metrics.initSystem(ZombieTServer.class.getSimpleName()),
-            context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor, "ZombieTServer",
-            "walking dead", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, 10 * 1024 * 1024, null,
-            null, -1, HostAndPort.fromParts("0.0.0.0", port));
+        TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA,
+            processor, "ZombieTServer", "walking dead", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS,
+            1000, 10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", port));
 
     String addressString = serverPort.address.toString();
     var zLockPath =

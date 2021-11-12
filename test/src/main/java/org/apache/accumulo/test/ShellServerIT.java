@@ -39,7 +39,6 @@ import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -50,8 +49,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -97,7 +94,6 @@ import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.test.compaction.TestCompactionStrategy;
 import org.apache.accumulo.test.functional.SlowIterator;
-import org.apache.accumulo.tracer.TraceServer;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -298,7 +294,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   private TestShell ts;
 
-  private static Process traceProcess;
   private static String rootPath;
 
   @Rule
@@ -311,7 +306,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
       cfg.setNumTservers(1);
       // Set the min span to 0 so we will definitely get all the traces back. See ACCUMULO-4365
       Map<String,String> siteConf = cfg.getSiteConfig();
-      siteConf.put(Property.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "tracer.span.min.ms", "0");
       cfg.setSiteConfig(siteConf);
     }
   }
@@ -327,16 +321,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     System.setProperty("HOME", rootPath);
     System.setProperty("hadoop.tmp.dir", userDir + "/target/hadoop-tmp");
 
-    traceProcess = getCluster().exec(TraceServer.class).getProcess();
-
-    Properties props = getCluster().getClientProperties();
-    try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
-      TableOperations tops = client.tableOperations();
-      // give the tracer some time to start
-      while (!tops.exists("trace")) {
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
-      }
-    }
   }
 
   @Before
@@ -348,10 +332,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @AfterClass
   public static void tearDownAfterClass() {
-    if (traceProcess != null) {
-      traceProcess.destroy();
-    }
-
     SharedMiniClusterBase.stopMiniCluster();
   }
 
@@ -1039,11 +1019,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertEquals(2, countFiles(cloneId));
 
     // create two large files
-    Random rand = new SecureRandom();
     StringBuilder sb = new StringBuilder("insert b v q ");
-    for (int i = 0; i < 10000; i++) {
-      sb.append('a' + rand.nextInt(26));
-    }
+    random.ints(10_000, 0, 26).forEach(i -> sb.append('a' + i));
 
     ts.exec(sb.toString());
     ts.exec("flush -w");
@@ -1805,24 +1782,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     fooConstraintJar.deleteOnExit();
 
     return fooConstraintJar;
-  }
-
-  @Test
-  public void trace() throws Exception {
-    // Make sure to not collide with the "trace" table
-    final String table = getUniqueNames(1)[0];
-
-    ts.exec("trace on", true);
-    ts.exec("createtable " + table, true);
-    ts.exec("insert a b c value", true);
-    ts.exec("scan -np", true, "value", true);
-    ts.exec("deletetable -f " + table);
-    ts.exec("sleep 1");
-    String trace = ts.exec("trace off");
-    System.out.println(trace);
-    assertTrue(trace.contains("sendMutations"));
-    assertTrue(trace.contains("startScan"));
-    assertTrue(trace.contains("DeleteTable"));
   }
 
   @Test
@@ -2953,14 +2912,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     return splits;
   }
 
-  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
-      justification = "predictable random is okay for testing")
   private Collection<Text> generateBinarySplits(final int numItems, final int len) {
     Set<Text> splits = new HashSet<>();
-    Random rand = new Random();
     for (int i = 0; i < numItems; i++) {
       byte[] split = new byte[len];
-      rand.nextBytes(split);
+      random.nextBytes(split);
       splits.add(new Text(split));
     }
     return splits;

@@ -43,6 +43,7 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -51,12 +52,13 @@ import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.hadoop.fs.Path;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 class DatafileManager {
   private final Logger log = LoggerFactory.getLogger(DatafileManager.class);
@@ -175,7 +177,8 @@ class DatafileManager {
     long startTime = System.currentTimeMillis();
     TreeSet<StoredTabletFile> inUse = new TreeSet<>();
 
-    try (TraceScope waitForScans = Trace.startSpan("waitForScans")) {
+    Span span = TraceUtil.startSpan(this.getClass(), "waitForScans");
+    try (Scope scope = span.makeCurrent()) {
       synchronized (tablet) {
         for (StoredTabletFile path : pathsToWaitFor) {
           while (fileScanReferenceCounts.get(path) > 0
@@ -193,6 +196,11 @@ class DatafileManager {
             inUse.add(path);
         }
       }
+    } catch (Exception e) {
+      TraceUtil.setException(span, e, true);
+      throw e;
+    } finally {
+      span.end();
     }
     return inUse;
   }
@@ -268,9 +276,14 @@ class DatafileManager {
     return newFiles.keySet();
   }
 
-  StoredTabletFile bringMinorCompactionOnline(TabletFile tmpDatafile, TabletFile newDatafile,
-      DataFileValue dfv, CommitSession commitSession, long flushId) {
-    StoredTabletFile newFile;
+  /**
+   * Returns Optional of the new file created. It is possible that the file was just flushed with no
+   * entries so was not inserted into the metadata. In this case empty is returned. If the file was
+   * stored in the metadata table, then StoredTableFile will be returned.
+   */
+  Optional<StoredTabletFile> bringMinorCompactionOnline(TabletFile tmpDatafile,
+      TabletFile newDatafile, DataFileValue dfv, CommitSession commitSession, long flushId) {
+    Optional<StoredTabletFile> newFile;
     // rename before putting in metadata table, so files in metadata table should
     // always exist
     boolean attemptedRename = false;
@@ -278,6 +291,7 @@ class DatafileManager {
     do {
       try {
         if (dfv.getNumEntries() == 0) {
+          log.debug("No data entries so delete temporary file {}", tmpDatafile);
           vm.deleteRecursively(tmpDatafile.getPath());
         } else {
           if (!attemptedRename && vm.exists(newDatafile.getPath())) {
@@ -322,13 +336,9 @@ class DatafileManager {
     }
     try {
       // the order of writing to metadata and walog is important in the face of machine/process
-      // failures
-      // need to write to metadata before writing to walog, when things are done in the reverse
-      // order
-      // data could be lost... the minor compaction start even should be written before the
-      // following metadata
-      // write is made
-
+      // failures need to write to metadata before writing to walog, when things are done in the
+      // reverse order data could be lost... the minor compaction start even should be written
+      // before the following metadata write is made
       newFile = tablet.updateTabletDataFile(commitSession.getMaxCommittedTime(), newDatafile, dfv,
           unusedWalLogs, flushId);
 
@@ -356,8 +366,7 @@ class DatafileManager {
     do {
       try {
         // the purpose of making this update use the new commit session, instead of the old one
-        // passed in,
-        // is because the new one will reference the logs used by current memory...
+        // passed in, is because the new one will reference the logs used by current memory...
 
         tablet.getTabletServer().minorCompactionFinished(
             tablet.getTabletMemory().getCommitSession(), commitSession.getWALogSeq() + 2);
@@ -371,11 +380,12 @@ class DatafileManager {
     synchronized (tablet) {
       t1 = System.currentTimeMillis();
 
-      if (dfv.getNumEntries() > 0) {
-        if (datafileSizes.containsKey(newFile)) {
-          log.error("Adding file that is already in set {}", newFile);
+      if (dfv.getNumEntries() > 0 && newFile.isPresent()) {
+        StoredTabletFile newFileStored = newFile.get();
+        if (datafileSizes.containsKey(newFileStored)) {
+          log.error("Adding file that is already in set {}", newFileStored);
         }
-        datafileSizes.put(newFile, dfv);
+        datafileSizes.put(newFileStored, dfv);
         updateCounter++;
       }
 
@@ -384,7 +394,7 @@ class DatafileManager {
       t2 = System.currentTimeMillis();
     }
 
-    TabletLogger.flushed(tablet.getExtent(), newDatafile);
+    TabletLogger.flushed(tablet.getExtent(), newFile);
 
     if (log.isTraceEnabled()) {
       log.trace(String.format("MinC finish lock %.2f secs %s", (t2 - t1) / 1000.0,
