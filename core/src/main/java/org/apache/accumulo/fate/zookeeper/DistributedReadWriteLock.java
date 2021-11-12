@@ -20,6 +20,7 @@ package org.apache.accumulo.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -28,7 +29,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
-import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.slf4j.Logger;
@@ -236,35 +236,23 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
         return true;
       }
       if (failBlockers) {
+        log.debug("Failing blockers");
         // Loop through all of the prior transactions that are waiting to
         // acquire this write lock. If the transaction has not succeeded or failed,
         // then fail it and return false from this method so that Utils.reserveX()
         // will call this method again and will re-check the prior transactions.
+        iterator = entries.entrySet().iterator();
         while (iterator.hasNext()) {
           Entry<Long,byte[]> e = iterator.next();
-          Long txid = e.getKey();
-          if (!txid.equals(entry)) {
-            if (store.tryReserve(txid)) {
-              try {
-                TStatus status = store.getStatus(txid);
-                if (status.equals(TStatus.FAILED)) {
-                  continue;
-                } else {
-                  switch (status) {
-                    case FAILED_IN_PROGRESS:
-                    case IN_PROGRESS:
-                      store.setStatus(txid, TStatus.FAILED_IN_PROGRESS);
-                      break;
-                    default:
-                      log.error("Attempting to fail a transaction in an unhandled state: {}",
-                          status);
-                  }
-                }
-              } finally {
-                store.unreserve(txid, 0);
-              }
-            }
+          Long priorEntry = e.getKey();
+          ParsedLock priorLock = new ParsedLock(e.getValue());
+          long priorTxid =
+              Long.valueOf(new String(priorLock.getUserData(), StandardCharsets.UTF_8), 16);
+          if (!priorEntry.equals(entry)) {
+            log.info("Attempting to fail blocking tx: {}", Long.toHexString(priorTxid));
+            store.cancel(priorTxid);
           } else {
+            log.debug("Found our tx, exiting");
             break;
           }
         }

@@ -51,7 +51,7 @@ public class CloneTable extends ManagerRepo {
     long val = Utils.reserveNamespace(environment, cloneInfo.srcNamespaceId, tid, false, true,
         TableOperation.CLONE);
     val += Utils.reserveTable(environment, cloneInfo.srcTableId, tid, false, true,
-        TableOperation.CLONE);
+        TableOperation.CLONE, true);
     return val;
   }
 

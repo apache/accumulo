@@ -32,10 +32,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -60,7 +58,7 @@ public class ZooStore<T> implements TStore<T> {
   private String path;
   private ZooReaderWriter zk;
   private String lastReserved = "";
-  private Set<Long> reserved;
+  private Map<Long,Thread> reserved;
   private Map<Long,Long> defered;
   private static final SecureRandom random = new SecureRandom();
   private long statusChangeEvents = 0;
@@ -105,7 +103,7 @@ public class ZooStore<T> implements TStore<T> {
 
     this.path = path;
     this.zk = zk;
-    this.reserved = new HashSet<>();
+    this.reserved = new HashMap<>();
     this.defered = new HashMap<>();
 
     zk.putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
@@ -162,10 +160,10 @@ public class ZooStore<T> implements TStore<T> {
               else
                 continue;
             }
-            if (reserved.contains(tid))
+            if (reserved.containsKey(tid))
               continue;
             else {
-              reserved.add(tid);
+              reserved.put(tid, Thread.currentThread());
               lastReserved = txdir;
             }
           }
@@ -212,14 +210,14 @@ public class ZooStore<T> implements TStore<T> {
     synchronized (this) {
       reservationsWaiting++;
       try {
-        while (reserved.contains(tid))
+        while (reserved.containsKey(tid))
           try {
             this.wait(1000);
           } catch (InterruptedException e) {
             throw new RuntimeException(e);
           }
 
-        reserved.add(tid);
+        reserved.put(tid, Thread.currentThread());
       } finally {
         reservationsWaiting--;
       }
@@ -228,7 +226,7 @@ public class ZooStore<T> implements TStore<T> {
 
   public boolean tryReserve(long tid) {
     synchronized (this) {
-      if (!reserved.contains(tid)) {
+      if (!reserved.containsKey(tid)) {
         reserve(tid);
         return true;
       }
@@ -238,7 +236,7 @@ public class ZooStore<T> implements TStore<T> {
 
   private void unreserve(long tid) {
     synchronized (this) {
-      if (!reserved.remove(tid))
+      if (reserved.remove(tid) == null)
         throw new IllegalStateException(
             "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
 
@@ -257,7 +255,7 @@ public class ZooStore<T> implements TStore<T> {
       throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
 
     synchronized (this) {
-      if (!reserved.remove(tid))
+      if (reserved.remove(tid) == null)
         throw new IllegalStateException(
             "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
 
@@ -271,7 +269,7 @@ public class ZooStore<T> implements TStore<T> {
 
   private void verifyReserved(long tid) {
     synchronized (this) {
-      if (!reserved.contains(tid))
+      if (!reserved.containsKey(tid))
         throw new IllegalStateException(
             "Tried to operate on unreserved transaction " + FateTxId.formatTid(tid));
     }
@@ -537,6 +535,18 @@ public class ZooStore<T> implements TStore<T> {
       }
 
       return dops;
+    }
+  }
+
+  /**
+   * Attempt to cancel the reserved transaction by interrupting the Thread that is running it
+   *
+   * @param tid
+   *          transaction id
+   */
+  public void cancel(long tid) {
+    if (reserved.containsKey(tid)) {
+      reserved.get(tid).interrupt();
     }
   }
 }

@@ -16,21 +16,46 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.fate.zookeeper;
+package org.apache.accumulo.test.fate.zookeeper;
 
 import static org.junit.Assert.assertEquals;
 
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock.QueueLock;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
+import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
-public class DistributedReadWriteLockTest {
+@Category({ZooKeeperTestingServerTests.class})
+public class DistributedReadWriteLockIT {
+
+  private static ZooKeeperTestingServer szk = null;
+  private static final String ZK_ROOT = "/accumulo/" + UUID.randomUUID().toString();
+
+  @BeforeClass
+  public static void setup() throws Exception {
+    szk = new ZooKeeperTestingServer();
+    szk.initPaths(ZK_ROOT);
+  }
+
+  @AfterClass
+  public static void teardown() throws Exception {
+    szk.close();
+  }
 
   // Non-zookeeper version of QueueLock
   public static class MockQueueLock implements QueueLock {
@@ -88,7 +113,11 @@ public class DistributedReadWriteLockTest {
     data.read();
     QueueLock qlock = new MockQueueLock();
 
-    final ReadWriteLock locker = new DistributedReadWriteLock(qlock, "locker1".getBytes());
+    ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
+    ZooStore<?> zooStore = new ZooStore<byte[]>(ZK_ROOT + Constants.ZFATE, zk);
+
+    final ReadWriteLock locker =
+        new DistributedReadWriteLock(zooStore, false, qlock, "locker1".getBytes());
     final Lock readLock = locker.readLock();
     final Lock writeLock = locker.writeLock();
     readLock.lock();

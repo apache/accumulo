@@ -42,7 +42,7 @@ public class DeleteTable extends ManagerRepo {
   @Override
   public long isReady(long tid, Manager env) throws Exception {
     return Utils.reserveNamespace(env, namespaceId, tid, false, false, TableOperation.DELETE)
-        + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.DELETE);
+        + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.DELETE, true);
   }
 
   @Override

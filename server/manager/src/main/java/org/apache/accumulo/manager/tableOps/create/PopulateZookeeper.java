@@ -44,7 +44,7 @@ class PopulateZookeeper extends ManagerRepo {
   @Override
   public long isReady(long tid, Manager environment) throws Exception {
     return Utils.reserveTable(environment, tableInfo.getTableId(), tid, true, false,
-        TableOperation.CREATE);
+        TableOperation.CREATE, false);
   }
 
   @Override

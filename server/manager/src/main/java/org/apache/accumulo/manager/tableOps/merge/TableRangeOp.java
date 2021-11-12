@@ -51,7 +51,7 @@ public class TableRangeOp extends ManagerRepo {
   @Override
   public long isReady(long tid, Manager env) throws Exception {
     return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.MERGE)
-        + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.MERGE);
+        + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.MERGE, true);
   }
 
   public TableRangeOp(MergeInfo.Operation op, NamespaceId namespaceId, TableId tableId,

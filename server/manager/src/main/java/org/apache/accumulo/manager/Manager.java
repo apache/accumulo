@@ -376,7 +376,8 @@ public class Manager extends AbstractServer
     }
   }
 
-  Manager(ServerOpts opts, String[] args) throws IOException, InterruptedException, KeeperException {
+  Manager(ServerOpts opts, String[] args)
+      throws IOException, InterruptedException, KeeperException {
     super("manager", opts, args);
     ServerContext context = super.getContext();
     balancerEnvironment = new BalancerEnvironmentImpl(context);
@@ -396,8 +397,9 @@ public class Manager extends AbstractServer
     final long tokenLifetime = aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME);
     context.setSecretManager(new AuthenticationTokenSecretManager(getInstanceID(), tokenLifetime));
 
-    this.zooStore = new ZooStore<>(getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter());
-    
+    this.zooStore =
+        new ZooStore<>(getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter());
+
     authenticationTokenKeyManager = null;
     keyDistributor = null;
     if (getConfiguration().getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
@@ -416,7 +418,7 @@ public class Manager extends AbstractServer
       delegationTokensAvailable = false;
     }
   }
-  
+
   public ZooStore<Manager> getZooStore() {
     return this.zooStore;
   }

@@ -153,15 +153,17 @@ public class Utils {
         String.format("%016x", tid));
   }
 
-  private static Lock getLock(Manager manager, AbstractId<?> id, long tid,
-      boolean writeLock, boolean cancelWriteLockBlockers) {
+  private static Lock getLock(Manager manager, AbstractId<?> id, long tid, boolean writeLock,
+      boolean cancelWriteLockBlockers) {
     byte[] lockData = String.format("%016x", tid).getBytes(UTF_8);
-    var fLockPath =
-        FateLock.path(manager.getContext().getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
+    var fLockPath = FateLock.path(
+        manager.getContext().getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
     FateLock qlock = new FateLock(manager.getContext().getZooReaderWriter(), fLockPath);
-    Lock lock = DistributedReadWriteLock.recoverLock(manager.getZooStore(), cancelWriteLockBlockers, qlock, lockData);
+    Lock lock = DistributedReadWriteLock.recoverLock(manager.getZooStore(), cancelWriteLockBlockers,
+        qlock, lockData);
     if (lock == null) {
-      DistributedReadWriteLock locker = new DistributedReadWriteLock(manager.getZooStore(), cancelWriteLockBlockers, qlock, lockData);
+      DistributedReadWriteLock locker = new DistributedReadWriteLock(manager.getZooStore(),
+          cancelWriteLockBlockers, qlock, lockData);
       if (writeLock)
         lock = locker.writeLock();
       else
