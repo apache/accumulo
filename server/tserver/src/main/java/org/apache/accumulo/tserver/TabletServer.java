@@ -19,6 +19,10 @@
 package org.apache.accumulo.tserver;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
@@ -70,8 +74,8 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -152,6 +156,7 @@ import org.apache.accumulo.tserver.tablet.CommitSession;
 import org.apache.accumulo.tserver.tablet.CompactionWatcher;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletData;
+import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -793,20 +798,47 @@ public class TabletServer extends AbstractServer {
       }
     }, 0, 5000, TimeUnit.MILLISECONDS);
 
+    // Periodically check that metadata of tablets matches what is held in memory
     ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
       final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
 
-      // gather metadata for all tablets then compare
-      try (TabletsMetadata tabletsMetadata =
-          getContext().getAmple().readTablets().forTablets(onlineTabletsSnapshot.keySet())
-              .fetch(ColumnType.FILES, ColumnType.LOGS, ColumnType.ECOMP, ColumnType.PREV_ROW)
-              .build()) {
-        for (TabletMetadata tabletMetadata : tabletsMetadata) {
-          KeyExtent extent = tabletMetadata.getExtent();
-          Tablet tablet = onlineTabletsSnapshot.get(extent);
-          Long counter = tablet.getUpdateCounter();
-          tablet.compareTabletInfo(counter, tabletMetadata);
+      final SortedSet<KeyExtent> userTablets = new TreeSet<>();
+      final SortedSet<KeyExtent> nonUserTablets = new TreeSet<>();
+
+      // Create subsets of tablets based on DataLevel: one set who's DataLevel is USER and another
+      // containing the remaining tablets (those who's DataLevel is ROOT or METADATA).
+      // This needs to happen so we can use .readTablets() on the DataLevel.USER tablets in order
+      // to reduce RPCs.
+      // TODO: Push this partitioning, based on DataLevel, to ample.
+      onlineTabletsSnapshot.forEach((k, v) -> {
+        if (Ample.DataLevel.of(k.tableId()) == Ample.DataLevel.USER) {
+          userTablets.add(k);
+        } else {
+          nonUserTablets.add(k);
         }
+      });
+
+      List<TabletMetadata> tmdList;
+
+      // gather metadata for all tablets with DataLevel.USER using readTablets()
+      try (TabletsMetadata tabletsMetadata = getContext().getAmple().readTablets()
+          .forTablets(userTablets).fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
+        tmdList = new ArrayList<>(IteratorUtils.toList(tabletsMetadata.iterator()));
+      }
+
+      // gather metadata for all tablets with DataLevel.ROOT or METADATA using readTablet()
+      nonUserTablets.forEach(extent -> {
+        TabletMetadata tabletMetadata =
+            getContext().getAmple().readTablet(extent, FILES, LOGS, ECOMP, PREV_ROW);
+        tmdList.add(tabletMetadata);
+      });
+
+      // for each tablet, compare its metadata to what is held in memory
+      for (TabletMetadata tabletMetadata : tmdList) {
+        KeyExtent extent = tabletMetadata.getExtent();
+        Tablet tablet = onlineTabletsSnapshot.get(extent);
+        Long counter = tablet.getUpdateCounter();
+        tablet.compareTabletInfo(counter, tabletMetadata);
       }
     }, 1, 1, TimeUnit.MINUTES);
 
