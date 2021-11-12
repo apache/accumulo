@@ -92,7 +92,8 @@ public class ZooPropLoader implements CacheLoader<PropCacheId,VersionedPropertie
     log.trace("asyncReload called for key: {}", propCacheId);
     metrics.incrRefresh();
 
-    return CompletableFuture.supplyAsync(() -> loadIfDifferentVersion(propCacheId, oldValue));
+    return CompletableFuture.supplyAsync(() -> loadIfDifferentVersion(propCacheId, oldValue),
+        executor);
   }
 
   @Override
