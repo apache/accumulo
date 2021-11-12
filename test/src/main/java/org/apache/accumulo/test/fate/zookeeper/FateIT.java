@@ -19,6 +19,10 @@
 package org.apache.accumulo.test.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.junit.Assert.assertEquals;
 
 import java.util.UUID;
 
@@ -43,9 +47,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
-import org.easymock.EasyMock;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -69,7 +71,6 @@ public class FateIT {
 
     @Override
     public long isReady(long tid, Manager manager) throws Exception {
-      System.out.println("LongRenameOp::isReady");
       return Utils.reserveNamespace(manager, namespaceId, tid, false, true, TableOperation.RENAME)
           + Utils.reserveTable(manager, tableId, tid, true, true, TableOperation.RENAME, false);
     }
@@ -82,7 +83,6 @@ public class FateIT {
 
     @Override
     public Repo<Manager> call(long tid, Manager environment) throws Exception {
-      System.out.println("LongRenameOp::call");
       Thread.sleep(3 * 60 * 1000);
       return null;
     }
@@ -103,7 +103,6 @@ public class FateIT {
 
     @Override
     public long isReady(long tid, Manager manager) throws Exception {
-      System.out.println("DeleteTableNowOp::isReady");
       return Utils.reserveNamespace(manager, namespaceId, tid, false, true, TableOperation.RENAME)
           + Utils.reserveTable(manager, tableId, tid, true, true, TableOperation.RENAME, true);
     }
@@ -116,7 +115,6 @@ public class FateIT {
 
     @Override
     public Repo<Manager> call(long tid, Manager environment) throws Exception {
-      System.out.println("DeleteTableNowOp::call");
       FateIT.DELETE_NOW_OP_CALLED = true;
       return null;
     }
@@ -151,13 +149,13 @@ public class FateIT {
     ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
     final AgeOffStore<Manager> store = new AgeOffStore<Manager>(zooStore, 1000 * 60 * 60 * 8);
 
-    Manager manager = EasyMock.createMock(Manager.class);
-    ServerContext sctx = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect(manager.getContext()).andReturn(sctx).anyTimes();
-    EasyMock.expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    EasyMock.expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
-    EasyMock.expect(manager.getZooStore()).andReturn(zooStore).anyTimes();
-    EasyMock.replay(manager, sctx);
+    Manager manager = createMock(Manager.class);
+    ServerContext sctx = createMock(ServerContext.class);
+    expect(manager.getContext()).andReturn(sctx).anyTimes();
+    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
+    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
+    expect(manager.getZooStore()).andReturn(zooStore).anyTimes();
+    replay(manager, sctx);
 
     Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
     try {
@@ -172,7 +170,7 @@ public class FateIT {
       long txid = fate.startTransaction();
       fate.seedTransaction(txid, new LongRenameOp(NS, TID), true);
       Thread.sleep(100);
-      Assert.assertEquals(TStatus.IN_PROGRESS, getTxStatus(zk, txid));
+      assertEquals(TStatus.IN_PROGRESS, getTxStatus(zk, txid));
 
       long txid2 = fate.startTransaction();
       fate.seedTransaction(txid2, new DeleteTableNowOp(NS, TID), true);
