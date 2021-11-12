@@ -72,7 +72,7 @@ public class ExternalCompactionMetricsIT extends AccumuloClusterHarness
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-    ExternalCompactionUtils.configureMiniCluster(cfg, coreSite);
+    ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
 
     // Tell the server processes to use a StatsDMeterRegistry that will be configured
     // to push all metrics to the sink we started.
@@ -95,13 +95,13 @@ public class ExternalCompactionMetricsIT extends AccumuloClusterHarness
     try (final AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
       String table1 = names[0];
-      ExternalCompactionUtils.createTable(client, table1, "cs1", 5);
+      ExternalCompactionTestUtils.createTable(client, table1, "cs1", 5);
 
       String table2 = names[1];
-      ExternalCompactionUtils.createTable(client, table2, "cs2", 10);
+      ExternalCompactionTestUtils.createTable(client, table2, "cs2", 10);
 
-      ExternalCompactionUtils.writeData(client, table1);
-      ExternalCompactionUtils.writeData(client, table2);
+      ExternalCompactionTestUtils.writeData(client, table1);
+      ExternalCompactionTestUtils.writeData(client, table2);
 
       final LinkedBlockingQueue<Metric> queueMetrics = new LinkedBlockingQueue<>();
       final AtomicBoolean shutdownTailer = new AtomicBoolean(false);
@@ -121,8 +121,8 @@ public class ExternalCompactionMetricsIT extends AccumuloClusterHarness
       });
       thread.start();
 
-      ExternalCompactionUtils.compact(client, table1, 7, "DCQ1", false);
-      ExternalCompactionUtils.compact(client, table2, 13, "DCQ2", false);
+      ExternalCompactionTestUtils.compact(client, table1, 7, "DCQ1", false);
+      ExternalCompactionTestUtils.compact(client, table2, 13, "DCQ2", false);
 
       boolean sawDCQ1_5 = false;
       boolean sawDCQ2_10 = false;
@@ -162,11 +162,11 @@ public class ExternalCompactionMetricsIT extends AccumuloClusterHarness
         }
       } while (count > 0);
 
-      ExternalCompactionUtils.verify(client, table1, 7);
-      ExternalCompactionUtils.verify(client, table2, 13);
+      ExternalCompactionTestUtils.verify(client, table1, 7);
+      ExternalCompactionTestUtils.verify(client, table2, 13);
 
     } finally {
-      ExternalCompactionUtils.stopProcesses(c1, c2, coord);
+      ExternalCompactionTestUtils.stopProcesses(c1, c2, coord);
       // We stopped the TServer and started our own, restart the original TabletServers
       ((MiniAccumuloClusterImpl) getCluster()).getClusterControl().start(ServerType.TABLET_SERVER);
     }

@@ -21,6 +21,7 @@ package org.apache.accumulo.test.compaction;
 import java.util.List;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
+import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.coordinator.CompactionFinalizer;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -32,7 +33,7 @@ import org.apache.accumulo.server.ServerOpts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TestCompactionCoordinatorForOfflineTable extends TestCompactionCoordinator
+public class TestCompactionCoordinatorForOfflineTable extends CompactionCoordinator
     implements CompactionCoordinatorService.Iface {
 
   public static class NonNotifyingCompactionFinalizer extends CompactionFinalizer {
