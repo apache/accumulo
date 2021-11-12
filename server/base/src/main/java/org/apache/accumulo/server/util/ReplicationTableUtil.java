@@ -64,6 +64,7 @@ public class ReplicationTableUtil {
   private static final Logger log = LoggerFactory.getLogger(ReplicationTableUtil.class);
 
   public static final String COMBINER_NAME = "replcombiner";
+  @SuppressWarnings("deprecation")
   public static final String STATUS_FORMATTER_CLASS_NAME = StatusFormatter.class.getName();
 
   private ReplicationTableUtil() {}
@@ -104,7 +105,9 @@ public class ReplicationTableUtil {
     if (!iterators.containsKey(COMBINER_NAME)) {
       // Set our combiner and combine all columns
       // Need to set the combiner beneath versioning since we don't want to turn it off
-      IteratorSetting setting = new IteratorSetting(9, COMBINER_NAME, StatusCombiner.class);
+      @SuppressWarnings("deprecation")
+      Class<StatusCombiner> statusCombinerClass = StatusCombiner.class;
+      IteratorSetting setting = new IteratorSetting(9, COMBINER_NAME, statusCombinerClass);
       Combiner.setColumns(setting, Collections.singletonList(new Column(ReplicationSection.COLF)));
       try {
         tops.attachIterator(tableName, setting);

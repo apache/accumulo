@@ -25,6 +25,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 /**
  * Encapsulates configuration semantics around replication
  */
+@Deprecated
 public class ReplicationConfigurationUtil {
 
   /**

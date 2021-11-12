@@ -48,6 +48,7 @@ import org.junit.Test;
 import com.google.common.collect.Iterables;
 
 @Ignore("Replication ITs are not stable and not currently maintained")
+@Deprecated
 public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
   private AccumuloClient client;

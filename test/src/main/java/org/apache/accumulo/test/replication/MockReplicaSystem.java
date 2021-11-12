@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
  * <p>
  * Default sleep amount is 0ms
  */
+@Deprecated
 public class MockReplicaSystem implements ReplicaSystem {
   private static final Logger log = LoggerFactory.getLogger(MockReplicaSystem.class);
 

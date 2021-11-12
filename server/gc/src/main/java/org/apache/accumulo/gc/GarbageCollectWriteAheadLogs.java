@@ -356,6 +356,7 @@ public class GarbageCollectWriteAheadLogs {
     return result;
   }
 
+  @Deprecated
   protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) {
     try {
       try {

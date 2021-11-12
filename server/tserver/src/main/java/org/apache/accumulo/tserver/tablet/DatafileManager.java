@@ -48,6 +48,7 @@ import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.StatusUtil;
+import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
@@ -316,6 +317,7 @@ class DatafileManager {
     long t1, t2;
 
     Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
+    @SuppressWarnings("deprecation")
     boolean replicate =
         ReplicationConfigurationUtil.isEnabled(tablet.getExtent(), tablet.getTableConfiguration());
     Set<String> logFileOnly = null;
@@ -353,8 +355,10 @@ class DatafileManager {
               logFileOnly);
         }
         for (String logFile : logFileOnly) {
+          @SuppressWarnings("deprecation")
+          Status status = StatusUtil.openWithUnknownLength();
           ReplicationTableUtil.updateFiles(tablet.getContext(), tablet.getExtent(), logFile,
-              StatusUtil.openWithUnknownLength());
+              status);
         }
       }
     } finally {

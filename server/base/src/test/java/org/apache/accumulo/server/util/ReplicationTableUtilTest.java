@@ -60,6 +60,7 @@ import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
+@Deprecated
 public class ReplicationTableUtilTest {
 
   @Test

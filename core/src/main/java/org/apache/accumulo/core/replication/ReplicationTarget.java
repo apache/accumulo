@@ -34,6 +34,7 @@ import org.apache.hadoop.io.WritableUtils;
 /**
  * Container for where some work needs to be replicated
  */
+@Deprecated
 public class ReplicationTarget implements Writable {
 
   private String peerName;

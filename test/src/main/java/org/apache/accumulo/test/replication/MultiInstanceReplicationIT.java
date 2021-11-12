@@ -82,6 +82,7 @@ import com.google.common.collect.Iterators;
  * Replication tests which start at least two MAC instances and replicate data between them
  */
 @Ignore("Replication ITs are not stable and not currently maintained")
+@Deprecated
 public class MultiInstanceReplicationIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(MultiInstanceReplicationIT.class);
 
