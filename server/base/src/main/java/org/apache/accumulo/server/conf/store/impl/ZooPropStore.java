@@ -240,8 +240,9 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       return zrw.overwritePersistentData(propCacheId.getPath(), propCodec.toBytes(updates),
           updates.getDataVersion());
 
-    } catch (IllegalArgumentException| IOException ex) {
-      throw new PropStoreException("Codec failed to decode / encode properties for " + propCacheId, ex);
+    } catch (IllegalArgumentException | IOException ex) {
+      throw new PropStoreException("Codec failed to decode / encode properties for " + propCacheId,
+          ex);
     } catch (InterruptedException | KeeperException ex) {
       if (ex instanceof InterruptedException) {
         Thread.currentThread().interrupt();

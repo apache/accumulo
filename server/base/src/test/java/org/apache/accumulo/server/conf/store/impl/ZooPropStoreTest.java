@@ -272,7 +272,8 @@ public class ZooPropStoreTest {
     assertTrue(propStore.removeProperties(tid, deleteNames));
   }
 
-  @Test public void removeWithExceptionsTest() throws Exception {
+  @Test
+  public void removeWithExceptionsTest() throws Exception {
 
     PropCacheId tid = PropCacheId.forTable(IID, TableId.of("table1"));
 
@@ -289,8 +290,10 @@ public class ZooPropStoreTest {
     }).once();
 
     // mock throwing exceptions
-    expect(zrw.getData(eq(tid.getPath()), anyObject(Stat.class))).andThrow(new KeeperException.NoNodeException("mock forced no node")).once();
-    expect(zrw.getData(eq(tid.getPath()), anyObject(Stat.class))).andThrow(new InterruptedException("mock forced interrupt exception")).once();
+    expect(zrw.getData(eq(tid.getPath()), anyObject(Stat.class)))
+        .andThrow(new KeeperException.NoNodeException("mock forced no node")).once();
+    expect(zrw.getData(eq(tid.getPath()), anyObject(Stat.class)))
+        .andThrow(new InterruptedException("mock forced interrupt exception")).once();
 
     replay(context, zrw);
 
