@@ -25,7 +25,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.net.UnknownHostException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,7 +33,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -82,7 +80,6 @@ import com.google.common.collect.SetMultimap;
 
 public class SuspendedTabletsIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(SuspendedTabletsIT.class);
-  private static final Random RANDOM = new SecureRandom();
   private static ExecutorService THREAD_POOL;
 
   public static final int TSERVERS = 3;
@@ -109,6 +106,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         HostAndPortRegexTableLoadBalancer.class.getName());
   }
 
+  @Override
   @Before
   public void setUp() throws Exception {
     super.setUp();
@@ -160,7 +158,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       // kill tablet servers that are not hosting the metadata table.
       List<ProcessReference> procs = getCluster().getProcesses().get(ServerType.TABLET_SERVER)
           .stream().filter(p -> !metadataTserverProcess.equals(p)).collect(Collectors.toList());
-      Collections.shuffle(procs, RANDOM);
+      Collections.shuffle(procs, random);
       assertEquals("Not enough tservers exist", TSERVERS - 1, procs.size());
       assertTrue("Attempting to kill more tservers (" + count + ") than exist in the cluster ("
           + procs.size() + ")", procs.size() >= count);
@@ -204,7 +202,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
           tserverSet.size());
 
       List<TServerInstance> tserversList = new ArrayList<>(tserverSet);
-      Collections.shuffle(tserversList, RANDOM);
+      Collections.shuffle(tserversList, random);
 
       for (int i1 = 0; i1 < count; ++i1) {
         final String tserverName = tserversList.get(i1).getHostPortSession();

@@ -323,15 +323,18 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
         // determine which executor to use based on the size of the files
         var ceid = getExecutor(group);
 
-        return params.createPlanBuilder().addJob(createPriority(params), ceid, group).build();
+        return params.createPlanBuilder().addJob(createPriority(params, group), ceid, group)
+            .build();
       }
     } catch (RuntimeException e) {
       throw e;
     }
   }
 
-  private static short createPriority(PlanningParameters params) {
-    return CompactionJobPrioritizer.createPriority(params.getKind(), params.getAll().size());
+  private static short createPriority(PlanningParameters params,
+      Collection<CompactableFile> group) {
+    return CompactionJobPrioritizer.createPriority(params.getKind(), params.getAll().size(),
+        group.size());
   }
 
   private long getMaxSizeToCompact(CompactionKind kind) {

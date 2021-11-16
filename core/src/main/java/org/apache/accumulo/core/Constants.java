@@ -24,6 +24,7 @@ public class Constants {
   // defines Accumulo data version constants
   public static final String VERSION = FilteredConstants.VERSION;
   public static final String VERSION_DIR = "version";
+  public static final String APPNAME = "org.apache.accumulo";
 
   // important directories
   public static final String INSTANCE_ID_DIR = "instance_id";

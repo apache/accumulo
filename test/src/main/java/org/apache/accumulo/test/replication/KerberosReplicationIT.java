@@ -77,6 +77,7 @@ import com.google.common.collect.Iterators;
  */
 @Ignore("Replication ITs are not stable and not currently maintained")
 @Category(MiniClusterOnlyTests.class)
+@Deprecated
 public class KerberosReplicationIT extends AccumuloITBase {
   private static final Logger log = LoggerFactory.getLogger(KerberosIT.class);
 

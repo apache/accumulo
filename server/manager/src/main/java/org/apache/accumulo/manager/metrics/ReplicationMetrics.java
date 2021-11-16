@@ -45,6 +45,7 @@ import org.slf4j.LoggerFactory;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 
+@Deprecated
 public class ReplicationMetrics implements MetricsProducer {
 
   private static final Logger log = LoggerFactory.getLogger(ReplicationMetrics.class);
@@ -162,7 +163,7 @@ public class ReplicationMetrics implements MetricsProducer {
         new AtomicInteger(0));
 
     ScheduledExecutorService scheduler =
-        ThreadPools.createScheduledExecutorService(1, "replicationMetricsPoller", false);
+        ThreadPools.createScheduledExecutorService(1, "replicationMetricsPoller");
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
     long minimumRefreshDelay = TimeUnit.SECONDS.toMillis(5);
     scheduler.scheduleAtFixedRate(this::update, minimumRefreshDelay, minimumRefreshDelay,

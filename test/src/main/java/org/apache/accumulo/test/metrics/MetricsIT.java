@@ -91,6 +91,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     expectedMetricNames.remove(METRICS_SCAN_YIELDS);
     expectedMetricNames.remove(METRICS_UPDATE_ERRORS);
     expectedMetricNames.remove(METRICS_REPLICATION_QUEUE);
+    expectedMetricNames.remove(METRICS_FATE_TYPE_IN_PROGRESS);
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = this.getClass().getSimpleName();

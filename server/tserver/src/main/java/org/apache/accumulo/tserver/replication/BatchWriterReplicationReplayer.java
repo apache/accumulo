@@ -49,6 +49,7 @@ import org.slf4j.LoggerFactory;
  * Use a BatchWriter to replay WAL entries to an Accumulo table. This assumes that all WAL entries
  * are for this table. Pruning out undesired entries is expected to be done by the sender.
  */
+@Deprecated
 public class BatchWriterReplicationReplayer implements AccumuloReplicationReplayer {
   private static final Logger log = LoggerFactory.getLogger(BatchWriterReplicationReplayer.class);
 

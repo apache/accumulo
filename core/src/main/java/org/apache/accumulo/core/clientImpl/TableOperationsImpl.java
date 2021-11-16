@@ -49,7 +49,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -154,6 +153,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 
 public class TableOperationsImpl extends TableOperationsHelper {
+
+  private static final SecureRandom random = new SecureRandom();
 
   public static final String CLONE_EXCLUDE_PREFIX = "!";
   public static final String COMPACTION_CANCELED_MSG = "Compaction canceled";
@@ -486,7 +487,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     CountDownLatch latch = new CountDownLatch(splits.size());
     AtomicReference<Exception> exception = new AtomicReference<>(null);
 
-    ExecutorService executor = ThreadPools.createFixedThreadPool(16, "addSplits", false);
+    ExecutorService executor = ThreadPools.createFixedThreadPool(16, "addSplits");
     try {
       executor.execute(
           new SplitTask(new SplitEnv(tableName, tableId, executor, latch, exception), splits));
@@ -1129,7 +1130,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     if (maxSplits == 1)
       return Collections.singleton(range);
 
-    Random random = new SecureRandom();
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
     TableId tableId = Tables.getTableId(context, tableName);
     TabletLocator tl = TabletLocator.getLocator(context, tableId);

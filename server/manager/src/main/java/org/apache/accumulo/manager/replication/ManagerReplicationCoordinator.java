@@ -23,7 +23,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.security.SecureRandom;
 import java.util.Iterator;
-import java.util.Random;
 import java.util.Set;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -45,11 +44,12 @@ import org.slf4j.LoggerFactory;
 /**
  * Choose a tserver to service a replication task
  */
+@Deprecated
 public class ManagerReplicationCoordinator implements ReplicationCoordinator.Iface {
+  private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(ManagerReplicationCoordinator.class);
 
   private final Manager manager;
-  private final Random rand;
   private final ZooReader reader;
   private final SecurityOperation security;
 
@@ -60,8 +60,6 @@ public class ManagerReplicationCoordinator implements ReplicationCoordinator.Ifa
 
   protected ManagerReplicationCoordinator(Manager manager, ZooReader reader) {
     this.manager = manager;
-    this.rand = new SecureRandom();
-    this.rand.setSeed(358923462L);
     this.reader = reader;
     this.security = AuditedSecurityOperation.getInstance(manager.getContext());
   }
@@ -85,7 +83,7 @@ public class ManagerReplicationCoordinator implements ReplicationCoordinator.Ifa
           "No tservers are available for replication");
     }
 
-    TServerInstance tserver = getRandomTServer(tservers, rand.nextInt(tservers.size()));
+    TServerInstance tserver = getRandomTServer(tservers, random.nextInt(tservers.size()));
     String replServiceAddr;
     try {
       replServiceAddr = new String(reader.getData(manager.getZooKeeperRoot()

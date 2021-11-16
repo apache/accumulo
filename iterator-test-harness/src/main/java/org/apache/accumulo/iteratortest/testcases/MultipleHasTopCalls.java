@@ -20,7 +20,6 @@ package org.apache.accumulo.iteratortest.testcases;
 
 import java.io.IOException;
 import java.security.SecureRandom;
-import java.util.Random;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.Key;
@@ -40,11 +39,7 @@ import org.apache.accumulo.iteratortest.IteratorTestUtil;
  */
 public class MultipleHasTopCalls extends OutputVerifyingTestCase {
 
-  private final Random random;
-
-  public MultipleHasTopCalls() {
-    this.random = new SecureRandom();
-  }
+  private static final SecureRandom random = new SecureRandom();
 
   @Override
   public IteratorTestOutput test(IteratorTestInput testInput) {

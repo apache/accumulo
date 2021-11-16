@@ -47,6 +47,7 @@ import org.apache.hadoop.fs.Path;
 import org.junit.Before;
 import org.junit.Test;
 
+@Deprecated
 public class UnorderedWorkAssignerTest {
 
   private AccumuloClient client;

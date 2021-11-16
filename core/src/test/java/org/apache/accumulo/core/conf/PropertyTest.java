@@ -106,6 +106,7 @@ public class PropertyTest {
     Collector<Entry<String,String>,?,TreeMap<String,String>> treeMapCollector =
         Collectors.toMap(Entry::getKey, Entry::getValue, (a, b) -> a, TreeMap::new);
 
+    @SuppressWarnings("deprecation")
     Predicate<Entry<String,String>> sensitiveNames =
         e -> e.getKey().equals(Property.INSTANCE_SECRET.getKey())
             || e.getKey().toLowerCase().contains("password")

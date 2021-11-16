@@ -16,33 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.coordinator;
+package org.apache.accumulo.core.spi.trace;
 
-import org.apache.accumulo.core.compaction.thrift.TCompactionState;
+import java.util.function.Supplier;
 
-public class CompactionUpdate {
+import io.opentelemetry.api.OpenTelemetry;
 
-  private final Long timestamp;
-  private final String message;
-  private final TCompactionState state;
-
-  CompactionUpdate(Long timestamp, String message, TCompactionState state) {
-    super();
-    this.timestamp = timestamp;
-    this.message = message;
-    this.state = state;
-  }
-
-  public Long getTimestamp() {
-    return timestamp;
-  }
-
-  public String getMessage() {
-    return message;
-  }
-
-  public TCompactionState getState() {
-    return state;
-  }
-
-}
+/**
+ * Configures and returns an instance of OpenTelemetry
+ */
+public interface OpenTelemetryFactory extends Supplier<OpenTelemetry> {}

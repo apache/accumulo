@@ -48,13 +48,11 @@ public class ClusterConfigParserTest {
 
     Map<String,String> contents =
         ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
-    assertEquals(5, contents.size());
+    assertEquals(4, contents.size());
     assertTrue(contents.containsKey("manager"));
     assertEquals("localhost1 localhost2", contents.get("manager"));
     assertTrue(contents.containsKey("monitor"));
     assertEquals("localhost1 localhost2", contents.get("monitor"));
-    assertTrue(contents.containsKey("tracer"));
-    assertEquals("localhost", contents.get("tracer"));
     assertTrue(contents.containsKey("gc"));
     assertEquals("localhost", contents.get("gc"));
     assertTrue(contents.containsKey("tserver"));
@@ -75,13 +73,11 @@ public class ClusterConfigParserTest {
 
     Map<String,String> contents =
         ClusterConfigParser.parseConfiguration(new File(configFile.toURI()).getAbsolutePath());
-    assertEquals(9, contents.size());
+    assertEquals(8, contents.size());
     assertTrue(contents.containsKey("manager"));
     assertEquals("localhost1 localhost2", contents.get("manager"));
     assertTrue(contents.containsKey("monitor"));
     assertEquals("localhost1 localhost2", contents.get("monitor"));
-    assertTrue(contents.containsKey("tracer"));
-    assertEquals("localhost", contents.get("tracer"));
     assertTrue(contents.containsKey("gc"));
     assertEquals("localhost", contents.get("gc"));
     assertTrue(contents.containsKey("tserver"));
@@ -129,11 +125,10 @@ public class ClusterConfigParserTest {
 
     Map<String,
         String> expected = Map.of("MANAGER_HOSTS", "\"localhost1 localhost2\"", "MONITOR_HOSTS",
-            "\"localhost1 localhost2\"", "TRACER_HOSTS", "\"localhost\"", "GC_HOSTS",
-            "\"localhost\"", "TSERVER_HOSTS", "\"localhost1 localhost2 localhost3 localhost4\"",
-            "COORDINATOR_HOSTS", "\"localhost1 localhost2\"", "COMPACTION_QUEUES", "\"q1 q2\"",
-            "COMPACTOR_HOSTS_q1", "\"localhost1 localhost2\"", "COMPACTOR_HOSTS_q2",
-            "\"localhost1 localhost2\"");
+            "\"localhost1 localhost2\"", "GC_HOSTS", "\"localhost\"", "TSERVER_HOSTS",
+            "\"localhost1 localhost2 localhost3 localhost4\"", "COORDINATOR_HOSTS",
+            "\"localhost1 localhost2\"", "COMPACTION_QUEUES", "\"q1 q2\"", "COMPACTOR_HOSTS_q1",
+            "\"localhost1 localhost2\"", "COMPACTOR_HOSTS_q2", "\"localhost1 localhost2\"");
 
     Map<String,String> actual = new HashMap<>();
     try (BufferedReader rdr = Files.newBufferedReader(Paths.get(f.toURI()))) {

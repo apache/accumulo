@@ -135,6 +135,21 @@
       <optional>true</optional>
     </dependency>
     <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-api</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-context</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-semconv</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>jakarta.activation</groupId>
       <artifactId>jakarta.activation-api</artifactId>
       <optional>true</optional>
@@ -237,11 +252,6 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-tracer</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-tserver</artifactId>
       <optional>true</optional>
     </dependency>
@@ -273,11 +283,6 @@
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-vfs2</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.htrace</groupId>
-      <artifactId>htrace-core</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -458,7 +463,6 @@
     <dependency>
       <groupId>org.hdrhistogram</groupId>
       <artifactId>HdrHistogram</artifactId>
-      <version>2.1.12</version>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -484,14 +488,7 @@
     <dependency>
       <groupId>org.latencyutils</groupId>
       <artifactId>LatencyUtils</artifactId>
-      <version>2.0.3</version>
       <optional>true</optional>
-      <exclusions>
-        <exclusion>
-          <groupId>org.hdrhistogram</groupId>
-          <artifactId>HdrHistogram</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>

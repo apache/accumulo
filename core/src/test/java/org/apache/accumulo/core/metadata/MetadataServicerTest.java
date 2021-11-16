@@ -41,12 +41,17 @@ public class MetadataServicerTest {
   private static final TableId userTableId = TableId.of("tableId");
   private static ClientContext context;
 
+  @SuppressWarnings("deprecation")
+  private static final TableId REPL_TABLE_ID = ReplicationTable.ID;
+  @SuppressWarnings("deprecation")
+  private static final String REPL_TABLE_NAME = ReplicationTable.NAME;
+
   @BeforeClass
   public static void setupContext() {
     HashMap<String,String> tableNameToIdMap = new HashMap<>();
     tableNameToIdMap.put(RootTable.NAME, RootTable.ID.canonical());
     tableNameToIdMap.put(MetadataTable.NAME, MetadataTable.ID.canonical());
-    tableNameToIdMap.put(ReplicationTable.NAME, ReplicationTable.ID.canonical());
+    tableNameToIdMap.put(REPL_TABLE_NAME, REPL_TABLE_ID.canonical());
     tableNameToIdMap.put(userTableName, userTableId.canonical());
 
     context = EasyMock.createMock(ClientContext.class);
@@ -75,11 +80,11 @@ public class MetadataServicerTest {
     assertEquals(RootTable.NAME, ((TableMetadataServicer) ms).getServicingTableName());
     assertEquals(MetadataTable.ID, ms.getServicedTableId());
 
-    ms = MetadataServicer.forTableId(context, ReplicationTable.ID);
+    ms = MetadataServicer.forTableId(context, REPL_TABLE_ID);
     assertTrue(ms instanceof ServicerForUserTables);
     assertTrue(ms instanceof TableMetadataServicer);
     assertEquals(MetadataTable.NAME, ((TableMetadataServicer) ms).getServicingTableName());
-    assertEquals(ReplicationTable.ID, ms.getServicedTableId());
+    assertEquals(REPL_TABLE_ID, ms.getServicedTableId());
 
     ms = MetadataServicer.forTableId(context, userTableId);
     assertTrue(ms instanceof ServicerForUserTables);
@@ -98,11 +103,11 @@ public class MetadataServicerTest {
     assertEquals(RootTable.NAME, ((TableMetadataServicer) ms).getServicingTableName());
     assertEquals(MetadataTable.ID, ms.getServicedTableId());
 
-    ms = MetadataServicer.forTableName(context, ReplicationTable.NAME);
+    ms = MetadataServicer.forTableName(context, REPL_TABLE_NAME);
     assertTrue(ms instanceof ServicerForUserTables);
     assertTrue(ms instanceof TableMetadataServicer);
     assertEquals(MetadataTable.NAME, ((TableMetadataServicer) ms).getServicingTableName());
-    assertEquals(ReplicationTable.ID, ms.getServicedTableId());
+    assertEquals(REPL_TABLE_ID, ms.getServicedTableId());
 
     ms = MetadataServicer.forTableName(context, userTableName);
     assertTrue(ms instanceof ServicerForUserTables);

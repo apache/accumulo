@@ -37,7 +37,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -167,6 +166,7 @@ import com.google.common.collect.Iterators;
 
 public class TabletServer extends AbstractServer {
 
+  private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
   private static final long TIME_BETWEEN_GC_CHECKS = 5000;
   private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = 60 * 60 * 1000;
@@ -191,6 +191,7 @@ public class TabletServer extends AbstractServer {
   }
 
   private final LogSorter logSorter;
+  @SuppressWarnings("deprecation")
   private ReplicationWorker replWorker = null;
   final TabletStatsKeeper statsKeeper;
   private final AtomicInteger logIdGenerator = new AtomicInteger();
@@ -246,7 +247,9 @@ public class TabletServer extends AbstractServer {
     log.info("Instance " + getInstanceID());
     this.sessionManager = new SessionManager(context);
     this.logSorter = new LogSorter(context, aconf);
-    this.replWorker = new ReplicationWorker(context);
+    @SuppressWarnings("deprecation")
+    ReplicationWorker replWorker = new ReplicationWorker(context);
+    this.replWorker = replWorker;
     this.statsKeeper = new TabletStatsKeeper();
     final int numBusyTabletsToLog = aconf.getCount(Property.TSERV_LOG_BUSY_TABLETS_COUNT);
     final long logBusyTabletsDelay =
@@ -375,9 +378,9 @@ public class TabletServer extends AbstractServer {
   }
 
   private static long jitter() {
-    Random r = new SecureRandom();
     // add a random 10% wait
-    return (long) ((1. + (r.nextDouble() / 10)) * TabletServer.TIME_BETWEEN_LOCATOR_CACHE_CLEARS);
+    return (long) ((1. + (random.nextDouble() / 10))
+        * TabletServer.TIME_BETWEEN_LOCATOR_CACHE_CLEARS);
   }
 
   final SessionManager sessionManager;
@@ -601,6 +604,7 @@ public class TabletServer extends AbstractServer {
     return address;
   }
 
+  @Deprecated
   private void startReplicationService() throws UnknownHostException {
     final ReplicationServicerHandler handler = new ReplicationServicerHandler(this);
     ReplicationServicer.Iface rpcProxy = TraceUtil.wrapService(handler);
@@ -695,6 +699,16 @@ public class TabletServer extends AbstractServer {
     }
   }
 
+  @Deprecated
+  private void initializeZkForReplication() {
+    try {
+      ZooKeeperInitialization.ensureZooKeeperInitialized(getContext().getZooReaderWriter(),
+          getContext().getZooKeeperRoot());
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Exception while ensuring ZooKeeper is initialized", e);
+    }
+  }
+
   // main loop listens for client requests
   @Override
   public void run() {
@@ -702,13 +716,7 @@ public class TabletServer extends AbstractServer {
 
     // To make things easier on users/devs, and to avoid creating an upgrade path to 1.7
     // We can just make the zookeeper paths before we try to use.
-    try {
-      ZooKeeperInitialization.ensureZooKeeperInitialized(getContext().getZooReaderWriter(),
-          getContext().getZooKeeperRoot());
-    } catch (KeeperException | InterruptedException e) {
-      log.error("Could not ensure that ZooKeeper is properly initialized", e);
-      throw new RuntimeException(e);
-    }
+    initializeZkForReplication();
 
     if (authKeyWatcher != null) {
       log.info("Seeding ZooKeeper watcher for authentication keys");
@@ -782,10 +790,12 @@ public class TabletServer extends AbstractServer {
     }
     final AccumuloConfiguration aconf = getConfiguration();
     // if the replication name is ever set, then start replication services
+    @SuppressWarnings("deprecation")
+    Property p = Property.REPLICATION_NAME;
     context.getScheduledExecutor().scheduleWithFixedDelay(() -> {
       if (this.replServer == null) {
-        if (!getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
-          log.info(Property.REPLICATION_NAME.getKey() + " was set, starting repl services.");
+        if (!getConfiguration().get(p).isEmpty()) {
+          log.info(p.getKey() + " was set, starting repl services.");
           setupReplication(aconf);
         }
       }
@@ -895,6 +905,7 @@ public class TabletServer extends AbstractServer {
     }
   }
 
+  @SuppressWarnings("deprecation")
   private void setupReplication(AccumuloConfiguration aconf) {
     // Start the thrift service listening for incoming replication requests
     try {

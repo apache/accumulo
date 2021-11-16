@@ -108,9 +108,10 @@ public class FateMetrics implements MetricsProducer {
           successfulTxGauge.set(vals.getValue());
           break;
         case UNKNOWN:
+          unknownTxGauge.set(vals.getValue());
+          break;
         default:
           log.warn("Unhandled status type: {}", vals.getKey());
-          unknownTxGauge.set(vals.getValue());
       }
     }
 
@@ -145,7 +146,7 @@ public class FateMetrics implements MetricsProducer {
 
     // get fate status is read only operation - no reason to be nice on shutdown.
     ScheduledExecutorService scheduler =
-        ThreadPools.createScheduledExecutorService(1, "fateMetricsPoller", false);
+        ThreadPools.createScheduledExecutorService(1, "fateMetricsPoller");
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
 
     scheduler.scheduleAtFixedRate(() -> {

@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -43,8 +42,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * A functional test that exercises hitting the max open file limit on a tablet server. This test
@@ -139,8 +136,6 @@ public class MaxOpenIT extends AccumuloClusterHarness {
     }
   }
 
-  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
-      justification = "predictable random is okay for testing")
   private long batchScan(AccumuloClient c, String tableName, List<Range> ranges, int threads)
       throws Exception {
     try (BatchScanner bs = c.createBatchScanner(tableName, TestIngest.AUTHS, threads)) {
@@ -152,7 +147,6 @@ public class MaxOpenIT extends AccumuloClusterHarness {
       long t1 = System.currentTimeMillis();
 
       byte[] rval = new byte[50];
-      Random random = new Random();
 
       for (Entry<Key,Value> entry : bs) {
         count++;
@@ -163,7 +157,7 @@ public class MaxOpenIT extends AccumuloClusterHarness {
           throw new Exception("unexcepted row " + row);
         }
 
-        rval = TestIngest.genRandomValue(random, rval, 2, row, col);
+        rval = TestIngest.genRandomValue(rval, 2, row, col);
 
         if (entry.getValue().compareTo(rval) != 0) {
           throw new Exception("unexcepted value row=" + row + " col=" + col);

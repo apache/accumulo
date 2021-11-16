@@ -26,7 +26,6 @@ import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -67,19 +66,20 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class ThriftScanner {
   private static final Logger log = LoggerFactory.getLogger(ThriftScanner.class);
 
   public static final Map<TabletType,Set<String>> serversWaitedForWrites =
       new EnumMap<>(TabletType.class);
-  private static Random secureRandom = new SecureRandom();
+  private static final SecureRandom random = new SecureRandom();
 
   static {
     for (TabletType ttype : TabletType.values()) {
@@ -230,7 +230,7 @@ public class ThriftScanner {
   static long pause(long millis, long maxSleep) throws InterruptedException {
     Thread.sleep(millis);
     // wait 2 * last time, with +-10% random jitter
-    return (long) (Math.min(millis * 2, maxSleep) * (.9 + secureRandom.nextDouble() / 5));
+    return (long) (Math.min(millis * 2, maxSleep) * (.9 + random.nextDouble() / 5));
   }
 
   public static List<KeyValue> scan(ClientContext context, ScanState scanState, long timeOut)
@@ -247,7 +247,8 @@ public class ThriftScanner {
 
     List<KeyValue> results = null;
 
-    try (TraceScope span = Trace.startSpan("scan")) {
+    Span parent = TraceUtil.startSpan(ThriftScanner.class, "scan");
+    try (Scope scope = parent.makeCurrent()) {
       while (results == null && !scanState.finished) {
         if (Thread.currentThread().isInterrupted()) {
           throw new AccumuloException("Thread interrupted");
@@ -261,7 +262,8 @@ public class ThriftScanner {
           if ((currentTime - startTime) / 1000.0 > timeOut)
             throw new ScanTimedOutException();
 
-          try (TraceScope locateSpan = Trace.startSpan("scan:locateTablet")) {
+          Span child1 = TraceUtil.startSpan(ThriftScanner.class, "scan::locateTablet");
+          try (Scope locateSpan = child1.makeCurrent()) {
             loc = TabletLocator.getLocator(context, scanState.tableId).locateTablet(context,
                 scanState.startRow, scanState.skipStartRow, false);
 
@@ -296,6 +298,7 @@ public class ThriftScanner {
               }
             }
           } catch (AccumuloServerException e) {
+            TraceUtil.setException(child1, e, true);
             log.debug("Scan failed, server side exception : {}", e.getMessage());
             throw e;
           } catch (AccumuloException e) {
@@ -305,26 +308,32 @@ public class ThriftScanner {
             else if (log.isTraceEnabled())
               log.trace("{}", error);
 
+            TraceUtil.setException(child1, e, false);
+
             lastError = error;
             sleepMillis = pause(sleepMillis, maxSleepTime);
+          } finally {
+            child1.end();
           }
         }
 
-        try (TraceScope scanLocation = Trace.startSpan("scan:location")) {
-          if (scanLocation.getSpan() != null) {
-            scanLocation.getSpan().addKVAnnotation("tserver", loc.tablet_location);
-          }
+        Span child2 = TraceUtil.startSpan(ThriftScanner.class, "scan::location",
+            Map.of("tserver", loc.tablet_location));
+        try (Scope scanLocation = child2.makeCurrent()) {
           results = scan(loc, scanState, context);
         } catch (AccumuloSecurityException e) {
           Tables.clearCache(context);
           context.requireNotDeleted(scanState.tableId);
           e.setTableInfo(Tables.getPrintableTableInfoFromId(context, scanState.tableId));
+          TraceUtil.setException(child2, e, true);
           throw e;
         } catch (TApplicationException tae) {
+          TraceUtil.setException(child2, tae, true);
           throw new AccumuloServerException(loc.tablet_location, tae);
         } catch (TSampleNotPresentException tsnpe) {
           String message = "Table " + Tables.getPrintableTableInfoFromId(context, scanState.tableId)
               + " does not have sampling configured or built";
+          TraceUtil.setException(child2, tsnpe, true);
           throw new SampleNotPresentException(message, tsnpe);
         } catch (NotServingTabletException e) {
           error = "Scan failed, not serving tablet " + loc;
@@ -340,9 +349,12 @@ public class ThriftScanner {
           // no need to try the current scan id somewhere else
           scanState.scanID = null;
 
-          if (scanState.isolated)
+          if (scanState.isolated) {
+            TraceUtil.setException(child2, e, true);
             throw new IsolationException();
+          }
 
+          TraceUtil.setException(child2, e, false);
           sleepMillis = pause(sleepMillis, maxSleepTime);
         } catch (NoSuchScanIDException e) {
           error = "Scan failed, no such scan id " + scanState.scanID + " " + loc;
@@ -352,9 +364,12 @@ public class ThriftScanner {
             log.trace("{}", error);
           lastError = error;
 
-          if (scanState.isolated)
+          if (scanState.isolated) {
+            TraceUtil.setException(child2, e, true);
             throw new IsolationException();
+          }
 
+          TraceUtil.setException(child2, e, false);
           scanState.scanID = null;
         } catch (TooManyFilesException e) {
           error = "Tablet has too many files " + loc + " retrying...";
@@ -375,9 +390,12 @@ public class ThriftScanner {
           // scan session
           scanState.scanID = null;
 
-          if (scanState.isolated)
+          if (scanState.isolated) {
+            TraceUtil.setException(child2, e, true);
             throw new IsolationException();
+          }
 
+          TraceUtil.setException(child2, e, false);
           sleepMillis = pause(sleepMillis, maxSleepTime);
         } catch (TException e) {
           TabletLocator.getLocator(context, scanState.tableId).invalidateCache(context,
@@ -396,10 +414,15 @@ public class ThriftScanner {
           // because a thread on the server side may still be processing the timed out continue scan
           scanState.scanID = null;
 
-          if (scanState.isolated)
+          if (scanState.isolated) {
+            TraceUtil.setException(child2, e, true);
             throw new IsolationException();
+          }
 
+          TraceUtil.setException(child2, e, false);
           sleepMillis = pause(sleepMillis, maxSleepTime);
+        } finally {
+          child2.end();
         }
       }
 
@@ -409,7 +432,10 @@ public class ThriftScanner {
 
       return results;
     } catch (InterruptedException ex) {
+      TraceUtil.setException(parent, ex, true);
       throw new AccumuloException(ex);
+    } finally {
+      parent.end();
     }
   }
 

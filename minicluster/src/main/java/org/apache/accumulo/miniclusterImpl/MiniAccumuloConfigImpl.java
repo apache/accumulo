@@ -138,7 +138,6 @@ public class MiniAccumuloConfigImpl {
         existingInstance = false;
         mergeProp(Property.INSTANCE_VOLUMES.getKey(), "file://" + accumuloDir.getAbsolutePath());
         mergeProp(Property.INSTANCE_SECRET.getKey(), DEFAULT_INSTANCE_SECRET);
-        mergeProp(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "password", getRootPassword());
       }
 
       mergeProp(Property.TSERV_PORTSEARCH.getKey(), "true");
@@ -160,12 +159,15 @@ public class MiniAccumuloConfigImpl {
       mergeProp(Property.GC_CYCLE_DELAY.getKey(), "4s");
       mergeProp(Property.GC_CYCLE_START.getKey(), "0s");
       mergePropWithRandomPort(Property.MANAGER_CLIENTPORT.getKey());
-      mergePropWithRandomPort(Property.TRACE_PORT.getKey());
       mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       mergePropWithRandomPort(Property.GC_PORT.getKey());
-      mergePropWithRandomPort(Property.REPLICATION_RECEIPT_SERVICE_PORT.getKey());
-      mergePropWithRandomPort(Property.MANAGER_REPLICATION_COORDINATOR_PORT.getKey());
+      @SuppressWarnings("deprecation")
+      Property p = Property.REPLICATION_RECEIPT_SERVICE_PORT;
+      mergePropWithRandomPort(p.getKey());
+      @SuppressWarnings("deprecation")
+      Property p2 = Property.MANAGER_REPLICATION_COORDINATOR_PORT;
+      mergePropWithRandomPort(p2.getKey());
 
       if (isUseCredentialProvider()) {
         updateConfigForCredentialProvider();

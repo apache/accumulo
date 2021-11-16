@@ -707,6 +707,7 @@ public class GarbageCollectionTest {
     gce.candidates.add("hdfs://foo.com:6000/accumulo/tables/2/t-00002/A000002.rf");
 
     // We replicated all of the data, but we might still write more data to the file
+    @SuppressWarnings("deprecation")
     Status status = StatusUtil.fileCreated(System.currentTimeMillis());
     gce.filesToReplicate.put("hdfs://foo.com:6000/accumulo/tables/1/t-00001/A000001.rf", status);
 

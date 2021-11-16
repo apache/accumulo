@@ -50,6 +50,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 /**
  * Transmit the given data to a peer
  */
+@Deprecated
 public class ReplicationProcessor implements Processor {
   private static final Logger log = LoggerFactory.getLogger(ReplicationProcessor.class);
 

@@ -158,6 +158,8 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.RateLimiter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 /**
  * The Manager is responsible for assigning and balancing tablets to tablet servers.
@@ -794,13 +796,17 @@ public class Manager extends AbstractServer
               + " continue with attempt to update status", t);
         }
 
-        try {
+        Span span = TraceUtil.startSpan(this.getClass(), "run::updateStatus");
+        try (Scope scope = span.makeCurrent()) {
           wait = updateStatus();
           eventListener.waitForEvents(wait);
         } catch (Exception t) {
+          TraceUtil.setException(span, t, false);
           log.error("Error balancing tablets, will wait for {} (seconds) and then retry ",
               WAIT_BETWEEN_ERRORS / ONE_SECOND, t);
           sleepUninterruptibly(WAIT_BETWEEN_ERRORS, TimeUnit.MILLISECONDS);
+        } finally {
+          span.end();
         }
       }
     }
@@ -1151,11 +1157,7 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
 
-    try {
-      ZooKeeperInitialization.ensureZooKeeperInitialized(zReaderWriter, zroot);
-    } catch (KeeperException | InterruptedException e) {
-      throw new IllegalStateException("Exception while ensuring ZooKeeper is initialized", e);
-    }
+    initializeZkForReplication(zReaderWriter, zroot);
 
     // Make sure that we have a secret key (either a new one or an old one from ZK) before we start
     // the manager client service.
@@ -1199,9 +1201,10 @@ public class Manager extends AbstractServer
     final AtomicReference<TServer> replServer = new AtomicReference<>();
     context.getScheduledExecutor().scheduleWithFixedDelay(() -> {
       try {
-        if ((replServer.get() == null)
-            && !getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
-          log.info("{} was set, starting repl services.", Property.REPLICATION_NAME.getKey());
+        @SuppressWarnings("deprecation")
+        Property p = Property.REPLICATION_NAME;
+        if ((replServer.get() == null) && !getConfiguration().get(p).isEmpty()) {
+          log.info("{} was set, starting repl services.", p.getKey());
           replServer.set(setupReplication());
         }
       } catch (UnknownHostException | KeeperException | InterruptedException e) {
@@ -1257,6 +1260,15 @@ public class Manager extends AbstractServer
       }
     }
     log.info("exiting");
+  }
+
+  @Deprecated
+  private void initializeZkForReplication(ZooReaderWriter zReaderWriter, String zroot) {
+    try {
+      ZooKeeperInitialization.ensureZooKeeperInitialized(zReaderWriter, zroot);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Exception while ensuring ZooKeeper is initialized", e);
+    }
   }
 
   /**
@@ -1343,6 +1355,7 @@ public class Manager extends AbstractServer
     }
   }
 
+  @Deprecated
   private TServer setupReplication()
       throws UnknownHostException, KeeperException, InterruptedException {
     ServerContext context = getContext();

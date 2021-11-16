@@ -22,11 +22,13 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
@@ -143,8 +145,11 @@ public class TabletLogger {
         asFileNames(job.getFiles()));
   }
 
-  public static void flushed(KeyExtent extent, TabletFile newDatafile) {
-    fileLog.debug("Flushed {} created {} from [memory]", extent, newDatafile);
+  public static void flushed(KeyExtent extent, Optional<StoredTabletFile> newDatafile) {
+    if (newDatafile.isPresent())
+      fileLog.debug("Flushed {} created {} from [memory]", extent, newDatafile.get());
+    else
+      fileLog.debug("Flushed {} from [memory] but no file was written.", extent);
   }
 
   public static void bulkImported(KeyExtent extent, TabletFile file) {

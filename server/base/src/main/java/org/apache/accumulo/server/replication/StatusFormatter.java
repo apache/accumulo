@@ -47,6 +47,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 /**
  * Parse and print the serialized protocol buffers used to track replication data
  */
+@Deprecated
 public class StatusFormatter implements Formatter {
   private static final Logger log = LoggerFactory.getLogger(StatusFormatter.class);
 

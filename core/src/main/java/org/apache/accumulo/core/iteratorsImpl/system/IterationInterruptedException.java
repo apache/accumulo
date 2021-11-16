@@ -16,43 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-namespace java org.apache.accumulo.tracer.thrift
-namespace cpp org.apache.accumulo.tracer.thrift
+package org.apache.accumulo.core.iteratorsImpl.system;
 
-include "trace.thrift"
+/**
+ * Exception thrown if an interrupt flag is detected.
+ */
+public class IterationInterruptedException extends RuntimeException {
 
-struct Annotation {
-  1:i64 time
-  2:string msg
-}
+  private static final long serialVersionUID = 1L;
 
-struct RemoteSpan {
-  1:string sender
-  2:string svc
-  3:i64 traceId
-  4:i64 spanId
-  11:list<i64> parentIds
-  6:i64 start
-  7:i64 stop
-  8:string description
-  9:map<string, string> data
-  10:list<Annotation> annotations
-}
+  public IterationInterruptedException() {
+    super();
+  }
 
-service SpanReceiver {
-
-  oneway void span(
-    1:RemoteSpan span
-  )
-
-}
-
-// used for testing trace
-service TestService {
-
-  bool checkTrace(
-    1:trace.TInfo tinfo
-    2:string message
-  )
-
+  public IterationInterruptedException(String msg) {
+    super(msg);
+  }
 }

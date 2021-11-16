@@ -56,6 +56,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 /**
  * Common methods for {@link WorkAssigner}s
  */
+@Deprecated
 public abstract class DistributedWorkQueueWorkAssigner implements WorkAssigner {
   private static final Logger log = LoggerFactory.getLogger(DistributedWorkQueueWorkAssigner.class);
 

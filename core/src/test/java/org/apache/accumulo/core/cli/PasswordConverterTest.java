@@ -42,6 +42,8 @@ import com.beust.jcommander.ParameterException;
 
 public class PasswordConverterTest {
 
+  private static final SecureRandom random = new SecureRandom();
+
   private class Password {
     @Parameter(names = "--password", converter = ClientOpts.PasswordConverter.class)
     String password;
@@ -77,7 +79,7 @@ public class PasswordConverterTest {
 
   @Test
   public void testPass() {
-    String expected = String.valueOf(new SecureRandom().nextDouble());
+    String expected = String.valueOf(random.nextDouble());
     argv[1] = "pass:" + expected;
     new JCommander(password).parse(argv);
     assertEquals(expected, password.password);

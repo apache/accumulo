@@ -41,6 +41,7 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.junit.Before;
 import org.junit.Test;
 
+@Deprecated
 public class StatusCombinerTest {
 
   private StatusCombiner combiner;

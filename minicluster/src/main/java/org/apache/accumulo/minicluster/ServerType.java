@@ -31,6 +31,10 @@ public enum ServerType {
   ZOOKEEPER("ZooKeeper"),
   TABLET_SERVER("TServer"),
   GARBAGE_COLLECTOR("GC"),
+  /**
+   * @deprecated Accumulo-managed Tracer service was removed
+   */
+  @Deprecated(since = "2.1.0", forRemoval = true)
   TRACER("Tracer"),
   MONITOR("Monitor");
 
