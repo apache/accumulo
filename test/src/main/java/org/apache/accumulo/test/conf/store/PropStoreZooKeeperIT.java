@@ -81,7 +81,6 @@ public class PropStoreZooKeeperIT {
     // using default zookeeper port - we don't have a full configuration
     testZk = new ZooKeeperTestingServer();
     zooKeeper = testZk.getZooKeeper();
-
     ZooReaderWriter zooReaderWriter = new ZooReaderWriter(testZk.getConn(), 10_000, "test");
 
     context = EasyMock.createNiceMock(ServerContext.class);
@@ -189,7 +188,7 @@ public class PropStoreZooKeeperIT {
 
     // check using direct read from ZK
     byte[] bytes = zooKeeper.getData(tableA.getPath(), false, new Stat());
-    var readFromZk = propCodec.fromBytes(bytes);
+    var readFromZk = propCodec.fromBytes(0, bytes);
     assertEquals(readFromZk.getProperties(), propStore.get(tableA).getProperties());
   }
 
@@ -381,7 +380,8 @@ public class PropStoreZooKeeperIT {
 
     byte[] updatedBytes = propCodec.toBytes(pendingProps);
     // force external write to ZooKeeper
-    zooKeeper.setData(tableA.getPath(), updatedBytes, firstRead.getDataVersion());
+    context.getZooReaderWriter().overwritePersistentData(tableA.getPath(), updatedBytes,
+        firstRead.getDataVersion());
 
     Thread.sleep(150);
 

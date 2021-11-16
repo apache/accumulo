@@ -27,7 +27,6 @@ import static org.apache.accumulo.core.conf.Property.TSERV_CLIENTPORT;
 import static org.apache.accumulo.core.conf.Property.TSERV_NATIVEMAP_ENABLED;
 import static org.apache.accumulo.core.conf.Property.TSERV_SCAN_MAX_OPENFILES;
 import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
@@ -39,7 +38,6 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -57,7 +55,6 @@ import org.apache.accumulo.server.conf.codec.VersionedPropGzipCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheId;
 import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.Capture;
@@ -110,7 +107,7 @@ public class ZooPropStoreTest {
     ZooPropStore.initSysProps(context,
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M"));
 
-    var decoded = propCodec.fromBytes(bytes.getValue());
+    var decoded = propCodec.fromBytes(0, bytes.getValue());
     assertNotNull(decoded);
     assertEquals(0, decoded.getDataVersion());
     assertEquals("1234", decoded.getProperties().get(TABLE_BULK_MAX_TABLETS.getKey()));
@@ -125,33 +122,11 @@ public class ZooPropStoreTest {
     expect(zrw.putPersistentData(eq(id1.getPath()), anyObject(), anyObject())).andReturn(true)
         .once();
 
-    Stat statCheck = new Stat();
-    statCheck.setVersion(0); // on create, expect dataVersion == 0;
-    expect(zrw.getStatus(anyObject(), anyObject())).andReturn(statCheck).anyTimes();
-
     replay(context, zrw);
 
     PropStore propStore = new ZooPropStore.Builder(context).build();
 
     propStore.create(id1, Map.of());
-  }
-
-  @Test
-  public void createInvalidVersion() throws Exception {
-
-    expect(zrw.putPersistentData(anyString(), anyObject(), anyObject())).andReturn(true).once();
-
-    Stat statCheck = new Stat();
-    statCheck.setVersion(9); // on create, expect dataVersion == 0;
-    expect(zrw.getStatus(anyObject(), anyObject())).andReturn(statCheck).anyTimes();
-
-    replay(context, zrw);
-
-    PropStore propStore = new ZooPropStore.Builder(context).build();
-
-    PropCacheId id1 = PropCacheId.forTable(IID, TableId.of("id1"));
-
-    assertThrows(PropStoreException.class, () -> propStore.create(id1, Map.of()));
   }
 
   /**
@@ -182,7 +157,7 @@ public class ZooPropStoreTest {
   }
 
   @Test
-  public void badVersionTest() throws Exception {
+  public void versionTest() throws Exception {
 
     PropCacheId tid = PropCacheId.forTable(IID, TableId.of("table1"));
     Map<String,String> props =
@@ -192,20 +167,23 @@ public class ZooPropStoreTest {
     Capture<Stat> stat = newCapture();
 
     // force version mismatch between zk and props.
+    var expectedVersion = 99;
     expect(zrw.getData(eq(tid.getPath()), capture(propStoreWatcherCapture), capture(stat)))
         .andAnswer(() -> {
           Stat s = stat.getValue();
           s.setCtime(System.currentTimeMillis());
           s.setMtime(System.currentTimeMillis());
-          s.setVersion(99);
+          s.setVersion(expectedVersion);
           stat.setValue(s);
-          return propCodec.toBytes(new VersionedProperties(12, Instant.now(), props));
+          return propCodec.toBytes(new VersionedProperties(props));
         }).once();
 
     replay(context, zrw);
 
     PropStore propStore = new ZooPropStore.Builder(context).build();
-    assertNull(propStore.get(tid));
+    var vProps = propStore.get(tid);
+    assertNotNull(vProps);
+    assertEquals(expectedVersion, vProps.getDataVersion());
   }
 
   /**
@@ -226,8 +204,8 @@ public class ZooPropStoreTest {
     expect(zrw.getData(eq(tid.getPath()))).andReturn(propCodec.toBytes(initialProps)).once();
 
     Capture<byte[]> bytes = newCapture();
-    expect(zrw.overwritePersistentData(eq(tid.getPath()), capture(bytes), eq(1))).andAnswer(() -> {
-      var stored = propCodec.fromBytes(bytes.getValue());
+    expect(zrw.overwritePersistentData(eq(tid.getPath()), capture(bytes), eq(0))).andAnswer(() -> {
+      var stored = propCodec.fromBytes(0, bytes.getValue());
       assertEquals(3, stored.getProperties().size());
       // overwritten
       assertEquals("4321", stored.getProperties().get(TABLE_BULK_MAX_TABLETS.getKey()));
@@ -253,7 +231,7 @@ public class ZooPropStoreTest {
 
     PropCacheId tid = PropCacheId.forTable(IID, TableId.of("table1"));
 
-    var initialProps = new VersionedProperties(0, Instant.now(),
+    var initialProps = new VersionedProperties(123, Instant.now(),
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M"));
 
     // not cached - will load from ZooKeeper
@@ -261,7 +239,7 @@ public class ZooPropStoreTest {
 
     expect(zrw.getData(eq(tid.getPath()), capture(stat))).andAnswer(() -> {
       Stat s = stat.getValue();
-      s.setVersion(1);
+      s.setVersion(123);
       stat.setValue(s);
       return propCodec.toBytes(initialProps);
     }).once();
@@ -269,17 +247,18 @@ public class ZooPropStoreTest {
     // .andReturn(propCodec.toBytes(initialProps)).once();
 
     Capture<byte[]> bytes = newCapture();
-    expect(zrw.overwritePersistentData(eq(tid.getPath()), capture(bytes), eq(1))).andAnswer(() -> {
-      var stored = propCodec.fromBytes(bytes.getValue());
-      assertEquals(1, stored.getProperties().size());
-      // deleted
-      assertNull(stored.getProperties().get(TABLE_BULK_MAX_TABLETS.getKey()));
-      // unchanged
-      assertEquals("512M", stored.getProperties().get(TABLE_FILE_BLOCK_SIZE.getKey()));
-      // never existed
-      assertNull("123M", stored.getProperties().get(TABLE_SPLIT_THRESHOLD.getKey()));
-      return true;
-    }).once();
+    expect(zrw.overwritePersistentData(eq(tid.getPath()), capture(bytes), eq(123)))
+        .andAnswer(() -> {
+          var stored = propCodec.fromBytes(124, bytes.getValue());
+          assertEquals(1, stored.getProperties().size());
+          // deleted
+          assertNull(stored.getProperties().get(TABLE_BULK_MAX_TABLETS.getKey()));
+          // unchanged
+          assertEquals("512M", stored.getProperties().get(TABLE_FILE_BLOCK_SIZE.getKey()));
+          // never existed
+          assertNull("123M", stored.getProperties().get(TABLE_SPLIT_THRESHOLD.getKey()));
+          return true;
+        }).once();
 
     replay(context, zrw);
 

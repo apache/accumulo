@@ -37,7 +37,6 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -123,35 +122,6 @@ public class ZooPropLoaderTest {
     replay(context, zrw, propStoreWatcher, cacheMetrics);
 
     assertNotNull(loader.load(propCacheId));
-  }
-
-  @Test
-  public void getNodeVersionTest() throws Exception {
-    Stat stat = new Stat();
-    stat.setVersion(123);
-    expect(zrw.getStatus(propCacheId.getPath())).andReturn(stat).once();
-
-    replay(context, zrw, propStoreWatcher, cacheMetrics);
-
-    loader = new ZooPropLoader(zrw, propCodec, propStoreWatcher, cacheMetrics);
-
-    Stat received = loader.getNodeVersion(propCacheId);
-
-    assertEquals(123, received.getVersion());
-  }
-
-  @Test
-  public void getNodeVersionNoNodeTest() throws Exception {
-
-    expect(zrw.getStatus(propCacheId.getPath())).andThrow(new KeeperException.NoNodeException() {})
-        .anyTimes();
-
-    replay(context, zrw, propStoreWatcher, cacheMetrics);
-
-    loader = new ZooPropLoader(zrw, propCodec, propStoreWatcher, cacheMetrics);
-
-    assertThrows(IllegalStateException.class, () -> loader.getNodeVersion(propCacheId));
-
   }
 
   // from cache loader
@@ -482,7 +452,7 @@ public class ZooPropLoaderTest {
           s.setMtime(System.currentTimeMillis());
           s.setVersion(initialVersion + 1);
           stat.setValue(s);
-          return propCodec.toBytes(new VersionedProperties(initialVersion, Instant.now(),
+          return propCodec.toBytes(new VersionedProperties(initialVersion + 1, Instant.now(),
               Map.of(Property.TABLE_SPLIT_THRESHOLD.getKey(), "7G")));
         }).once();
 
@@ -557,8 +527,6 @@ public class ZooPropLoaderTest {
     final int expectedVersion = 123;
 
     VersionedProperties mockProps = createMock(VersionedProperties.class);
-    // TODO - Why is next version being called instead of next?
-    expect(mockProps.getNextVersion()).andReturn(expectedVersion).once();
     expect(mockProps.getTimestamp()).andReturn(Instant.now()).once();
     expect(mockProps.getProperties()).andReturn(Map.of());
 

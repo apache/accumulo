@@ -159,19 +159,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     try {
 
       var path = propCacheId.getPath();
-      if (!zrw.putPersistentData(path, propCodec.toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL)) {
-        return false;
-      }
-
-      Stat stat = zrw.getStatus(path, propStoreWatcher);
-
-      if (stat.getVersion() != vProps.getNextVersion()) {
-        throw new PropStoreException("Invalid data version on create, have: "
-            + vProps.getNextVersion() + " received " + stat.getVersion(),
-            new IllegalStateException());
-      }
-
-      return true;
+      return zrw.putPersistentData(path, propCodec.toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
 
     } catch (IOException | KeeperException | InterruptedException ex) {
       throw new PropStoreException("Failed to serialize properties for " + propCacheId, ex);
@@ -200,7 +188,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       VersionedProperties vProps = cache.getWithoutCaching(propCacheId);
       if (vProps == null) {
         byte[] bytes = zrw.getData(propCacheId.getPath());
-        vProps = propCodec.fromBytes(bytes);
+        vProps = propCodec.fromBytes(0, bytes);
       }
 
       VersionedProperties updates = vProps.addOrUpdate(props);
@@ -239,15 +227,10 @@ public class ZooPropStore implements PropStore, PropChangeListener {
 
       VersionedProperties vProps = cache.getWithoutCaching(propCacheId);
       if (vProps == null) {
-        Stat stat = new Stat();
         log.trace("removeProperties - not in cache");
+        Stat stat = new Stat();
         byte[] bytes = zrw.getData(propCacheId.getPath(), stat);
-        vProps = propCodec.fromBytes(bytes);
-        if (stat.getVersion() != vProps.getDataVersion()) {
-          throw new PropStoreException("Invalid data version on remove, have: "
-              + vProps.getDataVersion() + " received " + stat.getVersion(),
-              new IllegalStateException());
-        }
+        vProps = propCodec.fromBytes(stat.getVersion(), bytes);
       } else {
         log.trace("removeProperties - read from cache");
       }
@@ -260,6 +243,9 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     } catch (IOException ex) {
       throw new PropStoreException("failed to encode properties for " + propCacheId, ex);
     } catch (InterruptedException | KeeperException ex) {
+      if (ex instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
       throw new PropStoreException("failed to write properties to zooKeeper for " + propCacheId,
           ex);
     }
@@ -284,7 +270,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       // TODO - this might not be required - after initSysProps system props should always exist
       if (data != null) {
         try {
-          propsRead = propCodec.fromBytes(data).getProperties();
+          propsRead = propCodec.fromBytes(0, data).getProperties();
         } catch (IOException ex) {
           throw new IllegalStateException("Failed to decode system properties", ex);
         }

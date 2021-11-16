@@ -125,7 +125,7 @@ public class ReadyMonitorTest {
 
     readyMonitor.setReady();
 
-    var allComplete = completedLatch.await(10_000, TimeUnit.MILLISECONDS);
+    var allComplete = completedLatch.await(15_000, TimeUnit.MILLISECONDS);
     assertTrue("failed - all expected tasks did not complete", allComplete);
 
     tasks.forEach(f -> {

@@ -157,7 +157,7 @@ public class VersionedPropertiesTest {
     assertEquals(0, vProps.getDataVersion());
 
     // the initial version for write should be 0
-    assertEquals("Initial expected version should be 0", 0, vProps.getNextVersion());
+    assertEquals("Initial expected version should be 0", 0, vProps.getDataVersion());
     assertTrue("timestamp should be now or earlier",
         vProps.getTimestamp().compareTo(Instant.now()) <= 0);
   }

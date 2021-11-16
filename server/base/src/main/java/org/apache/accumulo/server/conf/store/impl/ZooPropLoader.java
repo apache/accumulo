@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.conf.store.impl;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -26,9 +28,7 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheId;
-import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,19 +57,16 @@ public class ZooPropLoader implements CacheLoader<PropCacheId,VersionedPropertie
   public @Nullable VersionedProperties load(PropCacheId propCacheId) {
     try {
       log.trace("load called for {}", propCacheId);
-      Stat stat = new Stat();
+
       long startNanos = System.nanoTime();
 
-      var vProps = propCodec.fromBytes(zrw.getData(propCacheId.getPath(), propStoreWatcher, stat));
+      Stat stat = new Stat();
+      byte[] bytes = zrw.getData(propCacheId.getPath(), propStoreWatcher, stat);
+      var vProps = propCodec.fromBytes(stat.getVersion(), bytes);
 
       metrics.addLoadTime(
           TimeUnit.MILLISECONDS.convert(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS));
 
-      if (stat.getVersion() != vProps.getDataVersion()) {
-        log.warn("data versions between decoded value {} and zk value {} do not match",
-            vProps.getDataVersion(), stat.getVersion());
-        return null;
-      }
       return vProps;
     } catch (Exception ex) {
       metrics.incrZkError();
@@ -118,10 +115,11 @@ public class ZooPropLoader implements CacheLoader<PropCacheId,VersionedPropertie
    * @return versioned properties that match the values stored in ZooKeeper, or null if the
    *         properties cannot be retrieved.
    */
-  private VersionedProperties loadIfDifferentVersion(PropCacheId propCacheId,
+  private @Nullable VersionedProperties loadIfDifferentVersion(PropCacheId propCacheId,
       VersionedProperties currentValue) {
+    requireNonNull(propCacheId, "propCacheId cannot be null");
     try {
-      Stat stat = getNodeVersion(propCacheId);
+      Stat stat = zrw.getStatus(propCacheId.getPath());
 
       log.trace("Check stat version on reload. Zk: {}, Cache: {}", stat.getVersion(),
           currentValue.getDataVersion());
@@ -130,7 +128,7 @@ public class ZooPropLoader implements CacheLoader<PropCacheId,VersionedPropertie
         return currentValue;
       }
 
-      log.debug("different version, calling loader to get update from ZooKeeper, id: {}",
+      log.debug("different version in cache for {}, calling loader to get update from ZooKeeper",
           propCacheId);
 
       var updatedValue = load(propCacheId);
@@ -145,26 +143,11 @@ public class ZooPropLoader implements CacheLoader<PropCacheId,VersionedPropertie
       log.trace("Updated value {}", updatedValue.print(true));
       return updatedValue;
     } catch (Exception ex) {
-      log.warn("async exception occurred - returning null", ex);
+      log.warn("async exception occurred reading {} from ZooKeeper - returning null", propCacheId,
+          ex);
       metrics.incrZkError();
       propStoreWatcher.signalZkChangeEvent(propCacheId);
       return null;
-    }
-  }
-
-  /**
-   * Return the zooKeeper Stat structure of the node specified.
-   *
-   * @param propCacheId
-   *          the property cache id
-   * @return a ZooKeeper Stat structure.
-   */
-  public @NonNull Stat getNodeVersion(PropCacheId propCacheId) {
-    try {
-      log.trace("get data version");
-      return zrw.getStatus(propCacheId.getPath());
-    } catch (InterruptedException | KeeperException ex) {
-      throw new IllegalStateException("Failed to get node stat for: " + propCacheId, ex);
     }
   }
 }
