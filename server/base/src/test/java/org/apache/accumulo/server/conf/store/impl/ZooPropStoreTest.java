@@ -38,6 +38,7 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -55,6 +56,7 @@ import org.apache.accumulo.server.conf.codec.VersionedPropGzipCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropCacheId;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.PropStoreException;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.Capture;
@@ -268,6 +270,41 @@ public class ZooPropStoreTest {
         Set.of(TABLE_BULK_MAX_TABLETS.getKey(), TABLE_SPLIT_THRESHOLD.getKey());
 
     assertTrue(propStore.removeProperties(tid, deleteNames));
+  }
+
+  @Test public void removeWithExceptionsTest() throws Exception {
+
+    PropCacheId tid = PropCacheId.forTable(IID, TableId.of("table1"));
+
+    // return "bad data"
+    Capture<Stat> stat = newCapture();
+    expect(zrw.getData(eq(tid.getPath()), capture(stat))).andAnswer(() -> {
+      Stat s = stat.getValue();
+      s.setCtime(System.currentTimeMillis());
+      s.setMtime(System.currentTimeMillis());
+      s.setCzxid(1234);
+      s.setVersion(19);
+      stat.setValue(s);
+      return new byte[100];
+    }).once();
+
+    // mock throwing exceptions
+    expect(zrw.getData(eq(tid.getPath()), anyObject(Stat.class))).andThrow(new KeeperException.NoNodeException("mock forced no node")).once();
+    expect(zrw.getData(eq(tid.getPath()), anyObject(Stat.class))).andThrow(new InterruptedException("mock forced interrupt exception")).once();
+
+    replay(context, zrw);
+
+    PropStore propStore = new ZooPropStore.Builder(context).build();
+
+    Set<String> deleteNames =
+        Set.of(TABLE_BULK_MAX_TABLETS.getKey(), TABLE_SPLIT_THRESHOLD.getKey());
+
+    // Parse error converted to PropStoreException
+    assertThrows(PropStoreException.class, () -> propStore.removeProperties(tid, deleteNames));
+    // ZK exception converted to PropStoreException
+    assertThrows(PropStoreException.class, () -> propStore.removeProperties(tid, deleteNames));
+    // InterruptException converted to PropStoreException
+    assertThrows(PropStoreException.class, () -> propStore.removeProperties(tid, deleteNames));
   }
 
   @Test
