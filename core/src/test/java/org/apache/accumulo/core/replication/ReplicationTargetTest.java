@@ -27,6 +27,7 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
+@Deprecated
 public class ReplicationTargetTest {
 
   @Test

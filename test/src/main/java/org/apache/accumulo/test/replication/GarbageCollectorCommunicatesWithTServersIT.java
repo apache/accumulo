@@ -78,6 +78,7 @@ import org.slf4j.LoggerFactory;
  * if a WAL will never be used in the future.
  */
 @Ignore("Replication ITs are not stable and not currently maintained")
+@Deprecated
 public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacBase {
   private static final Logger log =
       LoggerFactory.getLogger(GarbageCollectorCommunicatesWithTServersIT.class);

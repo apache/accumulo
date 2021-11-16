@@ -32,7 +32,6 @@ import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -82,6 +81,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
+@Deprecated
 public class AccumuloReplicaSystem implements ReplicaSystem {
   private static final Logger log = LoggerFactory.getLogger(AccumuloReplicaSystem.class);
   private static final String RFILE_SUFFIX = "." + RFile.EXTENSION;
@@ -383,8 +383,8 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
           // Read and send a batch of mutations
           replResult = ReplicationClient.executeServicerWithReturn(peerContext, peerTserver,
-              new WalClientExecReturn(target, input, p, currentStatus, sizeLimit, remoteTableId,
-                  tcreds, tids),
+              new WalClientExecReturn(this, target, input, p, currentStatus, sizeLimit,
+                  remoteTableId, tcreds, tids),
               timeout);
         } catch (Exception e) {
           log.error("Caught exception replicating data to {} at {}", peerContext.getInstanceName(),
@@ -502,67 +502,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
   }
 
-  protected class WalClientExecReturn
-      implements ClientExecReturn<ReplicationStats,ReplicationServicer.Client> {
-
-    private ReplicationTarget target;
-    private DataInputStream input;
-    private Path p;
-    private Status status;
-    private long sizeLimit;
-    private String remoteTableId;
-    private TCredentials tcreds;
-    private Set<Integer> tids;
-
-    public WalClientExecReturn(ReplicationTarget target, DataInputStream input, Path p,
-        Status status, long sizeLimit, String remoteTableId, TCredentials tcreds,
-        Set<Integer> tids) {
-      this.target = target;
-      this.input = input;
-      this.p = p;
-      this.status = status;
-      this.sizeLimit = sizeLimit;
-      this.remoteTableId = remoteTableId;
-      this.tcreds = tcreds;
-      this.tids = tids;
-    }
-
-    @Override
-    public ReplicationStats execute(Client client) throws Exception {
-      WalReplication edits = getWalEdits(target, input, p, status, sizeLimit, tids);
-
-      log.debug(
-          "Read {} WAL entries and retained {} bytes of WAL entries for replication to peer '{}'",
-          (edits.entriesConsumed == Long.MAX_VALUE) ? "all remaining" : edits.entriesConsumed,
-          edits.sizeInBytes, p);
-
-      // If we have some edits to send
-      if (edits.walEdits.getEditsSize() > 0) {
-        log.debug("Sending {} edits", edits.walEdits.getEditsSize());
-        long entriesReplicated = client.replicateLog(remoteTableId, edits.walEdits, tcreds);
-        if (entriesReplicated == edits.numUpdates) {
-          log.debug("Replicated {} edits", entriesReplicated);
-        } else {
-          log.warn("Sent {} WAL entries for replication but {} were reported as replicated",
-              edits.numUpdates, entriesReplicated);
-        }
-
-        // We don't have to replicate every LogEvent in the file (only Mutation LogEvents), but we
-        // want to track progress in the file relative to all LogEvents (to avoid duplicative
-        // processing/replication)
-        return edits;
-      } else if (edits.entriesConsumed > 0) {
-        // Even if we send no data, we want to record a non-zero new begin value to avoid checking
-        // the same
-        // log entries multiple times to determine if they should be sent
-        return edits;
-      }
-
-      // No data sent (bytes nor records) and no progress made
-      return new ReplicationStats(0L, 0L, 0L);
-    }
-  }
-
+  @Deprecated
   protected class RFileClientExecReturn
       implements ClientExecReturn<ReplicationStats,ReplicationServicer.Client> {
 
@@ -780,82 +720,4 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     return mutationsToSend;
   }
 
-  public static class ReplicationStats {
-    /**
-     * The size, in bytes, of the data sent
-     */
-    public long sizeInBytes;
-
-    /**
-     * The number of records sent
-     */
-    public long sizeInRecords;
-
-    /**
-     * The number of entries consumed from the log (to increment {@link Status}'s begin)
-     */
-    public long entriesConsumed;
-
-    public ReplicationStats(long sizeInBytes, long sizeInRecords, long entriesConsumed) {
-      this.sizeInBytes = sizeInBytes;
-      this.sizeInRecords = sizeInRecords;
-      this.entriesConsumed = entriesConsumed;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hashCode(sizeInBytes + sizeInRecords + entriesConsumed);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (o != null) {
-        if (ReplicationStats.class.isAssignableFrom(o.getClass())) {
-          ReplicationStats other = (ReplicationStats) o;
-          return sizeInBytes == other.sizeInBytes && sizeInRecords == other.sizeInRecords
-              && entriesConsumed == other.entriesConsumed;
-        }
-      }
-      return false;
-    }
-  }
-
-  /**
-   * A "struct" to avoid a nested Entry. Contains the resultant information from collecting data for
-   * replication
-   */
-  public static class WalReplication extends ReplicationStats {
-    /**
-     * The data to send over the wire
-     */
-    public WalEdits walEdits;
-
-    /**
-     * The number of updates contained in this batch
-     */
-    public long numUpdates;
-
-    public WalReplication(WalEdits edits, long size, long entriesConsumed, long numMutations) {
-      super(size, edits.getEditsSize(), entriesConsumed);
-      this.walEdits = edits;
-      this.numUpdates = numMutations;
-    }
-
-    @Override
-    public int hashCode() {
-      return super.hashCode() + Objects.hashCode(walEdits) + Objects.hashCode(numUpdates);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (o instanceof WalReplication) {
-        WalReplication other = (WalReplication) o;
-
-        return super.equals(other) && walEdits.equals(other.walEdits)
-            && numUpdates == other.numUpdates;
-      }
-
-      return false;
-    }
-  }
 }

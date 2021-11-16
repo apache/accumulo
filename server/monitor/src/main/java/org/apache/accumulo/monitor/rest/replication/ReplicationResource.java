@@ -66,6 +66,7 @@ import org.slf4j.LoggerFactory;
  */
 @Path("/replication")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+@Deprecated
 public class ReplicationResource {
   private static final Logger log = LoggerFactory.getLogger(ReplicationResource.class);
 

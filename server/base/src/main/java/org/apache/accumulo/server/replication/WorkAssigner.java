@@ -24,6 +24,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 /**
  * Interface to allow for multiple implementations that assign replication work
  */
+@Deprecated
 public interface WorkAssigner {
 
   /**

@@ -410,8 +410,11 @@ public class TabletServerLogger {
 
               // Need to release
               KeyExtent extent = commitSession.getExtent();
-              if (ReplicationConfigurationUtil.isEnabled(extent,
-                  tserver.getTableConfiguration(extent))) {
+              @SuppressWarnings("deprecation")
+              boolean replicationEnabled = ReplicationConfigurationUtil.isEnabled(extent,
+                  tserver.getTableConfiguration(extent));
+              if (replicationEnabled) {
+                @SuppressWarnings("deprecation")
                 Status status = StatusUtil.openWithUnknownLength(System.currentTimeMillis());
                 log.debug("Writing " + ProtobufUtil.toString(status) + " to metadata table for "
                     + copy.getFileName());

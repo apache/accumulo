@@ -236,7 +236,9 @@ public class TServerUtilsTest {
 
     ports = findTwoFreeSequentialPorts(monitorPort + 1);
     int managerReplCoordPort = ports[0];
-    conf.set(Property.MANAGER_REPLICATION_COORDINATOR_PORT, Integer.toString(managerReplCoordPort));
+    @SuppressWarnings("deprecation")
+    Property p = Property.MANAGER_REPLICATION_COORDINATOR_PORT;
+    conf.set(p, Integer.toString(managerReplCoordPort));
     int tserverFinalPort = ports[1];
 
     conf.set(Property.TSERV_PORTSEARCH, "true");

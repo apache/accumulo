@@ -497,6 +497,7 @@ public class ManagerClientServiceHandler extends FateServiceHandler
     }
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public boolean drainReplicationTable(TInfo tfino, TCredentials credentials, String tableName,
       Set<String> logsToWatch) throws TException {
@@ -548,6 +549,7 @@ public class ManagerClientServiceHandler extends FateServiceHandler
   /**
    * @return return true records are only in place which are fully replicated
    */
+  @Deprecated
   protected boolean allReferencesReplicated(BatchScanner bs, Text tableId,
       Set<String> relevantLogs) {
     Text rowHolder = new Text(), colfHolder = new Text();

@@ -66,6 +66,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 @Ignore("Replication ITs are not stable and not currently maintained")
+@Deprecated
 public class StatusMakerIT extends ConfigurableMacBase {
 
   private AccumuloClient client;
