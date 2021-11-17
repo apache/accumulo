@@ -147,7 +147,7 @@ public class ExternalCompactionTestUtils {
   }
 
   public static void writeData(AccumuloClient client, String table1, int rows)
-      throws MutationsRejectedException, TableNotFoundException, AccumuloException,
+      throws TableNotFoundException, AccumuloException,
       AccumuloSecurityException {
     try (BatchWriter bw = client.createBatchWriter(table1)) {
       for (int i = 0; i < rows; i++) {
