@@ -173,8 +173,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private CompactionCoordinatorService.Client coordinatorClient;
   private final String coordinatorMissingMsg =
       "Error getting the compaction coordinator. Check that it is running. It is not "
-          + "started automatically with other cluster processes so must be started by running"
-          + "'accumulo compaction-coordinator`.";
+          + "started automatically with other cluster processes so must be started by running "
+          + "'accumulo compaction-coordinator'.";
 
   private EmbeddedWebServer server;
 
