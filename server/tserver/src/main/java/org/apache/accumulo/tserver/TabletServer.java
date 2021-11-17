@@ -819,7 +819,10 @@ public class TabletServer extends AbstractServer {
       });
 
       List<TabletMetadata> tmdList;
-
+Map<KeyExtent, Long> updateCounts = new HashMap<>()
+onlineTabletsSnapshot.forEach((ke,tablet) -> {
+   updateCounts.put(ke, tablet.getUpdateCount());
+});
       // gather metadata for all tablets with DataLevel.USER using readTablets()
       try (TabletsMetadata tabletsMetadata = getContext().getAmple().readTablets()
           .forTablets(userTablets).fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
@@ -837,7 +840,7 @@ public class TabletServer extends AbstractServer {
       for (TabletMetadata tabletMetadata : tmdList) {
         KeyExtent extent = tabletMetadata.getExtent();
         Tablet tablet = onlineTabletsSnapshot.get(extent);
-        Long counter = tablet.getUpdateCounter();
+        Long counter = updateCounts.get(extent);
         tablet.compareTabletInfo(counter, tabletMetadata);
       }
     }, 1, 1, TimeUnit.MINUTES);
