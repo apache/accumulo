@@ -1431,7 +1431,7 @@ public class Tablet {
       return;
     }
     // if the counter didn't change, compare metadata to what is in memory
-    if (updateCounter == this.getUpdateCounter()) {
+    if (updateCounter == this.getUpdateCount()) {
       this.compareToDataInMemory(tabletMetadata);
     }
     // if counter did change, don't compare metadata and try again later
@@ -2247,8 +2247,8 @@ public class Tablet {
     return datafileManager;
   }
 
-  public long getUpdateCounter() {
-    return getDatafileManager().getUpdateCounter();
+  public long getUpdateCount() {
+    return getDatafileManager().getUpdateCount();
   }
 
   TabletMemory getTabletMemory() {
