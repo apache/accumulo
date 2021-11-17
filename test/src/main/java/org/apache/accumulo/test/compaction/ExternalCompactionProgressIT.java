@@ -128,23 +128,23 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
     if (ecMap != null) {
       ecMap.forEach((ecid, ec) -> {
         // returns null if it's a new mapping
-        var rci = new RunningCompactorInfo(System.currentTimeMillis(), ecid, ec);
-        var previous = runningMap.put(ecid, rci);
-        if (previous == null) {
+        RunningCompactorInfo rci = new RunningCompactorInfo(System.currentTimeMillis(), ecid, ec);
+        RunningCompactorInfo previousRci = runningMap.put(ecid, rci);
+        if (previousRci == null) {
           log.debug("New ECID {} with inputFiles: {}", ecid, rci.inputFiles);
         } else {
-          if (rci.progress <= previous.progress) {
-            log.warn("{} did not progress. It went from {} to {}", ecid, previous.progress,
+          if (rci.progress <= previousRci.progress) {
+            log.warn("{} did not progress. It went from {} to {}", ecid, previousRci.progress,
                 rci.progress);
           } else {
-            log.debug("{} progressed from {} to {}", ecid, previous.progress, rci.progress);
-            if (rci.progress > 0 && rci.progress < 25)
+            log.debug("{} progressed from {} to {}", ecid, previousRci.progress, rci.progress);
+            if (rci.progress > 0 && rci.progress <= 25)
               progressList.add(EC_PROGRESS.STARTED);
-            else if (rci.progress > 25 && rci.progress < 50)
+            else if (rci.progress > 25 && rci.progress <= 50)
               progressList.add(EC_PROGRESS.QUARTER);
-            else if (rci.progress > 50 && rci.progress < 75)
+            else if (rci.progress > 50 && rci.progress <= 75)
               progressList.add(EC_PROGRESS.HALF);
-            else if (rci.progress > 75 && rci.progress < 100)
+            else if (rci.progress > 75 && rci.progress <= 100)
               progressList.add(EC_PROGRESS.THREE_QUARTERS);
           }
           if (!rci.status.equals(TCompactionState.IN_PROGRESS.name())) {
