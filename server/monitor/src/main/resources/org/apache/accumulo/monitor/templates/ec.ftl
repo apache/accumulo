@@ -27,18 +27,14 @@
     <div id="ecDiv">
       <div class="row">
         <div class="col-xs-12">
-          <table id="coordinatorTable" class="table table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">Compaction&nbsp;Coordinator</span></caption>
-            <thead>
-              <tr>
-                <th class="firstcell" title="The hostname of the compaction coordinator server">Hostname</th>
-                <th title="Number of queues configured">Number&nbsp;of&nbsp;Queues</th>
-                <th title="Number of compactors detected">Number&nbsp;of&nbsp;Compactors</th>
-                <th class="duration" title="Last time data was fetched. Server fetches on refresh, at most every minute.">Last Contact</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
+          <div class="panel panel-primary">
+            <div class="panel-heading">Compaction&nbsp;Coordinator&nbsp;running&nbsp;on:&nbsp;<span id="ccHostname" title="The hostname of the compaction coordinator server"></span></div>
+            <div class="panel-body">
+                Queues&nbsp;<span id="ccNumQueues" class="badge" title="Number of queues configured">0</span></span>&nbsp;&nbsp;&nbsp;&nbsp;
+                Compactors&nbsp;<span id="ccNumCompactors" class="badge" title="Number of compactors running">0</span>&nbsp;&nbsp;&nbsp;&nbsp;
+                Last&nbsp;Contact&nbsp;<span id="ccLastContact" class="badge" title="Last time data was fetched. Server fetches on refresh, at most every minute."></span>
+            </div>
+          </div>
         </div>
       </div>
       <div class="row">

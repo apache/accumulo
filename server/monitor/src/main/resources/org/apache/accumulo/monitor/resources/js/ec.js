@@ -164,22 +164,15 @@
  function refreshECTables() {
    getCompactionCoordinator();
    var ecInfo = JSON.parse(sessionStorage.ecInfo);
-   var items = [];
    var ccAddress = ecInfo.server;
    var numCompactors = ecInfo.numCompactors;
+   var lastContactTime = timeDuration(ecInfo.lastContact);
    console.log("compaction coordinator = " + ccAddress);
    console.log("numCompactors = " + numCompactors);
-   items.push(createFirstCell(ccAddress, ccAddress));
-   items.push(createRightCell(ecInfo.numQueues, ecInfo.numQueues));
-   items.push(createRightCell(numCompactors, numCompactors));
-   var lastContactTime = timeDuration(ecInfo.lastContact);
-   items.push(createRightCell(lastContactTime, lastContactTime));
-
-   // clear table body before appending rows
-   $('#coordinatorTable tbody').empty();
-   $('<tr/>', {
-        html: items.join('')
-       }).appendTo('#coordinatorTable tbody');
+   $('#ccHostname').text(ccAddress);
+   $('#ccNumQueues').text(ecInfo.numQueues);
+   $('#ccNumCompactors').text(numCompactors);
+   $('#ccLastContact').html(lastContactTime);
 
    // user paging is not reset on reload
    if(compactorsTable) compactorsTable.ajax.reload(null, false );
