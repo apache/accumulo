@@ -257,6 +257,10 @@ public class ZooStore<T> implements TStore<T> {
 
   }
 
+  public synchronized boolean isReserved(long tid) {
+    return this.reserved.containsKey(tid);
+  }
+
   private void verifyReserved(long tid) {
     synchronized (this) {
       if (!reserved.containsKey(tid))
@@ -534,7 +538,7 @@ public class ZooStore<T> implements TStore<T> {
    * @param tid
    *          transaction id
    */
-  public void cancel(long tid) {
+  public synchronized void cancel(long tid) {
     if (reserved.containsKey(tid)) {
       reserved.get(tid).interrupt();
     }

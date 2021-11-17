@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
+import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.slf4j.Logger;
@@ -236,7 +237,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
         return true;
       }
       if (preemptBlockingTransactions) {
-        log.debug("Preempting transactions that are blocking this transaction");
+        log.info("Preempting transactions that are blocking this transaction");
         // Loop through all of the prior transactions that are waiting to
         // acquire this write lock. If the transaction has not succeeded or failed,
         // then fail it and return false from this method so that Utils.reserveX()
@@ -249,7 +250,18 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
           long priorTxid = Long.valueOf(new String(priorLock.getUserData(), UTF_8), 16);
           if (!priorEntry.equals(entry)) {
             log.info("Attempting to preempt blocking tx: {}", Long.toHexString(priorTxid));
-            store.cancel(priorTxid);
+            // If the prior tx id is reserved, then it's running. We can't reserve it and set its
+            // status, we have to interrupt the thread.
+            if (store.isReserved(priorTxid)) {
+              store.cancel(priorTxid);
+            } else {
+              try {
+                store.reserve(priorTxid);
+                store.setStatus(priorTxid, TStatus.FAILED_IN_PROGRESS);
+              } finally {
+                store.unreserve(priorTxid, 0);
+              }
+            }
           } else {
             break;
           }
