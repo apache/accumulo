@@ -42,7 +42,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
@@ -147,8 +146,7 @@ public class ExternalCompactionTestUtils {
   }
 
   public static void writeData(AccumuloClient client, String table1, int rows)
-      throws TableNotFoundException, AccumuloException,
-      AccumuloSecurityException {
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     try (BatchWriter bw = client.createBatchWriter(table1)) {
       for (int i = 0; i < rows; i++) {
         Mutation m = new Mutation(row(i));
@@ -161,8 +159,7 @@ public class ExternalCompactionTestUtils {
   }
 
   public static void writeData(AccumuloClient client, String table1)
-      throws TableNotFoundException, AccumuloException,
-      AccumuloSecurityException {
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     writeData(client, table1, MAX_DATA);
   }
 

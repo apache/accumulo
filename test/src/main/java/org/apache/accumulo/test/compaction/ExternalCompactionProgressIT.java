@@ -137,7 +137,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
             log.warn("{} did not progress. It went from {} to {}", ecid, previous.progress,
                 rci.progress);
           } else {
-          log.debug("{} progressed from {} to {}", ecid, previous.progress, rci.progress);
+            log.debug("{} progressed from {} to {}", ecid, previous.progress, rci.progress);
             if (rci.progress > 0 && rci.progress < 25)
               progressList.add(EC_PROGRESS.STARTED);
             else if (rci.progress > 25 && rci.progress < 50)
