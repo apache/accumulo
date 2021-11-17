@@ -161,7 +161,7 @@ public class ExternalCompactionTestUtils {
   }
 
   public static void writeData(AccumuloClient client, String table1)
-      throws MutationsRejectedException, TableNotFoundException, AccumuloException,
+      throws TableNotFoundException, AccumuloException,
       AccumuloSecurityException {
     writeData(client, table1, MAX_DATA);
   }
