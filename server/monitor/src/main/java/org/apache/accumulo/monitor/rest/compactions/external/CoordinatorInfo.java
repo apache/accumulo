@@ -24,6 +24,8 @@ import java.util.Optional;
 import org.apache.accumulo.core.util.HostAndPort;
 
 public class CoordinatorInfo {
+
+  // Variable names become JSON keys
   public long lastContact;
   public String server;
   public int numQueues;
