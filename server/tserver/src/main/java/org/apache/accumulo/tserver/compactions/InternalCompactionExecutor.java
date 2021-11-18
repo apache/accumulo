@@ -53,7 +53,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
 
   private static final Logger log = LoggerFactory.getLogger(InternalCompactionExecutor.class);
 
-  private PriorityBlockingQueue<Runnable> queue;
+  private PriorityBlockingQueue<InternalJob> queue;
   private final CompactionExecutorId ceid;
   private AtomicLong cancelCount = new AtomicLong();
   private ThreadPoolExecutor threadPool;
@@ -125,16 +125,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
         // Occasionally clean the queue of canceled jobs that have hung around because of their low
         // priority. This runs periodically, instead of every time something is canceled, to avoid
         // hurting performance.
-        queue.removeIf(runnable -> {
-          InternalJob internalJob;
-          if (runnable instanceof InternalJob) {
-            internalJob = (InternalJob) runnable;
-          } else {
-            throw new IllegalArgumentException(
-                "Unknown runnable type " + runnable.getClass().getName());
-          }
-          return internalJob.getStatus() == Status.CANCELED;
-        });
+        queue.removeIf(internalJob -> internalJob.getStatus() == Status.CANCELED);
       }
 
       return canceled;
@@ -145,26 +136,18 @@ public class InternalCompactionExecutor implements CompactionExecutor {
     }
   }
 
-  private static CompactionJob getJob(Runnable r) {
-    if (r instanceof InternalJob) {
-      return ((InternalJob) r).getJob();
-    }
-    throw new IllegalArgumentException("Unknown runnable type " + r.getClass().getName());
-  }
-
   InternalCompactionExecutor(CompactionExecutorId ceid, int threads,
       CompactionExecutorsMetrics ceMetrics, RateLimiter readLimiter, RateLimiter writeLimiter) {
     this.ceid = ceid;
-    var comparator = Comparator.comparing(InternalCompactionExecutor::getJob,
-        CompactionJobPrioritizer.JOB_COMPARATOR);
+    Comparator<InternalJob> comparator =
+        Comparator.comparing(InternalJob::getJob, CompactionJobPrioritizer.JOB_COMPARATOR);
 
-    queue = new PriorityBlockingQueue<Runnable>(100, comparator);
+    queue = new PriorityBlockingQueue<InternalJob>(100, comparator);
 
     threadPool = ThreadPools.createThreadPool(threads, threads, 60, TimeUnit.SECONDS,
         "compaction." + ceid, queue, OptionalInt.empty());
 
-    metricCloser =
-        ceMetrics.addExecutor(ceid, () -> threadPool.getActiveCount(), () -> queuedJob.size());
+    metricCloser = ceMetrics.addExecutor(ceid, threadPool::getActiveCount, queuedJob::size);
 
     this.readLimiter = readLimiter;
     this.writeLimiter = writeLimiter;

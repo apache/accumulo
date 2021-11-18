@@ -177,10 +177,13 @@ public class ThreadPools {
         new LinkedBlockingQueue<Runnable>(), OptionalInt.empty());
   }
 
-  public static ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
-      TimeUnit units, final String name, BlockingQueue<Runnable> queue, OptionalInt priority) {
-    ThreadPoolExecutor result = new ThreadPoolExecutor(coreThreads, maxThreads, timeOut, units,
-        queue, new NamedThreadFactory(name, priority)) {
+  public static <R extends Runnable> ThreadPoolExecutor createThreadPool(int coreThreads,
+      int maxThreads, long timeOut, TimeUnit units, final String name, BlockingQueue<R> queue,
+      OptionalInt priority) {
+    @SuppressWarnings("unchecked")
+    var runnableQueue = (BlockingQueue<Runnable>) queue;
+    var result = new ThreadPoolExecutor(coreThreads, maxThreads, timeOut, units, runnableQueue,
+        new NamedThreadFactory(name, priority)) {
 
       @Override
       public void execute(Runnable arg0) {
