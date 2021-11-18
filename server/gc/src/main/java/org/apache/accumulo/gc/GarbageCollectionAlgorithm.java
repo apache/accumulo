@@ -37,7 +37,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.gc.GarbageCollectionEnvironment.Reference;
-import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -235,7 +234,8 @@ public class GarbageCollectionAlgorithm {
 
         // We cannot delete a file if it is still needed for replication
         @SuppressWarnings("deprecation")
-        boolean safeToRemove = StatusUtil.isSafeForRemoval(pendingReplica.getValue());
+        boolean safeToRemove = org.apache.accumulo.server.replication.StatusUtil
+            .isSafeForRemoval(pendingReplica.getValue());
         if (!safeToRemove) {
           // If it must be replicated, we must remove it from the candidate set to prevent deletion
           candidates.remove();

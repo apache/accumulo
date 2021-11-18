@@ -39,14 +39,12 @@ import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.tserver.TabletMutations;
@@ -411,11 +409,13 @@ public class TabletServerLogger {
               // Need to release
               KeyExtent extent = commitSession.getExtent();
               @SuppressWarnings("deprecation")
-              boolean replicationEnabled = ReplicationConfigurationUtil.isEnabled(extent,
-                  tserver.getTableConfiguration(extent));
+              boolean replicationEnabled =
+                  org.apache.accumulo.core.replication.ReplicationConfigurationUtil
+                      .isEnabled(extent, tserver.getTableConfiguration(extent));
               if (replicationEnabled) {
                 @SuppressWarnings("deprecation")
-                Status status = StatusUtil.openWithUnknownLength(System.currentTimeMillis());
+                Status status = org.apache.accumulo.server.replication.StatusUtil
+                    .openWithUnknownLength(System.currentTimeMillis());
                 log.debug("Writing " + ProtobufUtil.toString(status) + " to metadata table for "
                     + copy.getFileName());
                 // Got some new WALs, note this in the metadata table

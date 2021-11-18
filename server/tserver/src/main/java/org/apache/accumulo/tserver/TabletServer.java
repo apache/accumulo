@@ -73,7 +73,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metrics.MetricsUtil;
-import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
@@ -111,7 +110,6 @@ import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.manager.recovery.RecoveryPath;
-import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
@@ -140,8 +138,6 @@ import org.apache.accumulo.tserver.metrics.TabletServerMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetrics;
-import org.apache.accumulo.tserver.replication.ReplicationServicerHandler;
-import org.apache.accumulo.tserver.replication.ReplicationWorker;
 import org.apache.accumulo.tserver.scan.ScanRunState;
 import org.apache.accumulo.tserver.session.Session;
 import org.apache.accumulo.tserver.session.SessionManager;
@@ -192,7 +188,7 @@ public class TabletServer extends AbstractServer {
 
   private final LogSorter logSorter;
   @SuppressWarnings("deprecation")
-  private ReplicationWorker replWorker = null;
+  private org.apache.accumulo.tserver.replication.ReplicationWorker replWorker = null;
   final TabletStatsKeeper statsKeeper;
   private final AtomicInteger logIdGenerator = new AtomicInteger();
 
@@ -248,7 +244,7 @@ public class TabletServer extends AbstractServer {
     this.sessionManager = new SessionManager(context);
     this.logSorter = new LogSorter(context, aconf);
     @SuppressWarnings("deprecation")
-    ReplicationWorker replWorker = new ReplicationWorker(context);
+    var replWorker = new org.apache.accumulo.tserver.replication.ReplicationWorker(context);
     this.replWorker = replWorker;
     this.statsKeeper = new TabletStatsKeeper();
     final int numBusyTabletsToLog = aconf.getCount(Property.TSERV_LOG_BUSY_TABLETS_COUNT);
@@ -606,7 +602,8 @@ public class TabletServer extends AbstractServer {
 
   @Deprecated
   private void startReplicationService() throws UnknownHostException {
-    final ReplicationServicerHandler handler = new ReplicationServicerHandler(this);
+    final var handler =
+        new org.apache.accumulo.tserver.replication.ReplicationServicerHandler(this);
     ReplicationServicer.Iface rpcProxy = TraceUtil.wrapService(handler);
     ReplicationServicer.Iface repl =
         TCredentialsUpdatingWrapper.service(rpcProxy, handler.getClass(), getConfiguration());
@@ -626,9 +623,9 @@ public class TabletServer extends AbstractServer {
       // The replication service is unique to the thrift service for a tserver, not just a host.
       // Advertise the host and port for replication service given the host and port for the
       // tserver.
-      getContext().getZooReaderWriter().putPersistentData(
-          getContext().getZooKeeperRoot() + ReplicationConstants.ZOO_TSERVERS + "/" + clientAddress,
-          sp.address.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
+      getContext().getZooReaderWriter().putPersistentData(getContext().getZooKeeperRoot()
+          + org.apache.accumulo.core.replication.ReplicationConstants.ZOO_TSERVERS + "/"
+          + clientAddress, sp.address.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     } catch (Exception e) {
       log.error("Could not advertise replication service port", e);
       throw new RuntimeException(e);
@@ -702,8 +699,8 @@ public class TabletServer extends AbstractServer {
   @Deprecated
   private void initializeZkForReplication() {
     try {
-      ZooKeeperInitialization.ensureZooKeeperInitialized(getContext().getZooReaderWriter(),
-          getContext().getZooKeeperRoot());
+      org.apache.accumulo.server.replication.ZooKeeperInitialization.ensureZooKeeperInitialized(
+          getContext().getZooReaderWriter(), getContext().getZooKeeperRoot());
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception while ensuring ZooKeeper is initialized", e);
     }

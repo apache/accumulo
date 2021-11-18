@@ -107,9 +107,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
-import org.apache.accumulo.manager.replication.ManagerReplicationCoordinator;
-import org.apache.accumulo.manager.replication.ReplicationDriver;
-import org.apache.accumulo.manager.replication.WorkDriver;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
@@ -127,7 +124,6 @@ import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.MergeState;
 import org.apache.accumulo.server.manager.state.TabletServerState;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
-import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
@@ -1265,7 +1261,8 @@ public class Manager extends AbstractServer
   @Deprecated
   private void initializeZkForReplication(ZooReaderWriter zReaderWriter, String zroot) {
     try {
-      ZooKeeperInitialization.ensureZooKeeperInitialized(zReaderWriter, zroot);
+      org.apache.accumulo.server.replication.ZooKeeperInitialization
+          .ensureZooKeeperInitialized(zReaderWriter, zroot);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception while ensuring ZooKeeper is initialized", e);
     }
@@ -1360,7 +1357,7 @@ public class Manager extends AbstractServer
       throws UnknownHostException, KeeperException, InterruptedException {
     ServerContext context = getContext();
     // Start the replication coordinator which assigns tservers to service replication requests
-    ManagerReplicationCoordinator impl = new ManagerReplicationCoordinator(this);
+    var impl = new org.apache.accumulo.manager.replication.ManagerReplicationCoordinator(this);
     ReplicationCoordinator.Iface haReplicationProxy =
         HighlyAvailableServiceWrapper.service(impl, this);
     ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor =
@@ -1373,11 +1370,12 @@ public class Manager extends AbstractServer
 
     log.info("Started replication coordinator service at " + replAddress.address);
     // Start the daemon to scan the replication table and make units of work
-    replicationWorkThread = Threads.createThread("Replication Driver", new ReplicationDriver(this));
+    replicationWorkThread = Threads.createThread("Replication Driver",
+        new org.apache.accumulo.manager.replication.ReplicationDriver(this));
     replicationWorkThread.start();
 
     // Start the daemon to assign work to tservers to replicate to our peers
-    WorkDriver wd = new WorkDriver(this);
+    var wd = new org.apache.accumulo.manager.replication.WorkDriver(this);
     replicationAssignerThread = Threads.createThread(wd.getName(), wd);
     replicationAssignerThread.start();
 

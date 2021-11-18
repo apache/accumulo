@@ -40,7 +40,6 @@ import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
-import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
@@ -107,7 +106,7 @@ public class ManagerRepairsDualAssignmentIT extends ConfigurableMacBase {
           cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
       Set<TServerInstance> replStates = new HashSet<>();
       @SuppressWarnings("deprecation")
-      TableId repTable = ReplicationTable.ID;
+      TableId repTable = org.apache.accumulo.core.replication.ReplicationTable.ID;
       // Find out which tablet server remains
       while (true) {
         UtilWaitThread.sleep(1000);

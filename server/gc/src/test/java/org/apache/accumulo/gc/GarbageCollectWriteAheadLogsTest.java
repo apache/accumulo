@@ -37,7 +37,6 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.replication.ReplicationSchema;
-import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
@@ -53,7 +52,8 @@ import org.junit.Test;
 public class GarbageCollectWriteAheadLogsTest {
 
   @SuppressWarnings("deprecation")
-  private static final String REPL_TABLE_NAME = ReplicationTable.NAME;
+  private static final String REPL_TABLE_NAME =
+      org.apache.accumulo.core.replication.ReplicationTable.NAME;
 
   @SuppressWarnings("deprecation")
   private static final Text STATUS_SECTION_NAME = ReplicationSchema.StatusSection.NAME;

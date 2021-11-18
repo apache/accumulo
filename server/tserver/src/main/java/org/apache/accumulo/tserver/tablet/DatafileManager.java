@@ -42,12 +42,10 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
@@ -318,8 +316,8 @@ class DatafileManager {
 
     Set<String> unusedWalLogs = tablet.beginClearingUnusedLogs();
     @SuppressWarnings("deprecation")
-    boolean replicate =
-        ReplicationConfigurationUtil.isEnabled(tablet.getExtent(), tablet.getTableConfiguration());
+    boolean replicate = org.apache.accumulo.core.replication.ReplicationConfigurationUtil
+        .isEnabled(tablet.getExtent(), tablet.getTableConfiguration());
     Set<String> logFileOnly = null;
     if (replicate) {
       // unusedWalLogs is of the form host/fileURI, need to strip off the host portion
@@ -356,7 +354,7 @@ class DatafileManager {
         }
         for (String logFile : logFileOnly) {
           @SuppressWarnings("deprecation")
-          Status status = StatusUtil.openWithUnknownLength();
+          Status status = org.apache.accumulo.server.replication.StatusUtil.openWithUnknownLength();
           ReplicationTableUtil.updateFiles(tablet.getContext(), tablet.getExtent(), logFile,
               status);
         }

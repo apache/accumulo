@@ -102,6 +102,7 @@ public class ThreadPools {
    * @throws RuntimeException
    *           if property is not handled
    */
+  @SuppressWarnings("deprecation")
   public static ExecutorService createExecutorService(final AccumuloConfiguration conf,
       final Property p) {
 

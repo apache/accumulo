@@ -30,16 +30,17 @@ import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
 public class ValidatorsTest {
 
   @SuppressWarnings("deprecation")
-  private static final TableId REPL_TABLE_ID = ReplicationTable.ID;
+  private static final TableId REPL_TABLE_ID =
+      org.apache.accumulo.core.replication.ReplicationTable.ID;
   @SuppressWarnings("deprecation")
-  private static final String REPL_TABLE_NAME = ReplicationTable.NAME;
+  private static final String REPL_TABLE_NAME =
+      org.apache.accumulo.core.replication.ReplicationTable.NAME;
 
   private static <T> void checkNull(Consumer<T> nullConsumer) {
     var e = assertThrows(IllegalArgumentException.class, () -> nullConsumer.accept(null));
