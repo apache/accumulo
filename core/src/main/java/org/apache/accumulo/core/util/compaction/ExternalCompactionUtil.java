@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -93,19 +94,18 @@ public class ExternalCompactionUtil {
 
   /**
    *
-   * @return null if Coordinator node not found, else HostAndPort
+   * @return Optional HostAndPort of Coordinator node if found
    */
-  public static HostAndPort findCompactionCoordinator(ClientContext context) {
+  public static Optional<HostAndPort> findCompactionCoordinator(ClientContext context) {
     final String lockPath = context.getZooKeeperRoot() + Constants.ZCOORDINATOR_LOCK;
     try {
       var zk = ZooSession.getAnonymousSession(context.getZooKeepers(),
           context.getZooKeepersSessionTimeOut());
       byte[] address = ServiceLock.getLockData(zk, ServiceLock.path(lockPath));
       if (null == address) {
-        return null;
+        return Optional.empty();
       }
-      String coordinatorAddress = new String(address);
-      return HostAndPort.fromString(coordinatorAddress);
+      return Optional.of(HostAndPort.fromString(new String(address)));
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }
