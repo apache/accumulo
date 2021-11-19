@@ -1422,7 +1422,6 @@ public class Tablet {
       String msg = "Data files in " + extent + " differ from in-memory data "
           + tabletMetadata.getFilesMap() + " " + getDatafileManager().getDatafileSizes();
       log.error(msg);
-      throw new RuntimeException(msg);
     }
   }
 
@@ -2247,7 +2246,7 @@ public class Tablet {
     return datafileManager;
   }
 
-  public long getUpdateCount() {
+  public synchronized long getUpdateCount() {
     return getDatafileManager().getUpdateCount();
   }
 

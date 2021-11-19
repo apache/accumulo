@@ -830,7 +830,7 @@ public class TabletServer extends AbstractServer {
       // gather metadata for all tablets with DataLevel.USER using readTablets()
       try (TabletsMetadata tabletsMetadata = getContext().getAmple().readTablets()
           .forTablets(userTablets).fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
-        tmdList = IteratorUtils.toList(tabletsMetadata.iterator());
+        tmdList = tabletsMetadata.stream().collect(Collectors.toList());
       }
 
       // gather metadata for all tablets with DataLevel.ROOT or METADATA using readTablet()
