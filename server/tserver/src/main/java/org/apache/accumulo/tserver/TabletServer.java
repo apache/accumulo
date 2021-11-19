@@ -55,6 +55,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -156,7 +157,6 @@ import org.apache.accumulo.tserver.tablet.CommitSession;
 import org.apache.accumulo.tserver.tablet.CompactionWatcher;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletData;
-import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -810,11 +810,11 @@ public class TabletServer extends AbstractServer {
       // This needs to happen so we can use .readTablets() on the DataLevel.USER tablets in order
       // to reduce RPCs.
       // TODO: Push this partitioning, based on DataLevel, to ample.
-      onlineTabletsSnapshot.forEach((k, v) -> {
-        if (Ample.DataLevel.of(k.tableId()) == Ample.DataLevel.USER) {
-          userTablets.add(k);
+      onlineTabletsSnapshot.forEach((ke, tablet) -> {
+        if (Ample.DataLevel.of(ke.tableId()) == Ample.DataLevel.USER) {
+          userTablets.add(ke);
         } else {
-          nonUserTablets.add(k);
+          nonUserTablets.add(ke);
         }
       });
 
