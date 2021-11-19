@@ -124,6 +124,7 @@ import com.google.protobuf.TextFormat;
  * test replication in a functional way without having to worry about two real systems.
  */
 @Ignore("Replication ITs are not stable and not currently maintained")
+@Deprecated
 public class ReplicationIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(ReplicationIT.class);
   private static final long MILLIS_BETWEEN_REPLICATION_TABLE_ONLINE_CHECKS = 5000L;

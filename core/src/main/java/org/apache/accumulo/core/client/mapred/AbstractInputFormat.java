@@ -30,7 +30,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -83,6 +82,8 @@ import org.apache.log4j.Logger;
  */
 @Deprecated(since = "2.0.0")
 public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
+
+  private static final SecureRandom random = new SecureRandom();
 
   protected static final Class<?> CLASS = AccumuloInputFormat.class;
   protected static final Logger log = Logger.getLogger(CLASS);
@@ -629,7 +630,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     log.setLevel(logLevel);
     validateOptions(job);
 
-    Random random = new SecureRandom();
     LinkedList<InputSplit> splits = new LinkedList<>();
     Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> tableConfigs =
         getInputTableConfigs(job);

@@ -28,6 +28,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 /**
  * Helper methods to create Status protobuf messages
  */
+@Deprecated
 public class StatusUtil {
 
   private static final Status INF_END_REPLICATION_STATUS, CLOSED_STATUS;

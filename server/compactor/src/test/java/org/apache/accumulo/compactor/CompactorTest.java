@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
+import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
@@ -168,7 +169,7 @@ public class CompactorTest {
     private final ExternalCompactionId eci;
     private volatile boolean completedCalled = false;
     private volatile boolean failedCalled = false;
-    private TCompactionState latestState = null;
+    private TCompactionStatusUpdate latestState = null;
 
     SuccessfulCompactor(Supplier<UUID> uuid, ServerAddress address, TExternalCompactionJob job,
         AccumuloConfiguration conf, ServerContext context, ExternalCompactionId eci) {
@@ -231,9 +232,9 @@ public class CompactorTest {
     }
 
     @Override
-    protected void updateCompactionState(TExternalCompactionJob job, TCompactionState state,
-        String message) throws RetriesExceededException {
-      latestState = state;
+    protected void updateCompactionState(TExternalCompactionJob job, TCompactionStatusUpdate update)
+        throws RetriesExceededException {
+      latestState = update;
     }
 
     @Override
@@ -249,7 +250,7 @@ public class CompactorTest {
     }
 
     public TCompactionState getLatestState() {
-      return latestState;
+      return latestState.getState();
     }
 
     public boolean isCompletedCalled() {

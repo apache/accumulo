@@ -24,7 +24,6 @@ import java.util.Properties;
 
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
-import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -323,7 +322,8 @@ public interface AccumuloClient extends AutoCloseable {
    *
    * @return an object to modify replication configuration
    */
-  ReplicationOperations replicationOperations();
+  @Deprecated(since = "2.1.0")
+  org.apache.accumulo.core.client.admin.ReplicationOperations replicationOperations();
 
   /**
    * @return All {@link Properties} used to create client except 'auth.token'

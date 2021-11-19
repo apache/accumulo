@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -65,9 +66,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.file.FileOperations;
-import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.YieldCallback;
+import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -83,13 +84,13 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanDispatch;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ShutdownUtil;
@@ -104,7 +105,6 @@ import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
-import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
@@ -130,8 +130,6 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
@@ -140,6 +138,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 /**
  * Provide access to a single row range in a living TabletServer.
@@ -325,8 +325,9 @@ public class Tablet {
     this.tableConfiguration = tblConf;
 
     // translate any volume changes
-    boolean replicationEnabled =
-        ReplicationConfigurationUtil.isEnabled(extent, this.tableConfiguration);
+    @SuppressWarnings("deprecation")
+    boolean replicationEnabled = org.apache.accumulo.core.replication.ReplicationConfigurationUtil
+        .isEnabled(extent, this.tableConfiguration);
     TabletFiles tabletPaths =
         new TabletFiles(data.getDirectoryName(), data.getLogEntries(), data.getDataFiles());
     tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getContext(), tabletServer.getLock(),
@@ -385,15 +386,19 @@ public class Tablet {
         }
         commitSession.updateMaxCommittedTime(tabletTime.getTime());
 
+        @SuppressWarnings("deprecation")
+        boolean replicationEnabledForTable =
+            org.apache.accumulo.core.replication.ReplicationConfigurationUtil.isEnabled(extent,
+                tabletServer.getTableConfiguration(extent));
         if (entriesUsedOnTablet.get() == 0) {
           log.debug("No replayed mutations applied, removing unused entries for {}", extent);
           MetadataTableUtil.removeUnusedWALEntries(getTabletServer().getContext(), extent,
               logEntries, tabletServer.getLock());
           logEntries.clear();
-        } else if (ReplicationConfigurationUtil.isEnabled(extent,
-            tabletServer.getTableConfiguration(extent))) {
+        } else if (replicationEnabledForTable) {
           // record that logs may have data for this extent
-          Status status = StatusUtil.openWithUnknownLength();
+          @SuppressWarnings("deprecation")
+          Status status = org.apache.accumulo.server.replication.StatusUtil.openWithUnknownLength();
           for (LogEntry logEntry : logEntries) {
             log.debug("Writing updated status to metadata table for {} {}", logEntry.filename,
                 ProtobufUtil.toString(status));
@@ -799,19 +804,31 @@ public class Tablet {
     try {
       Thread.currentThread().setName("Minor compacting " + this.extent);
       CompactionStats stats;
-      try (TraceScope span = Trace.startSpan("write")) {
+      Span span = TraceUtil.startSpan(this.getClass(), "minorCompact::write");
+      try (Scope scope = span.makeCurrent()) {
         count = memTable.getNumEntries();
 
         MinorCompactor compactor = new MinorCompactor(tabletServer, this, memTable, tmpDatafile,
             mincReason, tableConfiguration);
         stats = compactor.call();
+      } catch (Exception e) {
+        TraceUtil.setException(span, e, true);
+        throw e;
+      } finally {
+        span.end();
       }
 
-      try (TraceScope span = Trace.startSpan("bringOnline")) {
+      Span span2 = TraceUtil.startSpan(this.getClass(), "minorCompact::bringOnline");
+      try (Scope scope = span2.makeCurrent()) {
         var storedFile = getDatafileManager().bringMinorCompactionOnline(tmpDatafile, newDatafile,
             new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()), commitSession,
             flushId);
-        compactable.filesAdded(true, List.of(storedFile));
+        storedFile.ifPresent(stf -> compactable.filesAdded(true, List.of(stf)));
+      } catch (Exception e) {
+        TraceUtil.setException(span2, e, true);
+        throw e;
+      } finally {
+        span2.end();
       }
 
       return new DataFileValue(stats.getFileSize(), stats.getEntriesWritten());
@@ -844,10 +861,7 @@ public class Tablet {
     otherLogs = currentLogs;
     currentLogs = new HashSet<>();
 
-    double tracePercent =
-        tabletServer.getConfiguration().getFraction(Property.TSERV_MINC_TRACE_PERCENT);
-
-    return new MinorCompactionTask(this, oldCommitSession, flushId, mincReason, tracePercent);
+    return new MinorCompactionTask(this, oldCommitSession, flushId, mincReason);
 
   }
 
@@ -2194,8 +2208,11 @@ public class Tablet {
 
   }
 
-  public StoredTabletFile updateTabletDataFile(long maxCommittedTime, TabletFile newDatafile,
-      DataFileValue dfv, Set<String> unusedWalLogs, long flushId) {
+  /**
+   * Update tablet file data from flush. Returns a StoredTabletFile if there are data entries.
+   */
+  public Optional<StoredTabletFile> updateTabletDataFile(long maxCommittedTime,
+      TabletFile newDatafile, DataFileValue dfv, Set<String> unusedWalLogs, long flushId) {
     synchronized (timeLock) {
       if (maxCommittedTime > persistedTime) {
         persistedTime = maxCommittedTime;

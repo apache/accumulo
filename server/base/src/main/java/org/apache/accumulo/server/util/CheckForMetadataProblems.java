@@ -39,9 +39,12 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.TraceScope;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class CheckForMetadataProblems {
   private static boolean sawProblems = false;
@@ -175,14 +178,20 @@ public class CheckForMetadataProblems {
 
   public static void main(String[] args) throws Exception {
     opts = new ServerUtilOpts();
-    try (TraceScope clientSpan =
-        opts.parseArgsAndTrace(CheckForMetadataProblems.class.getName(), args)) {
+    opts.parseArgs(CheckForMetadataProblems.class.getName(), args);
+    Span span = TraceUtil.startSpan(CheckForMetadataProblems.class, "main");
+    try (Scope scope = span.makeCurrent()) {
 
       checkMetadataAndRootTableEntries(RootTable.NAME, opts);
       System.out.println();
       checkMetadataAndRootTableEntries(MetadataTable.NAME, opts);
       if (sawProblems)
         throw new RuntimeException();
+    } catch (Exception e) {
+      TraceUtil.setException(span, e, true);
+      throw e;
+    } finally {
+      span.end();
     }
   }
 

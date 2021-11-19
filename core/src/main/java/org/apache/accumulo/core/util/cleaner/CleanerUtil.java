@@ -22,7 +22,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.lang.ref.Cleaner;
 import java.lang.ref.Cleaner.Cleanable;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -103,7 +103,7 @@ public class CleanerUtil {
     });
   }
 
-  public static Cleanable shutdownThreadPoolExecutor(ThreadPoolExecutor pool, AtomicBoolean closed,
+  public static Cleanable shutdownThreadPoolExecutor(ExecutorService pool, AtomicBoolean closed,
       Logger log) {
     requireNonNull(pool);
     requireNonNull(log);

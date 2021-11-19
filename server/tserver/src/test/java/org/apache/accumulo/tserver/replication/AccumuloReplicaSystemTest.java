@@ -55,13 +55,11 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
-import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem.ReplicationStats;
-import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem.WalClientExecReturn;
-import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem.WalReplication;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
+@Deprecated
 public class AccumuloReplicaSystemTest {
 
   @Test
@@ -471,7 +469,7 @@ public class AccumuloReplicaSystemTest {
     TCredentials tcreds = null;
     Set<Integer> tids = new HashSet<>();
 
-    WalClientExecReturn walClientExec = ars.new WalClientExecReturn(target, input, p, status,
+    WalClientExecReturn walClientExec = new WalClientExecReturn(ars, target, input, p, status,
         sizeLimit, remoteTableId, tcreds, tids);
 
     expect(ars.getWalEdits(target, input, p, status, sizeLimit, tids)).andReturn(walReplication);
@@ -501,7 +499,7 @@ public class AccumuloReplicaSystemTest {
     TCredentials tcreds = null;
     Set<Integer> tids = new HashSet<>();
 
-    WalClientExecReturn walClientExec = ars.new WalClientExecReturn(target, input, p, status,
+    WalClientExecReturn walClientExec = new WalClientExecReturn(ars, target, input, p, status,
         sizeLimit, remoteTableId, tcreds, tids);
 
     expect(ars.getWalEdits(target, input, p, status, sizeLimit, tids)).andReturn(walReplication);

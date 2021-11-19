@@ -107,9 +107,6 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
-import org.apache.accumulo.manager.replication.ManagerReplicationCoordinator;
-import org.apache.accumulo.manager.replication.ReplicationDriver;
-import org.apache.accumulo.manager.replication.WorkDriver;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
@@ -127,7 +124,6 @@ import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.accumulo.server.manager.state.MergeState;
 import org.apache.accumulo.server.manager.state.TabletServerState;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
-import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
@@ -158,6 +154,8 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.util.concurrent.RateLimiter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 /**
  * The Manager is responsible for assigning and balancing tablets to tablet servers.
@@ -794,13 +792,17 @@ public class Manager extends AbstractServer
               + " continue with attempt to update status", t);
         }
 
-        try {
+        Span span = TraceUtil.startSpan(this.getClass(), "run::updateStatus");
+        try (Scope scope = span.makeCurrent()) {
           wait = updateStatus();
           eventListener.waitForEvents(wait);
         } catch (Exception t) {
+          TraceUtil.setException(span, t, false);
           log.error("Error balancing tablets, will wait for {} (seconds) and then retry ",
               WAIT_BETWEEN_ERRORS / ONE_SECOND, t);
           sleepUninterruptibly(WAIT_BETWEEN_ERRORS, TimeUnit.MILLISECONDS);
+        } finally {
+          span.end();
         }
       }
     }
@@ -1151,11 +1153,7 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
 
-    try {
-      ZooKeeperInitialization.ensureZooKeeperInitialized(zReaderWriter, zroot);
-    } catch (KeeperException | InterruptedException e) {
-      throw new IllegalStateException("Exception while ensuring ZooKeeper is initialized", e);
-    }
+    initializeZkForReplication(zReaderWriter, zroot);
 
     // Make sure that we have a secret key (either a new one or an old one from ZK) before we start
     // the manager client service.
@@ -1199,9 +1197,10 @@ public class Manager extends AbstractServer
     final AtomicReference<TServer> replServer = new AtomicReference<>();
     context.getScheduledExecutor().scheduleWithFixedDelay(() -> {
       try {
-        if ((replServer.get() == null)
-            && !getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
-          log.info("{} was set, starting repl services.", Property.REPLICATION_NAME.getKey());
+        @SuppressWarnings("deprecation")
+        Property p = Property.REPLICATION_NAME;
+        if ((replServer.get() == null) && !getConfiguration().get(p).isEmpty()) {
+          log.info("{} was set, starting repl services.", p.getKey());
           replServer.set(setupReplication());
         }
       } catch (UnknownHostException | KeeperException | InterruptedException e) {
@@ -1257,6 +1256,16 @@ public class Manager extends AbstractServer
       }
     }
     log.info("exiting");
+  }
+
+  @Deprecated
+  private void initializeZkForReplication(ZooReaderWriter zReaderWriter, String zroot) {
+    try {
+      org.apache.accumulo.server.replication.ZooKeeperInitialization
+          .ensureZooKeeperInitialized(zReaderWriter, zroot);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Exception while ensuring ZooKeeper is initialized", e);
+    }
   }
 
   /**
@@ -1343,11 +1352,12 @@ public class Manager extends AbstractServer
     }
   }
 
+  @Deprecated
   private TServer setupReplication()
       throws UnknownHostException, KeeperException, InterruptedException {
     ServerContext context = getContext();
     // Start the replication coordinator which assigns tservers to service replication requests
-    ManagerReplicationCoordinator impl = new ManagerReplicationCoordinator(this);
+    var impl = new org.apache.accumulo.manager.replication.ManagerReplicationCoordinator(this);
     ReplicationCoordinator.Iface haReplicationProxy =
         HighlyAvailableServiceWrapper.service(impl, this);
     ReplicationCoordinator.Processor<ReplicationCoordinator.Iface> replicationCoordinatorProcessor =
@@ -1360,11 +1370,12 @@ public class Manager extends AbstractServer
 
     log.info("Started replication coordinator service at " + replAddress.address);
     // Start the daemon to scan the replication table and make units of work
-    replicationWorkThread = Threads.createThread("Replication Driver", new ReplicationDriver(this));
+    replicationWorkThread = Threads.createThread("Replication Driver",
+        new org.apache.accumulo.manager.replication.ReplicationDriver(this));
     replicationWorkThread.start();
 
     // Start the daemon to assign work to tservers to replicate to our peers
-    WorkDriver wd = new WorkDriver(this);
+    var wd = new org.apache.accumulo.manager.replication.WorkDriver(this);
     replicationAssignerThread = Threads.createThread(wd.getName(), wd);
     replicationAssignerThread.start();
 

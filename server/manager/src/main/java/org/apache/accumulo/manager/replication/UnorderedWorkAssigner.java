@@ -48,6 +48,7 @@ import org.slf4j.LoggerFactory;
  * the manager. The {@link SequentialWorkAssigner} should be used if this must be guaranteed at the
  * cost of replication throughput.
  */
+@Deprecated
 public class UnorderedWorkAssigner extends DistributedWorkQueueWorkAssigner {
   private static final Logger log = LoggerFactory.getLogger(UnorderedWorkAssigner.class);
   private static final String NAME = "Unordered Work Assigner";

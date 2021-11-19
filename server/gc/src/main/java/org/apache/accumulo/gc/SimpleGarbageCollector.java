@@ -64,9 +64,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
-import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
-import org.apache.accumulo.core.replication.ReplicationTable;
-import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -83,7 +80,6 @@ import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockWatcher;
 import org.apache.accumulo.gc.metrics.GcCycleMetrics;
 import org.apache.accumulo.gc.metrics.GcMetrics;
-import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -98,8 +94,6 @@ import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.htrace.Trace;
-import org.apache.htrace.impl.ProbabilitySampler;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,6 +104,8 @@ import com.google.common.collect.Maps;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 // Could/Should implement HighlyAvailableService but the Thrift server is already started before
 // the ZK lock is acquired. The server is only for metrics, there are no concerns about clients
@@ -420,11 +416,12 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     }
 
     @Override
+    @Deprecated
     public Iterator<Entry<String,Status>> getReplicationNeededIterator() {
       AccumuloClient client = getContext();
       try {
-        Scanner s = ReplicationTable.getScanner(client);
-        StatusSection.limit(s);
+        Scanner s = org.apache.accumulo.core.replication.ReplicationTable.getScanner(client);
+        org.apache.accumulo.core.replication.ReplicationSchema.StatusSection.limit(s);
         return Iterators.transform(s.iterator(), input -> {
           String file = input.getKey().getRow().toString();
           Status stat;
@@ -436,7 +433,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           }
           return Maps.immutableEntry(file, stat);
         });
-      } catch (ReplicationTableOfflineException e) {
+      } catch (org.apache.accumulo.core.replication.ReplicationTableOfflineException e) {
         // No elements that we need to preclude
         return Collections.emptyIterator();
       }
@@ -477,9 +474,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       return;
     }
 
-    ProbabilitySampler sampler =
-        TraceUtil.probabilitySampler(getConfiguration().getFraction(Property.GC_TRACE_PERCENT));
-
     // This is created outside of the run loop and passed to the walogCollector so that
     // only a single timed task is created (internal to LiveTServerSet) using SimpleTimer.
     final LiveTServerSet liveTServerSet =
@@ -493,8 +487,10 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         });
 
     while (true) {
-      try (var ignored = Trace.startSpan("gc", sampler)) {
-        try (var ignored1 = Trace.startSpan("loop")) {
+      Span outerSpan = TraceUtil.startSpan(this.getClass(), "gc");
+      try (Scope outerScope = outerSpan.makeCurrent()) {
+        Span innerSpan = TraceUtil.startSpan(this.getClass(), "loop");
+        try (Scope innerScope = innerSpan.makeCurrent()) {
           final long tStart = System.nanoTime();
           try {
             System.gc(); // make room
@@ -516,6 +512,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
             status.current = new GcCycleStats();
 
           } catch (Exception e) {
+            TraceUtil.setException(innerSpan, e, false);
             log.error("{}", e.getMessage(), e);
           }
 
@@ -528,23 +525,38 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
            * are no longer referenced in the metadata table before running
            * GarbageCollectWriteAheadLogs to ensure we delete as many files as possible.
            */
-          try (var ignored2 = Trace.startSpan("replicationClose")) {
-            CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(getContext());
+          Span replSpan = TraceUtil.startSpan(this.getClass(), "replicationClose");
+          try (Scope replScope = replSpan.makeCurrent()) {
+            @SuppressWarnings("deprecation")
+            Runnable closeWals =
+                new org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences(getContext());
             closeWals.run();
           } catch (Exception e) {
+            TraceUtil.setException(replSpan, e, false);
             log.error("Error trying to close write-ahead logs for replication table", e);
+          } finally {
+            replSpan.end();
           }
 
           // Clean up any unused write-ahead logs
-          try (var ignored2 = Trace.startSpan("walogs")) {
+          Span walSpan = TraceUtil.startSpan(this.getClass(), "walogs");
+          try (Scope walScope = walSpan.makeCurrent()) {
             GarbageCollectWriteAheadLogs walogCollector =
                 new GarbageCollectWriteAheadLogs(getContext(), fs, liveTServerSet, isUsingTrash());
             log.info("Beginning garbage collection of write-ahead logs");
             walogCollector.collect(status);
             gcCycleMetrics.setLastWalCollect(status.lastLog);
           } catch (Exception e) {
+            TraceUtil.setException(walSpan, e, false);
             log.error("{}", e.getMessage(), e);
+          } finally {
+            walSpan.end();
           }
+        } catch (Exception e) {
+          TraceUtil.setException(innerSpan, e, true);
+          throw e;
+        } finally {
+          innerSpan.end();
         }
 
         // we just made a lot of metadata changes: flush them out
@@ -577,8 +589,14 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
               (TimeUnit.NANOSECONDS.toMillis(actionComplete - actionStart) / 1000.0)));
 
         } catch (Exception e) {
+          TraceUtil.setException(outerSpan, e, false);
           log.warn("{}", e.getMessage(), e);
         }
+      } catch (Exception e) {
+        TraceUtil.setException(outerSpan, e, true);
+        throw e;
+      } finally {
+        outerSpan.end();
       }
       try {
 

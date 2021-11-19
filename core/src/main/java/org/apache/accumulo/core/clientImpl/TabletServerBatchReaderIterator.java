@@ -67,7 +67,6 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.OpTimer;
-import org.apache.htrace.wrappers.TraceRunnable;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -526,7 +525,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     for (QueryTask queryTask : queryTasks) {
       queryTask.setSemaphore(semaphore, queryTasks.size());
-      queryThreadPool.execute(new TraceRunnable(queryTask));
+      queryThreadPool.execute(queryTask);
     }
   }
 

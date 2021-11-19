@@ -23,6 +23,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,7 @@ import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.C
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.CompactorService.Iface;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
+import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -105,9 +107,9 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 public class Compactor extends AbstractServer implements CompactorService.Iface {
+
+  private static final SecureRandom random = new SecureRandom();
 
   public static class CompactorServerOpts extends ServerOpts {
     @Parameter(required = true, names = {"-q", "--queue"}, description = "compaction queue name")
@@ -348,15 +350,13 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
    *
    * @param job
    *          compactionJob
-   * @param state
-   *          updated state
-   * @param message
-   *          updated message
+   * @param update
+   *          status update
    * @throws RetriesExceededException
    *           thrown when retries have been exceeded
    */
-  protected void updateCompactionState(TExternalCompactionJob job, TCompactionState state,
-      String message) throws RetriesExceededException {
+  protected void updateCompactionState(TExternalCompactionJob job, TCompactionStatusUpdate update)
+      throws RetriesExceededException {
     RetryableThriftCall<String> thriftCall = new RetryableThriftCall<>(1000,
         RetryableThriftCall.MAX_WAIT_TIME, 25, new RetryableThriftFunction<String>() {
           @Override
@@ -364,7 +364,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
             Client coordinatorClient = getCoordinatorClient();
             try {
               coordinatorClient.updateCompactionStatus(TraceUtil.traceInfo(),
-                  getContext().rpcCreds(), job.getExternalCompactionId(), state, message,
+                  getContext().rpcCreds(), job.getExternalCompactionId(), update,
                   System.currentTimeMillis());
               return "";
             } finally {
@@ -474,12 +474,12 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
    *           when unable to get client
    */
   protected CompactionCoordinatorService.Client getCoordinatorClient() throws TTransportException {
-    HostAndPort coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(getContext());
-    if (null == coordinatorHost) {
+    var coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(getContext());
+    if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
-    LOG.trace("CompactionCoordinator address is: {}", coordinatorHost);
-    return ThriftUtil.getClient(COORDINATOR_CLIENT_FACTORY, coordinatorHost, getContext());
+    LOG.trace("CompactionCoordinator address is: {}", coordinatorHost.get());
+    return ThriftUtil.getClient(COORDINATOR_CLIENT_FACTORY, coordinatorHost.get(), getContext());
   }
 
   /**
@@ -514,7 +514,9 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
         Preconditions.checkState(compactionRunning.compareAndSet(false, true));
         try {
           LOG.info("Starting up compaction runnable for job: {}", job);
-          updateCompactionState(job, TCompactionState.STARTED, "Compaction started");
+          TCompactionStatusUpdate update = new TCompactionStatusUpdate(TCompactionState.STARTED,
+              "Compaction started", -1, -1, -1);
+          updateCompactionState(job, update);
 
           final AccumuloConfiguration tConfig;
 
@@ -558,8 +560,9 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
 
           LOG.info("Compaction completed successfully {} ", job.getExternalCompactionId());
           // Update state when completed
-          updateCompactionState(job, TCompactionState.SUCCEEDED,
-              "Compaction completed successfully");
+          TCompactionStatusUpdate update2 = new TCompactionStatusUpdate(TCompactionState.SUCCEEDED,
+              "Compaction completed successfully", -1, -1, -1);
+          updateCompactionState(job, update2);
         } catch (Exception e) {
           LOG.error("Compaction failed", e);
           err.set(e);
@@ -590,8 +593,6 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     return supplier;
   }
 
-  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
-      justification = "random used for jitter, not security functions")
   protected long getWaitTimeBetweenCompactionChecks() {
     // get the total number of compactors assigned to this queue
     int numCompactors = ExternalCompactionUtil.countCompactors(queueName, getContext());
@@ -603,7 +604,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     sleepTime = Math.min(300_000L, sleepTime);
     // Add some random jitter to the sleep time, that averages out to sleep time. This will spread
     // compactors out evenly over time.
-    sleepTime = (long) (.9 * sleepTime + sleepTime * .2 * Math.random());
+    sleepTime = (long) (.9 * sleepTime + sleepTime * .2 * random.nextDouble());
     LOG.trace("Sleeping {}ms based on {} compactors", sleepTime, numCompactors);
     return sleepTime;
   }
@@ -695,7 +696,10 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
                     info.getEntriesWritten());
                 try {
                   LOG.debug("Updating coordinator with compaction progress: {}.", message);
-                  updateCompactionState(job, TCompactionState.IN_PROGRESS, message);
+                  TCompactionStatusUpdate update =
+                      new TCompactionStatusUpdate(TCompactionState.IN_PROGRESS, message,
+                          inputEntries, info.getEntriesRead(), info.getEntriesWritten());
+                  updateCompactionState(job, update);
                 } catch (RetriesExceededException e) {
                   LOG.warn("Error updating coordinator with compaction progress, error: {}",
                       e.getMessage());
@@ -712,7 +716,9 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
               || ((err.get() != null && err.get().getClass().equals(InterruptedException.class)))) {
             LOG.warn("Compaction thread was interrupted, sending CANCELLED state");
             try {
-              updateCompactionState(job, TCompactionState.CANCELLED, "Compaction cancelled");
+              TCompactionStatusUpdate update = new TCompactionStatusUpdate(
+                  TCompactionState.CANCELLED, "Compaction cancelled", -1, -1, -1);
+              updateCompactionState(job, update);
               updateCompactionFailed(job);
             } catch (RetriesExceededException e) {
               LOG.error("Error updating coordinator with compaction cancellation.", e);
@@ -722,8 +728,9 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
           } else if (err.get() != null) {
             try {
               LOG.info("Updating coordinator with compaction failure.");
-              updateCompactionState(job, TCompactionState.FAILED,
-                  "Compaction failed due to: " + err.get().getMessage());
+              TCompactionStatusUpdate update = new TCompactionStatusUpdate(TCompactionState.FAILED,
+                  "Compaction failed due to: " + err.get().getMessage(), -1, -1, -1);
+              updateCompactionState(job, update);
               updateCompactionFailed(job);
             } catch (RetriesExceededException e) {
               LOG.error("Error updating coordinator with compaction failure.", e);

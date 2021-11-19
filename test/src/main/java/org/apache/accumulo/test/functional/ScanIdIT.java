@@ -24,13 +24,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -91,8 +89,6 @@ public class ScanIdIT extends AccumuloClusterHarness {
   private static final int NUM_SCANNERS = 8;
 
   private static final int NUM_DATA_ROWS = 100;
-
-  private static final Random random = new SecureRandom();
 
   private static final ExecutorService pool = Executors.newFixedThreadPool(NUM_SCANNERS);
 

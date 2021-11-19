@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
-import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_PREFIX;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -45,7 +44,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.sample.RowSampler;
@@ -58,6 +56,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.crypto.CryptoTest;
+import org.apache.accumulo.core.crypto.CryptoTest.ConfigMode;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -106,6 +105,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class RFileTest {
 
+  private static final SecureRandom random = new SecureRandom();
+
   public static class SampleIE implements IteratorEnvironment {
 
     private SamplerConfiguration samplerConfig;
@@ -134,7 +135,7 @@ public class RFileTest {
 
   @BeforeClass
   public static void setupCryptoKeyFile() throws Exception {
-    CryptoTest.setupKeyFiles();
+    CryptoTest.setupKeyFiles(RFileTest.class);
   }
 
   static class SeekableByteArrayInputStream extends ByteArrayInputStream
@@ -537,9 +538,8 @@ public class RFileTest {
 
     // test seeking to random location and reading all data from that point
     // there was an off by one bug with this in the transient index
-    Random rand = new SecureRandom();
     for (int i = 0; i < 12; i++) {
-      index = rand.nextInt(expectedKeys.size());
+      index = random.nextInt(expectedKeys.size());
       trf.seek(expectedKeys.get(index));
       for (; index < expectedKeys.size(); index++) {
         assertTrue(trf.iter.hasTop());
@@ -1659,17 +1659,15 @@ public class RFileTest {
 
     Set<ByteSequence> cfs = Collections.emptySet();
 
-    Random rand = new SecureRandom();
-
     for (int count = 0; count < 100; count++) {
 
-      int start = rand.nextInt(2300);
+      int start = random.nextInt(2300);
       Range range = new Range(newKey(formatString("r_", start), "cf1", "cq1", "L1", 42),
           newKey(formatString("r_", start + 100), "cf1", "cq1", "L1", 42));
 
       trf.reader.seek(range, cfs, false);
 
-      int numToScan = rand.nextInt(100);
+      int numToScan = random.nextInt(100);
 
       for (int j = 0; j < numToScan; j++) {
         assertTrue(trf.reader.hasTop());
@@ -1685,8 +1683,8 @@ public class RFileTest {
       // seek a little forward from the last range and read a few keys within the unconsumed portion
       // of the last range
 
-      int start2 = start + numToScan + rand.nextInt(3);
-      int end2 = start2 + rand.nextInt(3);
+      int start2 = start + numToScan + random.nextInt(3);
+      int end2 = start2 + random.nextInt(3);
 
       range = new Range(newKey(formatString("r_", start2), "cf1", "cq1", "L1", 42),
           newKey(formatString("r_", end2), "cf1", "cq1", "L1", 42));
@@ -1707,12 +1705,12 @@ public class RFileTest {
 
   @Test(expected = NullPointerException.class)
   public void testMissingUnreleasedVersions() throws Exception {
-    runVersionTest(5, getAccumuloConfig(CryptoTest.CRYPTO_OFF_CONF));
+    runVersionTest(5, getAccumuloConfig(ConfigMode.CRYPTO_OFF));
   }
 
   @Test
   public void testOldVersions() throws Exception {
-    ConfigurationCopy defaultConf = getAccumuloConfig(CryptoTest.CRYPTO_OFF_CONF);
+    ConfigurationCopy defaultConf = getAccumuloConfig(ConfigMode.CRYPTO_OFF);
     runVersionTest(3, defaultConf);
     runVersionTest(4, defaultConf);
     runVersionTest(6, defaultConf);
@@ -1721,7 +1719,7 @@ public class RFileTest {
 
   @Test
   public void testOldVersionsWithCrypto() throws Exception {
-    ConfigurationCopy cryptoOnConf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    ConfigurationCopy cryptoOnConf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     runVersionTest(3, cryptoOnConf);
     runVersionTest(4, cryptoOnConf);
     runVersionTest(6, cryptoOnConf);
@@ -1797,149 +1795,137 @@ public class RFileTest {
     reader.close();
   }
 
-  @SuppressWarnings("fallthrough")
-  public static ConfigurationCopy getAccumuloConfig(String cryptoOn) {
-    ConfigurationCopy cfg = new ConfigurationCopy(DefaultConfiguration.getInstance());
-    switch (cryptoOn) {
-      case CryptoTest.CRYPTO_ON_DISABLED_CONF:
-        cfg.set(INSTANCE_CRYPTO_PREFIX.getKey() + "enabled", "false");
-        // fall through to set remaining config
-      case CryptoTest.CRYPTO_ON_CONF:
-        cfg.set(Property.INSTANCE_CRYPTO_SERVICE,
-            "org.apache.accumulo.core.spi.crypto.AESCryptoService");
-        cfg.set(INSTANCE_CRYPTO_PREFIX.getKey() + "key.uri", CryptoTest.keyPath);
-        break;
-    }
-    return cfg;
+  private ConfigurationCopy getAccumuloConfig(ConfigMode configMode) {
+    return CryptoTest.getAccumuloConfig(configMode, getClass());
   }
 
   @Test
   public void testEncRFile1() throws Exception {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     test1();
     conf = null;
   }
 
   @Test
   public void testEncRFile2() throws Exception {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     test2();
     conf = null;
   }
 
   @Test
   public void testEncRFile3() throws Exception {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     test3();
     conf = null;
   }
 
   @Test
   public void testEncRFile4() throws Exception {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     test4();
     conf = null;
   }
 
   @Test
   public void testEncRFile5() throws Exception {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     test5();
     conf = null;
   }
 
   @Test
   public void testEncRFile6() throws Exception {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     test6();
     conf = null;
   }
 
   @Test
   public void testEncRFile7() throws Exception {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     test7();
     conf = null;
   }
 
   @Test
   public void testEncRFile8() throws Exception {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     test8();
     conf = null;
   }
 
   @Test
   public void testEncRFile9() throws Exception {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     test9();
     conf = null;
   }
 
   @Test
   public void testEncRFile10() throws Exception {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     test10();
     conf = null;
   }
 
   @Test
   public void testEncRFile11() throws Exception {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     test11();
     conf = null;
   }
 
   @Test
   public void testEncRFile12() throws Exception {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     test12();
     conf = null;
   }
 
   @Test
   public void testEncRFile13() throws Exception {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     test13();
     conf = null;
   }
 
   @Test
   public void testEncRFile14() throws Exception {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     test14();
     conf = null;
   }
 
   @Test
   public void testEncRFile16() throws Exception {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     test16();
   }
 
   @Test
   public void testEncRFile17() throws Exception {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     test17();
   }
 
   @Test
   public void testEncRFile18() throws Exception {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     test18();
     conf = null;
   }
 
   @Test
   public void testEncRFile19() throws Exception {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     test19();
     conf = null;
   }
 
   @Test
   public void testEncryptedRFiles() throws Exception {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     test1();
     test2();
     test3();
@@ -2020,10 +2006,6 @@ public class RFileTest {
     sample.seek(new Range(), columnFamilies, inclusive);
     assertEquals(sampleData, toList(sample));
 
-    Random rand = new SecureRandom();
-    long seed = rand.nextLong();
-    rand.setSeed(seed);
-
     // randomly seek sample iterator and verify
     for (int i = 0; i < 33; i++) {
       Key startKey = null;
@@ -2034,29 +2016,29 @@ public class RFileTest {
       boolean endInclusive = false;
       int endIndex = sampleData.size();
 
-      if (rand.nextBoolean()) {
-        startIndex = rand.nextInt(sampleData.size());
+      if (random.nextBoolean()) {
+        startIndex = random.nextInt(sampleData.size());
         startKey = sampleData.get(startIndex).getKey();
-        startInclusive = rand.nextBoolean();
+        startInclusive = random.nextBoolean();
         if (!startInclusive) {
           startIndex++;
         }
       }
 
-      if (startIndex < endIndex && rand.nextBoolean()) {
-        endIndex -= rand.nextInt(endIndex - startIndex);
+      if (startIndex < endIndex && random.nextBoolean()) {
+        endIndex -= random.nextInt(endIndex - startIndex);
         endKey = sampleData.get(endIndex - 1).getKey();
-        endInclusive = rand.nextBoolean();
+        endInclusive = random.nextBoolean();
         if (!endInclusive) {
           endIndex--;
         }
       } else if (startIndex == endIndex) {
-        endInclusive = rand.nextBoolean();
+        endInclusive = random.nextBoolean();
       }
 
       sample.seek(new Range(startKey, startInclusive, endKey, endInclusive), columnFamilies,
           inclusive);
-      assertEquals("seed: " + seed, sampleData.subList(startIndex, endIndex), toList(sample));
+      assertEquals(sampleData.subList(startIndex, endIndex), toList(sample));
     }
   }
 
@@ -2241,7 +2223,7 @@ public class RFileTest {
 
   @Test
   public void testEncSample() throws IOException {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     testSample();
     testSampleLG();
     conf = null;
@@ -2299,7 +2281,7 @@ public class RFileTest {
 
   @Test
   public void testCryptoDoesntLeakSensitive() throws IOException {
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     // test an empty file
 
     TestRFile trf = new TestRFile(conf);
@@ -2322,7 +2304,7 @@ public class RFileTest {
   public void testRootTabletEncryption() throws Exception {
 
     // This tests that the normal set of operations used to populate a root tablet
-    conf = getAccumuloConfig(CryptoTest.CRYPTO_ON_CONF);
+    conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
 
     TestRFile testRfile = new TestRFile(conf);
     testRfile.openWriter();

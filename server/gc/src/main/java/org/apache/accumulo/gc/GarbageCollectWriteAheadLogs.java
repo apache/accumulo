@@ -41,10 +41,8 @@ import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
-import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
-import org.apache.accumulo.core.replication.ReplicationTable;
-import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -56,13 +54,14 @@ import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterators;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class GarbageCollectWriteAheadLogs {
   private static final Logger log = LoggerFactory.getLogger(GarbageCollectWriteAheadLogs.class);
@@ -128,7 +127,9 @@ public class GarbageCollectWriteAheadLogs {
       Map<TServerInstance,Set<UUID>> logsByServer;
       Map<UUID,Pair<WalState,Path>> logsState;
       Map<UUID,Path> recoveryLogs;
-      try (TraceScope span = Trace.startSpan("getCandidates")) {
+
+      Span span = TraceUtil.startSpan(this.getClass(), "getCandidates");
+      try (Scope scope = span.makeCurrent()) {
         status.currentLog.started = System.currentTimeMillis();
 
         recoveryLogs = getSortedWALogs();
@@ -147,6 +148,11 @@ public class GarbageCollectWriteAheadLogs {
         log.info(String.format("Fetched %d files for %d servers in %.2f seconds", count,
             logsByServer.size(), (fileScanStop - status.currentLog.started) / 1000.));
         status.currentLog.candidates = count;
+      } catch (Exception e) {
+        TraceUtil.setException(span, e, true);
+        throw e;
+      } finally {
+        span.end();
       }
 
       // now it's safe to get the liveServers
@@ -154,23 +160,31 @@ public class GarbageCollectWriteAheadLogs {
       Set<TServerInstance> currentServers = liveServers.getCurrentServers();
 
       Map<UUID,TServerInstance> uuidToTServer;
-      try (TraceScope span = Trace.startSpan("removeEntriesInUse")) {
+      Span span2 = TraceUtil.startSpan(this.getClass(), "removeEntriesInUse");
+      try (Scope scope = span2.makeCurrent()) {
         uuidToTServer = removeEntriesInUse(logsByServer, currentServers, logsState, recoveryLogs);
         count = uuidToTServer.size();
       } catch (Exception ex) {
         log.error("Unable to scan metadata table", ex);
+        TraceUtil.setException(span2, ex, false);
         return;
+      } finally {
+        span2.end();
       }
 
       long logEntryScanStop = System.currentTimeMillis();
       log.info(String.format("%d log entries scanned in %.2f seconds", count,
           (logEntryScanStop - fileScanStop) / 1000.));
 
-      try (TraceScope span = Trace.startSpan("removeReplicationEntries")) {
+      Span span3 = TraceUtil.startSpan(this.getClass(), "removeReplicationEntries");
+      try (Scope scope = span3.makeCurrent()) {
         count = removeReplicationEntries(uuidToTServer);
       } catch (Exception ex) {
         log.error("Unable to scan replication table", ex);
+        TraceUtil.setException(span3, ex, false);
         return;
+      } finally {
+        span3.end();
       }
 
       long replicationEntryScanStop = System.currentTimeMillis();
@@ -178,7 +192,8 @@ public class GarbageCollectWriteAheadLogs {
           (replicationEntryScanStop - logEntryScanStop) / 1000.));
 
       long removeStop;
-      try (TraceScope span = Trace.startSpan("removeFiles")) {
+      Span span4 = TraceUtil.startSpan(this.getClass(), "removeFiles");
+      try (Scope scope = span4.makeCurrent()) {
 
         logsState.keySet().retainAll(uuidToTServer.keySet());
         count = removeFiles(logsState.values(), status);
@@ -189,13 +204,24 @@ public class GarbageCollectWriteAheadLogs {
 
         count = removeFiles(recoveryLogs.values());
         log.info("{} recovery logs removed", count);
+      } catch (Exception e) {
+        TraceUtil.setException(span4, e, true);
+        throw e;
+      } finally {
+        span4.end();
       }
 
-      try (TraceScope span = Trace.startSpan("removeMarkers")) {
+      Span span5 = TraceUtil.startSpan(this.getClass(), "removeMarkers");
+      try (Scope scope = span5.makeCurrent()) {
         count = removeTabletServerMarkers(uuidToTServer, logsByServer, currentServers);
         long removeMarkersStop = System.currentTimeMillis();
         log.info(String.format("%d markers removed in %.2f seconds", count,
             (removeMarkersStop - removeStop) / 1000.));
+      } catch (Exception e) {
+        TraceUtil.setException(span5, e, true);
+        throw e;
+      } finally {
+        span5.end();
       }
 
       status.currentLog.finished = removeStop;
@@ -327,17 +353,18 @@ public class GarbageCollectWriteAheadLogs {
     return result;
   }
 
+  @Deprecated
   protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) {
     try {
       try {
-        final Scanner s = ReplicationTable.getScanner(context);
-        StatusSection.limit(s);
+        final Scanner s = org.apache.accumulo.core.replication.ReplicationTable.getScanner(context);
+        org.apache.accumulo.core.replication.ReplicationSchema.StatusSection.limit(s);
         for (Entry<Key,Value> entry : s) {
           UUID id = path2uuid(new Path(entry.getKey().getRow().toString()));
           candidates.remove(id);
           log.info("Ignore closed log " + id + " because it is being replicated");
         }
-      } catch (ReplicationTableOfflineException ex) {
+      } catch (org.apache.accumulo.core.replication.ReplicationTableOfflineException ex) {
         return candidates.size();
       }
 

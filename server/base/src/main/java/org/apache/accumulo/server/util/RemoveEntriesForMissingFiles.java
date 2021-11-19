@@ -42,15 +42,18 @@ import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.fs.Path;
-import org.apache.htrace.TraceScope;
 
 import com.beust.jcommander.Parameter;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 /**
  * Remove file entries for map files that don't exist.
@@ -123,7 +126,7 @@ public class RemoveEntriesForMissingFiles {
     @SuppressWarnings({"rawtypes"})
     Map cache = new LRUMap(100000);
     Set<Path> processing = new HashSet<>();
-    ExecutorService threadPool = ThreadPools.createFixedThreadPool(16, "CheckFileTasks", false);
+    ExecutorService threadPool = ThreadPools.createFixedThreadPool(16, "CheckFileTasks");
 
     System.out.printf("Scanning : %s %s\n", tableName, range);
 
@@ -203,9 +206,12 @@ public class RemoveEntriesForMissingFiles {
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    try (TraceScope clientSpan =
-        opts.parseArgsAndTrace(RemoveEntriesForMissingFiles.class.getName(), args)) {
+    opts.parseArgs(RemoveEntriesForMissingFiles.class.getName(), args);
+    Span span = TraceUtil.startSpan(RemoveEntriesForMissingFiles.class, "main");
+    try (Scope scope = span.makeCurrent()) {
       checkAllTables(opts.getServerContext(), opts.fix);
+    } finally {
+      span.end();
     }
   }
 }

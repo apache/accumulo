@@ -51,6 +51,7 @@ public class ReplicationSchema {
    * </code>
    * </pre>
    */
+  @Deprecated
   public static class WorkSection {
     public static final Text NAME = new Text("work");
     private static final ByteSequence BYTE_SEQ_NAME = new ArrayByteSequence("work");
@@ -94,6 +95,7 @@ public class ReplicationSchema {
    * </code>
    * </pre>
    */
+  @Deprecated
   public static class StatusSection {
     public static final Text NAME = new Text("repl");
     private static final ByteSequence BYTE_SEQ_NAME = new ArrayByteSequence("repl");
@@ -152,6 +154,7 @@ public class ReplicationSchema {
    * </code>
    * </pre>
    */
+  @Deprecated
   public static class OrderSection {
     public static final Text NAME = new Text("order");
     public static final Text ROW_SEPARATOR = new Text(new byte[] {0});
