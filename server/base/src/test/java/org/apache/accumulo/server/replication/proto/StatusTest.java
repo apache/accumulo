@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNotEquals;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.junit.Test;
 
+@Deprecated
 public class StatusTest {
 
   @Test

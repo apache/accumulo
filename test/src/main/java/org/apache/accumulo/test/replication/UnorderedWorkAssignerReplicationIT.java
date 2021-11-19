@@ -79,6 +79,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterators;
 
 @Ignore("Replication ITs are not stable and not currently maintained")
+@Deprecated
 public class UnorderedWorkAssignerReplicationIT extends ConfigurableMacBase {
   private static final Logger log =
       LoggerFactory.getLogger(UnorderedWorkAssignerReplicationIT.class);

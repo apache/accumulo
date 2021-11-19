@@ -33,6 +33,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
+@Deprecated
 public class ManagerReplicationCoordinatorTest {
 
   static AccumuloConfiguration config = DefaultConfiguration.getInstance();

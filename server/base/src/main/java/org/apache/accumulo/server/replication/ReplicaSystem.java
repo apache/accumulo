@@ -26,6 +26,7 @@ import org.apache.hadoop.fs.Path;
 /**
  * Encapsulation of a remote system which Accumulo can replicate data to
  */
+@Deprecated
 public interface ReplicaSystem {
 
   /**

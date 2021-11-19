@@ -74,6 +74,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Ignore("Replication ITs are not stable and not currently maintained")
 @Category(MiniClusterOnlyTests.class)
+@Deprecated
 public class CyclicReplicationIT {
   private static final Logger log = LoggerFactory.getLogger(CyclicReplicationIT.class);
 

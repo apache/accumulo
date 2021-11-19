@@ -41,9 +41,6 @@ import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
-import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
-import org.apache.accumulo.core.replication.ReplicationTable;
-import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
@@ -356,17 +353,18 @@ public class GarbageCollectWriteAheadLogs {
     return result;
   }
 
+  @Deprecated
   protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) {
     try {
       try {
-        final Scanner s = ReplicationTable.getScanner(context);
-        StatusSection.limit(s);
+        final Scanner s = org.apache.accumulo.core.replication.ReplicationTable.getScanner(context);
+        org.apache.accumulo.core.replication.ReplicationSchema.StatusSection.limit(s);
         for (Entry<Key,Value> entry : s) {
           UUID id = path2uuid(new Path(entry.getKey().getRow().toString()));
           candidates.remove(id);
           log.info("Ignore closed log " + id + " because it is being replicated");
         }
-      } catch (ReplicationTableOfflineException ex) {
+      } catch (org.apache.accumulo.core.replication.ReplicationTableOfflineException ex) {
         return candidates.size();
       }
 

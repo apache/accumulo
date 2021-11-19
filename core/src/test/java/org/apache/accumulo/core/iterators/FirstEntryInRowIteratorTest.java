@@ -31,13 +31,14 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iteratorsImpl.system.CountingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.junit.Test;
 
 public class FirstEntryInRowIteratorTest {
 
   private static long process(TreeMap<Key,Value> sourceMap, TreeMap<Key,Value> resultMap,
       Range range, IteratorSetting iteratorSetting) throws IOException {
-    org.apache.accumulo.core.iterators.SortedMapIterator source = new SortedMapIterator(sourceMap);
+    SortedMapIterator source = new SortedMapIterator(sourceMap);
     CountingIterator counter = new CountingIterator(source);
     FirstEntryInRowIterator feiri = new FirstEntryInRowIterator();
     IteratorEnvironment env = new DefaultIteratorEnvironment();

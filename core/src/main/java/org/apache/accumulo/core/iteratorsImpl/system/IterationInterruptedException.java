@@ -16,33 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.coordinator;
+package org.apache.accumulo.core.iteratorsImpl.system;
 
-import org.apache.accumulo.core.compaction.thrift.TCompactionState;
+/**
+ * Exception thrown if an interrupt flag is detected.
+ */
+public class IterationInterruptedException extends RuntimeException {
 
-public class CompactionUpdate {
+  private static final long serialVersionUID = 1L;
 
-  private final Long timestamp;
-  private final String message;
-  private final TCompactionState state;
-
-  CompactionUpdate(Long timestamp, String message, TCompactionState state) {
+  public IterationInterruptedException() {
     super();
-    this.timestamp = timestamp;
-    this.message = message;
-    this.state = state;
   }
 
-  public Long getTimestamp() {
-    return timestamp;
+  public IterationInterruptedException(String msg) {
+    super(msg);
   }
-
-  public String getMessage() {
-    return message;
-  }
-
-  public TCompactionState getState() {
-    return state;
-  }
-
 }

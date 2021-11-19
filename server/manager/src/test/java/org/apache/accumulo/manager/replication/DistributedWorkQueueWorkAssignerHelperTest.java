@@ -30,6 +30,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.common.PathUtils;
 import org.junit.Test;
 
+@Deprecated
 public class DistributedWorkQueueWorkAssignerHelperTest {
 
   @Test

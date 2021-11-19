@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Driver for a {@link WorkAssigner}
  */
+@Deprecated
 public class WorkDriver implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(WorkDriver.class);
 
