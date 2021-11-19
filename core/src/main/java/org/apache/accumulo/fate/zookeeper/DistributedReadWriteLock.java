@@ -250,14 +250,19 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
           long priorTxid = Long.valueOf(new String(priorLock.getUserData(), UTF_8), 16);
           if (!priorEntry.equals(entry)) {
             log.info("Attempting to preempt blocking tx: {}", Long.toHexString(priorTxid));
-            // If the prior tx id is reserved, then it's running. We can't reserve it and set its
-            // status, we have to interrupt the thread.
             if (store.isReserved(priorTxid)) {
-              store.cancel(priorTxid);
-            } else {
+              // If the prior tx id is reserved, then it's running. We can't reserve it and set its
+              // status, we have to interrupt the thread.
+              if (store.getStatus(priorTxid).equals(TStatus.IN_PROGRESS)) {
+                store.cancel(priorTxid);
+              }
+            } else if (store.tryReserve(priorTxid)) {
+              // Try to reserve it and if that fails we will re-check it on the next iteration
               try {
-                store.reserve(priorTxid);
-                store.setStatus(priorTxid, TStatus.FAILED_IN_PROGRESS);
+                TStatus status = store.getStatus(priorTxid);
+                if (!status.equals(TStatus.FAILED) && !status.equals(TStatus.SUCCESSFUL)) {
+                  store.setStatus(priorTxid, TStatus.FAILED_IN_PROGRESS);
+                }
               } finally {
                 store.unreserve(priorTxid, 0);
               }

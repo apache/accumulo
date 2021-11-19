@@ -136,8 +136,8 @@ public class FateIT {
     szk.close();
   }
 
-  @Test
-  public void testPreemption() throws Exception {
+  @Test(timeout = 30000)
+  public void testPreemptionOfInProgressTransaction() throws Exception {
     ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
 
     zk.mkdirs(ZK_ROOT + Constants.ZFATE);
@@ -167,17 +167,24 @@ public class FateIT {
       // Wait for the transaction runner to be scheduled.
       UtilWaitThread.sleep(3000);
 
+      // Start the LongRenameOp transaction which will sleep for 3 minutes
       long txid = fate.startTransaction();
       fate.seedTransaction(txid, new LongRenameOp(NS, TID), true);
       Thread.sleep(100);
       assertEquals(TStatus.IN_PROGRESS, getTxStatus(zk, txid));
 
+      // Start a DeleteTable transaction which will pre-empt the LongRenameOp
+      // transaction.
       long txid2 = fate.startTransaction();
       fate.seedTransaction(txid2, new DeleteTableNowOp(NS, TID), true);
 
+      // Confirm that the DeleteTableNowOp.call() method was called
       while (!FateIT.DELETE_NOW_OP_CALLED) {
         Thread.sleep(100);
       }
+
+      // Test has a timeout of 30s, if we get here, then the LongRenameOp
+      // was pre-empted.
     } finally {
       fate.shutdown();
     }

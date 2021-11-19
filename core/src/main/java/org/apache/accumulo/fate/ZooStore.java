@@ -532,6 +532,16 @@ public class ZooStore<T> implements TStore<T> {
     }
   }
 
+  public boolean tryReserve(long tid) {
+    synchronized (this) {
+      if (!reserved.containsKey(tid)) {
+        reserve(tid);
+        return true;
+      }
+      return false;
+    }
+  }
+
   /**
    * Attempt to cancel the reserved transaction by interrupting the Thread that is running it
    *
