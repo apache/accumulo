@@ -53,7 +53,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
@@ -69,9 +68,6 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -923,43 +919,6 @@ public class TabletServer extends AbstractServer {
     };
     context.getScheduledExecutor().scheduleWithFixedDelay(replicationWorkThreadPoolResizer, 10000,
         30000, TimeUnit.MILLISECONDS);
-  }
-
-  static boolean checkTabletMetadata(KeyExtent extent, TServerInstance instance,
-      TabletMetadata meta) throws AccumuloException {
-
-    if (meta == null) {
-      log.info("Not loading tablet {}, its metadata was not found.", extent);
-      return false;
-    }
-
-    if (!meta.sawPrevEndRow()) {
-      throw new AccumuloException("Metadata entry does not have prev row (" + meta.getTableId()
-          + " " + meta.getEndRow() + ")");
-    }
-
-    if (!extent.equals(meta.getExtent())) {
-      log.info("Tablet extent mismatch {} {}", extent, meta.getExtent());
-      return false;
-    }
-
-    if (meta.getDirName() == null) {
-      throw new AccumuloException(
-          "Metadata entry does not have directory (" + meta.getExtent() + ")");
-    }
-
-    if (meta.getTime() == null && !extent.equals(RootTable.EXTENT)) {
-      throw new AccumuloException("Metadata entry does not have time (" + meta.getExtent() + ")");
-    }
-
-    Location loc = meta.getLocation();
-
-    if (loc == null || loc.getType() != LocationType.FUTURE || !instance.equals(loc)) {
-      log.info("Unexpected location {} {}", extent, loc);
-      return false;
-    }
-
-    return true;
   }
 
   public String getClientAddressString() {
