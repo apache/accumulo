@@ -52,7 +52,7 @@ public interface FileOutputFormatBuilder {
      * compression may require additional libraries to be available to your Job.
      *
      * @param compressionType
-     *          one of "none", "gz", "lzo", or "snappy"
+     *          one of "none", "gz", "bzip2", "lzo", "lz4", "snappy", or "zstd"
      */
     OutputOptions<T> compression(String compressionType);
 
