@@ -18,14 +18,12 @@
  */
 package org.apache.accumulo.core.trace;
 
-import static org.apache.accumulo.core.Constants.APPNAME;
-import static org.apache.accumulo.core.Constants.VERSION;
-
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.util.Map;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.thrift.TInfo;
@@ -56,28 +54,37 @@ public class TraceUtil {
 
   public static void initializeTracer(AccumuloConfiguration conf) {
     enabled = conf.getBoolean(Property.GENERAL_OPENTELEMETRY_ENABLED);
-    LOG.info("Trace enabled: {}, OpenTelemetry instance: {}, Tracer instance: {}", enabled,
-        getOpenTelemetry().getClass(), getTracer().getClass());
+    logTracingState(false);
   }
 
   public static void enable() {
     enabled = true;
-    LOG.debug("Trace enabled: {}, OpenTelemetry instance: {}, Tracer instance: {}", enabled,
-        getOpenTelemetry().getClass(), getTracer().getClass());
+    logTracingState(true);
   }
 
   public static void disable() {
     enabled = false;
-    LOG.debug("Trace enabled: {}, OpenTelemetry instance: {}, Tracer instance: {}", enabled,
-        getOpenTelemetry().getClass(), getTracer().getClass());
+    logTracingState(true);
+  }
+
+  private static void logTracingState(boolean debug) {
+    var msg = "Trace enabled in Accumulo: {}, OpenTelemetry instance: {}, Tracer instance: {}";
+    var enabledInAccumulo = enabled ? "yes" : "no";
+    var openTelemetry = getOpenTelemetry();
+    var tracer = getTracer(openTelemetry);
+    if (debug) {
+      LOG.debug(msg, enabledInAccumulo, openTelemetry.getClass(), tracer.getClass());
+    } else {
+      LOG.info(msg, enabledInAccumulo, openTelemetry.getClass(), tracer.getClass());
+    }
   }
 
   private static OpenTelemetry getOpenTelemetry() {
     return enabled ? GlobalOpenTelemetry.get() : OpenTelemetry.noop();
   }
 
-  private static Tracer getTracer() {
-    return getOpenTelemetry().getTracer(APPNAME, VERSION);
+  private static Tracer getTracer(OpenTelemetry ot) {
+    return ot.getTracer(Constants.APPNAME, Constants.VERSION);
   }
 
   public static Span startSpan(Class<?> caller, String spanName) {
@@ -106,7 +113,7 @@ public class TraceUtil {
       return Span.getInvalid();
     }
     final String name = String.format(SPAN_FORMAT, caller.getSimpleName(), spanName);
-    final SpanBuilder builder = getTracer().spanBuilder(name);
+    final SpanBuilder builder = getTracer(getOpenTelemetry()).spanBuilder(name);
     if (kind != null) {
       builder.setSpanKind(kind);
     }
@@ -155,13 +162,12 @@ public class TraceUtil {
    * then be used in this process to continue the tracing. The Context is used like:
    *
    * <pre>
-   * Context remoteCtx = TracerFactory.getContext(tinfo);
-   * Span span = TracerFactory.getTracer().spanBuilder(name).setParent(remoteCtx).startSpan()
+   * Context remoteCtx = getContext(tinfo);
+   * Span span = tracer.spanBuilder(name).setParent(remoteCtx).startSpan()
    * </pre>
    *
    * @param tinfo
-   *          tracing information
-   * @return Context
+   *          tracing information serialized over Thrift
    */
   private static Context getContext(TInfo tinfo) {
     return W3CTraceContextPropagator.getInstance().extract(Context.current(), tinfo,
