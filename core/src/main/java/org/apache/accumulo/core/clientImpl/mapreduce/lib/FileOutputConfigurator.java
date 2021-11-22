@@ -142,8 +142,8 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    */
   public static void setCompressionType(Class<?> implementingClass, Configuration conf,
       String compressionType) {
-    if (compressionType == null
-        || !Arrays.asList("none", "gz", "bzip2", "lzo", "lz4", "snappy", "zstd").contains(compressionType))
+    if (compressionType == null || !Arrays
+        .asList("none", "gz", "bzip2", "lzo", "lz4", "snappy", "zstd").contains(compressionType))
       throw new IllegalArgumentException(
           "Compression type must be one of: none, gz, bzip2, lzo, lz4, snappy, zstd");
     setAccumuloProperty(implementingClass, conf, Property.TABLE_FILE_COMPRESSION_TYPE,

@@ -147,7 +147,6 @@ public final class Compression {
    * LZO will always have the default LZO codec because the buffer size is never overridden within
    * it.
    * <p>
-   * <p>
    * LZ4 will always have the default LZ4 codec because the buffer size is never overridden within
    * it.
    * <p>
@@ -173,7 +172,7 @@ public final class Compression {
       private static final String BUFFER_SIZE_OPT = "io.file.buffer.size";
 
       /**
-       * Default buffer size.  Changed from default of 4096.
+       * Default buffer size. Changed from default of 4096.
        */
       private static final int DEFAULT_BUFFER_SIZE = 64 * 1024;
 
