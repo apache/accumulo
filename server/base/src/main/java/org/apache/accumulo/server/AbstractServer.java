@@ -51,11 +51,7 @@ public abstract class AbstractServer implements AutoCloseable, Runnable {
     log.info("Instance " + context.getInstanceID());
     context.init(appName);
     ClassLoaderUtil.initContextFactory(context.getConfiguration());
-    try {
-      TraceUtil.initializeTracer(context.getConfiguration());
-    } catch (ReflectiveOperationException e) {
-      log.error("Error initializing tracing", e);
-    }
+    TraceUtil.initializeTracer(context.getConfiguration());
     if (context.getSaslParams() != null) {
       // Server-side "client" check to make sure we're logged in as a user we expect to be
       context.enforceKerberosLogin();

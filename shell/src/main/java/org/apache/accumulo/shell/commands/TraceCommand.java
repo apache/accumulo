@@ -22,28 +22,43 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.BadArgumentException;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class TraceCommand extends Command {
 
-  private Span span = null;
+  private Pair<Span,Scope> span;
+
+  public TraceCommand() {
+    // off by default
+    TraceUtil.disable();
+  }
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws IOException {
     if (cl.getArgs().length == 1) {
       if (cl.getArgs()[0].equalsIgnoreCase("on")) {
+        TraceUtil.enable();
         if (span == null) {
-          span = TraceUtil.startSpan(Shell.class, shellState.getAccumuloClient().whoami());
+          var spanOT = TraceUtil.startSpan(Shell.class, shellState.getAccumuloClient().whoami());
+          var scopeOT = spanOT.makeCurrent();
+          span = new Pair<>(spanOT, scopeOT);
         }
       } else if (cl.getArgs()[0].equalsIgnoreCase("off")) {
         if (span != null) {
-          span.end();
-          span = null;
+          try {
+            TraceUtil.disable();
+            span.getSecond().close();
+          } finally {
+            span.getFirst().end();
+            span = null;
+          }
         } else {
           shellState.getWriter().println("Not tracing");
         }
@@ -52,7 +67,7 @@ public class TraceCommand extends Command {
             fullCommand.indexOf(cl.getArgs()[0]));
       }
     } else if (cl.getArgs().length == 0) {
-      shellState.getWriter().println(TraceUtil.isTracing() ? "on" : "off");
+      shellState.getWriter().println(span == null ? "off" : "on");
     } else {
       shellState.printException(new IllegalArgumentException(
           "Expected 0 or 1 argument. There were " + cl.getArgs().length + "."));
