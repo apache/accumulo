@@ -1433,8 +1433,8 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
             if (!all.isEmpty()) {
               log.error(
-                  "Tablet {} overlaps a previously assigned tablet. It is possibly due to a recent split. "
-                      + "Possible overlapping tablets:  Unopened: {}, Opening: {}, Online: {}",
+                  "Tablet {} overlaps a previously assigned tablet, possibly due to a recent split. "
+                      + "Overlapping tablets:  Unopened: {}, Opening: {}, Online: {}",
                   extent, unopenedOverlapping, openingOverlapping, onlineOverlapping);
             }
             return;
