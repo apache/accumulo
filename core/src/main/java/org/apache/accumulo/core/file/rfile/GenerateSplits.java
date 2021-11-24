@@ -178,7 +178,7 @@ public class GenerateSplits implements KeywordExecutable {
         }
       }
     } else if (numFound < numSplits) {
-      log.warn("Only found " + numFound + " splits");
+      log.warn("Only found {} splits", numFound);
       desiredSplits = splits;
     } else {
       desiredSplits = splits;
