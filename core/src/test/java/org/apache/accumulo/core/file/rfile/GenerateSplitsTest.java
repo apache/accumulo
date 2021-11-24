@@ -71,10 +71,9 @@ public class GenerateSplitsTest {
     trf.closeWriter();
 
     File file = tempFolder.newFile("testGenerateSplits.rf");
-    FileOutputStream fileOutputStream = new FileOutputStream(file);
-    fileOutputStream.write(trf.baos.toByteArray());
-    fileOutputStream.flush();
-    fileOutputStream.close();
+    try (var fileOutputStream = new FileOutputStream(file)) {
+      fileOutputStream.write(trf.baos.toByteArray());
+    }
 
     fileName = file.getAbsolutePath();
     log.info("Wrote to file {}", fileName);
