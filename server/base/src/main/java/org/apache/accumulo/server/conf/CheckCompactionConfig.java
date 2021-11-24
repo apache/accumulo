@@ -24,19 +24,21 @@ import java.io.StringReader;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
 
 import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
+import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.ExecutorManager;
+import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.auto.service.AutoService;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
-import com.google.gson.Gson;
 
 @AutoService(KeywordExecutable.class)
 public class CheckCompactionConfig implements KeywordExecutable {
@@ -79,51 +81,39 @@ public class CheckCompactionConfig implements KeywordExecutable {
     // Ensure there is exactly one executor config in the map and get its value
     String executorJson = Iterables.getOnlyElement(executorsProperties.values());
 
-    // Convert json string to array of ExecutorConfig objects
-    var executorConfigs =
-        new Gson().fromJson(executorJson, DefaultCompactionPlanner.ExecutorConfig[].class);
-    if (Objects.isNull(executorConfigs)) {
-      throw new RuntimeException("Compaction executors could not be parsed from given file");
-    }
-
-    boolean hasSeenNullMaxSize = false;
-
-    for (var executorConfig : executorConfigs) {
-
-      // If not supplied, GSON will leave type null.
-      if (executorConfig.getType() == null) {
-        throw new IllegalArgumentException("WARNING: 'type' is null. Please specify type.");
+    CompactionPlanner.InitParameters params = new CompactionPlanner.InitParameters() {
+      @Override
+      public ServiceEnvironment getServiceEnvironment() {
+        return null;
       }
 
-      // check requirements for internal vs. external
-      // lots of overlap with DefaultCompactionPlanner.init
-      // TODO: Maybe refactor to extract commonalities
-      switch (executorConfig.getType()) {
-        case "internal":
-          Preconditions.checkArgument(null == executorConfig.getQueue(),
-              "'queue' should not be specified for internal compactions");
-          Objects.requireNonNull(executorConfig.getNumThreads(),
-              "'numThreads' must be specified for internal type");
-          break;
-        case "external":
-          Preconditions.checkArgument(null == executorConfig.getNumThreads(),
-              "'numThreads' should not be specified for external compactions");
-          Objects.requireNonNull(executorConfig.getQueue(),
-              "'queue' must be specified for external type");
-          break;
-        default:
-          throw new IllegalArgumentException("type must be 'internal' or 'external'");
+      @Override
+      public Map<String,String> getOptions() {
+        return Map.of("executors", executorJson);
       }
 
-      // Ensure maxSize is only seen once
-      if (executorConfig.getMaxSize() == null) {
-        if (hasSeenNullMaxSize) {
-          throw new IllegalArgumentException("Can only have one executor w/o a maxSize");
-        } else {
-          hasSeenNullMaxSize = true;
-        }
+      @Override
+      public String getFullyQualifiedOption(String key) {
+        return null;
       }
-    }
+
+      @Override
+      public ExecutorManager getExecutorManager() {
+        return new ExecutorManager() {
+          @Override
+          public CompactionExecutorId createExecutor(String name, int threads) {
+            return CompactionExecutorIdImpl.externalId(name);
+          }
+
+          @Override
+          public CompactionExecutorId getExternalExecutor(String name) {
+            return CompactionExecutorIdImpl.externalId(name);
+          }
+        };
+      }
+    };
+
+    new DefaultCompactionPlanner().parseExecutors(params);
   }
 
   private static Map<String,String> getPropertiesWithSuffix(Properties serverProps, String suffix) {

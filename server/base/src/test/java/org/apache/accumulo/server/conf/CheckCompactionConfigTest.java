@@ -71,7 +71,7 @@ public class CheckCompactionConfigTest {
     String[] args = {"too", "many", "args"};
     String expectedErrorMsg = "Only one argument is accepted (path to properties file)";
     var e = assertThrows(IllegalArgumentException.class, () -> CheckCompactionConfig.main(args));
-    assertEquals(e.getMessage(), expectedErrorMsg);
+    assertEquals(expectedErrorMsg, e.getMessage());
   }
 
   @Test
@@ -79,7 +79,7 @@ public class CheckCompactionConfigTest {
     String[] args = {"/home/foo/bar/myProperties.properties"};
     String expectedErrorMsg = "File at given path could not be found";
     var e = assertThrows(FileNotFoundException.class, () -> CheckCompactionConfig.main(args));
-    assertEquals(e.getMessage(), expectedErrorMsg);
+    assertEquals(expectedErrorMsg, e.getMessage());
   }
 
   @Test
@@ -105,18 +105,20 @@ public class CheckCompactionConfigTest {
     String inputString = ("test.ci.common.accumulo.server.props=\\\n" +
             "tserver.compaction.major.service.cs1.planner=" +
             "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \\\n" +
-            "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n" +
-            "[{'name':'small','type':'internal','numThreads':8},\\\n" +
-            "{'name':'medium','type':'internal','numThreads':4},\\\n" +
+            "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n").replaceAll("'","\"");
+    String executorJson = ("[{'name':'small','type':'internal','numThreads':8}," +
+            "{'name':'medium','type':'internal','numThreads':4}," +
             "{'name':'large','type':'internal','numThreads':2}]").replaceAll("'","\"");
     //@formatter:on
-    String expectedErrorMsg = "Can only have one executor w/o a maxSize";
+    inputString += executorJson;
+
+    String expectedErrorMsg = "Can only have one executor w/o a maxSize. " + executorJson;
 
     String filePath = writeToFileAndReturnPath(inputString);
 
     var e = assertThrows(IllegalArgumentException.class,
         () -> CheckCompactionConfig.main(new String[] {filePath}));
-    assertEquals(e.getMessage(), expectedErrorMsg);
+    assertEquals(expectedErrorMsg, e.getMessage());
   }
 
   @Test
@@ -136,7 +138,7 @@ public class CheckCompactionConfigTest {
 
     var e = assertThrows(IllegalArgumentException.class,
         () -> CheckCompactionConfig.main(new String[] {filePath}));
-    assertEquals(e.getMessage(), expectedErrorMsg);
+    assertEquals(expectedErrorMsg, e.getMessage());
   }
 
   private String writeToFileAndReturnPath(String inputString) throws IOException {

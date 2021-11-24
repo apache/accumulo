@@ -170,12 +170,18 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       justification = "Field is written by Gson")
   @Override
   public void init(InitParameters params) {
+    parseExecutors(params);
+    determineMaxFilesToCompact(params);
+  }
+
+  public void parseExecutors(InitParameters params) {
     ExecutorConfig[] execConfigs =
         new Gson().fromJson(params.getOptions().get("executors"), ExecutorConfig[].class);
 
     List<Executor> tmpExec = new ArrayList<>();
 
     for (ExecutorConfig executorConfig : execConfigs) {
+
       Long maxSize = executorConfig.maxSize == null ? null
           : ConfigurationTypeHelper.getFixedMemoryAsBytes(executorConfig.maxSize);
 
@@ -226,8 +232,6 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
             "Duplicate maxSize set in executors. " + params.getOptions().get("executors"));
       }
     });
-
-    determineMaxFilesToCompact(params);
   }
 
   @SuppressWarnings("removal")
