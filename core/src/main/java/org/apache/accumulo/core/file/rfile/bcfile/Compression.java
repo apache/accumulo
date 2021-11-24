@@ -81,6 +81,11 @@ public final class Compression {
   }
 
   /**
+   * Compression: bzip2
+   */
+  public static final String COMPRESSION_BZIP2 = "bzip2";
+
+  /**
    * Compression: zStandard
    */
   public static final String COMPRESSION_ZSTD = "zstd";
@@ -99,6 +104,11 @@ public final class Compression {
    * Compression: lzo
    */
   public static final String COMPRESSION_LZO = "lzo";
+
+  /**
+   * Compression: lz4
+   */
+  public static final String COMPRESSION_LZ4 = "lz4";
 
   /**
    * compression: none
@@ -137,6 +147,9 @@ public final class Compression {
    * LZO will always have the default LZO codec because the buffer size is never overridden within
    * it.
    * <p>
+   * LZ4 will always have the default LZ4 codec because the buffer size is never overridden within
+   * it.
+   * <p>
    * GZ will use the default GZ codec for the compression stream, but can potentially use a
    * different codec instance for the decompression stream if the requested buffer size does not
    * match the default GZ buffer size of 32k.
@@ -145,6 +158,75 @@ public final class Compression {
    * compression stream, but will use a cached codec if the buffer size differs from the default.
    */
   public enum Algorithm {
+
+    BZIP2(COMPRESSION_BZIP2) {
+
+      /**
+       * The default codec class.
+       */
+      private static final String DEFAULT_CLAZZ = "org.apache.hadoop.io.compress.BZip2Codec";
+
+      /**
+       * Configuration option for BZip2 buffer size. Uses the default FS buffer size.
+       */
+      private static final String BUFFER_SIZE_OPT = "io.file.buffer.size";
+
+      /**
+       * Default buffer size. Changed from default of 4096.
+       */
+      private static final int DEFAULT_BUFFER_SIZE = 64 * 1024;
+
+      /**
+       * Whether or not the codec status has been checked. Ensures the default codec is not
+       * recreated.
+       */
+      private final AtomicBoolean checked = new AtomicBoolean(false);
+
+      private transient CompressionCodec codec = null;
+
+      @Override
+      public boolean isSupported() {
+        return codec != null;
+      }
+
+      @Override
+      public void initializeDefaultCodec() {
+        codec = initCodec(checked, DEFAULT_BUFFER_SIZE, codec);
+      }
+
+      @Override
+      CompressionCodec createNewCodec(int bufferSize) {
+        return createNewCodec(CONF_BZIP2_CLASS, DEFAULT_CLAZZ, bufferSize, BUFFER_SIZE_OPT);
+      }
+
+      @Override
+      CompressionCodec getCodec() {
+        return codec;
+      }
+
+      @Override
+      public InputStream createDecompressionStream(InputStream downStream,
+          Decompressor decompressor, int downStreamBufferSize) throws IOException {
+        if (!isSupported()) {
+          throw new IOException("BZip2 codec class not specified. Did you forget to set property "
+              + CONF_BZIP2_CLASS + "?");
+        }
+        InputStream bis = bufferStream(downStream, downStreamBufferSize);
+        CompressionInputStream cis = codec.createInputStream(bis, decompressor);
+        return new BufferedInputStream(cis, DATA_IBUF_SIZE);
+      }
+
+      @Override
+      public OutputStream createCompressionStream(OutputStream downStream, Compressor compressor,
+          int downStreamBufferSize) throws IOException {
+        if (!isSupported()) {
+          throw new IOException("BZip2 codec class not specified. Did you forget to set property "
+              + CONF_BZIP2_CLASS + "?");
+        }
+        return createFinishedOnFlushCompressionStream(downStream, compressor, downStreamBufferSize);
+      }
+
+    },
 
     LZO(COMPRESSION_LZO) {
 
@@ -209,6 +291,75 @@ public final class Compression {
         if (!isSupported()) {
           throw new IOException("LZO codec class not specified. Did you forget to set property "
               + CONF_LZO_CLASS + "?");
+        }
+        return createFinishedOnFlushCompressionStream(downStream, compressor, downStreamBufferSize);
+      }
+
+    },
+
+    LZ4(COMPRESSION_LZ4) {
+
+      /**
+       * The default codec class.
+       */
+      private static final String DEFAULT_CLAZZ = "org.apache.hadoop.io.compress.Lz4Codec";
+
+      /**
+       * Configuration option for LZ4 buffer size.
+       */
+      private static final String BUFFER_SIZE_OPT = "io.compression.codec.lz4.buffersize";
+
+      /**
+       * Default buffer size.
+       */
+      private static final int DEFAULT_BUFFER_SIZE = 256 * 1024;
+
+      /**
+       * Whether or not the codec status has been checked. Ensures the default codec is not
+       * recreated.
+       */
+      private final AtomicBoolean checked = new AtomicBoolean(false);
+
+      private transient CompressionCodec codec = null;
+
+      @Override
+      public boolean isSupported() {
+        return codec != null;
+      }
+
+      @Override
+      public void initializeDefaultCodec() {
+        codec = initCodec(checked, DEFAULT_BUFFER_SIZE, codec);
+      }
+
+      @Override
+      CompressionCodec createNewCodec(int bufferSize) {
+        return createNewCodec(CONF_LZ4_CLASS, DEFAULT_CLAZZ, bufferSize, BUFFER_SIZE_OPT);
+      }
+
+      @Override
+      CompressionCodec getCodec() {
+        return codec;
+      }
+
+      @Override
+      public InputStream createDecompressionStream(InputStream downStream,
+          Decompressor decompressor, int downStreamBufferSize) throws IOException {
+        if (!isSupported()) {
+          throw new IOException("LZ4 codec class not specified. Did you forget to set property "
+              + CONF_LZ4_CLASS + "?");
+        }
+        InputStream bis = bufferStream(downStream, downStreamBufferSize);
+        CompressionInputStream cis = codec.createInputStream(bis, decompressor);
+        return new BufferedInputStream(cis, DATA_IBUF_SIZE);
+      }
+
+      @Override
+      public OutputStream createCompressionStream(OutputStream downStream, Compressor compressor,
+          int downStreamBufferSize) throws IOException {
+        if (!isSupported()) {
+          throw new IOException("LZ4 codec class not specified. Did you forget to set property "
+              + CONF_LZ4_CLASS + "?");
         }
         return createFinishedOnFlushCompressionStream(downStream, compressor, downStreamBufferSize);
       }
@@ -455,7 +606,9 @@ public final class Compression {
           }
         });
 
+    public static final String CONF_BZIP2_CLASS = "io.compression.codec.bzip2.class";
     public static final String CONF_LZO_CLASS = "io.compression.codec.lzo.class";
+    public static final String CONF_LZ4_CLASS = "io.compression.codec.lz4.class";
     public static final String CONF_SNAPPY_CLASS = "io.compression.codec.snappy.class";
     public static final String CONF_ZSTD_CLASS = "io.compression.codec.zstd.class";
 
