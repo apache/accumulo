@@ -177,13 +177,11 @@ public class GenerateSplits implements KeywordExecutable {
           desiredSplits.add(next);
         }
       }
-    } else if (numFound < numSplits) {
-      log.warn("Only found {} splits", numFound);
-      desiredSplits = splits;
     } else {
+      if (numFound < numSplits)
+        log.warn("Only found {} splits", numFound);
       desiredSplits = splits;
     }
-
     log.info("Generated {} splits", desiredSplits.size());
     if (opts.outputFile != null) {
       log.info("Writing splits to file {} ", opts.outputFile);

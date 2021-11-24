@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
 
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -77,13 +76,6 @@ public class GenerateSplitsTest {
 
     fileName = file.getAbsolutePath();
     log.info("Wrote to file {}", fileName);
-  }
-
-  @AfterClass
-  public static void cleanUp() {
-    File file = new File(fileName);
-    if (file.delete())
-      log.info("Cleaned up test file {}", fileName);
   }
 
   @Test
