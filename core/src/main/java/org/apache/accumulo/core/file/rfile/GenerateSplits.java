@@ -227,23 +227,24 @@ public class GenerateSplits implements KeywordExecutable {
     TreeSet<String> indexKeys = new TreeSet<>();
     List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(files.size());
     List<FileSKVIterator> fileReaders = new ArrayList<>(files.size());
-
-    for (Path file : files) {
-      FileSKVIterator reader = FileOperations.getInstance().newIndexReaderBuilder()
-          .forFile(file.toString(), fs, hadoopConf, CryptoServiceFactory.newDefaultInstance())
-          .withTableConfiguration(accumuloConf).build();
-      readers.add(reader);
-      fileReaders.add(reader);
-    }
-    var iterator = new MultiIterator(readers, true);
-    while (iterator.hasTop()) {
-      Key key = iterator.getTopKey();
-      indexKeys.add(encode(base64encode, key.getRow()));
-      iterator.next();
-    }
-
-    for (var r : fileReaders) {
-      r.close();
+    try {
+      for (Path file : files) {
+        FileSKVIterator reader = FileOperations.getInstance().newIndexReaderBuilder()
+            .forFile(file.toString(), fs, hadoopConf, CryptoServiceFactory.newDefaultInstance())
+            .withTableConfiguration(accumuloConf).build();
+        readers.add(reader);
+        fileReaders.add(reader);
+      }
+      var iterator = new MultiIterator(readers, true);
+      while (iterator.hasTop()) {
+        Key key = iterator.getTopKey();
+        indexKeys.add(encode(base64encode, key.getRow()));
+        iterator.next();
+      }
+    } finally {
+      for (var r : fileReaders) {
+        r.close();
+      }
     }
 
     log.debug("Got {} splits from indices of {}", indexKeys.size(), files);
@@ -256,36 +257,38 @@ public class GenerateSplits implements KeywordExecutable {
   private TreeSet<String> getSplitsBySize(AccumuloConfiguration accumuloConf,
       Configuration hadoopConf, List<Path> files, FileSystem fs, long splitSize,
       boolean base64encode) throws IOException {
-    TreeSet<String> splits = new TreeSet<>();
-    List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(files.size());
-    List<FileSKVIterator> fileReaders = new ArrayList<>(files.size());
-    SortedKeyValueIterator<Key,Value> iterator;
-
     long currentSplitSize = 0;
     long totalSize = 0;
-    for (Path file : files) {
-      FileSKVIterator reader = FileOperations.getInstance().newScanReaderBuilder()
-          .forFile(file.toString(), fs, hadoopConf, CryptoServiceFactory.newDefaultInstance())
-          .withTableConfiguration(accumuloConf).overRange(new Range(), Set.of(), false).build();
-      readers.add(reader);
-      fileReaders.add(reader);
-    }
-    iterator = new MultiIterator(readers, false);
-    iterator.seek(new Range(), Collections.emptySet(), false);
-    while (iterator.hasTop()) {
-      Key key = iterator.getTopKey();
-      Value val = iterator.getTopValue();
-      int size = key.getSize() + val.getSize();
-      currentSplitSize += size;
-      totalSize += size;
-      if (currentSplitSize > splitSize) {
-        splits.add(encode(base64encode, key.getRow()));
-        currentSplitSize = 0;
+    TreeSet<String> splits = new TreeSet<>();
+    List<FileSKVIterator> fileReaders = new ArrayList<>(files.size());
+    List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(files.size());
+    SortedKeyValueIterator<Key,Value> iterator;
+    try {
+      for (Path file : files) {
+        FileSKVIterator reader = FileOperations.getInstance().newScanReaderBuilder()
+            .forFile(file.toString(), fs, hadoopConf, CryptoServiceFactory.newDefaultInstance())
+            .withTableConfiguration(accumuloConf).overRange(new Range(), Set.of(), false).build();
+        readers.add(reader);
+        fileReaders.add(reader);
       }
-      iterator.next();
-    }
-    for (var r : fileReaders) {
-      r.close();
+      iterator = new MultiIterator(readers, false);
+      iterator.seek(new Range(), Collections.emptySet(), false);
+      while (iterator.hasTop()) {
+        Key key = iterator.getTopKey();
+        Value val = iterator.getTopValue();
+        int size = key.getSize() + val.getSize();
+        currentSplitSize += size;
+        totalSize += size;
+        if (currentSplitSize > splitSize) {
+          splits.add(encode(base64encode, key.getRow()));
+          currentSplitSize = 0;
+        }
+        iterator.next();
+      }
+    } finally {
+      for (var r : fileReaders) {
+        r.close();
+      }
     }
 
     log.debug("Got {} splits with split size {} out of {} total bytes read across {} files",
