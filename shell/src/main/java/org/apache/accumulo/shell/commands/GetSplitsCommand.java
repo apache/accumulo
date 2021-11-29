@@ -81,6 +81,8 @@ public class GetSplitsCommand extends Command {
         final Text start =
             new Text(shellState.getConnector().tableOperations().tableIdMap().get(tableName));
         final Text end = new Text(start);
+        // do not append the ';' until the end value above is assigned.
+        start.append(new byte[] {';'}, 0, 1);
         end.append(new byte[] {'<'}, 0, 1);
         scanner.setRange(new Range(start, end));
         for (Iterator<Entry<Key,Value>> iterator = scanner.iterator(); iterator.hasNext();) {
