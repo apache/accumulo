@@ -70,10 +70,12 @@ public class GenerateSplits implements KeywordExecutable {
         description = "the authorizations to use when reading the files")
     public Authorizations auths = Authorizations.EMPTY;
 
-    @Parameter(names = {"-n", "--num"}, description = "The number of splits to generate. Cannot use with the split size option.")
+    @Parameter(names = {"-n", "--num"},
+        description = "The number of splits to generate. Cannot use with the split size option.")
     public long numSplits = 0;
 
-    @Parameter(names = {"-ss", "--split-size"}, description = "The split size desired in bytes. Cannot use with num splits option.")
+    @Parameter(names = {"-ss", "--split-size"},
+        description = "The split size desired in bytes. Cannot use with num splits option.")
     public long splitSize = 0;
 
     @Parameter(names = {"-b64", "--base64encoded"}, description = "Base 64 encode the split points")
@@ -168,14 +170,14 @@ public class GenerateSplits implements KeywordExecutable {
     // its possible we found too many indexed so take every (numFound / numSplits) split
     if (opts.splitSize == 0 && numFound > numSplits) {
       var iter = splits.iterator();
-      double targetFactor = (double)numFound / numSplits;
+      double targetFactor = (double) numFound / numSplits;
       log.debug("Found {} splits but requested {} picking 1 every {}", numFound, opts.numSplits,
-          factor);
-  
+          targetFactor);
+
       for (int i = 0; i < numFound; i++) {
-        double currFactor = (double)(i+1)/desiredSplits.size();
+        double currFactor = (double) (i + 1) / desiredSplits.size();
         String next = iter.next();
-        // unsure if this should be currFactor >= targetFactor .. need to think through some edge cases
+        // unsure if this should be currFactor >= targetFactor
         if (currFactor > targetFactor && desiredSplits.size() < numSplits) {
           desiredSplits.add(next);
         }
