@@ -541,7 +541,7 @@ public class ShellIT extends SharedMiniClusterBase {
     int maxLoopcnt = 10;
     int loopCnt = 0;
 
-    String [] tables = new String[2];
+    String[] tables = new String[2];
     while (loopCnt++ < maxLoopcnt) {
       Map<String,String> idMap = shell.getAccumuloClient().tableOperations().tableIdMap();
       if (findIds(tables, idMap)) {
@@ -565,20 +565,21 @@ public class ShellIT extends SharedMiniClusterBase {
   private boolean findIds(String[] tables, Map<String,String> idMap) {
     String ids = "0123456789abcdefghijklmnopqrstuvwxyz";
     for (int i = 0; i < ids.length(); i++) {
-      String id = ids.substring(i, i+1);
+      String id = ids.substring(i, i + 1);
       if (idMap.containsValue(id) && idMap.containsValue(id + "0")) {
         tables[0] = getTableNameFromId(idMap, id);
         tables[1] = getTableNameFromId(idMap, id + "0");
-        Shell.log.debug("Found tables: " + tables[0] + ":" + id + ", " + tables[1] + ":" + id + "0");
+        Shell.log
+            .debug("Found tables: " + tables[0] + ":" + id + ", " + tables[1] + ":" + id + "0");
         return true;
       }
     }
     return false;
   }
 
-  private String getTableNameFromId(Map<String, String> map, String value) {
-    return map.entrySet().stream().filter(entry ->
-        value.equals(entry.getValue())).map(Map.Entry::getKey).findFirst().get();
+  private String getTableNameFromId(Map<String,String> map, String value) {
+    return map.entrySet().stream().filter(entry -> value.equals(entry.getValue()))
+        .map(Map.Entry::getKey).findFirst().get();
   }
 
   private void createTables(final int limit, final int modifier) throws IOException {
