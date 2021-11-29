@@ -70,7 +70,7 @@ public class GenerateSplits implements KeywordExecutable {
         description = "the authorizations to use when reading the files")
     public Authorizations auths = Authorizations.EMPTY;
 
-    @Parameter(names = {"-n", "--num"}, description = "The number of splits to generate")
+    @Parameter(names = {"-n", "--num"}, description = "The number of splits to generate. Cannot use with the split size option.")
     public long numSplits = 0;
 
     @Parameter(names = {"-ss", "--split-size"}, description = "The split size desired in bytes")
