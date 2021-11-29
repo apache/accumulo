@@ -34,6 +34,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -44,6 +45,9 @@ import jakarta.inject.Singleton;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ManagerClient;
+import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
@@ -62,12 +66,14 @@ import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.monitor.rest.compactions.external.ExternalCompactionInfo;
 import org.apache.accumulo.monitor.util.logging.RecentLogs;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
@@ -163,6 +169,12 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private Map<TableId,Map<ProblemType,Integer>> problemSummary = Collections.emptyMap();
   private Exception problemException;
   private GCStatus gcStatus;
+  private Optional<HostAndPort> coordinatorHost = Optional.empty();
+  private CompactionCoordinatorService.Client coordinatorClient;
+  private final String coordinatorMissingMsg =
+      "Error getting the compaction coordinator. Check that it is running. It is not "
+          + "started automatically with other cluster processes so must be started by running "
+          + "'accumulo compaction-coordinator'.";
 
   private EmbeddedWebServer server;
 
@@ -365,7 +377,17 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         this.problemException = e;
       }
 
+      if (coordinatorHost.isEmpty()) {
+        coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
+      } else {
+        log.info("External Compaction Coordinator found at {}", coordinatorHost.get());
+      }
+
     } finally {
+      if (coordinatorClient != null) {
+        ThriftUtil.returnClient(coordinatorClient, context);
+        coordinatorClient = null;
+      }
       lastRecalc.set(currentTime);
       // stop fetching; log an error if this thread wasn't already fetching
       if (!fetching.compareAndSet(true, false)) {
@@ -564,8 +586,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final Map<HostAndPort,ScanStats> allScans = new HashMap<>();
   private final Map<HostAndPort,CompactionStats> allCompactions = new HashMap<>();
   private final RecentLogs recentLogs = new RecentLogs();
+  private final ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
+  private final Map<String,TExternalCompaction> ecRunningMap = new HashMap<>();
   private long scansFetchedNanos = 0L;
   private long compactsFetchedNanos = 0L;
+  private long ecInfoFetchedNanos = 0L;
   private final long fetchTimeNanos = TimeUnit.MINUTES.toNanos(1);
   private final long ageOffEntriesMillis = TimeUnit.MINUTES.toMillis(15);
 
@@ -589,6 +614,67 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       fetchCompactions();
     }
     return Map.copyOf(allCompactions);
+  }
+
+  public synchronized ExternalCompactionInfo getCompactorsInfo() {
+    if (coordinatorHost.isEmpty()) {
+      throw new IllegalStateException("Tried fetching from compaction coordinator that's missing");
+    }
+    if (System.nanoTime() - ecInfoFetchedNanos > fetchTimeNanos) {
+      log.info("User initiated fetch of External Compaction info");
+      Map<String,List<HostAndPort>> compactors =
+          ExternalCompactionUtil.getCompactorAddrs(getContext());
+      log.debug("Found compactors: " + compactors);
+      ecInfo.setFetchedTimeMillis(System.currentTimeMillis());
+      ecInfo.setCompactors(compactors);
+      ecInfo.setCoordinatorHost(coordinatorHost);
+
+      ecInfoFetchedNanos = System.nanoTime();
+    }
+    return ecInfo;
+  }
+
+  /**
+   * Fetch running compactions from Compaction Coordinator. Chose not to restrict the frequency of
+   * user fetches since RPC calls are going to the coordinator. This allows for fine grain updates
+   * of external compaction progress.
+   */
+  public synchronized Map<String,TExternalCompaction> getRunningInfo() {
+    if (coordinatorHost.isEmpty()) {
+      throw new IllegalStateException(coordinatorMissingMsg);
+    }
+    var ccHost = coordinatorHost.get();
+    log.info("User initiated fetch of running External Compactions from " + ccHost);
+    var client = getCoordinator(ccHost);
+    TExternalCompactionList running;
+    try {
+      running = client.getRunningCompactions(TraceUtil.traceInfo(), getContext().rpcCreds());
+    } catch (Exception e) {
+      throw new IllegalStateException("Unable to get running compactions from " + ccHost, e);
+    }
+
+    ecRunningMap.clear();
+    if (running.getCompactions() != null) {
+      running.getCompactions().forEach((queue, ec) -> {
+        log.trace("Found Compactions running on queue {} -> {}", queue, ec);
+        ecRunningMap.put(queue, ec);
+      });
+    }
+
+    return ecRunningMap;
+  }
+
+  private CompactionCoordinatorService.Client getCoordinator(HostAndPort address) {
+    if (coordinatorClient == null) {
+      try {
+        coordinatorClient = ThriftUtil.getClient(new CompactionCoordinatorService.Client.Factory(),
+            address, getContext());
+      } catch (Exception e) {
+        log.error("Unable to get Compaction coordinator at {}", address);
+        throw new IllegalStateException(coordinatorMissingMsg, e);
+      }
+    }
+    return coordinatorClient;
   }
 
   private void fetchScans() {
@@ -869,4 +955,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     return recentLogs;
   }
 
+  public Optional<HostAndPort> getCoordinatorHost() {
+    return coordinatorHost;
+  }
 }

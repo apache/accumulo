@@ -16,13 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.spi.trace;
+package org.apache.accumulo.monitor.rest.compactions.external;
 
-import java.util.function.Supplier;
-
-import io.opentelemetry.api.OpenTelemetry;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Configures and returns an instance of OpenTelemetry
+ * JSON Object for displaying External Compactions. Variable names become JSON Keys.
  */
-public interface OpenTelemetryFactory extends Supplier<OpenTelemetry> {}
+public class Compactors {
+
+  // Variable names become JSON keys
+  public final int numCompactors;
+  public final List<CompactorInfo> compactors = new ArrayList<>();
+
+  public Compactors(ExternalCompactionInfo ecInfo) {
+    ecInfo.getCompactors().forEach((q, c) -> {
+      var fetchedTime = ecInfo.getFetchedTimeMillis();
+      c.forEach(hp -> compactors.add(new CompactorInfo(fetchedTime, q, hp.toString())));
+    });
+    numCompactors = compactors.size();
+  }
+}

@@ -64,6 +64,34 @@ public class CompressionTest {
       // that is okay
     }
 
+    extClazz = System.getProperty(Compression.Algorithm.CONF_LZ4_CLASS);
+    clazz = (extClazz != null) ? extClazz : "org.apache.hadoop.io.compress.Lz4Codec";
+    try {
+      CompressionCodec codec =
+          (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+
+      assertNotNull(codec);
+
+      isSupported.put(Compression.Algorithm.LZ4, true);
+
+    } catch (ClassNotFoundException e) {
+      // that is okay
+    }
+
+    extClazz = System.getProperty(Compression.Algorithm.CONF_BZIP2_CLASS);
+    clazz = (extClazz != null) ? extClazz : "org.apache.hadoop.io.compress.BZip2Codec";
+    try {
+      CompressionCodec codec =
+          (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+
+      assertNotNull(codec);
+
+      isSupported.put(Compression.Algorithm.BZIP2, true);
+
+    } catch (ClassNotFoundException e) {
+      // that is okay
+    }
+
     extClazz = System.getProperty(Compression.Algorithm.CONF_SNAPPY_CLASS);
     clazz = (extClazz != null) ? extClazz : "org.apache.hadoop.io.compress.SnappyCodec";
     try {
@@ -73,6 +101,20 @@ public class CompressionTest {
       assertNotNull(codec);
 
       isSupported.put(Compression.Algorithm.SNAPPY, true);
+
+    } catch (ClassNotFoundException e) {
+      // that is okay
+    }
+
+    extClazz = System.getProperty(Compression.Algorithm.CONF_ZSTD_CLASS);
+    clazz = (extClazz != null) ? extClazz : "org.apache.hadoop.io.compress.ZStandardCodec";
+    try {
+      CompressionCodec codec =
+          (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+
+      assertNotNull(codec);
+
+      isSupported.put(Compression.Algorithm.ZSTANDARD, true);
 
     } catch (ClassNotFoundException e) {
       // that is okay
