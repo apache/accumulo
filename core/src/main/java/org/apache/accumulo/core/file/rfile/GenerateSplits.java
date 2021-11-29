@@ -168,12 +168,15 @@ public class GenerateSplits implements KeywordExecutable {
     // its possible we found too many indexed so take every (numFound / numSplits) split
     if (opts.splitSize == 0 && numFound > numSplits) {
       var iter = splits.iterator();
-      long factor = numFound / numSplits;
+      double targetFactor = (double)numFound / numSplits;
       log.debug("Found {} splits but requested {} picking 1 every {}", numFound, opts.numSplits,
           factor);
+  
       for (int i = 0; i < numFound; i++) {
+        double currFactor = (double)(i+1)/desiredSplits.size();
         String next = iter.next();
-        if (i % factor == 0 && desiredSplits.size() < numSplits) {
+        // unsure if this should be currFactor >= targetFactor .. need to think through some edge cases
+        if (currFactor > targetFactor && desiredSplits.size() < numSplits) {
           desiredSplits.add(next);
         }
       }
