@@ -22,15 +22,16 @@ import static org.apache.accumulo.core.file.rfile.GenerateSplits.main;
 import static org.apache.accumulo.core.file.rfile.RFileTest.newColFamByteSequence;
 import static org.apache.accumulo.core.file.rfile.RFileTest.newKey;
 import static org.apache.accumulo.core.file.rfile.RFileTest.newValue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 
 import org.junit.BeforeClass;
@@ -51,7 +52,8 @@ public class GenerateSplitsTest {
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   private static final RFileTest.TestRFile trf = new RFileTest.TestRFile(null);
-  private static String fileName;
+  private static String rfilePath;
+  private static String splitsFilePath;
 
   /**
    * Creates a test file with 84 bytes of data and 2 Locality groups.
@@ -73,45 +75,40 @@ public class GenerateSplitsTest {
     try (var fileOutputStream = new FileOutputStream(file)) {
       fileOutputStream.write(trf.baos.toByteArray());
     }
+    rfilePath = "file:" + file.getAbsolutePath();
+    log.info("Wrote to file {}", rfilePath);
 
-    fileName = file.getAbsolutePath();
-    log.info("Wrote to file {}", fileName);
+    File splitsFile = tempFolder.newFile("testSplitsFile");
+    splitsFilePath = splitsFile.getAbsolutePath();
   }
 
   @Test
   public void testNum() throws Exception {
-    List<String> args = List.of(fileName, "--num", "2");
+    List<String> args = List.of(rfilePath, "--num", "2", "-sf", splitsFilePath);
     log.info("Invoking GenerateSplits with {}", args);
-    PrintStream oldOut = System.out;
-    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        PrintStream newOut = new PrintStream(baos)) {
-      System.setOut(newOut);
-      GenerateSplits.main(args.toArray(new String[0]));
-      newOut.flush();
-      String stdout = baos.toString();
-      assertTrue(stdout.contains("r3"));
-      assertTrue(stdout.contains("r6"));
-    } finally {
-      System.setOut(oldOut);
-    }
+    GenerateSplits.main(args.toArray(new String[0]));
+    verifySplitsFile("r3", "r6");
+
+    // test more splits requested than indices
+    args = List.of(rfilePath, "--num", "6", "-sf", splitsFilePath);
+    log.info("Invoking GenerateSplits with {}", args);
+    GenerateSplits.main(args.toArray(new String[0]));
+    verifySplitsFile("r1", "r2", "r3", "r4", "blah", "toby");
   }
 
   @Test
   public void testSplitSize() throws Exception {
-    List<String> args = List.of(fileName, "-ss", "40");
+    List<String> args = List.of(rfilePath, "-ss", "21", "-sf", splitsFilePath);
     log.info("Invoking GenerateSplits with {}", args);
-    PrintStream oldOut = System.out;
-    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        PrintStream newOut = new PrintStream(baos)) {
-      System.setOut(newOut);
-      GenerateSplits.main(args.toArray(new String[0]));
-      newOut.flush();
-      String stdout = baos.toString();
-      assertTrue(stdout.contains("r3"));
-      assertTrue(stdout.contains("r6"));
-    } finally {
-      System.setOut(oldOut);
-    }
+    GenerateSplits.main(args.toArray(new String[0]));
+    verifySplitsFile("r2", "r4", "r6");
+  }
+
+  private void verifySplitsFile(String... splits) throws IOException {
+    String splitsFile = Files.readString(Paths.get(splitsFilePath));
+    assertEquals(splits.length, splitsFile.split("\n").length);
+    for (String s : splits)
+      assertTrue("Did not find " + s + " in " + splitsFilePath, splitsFile.contains(s));
   }
 
   @Test
@@ -120,12 +117,12 @@ public class GenerateSplitsTest {
     log.info("Invoking GenerateSplits with {}", args);
     assertThrows(FileNotFoundException.class, () -> main(args.toArray(new String[0])));
 
-    List<String> args2 = List.of(fileName);
+    List<String> args2 = List.of(rfilePath);
     log.info("Invoking GenerateSplits with {}", args2);
     var e = assertThrows(IllegalArgumentException.class, () -> main(args2.toArray(new String[0])));
     assertTrue(e.getMessage(), e.getMessage().contains("Required number of splits or"));
 
-    List<String> args3 = List.of(fileName, "-n", "2", "-ss", "40");
+    List<String> args3 = List.of(rfilePath, "-n", "2", "-ss", "40");
     log.info("Invoking GenerateSplits with {}", args3);
     e = assertThrows(IllegalArgumentException.class, () -> main(args3.toArray(new String[0])));
     assertTrue(e.getMessage(), e.getMessage().contains("Requested number of splits and"));
