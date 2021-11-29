@@ -73,7 +73,7 @@ public class GenerateSplits implements KeywordExecutable {
     @Parameter(names = {"-n", "--num"}, description = "The number of splits to generate. Cannot use with the split size option.")
     public long numSplits = 0;
 
-    @Parameter(names = {"-ss", "--split-size"}, description = "The split size desired in bytes")
+    @Parameter(names = {"-ss", "--split-size"}, description = "The split size desired in bytes. Cannot use with num splits option.")
     public long splitSize = 0;
 
     @Parameter(names = {"-b64", "--base64encoded"}, description = "Base 64 encode the split points")
