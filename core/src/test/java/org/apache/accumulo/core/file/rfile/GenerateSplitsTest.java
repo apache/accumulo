@@ -93,7 +93,7 @@ public class GenerateSplitsTest {
     args = List.of(rfilePath, "--num", "6", "-sf", splitsFilePath);
     log.info("Invoking GenerateSplits with {}", args);
     GenerateSplits.main(args.toArray(new String[0]));
-    verifySplitsFile("r1", "r2", "r3", "r4", "blah", "toby");
+    verifySplitsFile("r1", "r2", "r3", "r4", "r5", "r6");
   }
 
   @Test
