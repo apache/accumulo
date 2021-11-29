@@ -121,26 +121,6 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     String maxSize;
     Integer numThreads;
     String queue;
-
-    public String getType() {
-      return type;
-    }
-
-    public String getName() {
-      return name;
-    }
-
-    public String getMaxSize() {
-      return maxSize;
-    }
-
-    public Integer getNumThreads() {
-      return numThreads;
-    }
-
-    public String getQueue() {
-      return queue;
-    }
   }
 
   private static class Executor {
@@ -181,7 +161,6 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     List<Executor> tmpExec = new ArrayList<>();
 
     for (ExecutorConfig executorConfig : execConfigs) {
-
       Long maxSize = executorConfig.maxSize == null ? null
           : ConfigurationTypeHelper.getFixedMemoryAsBytes(executorConfig.maxSize);
 
@@ -196,10 +175,9 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
         case "internal":
           Preconditions.checkArgument(null == executorConfig.queue,
               "'queue' should not be specified for internal compactions");
-          Objects.requireNonNull(executorConfig.numThreads,
+          int numThreads = Objects.requireNonNull(executorConfig.numThreads,
               "'numThreads' must be specified for internal type");
-          ceid = params.getExecutorManager().createExecutor(executorConfig.name,
-              executorConfig.numThreads);
+          ceid = params.getExecutorManager().createExecutor(executorConfig.name, numThreads);
           break;
         case "external":
           Preconditions.checkArgument(null == executorConfig.numThreads,
