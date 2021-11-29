@@ -25,6 +25,7 @@ import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.junit.Test;
 
+@Deprecated
 public class WorkMakerTest {
 
   @Test

@@ -28,6 +28,7 @@ import org.apache.zookeeper.KeeperException;
  * We can take the penalty of embedding this logic into the server processes, but alleviate
  * users/developers from having to worry about the zookeeper state.
  */
+@Deprecated
 public class ZooKeeperInitialization {
   /**
    * Ensure that the full path to ZooKeeper nodes that will be used exist
@@ -35,7 +36,9 @@ public class ZooKeeperInitialization {
   public static void ensureZooKeeperInitialized(final ZooReaderWriter zooReaderWriter,
       final String zRoot) throws KeeperException, InterruptedException {
     // ZooReaderWriter will check existence and return if it exists, so no need to check here
-    zooReaderWriter.mkdirs(zRoot + ReplicationConstants.ZOO_TSERVERS);
-    zooReaderWriter.mkdirs(zRoot + ReplicationConstants.ZOO_WORK_QUEUE);
+    String replicationZTServers = ReplicationConstants.ZOO_TSERVERS;
+    zooReaderWriter.mkdirs(zRoot + replicationZTServers);
+    String replicationZWorkQueue = ReplicationConstants.ZOO_WORK_QUEUE;
+    zooReaderWriter.mkdirs(zRoot + replicationZWorkQueue);
   }
 }

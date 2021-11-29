@@ -16,32 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.coordinator;
+package org.apache.accumulo.core.util.compaction;
 
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.compaction.thrift.TCompactionState;
+import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 
 public class RunningCompaction {
 
   private final TExternalCompactionJob job;
   private final String compactorAddress;
-  private final Map<Long,CompactionUpdate> updates = new TreeMap<>();
+  private final String queueName;
+  private final Map<Long,TCompactionStatusUpdate> updates = new TreeMap<>();
 
-  RunningCompaction(TExternalCompactionJob job, String compactorAddress) {
+  public RunningCompaction(TExternalCompactionJob job, String compactorAddress, String queueName) {
     super();
     this.job = job;
     this.compactorAddress = compactorAddress;
+    this.queueName = queueName;
   }
 
-  public Map<Long,CompactionUpdate> getUpdates() {
+  public Map<Long,TCompactionStatusUpdate> getUpdates() {
     return updates;
   }
 
-  public void addUpdate(Long timestamp, String message, TCompactionState state) {
-    this.updates.put(timestamp, new CompactionUpdate(timestamp, message, state));
+  public void addUpdate(Long timestamp, TCompactionStatusUpdate update) {
+    this.updates.put(timestamp, update);
   }
 
   public TExternalCompactionJob getJob() {
@@ -50,6 +52,10 @@ public class RunningCompaction {
 
   public String getCompactorAddress() {
     return compactorAddress;
+  }
+
+  public String getQueueName() {
+    return queueName;
   }
 
 }

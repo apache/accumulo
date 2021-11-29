@@ -16,13 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.spi.trace;
+package org.apache.accumulo.monitor.rest.compactions.external;
 
-import java.util.function.Supplier;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
-import io.opentelemetry.api.OpenTelemetry;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 
-/**
- * Configures and returns an instance of OpenTelemetry
- */
-public interface OpenTelemetryFactory extends Supplier<OpenTelemetry> {}
+public class RunningCompactions {
+
+  public final List<RunningCompactorInfo> running = new ArrayList<>();
+
+  public RunningCompactions(Map<String,TExternalCompaction> rMap) {
+    if (rMap != null) {
+      var fetchedTime = System.currentTimeMillis();
+      for (var entry : rMap.entrySet()) {
+        running.add(new RunningCompactorInfo(fetchedTime, entry.getKey(), entry.getValue()));
+      }
+    }
+  }
+}

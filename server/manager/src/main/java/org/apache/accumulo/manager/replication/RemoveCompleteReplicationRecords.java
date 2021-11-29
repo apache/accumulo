@@ -56,6 +56,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 /**
  * Delete replication entries from the replication table that are fully replicated and closed
  */
+@Deprecated
 public class RemoveCompleteReplicationRecords implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(RemoveCompleteReplicationRecords.class);
 

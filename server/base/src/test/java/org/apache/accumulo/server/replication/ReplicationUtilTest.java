@@ -31,6 +31,7 @@ import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
+@Deprecated
 public class ReplicationUtilTest {
 
   ServerContext context;

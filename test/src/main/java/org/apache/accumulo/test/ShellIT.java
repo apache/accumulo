@@ -31,6 +31,7 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -56,7 +57,7 @@ public class ShellIT extends SharedMiniClusterBase {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 30;
+    return 180;
   }
 
   @BeforeClass
@@ -515,4 +516,77 @@ public class ShellIT extends SharedMiniClusterBase {
 
     exec("deletetable t -f", true, "Table: [t] has been deleted");
   }
+
+  // This test addresses a bug (#2356) where if a table with a tableId of character length 1
+  // exists and another table(s) exist starting with the same character but with a tableId of
+  // length > 1, the verbose version of the getsplits command will return information from multiple
+  // tables when a lexicographical ordered table with an earlier ID is queried.
+  //
+  // In order to test, enough tables need to be created until the required condition exists.
+  // Since table ID counts increment using 1..9a..z, this test creates tables in groups of 36
+  // until a second table meeting the criteria is created.
+  // It then adds splits to the single digit ID table and one of the others. It performs a
+  // "getsplits -v" command on the single digit ID table and verifies that data from the other
+  // table is not present.
+  //
+  // Due to the number for createtable calls, this test will time out if a match is not found
+  // within some number of operations. Therefore, if a match is not found within the creation
+  // of the first 360 or so tables, the test exits with no results. In initial runs of the ITs
+  // this never occurred.
+  @Test
+  public void testGetSplitsScanRange() throws Exception {
+    Shell.log.debug("Starting testGetSplitsScanRange test ------------------");
+    int idCycleLen = 36;
+    int postModifier = 0;
+    int maxLoopcnt = 10;
+    int loopCnt = 0;
+
+    String[] tables = new String[2];
+    while (loopCnt++ < maxLoopcnt) {
+      Map<String,String> idMap = shell.getAccumuloClient().tableOperations().tableIdMap();
+      if (findIds(tables, idMap)) {
+        break;
+      }
+      createTables(idCycleLen, postModifier++);
+    }
+    if (loopCnt >= maxLoopcnt) {
+      Shell.log.warn("Warning: Unable to find needed tables...exiting test without verifying.");
+      return;
+    }
+    // add splits to the two tables
+    exec("addsplits -t " + tables[0] + " a c e", true);
+    exec("addsplits -t " + tables[1] + " g i t", true);
+    // first table should contain supplied string
+    exec("getsplits -v -t " + tables[0], true, "(e, +inf) Default Tablet", true);
+    // first table should not contain the supplied string
+    exec("getsplits -v -t " + tables[0], true, "(t, +inf) Default Tablet", false);
+  }
+
+  private boolean findIds(String[] tables, Map<String,String> idMap) {
+    String ids = "0123456789abcdefghijklmnopqrstuvwxyz";
+    for (int i = 0; i < ids.length(); i++) {
+      String id = ids.substring(i, i + 1);
+      if (idMap.containsValue(id) && idMap.containsValue(id + "0")) {
+        tables[0] = getTableNameFromId(idMap, id);
+        tables[1] = getTableNameFromId(idMap, id + "0");
+        Shell.log
+            .debug("Found tables: " + tables[0] + ":" + id + ", " + tables[1] + ":" + id + "0");
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private String getTableNameFromId(Map<String,String> map, String value) {
+    return map.entrySet().stream().filter(entry -> value.equals(entry.getValue()))
+        .map(Map.Entry::getKey).findFirst().get();
+  }
+
+  private void createTables(final int limit, final int modifier) throws IOException {
+    String tableModifier = "x" + Integer.toString(modifier);
+    for (int i = 0; i < limit; i++) {
+      exec("createtable tabx" + Integer.toString(i) + tableModifier);
+    }
+  }
+
 }

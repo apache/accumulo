@@ -52,7 +52,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
-import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -121,7 +120,8 @@ public class ClientContext implements AccumuloClient {
   private TableOperationsImpl tableops = null;
   private NamespaceOperations namespaceops = null;
   private InstanceOperations instanceops = null;
-  private ReplicationOperations replicationops = null;
+  @SuppressWarnings("deprecation")
+  private org.apache.accumulo.core.client.admin.ReplicationOperations replicationops = null;
   private final SingletonReservation singletonReservation;
   private final ClientThreadPools threadPools;
 
@@ -685,7 +685,9 @@ public class ClientContext implements AccumuloClient {
   }
 
   @Override
-  public synchronized ReplicationOperations replicationOperations() {
+  @Deprecated
+  public synchronized org.apache.accumulo.core.client.admin.ReplicationOperations
+      replicationOperations() {
     ensureOpen();
     if (replicationops == null) {
       replicationops = new ReplicationOperationsImpl(this);

@@ -45,6 +45,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
+@Deprecated
 public class BatchWriterReplicationReplayerTest {
 
   private ClientContext context;

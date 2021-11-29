@@ -63,6 +63,7 @@ import io.opentelemetry.context.Scope;
  * {@link Status} record from the metadata and replication tables that point to that WAL can be
  * "closed", by writing a new Status to the same key with the closed member true.
  */
+@Deprecated
 public class CloseWriteAheadLogReferences implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(CloseWriteAheadLogReferences.class);
 

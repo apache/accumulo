@@ -216,7 +216,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public List<ActiveCompaction> getActiveCompactions()
       throws AccumuloException, AccumuloSecurityException {
 
-    List<HostAndPort> compactors = ExternalCompactionUtil.getCompactorAddrs(context);
+    Map<String,List<HostAndPort>> compactors = ExternalCompactionUtil.getCompactorAddrs(context);
     List<String> tservers = getTabletServers();
 
     int numThreads = Math.max(4, Math.min((tservers.size() + compactors.size()) / 10, 256));
@@ -230,15 +230,17 @@ public class InstanceOperationsImpl implements InstanceOperations {
         futures.add(executorService.submit(() -> getActiveCompactions(tserver)));
       }
 
-      for (HostAndPort compactorAddr : compactors) {
-        Callable<List<ActiveCompaction>> task =
-            () -> ExternalCompactionUtil.getActiveCompaction(compactorAddr, context).stream()
-                .map(tac -> new ActiveCompactionImpl(context, tac, compactorAddr,
-                    CompactionHost.Type.COMPACTOR))
-                .collect(toList());
+      compactors.values().forEach(compactorList -> {
+        for (HostAndPort compactorAddr : compactorList) {
+          Callable<List<ActiveCompaction>> task =
+              () -> ExternalCompactionUtil.getActiveCompaction(compactorAddr, context).stream()
+                  .map(tac -> new ActiveCompactionImpl(context, tac, compactorAddr,
+                      CompactionHost.Type.COMPACTOR))
+                  .collect(toList());
 
-        futures.add(executorService.submit(task));
-      }
+          futures.add(executorService.submit(task));
+        }
+      });
 
       List<ActiveCompaction> ret = new ArrayList<>();
       for (Future<List<ActiveCompaction>> future : futures) {

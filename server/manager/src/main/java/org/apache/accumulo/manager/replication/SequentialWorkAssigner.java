@@ -45,6 +45,7 @@ import org.slf4j.LoggerFactory;
  * The intent is to ensure that WALs are replayed in the same order on the peer in which they were
  * applied on the primary.
  */
+@Deprecated
 public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
   private static final Logger log = LoggerFactory.getLogger(SequentialWorkAssigner.class);
   private static final String NAME = "Sequential Work Assigner";

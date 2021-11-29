@@ -40,6 +40,7 @@ import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.junit.Before;
 import org.junit.Test;
 
+@Deprecated
 public class SequentialWorkAssignerTest {
 
   private AccumuloClient client;

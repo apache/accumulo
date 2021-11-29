@@ -16,17 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.iterators;
+package org.apache.accumulo.monitor.rest.compactions.external;
 
-public class IterationInterruptedException extends RuntimeException {
+public class CompactorInfo {
 
-  private static final long serialVersionUID = 1L;
+  // Variable names become JSON keys
+  public long lastContact;
+  public String server;
+  public String queueName;
 
-  public IterationInterruptedException() {
-    super();
-  }
-
-  public IterationInterruptedException(String msg) {
-    super(msg);
+  public CompactorInfo(long fetchedTimeMillis, String queue, String hostAndPort) {
+    lastContact = System.currentTimeMillis() - fetchedTimeMillis;
+    queueName = queue;
+    server = hostAndPort;
   }
 }

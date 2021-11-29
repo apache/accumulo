@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.junit.Test;
 
+@Deprecated
 public class StatusUtilTest {
 
   @Test
