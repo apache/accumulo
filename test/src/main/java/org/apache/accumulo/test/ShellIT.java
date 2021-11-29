@@ -520,7 +520,7 @@ public class ShellIT extends SharedMiniClusterBase {
   // This test addresses a bug (#2356) where if a table with a tableId of character length 1
   // exists and another table(s) exist starting with the same character but with a tableId of
   // length > 1, the verbose version of the getsplits command will return information from multiple
-  // tables when a table with lexigraphically earlier ID is queried.
+  // tables when a lexicographical ordered table with an earlier ID is queried.
   //
   // In order to test, enough tables need to be created until the required condition exists.
   // Since table ID counts increment using 1..9a..z, this test creates tables in groups of 36
