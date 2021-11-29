@@ -531,7 +531,7 @@ public class ShellIT extends SharedMiniClusterBase {
   //
   // Due to the number for createtable calls, this test will time out if a match is not found
   // within some number of operations. Therefore, if a match is not found within the creation
-  // of the first 360 or so tables, the test exits witn no results. In initial runs of the ITs
+  // of the first 360 or so tables, the test exits with no results. In initial runs of the ITs
   // this never occurred.
   @Test
   public void testGetSplitsScanRange() throws Exception {
