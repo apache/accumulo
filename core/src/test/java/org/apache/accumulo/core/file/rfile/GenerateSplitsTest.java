@@ -90,10 +90,10 @@ public class GenerateSplitsTest {
     verifySplitsFile("r3", "r6");
 
     // test more splits requested than indices
-    args = List.of(rfilePath, "--num", "6", "-sf", splitsFilePath);
+    args = List.of(rfilePath, "--num", "4", "-sf", splitsFilePath);
     log.info("Invoking GenerateSplits with {}", args);
     GenerateSplits.main(args.toArray(new String[0]));
-    verifySplitsFile("r1", "r2", "r3", "r4", "r5", "r6");
+    verifySplitsFile("r1", "r2", "r4", "r5");
   }
 
   @Test
@@ -108,7 +108,7 @@ public class GenerateSplitsTest {
     String splitsFile = Files.readString(Paths.get(splitsFilePath));
     assertEquals(splits.length, splitsFile.split("\n").length);
     for (String s : splits)
-      assertTrue("Did not find " + s + " in " + splitsFilePath, splitsFile.contains(s));
+      assertTrue("Did not find " + s + " in: " + splitsFile, splitsFile.contains(s));
   }
 
   @Test
