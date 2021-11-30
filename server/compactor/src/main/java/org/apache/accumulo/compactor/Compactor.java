@@ -184,7 +184,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
         TimeUnit.MILLISECONDS);
   }
 
-  protected void checkIfCanceled() {
+  protected synchronized void checkIfCanceled() {
     TExternalCompactionJob job = JOB_HOLDER.getJob();
     if (job != null) {
       try {
@@ -566,7 +566,6 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
         } catch (Exception e) {
           LOG.error("Compaction failed", e);
           err.set(e);
-          throw new RuntimeException("Compaction failed", e);
         } finally {
           stopped.countDown();
           Preconditions.checkState(compactionRunning.compareAndSet(true, false));
@@ -711,6 +710,8 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
           }
           compactionThread.join();
           LOG.trace("Compaction thread finished.");
+
+          checkIfCanceled();
 
           if (compactionThread.isInterrupted() || JOB_HOLDER.isCancelled()
               || ((err.get() != null && err.get().getClass().equals(InterruptedException.class)))) {
