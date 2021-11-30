@@ -103,7 +103,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
     try {
       compactionPropertiesString = Iterables.getOnlyElement(serverPropsMap.values());
     } catch (IllegalArgumentException e) {
-      System.err.println("There should be exactly one server property. "+e.getMessage());
+      System.err.println("There should be exactly one server property. " + e.getMessage());
       System.exit(1);
     }
 
@@ -121,7 +121,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
     try {
       executorJson = Iterables.getOnlyElement(executorsProperties.values());
     } catch (IllegalArgumentException e) {
-      System.err.println("There should be exactly one executor config. "+e.getMessage());
+      System.err.println("There should be exactly one executor config. " + e.getMessage());
       System.exit(1);
     }
 
