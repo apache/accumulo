@@ -28,6 +28,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -115,7 +116,6 @@ public class GenerateSplits implements KeywordExecutable {
     boolean encode = opts.base64encode;
 
     TreeSet<String> splits;
-    TreeSet<String> desiredSplits = new TreeSet<>();
 
     if (opts.numSplits > 0 && opts.splitSize > 0) {
       throw new IllegalArgumentException("Requested number of splits and split size.");
@@ -123,7 +123,7 @@ public class GenerateSplits implements KeywordExecutable {
     if (opts.numSplits == 0 && opts.splitSize == 0) {
       throw new IllegalArgumentException("Required number of splits or split size.");
     }
-    long numSplits = opts.numSplits;
+    long requestedNumSplits = opts.numSplits;
     long splitSize = opts.splitSize;
 
     FileSystem fs = FileSystem.get(hadoopConf);
@@ -157,37 +157,22 @@ public class GenerateSplits implements KeywordExecutable {
     if (opts.splitSize == 0) {
       splits = getIndexKeys(siteConf, hadoopConf, fs, filePaths, encode);
       // if there weren't enough splits indexed, try again with size = 0
-      if (splits.size() < numSplits) {
+      if (splits.size() < requestedNumSplits) {
         log.info("Only found {} indexed keys but need {}. Doing a full scan on files {}",
-            splits.size(), numSplits, filePaths);
+            splits.size(), requestedNumSplits, filePaths);
         splits = getSplitsBySize(siteConf, hadoopConf, filePaths, fs, 0, encode);
       }
     } else {
       splits = getSplitsBySize(siteConf, hadoopConf, filePaths, fs, splitSize, encode);
     }
 
+    TreeSet<String> desiredSplits;
     int numFound = splits.size();
-    // its possible we found too many indexed so take every (numFound / numSplits) split
-    if (opts.splitSize == 0 && numFound > numSplits) {
-      var iter = splits.iterator();
-      // This is how much each of the found rows will advances twoards a desired split point.  Add one to numSplits because if we request 9 splits, there will 10 tablets and we want the 9 splits evenly spaced between the 10 tablets.
-      double increment = (numSplits+1.0)/numFound;
-      log.debug("Found {} splits but requested {} picking 1 every {}", numFound, opts.numSplits,
-          targetFactor);
-
-       // Tracks how far along we are twoards the next split.
-       double total = 0;
-
-      for (int i = 0; i < numFound; i++) {
-        total += increment;
-        String next = iter.next();
-        if (total> 1 && desiredSplits.size() < numSplits) {
-          desiredSplits.add(next);
-          total -= 1;
-        }
-      }
+    // its possible we found too many indexed so get requested number but evenly spaced
+    if (opts.splitSize == 0 && numFound > requestedNumSplits) {
+      desiredSplits = getEvenlySpacedSplits(numFound, requestedNumSplits, splits.iterator());
     } else {
-      if (numFound < numSplits)
+      if (numFound < requestedNumSplits)
         log.warn("Only found {} splits", numFound);
       desiredSplits = splits;
     }
@@ -201,6 +186,34 @@ public class GenerateSplits implements KeywordExecutable {
     } else {
       desiredSplits.forEach(System.out::println);
     }
+  }
+
+  /**
+   * Return the requested number of splits, evenly spaced across splits found. Visible for testing
+   */
+  static TreeSet<String> getEvenlySpacedSplits(int numFound, long requestedNumSplits,
+      Iterator<String> splitsIter) {
+    TreeSet<String> desiredSplits = new TreeSet<>();
+    // This is how much each of the found rows will advance towards a desired split point. Add
+    // one to numSplits because if we request 9 splits, there will 10 tablets and we want the 9
+    // splits evenly spaced between the 10 tablets.
+    double increment = (requestedNumSplits + 1.0) / numFound;
+    log.debug("Found {} splits but requested {} so increment {}", numFound, requestedNumSplits,
+        increment);
+
+    // Tracks how far along we are towards the next split.
+    double progressToNextSplit = 0;
+
+    for (int i = 0; i < numFound; i++) {
+      progressToNextSplit += increment;
+      String next = splitsIter.next();
+      if (progressToNextSplit > 1 && desiredSplits.size() < requestedNumSplits) {
+        desiredSplits.add(next);
+        progressToNextSplit -= 1; // decrease by 1 to preserve any partial progress
+      }
+    }
+
+    return desiredSplits;
   }
 
   private static String encode(boolean encode, Text text) {

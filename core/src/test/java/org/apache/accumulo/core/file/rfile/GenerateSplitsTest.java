@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static org.apache.accumulo.core.file.rfile.GenerateSplits.getEvenlySpacedSplits;
 import static org.apache.accumulo.core.file.rfile.GenerateSplits.main;
 import static org.apache.accumulo.core.file.rfile.RFileTest.newColFamByteSequence;
 import static org.apache.accumulo.core.file.rfile.RFileTest.newKey;
@@ -32,7 +33,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -93,7 +97,7 @@ public class GenerateSplitsTest {
     args = List.of(rfilePath, "--num", "4", "-sf", splitsFilePath);
     log.info("Invoking GenerateSplits with {}", args);
     GenerateSplits.main(args.toArray(new String[0]));
-    verifySplitsFile("r1", "r2", "r4", "r5");
+    verifySplitsFile("r2", "r3", "r4", "r5");
   }
 
   @Test
@@ -132,5 +136,29 @@ public class GenerateSplitsTest {
     log.info("Invoking GenerateSplits with {}", args4);
     e = assertThrows(IllegalArgumentException.class, () -> main(args4.toArray(new String[0])));
     assertTrue(e.getMessage(), e.getMessage().contains("Only one directory can be specified"));
+  }
+
+  @Test
+  public void testEvenlySpaced() {
+    TreeSet<String> desired = getEvenlySpacedSplits(15, 4, numSplits(15));
+    assertEquals(4, desired.size());
+    assertEquals(Set.of("003", "006", "009", "012"), desired);
+    desired = getEvenlySpacedSplits(15, 10, numSplits(15));
+    assertEquals(10, desired.size());
+    assertEquals(Set.of("001", "002", "004", "005", "006", "008", "009", "010", "012", "013"),
+        desired);
+    desired = getEvenlySpacedSplits(10, 9, numSplits(10));
+    assertEquals(9, desired.size());
+    assertEquals(Set.of("001", "002", "003", "004", "005", "006", "007", "008", "009"), desired);
+  }
+
+  /**
+   * Create the requested number of splits. Works up to 3 digits or max 999.
+   */
+  private Iterator<String> numSplits(int num) {
+    TreeSet<String> splits = new TreeSet<>();
+    for (int i = 0; i < num; i++)
+      splits.add(String.format("%03d", i));
+    return splits.iterator();
   }
 }
