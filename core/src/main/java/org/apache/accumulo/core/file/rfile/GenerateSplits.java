@@ -170,16 +170,20 @@ public class GenerateSplits implements KeywordExecutable {
     // its possible we found too many indexed so take every (numFound / numSplits) split
     if (opts.splitSize == 0 && numFound > numSplits) {
       var iter = splits.iterator();
-      double targetFactor = (double) numFound / numSplits;
+      // This is how much each of the found rows will advances twoards a desired split point.  Add one to numSplits because if we request 9 splits, there will 10 tablets and we want the 9 splits evenly spaced between the 10 tablets.
+      double increment = (numSplits+1.0)/numFound;
       log.debug("Found {} splits but requested {} picking 1 every {}", numFound, opts.numSplits,
           targetFactor);
 
+       // Tracks how far along we are twoards the next split.
+       double total = 0;
+
       for (int i = 0; i < numFound; i++) {
-        double currFactor = (double) (i + 1) / desiredSplits.size();
+        total += increment;
         String next = iter.next();
-        // unsure if this should be currFactor >= targetFactor
-        if (currFactor > targetFactor && desiredSplits.size() < numSplits) {
+        if (total> 1 && desiredSplits.size() < numSplits) {
           desiredSplits.add(next);
+          total -= 1;
         }
       }
     } else {
