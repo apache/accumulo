@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
@@ -37,6 +38,7 @@ import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 import com.google.common.collect.Iterables;
 
@@ -45,17 +47,42 @@ public class CheckCompactionConfig implements KeywordExecutable {
 
   private final static Logger log = LoggerFactory.getLogger(CheckCompactionConfig.class);
 
-  public static void main(String[] args) throws IOException {
-    if (args.length != 1)
-      throw new IllegalArgumentException("Only one argument is accepted (path to properties file)");
+  static class Opts extends Help {
+    @Parameter(description = "<path/to/props/file>")
+    String filePath;
+  }
 
-    Path path = Path.of(args[0]);
+  @Override
+  public String keyword() {
+    return "check-compaction-config";
+  }
+
+  @Override
+  public String description() {
+    return "Checks compaction config";
+  }
+
+  public static void main(String[] args) throws IOException {
+    new CheckCompactionConfig().execute(args);
+  }
+
+  @Override
+  public void execute(String[] args) throws IOException {
+    Opts opts = new Opts();
+    opts.parseArgs("accumulo check-compaction-config", args);
+
+    if (opts.filePath == null) {
+      System.err.println("No properties file was given");
+      System.exit(1);
+    }
+
+    Path path = Path.of(opts.filePath);
     if (!path.toFile().exists())
       throw new FileNotFoundException("File at given path could not be found");
 
     // Extract properties from props file at given path
     Properties allProps = ClientInfoImpl.toProperties(path);
-    log.info("All props: {}", allProps);
+    log.debug("All props: {}", allProps);
 
     // Extract server props from set of all props
     Map<String,String> serverPropsMap = new HashMap<>();
@@ -114,31 +141,17 @@ public class CheckCompactionConfig implements KeywordExecutable {
     };
 
     new DefaultCompactionPlanner().parseExecutors(params);
+    System.out.println("Properties file has passed all checks.");
   }
 
   private static Map<String,String> getPropertiesWithSuffix(Properties serverProps, String suffix) {
     final Map<String,String> map = new HashMap<>();
-    log.info("Retrieving properties that end with '{}'", suffix);
+    log.debug("Retrieving properties that end with '{}'", suffix);
     serverProps.forEach((k, v) -> {
-      log.info("{}={}", k, v);
+      log.debug("{}={}", k, v);
       if (k.toString().endsWith(suffix))
         map.put((String) k, (String) v);
     });
     return map;
-  }
-
-  @Override
-  public String keyword() {
-    return "check-compaction-config";
-  }
-
-  @Override
-  public String description() {
-    return "Checks compaction config";
-  }
-
-  @Override
-  public void execute(String[] args) throws Exception {
-    main(args);
   }
 }
