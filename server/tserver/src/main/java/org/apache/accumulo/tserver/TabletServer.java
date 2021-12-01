@@ -58,7 +58,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
@@ -80,7 +79,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
-import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
@@ -118,7 +116,6 @@ import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.manager.recovery.RecoveryPath;
-import org.apache.accumulo.server.replication.ZooKeeperInitialization;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TCredentialsUpdatingWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
@@ -147,8 +144,6 @@ import org.apache.accumulo.tserver.metrics.TabletServerMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerMinCMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerUpdateMetrics;
-import org.apache.accumulo.tserver.replication.ReplicationServicerHandler;
-import org.apache.accumulo.tserver.replication.ReplicationWorker;
 import org.apache.accumulo.tserver.scan.ScanRunState;
 import org.apache.accumulo.tserver.session.Session;
 import org.apache.accumulo.tserver.session.SessionManager;
@@ -198,7 +193,8 @@ public class TabletServer extends AbstractServer {
   }
 
   private final LogSorter logSorter;
-  private ReplicationWorker replWorker = null;
+  @SuppressWarnings("deprecation")
+  private org.apache.accumulo.tserver.replication.ReplicationWorker replWorker = null;
   final TabletStatsKeeper statsKeeper;
   private final AtomicInteger logIdGenerator = new AtomicInteger();
 
@@ -253,7 +249,9 @@ public class TabletServer extends AbstractServer {
     log.info("Instance " + getInstanceID());
     this.sessionManager = new SessionManager(context);
     this.logSorter = new LogSorter(context, aconf);
-    this.replWorker = new ReplicationWorker(context);
+    @SuppressWarnings("deprecation")
+    var replWorker = new org.apache.accumulo.tserver.replication.ReplicationWorker(context);
+    this.replWorker = replWorker;
     this.statsKeeper = new TabletStatsKeeper();
     final int numBusyTabletsToLog = aconf.getCount(Property.TSERV_LOG_BUSY_TABLETS_COUNT);
     final long logBusyTabletsDelay =
@@ -608,8 +606,10 @@ public class TabletServer extends AbstractServer {
     return address;
   }
 
+  @Deprecated
   private void startReplicationService() throws UnknownHostException {
-    final ReplicationServicerHandler handler = new ReplicationServicerHandler(this);
+    final var handler =
+        new org.apache.accumulo.tserver.replication.ReplicationServicerHandler(this);
     ReplicationServicer.Iface rpcProxy = TraceUtil.wrapService(handler);
     ReplicationServicer.Iface repl =
         TCredentialsUpdatingWrapper.service(rpcProxy, handler.getClass(), getConfiguration());
@@ -629,9 +629,9 @@ public class TabletServer extends AbstractServer {
       // The replication service is unique to the thrift service for a tserver, not just a host.
       // Advertise the host and port for replication service given the host and port for the
       // tserver.
-      getContext().getZooReaderWriter().putPersistentData(
-          getContext().getZooKeeperRoot() + ReplicationConstants.ZOO_TSERVERS + "/" + clientAddress,
-          sp.address.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
+      getContext().getZooReaderWriter().putPersistentData(getContext().getZooKeeperRoot()
+          + org.apache.accumulo.core.replication.ReplicationConstants.ZOO_TSERVERS + "/"
+          + clientAddress, sp.address.toString().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     } catch (Exception e) {
       log.error("Could not advertise replication service port", e);
       throw new RuntimeException(e);
@@ -702,6 +702,16 @@ public class TabletServer extends AbstractServer {
     }
   }
 
+  @Deprecated
+  private void initializeZkForReplication() {
+    try {
+      org.apache.accumulo.server.replication.ZooKeeperInitialization.ensureZooKeeperInitialized(
+          getContext().getZooReaderWriter(), getContext().getZooKeeperRoot());
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Exception while ensuring ZooKeeper is initialized", e);
+    }
+  }
+
   // main loop listens for client requests
   @Override
   public void run() {
@@ -709,13 +719,7 @@ public class TabletServer extends AbstractServer {
 
     // To make things easier on users/devs, and to avoid creating an upgrade path to 1.7
     // We can just make the zookeeper paths before we try to use.
-    try {
-      ZooKeeperInitialization.ensureZooKeeperInitialized(getContext().getZooReaderWriter(),
-          getContext().getZooKeeperRoot());
-    } catch (KeeperException | InterruptedException e) {
-      log.error("Could not ensure that ZooKeeper is properly initialized", e);
-      throw new RuntimeException(e);
-    }
+    initializeZkForReplication();
 
     if (authKeyWatcher != null) {
       log.info("Seeding ZooKeeper watcher for authentication keys");
@@ -789,10 +793,12 @@ public class TabletServer extends AbstractServer {
     }
     final AccumuloConfiguration aconf = getConfiguration();
     // if the replication name is ever set, then start replication services
+    @SuppressWarnings("deprecation")
+    Property p = Property.REPLICATION_NAME;
     context.getScheduledExecutor().scheduleWithFixedDelay(() -> {
       if (this.replServer == null) {
-        if (!getConfiguration().get(Property.REPLICATION_NAME).isEmpty()) {
-          log.info(Property.REPLICATION_NAME.getKey() + " was set, starting repl services.");
+        if (!getConfiguration().get(p).isEmpty()) {
+          log.info(p.getKey() + " was set, starting repl services.");
           setupReplication(aconf);
         }
       }
@@ -953,6 +959,7 @@ public class TabletServer extends AbstractServer {
     }
   }
 
+  @SuppressWarnings("deprecation")
   private void setupReplication(AccumuloConfiguration aconf) {
     // Start the thrift service listening for incoming replication requests
     try {
@@ -973,43 +980,6 @@ public class TabletServer extends AbstractServer {
     };
     context.getScheduledExecutor().scheduleWithFixedDelay(replicationWorkThreadPoolResizer, 10000,
         30000, TimeUnit.MILLISECONDS);
-  }
-
-  static boolean checkTabletMetadata(KeyExtent extent, TServerInstance instance,
-      TabletMetadata meta) throws AccumuloException {
-
-    if (meta == null) {
-      log.info("Not loading tablet {}, its metadata was not found.", extent);
-      return false;
-    }
-
-    if (!meta.sawPrevEndRow()) {
-      throw new AccumuloException("Metadata entry does not have prev row (" + meta.getTableId()
-          + " " + meta.getEndRow() + ")");
-    }
-
-    if (!extent.equals(meta.getExtent())) {
-      log.info("Tablet extent mismatch {} {}", extent, meta.getExtent());
-      return false;
-    }
-
-    if (meta.getDirName() == null) {
-      throw new AccumuloException(
-          "Metadata entry does not have directory (" + meta.getExtent() + ")");
-    }
-
-    if (meta.getTime() == null && !extent.equals(RootTable.EXTENT)) {
-      throw new AccumuloException("Metadata entry does not have time (" + meta.getExtent() + ")");
-    }
-
-    Location loc = meta.getLocation();
-
-    if (loc == null || loc.getType() != LocationType.FUTURE || !instance.equals(loc)) {
-      log.info("Unexpected location {} {}", extent, loc);
-      return false;
-    }
-
-    return true;
   }
 
   public String getClientAddressString() {

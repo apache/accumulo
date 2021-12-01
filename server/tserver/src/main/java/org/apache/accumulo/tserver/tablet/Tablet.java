@@ -85,7 +85,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.replication.ReplicationConfigurationUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
@@ -107,7 +106,6 @@ import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
-import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
@@ -328,8 +326,9 @@ public class Tablet {
     this.tableConfiguration = tblConf;
 
     // translate any volume changes
-    boolean replicationEnabled =
-        ReplicationConfigurationUtil.isEnabled(extent, this.tableConfiguration);
+    @SuppressWarnings("deprecation")
+    boolean replicationEnabled = org.apache.accumulo.core.replication.ReplicationConfigurationUtil
+        .isEnabled(extent, this.tableConfiguration);
     TabletFiles tabletPaths =
         new TabletFiles(data.getDirectoryName(), data.getLogEntries(), data.getDataFiles());
     tabletPaths = VolumeUtil.updateTabletVolumes(tabletServer.getContext(), tabletServer.getLock(),
@@ -388,15 +387,19 @@ public class Tablet {
         }
         commitSession.updateMaxCommittedTime(tabletTime.getTime());
 
+        @SuppressWarnings("deprecation")
+        boolean replicationEnabledForTable =
+            org.apache.accumulo.core.replication.ReplicationConfigurationUtil.isEnabled(extent,
+                tabletServer.getTableConfiguration(extent));
         if (entriesUsedOnTablet.get() == 0) {
           log.debug("No replayed mutations applied, removing unused entries for {}", extent);
           MetadataTableUtil.removeUnusedWALEntries(getTabletServer().getContext(), extent,
               logEntries, tabletServer.getLock());
           logEntries.clear();
-        } else if (ReplicationConfigurationUtil.isEnabled(extent,
-            tabletServer.getTableConfiguration(extent))) {
+        } else if (replicationEnabledForTable) {
           // record that logs may have data for this extent
-          Status status = StatusUtil.openWithUnknownLength();
+          @SuppressWarnings("deprecation")
+          Status status = org.apache.accumulo.server.replication.StatusUtil.openWithUnknownLength();
           for (LogEntry logEntry : logEntries) {
             log.debug("Writing updated status to metadata table for {} {}", logEntry.filename,
                 ProtobufUtil.toString(status));

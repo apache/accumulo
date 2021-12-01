@@ -16,13 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.spi.trace;
+package org.apache.accumulo.monitor.rest.compactions.external;
 
-import java.util.function.Supplier;
+public class CompactorInfo {
 
-import io.opentelemetry.api.OpenTelemetry;
+  // Variable names become JSON keys
+  public long lastContact;
+  public String server;
+  public String queueName;
 
-/**
- * Configures and returns an instance of OpenTelemetry
- */
-public interface OpenTelemetryFactory extends Supplier<OpenTelemetry> {}
+  public CompactorInfo(long fetchedTimeMillis, String queue, String hostAndPort) {
+    lastContact = System.currentTimeMillis() - fetchedTimeMillis;
+    queueName = queue;
+    server = hostAndPort;
+  }
+}

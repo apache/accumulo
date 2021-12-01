@@ -26,7 +26,6 @@ import static org.junit.Assert.fail;
 
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.replication.ReplicationTable;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -53,10 +52,14 @@ public class TableIdTest {
 
   @Test
   public void testCacheNoDuplicates() {
+
+    @SuppressWarnings("deprecation")
+    TableId REPL_TABLE_ID = org.apache.accumulo.core.replication.ReplicationTable.ID;
+
     // the next two lines just preloads the built-ins, since they now exist in a separate class from
     // TableId, and aren't preloaded when the TableId class is referenced
     assertNotSame(RootTable.ID, MetadataTable.ID);
-    assertNotSame(RootTable.ID, ReplicationTable.ID);
+    assertNotSame(RootTable.ID, REPL_TABLE_ID);
 
     String tableString = "table-" + name.getMethodName();
     long initialSize = cacheCount();
@@ -70,7 +73,7 @@ public class TableIdTest {
     builtInTableId = TableId.of("+r");
     assertSame(RootTable.ID, builtInTableId);
     builtInTableId = TableId.of("+rep");
-    assertSame(ReplicationTable.ID, builtInTableId);
+    assertSame(REPL_TABLE_ID, builtInTableId);
     table1 = TableId.of(tableString);
     assertEquals(initialSize + 1, cacheCount());
     assertEquals(tableString, table1.canonical());

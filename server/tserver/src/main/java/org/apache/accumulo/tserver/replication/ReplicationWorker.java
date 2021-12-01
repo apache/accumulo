@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Launches the {@link ReplicationProcessor}
  */
+@Deprecated
 public class ReplicationWorker implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(ReplicationWorker.class);
 

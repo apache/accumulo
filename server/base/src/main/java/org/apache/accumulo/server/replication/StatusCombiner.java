@@ -44,9 +44,11 @@ import com.google.protobuf.InvalidProtocolBufferException;
  *
  * Messages that are "closed", stay closed. "Begin" and "end" always choose the maximum of the two.
  */
+@Deprecated
 public class StatusCombiner extends TypedValueCombiner<Status> {
   private static final Logger log = LoggerFactory.getLogger(StatusCombiner.class);
 
+  @Deprecated
   public static class StatusEncoder extends AbstractEncoder<Status> {
     private static final Logger log = LoggerFactory.getLogger(StatusEncoder.class);
 

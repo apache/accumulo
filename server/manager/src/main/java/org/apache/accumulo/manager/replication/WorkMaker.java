@@ -57,6 +57,7 @@ import io.opentelemetry.context.Scope;
  * Reads replication records from the replication table and creates work records which include
  * target replication system information.
  */
+@Deprecated
 public class WorkMaker {
   private static final Logger log = LoggerFactory.getLogger(WorkMaker.class);
 

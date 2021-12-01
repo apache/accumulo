@@ -16,33 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.coordinator;
+package org.apache.accumulo.monitor.rest.compactions.external;
 
-import org.apache.accumulo.core.compaction.thrift.TCompactionState;
+import java.util.ArrayList;
+import java.util.List;
 
-public class CompactionUpdate {
+/**
+ * JSON Object for displaying External Compactions. Variable names become JSON Keys.
+ */
+public class Compactors {
 
-  private final Long timestamp;
-  private final String message;
-  private final TCompactionState state;
+  // Variable names become JSON keys
+  public final int numCompactors;
+  public final List<CompactorInfo> compactors = new ArrayList<>();
 
-  CompactionUpdate(Long timestamp, String message, TCompactionState state) {
-    super();
-    this.timestamp = timestamp;
-    this.message = message;
-    this.state = state;
+  public Compactors(ExternalCompactionInfo ecInfo) {
+    ecInfo.getCompactors().forEach((q, c) -> {
+      var fetchedTime = ecInfo.getFetchedTimeMillis();
+      c.forEach(hp -> compactors.add(new CompactorInfo(fetchedTime, q, hp.toString())));
+    });
+    numCompactors = compactors.size();
   }
-
-  public Long getTimestamp() {
-    return timestamp;
-  }
-
-  public String getMessage() {
-    return message;
-  }
-
-  public TCompactionState getState() {
-    return state;
-  }
-
 }

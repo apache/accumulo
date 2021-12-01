@@ -47,8 +47,6 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
-import org.apache.accumulo.server.replication.StatusCombiner;
-import org.apache.accumulo.server.replication.StatusFormatter;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -64,7 +62,9 @@ public class ReplicationTableUtil {
   private static final Logger log = LoggerFactory.getLogger(ReplicationTableUtil.class);
 
   public static final String COMBINER_NAME = "replcombiner";
-  public static final String STATUS_FORMATTER_CLASS_NAME = StatusFormatter.class.getName();
+  @SuppressWarnings("deprecation")
+  public static final String STATUS_FORMATTER_CLASS_NAME =
+      org.apache.accumulo.server.replication.StatusFormatter.class.getName();
 
   private ReplicationTableUtil() {}
 
@@ -104,7 +104,9 @@ public class ReplicationTableUtil {
     if (!iterators.containsKey(COMBINER_NAME)) {
       // Set our combiner and combine all columns
       // Need to set the combiner beneath versioning since we don't want to turn it off
-      IteratorSetting setting = new IteratorSetting(9, COMBINER_NAME, StatusCombiner.class);
+      @SuppressWarnings("deprecation")
+      var statusCombinerClass = org.apache.accumulo.server.replication.StatusCombiner.class;
+      IteratorSetting setting = new IteratorSetting(9, COMBINER_NAME, statusCombinerClass);
       Combiner.setColumns(setting, Collections.singletonList(new Column(ReplicationSection.COLF)));
       try {
         tops.attachIterator(tableName, setting);

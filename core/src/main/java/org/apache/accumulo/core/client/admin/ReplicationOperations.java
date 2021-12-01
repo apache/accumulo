@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.replication.PeerNotFoundException;
  *
  * @since 1.7.0
  */
+@Deprecated
 public interface ReplicationOperations {
 
   /**

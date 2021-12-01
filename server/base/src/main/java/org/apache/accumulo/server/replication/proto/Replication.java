@@ -21,7 +21,8 @@
 
 package org.apache.accumulo.server.replication.proto;
 
-@SuppressWarnings({"unused"}) public final class Replication {
+@SuppressWarnings({"unused"})
+public final class Replication {
   private Replication() {}
   public static void registerAllExtensions(
       com.google.protobuf.ExtensionRegistry registry) {

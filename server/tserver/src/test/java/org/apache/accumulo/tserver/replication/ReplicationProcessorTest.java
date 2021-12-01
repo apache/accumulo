@@ -40,6 +40,7 @@ import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
 import org.junit.Test;
 
+@Deprecated
 public class ReplicationProcessorTest {
 
   @Test

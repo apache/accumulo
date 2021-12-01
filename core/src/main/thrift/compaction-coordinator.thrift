@@ -40,12 +40,23 @@ enum TCompactionState {
   CANCELLED
 }
 
-struct Status {
-  1:i64 timestamp
-  2:string externalCompactionId
-  3:string compactor
-  4:TCompactionState state
-  5:string message
+struct TCompactionStatusUpdate {
+  1:TCompactionState state
+  2:string message
+  3:i64 entriesToBeCompacted
+  4:i64 entriesRead
+  5:i64 entriesWritten
+}
+
+struct TExternalCompaction {
+  1:string queueName
+  2:string compactor
+  3:map<i64,TCompactionStatusUpdate> updates
+  4:tabletserver.TExternalCompactionJob job
+}
+
+struct TExternalCompactionList {
+  1:map<string,TExternalCompaction> compactions
 }
 
 exception UnknownCompactionIdException {}
@@ -81,9 +92,8 @@ service CompactionCoordinatorService {
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
     3:string externalCompactionId
-    4:TCompactionState state
-    5:string message
-    6:i64 timestamp
+    4:TCompactionStatusUpdate status
+    5:i64 timestamp
   )
   
   /*
@@ -94,6 +104,22 @@ service CompactionCoordinatorService {
     2:security.TCredentials credentials
     3:string externalCompactionId
     4:data.TKeyExtent extent
+  )
+
+  /*
+   * Called by the Monitor to get progress information
+   */
+  TExternalCompactionList getRunningCompactions(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+  )
+
+  /*
+   * Called by the Monitor to get progress information
+   */
+  TExternalCompactionList getCompletedCompactions(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
   )
 
 }

@@ -71,8 +71,6 @@ import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
-import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
-import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationToken;
@@ -84,7 +82,6 @@ import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
-import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.util.NamespacePropUtil;
@@ -497,6 +494,7 @@ public class ManagerClientServiceHandler extends FateServiceHandler
     }
   }
 
+  @SuppressWarnings("deprecation")
   @Override
   public boolean drainReplicationTable(TInfo tfino, TCredentials credentials, String tableName,
       Set<String> logsToWatch) throws TException {
@@ -527,7 +525,8 @@ public class ManagerClientServiceHandler extends FateServiceHandler
 
     drainLog.trace("reading from replication table");
     try {
-      bs = client.createBatchScanner(ReplicationTable.NAME, Authorizations.EMPTY, 4);
+      bs = client.createBatchScanner(org.apache.accumulo.core.replication.ReplicationTable.NAME,
+          Authorizations.EMPTY, 4);
     } catch (TableNotFoundException e) {
       throw new RuntimeException("Replication table was not found", e);
     }
@@ -548,6 +547,7 @@ public class ManagerClientServiceHandler extends FateServiceHandler
   /**
    * @return return true records are only in place which are fully replicated
    */
+  @Deprecated
   protected boolean allReferencesReplicated(BatchScanner bs, Text tableId,
       Set<String> relevantLogs) {
     Text rowHolder = new Text(), colfHolder = new Text();
@@ -563,9 +563,12 @@ public class ManagerClientServiceHandler extends FateServiceHandler
         if (colfHolder.equals(ReplicationSection.COLF)) {
           file = rowHolder.toString();
           file = file.substring(ReplicationSection.getRowPrefix().length());
-        } else if (colfHolder.equals(OrderSection.NAME)) {
-          file = OrderSection.getFile(entry.getKey(), rowHolder);
-          long timeClosed = OrderSection.getTimeClosed(entry.getKey(), rowHolder);
+        } else if (colfHolder
+            .equals(org.apache.accumulo.core.replication.ReplicationSchema.OrderSection.NAME)) {
+          file = org.apache.accumulo.core.replication.ReplicationSchema.OrderSection
+              .getFile(entry.getKey(), rowHolder);
+          long timeClosed = org.apache.accumulo.core.replication.ReplicationSchema.OrderSection
+              .getTimeClosed(entry.getKey(), rowHolder);
           drainLog.trace("Order section: {} and {}", timeClosed, file);
         } else {
           file = rowHolder.toString();
@@ -581,7 +584,7 @@ public class ManagerClientServiceHandler extends FateServiceHandler
 
         try {
           Status stat = Status.parseFrom(entry.getValue().get());
-          if (!StatusUtil.isFullyReplicated(stat)) {
+          if (!org.apache.accumulo.server.replication.StatusUtil.isFullyReplicated(stat)) {
             drainLog.trace("{} and {} is not replicated", file, ProtobufUtil.toString(stat));
             return false;
           }

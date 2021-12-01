@@ -73,10 +73,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
-import org.apache.accumulo.core.replication.ReplicationConstants;
-import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
-import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
-import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
@@ -100,8 +96,6 @@ import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
-import org.apache.accumulo.server.replication.ReplicationUtil;
-import org.apache.accumulo.server.replication.StatusCombiner;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.tables.TableManager;
@@ -135,9 +129,13 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "DM_EXIT", justification = "CLI utility can exit")
 @AutoService(KeywordExecutable.class)
 public class Initialize implements KeywordExecutable {
+
   private static final Logger log = LoggerFactory.getLogger(Initialize.class);
   private static final String DEFAULT_ROOT_USER = "root";
   private static final String TABLE_TABLETS_TABLET_DIR = "table_info";
+  @SuppressWarnings("deprecation")
+  private static final TableId REPLICATION_TABLE =
+      org.apache.accumulo.core.replication.ReplicationTable.ID;
 
   private static ZooReaderWriter zoo = null;
 
@@ -213,8 +211,10 @@ public class Initialize implements KeywordExecutable {
     // race condition where a tserver compacts away Status updates because it didn't see the
     // Combiner
     // configured
+    @SuppressWarnings("deprecation")
+    var statusCombinerClass = org.apache.accumulo.server.replication.StatusCombiner.class;
     IteratorSetting setting =
-        new IteratorSetting(9, ReplicationTableUtil.COMBINER_NAME, StatusCombiner.class);
+        new IteratorSetting(9, ReplicationTableUtil.COMBINER_NAME, statusCombinerClass);
     Combiner.setColumns(setting, Collections.singletonList(new Column(ReplicationSection.COLF)));
     for (IteratorScope scope : IteratorScope.values()) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
@@ -226,10 +226,18 @@ public class Initialize implements KeywordExecutable {
     }
 
     // add combiners to replication table
-    setting = new IteratorSetting(30, ReplicationTable.COMBINER_NAME, StatusCombiner.class);
+    @SuppressWarnings("deprecation")
+    String replicationCombinerName =
+        org.apache.accumulo.core.replication.ReplicationTable.COMBINER_NAME;
+    setting = new IteratorSetting(30, replicationCombinerName, statusCombinerClass);
     setting.setPriority(30);
+    @SuppressWarnings("deprecation")
+    Text statusSectionName =
+        org.apache.accumulo.core.replication.ReplicationSchema.StatusSection.NAME;
+    @SuppressWarnings("deprecation")
+    Text workSectionName = org.apache.accumulo.core.replication.ReplicationSchema.WorkSection.NAME;
     Combiner.setColumns(setting,
-        Arrays.asList(new Column(StatusSection.NAME), new Column(WorkSection.NAME)));
+        Arrays.asList(new Column(statusSectionName), new Column(workSectionName)));
     for (IteratorScope scope : EnumSet.allOf(IteratorScope.class)) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), setting.getName());
@@ -240,15 +248,21 @@ public class Initialize implements KeywordExecutable {
           setting.getPriority() + "," + setting.getIteratorClass());
     }
     // add locality groups to replication table
-    for (Entry<String,Set<Text>> g : ReplicationTable.LOCALITY_GROUPS.entrySet()) {
+    @SuppressWarnings("deprecation")
+    Map<String,Set<Text>> replicationLocalityGroups =
+        org.apache.accumulo.core.replication.ReplicationTable.LOCALITY_GROUPS;
+    for (Entry<String,Set<Text>> g : replicationLocalityGroups.entrySet()) {
       initialReplicationTableConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX + g.getKey(),
           LocalityGroupUtil.encodeColumnFamilies(g.getValue()));
     }
     initialReplicationTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(),
-        Joiner.on(",").join(ReplicationTable.LOCALITY_GROUPS.keySet()));
+        Joiner.on(",").join(replicationLocalityGroups.keySet()));
     // add formatter to replication table
+    @SuppressWarnings("deprecation")
+    String replicationFormatterClassName =
+        org.apache.accumulo.server.replication.ReplicationUtil.STATUS_FORMATTER_CLASS_NAME;
     initialReplicationTableConf.put(Property.TABLE_FORMATTER_CLASS.getKey(),
-        ReplicationUtil.STATUS_FORMATTER_CLASS_NAME);
+        replicationFormatterClassName);
   }
 
   static boolean checkInit(VolumeManager fs, SiteConfiguration sconf, Configuration hadoopConf)
@@ -467,11 +481,11 @@ public class Initialize implements KeywordExecutable {
     String tableMetadataTabletDirUri =
         fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
             + MetadataTable.ID + Path.SEPARATOR + tableMetadataTabletDirName;
-    chooserEnv = new VolumeChooserEnvironmentImpl(Scope.INIT, ReplicationTable.ID, null, context);
+    chooserEnv = new VolumeChooserEnvironmentImpl(Scope.INIT, REPLICATION_TABLE, null, context);
     String replicationTableDefaultTabletDirName = ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
     String replicationTableDefaultTabletDirUri =
         fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-            + ReplicationTable.ID + Path.SEPARATOR + replicationTableDefaultTabletDirName;
+            + REPLICATION_TABLE + Path.SEPARATOR + replicationTableDefaultTabletDirName;
     chooserEnv = new VolumeChooserEnvironmentImpl(Scope.INIT, MetadataTable.ID, null, context);
     String defaultMetadataTabletDirName = ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
     String defaultMetadataTabletDirUri =
@@ -488,7 +502,7 @@ public class Initialize implements KeywordExecutable {
     // tablet
     String metadataFileName = tableMetadataTabletDirUri + Path.SEPARATOR + "0_1." + ext;
     Tablet replicationTablet =
-        new Tablet(ReplicationTable.ID, replicationTableDefaultTabletDirName, null, null);
+        new Tablet(REPLICATION_TABLE, replicationTableDefaultTabletDirName, null, null);
     createMetadataFile(fs, metadataFileName, siteConfig, replicationTablet);
 
     // populate the root tablet with info about the metadata table's two initial tablets
@@ -602,8 +616,10 @@ public class Initialize implements KeywordExecutable {
         RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
     TableManager.prepareNewTableState(zoo, uuid, MetadataTable.ID, Namespace.ACCUMULO.id(),
         MetadataTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
-    TableManager.prepareNewTableState(zoo, uuid, ReplicationTable.ID, Namespace.ACCUMULO.id(),
-        ReplicationTable.NAME, TableState.OFFLINE, NodeExistsPolicy.FAIL);
+    @SuppressWarnings("deprecation")
+    String replicationTableName = org.apache.accumulo.core.replication.ReplicationTable.NAME;
+    TableManager.prepareNewTableState(zoo, uuid, REPLICATION_TABLE, Namespace.ACCUMULO.id(),
+        replicationTableName, TableState.OFFLINE, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZPROBLEMS, EMPTY_BYTE_ARRAY,
@@ -636,9 +652,14 @@ public class Initialize implements KeywordExecutable {
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMONITOR_LOCK, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + ReplicationConstants.ZOO_BASE, EMPTY_BYTE_ARRAY,
+    @SuppressWarnings("deprecation")
+    String replicationZBase = org.apache.accumulo.core.replication.ReplicationConstants.ZOO_BASE;
+    zoo.putPersistentData(zkInstanceRoot + replicationZBase, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + ReplicationConstants.ZOO_TSERVERS, EMPTY_BYTE_ARRAY,
+    @SuppressWarnings("deprecation")
+    String replicationZServers =
+        org.apache.accumulo.core.replication.ReplicationConstants.ZOO_TSERVERS;
+    zoo.putPersistentData(zkInstanceRoot + replicationZServers, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + WalStateManager.ZWALS, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
@@ -814,7 +835,7 @@ public class Initialize implements KeywordExecutable {
 
       // add configuration to the replication table
       for (Entry<String,String> entry : initialReplicationTableConf.entrySet()) {
-        if (!TablePropUtil.setTableProperty(zoo, zooKeeperRoot, ReplicationTable.ID, entry.getKey(),
+        if (!TablePropUtil.setTableProperty(zoo, zooKeeperRoot, REPLICATION_TABLE, entry.getKey(),
             entry.getValue())) {
           throw new IOException("Cannot create per-table property " + entry.getKey());
         }

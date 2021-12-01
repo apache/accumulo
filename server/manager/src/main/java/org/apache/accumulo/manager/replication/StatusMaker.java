@@ -57,6 +57,7 @@ import io.opentelemetry.context.Scope;
  * Reads replication records from the metadata table and creates status records in the replication
  * table. Deletes the record from the metadata table when it's closed.
  */
+@Deprecated
 public class StatusMaker {
   private static final Logger log = LoggerFactory.getLogger(StatusMaker.class);
 

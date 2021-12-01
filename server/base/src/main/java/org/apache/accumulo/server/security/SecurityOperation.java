@@ -44,7 +44,6 @@ import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -367,8 +366,11 @@ public class SecurityOperation {
       boolean useCached) throws ThriftSecurityException {
     targetUserExists(user);
 
+    @SuppressWarnings("deprecation")
+    TableId replicationTableId = org.apache.accumulo.core.replication.ReplicationTable.ID;
+
     if ((table.equals(MetadataTable.ID) || table.equals(RootTable.ID)
-        || table.equals(ReplicationTable.ID)) && permission.equals(TablePermission.READ))
+        || table.equals(replicationTableId)) && permission.equals(TablePermission.READ))
       return true;
 
     try {
