@@ -198,8 +198,8 @@ public class GenerateSplits implements KeywordExecutable {
     // one to numSplits because if we request 9 splits, there will 10 tablets and we want the 9
     // splits evenly spaced between the 10 tablets.
     double increment = (requestedNumSplits + 1.0) / numFound;
-    log.debug("Found {} splits but requested {} so increment {}", numFound, requestedNumSplits,
-        increment);
+    log.debug("Found {} splits but requested {} so picking incrementally by {}", numFound,
+        requestedNumSplits, increment);
 
     // Tracks how far along we are towards the next split.
     double progressToNextSplit = 0;
