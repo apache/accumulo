@@ -75,8 +75,6 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
@@ -815,7 +813,7 @@ public class TabletServer extends AbstractServer {
       // containing the remaining tablets (those who's DataLevel is ROOT or METADATA).
       // This needs to happen so we can use .readTablets() on the DataLevel.USER tablets in order
       // to reduce RPCs.
-      // TODO: Push this partitioning, based on DataLevel, to ample.
+      // TODO: Push this partitioning, based on DataLevel, to ample - accumulo issue #2373
       onlineTabletsSnapshot.forEach((ke, tablet) -> {
         if (Ample.DataLevel.of(ke.tableId()) == Ample.DataLevel.USER) {
           userTablets.add(ke);
