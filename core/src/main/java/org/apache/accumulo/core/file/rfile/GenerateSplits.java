@@ -76,11 +76,11 @@ public class GenerateSplits implements KeywordExecutable {
     public Authorizations auths = Authorizations.EMPTY;
 
     @Parameter(names = {"-n", "--num"},
-        description = "The number of splits to generate. Cannot use with the split size option.")
+        description = "The number of split points to generate. Can be used to create n+1 tablets. Cannot use with the split size option.")
     public int numSplits = 0;
 
     @Parameter(names = {"-ss", "--split-size"},
-        description = "The split size desired in bytes. Cannot use with num splits option.")
+        description = "The minimum split size in uncompressed bytes. Cannot use with num splits option.")
     public long splitSize = 0;
 
     @Parameter(names = {"-b64", "--base64encoded"}, description = "Base 64 encode the split points")
@@ -201,7 +201,9 @@ public class GenerateSplits implements KeywordExecutable {
       itemsSketch.update(row);
       iterator.next();
     }
-    return itemsSketch.getQuantiles(numSplits);
+    Text[] items = itemsSketch.getQuantiles(numSplits + 2);
+    // based on the ItemsSketch javadoc, method returns min, max as well so drop first and last
+    return Arrays.copyOfRange(items, 1, items.length - 1);
   }
 
   /**
