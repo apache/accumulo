@@ -802,6 +802,7 @@ public class TabletServer extends AbstractServer {
       }
     }, 0, 5000, TimeUnit.MILLISECONDS);
 
+    int tabletCheckFrequency = 30 + random.nextInt(31); // random 30-60 minute delay
     // Periodically check that metadata of tablets matches what is held in memory
     ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
       final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
@@ -851,7 +852,7 @@ public class TabletServer extends AbstractServer {
         Long counter = updateCounts.get(extent);
         tablet.compareTabletInfo(counter, tabletMetadata);
       }
-    }, 1, 1, TimeUnit.MINUTES);
+    }, tabletCheckFrequency, tabletCheckFrequency, TimeUnit.MINUTES);
 
     final long CLEANUP_BULK_LOADED_CACHE_MILLIS = 15 * 60 * 1000;
     context.getScheduledExecutor().scheduleWithFixedDelay(new BulkImportCacheCleaner(this),
