@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.conf;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Path;
@@ -40,8 +41,6 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 import com.google.common.collect.Iterables;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @AutoService(KeywordExecutable.class)
 public class CheckCompactionConfig implements KeywordExecutable {
@@ -67,8 +66,6 @@ public class CheckCompactionConfig implements KeywordExecutable {
     new CheckCompactionConfig().execute(args);
   }
 
-  @SuppressFBWarnings(value = "DM_EXIT",
-      justification = "System.exit is fine here because it's a utility class executed by a main()")
   @Override
   public void execute(String[] args) throws IOException {
     Opts opts = new Opts();
@@ -80,10 +77,8 @@ public class CheckCompactionConfig implements KeywordExecutable {
     }
 
     Path path = Path.of(opts.filePath);
-    if (!path.toFile().exists()) {
-      System.err.println("File at given path could not be found");
-      System.exit(1);
-    }
+    if (!path.toFile().exists())
+      throw new FileNotFoundException("File at given path could not be found");
 
     // Extract properties from props file at given path
     Properties allProps = ClientInfoImpl.toProperties(path);
@@ -99,13 +94,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
 
     // Ensure there is exactly one server prop in the map and get its value
     // The value should be compaction properties
-    String compactionPropertiesString = "";
-    try {
-      compactionPropertiesString = Iterables.getOnlyElement(serverPropsMap.values());
-    } catch (IllegalArgumentException e) {
-      System.err.println("There should be exactly one server property. "+e.getMessage());
-      System.exit(1);
-    }
+    String compactionPropertiesString = Iterables.getOnlyElement(serverPropsMap.values());
 
     // Create a props object for compaction props
     StringReader sr = new StringReader(compactionPropertiesString.replace(' ', '\n'));
@@ -117,15 +106,8 @@ public class CheckCompactionConfig implements KeywordExecutable {
         getPropertiesWithSuffix(serverProps, ".planner.opts.executors");
 
     // Ensure there is exactly one executor config in the map and get its value
-    String executorJson = "";
-    try {
-      executorJson = Iterables.getOnlyElement(executorsProperties.values());
-    } catch (IllegalArgumentException e) {
-      System.err.println("There should be exactly one executor config. "+e.getMessage());
-      System.exit(1);
-    }
+    String executorJson = Iterables.getOnlyElement(executorsProperties.values());
 
-    final String finalExecutorJson = executorJson;
     CompactionPlanner.InitParameters params = new CompactionPlanner.InitParameters() {
       @Override
       public ServiceEnvironment getServiceEnvironment() {
@@ -134,7 +116,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
 
       @Override
       public Map<String,String> getOptions() {
-        return Map.of("executors", finalExecutorJson);
+        return Map.of("executors", executorJson);
       }
 
       @Override
@@ -158,12 +140,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
       }
     };
 
-    try {
-      new DefaultCompactionPlanner().parseExecutors(params);
-    } catch (Exception e) {
-      System.err.println("failed check: " + e.getMessage());
-      System.exit(1);
-    }
+    new DefaultCompactionPlanner().parseExecutors(params);
     System.out.println("Properties file has passed all checks.");
   }
 

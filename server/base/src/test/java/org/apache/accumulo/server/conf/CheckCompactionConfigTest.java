@@ -67,6 +67,32 @@ public class CheckCompactionConfigTest {
     CheckCompactionConfig.main(new String[] {filePath});
   }
 
+  @Test
+  public void testBadPropsFilePath() {
+    String[] args = {"/home/foo/bar/myProperties.properties"};
+    String expectedErrorMsg = "File at given path could not be found";
+    var e = assertThrows(FileNotFoundException.class, () -> CheckCompactionConfig.main(args));
+    assertEquals(expectedErrorMsg, e.getMessage());
+  }
+
+  @Test
+  public void testThrowsErrorForMultipleServerProps() throws IOException {
+    //@formatter:off
+    String inputString =
+            "test.first.common.accumulo.server.props=\\\n" +
+            "foo=bar\n\n" +
+            "test.second.common.accumulo.server.props=\\\n" +
+            "foo=bar";
+    //@formatter:on
+    String expectedErrorMsg = "expected one element but was:";
+
+    String filePath = writeToFileAndReturnPath(inputString);
+
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> CheckCompactionConfig.main(new String[] {filePath}));
+    assertTrue(e.getMessage().contains(expectedErrorMsg));
+  }
+
   private String writeToFileAndReturnPath(String inputString) throws IOException {
     File file = folder.newFile(testName.getMethodName() + ".properties");
     try (FileWriter fileWriter = new FileWriter(file, UTF_8);
