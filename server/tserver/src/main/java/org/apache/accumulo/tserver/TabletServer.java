@@ -56,6 +56,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
@@ -807,8 +808,8 @@ public class TabletServer extends AbstractServer {
     ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
       final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
 
-      final SortedSet<KeyExtent> userTablets = new TreeSet<>();
-      final SortedSet<KeyExtent> nonUserTablets = new TreeSet<>();
+      final SortedSet<KeyExtent> userExtents = new TreeSet<>();
+      final SortedSet<KeyExtent> nonUserExtents = new TreeSet<>();
 
       // Create subsets of tablets based on DataLevel: one set who's DataLevel is USER and another
       // containing the remaining tablets (those who's DataLevel is ROOT or METADATA).
@@ -817,9 +818,9 @@ public class TabletServer extends AbstractServer {
       // TODO: Push this partitioning, based on DataLevel, to ample - accumulo issue #2373
       onlineTabletsSnapshot.forEach((ke, tablet) -> {
         if (Ample.DataLevel.of(ke.tableId()) == Ample.DataLevel.USER) {
-          userTablets.add(ke);
+          userExtents.add(ke);
         } else {
-          nonUserTablets.add(ke);
+          nonUserExtents.add(ke);
         }
       });
 
@@ -830,20 +831,20 @@ public class TabletServer extends AbstractServer {
         updateCounts.put(ke, tablet.getUpdateCount());
       });
 
-      List<TabletMetadata> tmdList;
-
       // gather metadata for all tablets with DataLevel.USER using readTablets()
+      Stream<TabletMetadata> userTablets;
       try (TabletsMetadata tabletsMetadata = getContext().getAmple().readTablets()
-          .forTablets(userTablets).fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
-        tmdList = tabletsMetadata.stream().collect(Collectors.toList());
+          .forTablets(userExtents).fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
+        userTablets = tabletsMetadata.stream();
       }
 
       // gather metadata for all tablets with DataLevel.ROOT or METADATA using readTablet()
-      nonUserTablets.forEach(extent -> {
-        TabletMetadata tabletMetadata =
-            getContext().getAmple().readTablet(extent, FILES, LOGS, ECOMP, PREV_ROW);
-        tmdList.add(tabletMetadata);
-      });
+      Stream<TabletMetadata> nonUserTablets = nonUserExtents.stream().flatMap(extent -> Stream
+          .of(getContext().getAmple().readTablet(extent, FILES, LOGS, ECOMP, PREV_ROW)));
+
+      // combine both streams of TabletMetadata into one list
+      List<TabletMetadata> tmdList =
+          Stream.concat(userTablets, nonUserTablets).collect(Collectors.toList());
 
       // for each tablet, compare its metadata to what is held in memory
       for (TabletMetadata tabletMetadata : tmdList) {
