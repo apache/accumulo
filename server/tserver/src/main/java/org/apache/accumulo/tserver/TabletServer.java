@@ -55,7 +55,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
@@ -842,17 +841,14 @@ public class TabletServer extends AbstractServer {
       Stream<TabletMetadata> nonUserTablets = nonUserExtents.stream().flatMap(extent -> Stream
           .of(getContext().getAmple().readTablet(extent, FILES, LOGS, ECOMP, PREV_ROW)));
 
-      // combine both streams of TabletMetadata into one list
-      List<TabletMetadata> tmdList =
-          Stream.concat(userTablets, nonUserTablets).collect(Collectors.toList());
-
+      // combine both streams of TabletMetadata
       // for each tablet, compare its metadata to what is held in memory
-      for (TabletMetadata tabletMetadata : tmdList) {
+      Stream.concat(userTablets, nonUserTablets).forEach(tabletMetadata -> {
         KeyExtent extent = tabletMetadata.getExtent();
         Tablet tablet = onlineTabletsSnapshot.get(extent);
         Long counter = updateCounts.get(extent);
         tablet.compareTabletInfo(counter, tabletMetadata);
-      }
+      });
     }, tabletCheckFrequency, tabletCheckFrequency, TimeUnit.MINUTES);
 
     final long CLEANUP_BULK_LOADED_CACHE_MILLIS = 15 * 60 * 1000;
