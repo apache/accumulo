@@ -52,7 +52,7 @@ public class CheckCompactionConfigTest {
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   @Test
-  public void testValidInput() throws Exception {
+  public void testValidInput() throws IOException {
     //@formatter:off
     String inputString = ("test.ci.common.accumulo.server.props=\\\n" +
             "tserver.compaction.major.service.cs1.planner=" +
@@ -60,7 +60,13 @@ public class CheckCompactionConfigTest {
             "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n" +
             "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n" +
             "{'name':'medium','type':'internal','maxSize':'128M','numThreads':4},\\\n" +
-            "{'name':'large','type':'internal','numThreads':2}]").replaceAll("'","\"");
+            "{'name':'large','type':'internal','numThreads':2}] \\\n" +
+            "tserver.compaction.major.service.cs2.planner=" +
+            "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \\\n" +
+            "tserver.compaction.major.service.cs2.planner.opts.executors=\\\n" +
+            "[{'name':'small','type':'internal','maxSize':'16M','numThreads':7},\\\n" +
+            "{'name':'medium','type':'internal','maxSize':'128M','numThreads':5},\\\n" +
+            "{'name':'large','type':'internal','numThreads':3}]").replaceAll("'","\"");
     //@formatter:on
     String filePath = writeToFileAndReturnPath(inputString);
 

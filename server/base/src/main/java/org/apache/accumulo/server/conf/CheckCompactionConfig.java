@@ -72,8 +72,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
     opts.parseArgs("accumulo check-compaction-config", args);
 
     if (opts.filePath == null) {
-      System.err.println("No properties file was given");
-      System.exit(1);
+      throw new IllegalArgumentException("No properties file was given");
     }
 
     Path path = Path.of(opts.filePath);
@@ -85,12 +84,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
     log.debug("All props: {}", allProps);
 
     // Extract server props from set of all props
-    Map<String,String> serverPropsMap = new HashMap<>();
-    String suffix = ".accumulo.server.props";
-    allProps.forEach((k, v) -> {
-      if (k.toString().endsWith(suffix))
-        serverPropsMap.put(k.toString(), v.toString());
-    });
+    Map<String,String> serverPropsMap = getPropertiesWithSuffix(allProps, ".accumulo.server.props");
 
     // Ensure there is exactly one server prop in the map and get its value
     // The value should be compaction properties
@@ -105,43 +99,51 @@ public class CheckCompactionConfig implements KeywordExecutable {
     Map<String,String> executorsProperties =
         getPropertiesWithSuffix(serverProps, ".planner.opts.executors");
 
-    // Ensure there is exactly one executor config in the map and get its value
-    String executorJson = Iterables.getOnlyElement(executorsProperties.values());
+    Map<String,String> plannerProps = getPropertiesWithSuffix(serverProps, ".planner");
 
-    CompactionPlanner.InitParameters params = new CompactionPlanner.InitParameters() {
-      @Override
-      public ServiceEnvironment getServiceEnvironment() {
-        return null;
-      }
+    for (var entry : executorsProperties.entrySet()) {
+      // Get the key and value of the executor config
+      String executorName = entry.getKey();
+      String executorJson = entry.getValue();
+      log.debug("Name: {} Value: {}", executorName, executorJson);
 
-      @Override
-      public Map<String,String> getOptions() {
-        return Map.of("executors", executorJson);
-      }
+      // TODO: should probably check that a planner is defined for each executor opts
 
-      @Override
-      public String getFullyQualifiedOption(String key) {
-        return null;
-      }
+      CompactionPlanner.InitParameters params = new CompactionPlanner.InitParameters() {
+        @Override
+        public ServiceEnvironment getServiceEnvironment() {
+          return null;
+        }
 
-      @Override
-      public ExecutorManager getExecutorManager() {
-        return new ExecutorManager() {
-          @Override
-          public CompactionExecutorId createExecutor(String name, int threads) {
-            return CompactionExecutorIdImpl.externalId(name);
-          }
+        @Override
+        public Map<String,String> getOptions() {
+          return Map.of("executors", executorJson);
+        }
 
-          @Override
-          public CompactionExecutorId getExternalExecutor(String name) {
-            return CompactionExecutorIdImpl.externalId(name);
-          }
-        };
-      }
-    };
+        @Override
+        public String getFullyQualifiedOption(String key) {
+          return null;
+        }
 
-    new DefaultCompactionPlanner().parseExecutors(params);
-    System.out.println("Properties file has passed all checks.");
+        @Override
+        public ExecutorManager getExecutorManager() {
+          return new ExecutorManager() {
+            @Override
+            public CompactionExecutorId createExecutor(String name, int threads) {
+              return CompactionExecutorIdImpl.externalId(name);
+            }
+
+            @Override
+            public CompactionExecutorId getExternalExecutor(String name) {
+              return CompactionExecutorIdImpl.externalId(name);
+            }
+          };
+        }
+      };
+
+      new DefaultCompactionPlanner().parseExecutors(params);
+    }
+    log.info("Properties file has passed all checks.");
   }
 
   private static Map<String,String> getPropertiesWithSuffix(Properties serverProps, String suffix) {
