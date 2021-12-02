@@ -54,6 +54,7 @@ public class ServerInfo implements ClientInfo {
   private final VolumeManager volumeManager;
   private final ZooCache zooCache;
   private final ServerDirs serverDirs;
+  private Credentials credentials;
 
   ServerInfo(SiteConfiguration siteConfig, String instanceName, String zooKeepers,
       int zooKeepersSessionTimeOut) {
@@ -176,7 +177,10 @@ public class ServerInfo implements ClientInfo {
   }
 
   public Credentials getCredentials() {
-    return SystemCredentials.get(getInstanceID(), getSiteConfiguration());
+    if (credentials == null) {
+      credentials = SystemCredentials.get(getInstanceID(), getSiteConfiguration());
+    }
+    return credentials;
   }
 
   @Override
