@@ -831,24 +831,24 @@ public class TabletServer extends AbstractServer {
       });
 
       // gather metadata for all tablets with DataLevel.USER using readTablets()
-      Stream<TabletMetadata> userTablets;
       try (TabletsMetadata tabletsMetadata = getContext().getAmple().readTablets()
           .forTablets(userExtents).fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
-        userTablets = tabletsMetadata.stream();
+
+        Stream<TabletMetadata> userTablets = tabletsMetadata.stream();
+
+        // gather metadata for all tablets with DataLevel.ROOT or METADATA using readTablet()
+        Stream<TabletMetadata> nonUserTablets = nonUserExtents.stream().flatMap(extent -> Stream
+            .of(getContext().getAmple().readTablet(extent, FILES, LOGS, ECOMP, PREV_ROW)));
+
+        // combine both streams of TabletMetadata
+        // for each tablet, compare its metadata to what is held in memory
+        Stream.concat(userTablets, nonUserTablets).forEach(tabletMetadata -> {
+          KeyExtent extent = tabletMetadata.getExtent();
+          Tablet tablet = onlineTabletsSnapshot.get(extent);
+          Long counter = updateCounts.get(extent);
+          tablet.compareTabletInfo(counter, tabletMetadata);
+        });
       }
-
-      // gather metadata for all tablets with DataLevel.ROOT or METADATA using readTablet()
-      Stream<TabletMetadata> nonUserTablets = nonUserExtents.stream().flatMap(extent -> Stream
-          .of(getContext().getAmple().readTablet(extent, FILES, LOGS, ECOMP, PREV_ROW)));
-
-      // combine both streams of TabletMetadata
-      // for each tablet, compare its metadata to what is held in memory
-      Stream.concat(userTablets, nonUserTablets).forEach(tabletMetadata -> {
-        KeyExtent extent = tabletMetadata.getExtent();
-        Tablet tablet = onlineTabletsSnapshot.get(extent);
-        Long counter = updateCounts.get(extent);
-        tablet.compareTabletInfo(counter, tabletMetadata);
-      });
     }, tabletCheckFrequency, tabletCheckFrequency, TimeUnit.MINUTES);
 
     final long CLEANUP_BULK_LOADED_CACHE_MILLIS = 15 * 60 * 1000;
