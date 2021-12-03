@@ -168,7 +168,6 @@ public class KeywordStartIT {
     expectSet.add(Info.class);
     expectSet.add(Initialize.class);
     expectSet.add(LoginProperties.class);
-    // should this be replaced?
     expectSet.add(org.apache.accumulo.master.Master.class);
     expectSet.add(MiniAccumuloRunner.class);
     expectSet.add(Monitor.class);
