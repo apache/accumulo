@@ -93,7 +93,7 @@ public class ServerInfo implements ClientInfo {
     siteConfig = config;
     hadoopConf = new Configuration();
     try {
-      volumeManager = VolumeManagerImpl.get(siteConfig, hadoopConf);
+   volumeManager = VolumeManagerImpl.get(siteConfig, hadoopConf);
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
@@ -182,7 +182,7 @@ public class ServerInfo implements ClientInfo {
   private Credentials loadCredentials() {
     return SystemCredentials.get(getInstanceID(), getSiteConfiguration());
   }
-  
+
   public Credentials getCredentials() {
     return credentials;
   }
