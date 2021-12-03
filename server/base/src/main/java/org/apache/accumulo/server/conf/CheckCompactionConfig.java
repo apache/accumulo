@@ -99,15 +99,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
     Map<String,String> executorsProperties =
         getPropertiesWithSuffix(serverProps, ".planner.opts.executors");
 
-    Map<String,String> plannerProps = getPropertiesWithSuffix(serverProps, ".planner");
-
-    for (var entry : executorsProperties.entrySet()) {
-      // Get the key and value of the executor config
-      String executorName = entry.getKey();
-      String executorJson = entry.getValue();
-      log.debug("Name: {} Value: {}", executorName, executorJson);
-
-      // TODO: should probably check that a planner is defined for each executor opts
+    for (String executorJson : executorsProperties.values()) {
 
       CompactionPlanner.InitParameters params = new CompactionPlanner.InitParameters() {
         @Override
