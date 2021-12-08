@@ -135,7 +135,7 @@ public class GenerateSplitsTest {
         tempFolder.newFolder("dir2").getAbsolutePath(), "-n", "2");
     log.info("Invoking GenerateSplits with {}", args4);
     e = assertThrows(IllegalArgumentException.class, () -> main(args4.toArray(new String[0])));
-    assertTrue(e.getMessage(), e.getMessage().contains("Only one directory can be specified"));
+    assertTrue(e.getMessage(), e.getMessage().contains("No files were found"));
   }
 
   @Test
