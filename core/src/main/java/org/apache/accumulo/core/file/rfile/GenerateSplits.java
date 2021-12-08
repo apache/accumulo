@@ -83,7 +83,7 @@ public class GenerateSplits implements KeywordExecutable {
     @Parameter(names = {"-sf", "--splits-file"}, description = "Output the splits to a file")
     public String outputFile;
 
-    @Parameter(description = " <file|directory> { <file> ... }")
+    @Parameter(description = " <file|directory> { <file|directory> ... }")
     public List<String> files = new ArrayList<>();
   }
 
@@ -125,31 +125,18 @@ public class GenerateSplits implements KeywordExecutable {
     long splitSize = opts.splitSize;
 
     FileSystem fs = FileSystem.get(hadoopConf);
-    FileSystem localFs = FileSystem.getLocal(hadoopConf);
     List<Path> filePaths = new ArrayList<>();
     for (String file : opts.files) {
       Path path = new Path(file);
-      if (file.contains(":")) {
-        fs = path.getFileSystem(hadoopConf);
-      } else {
-        log.warn("Attempting to find file across filesystems. Consider providing URI "
-            + "instead of path");
-        if (!fs.exists(path))
-          fs = localFs; // fall back to local
-      }
+      fs = PrintInfo.resolveFS(log, hadoopConf, path);
       // get all the files in the directory
-      if (fs.getFileStatus(path).isDirectory()) {
-        // can only explode one directory
-        if (opts.files.size() > 1)
-          throw new IllegalArgumentException("Only one directory can be specified");
-        var iter = fs.listFiles(path, true);
-        while (iter.hasNext()) {
-          filePaths.add(iter.next().getPath());
-        }
-      } else {
-        filePaths.add(path);
-      }
+      filePaths.addAll(getFiles(fs, path));
     }
+
+    if (filePaths.isEmpty())
+      throw new IllegalArgumentException("No files were found in " + opts.files);
+    else
+      log.trace("Found the following files: {}", filePaths);
 
     // if no size specified look at indexed keys first
     if (opts.splitSize == 0) {
@@ -185,6 +172,22 @@ public class GenerateSplits implements KeywordExecutable {
     } else {
       desiredSplits.forEach(System.out::println);
     }
+  }
+
+  private List<Path> getFiles(FileSystem fs, Path path) throws IOException {
+    List<Path> filePaths = new ArrayList<>();
+    if (fs.getFileStatus(path).isDirectory()) {
+      var iter = fs.listFiles(path, true);
+      while (iter.hasNext()) {
+        filePaths.addAll(getFiles(fs, iter.next().getPath()));
+      }
+    } else {
+      if (!path.toString().endsWith(".rf")) {
+        throw new IllegalArgumentException("Provided file (" + path + ") does not end with '.rf'");
+      }
+      filePaths.add(path);
+    }
+    return filePaths;
   }
 
   private Text[] getQuantiles(SortedKeyValueIterator<Key,Value> iterator, int numSplits)
