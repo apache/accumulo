@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -47,7 +46,6 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.datasketches.quantiles.ItemsSketch;
@@ -71,10 +69,6 @@ public class GenerateSplits implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(GenerateSplits.class);
 
   static class Opts extends ConfigOpts {
-    @Parameter(names = {"-a", "--auths"}, converter = ClientOpts.AuthConverter.class,
-        description = "the authorizations to use when reading the files")
-    public Authorizations auths = Authorizations.EMPTY;
-
     @Parameter(names = {"-n", "--num"},
         description = "The number of split points to generate. Can be used to create n+1 tablets. Cannot use with the split size option.")
     public int numSplits = 0;
