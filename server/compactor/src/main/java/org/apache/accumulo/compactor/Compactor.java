@@ -711,10 +711,11 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
           compactionThread.join();
           LOG.trace("Compaction thread finished.");
 
-   if(err.get() != null){
-           //maybe the error occured because the table was deleted or something like that, so force a cancel check to possibly reduce noise in the logs
-          checkIfCanceled();
-   }
+          if (err.get() != null) {
+            // maybe the error occured because the table was deleted or something like that, so
+            // force a cancel check to possibly reduce noise in the logs
+            checkIfCanceled();
+          }
 
           if (compactionThread.isInterrupted() || JOB_HOLDER.isCancelled()
               || ((err.get() != null && err.get().getClass().equals(InterruptedException.class)))) {
