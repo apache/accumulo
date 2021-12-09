@@ -184,7 +184,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
         TimeUnit.MILLISECONDS);
   }
 
-  protected synchronized void checkIfCanceled() {
+  protected void checkIfCanceled() {
     TExternalCompactionJob job = JOB_HOLDER.getJob();
     if (job != null) {
       try {
