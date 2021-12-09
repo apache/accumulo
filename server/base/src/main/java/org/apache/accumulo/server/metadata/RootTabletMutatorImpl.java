@@ -103,11 +103,10 @@ public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.Ta
       // TODO examine implementation of getZooReaderWriter().mutate()
       context.getZooReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
-        log.debug("Before mutating : {}, ", currJson);
         var rtm = RootTabletMetadata.fromJson(currJson);
         rtm.update(mutation);
         String newJson = rtm.toJson();
-        log.debug("After mutating : {} ", newJson);
+        log.debug("mutation: from:[{}] to: [{}]", currJson, newJson);
         return newJson.getBytes(UTF_8);
       });
 
