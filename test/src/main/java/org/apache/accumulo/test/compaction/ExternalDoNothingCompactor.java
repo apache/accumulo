@@ -53,6 +53,9 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
       LongAdder totalInputBytes, CountDownLatch started, CountDownLatch stopped,
       AtomicReference<Throwable> err) {
 
+    // Set this to true so that only 1 external compaction is run
+    this.shutdown = true;
+
     return new Runnable() {
       @Override
       public void run() {
@@ -76,7 +79,6 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
         } catch (Exception e) {
           LOG.error("Compaction failed", e);
           err.set(e);
-          throw new RuntimeException("Compaction failed", e);
         } finally {
           stopped.countDown();
         }
