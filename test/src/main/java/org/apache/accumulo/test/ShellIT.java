@@ -589,4 +589,27 @@ public class ShellIT extends SharedMiniClusterBase {
     }
   }
 
+  // Test the maxSplits option for getsplits/listsplits.
+  @Test
+  public void testMaxSplitsOption() throws Exception {
+    Shell.log.debug("Starting testMaxSplits test ------------------");
+    exec("createtable maxtab", true);
+    exec("addsplits 0 1 2 3 4 5 6 7 8 9 a b c d e f g h i j k l m n o p q r s t", true);
+    exec("getsplits -m 31", true,
+        "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\na\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\nm\nn\no\np\nq\nr\ns\nt\n");
+    exec("getsplits -m 30", true,
+        "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\na\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\nm\nn\no\np\nq\nr\ns\nt\n");
+    exec("getsplits -m 29", true,
+        "1\n2\n3\n4\n5\n6\n7\n8\n9\na\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\nm\nn\no\np\nq\nr\ns\nt\n");
+    exec("getsplits -m 15", true, "1\n3\n5\n7\n9\nb\nd\nf\ng\ni\nk\nm\no\nq\ns\n");
+    exec("getsplits -m 10", true, "2\n5\n8\na\nd\ng\nj\nl\no\nr\n");
+    exec("getsplits -m 5", true, "5\na\nf\nk\np\n");
+    exec("getsplits -m 3", true, "7\nf\nm\n");
+    exec("getsplits -m 1", true, "f\n");
+    // if 0 is supplied as maxSplits, the non-maxSplits version of getsplits is called and all
+    // are returned.
+    exec("getsplits -m 0", true,
+        "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\na\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\nm\nn\no\np\nq\nr\ns\nt\n");
+  }
+
 }
