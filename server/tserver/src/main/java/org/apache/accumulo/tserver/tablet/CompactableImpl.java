@@ -685,6 +685,7 @@ public class CompactableImpl implements Compactable {
             .ofMillis(conf.getTimeInMillis(Property.TABLE_COMPACTION_SELECTION_EXPIRATION)));
     this.fileMgr = new FileManager(tablet.getExtent(), extCompactingFiles, extSelInfo,
         selectionExpirationNanosDeriver) {
+      @Override
       protected boolean noneRunning(CompactionKind kind) {
         return CompactableImpl.this.noneRunning(kind);
       }
@@ -1263,7 +1264,6 @@ public class CompactableImpl implements Compactable {
       TabletLogger.compacted(getExtent(), job, newFile);
     } catch (CompactionCanceledException cce) {
       log.debug("Compaction canceled {} ", getExtent());
-      newFile = null;
     } catch (Exception e) {
       newFile = null;
       throw new RuntimeException(e);
