@@ -583,9 +583,9 @@ public class ShellIT extends SharedMiniClusterBase {
   }
 
   private void createTables(final int limit, final int modifier) throws IOException {
-    String tableModifier = "x" + Integer.toString(modifier);
+    String tableModifier = "x" + modifier;
     for (int i = 0; i < limit; i++) {
-      exec("createtable tabx" + Integer.toString(i) + tableModifier);
+      exec("createtable tabx" + i + tableModifier);
     }
   }
 

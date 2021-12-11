@@ -288,22 +288,22 @@ public class MiniAccumuloRunner {
 
   private static void printInfo(MiniAccumuloCluster accumulo, int shutdownPort) {
     System.out.println("Mini Accumulo Cluster\n");
-    System.out.println(String.format(FORMAT_STRING, "Directory:",
-        accumulo.getConfig().getDir().getAbsoluteFile()));
-    System.out.println(String.format(FORMAT_STRING, "Logs:",
-        accumulo.getConfig().getImpl().getLogDir().getAbsoluteFile()));
-    System.out.println(
-        String.format(FORMAT_STRING, "Instance Name:", accumulo.getConfig().getInstanceName()));
-    System.out.println(
-        String.format(FORMAT_STRING, "Root Password:", accumulo.getConfig().getRootPassword()));
-    System.out.println(String.format(FORMAT_STRING, "ZooKeeper:", accumulo.getZooKeepers()));
+    System.out.printf((FORMAT_STRING) + "%n", "Directory:",
+        accumulo.getConfig().getDir().getAbsoluteFile());
+    System.out.printf((FORMAT_STRING) + "%n", "Logs:",
+        accumulo.getConfig().getImpl().getLogDir().getAbsoluteFile());
+    System.out.printf((FORMAT_STRING) + "%n", "Instance Name:",
+        accumulo.getConfig().getInstanceName());
+    System.out.printf((FORMAT_STRING) + "%n", "Root Password:",
+        accumulo.getConfig().getRootPassword());
+    System.out.printf((FORMAT_STRING) + "%n", "ZooKeeper:", accumulo.getZooKeepers());
 
     for (Pair<ServerType,Integer> pair : accumulo.getDebugPorts()) {
-      System.out.println(String.format(FORMAT_STRING, pair.getFirst().prettyPrint() + " JDWP Host:",
-          "localhost:" + pair.getSecond()));
+      System.out.printf((FORMAT_STRING) + "%n", pair.getFirst().prettyPrint() + " JDWP Host:",
+          "localhost:" + pair.getSecond());
     }
 
-    System.out.println(String.format(FORMAT_STRING, "Shutdown Port:", shutdownPort));
+    System.out.printf((FORMAT_STRING) + "%n", "Shutdown Port:", shutdownPort);
 
     System.out.println();
     System.out.println("  To connect with shell, use the following command : ");

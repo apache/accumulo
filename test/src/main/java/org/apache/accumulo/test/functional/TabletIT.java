@@ -85,8 +85,7 @@ public class TabletIT extends AccumuloClusterHarness {
         // populate
         for (int i = 0; i < N; i++) {
           Mutation m = new Mutation(new Text(String.format("%05d", i)));
-          m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"),
-              new Value("junk"));
+          m.put(new Text("col" + ((i % 3) + 1)), new Text("qual"), new Value("junk"));
           b.addMutation(m);
         }
       }

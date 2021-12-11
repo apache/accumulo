@@ -83,8 +83,7 @@ public class ClusterConfigParser {
   public static void outputShellVariables(Map<String,String> config, PrintStream out) {
     for (String section : SECTIONS) {
       if (config.containsKey(section)) {
-        out.println(
-            String.format(PROPERTY_FORMAT, section.toUpperCase() + "_HOSTS", config.get(section)));
+        out.printf((PROPERTY_FORMAT) + "%n", section.toUpperCase() + "_HOSTS", config.get(section));
       } else {
         if (section.equals("manager") || section.equals("tserver")) {
           throw new RuntimeException("Required configuration section is missing: " + section);
@@ -94,20 +93,20 @@ public class ClusterConfigParser {
     }
 
     if (config.containsKey("compaction.coordinator")) {
-      out.println(String.format(PROPERTY_FORMAT, "COORDINATOR_HOSTS",
-          config.get("compaction.coordinator")));
+      out.printf((PROPERTY_FORMAT) + "%n", "COORDINATOR_HOSTS",
+          config.get("compaction.coordinator"));
     }
     if (config.containsKey("compaction.compactor.queue")) {
-      out.println(String.format(PROPERTY_FORMAT, "COMPACTION_QUEUES",
-          config.get("compaction.compactor.queue")));
+      out.printf((PROPERTY_FORMAT) + "%n", "COMPACTION_QUEUES",
+          config.get("compaction.compactor.queue"));
     }
     String queues = config.get("compaction.compactor.queue");
     if (StringUtils.isNotEmpty(queues)) {
       String[] q = queues.split(" ");
       for (int i = 0; i < q.length; i++) {
         if (config.containsKey("compaction.compactor." + q[i])) {
-          out.println(String.format(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + q[i],
-              config.get("compaction.compactor." + q[i])));
+          out.printf((PROPERTY_FORMAT) + "%n", "COMPACTOR_HOSTS_" + q[i],
+              config.get("compaction.compactor." + q[i]));
         }
       }
     }
