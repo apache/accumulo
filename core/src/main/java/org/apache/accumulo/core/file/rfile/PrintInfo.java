@@ -181,10 +181,6 @@ public class PrintInfo implements KeywordExecutable {
       log.debug("Adding Hadoop configuration file {}", confFile);
       conf.addResource(new Path(confFile));
     }
-
-    FileSystem hadoopFs = FileSystem.get(conf);
-    FileSystem localFs = FileSystem.getLocal(conf);
-
     LogHistogram kvHistogram = new LogHistogram();
 
     KeyStats dataKeyStats = new KeyStats();
@@ -192,14 +188,7 @@ public class PrintInfo implements KeywordExecutable {
 
     for (String arg : opts.files) {
       Path path = new Path(arg);
-      FileSystem fs;
-      if (arg.contains(":")) {
-        fs = path.getFileSystem(conf);
-      } else {
-        log.warn(
-            "Attempting to find file across filesystems. Consider providing URI instead of path");
-        fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
-      }
+      FileSystem fs = resolveFS(log, conf, path);
       System.out
           .println("Reading file: " + path.makeQualified(fs.getUri(), fs.getWorkingDirectory()));
 
@@ -311,6 +300,20 @@ public class PrintInfo implements KeywordExecutable {
         return;
       }
     }
+  }
+
+  public static FileSystem resolveFS(Logger log, Configuration conf, Path file) throws IOException {
+    FileSystem hadoopFs = FileSystem.get(conf);
+    FileSystem localFs = FileSystem.getLocal(conf);
+    FileSystem fs;
+    if (file.toString().contains(":")) {
+      fs = file.getFileSystem(conf);
+    } else {
+      log.warn(
+          "Attempting to find file across filesystems. Consider providing URI instead of path");
+      fs = hadoopFs.exists(file) ? hadoopFs : localFs; // fall back to local
+    }
+    return fs;
   }
 
   /**
