@@ -725,7 +725,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     // When the number of maxSplits requested is less than the number of existing splits, the
     // following code populates the splitsSubset list 'evenly' from the existing splits
     ArrayList<Text> splitsSubset = new ArrayList<>(maxSplits);
-    int selectedSoFar = 0;
     final int SELECTION_THRESHOLD = 1;
 
     // stepSize can never be greater than 1 due to the if-loop check above.
@@ -739,7 +738,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
       selectionTrigger += stepSize;
       if (selectionTrigger > SELECTION_THRESHOLD) {
         splitsSubset.add(existingSplit);
-        selectedSoFar++;
         selectionTrigger -= 1;
       }
     }
