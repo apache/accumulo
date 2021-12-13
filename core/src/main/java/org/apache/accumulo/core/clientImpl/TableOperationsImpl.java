@@ -733,7 +733,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     double selectionTrigger = 0.0;
 
     for (Text existingSplit : existingSplits) {
-      if (selectedSoFar >= maxSplits) {
+      if (splitsSubset.size() >= maxSplits) {
         break;
       }
       selectionTrigger += stepSize;
