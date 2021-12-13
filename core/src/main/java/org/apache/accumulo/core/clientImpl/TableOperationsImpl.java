@@ -738,7 +738,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
       selectionTrigger += stepSize;
       if (selectionTrigger > SELECTION_THRESHOLD) {
-        splitsSubset.add(exitingSplit);
+        splitsSubset.add(existingSplit);
         selectedSoFar++;
         selectionTrigger -= 1;
       }
