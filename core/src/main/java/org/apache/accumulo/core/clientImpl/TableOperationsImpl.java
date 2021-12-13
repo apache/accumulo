@@ -732,7 +732,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     final double stepSize = (maxSplits + 1) / (double) (existingSplits.size());
     double selectionTrigger = 0.0;
 
-    for (Text exitingSplit : existingSplits) {
+    for (Text existingSplit : existingSplits) {
       if (selectedSoFar >= maxSplits) {
         break;
       }
