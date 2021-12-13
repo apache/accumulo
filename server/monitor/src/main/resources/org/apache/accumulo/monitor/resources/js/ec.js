@@ -124,23 +124,20 @@
 
              // Remove from the 'open' array
              detailRows.splice( idx, 1 );
-         }
-         else {
+         } else {
              var rci = row.data();
+             var ecid = rci.ecid;
+             var idSuffix = ecid.substring(ecid.length-5, ecid.length);
              tr.addClass( 'details' );
              // put all the information into html for a single row
-             var htmlRow = "<table class='table table-bordered table-striped table-condensed'>"
+             var htmlRow = "<table class='table table-bordered table-striped table-condensed' id='table"+idSuffix+"'>"
              htmlRow += "<thead><tr><th>#</th><th>Input Files</th><th>Size</th><th>Entries</th></tr></thead>";
-             $.each( rci.inputFiles, function( key, value ) {
-               htmlRow += "<tr><td>" + key + "</td>";
-               htmlRow += "<td>" + value.metadataFileEntry + "</td>";
-               htmlRow += "<td>" + bigNumberForSize(value.size) + "</td>";
-               htmlRow += "<td>" + bigNumberForQuantity(value.entries) + "</td></tr>";
-             });
-             htmlRow += "</table>";
-             htmlRow += "Output File: " + rci.outputFile + "<br>";
-             htmlRow += rci.ecid;
+             htmlRow += "<tbody></tbody></table>";
+             htmlRow += "Output File: <span id='outputFile" + idSuffix + "'></span><br>";
+             htmlRow += ecid;
              row.child(htmlRow).show();
+             // show row then make ajax call
+             getRunningDetails(ecid, idSuffix);
 
              // Add to the 'open' array
              if ( idx === -1 ) {
@@ -187,6 +184,26 @@
         sessionStorage.ecInfo = JSON.stringify(data);
    });
  }
+
+ function getRunningDetails(ecid, idSuffix) {
+    var tableId = 'table' + idSuffix;
+    var ajaxUrl = '/rest/ec/details?ecid=' + ecid;
+    clearTableBody(tableId);
+    console.log("Ajax call to " + ajaxUrl);
+    $.getJSON(ajaxUrl, function(data) {
+       $.each( data.inputFiles, function( key, value ) {
+          var items = [];
+          items.push(createCenterCell(key, key));
+          items.push(createCenterCell(value.metadataFileEntry, value.metadataFileEntry));
+          items.push(createCenterCell(value.size, bigNumberForSize(value.size)));
+          items.push(createCenterCell(value.entries, bigNumberForQuantity(value.entries)));
+          $('<tr/>', {
+              html: items.join('')
+            }).appendTo('#' + tableId + ' tbody');
+        });
+        $('#outputFile' + idSuffix).text(data.outputFile);
+    });
+  }
 
  function refreshCompactors() {
    console.log("Refresh compactors table.");

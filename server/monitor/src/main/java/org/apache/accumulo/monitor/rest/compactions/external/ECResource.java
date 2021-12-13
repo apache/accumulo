@@ -19,9 +19,11 @@
 package org.apache.accumulo.monitor.rest.compactions.external;
 
 import jakarta.inject.Inject;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.monitor.Monitor;
@@ -57,6 +59,28 @@ public class ECResource {
   @Path("running")
   @GET
   public RunningCompactions getRunning() {
-    return new RunningCompactions(monitor.getRunningInfo());
+    return new RunningCompactions(monitor.fetchRunningInfo());
+  }
+
+  @Path("details")
+  @GET
+  public RunningCompactorDetails getDetails(@QueryParam("ecid") @NotNull String ecid) {
+    // make parameter more user-friendly by ensuring the ecid prefix is present
+    ecid = ecid.replace("ecid:", "ECID:");
+    if (!ecid.startsWith("ECID:"))
+      ecid = "ECID:" + ecid;
+
+    var ecMap = monitor.getEcRunningMap();
+    var externalCompaction = ecMap.get(ecid);
+    if (externalCompaction == null) {
+      // map could be old so fetch all running compactions and try again
+      ecMap = monitor.fetchRunningInfo();
+      externalCompaction = ecMap.get(ecid);
+      if (externalCompaction == null) {
+        log.warn("Failed to find details for ECID: {}", ecid);
+        return new RunningCompactorDetails();
+      }
+    }
+    return new RunningCompactorDetails(System.currentTimeMillis(), ecid, externalCompaction);
   }
 }

@@ -639,7 +639,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
    * user fetches since RPC calls are going to the coordinator. This allows for fine grain updates
    * of external compaction progress.
    */
-  public synchronized Map<String,TExternalCompaction> getRunningInfo() {
+  public synchronized Map<String,TExternalCompaction> fetchRunningInfo() {
     if (coordinatorHost.isEmpty()) {
       throw new IllegalStateException(coordinatorMissingMsg);
     }
@@ -655,12 +655,13 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
     ecRunningMap.clear();
     if (running.getCompactions() != null) {
-      running.getCompactions().forEach((queue, ec) -> {
-        log.trace("Found Compactions running on queue {} -> {}", queue, ec);
-        ecRunningMap.put(queue, ec);
-      });
+      ecRunningMap.putAll(running.getCompactions());
     }
 
+    return ecRunningMap;
+  }
+
+  public Map<String,TExternalCompaction> getEcRunningMap() {
     return ecRunningMap;
   }
 

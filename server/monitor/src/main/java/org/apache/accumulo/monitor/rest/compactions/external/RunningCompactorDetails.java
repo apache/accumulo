@@ -20,29 +20,32 @@ package org.apache.accumulo.monitor.rest.compactions.external;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
+import org.apache.accumulo.core.tabletserver.thrift.InputFile;
 
-public class RunningCompactions {
+public class RunningCompactorDetails extends RunningCompactorInfo {
+  // Variable names become JSON keys
+  public List<CompactionInputFile> inputFiles = new ArrayList<>();
+  public String outputFile;
 
-  public final List<RunningCompactorInfo> running = new ArrayList<>();
-
-  public RunningCompactions() {}
-
-  public RunningCompactions(Map<String,TExternalCompaction> rMap) {
-    if (rMap != null) {
-      var fetchedTime = System.currentTimeMillis();
-      for (var entry : rMap.entrySet()) {
-        running.add(new RunningCompactorInfo(fetchedTime, entry.getKey(), entry.getValue()));
-      }
-    }
+  public RunningCompactorDetails() {
+    super();
   }
 
-  public static RunningCompactions details(long fetchedTime, String ecid, TExternalCompaction ec) {
-    var rc = new RunningCompactions();
-    rc.running.add(new RunningCompactorDetails(fetchedTime, ecid, ec));
-    return rc;
+  public RunningCompactorDetails(long fetchedTime, String ecid, TExternalCompaction ec) {
+    super(fetchedTime, ecid, ec);
+    var job = ec.getJob();
+    inputFiles = convertInputFiles(job.files);
+    outputFile = job.outputFile;
   }
 
+  private List<CompactionInputFile> convertInputFiles(List<InputFile> files) {
+    List<CompactionInputFile> list = new ArrayList<>();
+    files.forEach(f -> list
+        .add(new CompactionInputFile(f.metadataFileEntry, f.size, f.entries, f.timestamp)));
+    // sorted largest to smallest
+    list.sort((o1, o2) -> Long.compare(o2.size, o1.size));
+    return list;
+  }
 }
