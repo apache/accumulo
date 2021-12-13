@@ -68,13 +68,13 @@ public class DumpZookeeper {
 
   private static void writeXml(PrintStream out, String root)
       throws KeeperException, InterruptedException {
-    write(out, 0, "<dump root='%s'>", root);
+    write(out, 0, "<dump root='%s'>%n", root);
     for (String child : zk.getChildren(root)) {
       if (!child.equals("zookeeper")) {
         childXml(out, root, child, 1);
       }
     }
-    write(out, 0, "</dump>");
+    write(out, 0, "</dump>%n");
   }
 
   private static void childXml(PrintStream out, String root, String child, int indent)
@@ -93,24 +93,24 @@ public class DumpZookeeper {
     }
     if (stat.getNumChildren() == 0) {
       if (stat.getDataLength() == 0) {
-        write(out, indent, "<%s name='%s'/>", type, child);
+        write(out, indent, "<%s name='%s'/>%n", type, child);
       } else {
         Encoded value = value(path);
-        write(out, indent, "<%s name='%s' encoding='%s' value='%s'/>", type, child, value.encoding,
-            value.value);
+        write(out, indent, "<%s name='%s' encoding='%s' value='%s'/>%n", type, child,
+            value.encoding, value.value);
       }
     } else {
       if (stat.getDataLength() == 0) {
-        write(out, indent, "<%s name='%s'>", type, child);
+        write(out, indent, "<%s name='%s'>%n", type, child);
       } else {
         Encoded value = value(path);
-        write(out, indent, "<%s name='%s' encoding='%s' value='%s'>", type, child, value.encoding,
+        write(out, indent, "<%s name='%s' encoding='%s' value='%s'>%n", type, child, value.encoding,
             value.value);
       }
       for (String c : zk.getChildren(path)) {
         childXml(out, path, c, indent + 1);
       }
-      write(out, indent, "</node>");
+      write(out, indent, "</node>%n");
     }
   }
 
@@ -134,7 +134,7 @@ public class DumpZookeeper {
 
   private static void writeHumanReadable(PrintStream out, String root)
       throws KeeperException, InterruptedException {
-    write(out, 0, "%s:", root);
+    write(out, 0, "%s:%n", root);
     for (String child : zk.getChildren(root)) {
       if (!child.equals("zookeeper")) {
         childHumanReadable(out, root, child, 1);
@@ -157,9 +157,9 @@ public class DumpZookeeper {
       node = "*" + child + "*";
     }
     if (stat.getDataLength() == 0) {
-      write(out, indent, "%s:", node);
+      write(out, indent, "%s:%n", node);
     } else {
-      write(out, indent, "%s:  %s", node, value(path).value);
+      write(out, indent, "%s:  %s%n", node, value(path).value);
     }
     if (stat.getNumChildren() > 0) {
       for (String c : zk.getChildren(path)) {

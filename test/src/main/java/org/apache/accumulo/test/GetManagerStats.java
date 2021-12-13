@@ -58,90 +58,92 @@ public class GetManagerStats {
         }
       }
     }
-    out(0, "State: " + stats.state.name());
-    out(0, "Goal State: " + stats.goalState.name());
+    out(0, "State: %s%n", stats.state.name());
+    out(0, "Goal State: %s%n", stats.goalState.name());
     if (stats.serversShuttingDown != null && !stats.serversShuttingDown.isEmpty()) {
-      out(0, "Servers to shutdown");
+      out(0, "Servers to shutdown%n");
       for (String server : stats.serversShuttingDown) {
-        out(1, "%s", server);
+        out(1, "%s%n", server);
       }
     }
-    out(0, "Unassigned tablets: %d", stats.unassignedTablets);
+    out(0, "Unassigned tablets: %d%n", stats.unassignedTablets);
     if (stats.badTServers != null && !stats.badTServers.isEmpty()) {
-      out(0, "Bad servers");
+      out(0, "Bad servers%n");
 
       for (Entry<String,Byte> entry : stats.badTServers.entrySet()) {
-        out(1, "%s: %d", entry.getKey(), (int) entry.getValue());
+        out(1, "%s: %d%n", entry.getKey(), (int) entry.getValue());
       }
     }
-    out(0, "Dead tablet servers count: %s", stats.deadTabletServers.size());
+    out(0, "Dead tablet servers count: %s%n", stats.deadTabletServers.size());
     for (DeadServer dead : stats.deadTabletServers) {
-      out(1, "Dead tablet server: %s", dead.server);
-      out(2, "Last report: %s", new SimpleDateFormat().format(new Date(dead.lastStatus)));
-      out(2, "Cause: %s", dead.status);
+      out(1, "Dead tablet server: %s%n", dead.server);
+      out(2, "Last report: %s%n", new SimpleDateFormat().format(new Date(dead.lastStatus)));
+      out(2, "Cause: %s%n", dead.status);
     }
-    out(0, "Bulk imports: %s", stats.bulkImports.size());
+    out(0, "Bulk imports: %s%n", stats.bulkImports.size());
     for (BulkImportStatus bulk : stats.bulkImports) {
-      out(1, "Import directory: %s", bulk.filename);
-      out(2, "Bulk state %s", bulk.state);
-      out(2, "Bulk start %s", bulk.startTime);
+      out(1, "Import directory: %s%n", bulk.filename);
+      out(2, "Bulk state %s%n", bulk.state);
+      out(2, "Bulk start %s%n", bulk.startTime);
     }
     if (stats.tableMap != null && !stats.tableMap.isEmpty()) {
-      out(0, "Tables");
+      out(0, "Tables%n");
       for (Entry<String,TableInfo> entry : stats.tableMap.entrySet()) {
         TableInfo v = entry.getValue();
-        out(1, "%s", entry.getKey());
-        out(2, "Records: %d", v.recs);
-        out(2, "Records in Memory: %d", v.recsInMemory);
-        out(2, "Tablets: %d", v.tablets);
-        out(2, "Online Tablets: %d", v.onlineTablets);
-        out(2, "Ingest Rate: %.2f", v.ingestRate);
-        out(2, "Query Rate: %.2f", v.queryRate);
+        out(1, "%s%n", entry.getKey());
+        out(2, "Records: %d%n", v.recs);
+        out(2, "Records in Memory: %d%n", v.recsInMemory);
+        out(2, "Tablets: %d%n", v.tablets);
+        out(2, "Online Tablets: %d%n", v.onlineTablets);
+        out(2, "Ingest Rate: %.2f%n", v.ingestRate);
+        out(2, "Query Rate: %.2f%n", v.queryRate);
       }
     }
     if (stats.tServerInfo != null && !stats.tServerInfo.isEmpty()) {
-      out(0, "Tablet Servers");
+      out(0, "Tablet Servers%n");
       long now = System.currentTimeMillis();
       for (TabletServerStatus server : stats.tServerInfo) {
         TableInfo summary = TableInfoUtil.summarizeTableStats(server);
-        out(1, "Name: %s", server.name);
-        out(2, "Ingest: %.2f", summary.ingestRate);
-        out(2, "Last Contact: %s", server.lastContact);
-        out(2, "OS Load Average: %.2f", server.osLoad);
-        out(2, "Queries: %.2f", summary.queryRate);
-        out(2, "Time Difference: %.1f", ((now - server.lastContact) / 1000.));
-        out(2, "Total Records: %d", summary.recs);
-        out(2, "Lookups: %d", server.lookups);
+        out(1, "Name: %s%n", server.name);
+        out(2, "Ingest: %.2f%n", summary.ingestRate);
+        out(2, "Last Contact: %s%n", server.lastContact);
+        out(2, "OS Load Average: %.2f%n", server.osLoad);
+        out(2, "Queries: %.2f%n", summary.queryRate);
+        out(2, "Time Difference: %.1f%n", ((now - server.lastContact) / 1000.));
+        out(2, "Total Records: %d%n", summary.recs);
+        out(2, "Lookups: %d%n", server.lookups);
         if (server.holdTime > 0) {
-          out(2, "Hold Time: %d", server.holdTime);
+          out(2, "Hold Time: %d%n", server.holdTime);
         }
         if (server.tableMap != null && !server.tableMap.isEmpty()) {
-          out(2, "Tables");
+          out(2, "Tables%n");
           for (Entry<String,TableInfo> status : server.tableMap.entrySet()) {
             TableInfo info = status.getValue();
-            out(3, "Table: %s", status.getKey());
-            out(4, "Tablets: %d", info.onlineTablets);
-            out(4, "Records: %d", info.recs);
-            out(4, "Records in Memory: %d", info.recsInMemory);
-            out(4, "Ingest: %.2f", info.ingestRate);
-            out(4, "Queries: %.2f", info.queryRate);
-            out(4, "Major Compacting: %d", info.majors == null ? 0 : info.majors.running);
-            out(4, "Queued for Major Compaction: %d", info.majors == null ? 0 : info.majors.queued);
-            out(4, "Minor Compacting: %d", info.minors == null ? 0 : info.minors.running);
-            out(4, "Queued for Minor Compaction: %d", info.minors == null ? 0 : info.minors.queued);
+            out(3, "Table: %s%n", status.getKey());
+            out(4, "Tablets: %d%n", info.onlineTablets);
+            out(4, "Records: %d%n", info.recs);
+            out(4, "Records in Memory: %d%n", info.recsInMemory);
+            out(4, "Ingest: %.2f%n", info.ingestRate);
+            out(4, "Queries: %.2f%n", info.queryRate);
+            out(4, "Major Compacting: %d%n", info.majors == null ? 0 : info.majors.running);
+            out(4, "Queued for Major Compaction: %d%n",
+                info.majors == null ? 0 : info.majors.queued);
+            out(4, "Minor Compacting: %d%n", info.minors == null ? 0 : info.minors.running);
+            out(4, "Queued for Minor Compaction: %d%n",
+                info.minors == null ? 0 : info.minors.queued);
           }
         }
-        out(2, "Recoveries: %d", server.logSorts.size());
+        out(2, "Recoveries: %d%n", server.logSorts.size());
         for (RecoveryStatus sort : server.logSorts) {
-          out(3, "File: %s", sort.name);
-          out(3, "Progress: %.2f%%", sort.progress * 100);
-          out(3, "Time running: %s", sort.runtime / 1000.);
+          out(3, "File: %s%n", sort.name);
+          out(3, "Progress: %.2f%%%n", sort.progress * 100);
+          out(3, "Time running: %s%n", sort.runtime / 1000.);
         }
-        out(3, "Bulk imports: %s", stats.bulkImports.size());
+        out(3, "Bulk imports: %s%n", stats.bulkImports.size());
         for (BulkImportStatus bulk : stats.bulkImports) {
-          out(4, "Import file: %s", bulk.filename);
-          out(5, "Bulk state %s", bulk.state);
-          out(5, "Bulk start %s", bulk.startTime);
+          out(4, "Import file: %s%n", bulk.filename);
+          out(5, "Bulk state %s%n", bulk.state);
+          out(5, "Bulk start %s%n", bulk.startTime);
         }
 
       }
