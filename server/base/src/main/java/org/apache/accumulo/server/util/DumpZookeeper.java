@@ -129,7 +129,7 @@ public class DumpZookeeper {
     for (int i = 0; i < indent; i++) {
       out.print("  ");
     }
-    out.printf((fmt) + "%n", args);
+    out.printf(fmt, args);
   }
 
   private static void writeHumanReadable(PrintStream out, String root)

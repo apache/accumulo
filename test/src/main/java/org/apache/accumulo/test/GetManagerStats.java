@@ -152,7 +152,7 @@ public class GetManagerStats {
     for (int i = 0; i < indent; i++) {
       System.out.print(" ");
     }
-    System.out.printf((fmtString) + "%n", args);
+    System.out.printf(fmtString, args);
   }
 
 }
