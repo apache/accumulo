@@ -27,6 +27,9 @@
   * Creates active compactions table
   */
  $(document).ready(function() {
+    if (sessionStorage.ecDetailsJSON === undefined) {
+       sessionStorage.ecDetailsJSON = JSON.stringify([]);
+    }
     compactorsTable = $('#compactorsTable').DataTable({
            "ajax": {
                "url": '/rest/ec/compactors',
@@ -136,8 +139,14 @@
              htmlRow += "Output File: <span id='outputFile" + idSuffix + "'></span><br>";
              htmlRow += ecid;
              row.child(htmlRow).show();
-             // show row then make ajax call
-             getRunningDetails(ecid, idSuffix);
+             // show the row then populate the table
+             var ecDetails = getDetailsFromStorage(idSuffix);
+             if (ecDetails.length === 0) {
+                getRunningDetails(ecid, idSuffix);
+             } else {
+                console.log("Got cached details for " + idSuffix);
+                populateDetails(ecDetails, idSuffix);
+             }
 
              // Add to the 'open' array
              if ( idx === -1 ) {
@@ -160,7 +169,11 @@
   */
  function refreshECTables() {
    getCompactionCoordinator();
-   var ecInfo = JSON.parse(sessionStorage.ecInfo);
+   var ecInfo = sessionStorage.ecInfo === undefined ? [] :
+      JSON.parse(sessionStorage.ecInfo);
+   if (ecInfo.length === 0) {
+      return;
+   }
    var ccAddress = ecInfo.server;
    var numCompactors = ecInfo.numCompactors;
    var lastContactTime = timeDuration(ecInfo.lastContact);
@@ -186,24 +199,59 @@
  }
 
  function getRunningDetails(ecid, idSuffix) {
-    var tableId = 'table' + idSuffix;
     var ajaxUrl = '/rest/ec/details?ecid=' + ecid;
-    clearTableBody(tableId);
     console.log("Ajax call to " + ajaxUrl);
     $.getJSON(ajaxUrl, function(data) {
-       $.each( data.inputFiles, function( key, value ) {
-          var items = [];
-          items.push(createCenterCell(key, key));
-          items.push(createCenterCell(value.metadataFileEntry, value.metadataFileEntry));
-          items.push(createCenterCell(value.size, bigNumberForSize(value.size)));
-          items.push(createCenterCell(value.entries, bigNumberForQuantity(value.entries)));
-          $('<tr/>', {
-              html: items.join('')
-            }).appendTo('#' + tableId + ' tbody');
-        });
-        $('#outputFile' + idSuffix).text(data.outputFile);
+       populateDetails(data, idSuffix);
+       var detailsJSON = JSON.parse(sessionStorage.ecDetailsJSON);
+       if (detailsJSON === undefined) {
+          detailsJSON = [];
+       } else if (detailsJSON.length >= 50) {
+          // drop the oldest 25 from the sessionStorage to limit size of the cache
+          var newDetailsJSON = [];
+          $.each( detailsJSON, function( num, val ) {
+             if (num > 24) {
+                newDetailsJSON.push(val);
+             }
+          });
+          detailsJSON = newDetailsJSON;
+       }
+       detailsJSON.push({ key : idSuffix, value : data });
+       sessionStorage.ecDetailsJSON = JSON.stringify(detailsJSON);
     });
   }
+
+ function getDetailsFromStorage(idSuffix) {
+    var details = [];
+    var detailsJSON = JSON.parse(sessionStorage.ecDetailsJSON);
+    if (detailsJSON.length === 0) {
+       return details;
+    } else {
+       // details are stored as key value pairs in the JSON val
+       $.each( detailsJSON, function( num, val ) {
+          if (val.key === idSuffix) {
+             details = val.value;
+          }
+       });
+       return details;
+    }
+ }
+
+ function populateDetails(data, idSuffix) {
+     var tableId = 'table' + idSuffix;
+     clearTableBody(tableId);
+    $.each( data.inputFiles, function( key, value ) {
+       var items = [];
+       items.push(createCenterCell(key, key));
+       items.push(createCenterCell(value.metadataFileEntry, value.metadataFileEntry));
+       items.push(createCenterCell(value.size, bigNumberForSize(value.size)));
+       items.push(createCenterCell(value.entries, bigNumberForQuantity(value.entries)));
+       $('<tr/>', {
+           html: items.join('')
+         }).appendTo('#' + tableId + ' tbody');
+    });
+    $('#outputFile' + idSuffix).text(data.outputFile);
+ }
 
  function refreshCompactors() {
    console.log("Refresh compactors table.");
