@@ -37,6 +37,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -587,7 +588,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final Map<HostAndPort,CompactionStats> allCompactions = new HashMap<>();
   private final RecentLogs recentLogs = new RecentLogs();
   private final ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
-  private final Map<String,TExternalCompaction> ecRunningMap = new HashMap<>();
+  private final Map<String,TExternalCompaction> ecRunningMap = new ConcurrentHashMap<>();
   private long scansFetchedNanos = 0L;
   private long compactsFetchedNanos = 0L;
   private long ecInfoFetchedNanos = 0L;
