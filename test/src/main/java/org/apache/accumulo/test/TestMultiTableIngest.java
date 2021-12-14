@@ -95,7 +95,7 @@ public class TestMultiTableIngest {
         // populate
         for (int i = 0; i < opts.count; i++) {
           Mutation m = new Mutation(new Text(String.format("%06d", i)));
-          m.put(new Text("col" + ((i % 3) + 1)), new Text("qual"), new Value("junk"));
+          m.put("col" + ((i % 3) + 1), "qual", "junk");
           b.getBatchWriter(tableNames.get(i % tableNames.size())).addMutation(m);
         }
         try {
