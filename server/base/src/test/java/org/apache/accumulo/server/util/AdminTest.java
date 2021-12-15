@@ -56,7 +56,7 @@ public class AdminTest {
     final long session = 123456789L;
 
     String serverPath = root + "/" + server;
-    String validZLockEphemeralNode = "zlock#" + UUID.randomUUID().toString() + "#0000000000";
+    String validZLockEphemeralNode = "zlock#" + UUID.randomUUID() + "#0000000000";
     EasyMock.expect(zc.getChildren(serverPath))
         .andReturn(Collections.singletonList(validZLockEphemeralNode));
     EasyMock.expect(zc.get(EasyMock.eq(serverPath + "/" + validZLockEphemeralNode),

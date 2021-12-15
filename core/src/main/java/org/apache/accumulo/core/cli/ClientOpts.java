@@ -187,7 +187,7 @@ public class ClientOpts extends Help {
         if (legacyClientOpts.contains(arg))
           badOptions.append(arg).append(" ");
       }
-      throw new IllegalArgumentException("The Client options: " + badOptions.toString()
+      throw new IllegalArgumentException("The Client options: " + badOptions
           + "have been dropped. Use accumulo-client.properties for any connection or token "
           + "options. See '-c, --config-file' option.");
     }
