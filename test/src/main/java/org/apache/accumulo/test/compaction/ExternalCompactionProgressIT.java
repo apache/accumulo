@@ -131,7 +131,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
         RunningCompactorInfo rci = new RunningCompactorInfo(System.currentTimeMillis(), ecid, ec);
         RunningCompactorInfo previousRci = runningMap.put(ecid, rci);
         if (previousRci == null) {
-          log.debug("New ECID {} with inputFiles: {}", ecid, rci.inputFiles);
+          log.debug("New ECID {} with inputFiles: {}", ecid, rci.numFiles);
         } else {
           if (rci.progress <= previousRci.progress) {
             log.warn("{} did not progress. It went from {} to {}", ecid, previousRci.progress,
