@@ -28,8 +28,6 @@ public class RunningCompactions {
 
   public final List<RunningCompactorInfo> running = new ArrayList<>();
 
-  public RunningCompactions() {}
-
   public RunningCompactions(Map<String,TExternalCompaction> rMap) {
     if (rMap != null) {
       var fetchedTime = System.currentTimeMillis();
@@ -37,12 +35,6 @@ public class RunningCompactions {
         running.add(new RunningCompactorInfo(fetchedTime, entry.getKey(), entry.getValue()));
       }
     }
-  }
-
-  public static RunningCompactions details(long fetchedTime, String ecid, TExternalCompaction ec) {
-    var rc = new RunningCompactions();
-    rc.running.add(new RunningCompactorDetails(fetchedTime, ecid, ec));
-    return rc;
   }
 
 }
