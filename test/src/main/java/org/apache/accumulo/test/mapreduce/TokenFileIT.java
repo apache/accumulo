@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.mapreduce;
 
@@ -24,21 +26,21 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URI;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.impl.Credentials;
-import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
-import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
+import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -51,6 +53,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+/**
+ * This tests deprecated mapreduce code in core jar
+ */
+@Deprecated(since = "2.0.0")
 public class TokenFileIT extends AccumuloClusterHarness {
   private static AssertionError e1 = null;
 
@@ -60,10 +68,30 @@ public class TokenFileIT extends AccumuloClusterHarness {
       int count = 0;
 
       @Override
-      protected void map(Key k, Value v, Context context) throws IOException, InterruptedException {
+      protected void map(Key k, Value v, Context context) {
         try {
-          if (key != null)
+          // verify cached token file is available locally
+          URI[] cachedFiles;
+          try {
+            cachedFiles = context.getCacheFiles();
+          } catch (IOException e) {
+            throw new AssertionError("IOException getting cache files", e);
+          }
+          assertEquals(2, cachedFiles.length); // one for each in/out format
+          for (Class<?> formatClass : Arrays.asList(
+              org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.class,
+              org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.class)) {
+            String formatName = formatClass.getSimpleName();
+            assertTrue(Arrays.stream(cachedFiles)
+                .anyMatch(uri -> uri.toString().endsWith(formatName + ".tokenfile")));
+            File file = new File(formatName + ".tokenfile");
+            assertTrue(file.exists());
+            assertTrue(file.canRead());
+          }
+
+          if (key != null) {
             assertEquals(key.getRow().toString(), new String(v.get()));
+          }
           assertEquals(k.getRow(), new Text(String.format("%09x", count + 1)));
           assertEquals(new String(v.get()), String.format("%09x", count));
         } catch (AssertionError e) {
@@ -79,6 +107,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
         m.put("", "", Integer.toString(count));
         context.write(new Text(), m);
       }
+
     }
 
     @Override
@@ -98,38 +127,41 @@ public class TokenFileIT extends AccumuloClusterHarness {
           this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
 
-      job.setInputFormatClass(AccumuloInputFormat.class);
+      job.setInputFormatClass(org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.class);
 
-      AccumuloInputFormat.setConnectorInfo(job, user, tokenFile);
-      AccumuloInputFormat.setInputTableName(job, table1);
-      AccumuloInputFormat.setZooKeeperInstance(job, getCluster().getClientConfig());
+      ClientInfo info = getClientInfo();
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setConnectorInfo(job, user,
+          tokenFile);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setInputTableName(job, table1);
+      org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat.setZooKeeperInstance(job,
+          info.getInstanceName(), info.getZooKeepers());
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
-      job.setOutputFormatClass(AccumuloOutputFormat.class);
+      job.setOutputFormatClass(
+          org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.class);
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
-      AccumuloOutputFormat.setConnectorInfo(job, user, tokenFile);
-      AccumuloOutputFormat.setCreateTables(job, false);
-      AccumuloOutputFormat.setDefaultTableName(job, table2);
-      AccumuloOutputFormat.setZooKeeperInstance(job, getCluster().getClientConfig());
+      org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setConnectorInfo(job, user,
+          tokenFile);
+      org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setCreateTables(job, false);
+      org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setDefaultTableName(job,
+          table2);
+      org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat.setZooKeeperInstance(job,
+          info.getInstanceName(), info.getZooKeepers());
 
       job.setNumReduceTasks(0);
 
       job.waitForCompletion(true);
 
-      return job.isSuccessful() ? 0 : 1;
-    }
-
-    public static void main(String[] args) throws Exception {
-      Configuration conf = CachedConfiguration.getInstance();
-      conf.set("hadoop.tmp.dir", new File(args[0]).getParent());
-      conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir",
-          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
-      assertEquals(0, ToolRunner.run(conf, new MRTokenFileTester(), args));
+      if (job.isSuccessful()) {
+        return 0;
+      } else {
+        System.out.println(job.getStatus().getFailureInfo());
+        return 1;
+      }
     }
   }
 
@@ -137,36 +169,48 @@ public class TokenFileIT extends AccumuloClusterHarness {
   public TemporaryFolder folder =
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void testMR() throws Exception {
     String[] tableNames = getUniqueNames(2);
     String table1 = tableNames[0];
     String table2 = tableNames[1];
-    Connector c = getConnector();
-    c.tableOperations().create(table1);
-    c.tableOperations().create(table2);
-    BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
-    for (int i = 0; i < 100; i++) {
-      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-      bw.addMutation(m);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      c.tableOperations().create(table1);
+      c.tableOperations().create(table2);
+      BatchWriter bw = c.createBatchWriter(table1);
+      for (int i = 0; i < 100; i++) {
+        Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+        m.put("", "", String.format("%09x", i));
+        bw.addMutation(m);
+      }
+      bw.close();
+
+      File tf = folder.newFile("root_test.pw");
+      try (PrintStream out = new PrintStream(tf)) {
+        String outString = new Credentials(getAdminPrincipal(), getAdminToken()).serialize();
+        out.println(outString);
+      }
+
+      Configuration conf = cluster.getServerContext().getHadoopConf();
+      conf.set("hadoop.tmp.dir", new File(tf.getAbsolutePath()).getParent());
+      conf.set("mapreduce.framework.name", "local");
+      conf.set("mapreduce.cluster.local.dir",
+          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+      assertEquals(0, ToolRunner.run(conf, new MRTokenFileTester(),
+          new String[] {tf.getAbsolutePath(), table1, table2}));
+      if (e1 != null) {
+        e1.printStackTrace();
+      }
+      assertNull(e1);
+
+      try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
+        Iterator<Entry<Key,Value>> iter = scanner.iterator();
+        assertTrue(iter.hasNext());
+        Entry<Key,Value> entry = iter.next();
+        assertEquals(Integer.parseInt(new String(entry.getValue().get())), 100);
+        assertFalse(iter.hasNext());
+      }
     }
-    bw.close();
-
-    File tf = folder.newFile("root_test.pw");
-    PrintStream out = new PrintStream(tf);
-    String outString = new Credentials(getAdminPrincipal(), getAdminToken()).serialize();
-    out.println(outString);
-    out.close();
-
-    MRTokenFileTester.main(new String[] {tf.getAbsolutePath(), table1, table2});
-    assertNull(e1);
-
-    Scanner scanner = c.createScanner(table2, new Authorizations());
-    Iterator<Entry<Key,Value>> iter = scanner.iterator();
-    assertTrue(iter.hasNext());
-    Entry<Key,Value> entry = iter.next();
-    assertEquals(Integer.parseInt(new String(entry.getValue().get())), 100);
-    assertFalse(iter.hasNext());
   }
 }

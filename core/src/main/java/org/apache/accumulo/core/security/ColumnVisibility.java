@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.security;
 
@@ -105,7 +107,7 @@ public class ColumnVisibility {
     /**
      * An empty list of nodes.
      */
-    public final static List<Node> EMPTY = Collections.emptyList();
+    public static final List<Node> EMPTY = Collections.emptyList();
     NodeType type;
     int start;
     int end;
@@ -146,7 +148,7 @@ public class ColumnVisibility {
       return end;
     }
 
-    public ByteSequence getTerm(byte expression[]) {
+    public ByteSequence getTerm(byte[] expression) {
       if (type != NodeType.TERM)
         throw new RuntimeException();
 
@@ -207,7 +209,7 @@ public class ColumnVisibility {
   }
 
   /*
-   * Convience method that delegates to normalize with a new NodeComparator constructed using the
+   * Convenience method that delegates to normalize with a new NodeComparator constructed using the
    * supplied expression.
    */
   public static Node normalize(Node root, byte[] expression) {
@@ -324,7 +326,7 @@ public class ColumnVisibility {
 
       while (index < expression.length) {
         switch (expression[index++]) {
-          case '&': {
+          case '&':
             expr = processTerm(subtermStart, index - 1, expr, expression);
             if (result != null) {
               if (!result.type.equals(NodeType.AND))
@@ -338,8 +340,7 @@ public class ColumnVisibility {
             subtermStart = index;
             subtermComplete = false;
             break;
-          }
-          case '|': {
+          case '|':
             expr = processTerm(subtermStart, index - 1, expr, expression);
             if (result != null) {
               if (!result.type.equals(NodeType.OR))
@@ -353,8 +354,7 @@ public class ColumnVisibility {
             subtermStart = index;
             subtermComplete = false;
             break;
-          }
-          case '(': {
+          case '(':
             parens++;
             if (subtermStart != index - 1 || expr != null)
               throw new BadArgumentException("expression needs & or |",
@@ -363,8 +363,7 @@ public class ColumnVisibility {
             subtermStart = index;
             subtermComplete = false;
             break;
-          }
-          case ')': {
+          case ')':
             parens--;
             Node child = processTerm(subtermStart, index - 1, expr, expression);
             if (child == null && result == null)
@@ -379,8 +378,7 @@ public class ColumnVisibility {
               result.add(child);
             result.end = index - 1;
             return result;
-          }
-          case '"': {
+          case '"':
             if (subtermStart != index - 1)
               throw new BadArgumentException("expression needs & or |",
                   new String(expression, UTF_8), index - 1);
@@ -388,7 +386,8 @@ public class ColumnVisibility {
             while (index < expression.length && expression[index] != '"') {
               if (expression[index] == '\\') {
                 index++;
-                if (expression[index] != '\\' && expression[index] != '"')
+                if (index == expression.length
+                    || (expression[index] != '\\' && expression[index] != '"'))
                   throw new BadArgumentException("invalid escaping within quotes",
                       new String(expression, UTF_8), index - 1);
               }
@@ -408,8 +407,7 @@ public class ColumnVisibility {
             subtermComplete = true;
 
             break;
-          }
-          default: {
+          default:
             if (subtermComplete)
               throw new BadArgumentException("expression needs & or |",
                   new String(expression, UTF_8), index - 1);
@@ -418,7 +416,6 @@ public class ColumnVisibility {
             if (!Authorizations.isValidAuthChar(c))
               throw new BadArgumentException("bad character (" + c + ")",
                   new String(expression, UTF_8), index - 1);
-          }
         }
       }
       Node child = processTerm(subtermStart, index, expr, expression);
@@ -564,8 +561,8 @@ public class ColumnVisibility {
   public static byte[] quote(byte[] term) {
     boolean needsQuote = false;
 
-    for (int i = 0; i < term.length; i++) {
-      if (!Authorizations.isValidAuthChar(term[i])) {
+    for (byte b : term) {
+      if (!Authorizations.isValidAuthChar(b)) {
         needsQuote = true;
         break;
       }

@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.client.rfile;
 
 import java.io.IOException;
@@ -31,13 +32,13 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.commons.collections.map.LRUMap;
+import org.apache.commons.collections4.map.LRUMap;
 
 import com.google.common.base.Preconditions;
 
 /**
  * This class provides an API for writing RFiles. It can be used to create file for bulk import into
- * Accumulo using {@link TableOperations#importDirectory(String, String, String, boolean)}
+ * Accumulo using {@link TableOperations#importDirectory(String)}
  *
  * <p>
  * A RFileWriter has the following constraints. Violating these constraints will result in runtime
@@ -47,6 +48,7 @@ import com.google.common.base.Preconditions;
  * <li>Keys must be appended in sorted order within a locality group.</li>
  * <li>Locality groups must have a mutually exclusive set of column families.</li>
  * <li>The default locality group must be started last.</li>
+ * <li>If using RFile.newWriter().to("filename.rf"), the ".rf" extension is required.</li>
  * </ul>
  *
  * <p>
@@ -58,7 +60,7 @@ import com.google.common.base.Preconditions;
  *     Iterable&lt;Entry&lt;Key, Value&gt;&gt; localityGroup2Data = ...
  *     Iterable&lt;Entry&lt;Key, Value&gt;&gt; defaultGroupData = ...
  *
- *     try(RFileWriter writer = RFile.newWriter().to(file).build()) {
+ *     try(RFileWriter writer = RFile.newWriter().to("filename.rf").build()) {
  *
  *       // Start a locality group before appending data.
  *       writer.startNewLocalityGroup("groupA", "columnFam1", "columnFam2");
@@ -89,13 +91,13 @@ import com.google.common.base.Preconditions;
 public class RFileWriter implements AutoCloseable {
 
   private FileSKVWriter writer;
-  private final LRUMap validVisibilities;
+  private final LRUMap<ByteSequence,Boolean> validVisibilities;
   private boolean startedLG;
   private boolean startedDefaultLG;
 
   RFileWriter(FileSKVWriter fileSKVWriter, int visCacheSize) {
     this.writer = fileSKVWriter;
-    this.validVisibilities = new LRUMap(visCacheSize);
+    this.validVisibilities = new LRUMap<>(visCacheSize);
   }
 
   private void _startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies)
@@ -206,13 +208,39 @@ public class RFileWriter implements AutoCloseable {
     if (!startedLG) {
       startDefaultLocalityGroup();
     }
-    Boolean wasChecked = (Boolean) validVisibilities.get(key.getColumnVisibilityData());
+    Boolean wasChecked = validVisibilities.get(key.getColumnVisibilityData());
     if (wasChecked == null) {
       byte[] cv = key.getColumnVisibilityData().toArray();
       new ColumnVisibility(cv);
       validVisibilities.put(new ArrayByteSequence(Arrays.copyOf(cv, cv.length)), Boolean.TRUE);
     }
     writer.append(key, val);
+  }
+
+  /**
+   * This method has the same behavior as {@link #append(Key, Value)}.
+   *
+   * @param key
+   *          Same restrictions on key as {@link #append(Key, Value)}.
+   * @param value
+   *          this parameter will be UTF-8 encoded. Must be non-null.
+   * @since 2.0.0
+   */
+  public void append(Key key, CharSequence value) throws IOException {
+    append(key, new Value(value));
+  }
+
+  /**
+   * This method has the same behavior as {@link #append(Key, Value)}.
+   *
+   * @param key
+   *          Same restrictions on key as {@link #append(Key, Value)}.
+   * @param value
+   *          Must be non-null.
+   * @since 2.0.0
+   */
+  public void append(Key key, byte[] value) throws IOException {
+    append(key, new Value(value));
   }
 
   /**

@@ -1,43 +1,40 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.security;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import javax.security.auth.DestroyFailedException;
 
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.impl.Credentials;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.NullToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.security.thrift.TCredentials;
-import org.apache.accumulo.core.util.DeprecationUtil;
-import org.easymock.EasyMock;
-import org.junit.Before;
+import org.apache.accumulo.core.clientImpl.Credentials;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -47,20 +44,13 @@ public class CredentialsTest {
   @Rule
   public TestName test = new TestName();
 
-  private Instance inst;
-
-  @Before
-  public void setupInstance() {
-    inst = EasyMock.createMock(Instance.class);
-    EasyMock.expect(inst.getInstanceID()).andReturn(test.getMethodName()).anyTimes();
-    EasyMock.replay(inst);
-  }
+  private String instanceID = test.getMethodName();
 
   @Test
   public void testToThrift() throws DestroyFailedException {
     // verify thrift serialization
     Credentials creds = new Credentials("test", new PasswordToken("testing"));
-    TCredentials tCreds = creds.toThrift(inst);
+    TCredentials tCreds = creds.toThrift(instanceID);
     assertEquals("test", tCreds.getPrincipal());
     assertEquals(PasswordToken.class.getName(), tCreds.getTokenClassName());
     assertArrayEquals(AuthenticationTokenSerializer.serialize(new PasswordToken("testing")),
@@ -69,41 +59,22 @@ public class CredentialsTest {
     // verify that we can't serialize if it's destroyed
     creds.getToken().destroy();
     try {
-      creds.toThrift(inst);
+      creds.toThrift(instanceID);
       fail();
     } catch (Exception e) {
       assertTrue(e instanceof RuntimeException);
       assertTrue(e.getCause() instanceof AccumuloSecurityException);
-      assertTrue(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode()
-          .equals(SecurityErrorCode.TOKEN_EXPIRED));
+      assertEquals(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode(),
+          SecurityErrorCode.TOKEN_EXPIRED);
     }
   }
 
   @Test
-  public void roundtripThrift() throws DestroyFailedException {
+  public void roundtripThrift() {
     Credentials creds = new Credentials("test", new PasswordToken("testing"));
-    TCredentials tCreds = creds.toThrift(inst);
+    TCredentials tCreds = creds.toThrift(instanceID);
     Credentials roundtrip = Credentials.fromThrift(tCreds);
     assertEquals("Roundtrip through thirft changed credentials equality", creds, roundtrip);
-  }
-
-  @Test
-  public void testMockConnector()
-      throws AccumuloException, DestroyFailedException, AccumuloSecurityException {
-    Instance inst = DeprecationUtil.makeMockInstance(test.getMethodName());
-    Connector rootConnector = inst.getConnector("root", new PasswordToken());
-    PasswordToken testToken = new PasswordToken("testPass");
-    rootConnector.securityOperations().createLocalUser("testUser", testToken);
-
-    assertFalse(testToken.isDestroyed());
-    testToken.destroy();
-    assertTrue(testToken.isDestroyed());
-    try {
-      inst.getConnector("testUser", testToken);
-      fail();
-    } catch (AccumuloSecurityException e) {
-      assertTrue(e.getSecurityErrorCode().equals(SecurityErrorCode.TOKEN_EXPIRED));
-    }
   }
 
   @Test
@@ -117,7 +88,7 @@ public class CredentialsTest {
     assertEquals(0, nullNullCreds.hashCode());
     assertEquals("abc".hashCode(), abcNullCreds.hashCode());
     assertEquals(abcNullCreds.hashCode(), abcBlahCreds.hashCode());
-    assertFalse(abcNullCreds.hashCode() == cbaNullCreds.hashCode());
+    assertNotEquals(abcNullCreds.hashCode(), cbaNullCreds.hashCode());
 
     // identity
     assertEquals(abcNullCreds, abcNullCreds);
@@ -126,13 +97,13 @@ public class CredentialsTest {
     assertEquals(new Credentials("abc", new PasswordToken("abc".getBytes(UTF_8))),
         new Credentials("abc", new PasswordToken("abc")));
     // test not equals
-    assertFalse(nullNullCreds.equals(abcBlahCreds));
-    assertFalse(nullNullCreds.equals(abcNullCreds));
-    assertFalse(abcNullCreds.equals(abcBlahCreds));
+    assertNotEquals(nullNullCreds, abcBlahCreds);
+    assertNotEquals(nullNullCreds, abcNullCreds);
+    assertNotEquals(abcNullCreds, abcBlahCreds);
   }
 
   @Test
-  public void testCredentialsSerialization() throws AccumuloSecurityException {
+  public void testCredentialsSerialization() {
     Credentials creds = new Credentials("a:b-c", new PasswordToken("d-e-f".getBytes(UTF_8)));
     String serialized = creds.serialize();
     Credentials result = Credentials.deserialize(serialized);
@@ -143,8 +114,8 @@ public class CredentialsTest {
     Credentials nullNullCreds = new Credentials(null, null);
     serialized = nullNullCreds.serialize();
     result = Credentials.deserialize(serialized);
-    assertEquals(null, result.getPrincipal());
-    assertEquals(null, result.getToken());
+    assertNull(result.getPrincipal());
+    assertNull(result.getToken());
   }
 
   @Test

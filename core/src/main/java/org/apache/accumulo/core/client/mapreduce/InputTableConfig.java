@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.mapreduce;
 
@@ -23,11 +25,15 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 
+import org.apache.accumulo.core.client.ClientSideIteratorScanner;
+import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
@@ -35,7 +41,11 @@ import org.apache.hadoop.io.Writable;
 /**
  * This class to holds a batch scan configuration for a table. It contains all the properties needed
  * to specify how rows should be returned from the table.
+ *
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
+@Deprecated(since = "2.0.0")
 public class InputTableConfig implements Writable {
 
   private List<IteratorSetting> iterators;
@@ -77,7 +87,7 @@ public class InputTableConfig implements Writable {
    * Returns the ranges to be queried in the configuration
    */
   public List<Range> getRanges() {
-    return ranges != null ? ranges : new ArrayList<Range>();
+    return ranges != null ? ranges : new ArrayList<>();
   }
 
   /**
@@ -98,7 +108,7 @@ public class InputTableConfig implements Writable {
    * Returns the columns to be fetched for this configuration
    */
   public Collection<Pair<Text,Text>> getFetchedColumns() {
-    return columns != null ? columns : new HashSet<Pair<Text,Text>>();
+    return columns != null ? columns : new HashSet<>();
   }
 
   /**
@@ -117,7 +127,7 @@ public class InputTableConfig implements Writable {
    * Returns the iterators to be set on this configuration
    */
   public List<IteratorSetting> getIterators() {
-    return iterators != null ? iterators : new ArrayList<IteratorSetting>();
+    return iterators != null ? iterators : new ArrayList<>();
   }
 
   /**
@@ -150,10 +160,10 @@ public class InputTableConfig implements Writable {
   }
 
   /**
-   * Controls the use of the {@link org.apache.accumulo.core.client.ClientSideIteratorScanner} in
-   * this job. Enabling this feature will cause the iterator stack to be constructed within the Map
-   * task, rather than within the Accumulo TServer. To use this feature, all classes needed for
-   * those iterators must be available on the classpath for the task.
+   * Controls the use of the {@link ClientSideIteratorScanner} in this job. Enabling this feature
+   * will cause the iterator stack to be constructed within the Map task, rather than within the
+   * Accumulo TServer. To use this feature, all classes needed for those iterators must be available
+   * on the classpath for the task.
    *
    * <p>
    * By default, this feature is <b>disabled</b>.
@@ -191,8 +201,8 @@ public class InputTableConfig implements Writable {
    * <p>
    * Reading the offline table will create the scan time iterator stack in the map process. So any
    * iterators that are configured for the table will need to be on the mapper's classpath. The
-   * accumulo-site.xml may need to be on the mapper's classpath if HDFS or the Accumulo directory in
-   * HDFS are non-standard.
+   * accumulo.properties may need to be on the mapper's classpath if HDFS or the Accumulo directory
+   * in HDFS are non-standard.
    *
    * <p>
    * One way to use this feature is to clone a table, take the clone offline, and use the clone as
@@ -230,7 +240,7 @@ public class InputTableConfig implements Writable {
   }
 
   /**
-   * Controls the use of the {@link org.apache.accumulo.core.client.IsolatedScanner} in this job.
+   * Controls the use of the {@link IsolatedScanner} in this job.
    *
    * <p>
    * By default, this feature is <b>disabled</b>.
@@ -311,6 +321,12 @@ public class InputTableConfig implements Writable {
     dataOutput.writeBoolean(useLocalIterators);
     dataOutput.writeBoolean(useIsolatedScanners);
     dataOutput.writeBoolean(offlineScan);
+    if (samplerConfig == null) {
+      dataOutput.writeBoolean(false);
+    } else {
+      dataOutput.writeBoolean(true);
+      new SamplerConfigurationImpl(samplerConfig).write(dataOutput);
+    }
   }
 
   @Override
@@ -339,7 +355,7 @@ public class InputTableConfig implements Writable {
       Text colFam = new Text();
       colFam.readFields(dataInput);
       if (numPairs == 1) {
-        columns.add(new Pair<Text,Text>(colFam, null));
+        columns.add(new Pair<>(colFam, null));
       } else if (numPairs == 2) {
         Text colQual = new Text();
         colQual.readFields(dataInput);
@@ -350,6 +366,10 @@ public class InputTableConfig implements Writable {
     useLocalIterators = dataInput.readBoolean();
     useIsolatedScanners = dataInput.readBoolean();
     offlineScan = dataInput.readBoolean();
+
+    if (dataInput.readBoolean()) {
+      samplerConfig = new SamplerConfigurationImpl(dataInput).toSamplerConfiguration();
+    }
   }
 
   @Override
@@ -358,39 +378,17 @@ public class InputTableConfig implements Writable {
       return true;
     if (o == null || getClass() != o.getClass())
       return false;
-
     InputTableConfig that = (InputTableConfig) o;
-
-    if (autoAdjustRanges != that.autoAdjustRanges)
-      return false;
-    if (offlineScan != that.offlineScan)
-      return false;
-    if (useIsolatedScanners != that.useIsolatedScanners)
-      return false;
-    if (useLocalIterators != that.useLocalIterators)
-      return false;
-    if (columns != null ? !columns.equals(that.columns) : that.columns != null)
-      return false;
-    if (iterators != null ? !iterators.equals(that.iterators) : that.iterators != null)
-      return false;
-    if (ranges != null ? !ranges.equals(that.ranges) : that.ranges != null)
-      return false;
-    if (samplerConfig != null ? !samplerConfig.equals(that.samplerConfig)
-        : that.samplerConfig != null)
-      return false;
-    return true;
+    return autoAdjustRanges == that.autoAdjustRanges && useLocalIterators == that.useLocalIterators
+        && useIsolatedScanners == that.useIsolatedScanners && offlineScan == that.offlineScan
+        && Objects.equals(iterators, that.iterators) && Objects.equals(ranges, that.ranges)
+        && Objects.equals(columns, that.columns)
+        && Objects.equals(samplerConfig, that.samplerConfig);
   }
 
   @Override
   public int hashCode() {
-    int result = 31 * (iterators != null ? iterators.hashCode() : 0);
-    result = 31 * result + (ranges != null ? ranges.hashCode() : 0);
-    result = 31 * result + (columns != null ? columns.hashCode() : 0);
-    result = 31 * result + (autoAdjustRanges ? 1 : 0);
-    result = 31 * result + (useLocalIterators ? 1 : 0);
-    result = 31 * result + (useIsolatedScanners ? 1 : 0);
-    result = 31 * result + (offlineScan ? 1 : 0);
-    result = 31 * result + (samplerConfig == null ? 0 : samplerConfig.hashCode());
-    return result;
+    return Objects.hash(iterators, ranges, columns, autoAdjustRanges, useLocalIterators,
+        useIsolatedScanners, offlineScan, samplerConfig);
   }
 }

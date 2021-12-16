@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.util;
 
@@ -34,7 +36,7 @@ public class UnsynchronizedBuffer {
   public static class Writer {
 
     int offset = 0;
-    byte data[];
+    byte[] data;
 
     /**
      * Creates a new writer.
@@ -102,7 +104,7 @@ public class UnsynchronizedBuffer {
      * @return byte buffer contents
      */
     public byte[] toArray() {
-      byte ret[] = new byte[offset];
+      byte[] ret = new byte[offset];
       System.arraycopy(data, 0, ret, 0, offset);
       return ret;
     }
@@ -140,6 +142,10 @@ public class UnsynchronizedBuffer {
       reserve(9);
       offset = UnsynchronizedBuffer.writeVLong(data, offset, i);
     }
+
+    public int size() {
+      return offset;
+    }
   }
 
   /**
@@ -147,7 +153,7 @@ public class UnsynchronizedBuffer {
    */
   public static class Reader {
     int offset;
-    byte data[];
+    byte[] data;
 
     /**
      * Creates a new reader.
@@ -155,7 +161,7 @@ public class UnsynchronizedBuffer {
      * @param b
      *          bytes to read
      */
-    public Reader(byte b[]) {
+    public Reader(byte[] b) {
       this.data = b;
     }
 
@@ -203,7 +209,7 @@ public class UnsynchronizedBuffer {
      * @param b
      *          byte array to fill
      */
-    public void readBytes(byte b[]) {
+    public void readBytes(byte[] b) {
       System.arraycopy(data, offset, b, 0, b.length);
       offset += b.length;
     }
@@ -262,8 +268,11 @@ public class UnsynchronizedBuffer {
     if (i < 0)
       throw new IllegalArgumentException();
 
-    if (i > (1 << 30))
-      return Integer.MAX_VALUE; // this is the next power of 2 minus one... a special case
+    if (i > (1 << 30)) {
+      // this is the next power of 2 minus 8... a special case taken from ArrayList limits
+      // because some JVMs can't allocate an array that large
+      return Integer.MAX_VALUE - 8;
+    }
 
     if (i == 0) {
       return 1;

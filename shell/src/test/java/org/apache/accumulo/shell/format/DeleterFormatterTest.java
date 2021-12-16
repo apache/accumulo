@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.format;
 
@@ -31,6 +33,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
@@ -42,11 +45,13 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.shell.Shell;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.DumbTerminal;
 import org.junit.Before;
 import org.junit.Test;
-
-import jline.UnsupportedTerminal;
-import jline.console.ConsoleReader;
 
 public class DeleterFormatterTest {
   DeleterFormatter formatter;
@@ -54,9 +59,11 @@ public class DeleterFormatterTest {
   BatchWriter writer;
   BatchWriter exceptionWriter;
   Shell shellState;
+  LineReader reader;
+  Terminal terminal;
+  PrintWriter pw;
 
   ByteArrayOutputStream baos;
-  ConsoleReader reader;
 
   SettableInputStream input;
 
@@ -89,13 +96,18 @@ public class DeleterFormatterTest {
 
     shellState = createNiceMock(Shell.class);
 
-    reader = new ConsoleReader(input, baos, new UnsupportedTerminal());
+    terminal = new DumbTerminal(input, baos);
+    terminal.setSize(new Size(80, 24));
+    reader = LineReaderBuilder.builder().terminal(terminal).build();
+    pw = terminal.writer();
+
     expect(shellState.getReader()).andReturn(reader).anyTimes();
+    expect(shellState.getWriter()).andReturn(pw).anyTimes();
 
     replay(writer, exceptionWriter, shellState);
 
     data = new TreeMap<>();
-    data.put(new Key("r", "cf", "cq"), new Value("value".getBytes(UTF_8)));
+    data.put(new Key("r", "cf", "cq"), new Value("value"));
   }
 
   @Test
@@ -119,7 +131,7 @@ public class DeleterFormatterTest {
   @Test
   public void testNo() throws IOException {
     input.set("no\n");
-    data.put(new Key("z"), new Value("v2".getBytes(UTF_8)));
+    data.put(new Key("z"), new Value("v2"));
     formatter = new DeleterFormatter(writer, data.entrySet(),
         new FormatterConfig().setPrintTimestamps(true), shellState, false);
 
@@ -134,7 +146,7 @@ public class DeleterFormatterTest {
   @Test
   public void testNoConfirmation() throws IOException {
     input.set("");
-    data.put(new Key("z"), new Value("v2".getBytes(UTF_8)));
+    data.put(new Key("z"), new Value("v2"));
     formatter = new DeleterFormatter(writer, data.entrySet(),
         new FormatterConfig().setPrintTimestamps(true), shellState, false);
 
@@ -149,7 +161,7 @@ public class DeleterFormatterTest {
   @Test
   public void testYes() throws IOException {
     input.set("y\nyes\n");
-    data.put(new Key("z"), new Value("v2".getBytes(UTF_8)));
+    data.put(new Key("z"), new Value("v2"));
     formatter = new DeleterFormatter(writer, data.entrySet(),
         new FormatterConfig().setPrintTimestamps(true), shellState, false);
 
@@ -173,7 +185,7 @@ public class DeleterFormatterTest {
   }
 
   private void verify(String... chunks) throws IOException {
-    reader.flush();
+    reader.getTerminal().writer().flush();
 
     String output = baos.toString();
     for (String chunk : chunks) {

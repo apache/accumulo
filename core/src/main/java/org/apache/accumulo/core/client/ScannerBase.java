@@ -1,35 +1,44 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client;
 
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.scan.HintScanPrioritizer;
+import org.apache.accumulo.core.spi.scan.ScanDispatcher;
+import org.apache.accumulo.core.spi.scan.ScanInfo;
+import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
+import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.hadoop.io.Text;
 
 /**
  * This class hosts configuration methods that are shared between different types of scanners.
- *
  */
 public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
 
@@ -86,6 +95,28 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
   void fetchColumnFamily(Text col);
 
   /**
+   * Adds a column family to the list of columns that will be fetched by this scanner. By default
+   * when no columns have been added the scanner fetches all columns. To fetch multiple column
+   * families call this function multiple times.
+   *
+   * <p>
+   * This can help limit which locality groups are read on the server side.
+   *
+   * <p>
+   * When used in conjunction with custom iterators, the set of column families fetched is passed to
+   * the top iterator's seek method. Custom iterators may change this set of column families when
+   * calling seek on their source.
+   *
+   * @param colFam
+   *          the column family to be fetched
+   * @since 2.0.0
+   */
+  default void fetchColumnFamily(CharSequence colFam) {
+    Objects.requireNonNull(colFam);
+    fetchColumnFamily(new Text(colFam.toString()));
+  }
+
+  /**
    * Adds a column to the list of columns that will be fetched by this scanner. The column is
    * identified by family and qualifier. By default when no columns have been added the scanner
    * fetches all columns.
@@ -115,6 +146,24 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    *          the column qualifier of the column to be fetched
    */
   void fetchColumn(Text colFam, Text colQual);
+
+  /**
+   * Adds a column to the list of columns that will be fetched by this scanner. The column is
+   * identified by family and qualifier. By default when no columns have been added the scanner
+   * fetches all columns. See the warning on {@link #fetchColumn(Text, Text)}
+   *
+   *
+   * @param colFam
+   *          the column family of the column to be fetched
+   * @param colQual
+   *          the column qualifier of the column to be fetched
+   * @since 2.0.0
+   */
+  default void fetchColumn(CharSequence colFam, CharSequence colQual) {
+    Objects.requireNonNull(colFam);
+    Objects.requireNonNull(colQual);
+    fetchColumn(new Text(colFam.toString()), new Text(colQual.toString()));
+  }
 
   /**
    * Adds a column to the list of columns that will be fetch by this scanner.
@@ -202,10 +251,10 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * <code>
    *   // could cache this if creating many scanners to avoid RPCs.
    *   SamplerConfiguration samplerConfig =
-   *     connector.tableOperations().getSamplerConfiguration(table);
+   *     client.tableOperations().getSamplerConfiguration(table);
    *   // verify table's sample data is generated in an expected way before using
    *   userCode.verifySamplerConfig(samplerConfig);
-   *   scanner.setSamplerCongiguration(samplerConfig);
+   *   scanner.setSamplerConfiguration(samplerConfig);
    * </code>
    * </pre>
    *
@@ -287,4 +336,38 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
    * @since 1.8.0
    */
   String getClassLoaderContext();
+
+  /**
+   * Set hints for the configured {@link ScanPrioritizer} and {@link ScanDispatcher}. These hints
+   * are available on the server side via {@link ScanInfo#getExecutionHints()} Depending on the
+   * configuration, these hints may be ignored. Hints will never impact what data is returned by a
+   * scan, only how quickly it is returned.
+   *
+   * <p>
+   * Using the hint {@code scan_type=<type>} and documenting all of the types for your application
+   * is one strategy to consider. This allows administrators to adjust executor and prioritizer
+   * config for your application scan types without having to change the application source code.
+   *
+   * <p>
+   * The default configuration for Accumulo will ignore hints. See {@link HintScanPrioritizer} and
+   * {@link SimpleScanDispatcher} for examples of classes that can react to hints.
+   *
+   * @since 2.0.0
+   */
+  default void setExecutionHints(Map<String,String> hints) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Iterates through Scanner results.
+   *
+   * @param keyValueConsumer
+   *          user-defined BiConsumer
+   * @since 2.1.0
+   */
+  default void forEach(BiConsumer<? super Key,? super Value> keyValueConsumer) {
+    for (Entry<Key,Value> entry : this) {
+      keyValueConsumer.accept(entry.getKey(), entry.getValue());
+    }
+  }
 }

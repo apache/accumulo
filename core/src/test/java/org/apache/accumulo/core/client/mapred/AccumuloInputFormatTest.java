@@ -1,39 +1,41 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.mapred;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Base64;
 import java.util.List;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.hadoop.mapred.JobConf;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
+@Deprecated(since = "2.0.0")
 public class AccumuloInputFormatTest {
 
   private JobConf job;
@@ -57,11 +59,11 @@ public class AccumuloInputFormatTest {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     is.write(new DataOutputStream(baos));
     String iterators = job.get("AccumuloInputFormat.ScanOpts.Iterators");
-    assertEquals(Base64.encodeBase64String(baos.toByteArray()), iterators);
+    assertEquals(Base64.getEncoder().encodeToString(baos.toByteArray()), iterators);
   }
 
   @Test
-  public void testAddIterator() throws IOException {
+  public void testAddIterator() {
     AccumuloInputFormat.addIterator(job,
         new IteratorSetting(1, "WholeRow", WholeRowIterator.class));
     AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions",
@@ -75,7 +77,7 @@ public class AccumuloInputFormatTest {
     List<IteratorSetting> list = AccumuloInputFormat.getIterators(job);
 
     // Check the list size
-    assertTrue(list.size() == 3);
+    assertEquals(3, list.size());
 
     // Walk the list and make sure our settings are correct
     IteratorSetting setting = list.get(0);
@@ -110,7 +112,7 @@ public class AccumuloInputFormatTest {
    * expected.
    */
   @Test
-  public void testIteratorOptionEncoding() throws Throwable {
+  public void testIteratorOptionEncoding() {
     String key = "colon:delimited:key";
     String value = "comma,delimited,value";
     IteratorSetting someSetting = new IteratorSetting(1, "iterator", "Iterator.class");
@@ -139,7 +141,7 @@ public class AccumuloInputFormatTest {
    * Test getting iterator settings for multiple iterators set
    */
   @Test
-  public void testGetIteratorSettings() throws IOException {
+  public void testGetIteratorSettings() {
     AccumuloInputFormat.addIterator(job,
         new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator"));
     AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions",
@@ -150,7 +152,7 @@ public class AccumuloInputFormatTest {
     List<IteratorSetting> list = AccumuloInputFormat.getIterators(job);
 
     // Check the list size
-    assertTrue(list.size() == 3);
+    assertEquals(3, list.size());
 
     // Walk the list and make sure our settings are correct
     IteratorSetting setting = list.get(0);
@@ -172,14 +174,14 @@ public class AccumuloInputFormatTest {
   }
 
   @Test
-  public void testSetRegex() throws IOException {
+  public void testSetRegex() {
     String regex = ">\"*%<>\'\\";
 
     IteratorSetting is = new IteratorSetting(50, regex, RegExFilter.class);
     RegExFilter.setRegexs(is, regex, null, null, null, false);
     AccumuloInputFormat.addIterator(job, is);
 
-    assertTrue(regex.equals(AccumuloInputFormat.getIterators(job).get(0).getName()));
+    assertEquals(regex, AccumuloInputFormat.getIterators(job).get(0).getName());
   }
 
 }

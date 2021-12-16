@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.logger;
 
@@ -29,8 +31,9 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -40,7 +43,7 @@ import org.junit.Test;
 
 public class LogFileTest {
 
-  static private void readWrite(LogEvents event, long seq, int tid, String filename,
+  private static void readWrite(LogEvents event, long seq, int tid, String filename,
       KeyExtent tablet, Mutation[] mutations, LogFileKey keyResult, LogFileValue valueResult)
       throws IOException {
     LogFileKey key = new LogFileKey();
@@ -60,9 +63,9 @@ public class LogFileTest {
     in.reset(out.getData(), out.size());
     keyResult.readFields(in);
     valueResult.readFields(in);
-    assertTrue(key.compareTo(keyResult) == 0);
+    assertEquals(0, key.compareTo(keyResult));
     assertEquals(value.mutations, valueResult.mutations);
-    assertTrue(in.read() == -1);
+    assertEquals(in.read(), -1);
   }
 
   @Test
@@ -81,24 +84,22 @@ public class LogFileTest {
     assertEquals(key.seq, 3);
     assertEquals(key.tabletId, 4);
     assertEquals(key.filename, "some file");
-    KeyExtent tablet = new KeyExtent("table", new Text("bbbb"), new Text("aaaa"));
+    KeyExtent tablet = new KeyExtent(TableId.of("table"), new Text("bbbb"), new Text("aaaa"));
     readWrite(DEFINE_TABLET, 5, 6, null, tablet, null, key, value);
     assertEquals(key.event, DEFINE_TABLET);
     assertEquals(key.seq, 5);
     assertEquals(key.tabletId, 6);
     assertEquals(key.tablet, tablet);
     Mutation m = new ServerMutation(new Text("row"));
-    m.put(new Text("cf"), new Text("cq"), new Value("value".getBytes()));
+    m.put("cf", "cq", "value");
     readWrite(MUTATION, 7, 8, null, null, new Mutation[] {m}, key, value);
     assertEquals(key.event, MUTATION);
     assertEquals(key.seq, 7);
     assertEquals(key.tabletId, 8);
     assertEquals(value.mutations, Arrays.asList(m));
     m = new ServerMutation(new Text("row"));
-    m.put(new Text("cf"), new Text("cq"), new ColumnVisibility("vis"), 12345,
-        new Value("value".getBytes()));
-    m.put(new Text("cf"), new Text("cq"), new ColumnVisibility("vis2"),
-        new Value("value".getBytes()));
+    m.put(new Text("cf"), new Text("cq"), new ColumnVisibility("vis"), 12345, new Value("value"));
+    m.put(new Text("cf"), new Text("cq"), new ColumnVisibility("vis2"), new Value("value"));
     m.putDelete(new Text("cf"), new Text("cq"), new ColumnVisibility("vis2"));
     readWrite(MUTATION, 8, 9, null, null, new Mutation[] {m}, key, value);
     assertEquals(key.event, MUTATION);

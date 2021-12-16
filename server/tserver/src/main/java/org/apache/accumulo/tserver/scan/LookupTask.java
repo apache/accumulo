@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.scan;
 
@@ -24,20 +26,19 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
-import org.apache.accumulo.core.client.impl.Translator;
-import org.apache.accumulo.core.client.impl.Translators;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.core.data.thrift.MultiScanResult;
-import org.apache.accumulo.core.data.thrift.TKey;
-import org.apache.accumulo.core.data.thrift.TKeyExtent;
-import org.apache.accumulo.core.data.thrift.TKeyValue;
-import org.apache.accumulo.core.data.thrift.TRange;
-import org.apache.accumulo.core.iterators.IterationInterruptedException;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
+import org.apache.accumulo.core.dataImpl.thrift.TKey;
+import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
+import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
+import org.apache.accumulo.core.dataImpl.thrift.TRange;
+import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.session.MultiScanSession;
@@ -68,7 +69,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
         return;
 
       TableConfiguration acuTableConf = server.getTableConfiguration(session.threadPoolExtent);
-      long maxResultsSize = acuTableConf.getMemoryInBytes(Property.TABLE_SCAN_MAXMEM);
+      long maxResultsSize = acuTableConf.getAsBytes(Property.TABLE_SCAN_MAXMEM);
 
       runState.set(ScanRunState.RUNNING);
       Thread.currentThread().setName("Client: " + session.client + " User: " + session.getUser()
@@ -102,7 +103,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           continue;
         }
         Thread.currentThread().setName("Client: " + session.client + " User: " + session.getUser()
-            + " Start: " + session.startTime + " Tablet: " + entry.getKey().toString());
+            + " Start: " + session.startTime + " Tablet: " + entry.getKey());
 
         LookupResult lookupResult;
         try {
@@ -113,9 +114,8 @@ public class LookupTask extends ScanTask<MultiScanResult> {
           if (isCancelled())
             interruptFlag.set(true);
 
-          lookupResult = tablet.lookup(entry.getValue(), session.columnSet, session.auths, results,
-              maxResultsSize - bytesAdded, session.ssiList, session.ssio, interruptFlag,
-              session.samplerConfig, session.batchTimeOut, session.context);
+          lookupResult = tablet.lookup(entry.getValue(), results, session.scanParams,
+              maxResultsSize - bytesAdded, interruptFlag);
 
           // if the tablet was closed it it possible that the
           // interrupt flag was set.... do not want it set for
@@ -130,7 +130,9 @@ public class LookupTask extends ScanTask<MultiScanResult> {
 
         bytesAdded += lookupResult.bytesAdded;
 
-        if (lookupResult.unfinishedRanges.size() > 0) {
+        if (lookupResult.unfinishedRanges.isEmpty()) {
+          fullScans.add(entry.getKey());
+        } else {
           if (lookupResult.closed) {
             failures.put(entry.getKey(), lookupResult.unfinishedRanges);
           } else {
@@ -139,8 +141,6 @@ public class LookupTask extends ScanTask<MultiScanResult> {
             partNextKey = lookupResult.unfinishedRanges.get(0).getStartKey();
             partNextKeyInclusive = lookupResult.unfinishedRanges.get(0).isStartKeyInclusive();
           }
-        } else {
-          fullScans.add(entry.getKey());
         }
       }
 
@@ -153,9 +153,14 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       for (KVEntry entry : results)
         retResults
             .add(new TKeyValue(entry.getKey().toThrift(), ByteBuffer.wrap(entry.getValue().get())));
-      Map<TKeyExtent,List<TRange>> retFailures = Translator.translate(failures, Translators.KET,
-          new Translator.ListTranslator<>(Translators.RT));
-      List<TKeyExtent> retFullScans = Translator.translate(fullScans, Translators.KET);
+      // @formatter:off
+      Map<TKeyExtent,List<TRange>> retFailures = failures.entrySet().stream().collect(Collectors.toMap(
+                      entry -> entry.getKey().toThrift(),
+                      entry -> entry.getValue().stream().map(Range::toThrift).collect(Collectors.toList())
+      ));
+      // @formatter:on
+      List<TKeyExtent> retFullScans =
+          fullScans.stream().map(KeyExtent::toThrift).collect(Collectors.toList());
       TKeyExtent retPartScan = null;
       TKey retPartNextKey = null;
       if (partScan != null) {
@@ -164,7 +169,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       }
       // add results to queue
       addResult(new MultiScanResult(retResults, retFailures, retFullScans, retPartScan,
-          retPartNextKey, partNextKeyInclusive, session.queries.size() != 0));
+          retPartNextKey, partNextKeyInclusive, !session.queries.isEmpty()));
     } catch (IterationInterruptedException iie) {
       if (!isCancelled()) {
         log.warn("Iteration interrupted, when scan not cancelled", iie);
@@ -172,7 +177,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       }
     } catch (SampleNotPresentException e) {
       addResult(e);
-    } catch (Throwable e) {
+    } catch (Exception e) {
       log.warn("exception while doing multi-scan ", e);
       addResult(e);
     } finally {

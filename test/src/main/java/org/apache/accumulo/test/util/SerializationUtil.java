@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.util;
 
@@ -26,12 +28,15 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.io.UncheckedIOException;
+import java.util.Base64;
 import java.util.Objects;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Partially based from {@link org.apache.commons.lang3.SerializationUtils}.
@@ -62,29 +67,29 @@ public class SerializationUtil {
           classname + " is not a subclass of " + parentClass.getName(), e);
     }
     try {
-      return cm.newInstance();
-    } catch (InstantiationException | IllegalAccessException e) {
+      return cm.getDeclaredConstructor().newInstance();
+    } catch (ReflectiveOperationException e) {
       throw new IllegalArgumentException("can't instantiate new instance of " + cm.getName(), e);
     }
   }
 
   public static String serializeWritableBase64(Writable writable) {
     byte[] b = serializeWritable(writable);
-    return org.apache.accumulo.core.util.Base64.encodeBase64String(b);
+    return Base64.getEncoder().encodeToString(b);
   }
 
   public static void deserializeWritableBase64(Writable writable, String str) {
-    byte[] b = Base64.decodeBase64(str);
+    byte[] b = Base64.getDecoder().decode(str);
     deserializeWritable(writable, b);
   }
 
   public static String serializeBase64(Serializable obj) {
     byte[] b = serialize(obj);
-    return org.apache.accumulo.core.util.Base64.encodeBase64String(b);
+    return Base64.getEncoder().encodeToString(b);
   }
 
   public static Object deserializeBase64(String str) {
-    byte[] b = Base64.decodeBase64(str);
+    byte[] b = Base64.getDecoder().decode(str);
     return deserialize(b);
   }
 
@@ -105,7 +110,7 @@ public class SerializationUtil {
       out = new DataOutputStream(outputStream);
       obj.write(out);
     } catch (IOException ex) {
-      throw new RuntimeException(ex);
+      throw new UncheckedIOException(ex);
     } finally {
       if (out != null)
         try {
@@ -124,7 +129,7 @@ public class SerializationUtil {
       in = new DataInputStream(inputStream);
       writable.readFields(in);
     } catch (IOException ex) {
-      throw new RuntimeException(ex);
+      throw new UncheckedIOException(ex);
     } finally {
       if (in != null)
         try {
@@ -166,7 +171,7 @@ public class SerializationUtil {
       out = new ObjectOutputStream(outputStream);
       out.writeObject(obj);
     } catch (IOException ex) {
-      throw new RuntimeException(ex);
+      throw new UncheckedIOException(ex);
     } finally {
       if (out != null)
         try {
@@ -208,6 +213,7 @@ public class SerializationUtil {
    * @throws IllegalArgumentException
    *           if {@code inputStream} is {@code null}
    */
+  @SuppressFBWarnings(value = "OBJECT_DESERIALIZATION", justification = "okay for test")
   public static Object deserialize(InputStream inputStream) {
     Objects.requireNonNull(inputStream);
     ObjectInputStream in = null;

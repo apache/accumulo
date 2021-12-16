@@ -1,26 +1,28 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
 import java.util.Iterator;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.impl.Namespaces;
-import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
@@ -47,13 +49,13 @@ public class DeleteTableCommand extends TableOperation {
 
   @Override
   public String description() {
-    return "deletes a table";
+    return "deletes a table (Same as droptable)";
   }
 
   @Override
   protected void doTableOp(final Shell shellState, final String tableName) throws Exception {
-    shellState.getConnector().tableOperations().delete(tableName);
-    shellState.getReader().println("Table: [" + tableName + "] has been deleted.");
+    shellState.getAccumuloClient().tableOperations().delete(tableName);
+    shellState.getWriter().println("Table: [" + tableName + "] has been deleted.");
 
     if (shellState.getTableName().equals(tableName)) {
       shellState.setTableName("");
@@ -70,12 +72,12 @@ public class DeleteTableCommand extends TableOperation {
   }
 
   @Override
-  protected void pruneTables(String pattern, Set<String> tables) {
+  protected void pruneTables(Set<String> tables) {
     Iterator<String> tableNames = tables.iterator();
     while (tableNames.hasNext()) {
       String table = tableNames.next();
       Pair<String,String> qualifiedName = Tables.qualify(table);
-      if (Namespaces.ACCUMULO_NAMESPACE.equals(qualifiedName.getFirst())) {
+      if (Namespace.ACCUMULO.name().equals(qualifiedName.getFirst())) {
         log.trace("Removing table from deletion set: {}", table);
         tableNames.remove();
       }

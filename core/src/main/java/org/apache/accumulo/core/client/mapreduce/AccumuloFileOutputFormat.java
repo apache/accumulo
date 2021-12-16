@@ -1,28 +1,29 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.mapreduce;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
-import org.apache.accumulo.core.client.mapreduce.lib.impl.FileOutputConfigurator;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.clientImpl.mapreduce.lib.FileOutputConfigurator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -30,7 +31,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -48,27 +48,15 @@ import org.apache.log4j.Logger;
  * are not supported and may be ignored or cause failures. Using other Hadoop configuration options
  * that affect the behavior of the underlying files directly in the Job's configuration may work,
  * but are not directly supported at this time.
+ *
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
+@Deprecated(since = "2.0.0")
 public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
 
   private static final Class<?> CLASS = AccumuloFileOutputFormat.class;
   protected static final Logger log = Logger.getLogger(CLASS);
-
-  /**
-   * This helper method provides an AccumuloConfiguration object constructed from the Accumulo
-   * defaults, and overridden with Accumulo properties that have been stored in the Job's
-   * configuration.
-   *
-   * @param context
-   *          the Hadoop context for the configured job
-   * @since 1.5.0
-   * @deprecated since 1.7.0 This method returns a type that is not part of the public API and is
-   *             not guaranteed to be stable. The method was deprecated to discourage its use.
-   */
-  @Deprecated
-  protected static AccumuloConfiguration getAccumuloConfiguration(JobContext context) {
-    return FileOutputConfigurator.getAccumuloConfiguration(CLASS, context.getConfiguration());
-  }
 
   /**
    * Sets the compression type to use for data blocks. Specifying a compression may require
@@ -77,7 +65,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * @param job
    *          the Hadoop job instance to be configured
    * @param compressionType
-   *          one of "none", "gz", "lzo", or "snappy"
+   *          one of "none", "gz", "bzip2", "lzo", "lz4", "snappy", or "zstd"
    * @since 1.5.0
    */
   public static void setCompressionType(Job job, String compressionType) {
@@ -170,9 +158,9 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
 
     final String extension = acuConf.get(Property.TABLE_FILE_TYPE);
     final Path file = this.getDefaultWorkFile(context, "." + extension);
-    final int visCacheSize = ConfiguratorBase.getVisibilityCacheSize(conf);
+    final int visCacheSize = FileOutputConfigurator.getVisibilityCacheSize(conf);
 
-    return new RecordWriter<Key,Value>() {
+    return new RecordWriter<>() {
       RFileWriter out = null;
 
       @Override

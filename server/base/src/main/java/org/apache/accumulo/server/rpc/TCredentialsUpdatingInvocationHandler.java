@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.rpc;
 
@@ -21,14 +23,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
-import org.apache.accumulo.core.client.impl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
+import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
+import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.apache.accumulo.server.security.UserImpersonation;
 import org.apache.accumulo.server.security.UserImpersonation.UsersWithHosts;
@@ -82,7 +84,7 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
     }
 
     // If we don't find a tcredentials in the first two positions
-    if (null == tcreds) {
+    if (tcreds == null) {
       // Not all calls require authentication (e.g. closeMultiScan). We need to let these pass
       // through.
       log.trace("Did not find a TCredentials object in the first two positions"
@@ -97,10 +99,10 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
 
     // If we authenticated the user over DIGEST-MD5 and they have a DelegationToken, the principals
     // should match
-    if (SaslMechanism.DIGEST_MD5 == UGIAssumingProcessor.rpcMechanism()
+    if (UGIAssumingProcessor.rpcMechanism() == SaslMechanism.DIGEST_MD5
         && DelegationTokenImpl.class.isAssignableFrom(tokenClass)) {
       if (!principal.equals(tcreds.principal)) {
-        log.warn("{} issued RPC with delegation token over DIGEST-MD5 as the"
+        log.warn("{} issued RPC with delegation token over DIGEST-MD5 as the "
             + "Accumulo principal {}. Disallowing RPC", principal, tcreds.principal);
         throw new ThriftSecurityException("RPC principal did not match provided Accumulo principal",
             SecurityErrorCode.BAD_CREDENTIALS);
@@ -112,14 +114,13 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
     if (!KerberosToken.class.isAssignableFrom(tokenClass)
         && !SystemToken.class.isAssignableFrom(tokenClass)) {
       // Don't include messages about SystemToken since it's internal
-      log.debug(
-          "Will not update principal on authentication tokens other than KerberosToken. Received "
-              + tokenClass);
+      log.debug("Will not update principal on authentication tokens other than"
+          + " KerberosToken. Received {}", tokenClass);
       throw new ThriftSecurityException("Did not receive a valid token",
           SecurityErrorCode.BAD_CREDENTIALS);
     }
 
-    if (null == principal) {
+    if (principal == null) {
       log.debug(
           "Found KerberosToken in TCredentials, but did not receive principal from SASL processor");
       throw new ThriftSecurityException("Did not extract principal from Thrift SASL processor",
@@ -130,7 +131,7 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
     // principal
     if (!principal.equals(tcreds.principal)) {
       UsersWithHosts usersWithHosts = impersonation.get(principal);
-      if (null == usersWithHosts) {
+      if (usersWithHosts == null) {
         principalMismatch(principal, tcreds.principal);
       }
       if (!usersWithHosts.getUsers().contains(tcreds.principal)) {
@@ -155,12 +156,12 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
 
   protected Class<? extends AuthenticationToken> getTokenClassFromName(String tokenClassName) {
     Class<? extends AuthenticationToken> typedClz = TOKEN_CLASS_CACHE.get(tokenClassName);
-    if (null == typedClz) {
+    if (typedClz == null) {
       Class<?> clz;
       try {
         clz = Class.forName(tokenClassName);
       } catch (ClassNotFoundException e) {
-        log.debug("Could not create class from token name: " + tokenClassName, e);
+        log.debug("Could not create class from token name: {}", tokenClassName, e);
         return null;
       }
       typedClz = clz.asSubclass(AuthenticationToken.class);

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
@@ -21,7 +23,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,7 +31,7 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -47,8 +48,7 @@ import org.apache.accumulo.core.security.VisibilityEvaluator;
 import org.apache.accumulo.core.security.VisibilityParseException;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.commons.collections.BufferOverflowException;
-import org.apache.commons.collections.map.LRUMap;
+import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,8 +72,7 @@ import org.slf4j.LoggerFactory;
  * fetch column families that are known to not transform at all).
  * <p>
  * If the implementing iterator is transforming column visibilities, then users must be careful NOT
- * to fetch column qualifiers from the scanner. The reason for this is due to ACCUMULO-??? (insert
- * issue number).
+ * to fetch column qualifiers from the scanner.
  * <p>
  * If the implementing iterator is transforming column visibilities, then the user should be sure to
  * supply authorizations via the {@link #AUTH_OPT} iterator option (note that this is only necessary
@@ -90,12 +89,12 @@ import org.slf4j.LoggerFactory;
  * iterator implements the security filtering rather than relying on a follow-on iterator to do it
  * so that we ensure the test is performed.
  */
-abstract public class TransformingIterator extends WrappingIterator implements OptionDescriber {
+public abstract class TransformingIterator extends WrappingIterator implements OptionDescriber {
   public static final String AUTH_OPT = "authorizations";
   public static final String MAX_BUFFER_SIZE_OPT = "maxBufferSize";
   private static final long DEFAULT_MAX_BUFFER_SIZE = 10000000;
 
-  protected Logger log = LoggerFactory.getLogger(getClass());
+  private Logger log = LoggerFactory.getLogger(getClass());
 
   protected ArrayList<Pair<Key,Value>> keys = new ArrayList<>();
   protected int keyPos = -1;
@@ -105,18 +104,11 @@ abstract public class TransformingIterator extends WrappingIterator implements O
   protected boolean seekColumnFamiliesInclusive;
 
   private VisibilityEvaluator ve = null;
-  private LRUMap visibleCache = null;
-  private LRUMap parsedVisibilitiesCache = null;
+  private LRUMap<ByteSequence,Boolean> visibleCache = null;
+  private LRUMap<ByteSequence,Boolean> parsedVisibilitiesCache = null;
   private long maxBufferSize;
 
-  private static Comparator<Pair<Key,Value>> keyComparator = new Comparator<Pair<Key,Value>>() {
-    @Override
-    public int compare(Pair<Key,Value> o1, Pair<Key,Value> o2) {
-      return o1.getFirst().compareTo(o2.getFirst());
-    }
-  };
-
-  public TransformingIterator() {}
+  private static Comparator<Pair<Key,Value>> keyComparator = Comparator.comparing(Pair::getFirst);
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
@@ -127,17 +119,18 @@ abstract public class TransformingIterator extends WrappingIterator implements O
       String auths = options.get(AUTH_OPT);
       if (auths != null && !auths.isEmpty()) {
         ve = new VisibilityEvaluator(new Authorizations(auths.getBytes(UTF_8)));
-        visibleCache = new LRUMap(100);
+        visibleCache = new LRUMap<>(100);
       }
     }
 
     if (options.containsKey(MAX_BUFFER_SIZE_OPT)) {
-      maxBufferSize = AccumuloConfiguration.getMemoryInBytes(options.get(MAX_BUFFER_SIZE_OPT));
+      maxBufferSize =
+          ConfigurationTypeHelper.getFixedMemoryAsBytes(options.get(MAX_BUFFER_SIZE_OPT));
     } else {
       maxBufferSize = DEFAULT_MAX_BUFFER_SIZE;
     }
 
-    parsedVisibilitiesCache = new LRUMap(100);
+    parsedVisibilitiesCache = new LRUMap<>(100);
   }
 
   @Override
@@ -166,7 +159,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
         if (option.getKey().equals(AUTH_OPT)) {
           new Authorizations(option.getValue().getBytes(UTF_8));
         } else if (option.getKey().equals(MAX_BUFFER_SIZE_OPT)) {
-          AccumuloConfiguration.getMemoryInBytes(option.getValue());
+          ConfigurationTypeHelper.getFixedMemoryAsBytes(option.getValue());
         }
       } catch (Exception e) {
         throw new IllegalArgumentException(
@@ -182,7 +175,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
     TransformingIterator copy;
 
     try {
-      copy = getClass().newInstance();
+      copy = getClass().getDeclaredConstructor().newInstance();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -199,12 +192,12 @@ abstract public class TransformingIterator extends WrappingIterator implements O
 
     copy.ve = ve;
     if (visibleCache != null) {
-      copy.visibleCache = new LRUMap(visibleCache.maxSize());
+      copy.visibleCache = new LRUMap<>(visibleCache.maxSize());
       copy.visibleCache.putAll(visibleCache);
     }
 
     if (parsedVisibilitiesCache != null) {
-      copy.parsedVisibilitiesCache = new LRUMap(parsedVisibilitiesCache.maxSize());
+      copy.parsedVisibilitiesCache = new LRUMap<>(parsedVisibilitiesCache.maxSize());
       copy.parsedVisibilitiesCache.putAll(parsedVisibilitiesCache);
     }
 
@@ -353,7 +346,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
 
           // try to defend against a scan or compaction using all memory in a tablet server
           if (appened > maxBufferSize)
-            throw new BufferOverflowException(
+            throw new IllegalArgumentException(
                 "Exceeded buffer size of " + maxBufferSize + ", prefixKey: " + prefixKey);
 
           if (getSource().hasTop() && key == getSource().getTopKey())
@@ -370,7 +363,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
     }
 
     if (!keys.isEmpty()) {
-      Collections.sort(keys, keyComparator);
+      keys.sort(keyComparator);
       keyPos = 0;
     }
   }
@@ -413,13 +406,13 @@ abstract public class TransformingIterator extends WrappingIterator implements O
     // check, even if visibility is not evaluated.
     ByteSequence visibility = key.getColumnVisibilityData();
     ColumnVisibility colVis = null;
-    Boolean parsed = (Boolean) parsedVisibilitiesCache.get(visibility);
+    Boolean parsed = parsedVisibilitiesCache.get(visibility);
     if (parsed == null) {
       try {
         colVis = new ColumnVisibility(visibility.toArray());
         parsedVisibilitiesCache.put(visibility, Boolean.TRUE);
       } catch (BadArgumentException e) {
-        log.error("Parse error after transformation : " + visibility);
+        log.error("Parse error after transformation : {}", visibility);
         parsedVisibilitiesCache.put(visibility, Boolean.FALSE);
         if (scanning) {
           return false;
@@ -439,17 +432,14 @@ abstract public class TransformingIterator extends WrappingIterator implements O
     if (!scanning || !visible || ve == null || visibleCache == null || visibility.length() == 0)
       return visible;
 
-    visible = (Boolean) visibleCache.get(visibility);
+    visible = visibleCache.get(visibility);
     if (visible == null) {
       try {
         if (colVis == null)
           colVis = new ColumnVisibility(visibility.toArray());
         visible = ve.evaluate(colVis);
         visibleCache.put(visibility, visible);
-      } catch (VisibilityParseException e) {
-        log.error("Parse Error", e);
-        visible = Boolean.FALSE;
-      } catch (BadArgumentException e) {
+      } catch (VisibilityParseException | BadArgumentException e) {
         log.error("Parse Error", e);
         visible = Boolean.FALSE;
       }
@@ -684,7 +674,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
    *
    * @return the part of the key this iterator is not transforming
    */
-  abstract protected PartialKey getKeyPrefix();
+  protected abstract PartialKey getKeyPrefix();
 
   public interface KVBuffer {
     void append(Key key, Value val);
@@ -710,7 +700,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
    * @see #replaceKeyParts(Key, Text, Text)
    * @see #replaceKeyParts(Key, Text, Text, Text)
    */
-  abstract protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output)
+  protected abstract void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output)
       throws IOException;
 
   /**

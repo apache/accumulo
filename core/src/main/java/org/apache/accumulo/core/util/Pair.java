@@ -1,23 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.util;
 
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 public class Pair<A,B> {
   A first;
@@ -28,29 +31,16 @@ public class Pair<A,B> {
     this.second = s;
   }
 
-  private int hashCode(Object o) {
-    if (o == null)
-      return 0;
-    return o.hashCode();
-  }
-
   @Override
   public int hashCode() {
-    return hashCode(first) + hashCode(second);
-  }
-
-  private boolean equals(Object o1, Object o2) {
-    if (o1 == null || o2 == null)
-      return o1 == o2;
-
-    return o1.equals(o2);
+    return Objects.hashCode(first) + Objects.hashCode(second);
   }
 
   @Override
   public boolean equals(Object o) {
     if (o instanceof Pair<?,?>) {
-      Pair<?,?> op = (Pair<?,?>) o;
-      return equals(first, op.first) && equals(second, op.second);
+      Pair<?,?> other = (Pair<?,?>) o;
+      return Objects.equals(first, other.first) && Objects.equals(second, other.second);
     }
     return false;
   }
@@ -81,7 +71,7 @@ public class Pair<A,B> {
   }
 
   public static <K2,V2,K1 extends K2,V1 extends V2> Pair<K2,V2> fromEntry(Entry<K1,V1> entry) {
-    return new Pair<K2,V2>(entry.getKey(), entry.getValue());
+    return new Pair<>(entry.getKey(), entry.getValue());
   }
 
 }

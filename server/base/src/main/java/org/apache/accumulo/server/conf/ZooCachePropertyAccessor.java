@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.conf;
 
@@ -20,14 +22,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Predicate;
 
 /**
  * A helper object for accessing properties in a {@link ZooCache}.
@@ -86,6 +87,10 @@ public class ZooCachePropertyAccessor {
     return propCache;
   }
 
+  boolean isPropertySet(Property property, String path) {
+    return propCache.get(path + "/" + property.getKey()) != null;
+  }
+
   /**
    * Gets a property. If the property is not in ZooKeeper or is present but an invalid format for
    * the property type, the parent configuration is consulted (if provided).
@@ -104,8 +109,8 @@ public class ZooCachePropertyAccessor {
 
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null) {
-        log.error("Using default value for " + key + " due to improperly formatted "
-            + property.getType() + ": " + value);
+        log.error("Using default value for {} due to improperly formatted {}: {}", key,
+            property.getType(), value);
       }
       if (parent != null) {
         value = parent.get(property);
@@ -146,7 +151,7 @@ public class ZooCachePropertyAccessor {
     List<String> children = propCache.getChildren(path);
     if (children != null) {
       for (String child : children) {
-        if (child != null && filter.apply(child)) {
+        if (child != null && filter.test(child)) {
           String value = get(path + "/" + child);
           if (value != null) {
             props.put(child, value);

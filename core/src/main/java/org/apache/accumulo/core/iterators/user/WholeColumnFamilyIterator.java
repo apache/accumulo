@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
@@ -39,7 +41,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Text;
 
 /**
- *
  * The WholeColumnFamilyIterator is designed to provide row/cf-isolation so that queries see
  * mutations as atomic. It does so by grouping row/Column family (as key) and rest of data as Value
  * into a single key/value pair, which is returned through the client as an atomic operation.
@@ -112,6 +113,11 @@ public class WholeColumnFamilyIterator
     return map;
   }
 
+  private static void encode(DataOutputStream dout, ByteSequence bs) throws IOException {
+    dout.writeInt(bs.length());
+    dout.write(bs.getBackingArray(), bs.offset(), bs.length());
+  }
+
   /**
    * Encode row/cf. Take a stream of keys and values and output a value that encodes everything but
    * their row and column families keys and values must be paired one for one
@@ -132,18 +138,9 @@ public class WholeColumnFamilyIterator
     for (int i = 0; i < keys.size(); i++) {
       Key k = keys.get(i);
       Value v = values.get(i);
-      // write the colqual
-      {
-        ByteSequence bs = k.getColumnQualifierData();
-        dout.writeInt(bs.length());
-        dout.write(bs.getBackingArray(), bs.offset(), bs.length());
-      }
-      // write the column visibility
-      {
-        ByteSequence bs = k.getColumnVisibilityData();
-        dout.writeInt(bs.length());
-        dout.write(bs.getBackingArray(), bs.offset(), bs.length());
-      }
+      // write column qualifier & visibility
+      encode(dout, k.getColumnQualifierData());
+      encode(dout, k.getColumnVisibilityData());
       // write the timestamp
       dout.writeLong(k.getTimestamp());
       // write the value
@@ -151,7 +148,6 @@ public class WholeColumnFamilyIterator
       dout.writeInt(valBytes.length);
       dout.write(valBytes);
     }
-
     return new Value(out.toByteArray());
   }
 
@@ -165,7 +161,7 @@ public class WholeColumnFamilyIterator
     Text currentCf;
 
     do {
-      if (sourceIter.hasTop() == false)
+      if (!sourceIter.hasTop())
         return;
       currentRow = new Text(sourceIter.getTopKey().getRow());
       currentCf = new Text(sourceIter.getTopKey().getColumnFamily());

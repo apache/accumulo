@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.test.mapred;
 
 import static org.junit.Assert.assertEquals;
@@ -24,25 +25,21 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.io.FileFilter;
-import java.io.IOException;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.mapred.AccumuloFileOutputFormat;
-import org.apache.accumulo.core.client.mapred.AccumuloInputFormat;
-import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -62,6 +59,10 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This tests deprecated mapreduce code in core jar
+ */
+@Deprecated(since = "2.0.0")
 public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(AccumuloFileOutputFormatIT.class);
   private static final int JOB_VISIBILITY_CACHE_SIZE = 3000;
@@ -83,30 +84,31 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   @Test
   public void testEmptyWrite() throws Exception {
-    getConnector().tableOperations().create(EMPTY_TABLE);
-    handleWriteTests(false);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      c.tableOperations().create(EMPTY_TABLE);
+      handleWriteTests(false);
+    }
   }
 
   @Test
   public void testRealWrite() throws Exception {
-    Connector c = getConnector();
-    c.tableOperations().create(TEST_TABLE);
-    BatchWriter bw = c.createBatchWriter(TEST_TABLE, new BatchWriterConfig());
-    Mutation m = new Mutation("Key");
-    m.put("", "", "");
-    bw.addMutation(m);
-    bw.close();
-    handleWriteTests(true);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      c.tableOperations().create(TEST_TABLE);
+      try (BatchWriter bw = c.createBatchWriter(TEST_TABLE)) {
+        Mutation m = new Mutation("Key");
+        m.put("", "", "");
+        bw.addMutation(m);
+      }
+      handleWriteTests(true);
+    }
   }
 
   private static class MRTester extends Configured implements Tool {
     private static class BadKeyMapper implements Mapper<Key,Value,Key,Value> {
-
       int index = 0;
 
       @Override
-      public void map(Key key, Value value, OutputCollector<Key,Value> output, Reporter reporter)
-          throws IOException {
+      public void map(Key key, Value value, OutputCollector<Key,Value> output, Reporter reporter) {
         try {
           try {
             output.collect(key, value);
@@ -126,7 +128,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
       public void configure(JobConf job) {}
 
       @Override
-      public void close() throws IOException {
+      public void close() {
         try {
           assertEquals(2, index);
         } catch (AssertionError e) {
@@ -148,20 +150,26 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
       JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
-      ConfiguratorBase.setVisibilityCacheSize(job, JOB_VISIBILITY_CACHE_SIZE);
+      org.apache.accumulo.core.clientImpl.mapreduce.lib.OutputConfigurator
+          .setVisibilityCacheSize(job, JOB_VISIBILITY_CACHE_SIZE);
 
-      job.setInputFormat(AccumuloInputFormat.class);
+      job.setInputFormat(org.apache.accumulo.core.client.mapred.AccumuloInputFormat.class);
 
-      AccumuloInputFormat.setZooKeeperInstance(job, getCluster().getClientConfig());
-      AccumuloInputFormat.setConnectorInfo(job, getAdminPrincipal(), getAdminToken());
-      AccumuloInputFormat.setInputTableName(job, table);
-      AccumuloFileOutputFormat.setOutputPath(job, new Path(args[1]));
-      AccumuloFileOutputFormat.setSampler(job, SAMPLER_CONFIG);
+      ClientInfo ci = getClientInfo();
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setZooKeeperInstance(job,
+          ci.getInstanceName(), ci.getZooKeepers());
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setConnectorInfo(job,
+          ci.getPrincipal(), ci.getAuthenticationToken());
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setInputTableName(job, table);
+      org.apache.accumulo.core.client.mapred.AccumuloFileOutputFormat.setOutputPath(job,
+          new Path(args[1]));
+      org.apache.accumulo.core.client.mapred.AccumuloFileOutputFormat.setSampler(job,
+          SAMPLER_CONFIG);
 
       job.setMapperClass(BAD_TABLE.equals(table) ? BadKeyMapper.class : IdentityMapper.class);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
-      job.setOutputFormat(AccumuloFileOutputFormat.class);
+      job.setOutputFormat(org.apache.accumulo.core.client.mapred.AccumuloFileOutputFormat.class);
 
       job.setNumReduceTasks(0);
 
@@ -185,21 +193,17 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
     MRTester.main(new String[] {content ? TEST_TABLE : EMPTY_TABLE, f.getAbsolutePath()});
 
     assertTrue(f.exists());
-    File[] files = f.listFiles(new FileFilter() {
-      @Override
-      public boolean accept(File file) {
-        return file.getName().startsWith("part-m-");
-      }
-    });
+    File[] files = f.listFiles(file -> file.getName().startsWith("part-m-"));
     assertNotNull(files);
     if (content) {
       assertEquals(1, files.length);
       assertTrue(files[0].exists());
 
-      Configuration conf = CachedConfiguration.getInstance();
+      Configuration conf = cluster.getServerContext().getHadoopConf();
       DefaultConfiguration acuconf = DefaultConfiguration.getInstance();
       FileSKVIterator sample = RFileOperations.getInstance().newReaderBuilder()
-          .forFile(files[0].toString(), FileSystem.getLocal(conf), conf)
+          .forFile(files[0].toString(), FileSystem.getLocal(conf), conf,
+              CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(acuconf).build()
           .getSample(new SamplerConfigurationImpl(SAMPLER_CONFIG));
       assertNotNull(sample);
@@ -210,21 +214,22 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   @Test
   public void writeBadVisibility() throws Exception {
-    Connector c = getConnector();
-    c.tableOperations().create(BAD_TABLE);
-    BatchWriter bw = c.createBatchWriter(BAD_TABLE, new BatchWriterConfig());
-    Mutation m = new Mutation("r1");
-    m.put("cf1", "cq1", "A&B");
-    m.put("cf1", "cq1", "A&B");
-    m.put("cf1", "cq2", "A&");
-    bw.addMutation(m);
-    bw.close();
-    File f = folder.newFile(testName.getMethodName());
-    if (f.delete()) {
-      log.debug("Deleted {}", f);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      c.tableOperations().create(BAD_TABLE);
+      try (BatchWriter bw = c.createBatchWriter(BAD_TABLE)) {
+        Mutation m = new Mutation("r1");
+        m.put("cf1", "cq1", "A&B");
+        m.put("cf1", "cq1", "A&B");
+        m.put("cf1", "cq2", "A&");
+        bw.addMutation(m);
+      }
+      File f = folder.newFile(testName.getMethodName());
+      if (f.delete()) {
+        log.debug("Deleted {}", f);
+      }
+      MRTester.main(new String[] {BAD_TABLE, f.getAbsolutePath()});
+      assertNull(e1);
+      assertNull(e2);
     }
-    MRTester.main(new String[] {BAD_TABLE, f.getAbsolutePath()});
-    assertNull(e1);
-    assertNull(e2);
   }
 }

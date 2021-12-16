@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.util;
 
@@ -23,8 +25,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.util.Merge.Size;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -43,7 +46,7 @@ public class MergeTest {
           end = null;
         else
           end = new Text(String.format("%05d", tablets.size()));
-        KeyExtent extent = new KeyExtent("table", end, start);
+        KeyExtent extent = new KeyExtent(TableId.of("table"), end, start);
         start = end;
         tablets.add(new Size(extent, size));
       }
@@ -53,10 +56,10 @@ public class MergeTest {
     protected void message(String format, Object... args) {}
 
     @Override
-    protected Iterator<Size> getSizeIterator(Connector conn, String tablename, final Text start,
-        final Text end) throws MergeException {
+    protected Iterator<Size> getSizeIterator(AccumuloClient client, String tablename,
+        final Text start, final Text end) throws MergeException {
       final Iterator<Size> impl = tablets.iterator();
-      return new Iterator<Size>() {
+      return new Iterator<>() {
         Size next = skip();
 
         @Override
@@ -68,13 +71,13 @@ public class MergeTest {
           while (impl.hasNext()) {
             Size candidate = impl.next();
             if (start != null) {
-              if (candidate.extent.getEndRow() != null
-                  && candidate.extent.getEndRow().compareTo(start) < 0)
+              if (candidate.extent.endRow() != null
+                  && candidate.extent.endRow().compareTo(start) < 0)
                 continue;
             }
             if (end != null) {
-              if (candidate.extent.getPrevEndRow() != null
-                  && candidate.extent.getPrevEndRow().compareTo(end) >= 0)
+              if (candidate.extent.prevEndRow() != null
+                  && candidate.extent.prevEndRow().compareTo(end) >= 0)
                 continue;
             }
             return candidate;
@@ -97,7 +100,7 @@ public class MergeTest {
     }
 
     @Override
-    protected void merge(Connector conn, String table, List<Size> sizes, int numToMerge)
+    protected void merge(AccumuloClient client, String table, List<Size> sizes, int numToMerge)
         throws MergeException {
       List<Size> merge = new ArrayList<>();
       for (int i = 0; i < numToMerge; i++) {
@@ -107,8 +110,8 @@ public class MergeTest {
     }
   }
 
-  static private int[] sizes(List<Size> sizes) {
-    int result[] = new int[sizes.size()];
+  private static int[] sizes(List<Size> sizes) {
+    int[] result = new int[sizes.size()];
     int i = 0;
     for (Size s : sizes) {
       result[i++] = (int) s.size;

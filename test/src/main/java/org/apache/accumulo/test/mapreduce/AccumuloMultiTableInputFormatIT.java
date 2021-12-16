@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.mapreduce;
 
@@ -20,17 +22,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.mapreduce.AccumuloMultiTableInputFormat;
-import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
-import org.apache.accumulo.core.client.mapreduce.RangeInputSplit;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -45,6 +43,10 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.Test;
 
+/**
+ * This tests deprecated mapreduce code in core jar
+ */
+@Deprecated(since = "2.0.0")
 public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
 
   private static AssertionError e1 = null;
@@ -57,9 +59,11 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
       int count = 0;
 
       @Override
-      protected void map(Key k, Value v, Context context) throws IOException, InterruptedException {
+      protected void map(Key k, Value v, Context context) {
         try {
-          String tableName = ((RangeInputSplit) context.getInputSplit()).getTableName();
+          String tableName =
+              ((org.apache.accumulo.core.client.mapreduce.RangeInputSplit) context.getInputSplit())
+                  .getTableName();
           if (key != null)
             assertEquals(key.getRow().toString(), new String(v.get()));
           assertEquals(new Text(String.format("%s_%09x", tableName, count + 1)), k.getRow());
@@ -72,7 +76,7 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
       }
 
       @Override
-      protected void cleanup(Context context) throws IOException, InterruptedException {
+      protected void cleanup(Context context) {
         try {
           assertEquals(100, count);
         } catch (AssertionError e) {
@@ -89,8 +93,6 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
             "Usage : " + MRTester.class.getName() + " <table1> <table2>");
       }
 
-      String user = getAdminPrincipal();
-      AuthenticationToken pass = getAdminToken();
       String table1 = args[0];
       String table2 = args[1];
 
@@ -98,19 +100,27 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
           this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
       job.setJarByClass(this.getClass());
 
-      job.setInputFormatClass(AccumuloMultiTableInputFormat.class);
+      job.setInputFormatClass(
+          org.apache.accumulo.core.client.mapreduce.AccumuloMultiTableInputFormat.class);
 
-      AccumuloMultiTableInputFormat.setConnectorInfo(job, user, pass);
+      ClientInfo ci = getClientInfo();
+      org.apache.accumulo.core.client.mapreduce.AccumuloMultiTableInputFormat
+          .setZooKeeperInstance(job, ci.getInstanceName(), ci.getZooKeepers());
+      org.apache.accumulo.core.client.mapreduce.AccumuloMultiTableInputFormat.setConnectorInfo(job,
+          ci.getPrincipal(), ci.getAuthenticationToken());
 
-      InputTableConfig tableConfig1 = new InputTableConfig();
-      InputTableConfig tableConfig2 = new InputTableConfig();
+      org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig1 =
+          new org.apache.accumulo.core.client.mapreduce.InputTableConfig();
+      org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig2 =
+          new org.apache.accumulo.core.client.mapreduce.InputTableConfig();
 
-      Map<String,InputTableConfig> configMap = new HashMap<>();
+      Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> configMap =
+          new HashMap<>();
       configMap.put(table1, tableConfig1);
       configMap.put(table2, tableConfig2);
 
-      AccumuloMultiTableInputFormat.setInputTableConfigs(job, configMap);
-      AccumuloMultiTableInputFormat.setZooKeeperInstance(job, getCluster().getClientConfig());
+      org.apache.accumulo.core.client.mapreduce.AccumuloMultiTableInputFormat
+          .setInputTableConfigs(job, configMap);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -142,25 +152,26 @@ public class AccumuloMultiTableInputFormatIT extends AccumuloClusterHarness {
     String[] tableNames = getUniqueNames(2);
     String table1 = tableNames[0];
     String table2 = tableNames[1];
-    Connector c = getConnector();
-    c.tableOperations().create(table1);
-    c.tableOperations().create(table2);
-    BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
-    BatchWriter bw2 = c.createBatchWriter(table2, new BatchWriterConfig());
-    for (int i = 0; i < 100; i++) {
-      Mutation t1m = new Mutation(new Text(String.format("%s_%09x", table1, i + 1)));
-      t1m.put(new Text(), new Text(), new Value(String.format("%s_%09x", table1, i).getBytes()));
-      bw.addMutation(t1m);
-      Mutation t2m = new Mutation(new Text(String.format("%s_%09x", table2, i + 1)));
-      t2m.put(new Text(), new Text(), new Value(String.format("%s_%09x", table2, i).getBytes()));
-      bw2.addMutation(t2m);
-    }
-    bw.close();
-    bw2.close();
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      c.tableOperations().create(table1);
+      c.tableOperations().create(table2);
+      BatchWriter bw = c.createBatchWriter(table1);
+      BatchWriter bw2 = c.createBatchWriter(table2);
+      for (int i = 0; i < 100; i++) {
+        Mutation t1m = new Mutation(new Text(String.format("%s_%09x", table1, i + 1)));
+        t1m.put("", "", String.format("%s_%09x", table1, i));
+        bw.addMutation(t1m);
+        Mutation t2m = new Mutation(new Text(String.format("%s_%09x", table2, i + 1)));
+        t2m.put("", "", String.format("%s_%09x", table2, i));
+        bw2.addMutation(t2m);
+      }
+      bw.close();
+      bw2.close();
 
-    MRTester.main(new String[] {table1, table2});
-    assertNull(e1);
-    assertNull(e2);
+      MRTester.main(new String[] {table1, table2});
+      assertNull(e1);
+      assertNull(e2);
+    }
   }
 
 }

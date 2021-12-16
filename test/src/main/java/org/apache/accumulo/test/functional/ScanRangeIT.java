@@ -1,30 +1,31 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -48,26 +49,27 @@ public class ScanRangeIT extends AccumuloClusterHarness {
 
   @Test
   public void run() throws Exception {
-    Connector c = getConnector();
-    String[] tableNames = getUniqueNames(2);
-    String table1 = tableNames[0];
-    c.tableOperations().create(table1);
-    String table2 = tableNames[1];
-    c.tableOperations().create(table2);
-    TreeSet<Text> splitRows = new TreeSet<>();
-    int splits = 3;
-    for (int i = (ROW_LIMIT / splits); i < ROW_LIMIT; i += (ROW_LIMIT / splits))
-      splitRows.add(createRow(i));
-    c.tableOperations().addSplits(table2, splitRows);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String[] tableNames = getUniqueNames(2);
+      String table1 = tableNames[0];
+      c.tableOperations().create(table1);
+      String table2 = tableNames[1];
+      TreeSet<Text> splitRows = new TreeSet<>();
+      int splits = 3;
+      for (int i = (ROW_LIMIT / splits); i < ROW_LIMIT; i += (ROW_LIMIT / splits))
+        splitRows.add(createRow(i));
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitRows);
+      c.tableOperations().create(table2, ntc);
 
-    insertData(c, table1);
-    scanTable(c, table1);
+      insertData(c, table1);
+      scanTable(c, table1);
 
-    insertData(c, table2);
-    scanTable(c, table2);
+      insertData(c, table2);
+      scanTable(c, table2);
+    }
   }
 
-  private void scanTable(Connector c, String table) throws Exception {
+  private void scanTable(AccumuloClient c, String table) throws Exception {
     scanRange(c, table, new IntKey(0, 0, 0, 0), new IntKey(1, 0, 0, 0));
 
     scanRange(c, table, new IntKey(0, 0, 0, 0),
@@ -152,99 +154,93 @@ public class ScanRangeIT extends AccumuloClusterHarness {
 
   }
 
-  private void scanRange(Connector c, String table, IntKey ik1, IntKey ik2) throws Exception {
+  private void scanRange(AccumuloClient c, String table, IntKey ik1, IntKey ik2) throws Exception {
     scanRange(c, table, ik1, false, ik2, false);
     scanRange(c, table, ik1, false, ik2, true);
     scanRange(c, table, ik1, true, ik2, false);
     scanRange(c, table, ik1, true, ik2, true);
   }
 
-  private void scanRange(Connector c, String table, IntKey ik1, boolean inclusive1, IntKey ik2,
+  private void scanRange(AccumuloClient c, String table, IntKey ik1, boolean inclusive1, IntKey ik2,
       boolean inclusive2) throws Exception {
-    Scanner scanner = c.createScanner(table, Authorizations.EMPTY);
+    try (Scanner scanner = c.createScanner(table, Authorizations.EMPTY)) {
 
-    Key key1 = null;
-    Key key2 = null;
+      Key key1 = null;
+      Key key2 = null;
 
-    IntKey expectedIntKey;
-    IntKey expectedEndIntKey;
+      IntKey expectedIntKey;
+      IntKey expectedEndIntKey;
 
-    if (ik1 != null) {
-      key1 = ik1.createKey();
-      expectedIntKey = ik1;
+      if (ik1 != null) {
+        key1 = ik1.createKey();
+        expectedIntKey = ik1;
 
-      if (!inclusive1) {
+        if (!inclusive1) {
+          expectedIntKey = expectedIntKey.increment();
+        }
+      } else {
+        expectedIntKey = new IntKey(0, 0, 0, 0);
+      }
+
+      if (ik2 != null) {
+        key2 = ik2.createKey();
+        expectedEndIntKey = ik2;
+
+        if (inclusive2) {
+          expectedEndIntKey = expectedEndIntKey.increment();
+        }
+      } else {
+        expectedEndIntKey = new IntKey(ROW_LIMIT, 0, 0, 0);
+      }
+
+      Range range = new Range(key1, inclusive1, key2, inclusive2);
+
+      scanner.setRange(range);
+
+      for (Entry<Key,Value> entry : scanner) {
+
+        Key expectedKey = expectedIntKey.createKey();
+        if (!expectedKey.equals(entry.getKey())) {
+          throw new Exception(" " + expectedKey + " != " + entry.getKey());
+        }
+
         expectedIntKey = expectedIntKey.increment();
       }
-    } else {
-      expectedIntKey = new IntKey(0, 0, 0, 0);
-    }
 
-    if (ik2 != null) {
-      key2 = ik2.createKey();
-      expectedEndIntKey = ik2;
-
-      if (inclusive2) {
-        expectedEndIntKey = expectedEndIntKey.increment();
+      if (!expectedIntKey.createKey().equals(expectedEndIntKey.createKey())) {
+        throw new Exception(
+            " " + expectedIntKey.createKey() + " != " + expectedEndIntKey.createKey());
       }
-    } else {
-      expectedEndIntKey = new IntKey(ROW_LIMIT, 0, 0, 0);
-    }
-
-    Range range = new Range(key1, inclusive1, key2, inclusive2);
-
-    scanner.setRange(range);
-
-    for (Entry<Key,Value> entry : scanner) {
-
-      Key expectedKey = expectedIntKey.createKey();
-      if (!expectedKey.equals(entry.getKey())) {
-        throw new Exception(" " + expectedKey + " != " + entry.getKey());
-      }
-
-      expectedIntKey = expectedIntKey.increment();
-    }
-
-    if (!expectedIntKey.createKey().equals(expectedEndIntKey.createKey())) {
-      throw new Exception(
-          " " + expectedIntKey.createKey() + " != " + expectedEndIntKey.createKey());
     }
   }
 
   private static Text createCF(int cf) {
-    Text tcf = new Text(String.format("cf_%03d", cf));
-    return tcf;
+    return new Text(String.format("cf_%03d", cf));
   }
 
   private static Text createCQ(int cf) {
-    Text tcf = new Text(String.format("cq_%03d", cf));
-    return tcf;
+    return new Text(String.format("cq_%03d", cf));
   }
 
   private static Text createRow(int row) {
-    Text trow = new Text(String.format("r_%06d", row));
-    return trow;
+    return new Text(String.format("r_%06d", row));
   }
 
-  private void insertData(Connector c, String table) throws Exception {
+  private void insertData(AccumuloClient c, String table) throws Exception {
 
-    BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
-
-    for (int i = 0; i < ROW_LIMIT; i++) {
-      Mutation m = new Mutation(createRow(i));
-
-      for (int j = 0; j < CF_LIMIT; j++) {
-        for (int k = 0; k < CQ_LIMIT; k++) {
-          for (int t = 0; t < TS_LIMIT; t++) {
-            m.put(createCF(j), createCQ(k), t,
-                new Value(String.format("%06d_%03d_%03d_%03d", i, j, k, t).getBytes(UTF_8)));
+    try (BatchWriter bw = c.createBatchWriter(table)) {
+      for (int i = 0; i < ROW_LIMIT; i++) {
+        Mutation m = new Mutation(createRow(i));
+        for (int j = 0; j < CF_LIMIT; j++) {
+          for (int k = 0; k < CQ_LIMIT; k++) {
+            for (int t = 0; t < TS_LIMIT; t++) {
+              m.put(createCF(j), createCQ(k), t,
+                  new Value(String.format("%06d_%03d_%03d_%03d", i, j, k, t)));
+            }
           }
         }
+        bw.addMutation(m);
       }
-
-      bw.addMutation(m);
     }
-
-    bw.close();
   }
 }

@@ -1,33 +1,30 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -52,24 +49,24 @@ public class TestMultiTableIngest {
     String prefix = "test_";
   }
 
-  private static void readBack(Opts opts, ScannerOpts scanOpts, Connector conn,
-      List<String> tableNames) throws Exception {
+  private static void readBack(Opts opts, AccumuloClient client, List<String> tableNames)
+      throws Exception {
     int i = 0;
     for (String table : tableNames) {
       // wait for table to exist
-      while (!conn.tableOperations().exists(table))
+      while (!client.tableOperations().exists(table))
         UtilWaitThread.sleep(100);
-      Scanner scanner = conn.createScanner(table, opts.auths);
-      scanner.setBatchSize(scanOpts.scanBatchSize);
-      int count = i;
-      for (Entry<Key,Value> elt : scanner) {
-        String expected = String.format("%06d", count);
-        if (!elt.getKey().getRow().toString().equals(expected))
-          throw new RuntimeException(
-              "entry " + elt + " does not match expected " + expected + " in table " + table);
-        count += tableNames.size();
+      try (Scanner scanner = client.createScanner(table, opts.auths)) {
+        int count = i;
+        for (Entry<Key,Value> elt : scanner) {
+          String expected = String.format("%06d", count);
+          if (!elt.getKey().getRow().toString().equals(expected))
+            throw new RuntimeException(
+                "entry " + elt + " does not match expected " + expected + " in table " + table);
+          count += tableNames.size();
+        }
+        i++;
       }
-      i++;
     }
   }
 
@@ -77,50 +74,41 @@ public class TestMultiTableIngest {
     ArrayList<String> tableNames = new ArrayList<>();
 
     Opts opts = new Opts();
-    ScannerOpts scanOpts = new ScannerOpts();
-    BatchWriterOpts bwOpts = new BatchWriterOpts();
-    opts.parseArgs(TestMultiTableIngest.class.getName(), args, scanOpts, bwOpts);
+    opts.parseArgs(TestMultiTableIngest.class.getName(), args);
     // create the test table within accumulo
-    Connector connector;
-    try {
-      connector = opts.getConnector();
-    } catch (AccumuloException e) {
-      throw new RuntimeException(e);
-    } catch (AccumuloSecurityException e) {
-      throw new RuntimeException(e);
-    }
-    for (int i = 0; i < opts.tables; i++) {
-      tableNames.add(String.format(opts.prefix + "%04d", i));
-    }
+    try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
+      for (int i = 0; i < opts.tables; i++) {
+        tableNames.add(String.format(opts.prefix + "%04d", i));
+      }
 
-    if (!opts.readonly) {
-      for (String table : tableNames)
-        connector.tableOperations().create(table);
+      if (!opts.readonly) {
+        for (String table : tableNames)
+          client.tableOperations().create(table);
 
-      MultiTableBatchWriter b;
+        MultiTableBatchWriter b;
+        try {
+          b = client.createMultiTableBatchWriter();
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+
+        // populate
+        for (int i = 0; i < opts.count; i++) {
+          Mutation m = new Mutation(new Text(String.format("%06d", i)));
+          m.put("col" + ((i % 3) + 1), "qual", "junk");
+          b.getBatchWriter(tableNames.get(i % tableNames.size())).addMutation(m);
+        }
+        try {
+          b.close();
+        } catch (MutationsRejectedException e) {
+          throw new RuntimeException(e);
+        }
+      }
       try {
-        b = connector.createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
+        readBack(opts, client, tableNames);
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-
-      // populate
-      for (int i = 0; i < opts.count; i++) {
-        Mutation m = new Mutation(new Text(String.format("%06d", i)));
-        m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"),
-            new Value("junk".getBytes(UTF_8)));
-        b.getBatchWriter(tableNames.get(i % tableNames.size())).addMutation(m);
-      }
-      try {
-        b.close();
-      } catch (MutationsRejectedException e) {
-        throw new RuntimeException(e);
-      }
-    }
-    try {
-      readBack(opts, scanOpts, connector, tableNames);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
     }
   }
 

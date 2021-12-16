@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.conf;
 
@@ -22,16 +24,16 @@ import static org.junit.Assert.assertTrue;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 
 public class PropertyTypeTest {
 
@@ -69,35 +71,18 @@ public class PropertyTypeTest {
   public void testFullCoverage() {
     // This test checks the remainder of the methods in this class to ensure each property type has
     // a corresponding test
-    Iterable<String> types = Iterables.transform(Arrays.asList(PropertyType.values()),
-        new Function<PropertyType,String>() {
-          @Override
-          public String apply(final PropertyType input) {
-            return input.name();
-          }
-        });
-    Iterable<String> typesTested = Iterables.transform(Iterables.filter(Iterables
-        .transform(Arrays.asList(this.getClass().getMethods()), new Function<Method,String>() {
-          @Override
-          public String apply(final Method input) {
-            return input.getName();
-          }
-        }), new Predicate<String>() {
-          @Override
-          public boolean apply(final String input) {
-            return input.startsWith("testType");
-          }
-        }), new Function<String,String>() {
-          @Override
-          public String apply(final String input) {
-            return input.substring(8);
-          }
-        });
-    for (String t : types) {
+    Stream<String> types = Arrays.stream(PropertyType.values()).map(Enum<PropertyType>::name);
+
+    List<String> typesTested = Arrays.stream(this.getClass().getMethods()).map(Method::getName)
+        .filter(m -> m.startsWith("testType")).map(m -> m.substring(8))
+        .collect(Collectors.toList());
+
+    types = types.map(t -> {
       assertTrue(PropertyType.class.getSimpleName() + "." + t + " does not have a test.",
-          Iterables.contains(typesTested, t));
-    }
-    assertEquals(Iterables.size(types), Iterables.size(typesTested));
+          typesTested.contains(t));
+      return t;
+    });
+    assertEquals(types.count(), typesTested.size());
   }
 
   private void valid(final String... args) {
@@ -160,6 +145,12 @@ public class PropertyTypeTest {
   }
 
   @Test
+  public void testTypeGC_POST_ACTION() {
+    valid(null, "none", "flush", "compact");
+    invalid("", "other");
+  }
+
+  @Test
   public void testTypeFRACTION() {
     valid(null, "1", "0", "1.0", "25%", "2.5%", "10.2E-3", "10.2E-3%", ".3");
     invalid("", "other", "20%%", "-0.3", "3.6a", "%25", "3%a");
@@ -174,8 +165,14 @@ public class PropertyTypeTest {
   }
 
   @Test
-  public void testTypeMEMORY() {
+  public void testTypeBYTES() {
     valid(null, "1024", "20B", "100K", "1500M", "2G");
+    invalid("1M500K", "1M 2K", "1MB", "1.5G", "1,024K", "", "a", "10%");
+  }
+
+  @Test
+  public void testTypeMEMORY() {
+    valid(null, "1024", "20B", "100K", "1500M", "2G", "10%");
     invalid("1M500K", "1M 2K", "1MB", "1.5G", "1,024K", "", "a");
   }
 

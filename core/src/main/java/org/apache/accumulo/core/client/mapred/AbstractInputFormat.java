@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.mapred;
 
@@ -20,6 +22,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -27,50 +30,38 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
-import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
-import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.Credentials;
-import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
-import org.apache.accumulo.core.client.impl.OfflineScanner;
-import org.apache.accumulo.core.client.impl.ScannerImpl;
-import org.apache.accumulo.core.client.impl.Tables;
-import org.apache.accumulo.core.client.impl.TabletLocator;
-import org.apache.accumulo.core.client.mapred.impl.BatchInputSplit;
-import org.apache.accumulo.core.client.mapreduce.InputTableConfig;
-import org.apache.accumulo.core.client.mapreduce.impl.SplitUtils;
-import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
-import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
+import org.apache.accumulo.core.clientImpl.OfflineScanner;
+import org.apache.accumulo.core.clientImpl.ScannerImpl;
+import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.clientImpl.TabletLocator;
+import org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.InputFormat;
@@ -85,8 +76,15 @@ import org.apache.log4j.Logger;
  * An abstract input format to provide shared methods common to all other input format classes. At
  * the very least, any classes inheriting from this class will need to define their own
  * {@link RecordReader}.
+ *
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapred instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
+@Deprecated(since = "2.0.0")
 public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
+
+  private static final SecureRandom random = new SecureRandom();
+
   protected static final Class<?> CLASS = AccumuloInputFormat.class;
   protected static final Logger log = Logger.getLogger(CLASS);
 
@@ -140,9 +138,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
       try {
-        Instance instance = getInstance(job);
-        Connector conn = instance.getConnector(principal, token);
-        token = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
+        ClientContext client = InputConfigurator.client(CLASS, job);
+        token = client.securityOperations().getDelegationToken(new DelegationTokenConfig());
       } catch (Exception e) {
         log.warn("Failed to automatically obtain DelegationToken, Mappers/Reducers will likely"
             + " fail to communicate with Accumulo", e);
@@ -224,7 +221,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    */
   protected static AuthenticationToken getAuthenticationToken(JobConf job) {
     AuthenticationToken token = InputConfigurator.getAuthenticationToken(CLASS, job);
-    return ConfiguratorBase.unwrapAuthenticationToken(job, token);
+    return InputConfigurator.unwrapAuthenticationToken(job, token);
   }
 
   /**
@@ -237,13 +234,14 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @param zooKeepers
    *          a comma-separated list of zookeeper servers
    * @since 1.5.0
-   * @deprecated since 1.6.0; Use {@link #setZooKeeperInstance(JobConf, ClientConfiguration)}
+   * @deprecated since 1.6.0; Use
+   *             {@link #setZooKeeperInstance(JobConf, org.apache.accumulo.core.client.ClientConfiguration)}
    *             instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.6.0")
   public static void setZooKeeperInstance(JobConf job, String instanceName, String zooKeepers) {
-    setZooKeeperInstance(job,
-        new ClientConfiguration().withInstance(instanceName).withZkHosts(zooKeepers));
+    setZooKeeperInstance(job, org.apache.accumulo.core.client.ClientConfiguration.create()
+        .withInstance(instanceName).withZkHosts(zooKeepers));
   }
 
   /**
@@ -255,23 +253,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          client configuration containing connection options
    * @since 1.6.0
    */
-  public static void setZooKeeperInstance(JobConf job, ClientConfiguration clientConfig) {
+  public static void setZooKeeperInstance(JobConf job,
+      org.apache.accumulo.core.client.ClientConfiguration clientConfig) {
     InputConfigurator.setZooKeeperInstance(CLASS, job, clientConfig);
-  }
-
-  /**
-   * Configures a {@link org.apache.accumulo.core.client.mock.MockInstance} for this job.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param instanceName
-   *          the Accumulo instance name
-   * @since 1.5.0
-   * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework
-   */
-  @Deprecated
-  public static void setMockInstance(JobConf job, String instanceName) {
-    InputConfigurator.setMockInstance(CLASS, job, instanceName);
   }
 
   /**
@@ -282,9 +266,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return an Accumulo instance
    * @since 1.5.0
-   * @see #setZooKeeperInstance(JobConf, ClientConfiguration)
+   * @see #setZooKeeperInstance(JobConf, org.apache.accumulo.core.client.ClientConfiguration)
    */
-  protected static Instance getInstance(JobConf job) {
+  protected static org.apache.accumulo.core.client.Instance getInstance(JobConf job) {
     return InputConfigurator.getInstance(CLASS, job);
   }
 
@@ -315,8 +299,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * Sets the {@link org.apache.accumulo.core.security.Authorizations} used to scan. Must be a
-   * subset of the user's authorization. Defaults to the empty set.
+   * Sets the {@link Authorizations} used to scan. Must be a subset of the user's authorization.
+   * Defaults to the empty set.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -342,25 +326,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
   }
 
   /**
-   * Initializes an Accumulo {@link org.apache.accumulo.core.client.impl.TabletLocator} based on the
-   * configuration.
-   *
-   * @param job
-   *          the Hadoop context for the configured job
-   * @return an Accumulo tablet locator
-   * @throws org.apache.accumulo.core.client.TableNotFoundException
-   *           if the table name set on the configuration doesn't exist
-   * @since 1.6.0
-   * @deprecated since 1.7.0 This method returns a type that is not part of the public API and is
-   *             not guaranteed to be stable. The method was deprecated to discourage its use.
-   */
-  @Deprecated
-  protected static TabletLocator getTabletLocator(JobConf job, String tableId)
-      throws TableNotFoundException {
-    return InputConfigurator.getTabletLocator(CLASS, job, tableId);
-  }
-
-  /**
    * Fetch the client configuration from the job.
    *
    * @param job
@@ -368,7 +333,8 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @return The client configuration for the job
    * @since 1.7.0
    */
-  protected static ClientConfiguration getClientConfiguration(JobConf job) {
+  protected static org.apache.accumulo.core.client.ClientConfiguration
+      getClientConfiguration(JobConf job) {
     return InputConfigurator.getClientConfiguration(CLASS, job);
   }
 
@@ -384,34 +350,27 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    * @since 1.5.0
    */
   protected static void validateOptions(JobConf job) throws IOException {
-    final Instance inst = InputConfigurator.validateInstance(CLASS, job);
-    String principal = InputConfigurator.getPrincipal(CLASS, job);
-    AuthenticationToken token = InputConfigurator.getAuthenticationToken(CLASS, job);
-    // In secure mode, we need to convert the DelegationTokenStub into a real DelegationToken
-    token = ConfiguratorBase.unwrapAuthenticationToken(job, token);
-    Connector conn;
-    try {
-      conn = inst.getConnector(principal, token);
-    } catch (Exception e) {
-      throw new IOException(e);
-    }
-    InputConfigurator.validatePermissions(CLASS, job, conn);
+    InputConfigurator.validatePermissions(CLASS, job);
   }
 
   /**
-   * Fetches all {@link InputTableConfig}s that have been set on the given Hadoop job.
+   * Fetches all {@link org.apache.accumulo.core.client.mapreduce.InputTableConfig}s that have been
+   * set on the given Hadoop job.
    *
    * @param job
    *          the Hadoop job instance to be configured
-   * @return the {@link InputTableConfig} objects set on the job
+   * @return the {@link org.apache.accumulo.core.client.mapreduce.InputTableConfig} objects set on
+   *         the job
    * @since 1.6.0
    */
-  public static Map<String,InputTableConfig> getInputTableConfigs(JobConf job) {
+  public static Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig>
+      getInputTableConfigs(JobConf job) {
     return InputConfigurator.getInputTableConfigs(CLASS, job);
   }
 
   /**
-   * Fetches a {@link InputTableConfig} that has been set on the configuration for a specific table.
+   * Fetches a {@link org.apache.accumulo.core.client.mapreduce.InputTableConfig} that has been set
+   * on the configuration for a specific table.
    *
    * <p>
    * null is returned in the event that the table doesn't exist.
@@ -420,18 +379,18 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
    *          the Hadoop job instance to be configured
    * @param tableName
    *          the table name for which to grab the config object
-   * @return the {@link InputTableConfig} for the given table
+   * @return the {@link org.apache.accumulo.core.client.mapreduce.InputTableConfig} for the given
+   *         table
    * @since 1.6.0
    */
-  public static InputTableConfig getInputTableConfig(JobConf job, String tableName) {
+  public static org.apache.accumulo.core.client.mapreduce.InputTableConfig
+      getInputTableConfig(JobConf job, String tableName) {
     return InputConfigurator.getInputTableConfig(CLASS, job, tableName);
   }
 
   /**
-   * An abstract base class to be used to create {@link org.apache.hadoop.mapred.RecordReader}
-   * instances that convert from Accumulo
-   * {@link org.apache.accumulo.core.data.Key}/{@link org.apache.accumulo.core.data.Value} pairs to
-   * the user's K/V types.
+   * An abstract base class to be used to create {@link RecordReader} instances that convert from
+   * Accumulo {@link Key}/{@link Value} pairs to the user's K/V types.
    *
    * Subclasses must implement {@link #next(Object, Object)} to update key and value, and also to
    * update the following variables:
@@ -474,11 +433,11 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
       List<IteratorSetting> iterators = null;
 
-      if (null == split) {
+      if (split == null) {
         iterators = jobIterators(job, tableName);
       } else {
         iterators = split.getIterators();
-        if (null == iterators) {
+        if (iterators == null) {
           iterators = jobIterators(job, tableName);
         }
       }
@@ -499,7 +458,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      * @since 1.6.0
      * @deprecated since 1.7.0; Use {@link #jobIterators} instead.
      */
-    @Deprecated
+    @Deprecated(since = "1.7.0")
     protected void setupIterators(JobConf job, Scanner scanner, String tableName,
         RangeInputSplit split) {
       setupIterators(job, (ScannerBase) scanner, tableName, split);
@@ -510,51 +469,40 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
      */
     public void initialize(InputSplit inSplit, JobConf job) throws IOException {
       baseSplit = (org.apache.accumulo.core.client.mapreduce.RangeInputSplit) inSplit;
-      log.debug("Initializing input split: " + baseSplit.toString());
-
-      Instance instance = baseSplit.getInstance(getClientConfiguration(job));
-      if (null == instance) {
-        instance = getInstance(job);
-      }
-
-      String principal = baseSplit.getPrincipal();
-      if (null == principal) {
-        principal = getPrincipal(job);
-      }
-
-      AuthenticationToken token = baseSplit.getToken();
-      if (null == token) {
-        token = getAuthenticationToken(job);
-      }
+      log.debug("Initializing input split: " + baseSplit);
 
       Authorizations authorizations = baseSplit.getAuths();
       if (null == authorizations) {
         authorizations = getScanAuthorizations(job);
       }
+
       String classLoaderContext = getClassLoaderContext(job);
       String table = baseSplit.getTableName();
 
       // in case the table name changed, we can still use the previous name for terms of
-      // configuration,
-      // but the scanner will use the table id resolved at job setup time
-      InputTableConfig tableConfig = getInputTableConfig(job, baseSplit.getTableName());
+      // configuration, but the scanner will use the table id resolved at job setup time
+      org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig =
+          getInputTableConfig(job, baseSplit.getTableName());
 
-      log.debug("Creating connector with user: " + principal);
+      ClientContext client = InputConfigurator.client(CLASS, baseSplit, job);
+
+      log.debug("Created client with user: " + client.whoami());
       log.debug("Creating scanner for table: " + table);
       log.debug("Authorizations are: " + authorizations);
 
-      if (baseSplit instanceof BatchInputSplit) {
+      if (baseSplit instanceof org.apache.accumulo.core.clientImpl.mapred.BatchInputSplit) {
         BatchScanner scanner;
-        BatchInputSplit multiRangeSplit = (BatchInputSplit) baseSplit;
+        org.apache.accumulo.core.clientImpl.mapred.BatchInputSplit multiRangeSplit =
+            (org.apache.accumulo.core.clientImpl.mapred.BatchInputSplit) baseSplit;
 
         try {
           // Note: BatchScanner will use at most one thread per tablet, currently BatchInputSplit
           // will not span tablets
           int scanThreads = 1;
-          scanner = instance.getConnector(principal, token)
-              .createBatchScanner(baseSplit.getTableName(), authorizations, scanThreads);
+          scanner =
+              client.createBatchScanner(baseSplit.getTableName(), authorizations, scanThreads);
           setupIterators(job, scanner, baseSplit.getTableName(), baseSplit);
-          if (null != classLoaderContext) {
+          if (classLoaderContext != null) {
             scanner.setClassLoaderContext(classLoaderContext);
           }
         } catch (Exception e) {
@@ -567,17 +515,17 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       } else if (baseSplit instanceof RangeInputSplit) {
         split = (RangeInputSplit) baseSplit;
         Boolean isOffline = baseSplit.isOffline();
-        if (null == isOffline) {
+        if (isOffline == null) {
           isOffline = tableConfig.isOfflineScan();
         }
 
         Boolean isIsolated = baseSplit.isIsolatedScan();
-        if (null == isIsolated) {
+        if (isIsolated == null) {
           isIsolated = tableConfig.shouldUseIsolatedScanners();
         }
 
         Boolean usesLocalIterators = baseSplit.usesLocalIterators();
-        if (null == usesLocalIterators) {
+        if (usesLocalIterators == null) {
           usesLocalIterators = tableConfig.shouldUseLocalIterators();
         }
 
@@ -585,16 +533,10 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
         try {
           if (isOffline) {
-            scanner = new OfflineScanner(instance, new Credentials(principal, token),
-                baseSplit.getTableId(), authorizations);
-          } else if (DeprecationUtil.isMockInstance(instance)) {
-            scanner = instance.getConnector(principal, token)
-                .createScanner(baseSplit.getTableName(), authorizations);
+            scanner =
+                new OfflineScanner(client, TableId.of(baseSplit.getTableId()), authorizations);
           } else {
-            ClientConfiguration clientConf = getClientConfiguration(job);
-            ClientContext context =
-                new ClientContext(instance, new Credentials(principal, token), clientConf);
-            scanner = new ScannerImpl(context, baseSplit.getTableId(), authorizations);
+            scanner = new ScannerImpl(client, TableId.of(baseSplit.getTableId()), authorizations);
           }
           if (isIsolated) {
             log.info("Creating isolated scanner");
@@ -612,12 +554,11 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         scanner.setRange(baseSplit.getRange());
         scannerBase = scanner;
       } else {
-        throw new IllegalArgumentException(
-            "Can not initialize from " + baseSplit.getClass().toString());
+        throw new IllegalArgumentException("Can not initialize from " + baseSplit.getClass());
       }
 
       Collection<Pair<Text,Text>> columns = baseSplit.getFetchedColumns();
-      if (null == columns) {
+      if (columns == null) {
         columns = tableConfig.getFetchedColumns();
       }
 
@@ -633,7 +574,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
       }
 
       SamplerConfiguration samplerConfig = baseSplit.getSamplerConfiguration();
-      if (null == samplerConfig) {
+      if (samplerConfig == null) {
         samplerConfig = tableConfig.getSamplerConfiguration();
       }
 
@@ -647,7 +588,7 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
     @Override
     public void close() {
-      if (null != scannerBase) {
+      if (scannerBase != null) {
         scannerBase.close();
       }
     }
@@ -668,14 +609,10 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
   }
 
-  Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobConf job, String tableId,
+  Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobConf job, TableId tableId,
       List<Range> ranges)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-
-    Instance instance = getInstance(job);
-    Connector conn = instance.getConnector(getPrincipal(job), getAuthenticationToken(job));
-
-    return InputConfigurator.binOffline(tableId, ranges, instance, conn);
+    return InputConfigurator.binOffline(tableId, ranges, InputConfigurator.client(CLASS, job));
   }
 
   /**
@@ -693,29 +630,32 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
     log.setLevel(logLevel);
     validateOptions(job);
 
-    Random random = new Random();
     LinkedList<InputSplit> splits = new LinkedList<>();
-    Map<String,InputTableConfig> tableConfigs = getInputTableConfigs(job);
-    for (Map.Entry<String,InputTableConfig> tableConfigEntry : tableConfigs.entrySet()) {
-      String tableName = tableConfigEntry.getKey();
-      InputTableConfig tableConfig = tableConfigEntry.getValue();
+    Map<String,org.apache.accumulo.core.client.mapreduce.InputTableConfig> tableConfigs =
+        getInputTableConfigs(job);
 
-      Instance instance = getInstance(job);
-      String tableId;
-      // resolve table name to id once, and use id from this point forward
-      if (DeprecationUtil.isMockInstance(instance)) {
-        tableId = "";
-      } else {
-        try {
-          tableId = Tables.getTableId(instance, tableName);
-        } catch (TableNotFoundException e) {
-          throw new IOException(e);
-        }
+    for (Map.Entry<String,
+        org.apache.accumulo.core.client.mapreduce.InputTableConfig> tableConfigEntry : tableConfigs
+            .entrySet()) {
+
+      String tableName = tableConfigEntry.getKey();
+      org.apache.accumulo.core.client.mapreduce.InputTableConfig tableConfig =
+          tableConfigEntry.getValue();
+
+      ClientContext client;
+      try {
+        client = InputConfigurator.client(CLASS, job);
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        throw new IOException(e);
       }
 
-      Authorizations auths = getScanAuthorizations(job);
-      String principal = getPrincipal(job);
-      AuthenticationToken token = getAuthenticationToken(job);
+      TableId tableId;
+      // resolve table name to id once, and use id from this point forward
+      try {
+        tableId = Tables.getTableId(client, tableName);
+      } catch (TableNotFoundException e) {
+        throw new IOException(e);
+      }
 
       boolean batchScan = InputConfigurator.isBatchScan(CLASS, job);
       boolean supportBatchScan = !(tableConfig.isOfflineScan()
@@ -749,21 +689,14 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             binnedRanges = binOfflineTable(job, tableId, ranges);
           }
         } else {
-          tl = InputConfigurator.getTabletLocator(CLASS, job, tableId);
-          // its possible that the cache could contain complete, but old information about a tables
-          // tablets... so clear it
+          tl = TabletLocator.getLocator(client, tableId);
+          // its possible that the cache could contain complete, but old information about a
+          // tables tablets... so clear it
           tl.invalidateCache();
 
-          ClientContext context = new ClientContext(getInstance(job),
-              new Credentials(getPrincipal(job), getAuthenticationToken(job)),
-              getClientConfiguration(job));
-          while (!tl.binRanges(context, ranges, binnedRanges).isEmpty()) {
-            if (!DeprecationUtil.isMockInstance(instance)) {
-              if (!Tables.exists(instance, tableId))
-                throw new TableDeletedException(tableId);
-              if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
-                throw new TableOfflineException(instance, tableId);
-            }
+          while (!tl.binRanges(client, ranges, binnedRanges).isEmpty()) {
+            client.requireNotDeleted(tableId);
+            client.requireNotOffline(tableId, tableName);
             binnedRanges.clear();
             log.warn("Unable to locate bins for specified ranges. Retrying.");
             // sleep randomly between 100 and 200 ms
@@ -775,6 +708,9 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         throw new IOException(e);
       }
 
+      // all of this code will add either range per each locations or split ranges and add
+      // range-location split
+      // Map from Range to Array of Locations, we only use this if we're don't split
       HashMap<Range,ArrayList<String>> splitsToAdd = null;
 
       if (!autoAdjust)
@@ -796,10 +732,11 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             ArrayList<Range> clippedRanges = new ArrayList<>();
             for (Range r : extentRanges.getValue())
               clippedRanges.add(ke.clip(r));
-
-            BatchInputSplit split =
-                new BatchInputSplit(tableName, tableId, clippedRanges, new String[] {location});
-            SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
+            org.apache.accumulo.core.clientImpl.mapred.BatchInputSplit split =
+                new org.apache.accumulo.core.clientImpl.mapred.BatchInputSplit(tableName, tableId,
+                    clippedRanges, new String[] {location});
+            org.apache.accumulo.core.clientImpl.mapreduce.SplitUtils.updateSplit(split, tableConfig,
+                logLevel);
 
             splits.add(split);
           } else {
@@ -807,14 +744,13 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
             for (Range r : extentRanges.getValue()) {
               if (autoAdjust) {
                 // divide ranges into smaller ranges, based on the tablets
-                RangeInputSplit split =
-                    new RangeInputSplit(tableName, tableId, ke.clip(r), new String[] {location});
-                SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths,
-                    logLevel);
+                RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonical(),
+                    ke.clip(r), new String[] {location});
+                org.apache.accumulo.core.clientImpl.mapreduce.SplitUtils.updateSplit(split,
+                    tableConfig, logLevel);
                 split.setOffline(tableConfig.isOfflineScan());
                 split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
                 split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
-
                 splits.add(split);
               } else {
                 // don't divide ranges
@@ -831,9 +767,10 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
 
       if (!autoAdjust)
         for (Map.Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet()) {
-          RangeInputSplit split = new RangeInputSplit(tableName, tableId, entry.getKey(),
-              entry.getValue().toArray(new String[0]));
-          SplitUtils.updateSplit(split, instance, tableConfig, principal, token, auths, logLevel);
+          RangeInputSplit split = new RangeInputSplit(tableName, tableId.canonical(),
+              entry.getKey(), entry.getValue().toArray(new String[0]));
+          org.apache.accumulo.core.clientImpl.mapreduce.SplitUtils.updateSplit(split, tableConfig,
+              logLevel);
           split.setOffline(tableConfig.isOfflineScan());
           split.setIsolatedScan(tableConfig.shouldUseIsolatedScanners());
           split.setUsesLocalIterators(tableConfig.shouldUseLocalIterators());
@@ -841,8 +778,6 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
           splits.add(split);
         }
     }
-
     return splits.toArray(new InputSplit[splits.size()]);
   }
-
 }

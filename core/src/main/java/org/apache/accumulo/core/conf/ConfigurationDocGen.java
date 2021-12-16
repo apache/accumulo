@@ -1,392 +1,186 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.conf;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
 import java.util.TreeMap;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This class generates documentation to inform users of the available configuration properties in a
  * presentable form.
  */
-class ConfigurationDocGen {
-  private abstract class Format {
-
-    abstract void beginSection(String section);
-
-    void endSection() {}
-
-    void generate() {
-      pageHeader();
-
-      beginSection("Available Properties");
-      propertyQuickLinks();
-      for (Property prefix : prefixes) {
-        if (!prefix.isExperimental()) {
-          prefixSection(prefix);
-          for (Property prop : sortedProps.values()) {
-            if (!prop.isExperimental()) {
-              property(prefix, prop);
-            }
-          }
-        }
-      }
-      endSection();
-
-      beginSection("Property Types");
-      propertyTypeDescriptions();
-      endSection();
-
-      pageFooter();
-      doc.close();
-    }
-
-    abstract String getExt();
-
-    void pageFooter() {}
-
-    // read static header content from resources and output
-    void pageHeader() {
-      appendResource("config-header." + getExt());
-      doc.println();
-    }
-
-    abstract void prefixSection(Property prefix);
-
-    abstract void property(Property prefix, Property prop);
-
-    abstract void propertyTypeDescriptions();
-
-    abstract void propertyQuickLinks();
-
-    abstract String sanitize(String str);
-
-  }
-
-  private class HTML extends Format {
-    private boolean highlight;
-
-    private void beginRow() {
-      doc.println(startTag("tr", highlight ? "class='highlight'" : null));
-      highlight = !highlight;
-    }
-
-    @Override
-    void beginSection(String section) {
-      doc.println(t("h1", section, null));
-      highlight = true;
-      doc.println("<table>");
-    }
-
-    private String t(String tag, String cell, String options) {
-      return startTag(tag, options) + cell + "</" + tag + ">";
-    }
-
-    private void cellData(String cell, String options) {
-      doc.println(t("td", cell, options));
-    }
-
-    private void columnNames(String... names) {
-      beginRow();
-      for (String s : names)
-        doc.println(t("th", s, null));
-      endRow();
-    }
-
-    private void endRow() {
-      doc.println("</tr>");
-    }
-
-    @Override
-    void endSection() {
-      doc.println("</table>");
-    }
-
-    @Override
-    String getExt() {
-      return "html";
-    }
-
-    @Override
-    void pageFooter() {
-      doc.println("</body>");
-      doc.println("</html>");
-    }
-
-    @Override
-    void propertyQuickLinks() {
-      doc.println("<p>Jump to: ");
-      String delimiter = "";
-      for (Property prefix : prefixes) {
-        if (!prefix.isExperimental()) {
-          doc.print(delimiter + "<a href='#" + prefix.name() + "'>" + prefix.getKey() + "*</a>");
-          delimiter = "&nbsp;|&nbsp;";
-        }
-      }
-      doc.println("</p>");
-    }
-
-    @Override
-    void prefixSection(Property prefix) {
-      beginRow();
-      doc.println(
-          t("td", t("span", prefix.getKey() + '*', "id='" + prefix.name() + "' class='large'"),
-              "colspan='5'" + (prefix.isDeprecated() ? " class='deprecated'" : "")));
-      endRow();
-      beginRow();
-      doc.println(t("td",
-          (prefix.isDeprecated() ? t("b", t("i", "Deprecated. ", null), null) : "")
-              + sanitize(prefix.getDescription()),
-          "colspan='5'" + (prefix.isDeprecated() ? " class='deprecated'" : "")));
-      endRow();
-
-      switch (prefix) {
-        case TABLE_CONSTRAINT_PREFIX:
-          break;
-        case TABLE_ITERATOR_PREFIX:
-          break;
-        case TABLE_LOCALITY_GROUP_PREFIX:
-          break;
-        case TABLE_COMPACTION_STRATEGY_PREFIX:
-          break;
-        default:
-          columnNames("Property", "Type", "ZooKeeper Mutable", "Default Value", "Description");
-          break;
-      }
-    }
-
-    @Override
-    void property(Property prefix, Property prop) {
-      boolean isDeprecated = prefix.isDeprecated() || prop.isDeprecated();
-      if (prop.getKey().startsWith(prefix.getKey())) {
-        beginRow();
-        cellData(prop.getKey(), isDeprecated ? "class='deprecated'" : null);
-        cellData(
-            "<b><a href='#" + prop.getType().name() + "'>"
-                + prop.getType().toString().replaceAll(" ", "&nbsp;") + "</a></b>",
-            isDeprecated ? "class='deprecated'" : null);
-        cellData(isZooKeeperMutable(prop), isDeprecated ? "class='deprecated'" : null);
-        cellData(
-            "<pre>" + (prop.getRawDefaultValue().isEmpty() ? "&nbsp;"
-                : sanitize(prop.getRawDefaultValue().replaceAll(" ", "&nbsp;"))) + "</pre>",
-            isDeprecated ? "class='deprecated'" : null);
-        cellData(
-            (isDeprecated ? "<b><i>Deprecated.</i></b> " : "") + sanitize(prop.getDescription()),
-            isDeprecated ? "class='deprecated'" : null);
-        endRow();
-      }
-
-    }
-
-    @Override
-    void propertyTypeDescriptions() {
-      columnNames("Property Type", "Description");
-      for (PropertyType type : PropertyType.values()) {
-        if (type == PropertyType.PREFIX)
-          continue;
-        beginRow();
-        cellData("<h3 id='" + type.name() + "'>" + type + "</h3>", null);
-        cellData(type.getFormatDescription(), null);
-        endRow();
-      }
-    }
-
-    @Override
-    String sanitize(String str) {
-      return str.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-          .replaceAll("(?:\r\n|\r|\n)", "<br />");
-    }
-
-    private String startTag(String tag, String options) {
-      return "<" + tag + (options != null ? " " + options : "") + ">";
-    }
-
-  }
-
-  private class Asciidoc extends Format {
-    @Override
-    void beginSection(String section) {
-      doc.println("=== " + section);
-    }
-
-    @Override
-    String getExt() {
-      return "txt";
-    }
-
-    @Override
-    void propertyQuickLinks() {
-      doc.println("Jump to: ");
-      String delimiter = "";
-      for (Property prefix : prefixes) {
-        if (!prefix.isExperimental()) {
-          doc.print(delimiter + "<<" + prefix.name() + ">>");
-          delimiter = " | ";
-        }
-      }
-      doc.println();
-      doc.println();
-    }
-
-    @Override
-    void prefixSection(Property prefix) {
-      boolean depr = prefix.isDeprecated();
-      doc.println("[[" + prefix.name() + "]]");
-      doc.println("==== " + prefix.getKey() + "*" + (depr ? " (Deprecated)" : ""));
-      doc.println(strike((depr ? "_Deprecated._ " : "") + sanitize(prefix.getDescription()), depr));
-      doc.println();
-    }
-
-    @Override
-    void property(Property prefix, Property prop) {
-      boolean depr = prefix.isDeprecated() || prop.isDeprecated();
-      if (prop.getKey().startsWith(prefix.getKey())) {
-        doc.println("===== " + prop.getKey());
-        doc.println(strike((depr ? "_Deprecated._ " : "") + sanitize(prop.getDescription()), depr));
-        doc.println();
-        doc.println(strike("_Type:_ " + prop.getType().name(), depr) + " +");
-        doc.println(strike("_Zookeeper Mutable:_ " + isZooKeeperMutable(prop), depr) + " +");
-        String defaultValue = sanitize(prop.getRawDefaultValue()).trim();
-        if (defaultValue.length() == 0) {
-          // need a placeholder or the asciidoc line break won't work
-          defaultValue = strike("_Default Value:_ _empty_", depr);
-        } else if (defaultValue.contains("\n")) {
-          // deal with multi-line values, skip strikethrough of value
-          defaultValue = strike("_Default Value:_ ", depr) + "\n----\n" + defaultValue + "\n----\n";
-        } else {
-          defaultValue = strike("_Default Value:_ " + "`" + defaultValue + "`", depr);
-        }
-        doc.println(defaultValue);
-        doc.println();
-      }
-    }
-
-    private String strike(String s, boolean isDeprecated) {
-      return (isDeprecated ? "[line-through]#" : "") + s + (isDeprecated ? "#" : "");
-    }
-
-    @Override
-    void propertyTypeDescriptions() {
-      for (PropertyType type : PropertyType.values()) {
-        if (type == PropertyType.PREFIX)
-          continue;
-        doc.println("==== " + sanitize(type.toString()));
-        doc.println(sanitize(type.getFormatDescription()));
-        doc.println();
-      }
-    }
-
-    @Override
-    String sanitize(String str) {
-      return str;
-    }
-  }
-
-  private static final Logger log = LoggerFactory.getLogger(ConfigurationDocGen.class);
-
+public class ConfigurationDocGen {
   private PrintStream doc;
+  private final TreeMap<String,Property> sortedProps = new TreeMap<>();
 
-  private final ArrayList<Property> prefixes;
+  void generate() {
+    pageHeader();
 
-  private final TreeMap<String,Property> sortedProps;
+    beginTable("Property");
+    for (Property prop : sortedProps.values()) {
+      if (prop.getType() == PropertyType.PREFIX) {
+        prefixSection(prop);
+      } else {
+        property(prop);
+      }
+    }
 
-  ConfigurationDocGen(PrintStream doc) {
-    this.doc = doc;
-    this.prefixes = new ArrayList<>();
-    this.sortedProps = new TreeMap<>();
+    beginSection("Property Types");
+    beginTable("Type");
+    propertyTypeDescriptions();
 
-    for (Property prop : Property.values()) {
-      if (prop.isExperimental())
+    doc.close();
+  }
+
+  void beginSection(String section) {
+    doc.println("\n### " + section + "\n");
+  }
+
+  void beginTable(String name) {
+    doc.println("| " + name + " | Description |");
+    doc.println("|--------------|-------------|");
+  }
+
+  void pageHeader() {
+    doc.println("---");
+    doc.println("title: Server Properties");
+    doc.println("category: configuration");
+    doc.println("order: 4");
+    doc.println("---\n");
+    doc.println("<!-- WARNING: Do not edit this file. It is a generated file"
+        + " that is copied from Accumulo build (from core/target/generated-docs)" + " -->\n");
+    doc.println("Below are properties set in `accumulo.properties` or the"
+        + " Accumulo shell that configure Accumulo servers (i.e tablet server,"
+        + " manager, etc). Properties labeled 'Experimental' should not be considered stable"
+        + " and have a higher risk of changing in the future.\n");
+  }
+
+  void prefixSection(Property prefix) {
+    boolean depr = prefix.isDeprecated();
+    String key = strike("<a name=\"" + prefix.getKey().replace(".", "_")
+        + "prefix\" class=\"prop\"></a> **" + prefix.getKey() + "***", depr);
+    String description = prefix.isExperimental() ? "**Experimental**<br>" : "";
+    description += "**Available since:** " + prefix.availableSince() + "<br>";
+    if (depr) {
+      description += "*Deprecated since:* " + prefix.deprecatedSince() + "<br>";
+      if (prefix.isReplaced())
+        description +=
+            "*Replaced by:* " + "<a href=\"#" + prefix.replacedBy().getKey().replace(".", "_")
+                + "prefix\">" + prefix.replacedBy() + "</a><br>";
+    }
+    description += strike(sanitize(prefix.getDescription()), depr);
+    doc.println("| " + key + " | " + description + " |");
+  }
+
+  void property(Property prop) {
+    boolean depr = prop.isDeprecated();
+    String key = strike(
+        "<a name=\"" + prop.getKey().replace(".", "_") + "\" class=\"prop\"></a> " + prop.getKey(),
+        depr);
+    String description = prop.isExperimental() ? "**Experimental**<br>" : "";
+    description += "**Available since:** ";
+    if (prop.getKey().startsWith("manager.")
+        && (prop.availableSince().startsWith("1.") || prop.availableSince().startsWith("2.0"))) {
+      description += "2.1.0 (since " + prop.availableSince() + " as *master."
+          + prop.getKey().substring(8) + "*)" + "<br>";
+    } else {
+      description += prop.availableSince() + "<br>";
+    }
+    if (depr) {
+      description += "*Deprecated since:* " + prop.deprecatedSince() + "<br>";
+      if (prop.isReplaced())
+        description += "*Replaced by:* " + "<a href=\"#"
+            + prop.replacedBy().getKey().replace(".", "_") + "\">" + prop.replacedBy() + "</a><br>";
+    }
+    description += strike(sanitize(prop.getDescription()), depr) + "<br>"
+        + strike("**type:** " + prop.getType().name(), depr) + ", "
+        + strike("**zk mutable:** " + isZooKeeperMutable(prop), depr) + ", ";
+    String defaultValue = sanitize(prop.getDefaultValue()).trim();
+    if (defaultValue.isEmpty()) {
+      description += strike("**default value:** empty", depr);
+    } else if (defaultValue.contains("\n")) {
+      // deal with multi-line values, skip strikethrough of value
+      description += strike("**default value:** ", depr) + "\n```\n" + defaultValue + "\n```\n";
+    } else if (prop.getType() == PropertyType.CLASSNAME
+        && defaultValue.startsWith("org.apache.accumulo")) {
+      description += strike("**default value:** " + "{% jlink -f " + defaultValue + " %}", depr);
+    } else {
+      description += strike("**default value:** " + "`" + defaultValue + "`", depr);
+    }
+    doc.println("| " + key + " | " + description + " |");
+  }
+
+  private String strike(String s, boolean isDeprecated) {
+    return (isDeprecated ? "~~" : "") + s + (isDeprecated ? "~~" : "");
+  }
+
+  void propertyTypeDescriptions() {
+    for (PropertyType type : PropertyType.values()) {
+      if (type == PropertyType.PREFIX) {
         continue;
-
-      if (prop.getType() == PropertyType.PREFIX)
-        this.prefixes.add(prop);
-      else
-        this.sortedProps.put(prop.getKey(), prop);
+      }
+      doc.println(
+          "| " + sanitize(type.toString()) + " | " + sanitize(type.getFormatDescription()) + " |");
     }
   }
 
-  private void appendResource(String resourceName) {
-    InputStream data = ConfigurationDocGen.class.getResourceAsStream(resourceName);
-    if (data != null) {
-      byte[] buffer = new byte[1024];
-      int n;
-      try {
-        while ((n = data.read(buffer)) > 0)
-          doc.print(new String(buffer, 0, n, UTF_8));
-      } catch (IOException e) {
-        log.debug("Encountered IOException while reading InputStream in appendResource().", e);
-        return;
-      } finally {
-        try {
-          data.close();
-        } catch (IOException ex) {
-          log.error("{}", ex.getMessage(), ex);
-        }
-      }
+  String sanitize(String str) {
+    return str.replace("\n", "<br>");
+  }
+
+  private ConfigurationDocGen(PrintStream doc) {
+    this.doc = doc;
+    for (Property prop : Property.values()) {
+      this.sortedProps.put(prop.getKey(), prop);
     }
   }
 
   private String isZooKeeperMutable(Property prop) {
-    if (!Property.isValidZooPropertyKey(prop.getKey()))
+    if (!Property.isValidZooPropertyKey(prop.getKey())) {
       return "no";
-    if (Property.isFixedZooPropertyKey(prop))
+    }
+    if (Property.isFixedZooPropertyKey(prop)) {
       return "yes but requires restart of the " + prop.getKey().split("[.]")[0];
+    }
     return "yes";
   }
 
-  void generateHtml() {
-    new HTML().generate();
-  }
-
-  void generateAsciidoc() {
-    new Asciidoc().generate();
-  }
-
   /**
-   * Generates documentation for conf/accumulo-site.xml file usage. Arguments are: "--generate-doc",
-   * file to write to.
+   * Generates documentation for accumulo.properties file usage. Arguments are: "--generate-markdown
+   * filename"
    *
    * @param args
    *          command-line arguments
-   *
    * @throws IllegalArgumentException
    *           if args is invalid
    */
-  public static void main(String[] args)
-      throws FileNotFoundException, UnsupportedEncodingException {
-    if (args.length == 2 && args[0].equals("--generate-html")) {
-      new ConfigurationDocGen(new PrintStream(args[1], UTF_8.name())).generateHtml();
-    } else if (args.length == 2 && args[0].equals("--generate-asciidoc")) {
-      new ConfigurationDocGen(new PrintStream(args[1], UTF_8.name())).generateAsciidoc();
+  public static void main(String[] args) throws IOException {
+    if (args.length == 2 && args[0].equals("--generate-markdown")) {
+      try (var printStream = new PrintStream(args[1], UTF_8)) {
+        new ConfigurationDocGen(printStream).generate();
+      }
     } else {
-      throw new IllegalArgumentException("Usage: " + ConfigurationDocGen.class.getName()
-          + " --generate-html <filename> | --generate-asciidoc <filename>");
+      throw new IllegalArgumentException(
+          "Usage: " + ConfigurationDocGen.class.getName() + " --generate-markdown <filename>");
     }
   }
-
 }

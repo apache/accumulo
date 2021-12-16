@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.mapred;
 
@@ -20,18 +22,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.client.mapred.AccumuloInputFormat;
-import org.apache.accumulo.core.client.mapred.RangeInputSplit;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -54,6 +54,10 @@ import org.apache.log4j.Level;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+/**
+ * This tests deprecated mapreduce code in core jar
+ */
+@Deprecated(since = "2.0.0")
 public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
   @BeforeClass
@@ -72,8 +76,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       int count = 0;
 
       @Override
-      public void map(Key k, Value v, OutputCollector<Key,Value> output, Reporter reporter)
-          throws IOException {
+      public void map(Key k, Value v, OutputCollector<Key,Value> output, Reporter reporter) {
         try {
           if (key != null)
             assertEquals(key.getRow().toString(), new String(v.get()));
@@ -91,7 +94,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       public void configure(JobConf job) {}
 
       @Override
-      public void close() throws IOException {
+      public void close() {
         try {
           assertEquals(100, count);
         } catch (AssertionError e) {
@@ -111,7 +114,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       }
 
       String table = args[0];
-      Boolean batchScan = false;
+      boolean batchScan = false;
       boolean sample = false;
       if (args.length == 3) {
         batchScan = Boolean.parseBoolean(args[1]);
@@ -121,14 +124,18 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
 
-      job.setInputFormat(AccumuloInputFormat.class);
+      job.setInputFormat(org.apache.accumulo.core.client.mapred.AccumuloInputFormat.class);
 
-      AccumuloInputFormat.setConnectorInfo(job, getAdminPrincipal(), getAdminToken());
-      AccumuloInputFormat.setInputTableName(job, table);
-      AccumuloInputFormat.setZooKeeperInstance(job, getCluster().getClientConfig());
-      AccumuloInputFormat.setBatchScan(job, batchScan);
+      ClientInfo ci = getClientInfo();
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setZooKeeperInstance(job,
+          ci.getInstanceName(), ci.getZooKeepers());
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setConnectorInfo(job,
+          ci.getPrincipal(), ci.getAuthenticationToken());
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setInputTableName(job, table);
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setBatchScan(job, batchScan);
       if (sample) {
-        AccumuloInputFormat.setSamplerConfiguration(job, SAMPLER_CONFIG);
+        org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setSamplerConfiguration(job,
+            SAMPLER_CONFIG);
       }
 
       job.setMapperClass(TestMapper.class);
@@ -153,22 +160,23 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   @Test
   public void testMap() throws Exception {
     String table = getUniqueNames(1)[0];
-    Connector c = getConnector();
-    c.tableOperations().create(table);
-    BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
-    for (int i = 0; i < 100; i++) {
-      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-      bw.addMutation(m);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      c.tableOperations().create(table);
+      try (BatchWriter bw = c.createBatchWriter(table)) {
+        for (int i = 0; i < 100; i++) {
+          Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+          m.put("", "", String.format("%09x", i));
+          bw.addMutation(m);
+        }
+      }
+
+      e1 = null;
+      e2 = null;
+
+      MRTester.main(table);
+      assertNull(e1);
+      assertNull(e2);
     }
-    bw.close();
-
-    e1 = null;
-    e2 = null;
-
-    MRTester.main(table);
-    assertNull(e1);
-    assertNull(e2);
   }
 
   private static final SamplerConfiguration SAMPLER_CONFIG =
@@ -179,31 +187,31 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   public void testSample() throws Exception {
     final String TEST_TABLE_3 = getUniqueNames(1)[0];
 
-    Connector c = getConnector();
-    c.tableOperations().create(TEST_TABLE_3,
-        new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
-    BatchWriter bw = c.createBatchWriter(TEST_TABLE_3, new BatchWriterConfig());
-    for (int i = 0; i < 100; i++) {
-      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-      bw.addMutation(m);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      c.tableOperations().create(TEST_TABLE_3,
+          new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
+      try (BatchWriter bw = c.createBatchWriter(TEST_TABLE_3)) {
+        for (int i = 0; i < 100; i++) {
+          Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+          m.put("", "", String.format("%09x", i));
+          bw.addMutation(m);
+        }
+      }
+
+      MRTester.main(TEST_TABLE_3, "False", "True");
+      assertEquals(38, e1Count);
+      assertEquals(1, e2Count);
+
+      e2Count = e1Count = 0;
+      MRTester.main(TEST_TABLE_3, "False", "False");
+      assertEquals(0, e1Count);
+      assertEquals(0, e2Count);
+
+      e2Count = e1Count = 0;
+      MRTester.main(TEST_TABLE_3, "True", "True");
+      assertEquals(38, e1Count);
+      assertEquals(1, e2Count);
     }
-    bw.close();
-
-    MRTester.main(TEST_TABLE_3, "False", "True");
-    assertEquals(38, e1Count);
-    assertEquals(1, e2Count);
-
-    e2Count = e1Count = 0;
-    MRTester.main(TEST_TABLE_3, "False", "False");
-    assertEquals(0, e1Count);
-    assertEquals(0, e2Count);
-
-    e2Count = e1Count = 0;
-    MRTester.main(TEST_TABLE_3, "True", "True");
-    assertEquals(38, e1Count);
-    assertEquals(1, e2Count);
-
   }
 
   @Test
@@ -217,38 +225,40 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     boolean isolated = true, localIters = true;
     Level level = Level.WARN;
 
-    Connector connector = getConnector();
-    connector.tableOperations().create(table);
+    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
+      accumuloClient.tableOperations().create(table);
 
-    AccumuloInputFormat.setConnectorInfo(job, getAdminPrincipal(), getAdminToken());
-    AccumuloInputFormat.setInputTableName(job, table);
-    AccumuloInputFormat.setScanAuthorizations(job, auths);
-    AccumuloInputFormat.setZooKeeperInstance(job, getCluster().getClientConfig());
-    AccumuloInputFormat.setScanIsolation(job, isolated);
-    AccumuloInputFormat.setLocalIterators(job, localIters);
-    AccumuloInputFormat.fetchColumns(job, fetchColumns);
-    AccumuloInputFormat.setLogLevel(job, level);
+      ClientInfo ci = getClientInfo();
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setZooKeeperInstance(job,
+          ci.getInstanceName(), ci.getZooKeepers());
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setConnectorInfo(job,
+          ci.getPrincipal(), ci.getAuthenticationToken());
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setInputTableName(job, table);
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setScanAuthorizations(job, auths);
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setScanIsolation(job, isolated);
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setLocalIterators(job, localIters);
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.fetchColumns(job, fetchColumns);
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setLogLevel(job, level);
 
-    AccumuloInputFormat aif = new AccumuloInputFormat();
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat aif =
+          new org.apache.accumulo.core.client.mapred.AccumuloInputFormat();
 
-    InputSplit[] splits = aif.getSplits(job, 1);
+      InputSplit[] splits = aif.getSplits(job, 1);
 
-    assertEquals(1, splits.length);
+      assertEquals(1, splits.length);
 
-    InputSplit split = splits[0];
+      InputSplit split = splits[0];
 
-    assertEquals(RangeInputSplit.class, split.getClass());
+      assertEquals(org.apache.accumulo.core.client.mapred.RangeInputSplit.class, split.getClass());
 
-    RangeInputSplit risplit = (RangeInputSplit) split;
+      org.apache.accumulo.core.client.mapred.RangeInputSplit risplit =
+          (org.apache.accumulo.core.client.mapred.RangeInputSplit) split;
 
-    assertEquals(getAdminPrincipal(), risplit.getPrincipal());
-    assertEquals(table, risplit.getTableName());
-    assertEquals(getAdminToken(), risplit.getToken());
-    assertEquals(auths, risplit.getAuths());
-    assertEquals(getConnector().getInstance().getInstanceName(), risplit.getInstanceName());
-    assertEquals(isolated, risplit.isIsolatedScan());
-    assertEquals(localIters, risplit.usesLocalIterators());
-    assertEquals(fetchColumns, risplit.getFetchedColumns());
-    assertEquals(level, risplit.getLogLevel());
+      assertEquals(table, risplit.getTableName());
+      assertEquals(isolated, risplit.isIsolatedScan());
+      assertEquals(localIters, risplit.usesLocalIterators());
+      assertEquals(fetchColumns, risplit.getFetchedColumns());
+      assertEquals(level, risplit.getLogLevel());
+    }
   }
 }

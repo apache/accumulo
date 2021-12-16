@@ -1,5 +1,4 @@
 /*
- *
  * Copyright (c) 2005, European Commission project OneLab under contract 034819
  * (http://www.one-lab.org)
  * All rights reserved.
@@ -29,25 +28,6 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.apache.accumulo.core.bloomfilter;
 
 import java.io.ByteArrayOutputStream;
@@ -62,6 +42,8 @@ import java.util.BitSet;
 import org.apache.hadoop.util.bloom.Key;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Implements a <i>Bloom filter</i>, as defined by Bloom in 1970.
@@ -87,8 +69,8 @@ import org.slf4j.LoggerFactory;
  */
 public class BloomFilter extends Filter {
   private static final Logger log = LoggerFactory.getLogger(BloomFilter.class);
-  private static final byte[] bitvalues = new byte[] {(byte) 0x01, (byte) 0x02, (byte) 0x04,
-      (byte) 0x08, (byte) 0x10, (byte) 0x20, (byte) 0x40, (byte) 0x80};
+  private static final byte[] bitvalues = {(byte) 0x01, (byte) 0x02, (byte) 0x04, (byte) 0x08,
+      (byte) 0x10, (byte) 0x20, (byte) 0x40, (byte) 0x80};
 
   /** The bit vector. */
   BitSet bits;
@@ -209,6 +191,9 @@ public class BloomFilter extends Filter {
     out.write(boas.toByteArray());
   }
 
+  @SuppressFBWarnings(value = {"OS_OPEN_STREAM", "OBJECT_DESERIALIZATION"},
+      justification = "Caller is responsible for closing input stream supplied as a parameter; "
+          + "BitSet deserialization is unsafe, but can't update it until RFile version change")
   @Override
   public void readFields(final DataInput in) throws IOException {
 

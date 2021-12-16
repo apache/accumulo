@@ -1,21 +1,23 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-namespace java org.apache.accumulo.core.client.impl.thrift
-namespace cpp org.apache.accumulo.core.client.impl.thrift
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+namespace java org.apache.accumulo.core.clientImpl.thrift
+namespace cpp org.apache.accumulo.core.clientImpl.thrift
 
 include "security.thrift"
 include "trace.thrift"
@@ -51,6 +53,8 @@ enum TableOperationExceptionType {
   NAMESPACE_EXISTS
   NAMESPACE_NOTFOUND
   INVALID_NAME
+  BULK_BAD_LOAD_MAPPING
+  BULK_CONCURRENT_MERGE
 }
 
 enum ConfigurationType {
@@ -94,6 +98,11 @@ exception ThriftTableOperationException {
   5:string description
 }
 
+exception ThriftNotActiveServiceException {
+  1:string serv
+  2:string description
+}
+
 struct TDiskUsage {
   1:list<string> tables
   2:i64 usage
@@ -106,6 +115,7 @@ service ClientService {
   string getInstanceId()
   string getZooKeepers()
 
+  // deprecated for new bulkImport
   list<string> bulkImportFiles(
     1:trace.TInfo tinfo
     8:security.TCredentials credentials
@@ -212,7 +222,7 @@ service ClientService {
     4:trace.TInfo tinfo
     5:security.TCredentials credentials
     2:string principal
-    3:byte sysPerm
+    3:i8 sysPerm
   ) throws (
     1:ThriftSecurityException sec
   )
@@ -222,7 +232,7 @@ service ClientService {
     6:security.TCredentials credentials
     2:string principal
     3:string tableName
-    4:byte tblPerm
+    4:i8 tblPerm
   ) throws (
     1:ThriftSecurityException sec
     2:ThriftTableOperationException tope
@@ -233,7 +243,7 @@ service ClientService {
     2:security.TCredentials credentials
     3:string principal
     4:string ns
-    5:byte tblNspcPerm
+    5:i8 tblNspcPerm
   ) throws (
     1:ThriftSecurityException sec
     2:ThriftTableOperationException tope
@@ -243,7 +253,7 @@ service ClientService {
     4:trace.TInfo tinfo
     5:security.TCredentials credentials
     2:string principal
-    3:byte permission
+    3:i8 permission
   ) throws (
     1:ThriftSecurityException sec
   )
@@ -252,7 +262,7 @@ service ClientService {
     4:trace.TInfo tinfo
     5:security.TCredentials credentials
     2:string principal
-    3:byte permission
+    3:i8 permission
   ) throws (
     1:ThriftSecurityException sec
   )
@@ -262,7 +272,7 @@ service ClientService {
     6:security.TCredentials credentials
     2:string principal
     3:string tableName
-    4:byte permission
+    4:i8 permission
   ) throws (
     1:ThriftSecurityException sec
     2:ThriftTableOperationException tope
@@ -273,7 +283,7 @@ service ClientService {
     6:security.TCredentials credentials
     2:string principal
     3:string tableName
-    4:byte permission
+    4:i8 permission
   ) throws (
     1:ThriftSecurityException sec
     2:ThriftTableOperationException tope
@@ -284,7 +294,7 @@ service ClientService {
     2:security.TCredentials credentials
     3:string principal
     4:string ns
-    5:byte permission
+    5:i8 permission
   ) throws (
     1:ThriftSecurityException sec
     2:ThriftTableOperationException tope
@@ -295,7 +305,7 @@ service ClientService {
     2:security.TCredentials credentials
     3:string principal
     4:string ns
-    5:byte permission
+    5:i8 permission
   ) throws (
     1:ThriftSecurityException sec
     2:ThriftTableOperationException tope

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.admin;
 
@@ -24,6 +26,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.concurrent.Executor;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -31,19 +35,20 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
-import org.apache.accumulo.core.client.mapreduce.AccumuloFileOutputFormat;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.client.summary.Summarizer;
+import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
+import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.hadoop.io.Text;
 
 /**
  * Provides a class for administering tables
- *
  */
-
 public interface TableOperations {
 
   /**
@@ -63,7 +68,16 @@ public interface TableOperations {
   boolean exists(String tableName);
 
   /**
-   * Create a table with no special configuration
+   * Create a table with no special configuration. A safe way to ignore tables that do something
+   * like the following:
+   *
+   * <pre>
+   * try {
+   *   connector.tableOperations().create("mynamespace.mytable");
+   * } catch (TableExistsException e) {
+   *   // ignore or log
+   * }
+   * </pre>
    *
    * @param tableName
    *          the name of the table
@@ -91,9 +105,14 @@ public interface TableOperations {
    *           if the table already exists
    * @deprecated since 1.7.0; use {@link #create(String, NewTableConfiguration)} instead.
    */
-  @Deprecated
-  void create(String tableName, boolean limitVersion)
-      throws AccumuloException, AccumuloSecurityException, TableExistsException;
+  @Deprecated(since = "1.7.0")
+  default void create(String tableName, boolean limitVersion)
+      throws AccumuloException, AccumuloSecurityException, TableExistsException {
+    if (limitVersion)
+      create(tableName);
+    else
+      create(tableName, new NewTableConfiguration().withoutDefaultIterators());
+  }
 
   /**
    * @param tableName
@@ -111,11 +130,29 @@ public interface TableOperations {
    *           if the table already exists
    * @deprecated since 1.7.0; use {@link #create(String, NewTableConfiguration)} instead.
    */
-  @Deprecated
-  void create(String tableName, boolean versioningIter, TimeType timeType)
-      throws AccumuloException, AccumuloSecurityException, TableExistsException;
+  @Deprecated(since = "1.7.0")
+  default void create(String tableName, boolean versioningIter, TimeType timeType)
+      throws AccumuloException, AccumuloSecurityException, TableExistsException {
+    NewTableConfiguration ntc = new NewTableConfiguration().setTimeType(timeType);
+
+    if (versioningIter)
+      create(tableName, ntc);
+    else
+      create(tableName, ntc.withoutDefaultIterators());
+  }
 
   /**
+   * Create a table with specified configuration. A safe way to ignore tables that do exist would be
+   * to do something like the following:
+   *
+   * <pre>
+   * try {
+   *   connector.tableOperations().create("mynamespace.mytable");
+   * } catch (TableExistsException e) {
+   *   // ignore or log
+   * }
+   * </pre>
+   *
    * @param tableName
    *          the name of the table
    * @param ntc
@@ -140,10 +177,25 @@ public interface TableOperations {
    * @param tableName
    *          Name of a table to create and import into.
    * @param importDir
-   *          Directory that contains the files copied by distcp from exportTable
+   *          A directory containing the files copied by distcp from exportTable
    * @since 1.5.0
+   *
    */
-  void importTable(String tableName, String importDir)
+  default void importTable(String tableName, String importDir)
+      throws TableExistsException, AccumuloException, AccumuloSecurityException {
+    importTable(tableName, Set.of(importDir));
+  }
+
+  /**
+   * Imports a table exported via exportTable and copied via hadoop distcp.
+   *
+   * @param tableName
+   *          Name of a table to create and import into.
+   * @param importDirs
+   *          A set of directories containing the files copied by distcp from exportTable
+   * @since 2.1.0
+   */
+  void importTable(String tableName, Set<String> importDirs)
       throws TableExistsException, AccumuloException, AccumuloSecurityException;
 
   /**
@@ -152,7 +204,7 @@ public interface TableOperations {
    * To avoid losing access to a table it can be cloned and the clone taken offline for export.
    *
    * <p>
-   * See docs/examples/README.export
+   * See https://github.com/apache/accumulo-examples/blob/main/docs/export.md
    *
    * @param tableName
    *          Name of the table to export.
@@ -174,7 +226,7 @@ public interface TableOperations {
    * the given byte sequences are not valid UTF-8.
    *
    * <pre>
-   * TableOperations tableOps = connector.tableOperations();
+   * TableOperations tableOps = client.tableOperations();
    * TreeSet&lt;Text&gt; splits = new TreeSet&lt;Text&gt;();
    * for (int i = 0; i &lt; 256; i++) {
    *   byte[] bytes = {(byte) i};
@@ -205,8 +257,14 @@ public interface TableOperations {
    *           if the table does not exist
    * @deprecated since 1.5.0; use {@link #listSplits(String)} instead.
    */
-  @Deprecated
-  Collection<Text> getSplits(String tableName) throws TableNotFoundException;
+  @Deprecated(since = "1.5.0")
+  default Collection<Text> getSplits(String tableName) throws TableNotFoundException {
+    try {
+      return listSplits(tableName);
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   /**
    * @param tableName
@@ -232,8 +290,15 @@ public interface TableOperations {
    *         fewer splits so as not to exceed maxSplits
    * @deprecated since 1.5.0; use {@link #listSplits(String, int)} instead.
    */
-  @Deprecated
-  Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException;
+  @Deprecated(since = "1.5.0")
+  default Collection<Text> getSplits(String tableName, int maxSplits)
+      throws TableNotFoundException {
+    try {
+      return listSplits(tableName, maxSplits);
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      throw new RuntimeException(e);
+    }
+  }
 
   /**
    * @param tableName
@@ -363,7 +428,7 @@ public interface TableOperations {
    *
    * <p>
    * Only one compact call at a time can pass iterators and/or a compaction strategy. If two threads
-   * call compaction with iterators and/or a copmaction strategy, then one will fail.
+   * call compaction with iterators and/or a compaction strategy, then one will fail.
    *
    * @param tableName
    *          the table to compact
@@ -434,6 +499,26 @@ public interface TableOperations {
       AccumuloSecurityException, TableNotFoundException, TableExistsException;
 
   /**
+   * Clone a table from an existing table. The cloned table will have the same data as the source
+   * table it was created from. After cloning, the two tables can mutate independently. Initially
+   * the cloned table should not use any extra space, however as the source table and cloned table
+   * major compact extra space will be used by the clone.
+   *
+   * Initially the cloned table is only readable and writable by the user who created it.
+   *
+   * @param srcTableName
+   *          the table to clone
+   * @param newTableName
+   *          the name of the clone
+   * @param config
+   *          the clone command configuration
+   * @since 1.10 and 2.1
+   */
+  void clone(String srcTableName, String newTableName, CloneConfiguration config)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      TableExistsException;
+
+  /**
    * Rename a table
    *
    * @param oldTableName
@@ -453,18 +538,16 @@ public interface TableOperations {
       TableNotFoundException, AccumuloException, TableExistsException;
 
   /**
-   * Initiate a flush of a table's data that is in memory
+   * Initiate a flush of a table's data that is in memory. To specify a range or to wait for flush
+   * to complete use {@link #flush(String, Text, Text, boolean)}.
    *
    * @param tableName
    *          the name of the table
    * @throws AccumuloException
-   *           if a general error occurs
+   *           if a general error occurs. Wrapped TableNotFoundException if table does not exist.
    * @throws AccumuloSecurityException
    *           if the user does not have permission
-   *
-   * @deprecated since 1.4; use {@link #flush(String, Text, Text, boolean)} instead
    */
-  @Deprecated
   void flush(String tableName) throws AccumuloException, AccumuloSecurityException;
 
   /**
@@ -497,7 +580,7 @@ public interface TableOperations {
    * @param value
    *          the value to set a per-table property to
    * @throws AccumuloException
-   *           if a general error occurs
+   *           if a general error occurs. Wrapped TableNotFoundException if table does not exist.
    * @throws AccumuloSecurityException
    *           if the user does not have permission
    */
@@ -515,7 +598,7 @@ public interface TableOperations {
    * @param property
    *          the name of a per-table property
    * @throws AccumuloException
-   *           if a general error occurs
+   *           if a general error occurs. Wrapped TableNotFoundException if table does not exist.
    * @throws AccumuloSecurityException
    *           if the user does not have permission
    */
@@ -526,7 +609,8 @@ public interface TableOperations {
    * Gets properties of a table. This operation is asynchronous and eventually consistent. It is not
    * guaranteed that all tablets in a table will return the same values. Within a few seconds
    * without another change, all tablets in a table should be consistent. The clone table feature
-   * can be used if consistency is required.
+   * can be used if consistency is required. Method calls {@link #getConfiguration(String)} and then
+   * calls .entrySet() on the map.
    *
    * @param tableName
    *          the name of the table
@@ -534,8 +618,28 @@ public interface TableOperations {
    *         recently changed properties may not be visible immediately.
    * @throws TableNotFoundException
    *           if the table does not exist
+   * @since 1.6.0
    */
-  Iterable<Entry<String,String>> getProperties(String tableName)
+  default Iterable<Entry<String,String>> getProperties(String tableName)
+      throws AccumuloException, TableNotFoundException {
+    return getConfiguration(tableName).entrySet();
+  }
+
+  /**
+   * Gets properties of a table. This operation is asynchronous and eventually consistent. It is not
+   * guaranteed that all tablets in a table will return the same values. Within a few seconds
+   * without another change, all tablets in a table should be consistent. The clone table feature
+   * can be used if consistency is required. This new method returns a Map instead of an Iterable.
+   *
+   * @param tableName
+   *          the name of the table
+   * @return all properties visible by this table (system and per-table properties). Note that
+   *         recently changed properties may not be visible immediately.
+   * @throws TableNotFoundException
+   *           if the table does not exist
+   * @since 2.1.0
+   */
+  Map<String,String> getConfiguration(String tableName)
       throws AccumuloException, TableNotFoundException;
 
   /**
@@ -591,7 +695,7 @@ public interface TableOperations {
 
   /**
    * Bulk import all the files in a directory into a table. Files can be created using
-   * {@link AccumuloFileOutputFormat} and {@link RFile#newWriter()}
+   * {@link RFile#newWriter()}
    *
    * @param tableName
    *          the name of the table
@@ -611,9 +715,123 @@ public interface TableOperations {
    * @throws TableNotFoundException
    *           when the table no longer exists
    *
+   * @deprecated since 2.0.0 use {@link #importDirectory(String)} instead.
    */
+  @Deprecated(since = "2.0.0")
   void importDirectory(String tableName, String dir, String failureDir, boolean setTime)
       throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException;
+
+  /**
+   * @since 2.0.0
+   */
+  interface ImportOptions {
+
+    /**
+     * Use table's next timestamp to override all timestamps in imported files. The type of
+     * timestamp used depends on how the table was created.
+     *
+     * @see NewTableConfiguration#setTimeType(TimeType)
+     * @param value
+     *          override the time values in the input files, and use the current time for all
+     *          mutations
+     */
+    ImportMappingOptions tableTime(boolean value);
+
+    /**
+     * Ignores empty bulk import source directory, rather than throwing an IllegalArgumentException.
+     *
+     * @since 2.1.0
+     */
+    ImportMappingOptions ignoreEmptyDir(boolean ignore);
+
+    /**
+     * Loads the files into the table.
+     */
+    void load()
+        throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException;
+  }
+
+  /**
+   * Options giving control of how the bulk import file mapping is done.
+   *
+   * @since 2.0.0
+   */
+  interface ImportMappingOptions extends ImportOptions {
+
+    /**
+     * This is the default number of threads used to determine where to load files. A suffix of
+     * {@code C} means to multiply by the number of cores.
+     */
+    String BULK_LOAD_THREADS_DEFAULT = "8C";
+
+    /**
+     * Load files in the directory to the row ranges specified in the plan. The plan should contain
+     * at least one entry for every file in the directory. When this option is specified, the files
+     * are never examined so it is possible to send files to the wrong tablet.
+     */
+    ImportOptions plan(LoadPlan service);
+
+    // The javadoc below intentionally used a fully qualified class name in the value tag, otherwise
+    // it would not render properly.
+    /**
+     * Files are examined to determine where to load them. This examination is done in the current
+     * process using multiple threads. If this method is not called, then the client property
+     * {@code bulk.threads} is used to create a thread pool. This property defaults to
+     * {@value ImportMappingOptions#BULK_LOAD_THREADS_DEFAULT}.
+     *
+     * @param service
+     *          Use this executor to run file examination task
+     */
+    ImportOptions executor(Executor service);
+
+    // The javadoc below intentionally use a fully qualified class name in the value tag, otherwise
+    // it would not render properly.
+    /**
+     * Files are examined to determine where to load them. This examination is done in the current
+     * process using multiple threads. If this method is not called, then the client property
+     * {@code bulk.threads} is used to create a thread pool. This property defaults to
+     * {@value ImportMappingOptions#BULK_LOAD_THREADS_DEFAULT}.
+     *
+     * @param numThreads
+     *          Create a thread pool with this many thread to run file examination task.
+     */
+    ImportOptions threads(int numThreads);
+  }
+
+  /**
+   * @since 2.0.0
+   */
+  interface ImportDestinationArguments {
+    /**
+     *
+     * @param tableName
+     *          Import files to this tableName
+     */
+    ImportMappingOptions to(String tableName);
+  }
+
+  /**
+   * Bulk import the files in a directory into a table. Files can be created using
+   * {@link RFile#newWriter()}.
+   * <p>
+   * This new method of bulk import examines files in the current process outside of holding a table
+   * lock. The old bulk import method ({@link #importDirectory(String, String, String, boolean)})
+   * examines files on the server side while holding a table read lock.
+   * <p>
+   * This API supports adding files to online and offline tables.
+   * <p>
+   * For example, to bulk import files from the directory 'dir1' into the table 'table1' use the
+   * following code.
+   *
+   * <pre>
+   * client.tableOperations().importDirectory("dir1").to("table1").load();
+   * </pre>
+   *
+   * @since 2.0.0
+   */
+  default ImportDestinationArguments importDirectory(String directory) {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Initiates taking a table offline, but does not wait for action to complete
@@ -670,6 +888,22 @@ public interface TableOperations {
    */
   void online(String tableName, boolean wait)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+
+  /**
+   * Check if a table is online through its current goal state only. Could run into issues if the
+   * current state of the table is in between states. If you require a specific state, call
+   * <code>online(tableName, true)</code> or <code>offline(tableName, true)</code>, this will wait
+   * until the table reaches the desired state before proceeding.
+   *
+   * @param tableName
+   *          the table to check if online
+   * @throws AccumuloException
+   *           when there is a general accumulo error
+   * @return true if table's goal state is online
+   *
+   * @since 2.1.0
+   */
+  boolean isOnline(String tableName) throws AccumuloException, TableNotFoundException;
 
   /**
    * Clears the tablet locator cache for a specified table
@@ -876,4 +1110,80 @@ public interface TableOperations {
    */
   SamplerConfiguration getSamplerConfiguration(String tableName)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+
+  /**
+   * Entry point for retrieving summaries with optional restrictions.
+   *
+   * <p>
+   * In order to retrieve Summaries, the Accumulo user making the request will need the
+   * {@link TablePermission#GET_SUMMARIES} table permission.
+   *
+   * <p>
+   * Accumulo stores summary data with each file in each tablet. In order to make retrieving it
+   * faster there is a per tablet server cache of summary data. When summary data for a file is not
+   * present, it will be retrieved using threads on the tserver. The tablet server properties
+   * {@code tserver.summary.partition.threads}, {@code tserver.summary.remote.threads},
+   * {@code tserver.summary.retrieval.threads}, and {@code tserver.cache.summary.size} impact the
+   * performance of retrieving summaries.
+   *
+   * <p>
+   * Since summary data is cached, its important to use the summary selection options to only read
+   * the needed data into the cache.
+   *
+   * <p>
+   * Summary data will be merged on the tablet servers and then in this client process. Therefore
+   * it's important that the required summarizers are on the clients classpath.
+   *
+   * @since 2.0.0
+   * @see Summarizer
+   */
+  default SummaryRetriever summaries(String tableName) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Enables summary generation for this table for future compactions.
+   *
+   * @param tableName
+   *          add summarizers to this table
+   * @param summarizers
+   *          summarizers to add
+   * @throws IllegalArgumentException
+   *           When new summarizers have the same property id as each other, or when the same
+   *           summarizers previously added.
+   * @since 2.0.0
+   * @see SummarizerConfiguration#toTableProperties()
+   * @see SummarizerConfiguration#toTableProperties(SummarizerConfiguration...)
+   * @see SummarizerConfiguration#toTableProperties(Collection)
+   */
+  default void addSummarizers(String tableName, SummarizerConfiguration... summarizers)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Removes summary generation for this table for the matching summarizers.
+   *
+   * @param tableName
+   *          remove summarizers from this table
+   * @param predicate
+   *          removes all summarizers whose configuration that matches this predicate
+   * @since 2.0.0
+   */
+  default void removeSummarizers(String tableName, Predicate<SummarizerConfiguration> predicate)
+      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * @param tableName
+   *          list summarizers for this table
+   * @return the summarizers currently configured for the table
+   * @since 2.0.0
+   * @see SummarizerConfiguration#fromTableProperties(Map)
+   */
+  default List<SummarizerConfiguration> listSummarizers(String tableName)
+      throws AccumuloException, TableNotFoundException {
+    throw new UnsupportedOperationException();
+  }
 }

@@ -1,22 +1,28 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_LATENCY_MAX;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_MEMORY_MAX;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_THREADS_MAX;
+import static org.apache.accumulo.core.conf.ClientProperty.BATCH_WRITER_TIMEOUT_MAX;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -25,8 +31,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.impl.DurabilityImpl;
-import org.apache.commons.lang.builder.HashCodeBuilder;
+import org.apache.accumulo.core.clientImpl.DurabilityImpl;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.StringUtils;
 
@@ -37,19 +44,32 @@ import org.apache.hadoop.util.StringUtils;
  */
 public class BatchWriterConfig implements Writable {
 
-  private static final Long DEFAULT_MAX_MEMORY = 50 * 1024 * 1024l;
+  private static final Long DEFAULT_MAX_MEMORY =
+      ConfigurationTypeHelper.getMemoryAsBytes(BATCH_WRITER_MEMORY_MAX.getDefaultValue());
   private Long maxMemory = null;
 
-  private static final Long DEFAULT_MAX_LATENCY = 2 * 60 * 1000l;
+  private static final Long DEFAULT_MAX_LATENCY =
+      ConfigurationTypeHelper.getTimeInMillis(BATCH_WRITER_LATENCY_MAX.getDefaultValue());
   private Long maxLatency = null;
 
-  private static final Long DEFAULT_TIMEOUT = Long.MAX_VALUE;
+  private static final long DEFAULT_TIMEOUT = getDefaultTimeout();
   private Long timeout = null;
 
-  private static final Integer DEFAULT_MAX_WRITE_THREADS = 3;
+  private static final Integer DEFAULT_MAX_WRITE_THREADS =
+      Integer.parseInt(BATCH_WRITER_THREADS_MAX.getDefaultValue());
   private Integer maxWriteThreads = null;
 
   private Durability durability = Durability.DEFAULT;
+  private boolean isDurabilitySet = false;
+
+  private static long getDefaultTimeout() {
+    long defVal =
+        ConfigurationTypeHelper.getTimeInMillis(BATCH_WRITER_TIMEOUT_MAX.getDefaultValue());
+    if (defVal == 0L)
+      return Long.MAX_VALUE;
+    else
+      return defVal;
+  }
 
   /**
    * Sets the maximum memory to batch before writing. The smaller this value, the more frequently
@@ -199,6 +219,7 @@ public class BatchWriterConfig implements Writable {
    */
   public BatchWriterConfig setDurability(Durability durability) {
     this.durability = durability;
+    isDurabilitySet = true;
     return this;
   }
 
@@ -270,53 +291,78 @@ public class BatchWriterConfig implements Writable {
     if (o instanceof BatchWriterConfig) {
       BatchWriterConfig other = (BatchWriterConfig) o;
 
-      if (null != maxMemory) {
+      if (maxMemory != null) {
         if (!maxMemory.equals(other.maxMemory)) {
           return false;
         }
       } else {
-        if (null != other.maxMemory) {
+        if (other.maxMemory != null) {
           return false;
         }
       }
 
-      if (null != maxLatency) {
+      if (maxLatency != null) {
         if (!maxLatency.equals(other.maxLatency)) {
           return false;
         }
       } else {
-        if (null != other.maxLatency) {
+        if (other.maxLatency != null) {
           return false;
         }
       }
 
-      if (null != maxWriteThreads) {
+      if (maxWriteThreads != null) {
         if (!maxWriteThreads.equals(other.maxWriteThreads)) {
           return false;
         }
       } else {
-        if (null != other.maxWriteThreads) {
+        if (other.maxWriteThreads != null) {
           return false;
         }
       }
 
-      if (null != timeout) {
+      if (timeout != null) {
         if (!timeout.equals(other.timeout)) {
           return false;
         }
       } else {
-        if (null != other.timeout) {
+        if (other.timeout != null) {
           return false;
         }
       }
-      if (durability != other.durability) {
-        return false;
-      }
-
-      return true;
+      return durability == other.durability;
     }
 
     return false;
+  }
+
+  private static <T> T merge(T o1, T o2) {
+    if (o1 != null)
+      return o1;
+    return o2;
+  }
+
+  /**
+   * Merge this BatchWriterConfig with another. If config is set in both, preference will be given
+   * to this config.
+   *
+   * @param other
+   *          Another BatchWriterConfig
+   * @return Merged BatchWriterConfig
+   * @since 2.0.0
+   */
+  public BatchWriterConfig merge(BatchWriterConfig other) {
+    BatchWriterConfig result = new BatchWriterConfig();
+    result.maxMemory = merge(this.maxMemory, other.maxMemory);
+    result.maxLatency = merge(this.maxLatency, other.maxLatency);
+    result.timeout = merge(this.timeout, other.timeout);
+    result.maxWriteThreads = merge(this.maxWriteThreads, other.maxWriteThreads);
+    if (this.isDurabilitySet) {
+      result.durability = this.durability;
+    } else if (other.isDurabilitySet) {
+      result.durability = other.durability;
+    }
+    return result;
   }
 
   @Override

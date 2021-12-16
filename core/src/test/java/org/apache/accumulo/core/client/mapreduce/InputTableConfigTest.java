@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.mapreduce;
 
@@ -29,12 +31,14 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
 
+@Deprecated(since = "2.0.0")
 public class InputTableConfigTest {
 
   private InputTableConfig tableQueryConfig;
@@ -81,7 +85,7 @@ public class InputTableConfigTest {
   public void testSerialization_columns() throws IOException {
     Set<Pair<Text,Text>> columns = new HashSet<>();
     columns.add(new Pair<>(new Text("cf1"), new Text("cq1")));
-    columns.add(new Pair<Text,Text>(new Text("cf2"), null));
+    columns.add(new Pair<>(new Text("cf2"), null));
     tableQueryConfig.fetchColumns(columns);
 
     byte[] serialized = serialize(tableQueryConfig);
@@ -100,6 +104,14 @@ public class InputTableConfigTest {
     InputTableConfig actualConfig = deserialize(serialized);
     assertEquals(actualConfig.getIterators(), settings);
 
+  }
+
+  @Test
+  public void testSamplerConfig() throws IOException {
+    SamplerConfiguration sc = new SamplerConfiguration("com.foo.S1").addOption("k1", "v1");
+    tableQueryConfig.setSamplerConfiguration(sc);
+    InputTableConfig actualConfig = deserialize(serialize(tableQueryConfig));
+    assertEquals(sc, actualConfig.getSamplerConfiguration());
   }
 
   private byte[] serialize(InputTableConfig tableQueryConfig) throws IOException {

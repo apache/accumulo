@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -40,13 +42,13 @@ public class DeleteIterCommand extends Command {
     final String name = cl.getOptionValue(nameOpt.getOpt());
 
     if (namespaces) {
-      if (!shellState.getConnector().namespaceOperations()
+      if (!shellState.getAccumuloClient().namespaceOperations()
           .listIterators(OptUtil.getNamespaceOpt(cl, shellState)).containsKey(name)) {
         Shell.log.warn("no iterators found that match your criteria");
         return 0;
       }
     } else if (tables) {
-      if (!shellState.getConnector().tableOperations()
+      if (!shellState.getAccumuloClient().tableOperations()
           .listIterators(OptUtil.getTableOpt(cl, shellState)).containsKey(name)) {
         Shell.log.warn("no iterators found that match your criteria");
         return 0;
@@ -70,10 +72,10 @@ public class DeleteIterCommand extends Command {
     }
 
     if (namespaces) {
-      shellState.getConnector().namespaceOperations()
+      shellState.getAccumuloClient().namespaceOperations()
           .removeIterator(OptUtil.getNamespaceOpt(cl, shellState), name, scopes);
     } else if (tables) {
-      shellState.getConnector().tableOperations()
+      shellState.getAccumuloClient().tableOperations()
           .removeIterator(OptUtil.getTableOpt(cl, shellState), name, scopes);
     } else {
       throw new IllegalArgumentException("No table or namespace specified");

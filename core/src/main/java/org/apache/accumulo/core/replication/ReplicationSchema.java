@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.replication;
 
@@ -28,15 +30,13 @@ import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- */
 public class ReplicationSchema {
   private static final Logger log = LoggerFactory.getLogger(ReplicationSchema.class);
 
@@ -51,6 +51,7 @@ public class ReplicationSchema {
    * </code>
    * </pre>
    */
+  @Deprecated
   public static class WorkSection {
     public static final Text NAME = new Text("work");
     private static final ByteSequence BYTE_SEQ_NAME = new ArrayByteSequence("work");
@@ -61,10 +62,6 @@ public class ReplicationSchema {
       checkArgument(BYTE_SEQ_NAME.equals(k.getColumnFamilyData()),
           "Given replication work key with incorrect colfam");
       _getFile(k, buff);
-    }
-
-    public static ReplicationTarget getTarget(Key k) {
-      return getTarget(k, new Text());
     }
 
     public static ReplicationTarget getTarget(Key k, Text buff) {
@@ -98,6 +95,7 @@ public class ReplicationSchema {
    * </code>
    * </pre>
    */
+  @Deprecated
   public static class StatusSection {
     public static final Text NAME = new Text("repl");
     private static final ByteSequence BYTE_SEQ_NAME = new ArrayByteSequence("repl");
@@ -109,9 +107,9 @@ public class ReplicationSchema {
      *          Key to extract from
      * @return The table ID
      */
-    public static String getTableId(Key k) {
+    public static TableId getTableId(Key k) {
       requireNonNull(k);
-      return k.getColumnQualifier().toString();
+      return TableId.of(k.getColumnQualifier().toString());
     }
 
     /**
@@ -138,8 +136,8 @@ public class ReplicationSchema {
       scanner.fetchColumnFamily(NAME);
     }
 
-    public static Mutation add(Mutation m, String tableId, Value v) {
-      m.put(NAME, new Text(tableId), v);
+    public static Mutation add(Mutation m, TableId tableId, Value v) {
+      m.put(NAME, new Text(tableId.canonical()), v);
       return m;
     }
   }
@@ -156,23 +154,11 @@ public class ReplicationSchema {
    * </code>
    * </pre>
    */
+  @Deprecated
   public static class OrderSection {
     public static final Text NAME = new Text("order");
     public static final Text ROW_SEPARATOR = new Text(new byte[] {0});
     private static final ULongLexicoder longEncoder = new ULongLexicoder();
-
-    /**
-     * Extract the table ID from the given key (inefficiently if called repeatedly)
-     *
-     * @param k
-     *          OrderSection Key
-     * @return source table id
-     */
-    public static String getTableId(Key k) {
-      Text buff = new Text();
-      getTableId(k, buff);
-      return buff.toString();
-    }
 
     /**
      * Extract the table ID from the given key
@@ -238,8 +224,8 @@ public class ReplicationSchema {
      *          Serialized Status msg
      * @return The original Mutation
      */
-    public static Mutation add(Mutation m, String tableId, Value v) {
-      m.put(NAME, new Text(tableId), v);
+    public static Mutation add(Mutation m, TableId tableId, Value v) {
+      m.put(NAME, new Text(tableId.canonical()), v);
       return m;
     }
 
@@ -253,13 +239,13 @@ public class ReplicationSchema {
       // find the last offset
       while (true) {
         int nextOffset = buff.find(ROW_SEPARATOR.toString(), offset + 1);
-        if (-1 == nextOffset) {
+        if (nextOffset == -1) {
           break;
         }
         offset = nextOffset;
       }
 
-      if (-1 == offset) {
+      if (offset == -1) {
         throw new IllegalArgumentException(
             "Row does not contain expected separator for OrderSection");
       }
@@ -280,13 +266,13 @@ public class ReplicationSchema {
       // find the last offset
       while (true) {
         int nextOffset = buff.find(ROW_SEPARATOR.toString(), offset + 1);
-        if (-1 == nextOffset) {
+        if (nextOffset == -1) {
           break;
         }
         offset = nextOffset;
       }
 
-      if (-1 == offset) {
+      if (offset == -1) {
         throw new IllegalArgumentException(
             "Row does not contain expected separator for OrderSection");
       }

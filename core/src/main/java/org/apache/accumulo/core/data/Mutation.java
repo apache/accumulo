@@ -1,21 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.data;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.io.DataInput;
@@ -29,13 +32,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.data.thrift.TMutation;
+import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.UnsynchronizedBuffer;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 
 /**
  * Mutation represents an action that manipulates a row in a table. A mutation holds a list of
@@ -59,6 +65,11 @@ import org.apache.hadoop.io.WritableUtils;
  * rather, they indicate that Accumulo should insert a delete marker for that row column. A delete
  * marker effectively hides entries for that row column with a timestamp earlier than the marker's.
  * (The hidden data is eventually removed during Accumulo garbage collection.)
+ *
+ * <p>
+ * This class has many overloaded {@code put} and {@code putDelete} methods. These were added to
+ * support different subset of fields and types. The functionality of all of these {@code put}
+ * methods and more is provided by the new fluent {@link #at()} method added in 2.0.
  */
 public class Mutation implements Writable {
 
@@ -68,6 +79,13 @@ public class Mutation implements Writable {
    * inserted into the main buffer.
    */
   static final int VALUE_SIZE_COPY_CUTOFF = 1 << 15;
+
+  /**
+   * Maximum size of a mutation (2GB).
+   */
+  static final long MAX_MUTATION_SIZE = (1L << 31);
+
+  static final long SERIALIZATION_OVERHEAD = 5;
 
   /**
    * Formats available for serializing Mutations. The formats are described in a
@@ -82,6 +100,10 @@ public class Mutation implements Writable {
   private byte[] data;
   private int entries;
   private List<byte[]> values;
+
+  // tracks estimated size of row.length + largeValues.length
+  @VisibleForTesting
+  long estRowAndLargeValSize = 0;
 
   private UnsynchronizedBuffer.Writer buffer;
 
@@ -173,6 +195,7 @@ public class Mutation implements Writable {
     this.row = new byte[length];
     System.arraycopy(row, start, this.row, 0, length);
     buffer = new UnsynchronizedBuffer.Writer(initialBufferSize);
+    estRowAndLargeValSize = length + SERIALIZATION_OVERHEAD;
   }
 
   /**
@@ -274,24 +297,24 @@ public class Mutation implements Writable {
     return row;
   }
 
-  private void put(byte b[]) {
-    put(b, b.length);
+  private void fill(byte[] b) {
+    fill(b, b.length);
   }
 
-  private void put(byte b[], int length) {
+  private void fill(byte[] b, int length) {
     buffer.writeVLong(length);
     buffer.add(b, 0, length);
   }
 
-  private void put(boolean b) {
+  private void fill(boolean b) {
     buffer.add(b);
   }
 
-  private void put(int i) {
+  private void fill(int i) {
     buffer.writeVLong(i);
   }
 
-  private void put(long l) {
+  private void fill(long l) {
     buffer.writeVLong(l);
   }
 
@@ -315,25 +338,31 @@ public class Mutation implements Writable {
     if (buffer == null) {
       throw new IllegalStateException("Can not add to mutation after serializing it");
     }
-    put(cf, cfLength);
-    put(cq, cqLength);
-    put(cv);
-    put(hasts);
+    long estimatedSizeAfterPut = estRowAndLargeValSize + buffer.size() + cfLength + cqLength
+        + cv.length + (hasts ? 8 : 0) + valLength + 2 + 4 * SERIALIZATION_OVERHEAD;
+    Preconditions.checkArgument(
+        estimatedSizeAfterPut < MAX_MUTATION_SIZE && estimatedSizeAfterPut >= 0,
+        "Maximum mutation size must be less than 2GB ");
+    fill(cf, cfLength);
+    fill(cq, cqLength);
+    fill(cv);
+    fill(hasts);
     if (hasts) {
-      put(ts);
+      fill(ts);
     }
-    put(deleted);
+    fill(deleted);
 
     if (valLength < VALUE_SIZE_COPY_CUTOFF) {
-      put(val, valLength);
+      fill(val, valLength);
     } else {
       if (values == null) {
         values = new ArrayList<>();
       }
-      byte copy[] = new byte[valLength];
+      byte[] copy = new byte[valLength];
       System.arraycopy(val, 0, copy, 0, valLength);
       values.add(copy);
-      put(-1 * values.size());
+      fill(-1 * values.size());
+      estRowAndLargeValSize += valLength + SERIALIZATION_OVERHEAD;
     }
 
     entries++;
@@ -365,9 +394,10 @@ public class Mutation implements Writable {
    *          column qualifier
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(Text columnFamily, Text columnQualifier, Value value) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value.get());
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, false, value.get());
   }
 
   /**
@@ -382,10 +412,11 @@ public class Mutation implements Writable {
    *          column visibility
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility,
       Value value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false,
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, false,
         value.get());
   }
 
@@ -401,6 +432,7 @@ public class Mutation implements Writable {
    *          timestamp
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(Text columnFamily, Text columnQualifier, long timestamp, Value value) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, false, value.get());
@@ -419,6 +451,7 @@ public class Mutation implements Writable {
    *          timestamp
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility,
       long timestamp, Value value) {
@@ -434,9 +467,10 @@ public class Mutation implements Writable {
    *          column family
    * @param columnQualifier
    *          column qualifier
+   * @see #at()
    */
   public void putDelete(Text columnFamily, Text columnQualifier) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, true, EMPTY_BYTES);
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, true, EMPTY_BYTES);
   }
 
   /**
@@ -448,10 +482,11 @@ public class Mutation implements Writable {
    *          column qualifier
    * @param columnVisibility
    *          column visibility
+   * @see #at()
    */
   public void putDelete(Text columnFamily, Text columnQualifier,
       ColumnVisibility columnVisibility) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true,
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, true,
         EMPTY_BYTES);
   }
 
@@ -465,6 +500,7 @@ public class Mutation implements Writable {
    *          column qualifier
    * @param timestamp
    *          timestamp
+   * @see #at()
    */
   public void putDelete(Text columnFamily, Text columnQualifier, long timestamp) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, true, EMPTY_BYTES);
@@ -481,6 +517,7 @@ public class Mutation implements Writable {
    *          column visibility
    * @param timestamp
    *          timestamp
+   * @see #at()
    */
   public void putDelete(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility,
       long timestamp) {
@@ -496,9 +533,10 @@ public class Mutation implements Writable {
    *          column family
    * @param columnQualifier
    *          column qualifier
+   * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, Value value) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value.get());
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, false, value.get());
   }
 
   /**
@@ -513,10 +551,11 @@ public class Mutation implements Writable {
    *          column visibility
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility, Value value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false,
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, false,
         value.get());
   }
 
@@ -532,6 +571,7 @@ public class Mutation implements Writable {
    *          timestamp
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, long timestamp,
       Value value) {
@@ -551,6 +591,7 @@ public class Mutation implements Writable {
    *          timestamp
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility, long timestamp, Value value) {
@@ -566,9 +607,10 @@ public class Mutation implements Writable {
    *          column family
    * @param columnQualifier
    *          column qualifier
+   * @see #at()
    */
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, true, EMPTY_BYTES);
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, true, EMPTY_BYTES);
   }
 
   /**
@@ -581,10 +623,11 @@ public class Mutation implements Writable {
    *          column qualifier
    * @param columnVisibility
    *          column visibility
+   * @see #at()
    */
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true,
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, true,
         EMPTY_BYTES);
   }
 
@@ -598,6 +641,7 @@ public class Mutation implements Writable {
    *          column qualifier
    * @param timestamp
    *          timestamp
+   * @see #at()
    */
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier, long timestamp) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, true, EMPTY_BYTES);
@@ -614,6 +658,7 @@ public class Mutation implements Writable {
    *          column visibility
    * @param timestamp
    *          timestamp
+   * @see #at()
    */
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility, long timestamp) {
@@ -631,9 +676,10 @@ public class Mutation implements Writable {
    *          column qualifier
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, CharSequence value) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value);
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, false, value);
   }
 
   /**
@@ -648,10 +694,11 @@ public class Mutation implements Writable {
    *          column visibility
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility, CharSequence value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false, value);
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, false, value);
   }
 
   /**
@@ -666,6 +713,7 @@ public class Mutation implements Writable {
    *          timestamp
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier, long timestamp,
       CharSequence value) {
@@ -685,6 +733,7 @@ public class Mutation implements Writable {
    *          timestamp
    * @param value
    *          cell value
+   * @see #at()
    */
   public void put(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility, long timestamp, CharSequence value) {
@@ -703,9 +752,10 @@ public class Mutation implements Writable {
    * @param value
    *          cell value
    * @since 1.5.0
+   * @see #at()
    */
   public void put(byte[] columnFamily, byte[] columnQualifier, byte[] value) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value);
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, false, value);
   }
 
   /**
@@ -721,10 +771,11 @@ public class Mutation implements Writable {
    * @param value
    *          cell value
    * @since 1.5.0
+   * @see #at()
    */
   public void put(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility,
       byte[] value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false, value);
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, false, value);
   }
 
   /**
@@ -740,6 +791,7 @@ public class Mutation implements Writable {
    * @param value
    *          cell value
    * @since 1.5.0
+   * @see #at()
    */
   public void put(byte[] columnFamily, byte[] columnQualifier, long timestamp, byte[] value) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, false, value);
@@ -759,6 +811,7 @@ public class Mutation implements Writable {
    * @param value
    *          cell value
    * @since 1.5.0
+   * @see #at()
    */
   public void put(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility,
       long timestamp, byte[] value) {
@@ -775,9 +828,10 @@ public class Mutation implements Writable {
    * @param columnQualifier
    *          column qualifier
    * @since 1.5.0
+   * @see #at()
    */
   public void putDelete(byte[] columnFamily, byte[] columnQualifier) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, true, EMPTY_BYTES);
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, true, EMPTY_BYTES);
   }
 
   /**
@@ -790,10 +844,11 @@ public class Mutation implements Writable {
    * @param columnVisibility
    *          column visibility
    * @since 1.5.0
+   * @see #at()
    */
   public void putDelete(byte[] columnFamily, byte[] columnQualifier,
       ColumnVisibility columnVisibility) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true,
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, true,
         EMPTY_BYTES);
   }
 
@@ -808,6 +863,7 @@ public class Mutation implements Writable {
    * @param timestamp
    *          timestamp
    * @since 1.5.0
+   * @see #at()
    */
   public void putDelete(byte[] columnFamily, byte[] columnQualifier, long timestamp) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, true, EMPTY_BYTES);
@@ -825,6 +881,7 @@ public class Mutation implements Writable {
    * @param timestamp
    *          timestamp
    * @since 1.5.0
+   * @see #at()
    */
   public void putDelete(byte[] columnFamily, byte[] columnQualifier,
       ColumnVisibility columnVisibility, long timestamp) {
@@ -832,12 +889,492 @@ public class Mutation implements Writable {
         EMPTY_BYTES);
   }
 
+  /**
+   * Provides methods for setting the column family of a Mutation. The user can provide the family
+   * name as a byte array, CharSequence, ByteBuffer, or Text object instance and the backend will do
+   * the necessary transformation.
+   *
+   * All FamilyOptions methods return an instance derived from the QualifierOptions interface,
+   * allowing the methods to be semantically chained.
+   *
+   * @since 2.0.0
+   */
+  public interface FamilyOptions extends QualifierOptions {
+    QualifierOptions family(byte[] colFam);
+
+    QualifierOptions family(ByteBuffer colFam);
+
+    QualifierOptions family(CharSequence colFam);
+
+    QualifierOptions family(Text colFam);
+  }
+
+  /**
+   * Provides methods for setting the column qualifier of a Mutation. The user can provide the
+   * qualifier name as a byte array, CharSequence, ByteBuffer, or Text object instance and the
+   * backend will do the necessary transformation.
+   *
+   * All QualifierOptions methods return an instance derived from the VisibilityOptions interface,
+   * allowing the methods to be semantically chained.
+   *
+   * @since 2.0.0
+   */
+  public interface QualifierOptions extends VisibilityOptions {
+    VisibilityOptions qualifier(byte[] colQual);
+
+    VisibilityOptions qualifier(ByteBuffer colQual);
+
+    VisibilityOptions qualifier(CharSequence colQual);
+
+    VisibilityOptions qualifier(Text colQual);
+  }
+
+  /**
+   * Provides methods for setting the column visibility of a Mutation. The user can provide the
+   * visibility as a byte array or {@link org.apache.accumulo.core.security.ColumnVisibility} object
+   * instance and the backend will do the necessary transformation.
+   *
+   * All QualifierOptions methods return an instance derived from the VisibilityOptions interface,
+   * allowing the methods to be semantically chained.
+   *
+   * @since 2.0.0
+   */
+  public interface VisibilityOptions extends TimestampOptions {
+    TimestampOptions visibility(byte[] colVis);
+
+    TimestampOptions visibility(ByteBuffer colVis);
+
+    TimestampOptions visibility(CharSequence colVis);
+
+    TimestampOptions visibility(ColumnVisibility colVis);
+
+    TimestampOptions visibility(Text colVis);
+  }
+
+  /**
+   * Provides methods for setting the timestamp of a Mutation. The user must provide the timestamp
+   * as a long.
+   *
+   * <p>
+   * All TimestampOptions methods return an instance derived from the MutationOptions interface,
+   * allowing the methods to be semantically chained.
+   *
+   * @since 2.0.0
+   */
+  public interface TimestampOptions extends MutationOptions {
+    MutationOptions timestamp(long ts);
+  }
+
+  /**
+   * Provides methods for setting the value of a Mutation. The user can provide the value as a byte
+   * array, Value, or ByteBuffer object instance and the backend will do the necessary
+   * transformation.
+   *
+   * <p>
+   * All MutationOptions methods complete a fluent Mutation API method chain.
+   *
+   * @since 2.0.0
+   */
+  public interface MutationOptions {
+    Mutation put(byte[] val);
+
+    Mutation put(ByteBuffer val);
+
+    Mutation put(CharSequence val);
+
+    Mutation put(Text val);
+
+    Mutation put(Value val);
+
+    Mutation delete();
+  }
+
+  /**
+   * Fluent API for putting or deleting to a Mutation that makes it easy use different types (i.e
+   * byte[], CharSequence, etc) when specifying the family, qualifier, value, etc.
+   *
+   * <p>
+   * Methods are optional but must follow this order: family, qualifier, visibility, timestamp.
+   *
+   * <p>
+   * The put and delete methods end the chain and add the modification to the Mutation.
+   *
+   * <p>
+   * The following is an example if using {@code at()} to put and delete. Notice how the example
+   * mixes {@code String} and {@code byte[]}.
+   *
+   * <pre>
+   * <code>
+   *   Mutation m = new Mutation("row0017");
+   *   m.at().family("001").qualifier(new byte[] {0,1}).put("v99");
+   *   m.at().family("002").qualifier(new byte[] {0,1}).delete();
+   * </code>
+   * </pre>
+   *
+   * @return a new FamilyOptions object, starting the method chain
+   * @since 2.0.0
+   */
+  public FamilyOptions at() {
+    return new Options();
+  }
+
+  // private inner class implementing all Options interfaces
+  private class Options implements FamilyOptions {
+    byte[] columnFamily;
+    int columnFamilyLength;
+
+    byte[] columnQualifier;
+    int columnQualifierLength;
+
+    byte[] columnVisibility = null;
+    int columnVisibilityLength;
+
+    boolean hasTs = false;
+    long timestamp;
+
+    private Options() {}
+
+    // methods for changing the column family of a Mutation
+    /**
+     * Sets the column family of a mutation.
+     *
+     * @param colFam
+     *          column family
+     * @param colFamLength
+     *          column family length
+     * @return a QualifierOptions object, advancing the method chain
+     */
+    private QualifierOptions family(byte[] colFam, int colFamLength) {
+      columnFamily = colFam;
+      columnFamilyLength = colFamLength;
+      return this;
+    }
+
+    /**
+     * Sets the column family of a mutation.
+     *
+     * @param colFam
+     *          column family
+     * @return a QualifierOptions object, advancing the method chain
+     */
+    @Override
+    public QualifierOptions family(byte[] colFam) {
+      return family(colFam, colFam.length);
+    }
+
+    /**
+     * Sets the column family of a mutation.
+     *
+     * @param colFam
+     *          column family
+     * @return a QualifierOptions object, advancing the method chain
+     */
+    @Override
+    public QualifierOptions family(ByteBuffer colFam) {
+      return family(ByteBufferUtil.toBytes(colFam));
+    }
+
+    /**
+     * Sets the column family of a mutation.
+     *
+     * @param colFam
+     *          column family
+     * @return a QualifierOptions object, advancing the method chain
+     */
+    @Override
+    public QualifierOptions family(CharSequence colFam) {
+      return family(new Text(colFam.toString()));
+    }
+
+    /**
+     * Sets the column family of a mutation.
+     *
+     * @param colFam
+     *          column family
+     * @return a QualifierOptions object, advancing the method chain
+     */
+    @Override
+    public QualifierOptions family(Text colFam) {
+      return family(colFam.getBytes(), colFam.getLength());
+    }
+
+    /**
+     * Sets the column qualifier of a mutation.
+     *
+     * @param colQual
+     *          column qualifier
+     * @param colQualLength
+     *          column qualifier
+     * @return a VisibilityOptions object, advancing the method chain
+     */
+    private VisibilityOptions qualifier(byte[] colQual, int colQualLength) {
+      columnQualifier = colQual;
+      columnQualifierLength = colQualLength;
+      return this;
+    }
+
+    /**
+     * Sets the column qualifier of a mutation.
+     *
+     * @param colQual
+     *          column qualifier
+     * @return a VisibilityOptions object, advancing the method chain
+     */
+    @Override
+    public VisibilityOptions qualifier(byte[] colQual) {
+      return qualifier(colQual, colQual.length);
+    }
+
+    /**
+     * Sets the column qualifier of a mutation.
+     *
+     * @param colQual
+     *          column qualifier
+     * @return a VisibilityOptions object, advancing the method chain
+     */
+    @Override
+    public VisibilityOptions qualifier(ByteBuffer colQual) {
+      return qualifier(ByteBufferUtil.toBytes(colQual));
+    }
+
+    /**
+     * Sets the column qualifier of a mutation.
+     *
+     * @param colQual
+     *          column qualifier
+     * @return a VisibilityOptions object, advancing the method chain
+     */
+    @Override
+    public VisibilityOptions qualifier(CharSequence colQual) {
+      return qualifier(new Text(colQual.toString()));
+    }
+
+    /**
+     * Sets the column qualifier of a mutation.
+     *
+     * @param colQual
+     *          column qualifier
+     * @return a VisibilityOptions object, advancing the method chain
+     */
+    @Override
+    public VisibilityOptions qualifier(Text colQual) {
+      return qualifier(colQual.getBytes(), colQual.getLength());
+    }
+
+    /**
+     * Sets the column visibility of a mutation.
+     *
+     * @param colVis
+     *          column visibility
+     * @param colVisLen
+     *          column visibility length
+     * @return a TimestampOptions object, advancing the method chain
+     */
+    private TimestampOptions visibility(byte[] colVis, int colVisLen) {
+      columnVisibility = colVis;
+      columnVisibilityLength = colVisLen;
+      return this;
+    }
+
+    /**
+     * Sets the column visibility of a mutation.
+     *
+     * @param colVis
+     *          column visibility
+     * @return a TimestampOptions object, advancing the method chain
+     */
+    @Override
+    public TimestampOptions visibility(byte[] colVis) {
+      return visibility(colVis, colVis.length);
+    }
+
+    /**
+     * Sets the column visibility of a mutation.
+     *
+     * @param colVis
+     *          column visibility
+     * @return a TimestampOptions object, advancing the method chain
+     */
+    @Override
+    public TimestampOptions visibility(ByteBuffer colVis) {
+      return visibility(ByteBufferUtil.toBytes(colVis));
+    }
+
+    /**
+     * Sets the column visibility of a mutation.
+     *
+     * @param colVis
+     *          column visibility
+     * @return a TimestampOptions object, advancing the method chain
+     */
+    @Override
+    public TimestampOptions visibility(CharSequence colVis) {
+      return visibility(new Text(colVis.toString()));
+    }
+
+    /**
+     * Sets the column visibility of a mutation.
+     *
+     * @param colVis
+     *          column visibility
+     * @return a TimestampOptions object, advancing the method chain
+     */
+    @Override
+    public TimestampOptions visibility(ColumnVisibility colVis) {
+      return visibility(colVis.getExpression());
+    }
+
+    /**
+     * Sets the column visibility of a mutation.
+     *
+     * @param colVis
+     *          column visibility
+     * @return a TimestampOptions object, advancing the method chain
+     */
+    @Override
+    public TimestampOptions visibility(Text colVis) {
+      return visibility(colVis.toString().getBytes());
+    }
+
+    /**
+     * Sets the timestamp of a mutation.
+     *
+     * @param ts
+     *          timestamp
+     * @return a MutationOptions object, advancing the method chain
+     */
+    @Override
+    public MutationOptions timestamp(long ts) {
+      hasTs = true;
+      timestamp = ts;
+      return this;
+    }
+
+    /**
+     * Finalizes the method chain by filling the buffer with the gathered Mutation configuration
+     *
+     * @param val
+     *          value
+     * @param delete
+     *          deletion flag
+     */
+    private Mutation put(byte[] val, boolean delete) {
+      if (buffer == null) {
+        throw new IllegalStateException("Can not add to mutation after serializing it");
+      }
+
+      // fill buffer with column family location
+      fill(columnFamily, columnFamilyLength);
+
+      // fill buffer with qualifier location
+      fill(columnQualifier, columnQualifierLength);
+
+      // fill buffer with visibility location
+      // if none given, fill with EMPTY_BYTES
+      if (columnVisibility == null) {
+        fill(EMPTY_BYTES, EMPTY_BYTES.length);
+      } else {
+        fill(columnVisibility, columnVisibilityLength);
+      }
+
+      // fill buffer with timestamp location
+      // if none given, skip
+      fill(hasTs);
+      if (hasTs) {
+        fill(timestamp);
+      }
+
+      // indicate if this is a deletion
+      fill(delete);
+
+      // fill buffer with value
+      if (val.length < VALUE_SIZE_COPY_CUTOFF) {
+        fill(val, val.length);
+      } else {
+        if (values == null) {
+          values = new ArrayList<>();
+        }
+        byte[] copy = new byte[val.length];
+        System.arraycopy(val, 0, copy, 0, val.length);
+        values.add(copy);
+        fill(-1 * values.size());
+      }
+
+      entries++;
+
+      return Mutation.this;
+    }
+
+    /**
+     * Ends method chain with a put of a byte[] value
+     *
+     * @param val
+     *          value
+     */
+    @Override
+    public Mutation put(byte[] val) {
+      return put(val, false);
+    }
+
+    /**
+     * Ends method chain with a put of a ByteBuffer value
+     *
+     * @param val
+     *          value
+     */
+    @Override
+    public Mutation put(ByteBuffer val) {
+      return put(ByteBufferUtil.toBytes(val), false);
+    }
+
+    /**
+     * Ends method chain with a put of a CharSequence value
+     *
+     * @param val
+     *          value
+     */
+    @Override
+    public Mutation put(CharSequence val) {
+      return put(new Text(val.toString()));
+    }
+
+    /**
+     * Ends method chain with a put of a Text value
+     *
+     * @param val
+     *          value
+     */
+    @Override
+    public Mutation put(Text val) {
+      return put(val.toString().getBytes(), false);
+    }
+
+    /**
+     * Ends method chain with a put of a Value object
+     *
+     * @param val
+     *          value
+     */
+    @Override
+    public Mutation put(Value val) {
+      return put(val.get(), false);
+    }
+
+    /**
+     * Ends method chain with a delete
+     */
+    @Override
+    public Mutation delete() {
+      return put(EMPTY_BYTES, true);
+    }
+  }
+
   private byte[] oldReadBytes(UnsynchronizedBuffer.Reader in) {
     int len = in.readInt();
     if (len == 0)
       return EMPTY_BYTES;
 
-    byte bytes[] = new byte[len];
+    byte[] bytes = new byte[len];
     in.readBytes(bytes);
     return bytes;
   }
@@ -847,7 +1384,7 @@ public class Mutation implements Writable {
     if (len == 0)
       return EMPTY_BYTES;
 
-    byte bytes[] = new byte[len];
+    byte[] bytes = new byte[len];
     in.readBytes(bytes);
     return bytes;
   }
@@ -971,7 +1508,7 @@ public class Mutation implements Writable {
    * @since 1.7.0
    */
   public void addReplicationSource(String peer) {
-    if (null == replicationSources || replicationSources == EMPTY) {
+    if (replicationSources == null || replicationSources == EMPTY) {
       replicationSources = new HashSet<>();
     }
 
@@ -996,7 +1533,7 @@ public class Mutation implements Writable {
    * @return An unmodifiable view of the replication sources
    */
   public Set<String> getReplicationSources() {
-    if (null == replicationSources) {
+    if (replicationSources == null) {
       return EMPTY;
     }
     return Collections.unmodifiableSet(replicationSources);
@@ -1029,20 +1566,20 @@ public class Mutation implements Writable {
     entries = WritableUtils.readVInt(in);
 
     boolean valuesPresent = (first & 0x01) == 0x01;
-    if (!valuesPresent) {
-      values = null;
-    } else {
+    if (valuesPresent) {
       values = new ArrayList<>();
       int numValues = WritableUtils.readVInt(in);
       for (int i = 0; i < numValues; i++) {
         len = WritableUtils.readVInt(in);
-        byte val[] = new byte[len];
+        byte[] val = new byte[len];
         in.readFully(val);
         values.add(val);
       }
+    } else {
+      values = null;
     }
 
-    if (0x02 == (first & 0x02)) {
+    if ((first & 0x02) == 0x02) {
       int numMutations = WritableUtils.readVInt(in);
       this.replicationSources = new HashSet<>();
       for (int i = 0; i < numMutations; i++) {
@@ -1069,17 +1606,17 @@ public class Mutation implements Writable {
 
     List<byte[]> localValues;
     boolean valuesPresent = in.readBoolean();
-    if (!valuesPresent) {
-      localValues = null;
-    } else {
+    if (valuesPresent) {
       localValues = new ArrayList<>();
       int numValues = in.readInt();
       for (int i = 0; i < numValues; i++) {
         len = in.readInt();
-        byte val[] = new byte[len];
+        byte[] val = new byte[len];
         in.readFully(val);
         localValues.add(val);
       }
+    } else {
+      localValues = null;
     }
 
     // convert data to new format
@@ -1132,15 +1669,14 @@ public class Mutation implements Writable {
     out.write(data);
     UnsynchronizedBuffer.writeVInt(out, integerBuffer, entries);
 
-    if (0x01 == (0x01 & hasValues)) {
+    if ((0x01 & hasValues) == 0x01) {
       UnsynchronizedBuffer.writeVInt(out, integerBuffer, values.size());
-      for (int i = 0; i < values.size(); i++) {
-        byte val[] = values.get(i);
+      for (byte[] val : values) {
         UnsynchronizedBuffer.writeVInt(out, integerBuffer, val.length);
         out.write(val);
       }
     }
-    if (0x02 == (0x02 & hasValues)) {
+    if ((0x02 & hasValues) == 0x02) {
       UnsynchronizedBuffer.writeVInt(out, integerBuffer, replicationSources.size());
       for (String source : replicationSources) {
         WritableUtils.writeString(out, source);
@@ -1203,7 +1739,7 @@ public class Mutation implements Writable {
   }
 
   /**
-   * Creates a {@link org.apache.accumulo.core.data.thrift.TMutation} object containing this
+   * Creates a {@link org.apache.accumulo.core.dataImpl.thrift.TMutation} object containing this
    * Mutation's data.
    *
    * Note that this method will move the Mutation into a "serialized" state that will prevent users
@@ -1237,4 +1773,35 @@ public class Mutation implements Writable {
     return this.useOldDeserialize ? SERIALIZED_FORMAT.VERSION1 : SERIALIZED_FORMAT.VERSION2;
   }
 
+  /**
+   * Creates a multi-lined, human-readable String for this mutation.
+   *
+   * This method creates many intermediate Strings and should not be used for large volumes of
+   * Mutations.
+   *
+   * @return A multi-lined, human-readable String for this mutation.
+   *
+   * @since 2.1.0
+   */
+  public String prettyPrint() {
+    StringBuilder sb = new StringBuilder();
+
+    sb.append("mutation: ").append(new String(row, UTF_8)).append('\n');
+    for (ColumnUpdate update : getUpdates()) {
+      sb.append(" update: ");
+      sb.append(new String(update.getColumnFamily(), UTF_8));
+      sb.append(':');
+      sb.append(new String(update.getColumnQualifier(), UTF_8));
+      sb.append(" value ");
+
+      if (update.isDeleted()) {
+        sb.append("[delete]");
+      } else {
+        sb.append(new String(update.getValue(), UTF_8));
+      }
+      sb.append('\n');
+    }
+
+    return sb.toString();
+  }
 }

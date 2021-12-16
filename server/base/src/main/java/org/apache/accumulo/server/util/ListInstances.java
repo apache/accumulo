@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.util;
 
@@ -30,9 +32,9 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +46,7 @@ public class ListInstances {
 
   private static final int NAME_WIDTH = 20;
   private static final int UUID_WIDTH = 37;
-  private static final int MASTER_WIDTH = 30;
+  private static final int MANAGER_WIDTH = 30;
 
   private static final int ZOOKEEPER_TIMER_MILLIS = 30 * 1000;
 
@@ -65,7 +67,8 @@ public class ListInstances {
     opts.parseArgs(ListInstances.class.getName(), args);
 
     if (opts.keepers == null) {
-      opts.keepers = SiteConfiguration.getInstance().get(Property.INSTANCE_ZK_HOST);
+      var siteConfig = SiteConfiguration.auto();
+      opts.keepers = siteConfig.get(Property.INSTANCE_ZK_HOST);
     }
 
     String keepers = opts.keepers;
@@ -99,7 +102,7 @@ public class ListInstances {
       for (UUID uuid : instancedIds) {
         printInstanceInfo(cache, null, uuid, printErrors);
       }
-    } else if (instancedIds.size() > 0) {
+    } else if (!instancedIds.isEmpty()) {
       System.out.println();
       System.out.println("INFO : " + instancedIds.size()
           + " unamed instances were not printed, run with --print-all to see all instances");
@@ -125,50 +128,52 @@ public class ListInstances {
     public void formatTo(Formatter formatter, int flags, int width, int precision) {
 
       StringBuilder sb = new StringBuilder();
-      for (int i = 0; i < width; i++)
+      for (int i = 0; i < width; i++) {
         sb.append(c);
+      }
       formatter.format(sb.toString());
     }
 
   }
 
   private static void printHeader() {
-    System.out.printf(" %-" + NAME_WIDTH + "s| %-" + UUID_WIDTH + "s| %-" + MASTER_WIDTH + "s%n",
-        "Instance Name", "Instance ID", "Master");
+    System.out.printf(" %-" + NAME_WIDTH + "s| %-" + UUID_WIDTH + "s| %-" + MANAGER_WIDTH + "s%n",
+        "Instance Name", "Instance ID", "Manager");
     System.out.printf(
-        "%" + (NAME_WIDTH + 1) + "s+%" + (UUID_WIDTH + 1) + "s+%" + (MASTER_WIDTH + 1) + "s%n",
+        "%" + (NAME_WIDTH + 1) + "s+%" + (UUID_WIDTH + 1) + "s+%" + (MANAGER_WIDTH + 1) + "s%n",
         new CharFiller('-'), new CharFiller('-'), new CharFiller('-'));
 
   }
 
   private static void printInstanceInfo(ZooCache cache, String instanceName, UUID iid,
       boolean printErrors) {
-    String master = getMaster(cache, iid, printErrors);
+    String manager = getManager(cache, iid, printErrors);
     if (instanceName == null) {
       instanceName = "";
     }
 
-    if (master == null) {
-      master = "";
+    if (manager == null) {
+      manager = "";
     }
 
-    System.out.printf("%" + NAME_WIDTH + "s |%" + UUID_WIDTH + "s |%" + MASTER_WIDTH + "s%n",
-        "\"" + instanceName + "\"", iid, master);
+    System.out.printf("%" + NAME_WIDTH + "s |%" + UUID_WIDTH + "s |%" + MANAGER_WIDTH + "s%n",
+        "\"" + instanceName + "\"", iid, manager);
   }
 
-  private static String getMaster(ZooCache cache, UUID iid, boolean printErrors) {
+  private static String getManager(ZooCache cache, UUID iid, boolean printErrors) {
 
     if (iid == null) {
       return null;
     }
 
     try {
-      String masterLocPath = Constants.ZROOT + "/" + iid + Constants.ZMASTER_LOCK;
-      byte[] master = ZooLock.getLockData(cache, masterLocPath, null);
-      if (master == null) {
+      var zLockManagerPath =
+          ServiceLock.path(Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK);
+      byte[] manager = ServiceLock.getLockData(cache, zLockManagerPath, null);
+      if (manager == null) {
         return null;
       }
-      return new String(master, UTF_8);
+      return new String(manager, UTF_8);
     } catch (Exception e) {
       handleException(e, printErrors);
       return null;
@@ -193,7 +198,7 @@ public class ListInstances {
     for (String name : names) {
       String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
       try {
-        UUID iid = UUID.fromString(new String(zk.getData(instanceNamePath, null), UTF_8));
+        UUID iid = UUID.fromString(new String(zk.getData(instanceNamePath), UTF_8));
         tm.put(name, iid);
       } catch (Exception e) {
         handleException(e, printErrors);
@@ -211,12 +216,13 @@ public class ListInstances {
       List<String> children = zk.getChildren(Constants.ZROOT);
 
       for (String iid : children) {
-        if (iid.equals("instances"))
+        if (iid.equals("instances")) {
           continue;
+        }
         try {
           ts.add(UUID.fromString(iid));
         } catch (Exception e) {
-          log.error("Exception: " + e);
+          log.error("Exception: ", e);
         }
       }
     } catch (Exception e) {

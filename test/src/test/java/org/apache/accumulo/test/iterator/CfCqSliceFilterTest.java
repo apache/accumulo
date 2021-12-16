@@ -1,22 +1,22 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to you under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.iterator;
-
-import static org.junit.Assert.assertNotNull;
 
 import java.util.HashMap;
 import java.util.List;
@@ -35,7 +35,6 @@ import org.apache.accumulo.iteratortest.junit4.BaseJUnit4IteratorTest;
 import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
 import org.junit.runners.Parameterized.Parameters;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
 /**
@@ -92,19 +91,12 @@ public class CfCqSliceFilterTest extends BaseJUnit4IteratorTest {
   private static TreeMap<Key,Value> createOutputData() {
     TreeMap<Key,Value> data = new TreeMap<>();
 
-    Iterable<Entry<Key,Value>> filtered =
-        Iterables.filter(INPUT_DATA.entrySet(), new Predicate<Entry<Key,Value>>() {
-
-          @Override
-          public boolean apply(Entry<Key,Value> entry) {
-            assertNotNull(entry);
-            String cf = entry.getKey().getColumnFamily().toString();
-            String cq = entry.getKey().getColumnQualifier().toString();
-            return MIN_CF.compareTo(cf) <= 0 && MAX_CF.compareTo(cf) >= 0
-                && MIN_CQ.compareTo(cq) <= 0 && MAX_CQ.compareTo(cq) >= 0;
-          }
-
-        });
+    Iterable<Entry<Key,Value>> filtered = Iterables.filter(INPUT_DATA.entrySet(), entry -> {
+      String cf = entry.getKey().getColumnFamily().toString();
+      String cq = entry.getKey().getColumnQualifier().toString();
+      return MIN_CF.compareTo(cf) <= 0 && MAX_CF.compareTo(cf) >= 0 && MIN_CQ.compareTo(cq) <= 0
+          && MAX_CQ.compareTo(cq) >= 0;
+    });
 
     for (Entry<Key,Value> entry : filtered) {
       data.put(entry.getKey(), entry.getValue());

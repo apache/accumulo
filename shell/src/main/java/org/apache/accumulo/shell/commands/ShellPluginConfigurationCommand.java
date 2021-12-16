@@ -1,23 +1,25 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
 import java.util.Arrays;
-import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -26,8 +28,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
-import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
@@ -59,20 +61,15 @@ public abstract class ShellPluginConfigurationCommand extends Command {
       // Remove the property
       removePlugin(cl, shellState, tableName);
 
-      shellState.getReader().println("Removed " + pluginType + " on " + tableName);
+      shellState.getWriter().println("Removed " + pluginType + " on " + tableName);
     } else if (cl.hasOption(listPluginOption.getOpt())) {
       // Get the options for this table
-      final Iterator<Entry<String,String>> iter =
-          shellState.getConnector().tableOperations().getProperties(tableName).iterator();
-
-      while (iter.hasNext()) {
-        Entry<String,String> ent = iter.next();
-
-        // List all parameters with the property name
-        if (ent.getKey().startsWith(tableProp.toString())) {
-          shellState.getReader().println(ent.getKey() + ": " + ent.getValue());
-        }
-      }
+      shellState.getAccumuloClient().tableOperations().getConfiguration(tableName)
+          .forEach((key, value) -> {
+            if (key.startsWith(tableProp.toString())) {
+              shellState.getWriter().println(key + ": " + value);
+            }
+          });
     } else {
       // Set the plugin with the provided options
       String className = cl.getOptionValue(pluginClassOption.getOpt());
@@ -86,28 +83,26 @@ public abstract class ShellPluginConfigurationCommand extends Command {
 
   protected void setPlugin(final CommandLine cl, final Shell shellState, final String tableName,
       final String className) throws AccumuloException, AccumuloSecurityException {
-    shellState.getConnector().tableOperations().setProperty(tableName, tableProp.toString(),
+    shellState.getAccumuloClient().tableOperations().setProperty(tableName, tableProp.toString(),
         className);
   }
 
   protected void removePlugin(final CommandLine cl, final Shell shellState, final String tableName)
       throws AccumuloException, AccumuloSecurityException {
-    shellState.getConnector().tableOperations().removeProperty(tableName, tableProp.toString());
+    shellState.getAccumuloClient().tableOperations().removeProperty(tableName,
+        tableProp.toString());
   }
 
   public static <T> Class<? extends T> getPluginClass(final String tableName,
       final Shell shellState, final Class<T> clazz, final Property pluginProp) {
-    Iterator<Entry<String,String>> props;
+    Map<String,String> props;
     try {
-      props = shellState.getConnector().tableOperations().getProperties(tableName).iterator();
-    } catch (AccumuloException e) {
-      return null;
-    } catch (TableNotFoundException e) {
+      props = shellState.getAccumuloClient().tableOperations().getConfiguration(tableName);
+    } catch (AccumuloException | TableNotFoundException e) {
       return null;
     }
 
-    while (props.hasNext()) {
-      final Entry<String,String> ent = props.next();
+    for (Entry<String,String> ent : props.entrySet()) {
       if (ent.getKey().equals(pluginProp.toString())) {
         Class<? extends T> pluginClazz;
         String[] args = new String[2];
@@ -116,7 +111,7 @@ public abstract class ShellPluginConfigurationCommand extends Command {
           o.addOption(OptUtil.tableOpt());
           args[0] = "-t";
           args[1] = tableName;
-          CommandLine cl = new BasicParser().parse(o, args);
+          CommandLine cl = new DefaultParser().parse(o, args);
           pluginClazz =
               shellState.getClassLoader(cl, shellState).loadClass(ent.getValue()).asSubclass(clazz);
         } catch (ClassNotFoundException e) {

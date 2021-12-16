@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.replication;
 
@@ -42,9 +44,11 @@ import com.google.protobuf.InvalidProtocolBufferException;
  *
  * Messages that are "closed", stay closed. "Begin" and "end" always choose the maximum of the two.
  */
+@Deprecated
 public class StatusCombiner extends TypedValueCombiner<Status> {
   private static final Logger log = LoggerFactory.getLogger(StatusCombiner.class);
 
+  @Deprecated
   public static class StatusEncoder extends AbstractEncoder<Status> {
     private static final Logger log = LoggerFactory.getLogger(StatusEncoder.class);
 
@@ -110,15 +114,15 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
 
       // Avoid creation of a new builder and message when we only have one
       // message to reduce
-      if (null == combined) {
-        if (!iter.hasNext()) {
+      if (combined == null) {
+        if (iter.hasNext()) {
+          combined = Status.newBuilder();
+        } else {
           if (log.isTraceEnabled()) {
-            log.trace("Returned single value: " + key.toStringNoTruncate() + " "
-                + ProtobufUtil.toString(status));
+            log.trace("Returned single value: {} {}", key.toStringNoTruncate(),
+                ProtobufUtil.toString(status));
           }
           return status;
-        } else {
-          combined = Status.newBuilder();
         }
       }
 
@@ -127,8 +131,8 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
     }
 
     if (log.isTraceEnabled()) {
-      log.trace(
-          "Combined: " + key.toStringNoTruncate() + " " + ProtobufUtil.toString(combined.build()));
+      log.trace("Combined: {} {}", key.toStringNoTruncate(),
+          ProtobufUtil.toString(combined.build()));
     }
 
     return combined.build();
@@ -144,8 +148,8 @@ public class StatusCombiner extends TypedValueCombiner<Status> {
    */
   public void combine(Builder combined, Status status) {
     if (log.isTraceEnabled()) {
-      log.trace("Combining " + status.toString().replace("\n", ", ") + " into "
-          + builderToString(combined));
+      log.trace("Combining {} into {}", status.toString().replace("\n", ", "),
+          builderToString(combined));
     }
 
     // offset up to which replication is completed

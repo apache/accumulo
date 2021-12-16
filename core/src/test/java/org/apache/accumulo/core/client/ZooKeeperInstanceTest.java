@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client;
 
@@ -26,38 +28,46 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
+@Deprecated(since = "2.0.0")
 public class ZooKeeperInstanceTest {
   private static final UUID IID = UUID.randomUUID();
   private static final String IID_STRING = IID.toString();
-  private ClientConfiguration config;
   private ZooCacheFactory zcf;
   private ZooCache zc;
   private ZooKeeperInstance zki;
 
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ID =
+      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ID;
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_NAME =
+      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_NAME;
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_HOST =
+      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST;
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_TIMEOUT =
+      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT;
+
   private void mockIdConstruction(ClientConfiguration config) {
-    expect(config.get(ClientProperty.INSTANCE_ID)).andReturn(IID_STRING);
-    expect(config.get(ClientProperty.INSTANCE_NAME)).andReturn(null);
-    expect(config.get(ClientProperty.INSTANCE_ZK_HOST)).andReturn("zk1");
-    expect(config.get(ClientProperty.INSTANCE_ZK_TIMEOUT)).andReturn("30");
+    expect(config.get(INSTANCE_ID)).andReturn(IID_STRING);
+    expect(config.get(INSTANCE_NAME)).andReturn(null);
+    expect(config.get(INSTANCE_ZK_HOST)).andReturn("zk1");
+    expect(config.get(INSTANCE_ZK_TIMEOUT)).andReturn("30");
   }
 
   private void mockNameConstruction(ClientConfiguration config) {
-    expect(config.get(ClientProperty.INSTANCE_ID)).andReturn(null);
-    expect(config.get(ClientProperty.INSTANCE_NAME)).andReturn("instance");
-    expect(config.get(ClientProperty.INSTANCE_ZK_HOST)).andReturn("zk1");
-    expect(config.get(ClientProperty.INSTANCE_ZK_TIMEOUT)).andReturn("30");
+    expect(config.get(INSTANCE_ID)).andReturn(null);
+    expect(config.get(INSTANCE_NAME)).andReturn("instance");
+    expect(config.get(INSTANCE_ZK_HOST)).andReturn("zk1");
+    expect(config.get(INSTANCE_ZK_TIMEOUT)).andReturn("30");
   }
 
   @Before
   public void setUp() {
-    config = createMock(ClientConfiguration.class);
+    ClientConfiguration config = createMock(ClientConfiguration.class);
     mockNameConstruction(config);
     replay(config);
     zcf = createMock(ZooCacheFactory.class);
@@ -73,9 +83,20 @@ public class ZooKeeperInstanceTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testInvalidConstruction() {
-    config = createMock(ClientConfiguration.class);
-    expect(config.get(ClientProperty.INSTANCE_ID)).andReturn(IID_STRING);
+    ClientConfiguration config = createMock(ClientConfiguration.class);
+    expect(config.get(INSTANCE_ID)).andReturn(IID_STRING);
     mockNameConstruction(config);
+    replay(config);
+    new ZooKeeperInstance(config);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testInvalidConstruction2() {
+    ClientConfiguration config = createMock(ClientConfiguration.class);
+    expect(config.get(INSTANCE_ID)).andReturn(null);
+    expect(config.get(INSTANCE_NAME)).andReturn(null);
+    expect(config.get(INSTANCE_ZK_HOST)).andReturn("zk1");
+    expect(config.get(INSTANCE_ZK_TIMEOUT)).andReturn("30");
     replay(config);
     new ZooKeeperInstance(config);
   }
@@ -98,7 +119,7 @@ public class ZooKeeperInstanceTest {
 
   @Test
   public void testGetInstanceID_Direct() {
-    config = createMock(ClientConfiguration.class);
+    ClientConfiguration config = createMock(ClientConfiguration.class);
     mockIdConstruction(config);
     replay(config);
     zki = new ZooKeeperInstance(config, zcf);
@@ -109,6 +130,7 @@ public class ZooKeeperInstanceTest {
 
   @Test(expected = RuntimeException.class)
   public void testGetInstanceID_NoMapping() {
+    ClientConfiguration config = createMock(ClientConfiguration.class);
     expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/instance")).andReturn(null);
     replay(zc);
     EasyMock.reset(config, zcf);
@@ -126,7 +148,7 @@ public class ZooKeeperInstanceTest {
 
   @Test(expected = RuntimeException.class)
   public void testGetInstanceID_IDMissingForID() {
-    config = createMock(ClientConfiguration.class);
+    ClientConfiguration config = createMock(ClientConfiguration.class);
     mockIdConstruction(config);
     replay(config);
     zki = new ZooKeeperInstance(config, zcf);
@@ -137,7 +159,7 @@ public class ZooKeeperInstanceTest {
 
   @Test
   public void testGetInstanceName() {
-    config = createMock(ClientConfiguration.class);
+    ClientConfiguration config = createMock(ClientConfiguration.class);
     mockIdConstruction(config);
     replay(config);
     zki = new ZooKeeperInstance(config, zcf);

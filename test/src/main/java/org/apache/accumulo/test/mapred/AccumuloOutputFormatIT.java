@@ -1,22 +1,23 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.mapred;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -27,24 +28,23 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.mapred.AccumuloInputFormat;
-import org.apache.accumulo.core.client.mapred.AccumuloOutputFormat;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -59,6 +59,10 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.Test;
 
+/**
+ * This tests deprecated mapreduce code in core jar
+ */
+@Deprecated(since = "2.0.0")
 public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
   @Override
@@ -70,47 +74,54 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
   // Prevent regression of ACCUMULO-3709.
   @Test
   public void testMapred() throws Exception {
-    Connector connector = getConnector();
-    // create a table and put some data in it
-    connector.tableOperations().create(testName.getMethodName());
+    Properties props = getClientProperties();
+    try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
+      // create a table and put some data in it
+      client.tableOperations().create(testName.getMethodName());
 
-    JobConf job = new JobConf();
-    BatchWriterConfig batchConfig = new BatchWriterConfig();
-    // no flushes!!!!!
-    batchConfig.setMaxLatency(0, TimeUnit.MILLISECONDS);
-    // use a single thread to ensure our update session times out
-    batchConfig.setMaxWriteThreads(1);
-    // set the max memory so that we ensure we don't flush on the write.
-    batchConfig.setMaxMemory(Long.MAX_VALUE);
-    AccumuloOutputFormat outputFormat = new AccumuloOutputFormat();
-    AccumuloOutputFormat.setBatchWriterOptions(job, batchConfig);
-    AccumuloOutputFormat.setZooKeeperInstance(job, cluster.getClientConfig());
-    AccumuloOutputFormat.setConnectorInfo(job, "root", new PasswordToken(ROOT_PASSWORD));
-    RecordWriter<Text,Mutation> writer = outputFormat.getRecordWriter(null, job, "Test", null);
+      JobConf job = new JobConf();
+      BatchWriterConfig batchConfig = new BatchWriterConfig();
+      // no flushes!!!!!
+      batchConfig.setMaxLatency(0, TimeUnit.MILLISECONDS);
+      // use a single thread to ensure our update session times out
+      batchConfig.setMaxWriteThreads(1);
+      // set the max memory so that we ensure we don't flush on the write.
+      batchConfig.setMaxMemory(Long.MAX_VALUE);
+      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat outputFormat =
+          new org.apache.accumulo.core.client.mapred.AccumuloOutputFormat();
+      ClientInfo ci = ClientInfo.from(props);
+      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setZooKeeperInstance(job,
+          ci.getInstanceName(), ci.getZooKeepers());
+      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setConnectorInfo(job,
+          ci.getPrincipal(), ci.getAuthenticationToken());
+      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setBatchWriterOptions(job,
+          batchConfig);
+      RecordWriter<Text,Mutation> writer = outputFormat.getRecordWriter(null, job, "Test", null);
 
-    try {
-      for (int i = 0; i < 3; i++) {
-        Mutation m = new Mutation(new Text(String.format("%08d", i)));
-        for (int j = 0; j < 3; j++) {
-          m.put(new Text("cf1"), new Text("cq" + j), new Value((i + "_" + j).getBytes(UTF_8)));
+      try {
+        for (int i = 0; i < 3; i++) {
+          Mutation m = new Mutation(new Text(String.format("%08d", i)));
+          for (int j = 0; j < 3; j++) {
+            m.put("cf1", "cq" + j, i + "_" + j);
+          }
+          writer.write(new Text(testName.getMethodName()), m);
         }
-        writer.write(new Text(testName.getMethodName()), m);
+
+      } catch (Exception e) {
+        e.printStackTrace();
+        // we don't want the exception to come from write
       }
 
-    } catch (Exception e) {
-      e.printStackTrace();
-      // we don't want the exception to come from write
-    }
+      client.securityOperations().revokeTablePermission("root", testName.getMethodName(),
+          TablePermission.WRITE);
 
-    connector.securityOperations().revokeTablePermission("root", testName.getMethodName(),
-        TablePermission.WRITE);
-
-    try {
-      writer.close(null);
-      fail("Did not throw exception");
-    } catch (IOException ex) {
-      log.info(ex.getMessage(), ex);
-      assertTrue(ex.getCause() instanceof MutationsRejectedException);
+      try {
+        writer.close(null);
+        fail("Did not throw exception");
+      } catch (IOException ex) {
+        log.info(ex.getMessage(), ex);
+        assertTrue(ex.getCause() instanceof MutationsRejectedException);
+      }
     }
   }
 
@@ -123,8 +134,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       OutputCollector<Text,Mutation> finalOutput;
 
       @Override
-      public void map(Key k, Value v, OutputCollector<Text,Mutation> output, Reporter reporter)
-          throws IOException {
+      public void map(Key k, Value v, OutputCollector<Text,Mutation> output, Reporter reporter) {
         finalOutput = output;
         try {
           if (key != null)
@@ -168,26 +178,30 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       JobConf job = new JobConf(getConf());
       job.setJarByClass(this.getClass());
 
-      job.setInputFormat(AccumuloInputFormat.class);
+      job.setInputFormat(org.apache.accumulo.core.client.mapred.AccumuloInputFormat.class);
 
-      ClientConfiguration clientConfig =
-          ClientConfiguration.create().withInstance(instanceName).withZkHosts(zooKeepers);
+      ClientInfo info = ClientInfo
+          .from(Accumulo.newClientProperties().to(instanceName, zooKeepers).as(user, pass).build());
 
-      AccumuloInputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
-      AccumuloInputFormat.setInputTableName(job, table1);
-      AccumuloInputFormat.setZooKeeperInstance(job, clientConfig);
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setZooKeeperInstance(job,
+          info.getInstanceName(), info.getZooKeepers());
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setConnectorInfo(job,
+          info.getPrincipal(), info.getAuthenticationToken());
+      org.apache.accumulo.core.client.mapred.AccumuloInputFormat.setInputTableName(job, table1);
 
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
-      job.setOutputFormat(AccumuloOutputFormat.class);
+      job.setOutputFormat(org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.class);
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
 
-      AccumuloOutputFormat.setConnectorInfo(job, user, new PasswordToken(pass));
-      AccumuloOutputFormat.setCreateTables(job, false);
-      AccumuloOutputFormat.setDefaultTableName(job, table2);
-      AccumuloOutputFormat.setZooKeeperInstance(job, clientConfig);
+      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setZooKeeperInstance(job,
+          info.getInstanceName(), info.getZooKeepers());
+      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setConnectorInfo(job,
+          info.getPrincipal(), info.getAuthenticationToken());
+      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setCreateTables(job, false);
+      org.apache.accumulo.core.client.mapred.AccumuloOutputFormat.setDefaultTableName(job, table2);
 
       job.setNumReduceTasks(0);
 
@@ -205,30 +219,32 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
 
   @Test
   public void testMR() throws Exception {
-    Connector c = getConnector();
-    String instanceName = getCluster().getInstanceName();
-    String table1 = instanceName + "_t1";
-    String table2 = instanceName + "_t2";
-    c.tableOperations().create(table1);
-    c.tableOperations().create(table2);
-    BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
-    for (int i = 0; i < 100; i++) {
-      Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
-      m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
-      bw.addMutation(m);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
+      String instanceName = getCluster().getInstanceName();
+      String table1 = instanceName + "_t1";
+      String table2 = instanceName + "_t2";
+      c.tableOperations().create(table1);
+      c.tableOperations().create(table2);
+      try (BatchWriter bw = c.createBatchWriter(table1)) {
+        for (int i = 0; i < 100; i++) {
+          Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
+          m.put("", "", String.format("%09x", i));
+          bw.addMutation(m);
+        }
+      }
+
+      MRTester.main(new String[] {"root", ROOT_PASSWORD, table1, table2, instanceName,
+          getCluster().getZooKeepers()});
+      assertNull(e1);
+
+      try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
+        Iterator<Entry<Key,Value>> iter = scanner.iterator();
+        assertTrue(iter.hasNext());
+        Entry<Key,Value> entry = iter.next();
+        assertEquals(Integer.parseInt(new String(entry.getValue().get())), 100);
+        assertFalse(iter.hasNext());
+      }
     }
-    bw.close();
-
-    MRTester.main(new String[] {"root", ROOT_PASSWORD, table1, table2, instanceName,
-        getCluster().getZooKeepers()});
-    assertNull(e1);
-
-    Scanner scanner = c.createScanner(table2, new Authorizations());
-    Iterator<Entry<Key,Value>> iter = scanner.iterator();
-    assertTrue(iter.hasNext());
-    Entry<Key,Value> entry = iter.next();
-    assertEquals(Integer.parseInt(new String(entry.getValue().get())), 100);
-    assertFalse(iter.hasNext());
   }
 
 }

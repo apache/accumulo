@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
@@ -28,9 +30,9 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -67,59 +69,58 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
     // Delete ranges of rows, and verify the are removed
     // Do this while adding many splits
     final String tableName = getUniqueNames(1)[0];
-    final Connector conn = getConnector();
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-    // Eliminate whole tablets
-    for (int test = 0; test < 10; test++) {
-      // create a table
-      log.info("Test " + test);
-      conn.tableOperations().create(tableName);
+      // Eliminate whole tablets
+      for (int test = 0; test < 10; test++) {
+        // create a table
+        log.info("Test {}", test);
+        client.tableOperations().create(tableName);
 
-      // put some data in it
-      fillTable(conn, tableName);
+        // put some data in it
+        fillTable(client, tableName);
 
-      // generate a random delete range
-      final Text start = new Text();
-      final Text end = new Text();
-      generateRandomRange(start, end);
+        // generate a random delete range
+        final Text start = new Text();
+        final Text end = new Text();
+        generateRandomRange(start, end);
 
-      // initiate the delete range
-      final boolean fail[] = {false};
-      Thread t = new Thread() {
-        @Override
-        public void run() {
+        // initiate the delete range
+        final boolean[] fail = {false};
+        Thread t = new Thread(() -> {
           try {
             // split the table
-            final SortedSet<Text> afterEnd = SPLITS.tailSet(new Text(end.toString() + "\0"));
-            conn.tableOperations().addSplits(tableName, afterEnd);
+            final SortedSet<Text> afterEnd = SPLITS.tailSet(new Text(end + "\0"));
+            client.tableOperations().addSplits(tableName, afterEnd);
           } catch (Exception ex) {
             log.error("Exception", ex);
             synchronized (fail) {
               fail[0] = true;
             }
           }
+        });
+        t.start();
+
+        sleepUninterruptibly(test * 2, TimeUnit.MILLISECONDS);
+
+        client.tableOperations().deleteRows(tableName, start, end);
+
+        t.join();
+        synchronized (fail) {
+          assertTrue(!fail[0]);
         }
-      };
-      t.start();
 
-      sleepUninterruptibly(test * 2, TimeUnit.MILLISECONDS);
+        // scan the table
+        try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+          for (Entry<Key,Value> entry : scanner) {
+            Text row = entry.getKey().getRow();
+            assertTrue(row.compareTo(start) <= 0 || row.compareTo(end) > 0);
+          }
 
-      conn.tableOperations().deleteRows(tableName, start, end);
-
-      t.join();
-      synchronized (fail) {
-        assertTrue(!fail[0]);
+          // delete the table
+          client.tableOperations().delete(tableName);
+        }
       }
-
-      // scan the table
-      Scanner scanner = conn.createScanner(tableName, Authorizations.EMPTY);
-      for (Entry<Key,Value> entry : scanner) {
-        Text row = entry.getKey().getRow();
-        assertTrue(row.compareTo(start) <= 0 || row.compareTo(end) > 0);
-      }
-
-      // delete the table
-      conn.tableOperations().delete(tableName);
     }
   }
 
@@ -136,13 +137,13 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
 
   }
 
-  private void fillTable(Connector conn, String table) throws Exception {
-    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
-    for (String row : ROWS) {
-      Mutation m = new Mutation(row);
-      m.put("cf", "cq", "value");
-      bw.addMutation(m);
+  private void fillTable(AccumuloClient client, String table) throws Exception {
+    try (BatchWriter bw = client.createBatchWriter(table)) {
+      for (String row : ROWS) {
+        Mutation m = new Mutation(row);
+        m.put("cf", "cq", "value");
+        bw.addMutation(m);
+      }
     }
-    bw.close();
   }
 }

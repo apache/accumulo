@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
@@ -28,22 +30,23 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
@@ -85,98 +88,103 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
 
   @Before
   public void alterConfig() throws Exception {
-    InstanceOperations iops = getConnector().instanceOperations();
-    Map<String,String> config = iops.getSystemConfiguration();
-    gcCycleDelay = config.get(Property.GC_CYCLE_DELAY.getKey());
-    gcCycleStart = config.get(Property.GC_CYCLE_START.getKey());
-    iops.setProperty(Property.GC_CYCLE_DELAY.getKey(), "1s");
-    iops.setProperty(Property.GC_CYCLE_START.getKey(), "0s");
-    log.info("Restarting garbage collector");
-
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      InstanceOperations iops = client.instanceOperations();
+      Map<String,String> config = iops.getSystemConfiguration();
+      gcCycleDelay = config.get(Property.GC_CYCLE_DELAY.getKey());
+      gcCycleStart = config.get(Property.GC_CYCLE_START.getKey());
+      iops.setProperty(Property.GC_CYCLE_DELAY.getKey(), "1s");
+      iops.setProperty(Property.GC_CYCLE_START.getKey(), "0s");
+      log.info("Restarting garbage collector");
+    }
     getCluster().getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
 
-    Instance instance = getConnector().getInstance();
-    ZooCache zcache =
-        new ZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
-    zcache.clear();
-    String path = ZooUtil.getRoot(instance) + Constants.ZGC_LOCK;
-    byte[] gcLockData;
-    do {
-      gcLockData = ZooLock.getLockData(zcache, path, null);
-      if (null != gcLockData) {
-        log.info("Waiting for GC ZooKeeper lock to expire");
-        Thread.sleep(2000);
-      }
-    } while (null != gcLockData);
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      ClientInfo info = ClientInfo.from(client.properties());
+      ZooCache zcache = new ZooCache(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
+      zcache.clear();
+      var path = ServiceLock
+          .path(ZooUtil.getRoot(client.instanceOperations().getInstanceID()) + Constants.ZGC_LOCK);
+      byte[] gcLockData;
+      do {
+        gcLockData = ServiceLock.getLockData(zcache, path, null);
+        if (gcLockData != null) {
+          log.info("Waiting for GC ZooKeeper lock to expire");
+          Thread.sleep(2000);
+        }
+      } while (gcLockData != null);
 
-    log.info("GC lock was lost");
+      log.info("GC lock was lost");
 
-    getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
-    log.info("Garbage collector was restarted");
+      getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
+      log.info("Garbage collector was restarted");
 
-    gcLockData = null;
-    do {
-      gcLockData = ZooLock.getLockData(zcache, path, null);
-      if (null == gcLockData) {
-        log.info("Waiting for GC ZooKeeper lock to be acquired");
-        Thread.sleep(2000);
-      }
-    } while (null == gcLockData);
+      do {
+        gcLockData = ServiceLock.getLockData(zcache, path, null);
+        if (gcLockData == null) {
+          log.info("Waiting for GC ZooKeeper lock to be acquired");
+          Thread.sleep(2000);
+        }
+      } while (gcLockData == null);
 
-    log.info("GC lock was acquired");
+      log.info("GC lock was acquired");
+    }
   }
 
   @After
   public void restoreConfig() throws Exception {
-    InstanceOperations iops = getConnector().instanceOperations();
-    if (null != gcCycleDelay) {
-      iops.setProperty(Property.GC_CYCLE_DELAY.getKey(), gcCycleDelay);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      InstanceOperations iops = c.instanceOperations();
+      if (gcCycleDelay != null) {
+        iops.setProperty(Property.GC_CYCLE_DELAY.getKey(), gcCycleDelay);
+      }
+      if (gcCycleStart != null) {
+        iops.setProperty(Property.GC_CYCLE_START.getKey(), gcCycleStart);
+      }
+      log.info("Restarting garbage collector");
+      getCluster().getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
+      getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
+      log.info("Garbage collector was restarted");
     }
-    if (null != gcCycleStart) {
-      iops.setProperty(Property.GC_CYCLE_START.getKey(), gcCycleStart);
-    }
-    log.info("Restarting garbage collector");
-    getCluster().getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
-    getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
-    log.info("Garbage collector was restarted");
   }
 
   @Test
   public void test() throws Exception {
     // make a table
     String tableName = getUniqueNames(1)[0];
-    Connector c = getConnector();
-    log.info("Creating table to be deleted");
-    c.tableOperations().create(tableName);
-    final String tableId = c.tableOperations().tableIdMap().get(tableName);
-    assertNotNull("Expected to find a tableId", tableId);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      log.info("Creating table to be deleted");
+      c.tableOperations().create(tableName);
+      final String tableId = c.tableOperations().tableIdMap().get(tableName);
+      assertNotNull("Expected to find a tableId", tableId);
 
-    // add some splits
-    SortedSet<Text> splits = new TreeSet<>();
-    for (int i = 0; i < 10; i++) {
-      splits.add(new Text("" + i));
-    }
-    c.tableOperations().addSplits(tableName, splits);
-    // get rid of all the splits
-    c.tableOperations().deleteRows(tableName, null, null);
-    // get rid of the table
-    c.tableOperations().delete(tableName);
-    log.info("Sleeping to let garbage collector run");
-    // let gc run
-    sleepUninterruptibly(timeoutFactor * 15, TimeUnit.SECONDS);
-    log.info("Verifying that delete markers were deleted");
-    // look for delete markers
-    Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.setRange(MetadataSchema.DeletesSection.getRange());
-    for (Entry<Key,Value> entry : scanner) {
-      String row = entry.getKey().getRow().toString();
-      if (!row.contains("/" + tableId + "/")) {
-        log.info("Ignoring delete entry for a table other than the one we deleted");
-        continue;
+      // add some splits
+      SortedSet<Text> splits = new TreeSet<>();
+      for (int i = 0; i < 10; i++) {
+        splits.add(new Text("" + i));
       }
-      fail("Delete entry should have been deleted by the garbage collector: "
-          + entry.getKey().getRow().toString());
+      c.tableOperations().addSplits(tableName, splits);
+      // get rid of all the splits
+      c.tableOperations().deleteRows(tableName, null, null);
+      // get rid of the table
+      c.tableOperations().delete(tableName);
+      log.info("Sleeping to let garbage collector run");
+      // let gc run
+      sleepUninterruptibly(timeoutFactor * 15, TimeUnit.SECONDS);
+      log.info("Verifying that delete markers were deleted");
+      // look for delete markers
+      try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        scanner.setRange(DeletesSection.getRange());
+        for (Entry<Key,Value> entry : scanner) {
+          String row = entry.getKey().getRow().toString();
+          if (!row.contains("/" + tableId + "/")) {
+            log.info("Ignoring delete entry for a table other than the one we deleted");
+            continue;
+          }
+          fail("Delete entry should have been deleted by the garbage collector: "
+              + entry.getKey().getRow());
+        }
+      }
     }
   }
-
 }

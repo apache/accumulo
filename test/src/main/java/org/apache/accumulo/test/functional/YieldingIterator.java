@@ -1,23 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -30,18 +33,14 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.iterators.YieldCallback;
-import org.apache.accumulo.core.iterators.YieldingKeyValueIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Optional;
 
 /**
  * This iterator which implements yielding will yield after every other next and every other seek
  * call.
  */
-public class YieldingIterator extends WrappingIterator
-    implements YieldingKeyValueIterator<Key,Value> {
+public class YieldingIterator extends WrappingIterator {
   private static final Logger log = LoggerFactory.getLogger(YieldingIterator.class);
   private static final AtomicInteger yieldNexts = new AtomicInteger(0);
   private static final AtomicInteger yieldSeeks = new AtomicInteger(0);
@@ -50,7 +49,7 @@ public class YieldingIterator extends WrappingIterator
   private static final AtomicBoolean yieldNextKey = new AtomicBoolean(false);
   private static final AtomicBoolean yieldSeekKey = new AtomicBoolean(false);
 
-  private Optional<YieldCallback<Key>> yield = Optional.absent();
+  private Optional<YieldCallback<Key>> yield = Optional.empty();
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
@@ -96,8 +95,7 @@ public class YieldingIterator extends WrappingIterator
    */
   @Override
   public Value getTopValue() {
-    String value = Integer.toString(yieldNexts.get()) + ',' + Integer.toString(yieldSeeks.get())
-        + ',' + Integer.toString(rebuilds.get());
+    String value = yieldNexts.get() + "," + yieldSeeks.get() + "," + rebuilds.get();
     return new Value(value);
   }
 
@@ -107,7 +105,11 @@ public class YieldingIterator extends WrappingIterator
     log.info("start YieldingIterator.seek: " + getTopValue() + " with range " + range);
     boolean yielded = false;
 
-    if (!range.isStartKeyInclusive()) {
+    if (range.isStartKeyInclusive()) {
+      // must be a new scan so re-initialize the counters
+      log.info("reseting counters");
+      resetCounters();
+    } else {
       rebuilds.incrementAndGet();
 
       // yield on every other seek call.
@@ -134,5 +136,13 @@ public class YieldingIterator extends WrappingIterator
   @Override
   public void enableYielding(YieldCallback<Key> yield) {
     this.yield = Optional.of(yield);
+  }
+
+  protected void resetCounters() {
+    yieldNexts.set(0);
+    yieldSeeks.set(0);
+    rebuilds.set(0);
+    yieldNextKey.set(false);
+    yieldSeekKey.set(false);
   }
 }

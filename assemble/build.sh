@@ -1,19 +1,22 @@
 #! /usr/bin/env bash
-
-# Licensed to the Apache Software Foundation (ASF) under one or more
-# contributor license agreements.  See the NOTICE file distributed with
-# this work for additional information regarding copyright ownership.
-# The ASF licenses this file to You under the Apache License, Version 2.0
-# (the "License"); you may not use this file except in compliance with
-# the License.  You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
 
 cd "$(dirname "$0")/.." || exit 1
 scriptname=$(basename "$0")
@@ -24,9 +27,6 @@ export stagingRepoPrefix="https://repository.apache.org/content/repositories/org
 export srcQualifier="src"
 export relTestingUrl="https://$tlpName.apache.org/contributor/verifying-release"
 export tagPrefix="rel/"
-
-# check for gpg2
-hash gpg2 2>/dev/null && gpgCommand=gpg2 || gpgCommand=gpg
 
 # check if running in a color terminal
 terminalSupportsColor() {
@@ -43,7 +43,6 @@ yellow() { color 33 "$@"; }
 fail() { echo -e ' ' "$@"; exit 1; }
 runLog() { local o; o=$1 && shift && echo "$(green Running) $(yellow "$@" '>>' "$o")" && echo Running "$@" >> "$o" && eval "$@" >> "$o"; }
 run() { echo "$(green Running) $(yellow "$@")" && eval "$@"; }
-runOrFail() { run "$@" || fail "$(yellow "$@")" "$(red failed)"; }
 
 currentBranch() { local b; b=$(git symbolic-ref -q HEAD) && echo "${b##refs/heads/}"; }
 
@@ -51,9 +50,12 @@ cacheGPG() {
   # make sure gpg agent has key cached
   # first clear cache, to reset timeouts (best attempt)
   { hash gpg-connect-agent && gpg-connect-agent reloadagent /bye; } &>/dev/null
-  # TODO prompt for key instead of using default?
+  # determine fingerprint to use
+  until selectFingerprint; do
+    red 'ERROR - Invalid selection'
+  done
   local TESTFILE; TESTFILE=$(mktemp --tmpdir "${USER}-gpgTestFile-XXXXXXXX.txt")
-  [[ -r $TESTFILE ]] && "$gpgCommand" --sign "${TESTFILE}" && rm -f "${TESTFILE}" "${TESTFILE}.gpg"
+  [[ -r $TESTFILE ]] && gpg --local-user "$SELECTED_FINGERPRINT" --sign "$TESTFILE" && rm -f "$TESTFILE" "$TESTFILE.gpg"
 }
 
 prompter() {
@@ -72,8 +74,43 @@ gitCommits() { pretty %H "$@"; }
 gitCommit()  { gitCommits -n1 "$@"; }
 gitSubject() { pretty %s "$@"; }
 
+selectFingerprint() {
+  local f fingerprints=()
+  if [[ $SELECTED_FINGERPRINT =~ ^[0-9a-fA-F]{40}$ ]]; then
+    # it's already set, don't set it again
+    return 0
+  fi
+  mapfile -t fingerprints < <(gpg --list-secret-keys --with-colons --with-fingerprint 2>/dev/null | awk -F: '$1 == "fpr" {print $10}')
+  fingerprints+=('Other')
+  echo
+  echo "Select the $(green gpg) key to use:"
+  COLUMNS=1
+  select f in "${fingerprints[@]}"; do
+    if [[ -z $f ]]; then
+      return 1
+    elif [[ $f == 'Other' ]]; then
+      SELECTED_FINGERPRINT=$(prompter "$(green gpg) key's $(green fingerprint)" '[0-9a-fA-F]{40}')
+      return 0
+    else
+      SELECTED_FINGERPRINT="$f"
+      return 0
+    fi
+  done
+}
+
 createEmail() {
-  # $1 version (optional); $2 rc seqence num (optional); $3 staging repo num (optional)
+  echo
+  yellow  "IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!!"
+  echo
+  echo    "  Release candidate will be staged at:"
+  echo    "    $(yellow 'https://repository.apache.org/#stagingRepositories')"
+  echo
+  echo    "  $(green 'DO')       click $(green 'Close')   to complete the staging process!"
+  echo    "  $(red 'DO *NOT*') click $(red 'Release') until after the vote has been approved!"
+  echo
+  yellow  "IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!!"
+  echo
+  # $1 version (optional); $2 rc sequence num (optional); $3 staging repo num (optional)
   local ver; [[ -n "$1" ]] && ver=$1 || ver=$(prompter 'version to be released (eg. x.y.z)' '[0-9]+[.][0-9]+[.][0-9]+')
   local rc; [[ -n "$2" ]] && rc=$2 || rc=$(prompter 'release candidate sequence number (eg. 1, 2, etc.)' '[0-9]+')
   local stagingrepo; [[ -n "$3" ]] && stagingrepo=$3 || stagingrepo=$(prompter 'staging repository number from https://repository.apache.org/#stagingRepositories' '[0-9]+')
@@ -86,18 +123,27 @@ createEmail() {
   echo
   yellow  "IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!!"
   echo
-  echo    "    Don't forget to push a branch named $(green "$branch") with"
-  echo    "    its head at $(green "${commit:0:7}") so others can review using:"
-  echo    "      $(green "git push origin ${commit:0:7}:refs/heads/$branch")"
+  echo    "    Don't forget to make the staged branch available for review by"
+  echo    "    pushing a branch named $(yellow "$branch") with its head at"
+  echo    "      $(yellow "$commit"):"
+  echo
+  echo    "      # replace $(yellow "\$origin") with your upstream remote name "
+  echo    "      $(green "git push") $(yellow "\$origin") $(green "$commit:refs/heads/$branch")"
   echo
   echo    "    Remember, $(red DO NOT PUSH) the $(red "$tag") tag until after the vote"
   echo    "    passes and the tag is re-made with a gpg signature using:"
-  echo    "      $(red "git tag -f -m '$projNameLong $ver' -s $tag ${commit:0:7}")"
+  echo    "      $(red "git tag -f -s -m '$projNameLong $ver' $tag") \\"
+  echo    "      $(red "$commit")"
   echo
   yellow  "IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!! IMPORTANT!!"
   echo
   read -r -s -p 'Press Enter to generate the [VOTE] email...'
   echo 1>&2
+
+  # determine fingerprint to use
+  until selectFingerprint; do
+    red 'ERROR - Invalid selection'
+  done
 
   # compute the date with a buffer of 30 minutes
   local votedate; votedate=$(date -d "+3 days 30 minutes" "+%s")
@@ -108,9 +154,6 @@ createEmail() {
   local edtvotedate; edtvotedate=$(date -d"1970-01-01 $halfhour seconds UTC")
   export TZ="America/Los_Angeles"
   local pdtvotedate; pdtvotedate=$(date -d"1970-01-01 $halfhour seconds UTC")
-
-  local fingerprint; fingerprint=$("$gpgCommand" --list-secret-keys --with-colons --with-fingerprint 2>/dev/null | awk -F: '$1 == "fpr" {print $10}')
-  [[ -z $fingerprint ]] && fingerprint="UNSPECIFIED"
 
   cat <<EOF
 $(yellow '============================================================')
@@ -126,7 +169,7 @@ Branch:
     $(green "$branch")
 
 If this vote passes, a gpg-signed tag will be created using:
-    $(green "git tag -f -m '$projNameLong $ver' -s $tag") \\
+    $(green "git tag -f -s -m '$projNameLong $ver' $tag") \\
     $(green "$commit")
 
 Staging repo: $(green "$stagingRepoPrefix-$stagingrepo")
@@ -138,7 +181,7 @@ Append ".asc" to download the cryptographic signature for a given artifact.
 generated by Maven to verify the integrity of the Nexus repository staging area.)
 
 Signing keys are available at https://www.apache.org/dist/$tlpName/KEYS
-(Expected fingerprint: $(green "$fingerprint"))
+(Expected fingerprint: $(green "$SELECTED_FINGERPRINT"))
 
 In addition to the tarballs and their signatures, the following checksum
 files will be added to the dist/release SVN area after release:
@@ -147,7 +190,7 @@ SHA512 ($(green "$projName-$ver-$srcQualifier.tar.gz")) = $(yellow "$srcSha")
 $(yellow "$projName-$ver-bin.tar.gz.sha512") will contain:
 SHA512 ($(green "$projName-$ver-bin.tar.gz")) = $(yellow "$binSha")
 
-Release notes (in progress) can be found at: $(green "https://$tlpName.apache.org/release/$projName-$ver/")
+Release notes (in progress) can be found at: $(green "https://$tlpName.staged.apache.org/release/$projName-$ver")
 
 Release testing instructions: $relTestingUrl
 
@@ -210,24 +253,51 @@ cleanUpAndFail() {
   exit 1
 }
 
+selectRemote() {
+  local r remotes=()
+  for r in $(git remote); do
+    remotes+=("$r ($(git config "remote.$r.url"))")
+  done
+  remotes+=('Skip')
+  echo "Select a $(green remote) (you will be prompted again before pushing):"
+  COLUMNS=1
+  select r in "${remotes[@]}"; do
+    if [[ -z $r ]]; then
+      return 1
+    elif [[ $r == 'Skip' ]]; then
+      SELECTED_REMOTE=$r
+      return 0
+    else
+      SELECTED_REMOTE="${r%% *}"
+      SELECTED_REMOTE_URL=$(git config "remote.${SELECTED_REMOTE}.url")
+      return 0
+    fi
+  done
+}
+
 createReleaseCandidate() {
+  echo
   yellow  "WARNING!! WARNING!! WARNING!! WARNING!! WARNING!! WARNING!!"
+  echo
+  echo    "  Don't forget to $(yellow 'Set up your development environment')!"
+  echo    "  For details, see the section by that name at:"
+  echo    "  $(green 'https://infra.apache.org/publishing-maven-artifacts.html')"
   echo
   echo    "  This will modify your local git repository by creating"
   echo    "  branches and tags. Afterwards, you may need to perform"
   echo    "  some manual steps to complete the release or to rollback"
   echo    "  in the case of failure."
   echo
+  echo    "  Release candidate will be staged at:"
+  echo    "    $(yellow 'https://repository.apache.org/#stagingRepositories')"
+  echo
   yellow  "WARNING!! WARNING!! WARNING!! WARNING!! WARNING!! WARNING!!"
   echo
 
-  local extraReleaseArgs; extraReleaseArgs=("$@")
-  if [[ ${#extraReleaseArgs[@]} -ne 0 ]]; then
-    red "CAUTION!! Extra release args may create a non-standard release!!"
-    red "You added '${extraReleaseArgs[*]}'"
+  if [[ ${#@} -ne 0 ]]; then
+    red "CAUTION!! Unrecognized arguments!!"
+    fail "You added '$*'"
   fi
-  [[ ${#extraReleaseArgs[@]} -eq 0 ]] && [[ $gpgCommand != 'gpg' ]] && extraReleaseArgs=("-Dgpg.executable=$gpgCommand")
-  local extraReleaseArgsFlat; extraReleaseArgsFlat="-DextraReleaseArguments='${extraReleaseArgs[*]}'"
 
   local ver
   ver=$(xmllint --shell pom.xml <<<'xpath /*[local-name()="project"]/*[local-name()="version"]/text()' | grep content= | cut -f2 -d=)
@@ -246,19 +316,18 @@ createReleaseCandidate() {
   cacheGPG || fail "Unable to cache GPG credentials into gpg-agent"
 
   # create working branch
-  {
-    run git branch "$nBranch" "$cBranch" && run git checkout "$nBranch"
-  } || fail "Unable to create working branch $(red "$nBranch") from $(red "$cBranch")!"
+  run git checkout -b "$nBranch" "$cBranch" || \
+    fail "Unable to create working branch $(red "$nBranch") from $(red "$cBranch")!"
 
   # create a release candidate from a branch
   local oFile; oFile=$(mktemp --tmpdir "$projName-build-$rcBranch-XXXXXXXX.log")
   {
     [[ -w $oFile ]] && runLog "$oFile" mvn clean release:clean
   } || cleanUpAndFail 'mvn clean release:clean' "$oFile" "$cBranch" "$nBranch"
-  runLog "$oFile" mvn -B release:prepare -DdevelopmentVersion="${nextVer}-SNAPSHOT" "${extraReleaseArgsFlat}" || \
-    cleanUpAndFail "mvn -B release:prepare -DdevelopmentVersion=${nextVer}-SNAPSHOT ${extraReleaseArgsFlat}" "$oFile" "$cBranch" "$nBranch"
-  runLog "$oFile" mvn release:perform "${extraReleaseArgsFlat}" || \
-    cleanUpAndFail "mvn release:perform ${extraReleaseArgsFlat}" "$oFile" "$cBranch" "$nBranch"
+  runLog "$oFile" mvn -B release:prepare -DdevelopmentVersion="${nextVer}-SNAPSHOT" "-Dgpg.keyname=$SELECTED_FINGERPRINT" || \
+    cleanUpAndFail "mvn -B release:prepare -DdevelopmentVersion=${nextVer}-SNAPSHOT" "$oFile" "$cBranch" "$nBranch"
+  runLog "$oFile" mvn release:perform "-Dgpg.keyname=$SELECTED_FINGERPRINT" || \
+    cleanUpAndFail "mvn release:perform" "$oFile" "$cBranch" "$nBranch"
 
   # switch back to original branch
   run git checkout "${cBranch}"
@@ -283,16 +352,24 @@ createReleaseCandidate() {
   run git branch "$rcBranch" "${nBranch}~1" || \
     cleanUpAndFail "creating branch $rcBranch"
 
+  # determine remote to use
+  until selectRemote; do
+    red 'ERROR - Invalid selection'
+  done
+
   # push branches (ask first)
-  local origin; origin=$(git remote -v | grep ^origin | grep push | awk '{print $2}')
-  echo "Do you wish to push the following branches to origin ($(green "$origin"))?"
-  echo "  $(yellow "$rcBranch")      (for others to examine for the vote)"
-  echo "  $(yellow "$nBranch") (for merging into $cBranch if vote passes)"
-  local a; a=$(prompter "letter 'y' or 'n'" '[yn]')
-  {
-    [[ $a == 'y' ]] && \
-      run git push -u origin "refs/heads/$nBranch" "refs/heads/$rcBranch"
-  } || red "Did not push branches; you'll need to perform this step manually."
+  if [[ $SELECTED_REMOTE == 'Skip' ]]; then
+    red "Did not push branches; you'll need to perform this step manually."
+  else
+    echo "Do you wish to push the following branches to $SELECTED_REMOTE ($(green "$SELECTED_REMOTE_URL"))?"
+    echo "  $(yellow "$rcBranch")      (for others to examine for the vote)"
+    echo "  $(yellow "$nBranch") (for merging into $cBranch if vote passes)"
+    local a; a=$(prompter "letter 'y' or 'n'" '[yn]')
+    {
+      [[ $a == 'y' ]] && \
+        run git push -u "$SELECTED_REMOTE" "refs/heads/$nBranch" "refs/heads/$rcBranch"
+    } || red "Did not push branches; you'll need to perform this step manually."
+  fi
 
   local numSrc; numSrc=$(find target/checkout/ -type f -name "$projName-$ver-source-release.tar.gz" | wc -l)
   local numBin; numBin=$(find target/checkout/ -type f -name "$projName-$ver-bin.tar.gz" | wc -l)
@@ -307,17 +384,14 @@ createReleaseCandidate() {
   createEmail "$ver" "$rc" "" "$srcSha" "$binSha"
 }
 
+SELECTED_FINGERPRINT=""
 if [[ $1 == '--create-release-candidate' ]]; then
   shift
   createReleaseCandidate "$@"
-elif [[ $1 == '--test' ]]; then
-  cacheGPG
-  # build a tag, but with tests
-  runOrFail mvn clean install -P apache-release,accumulo-release,thrift
 elif [[ $1 == '--create-email' ]]; then
   shift
   createEmail "$@"
 else
-  fail "Missing one of: $(red --create-release-candidate), $(red --test), $(red --create-email)"
+  fail "Missing one of: $(red --create-release-candidate), $(red --create-email)"
 fi
 

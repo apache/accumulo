@@ -1,60 +1,57 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.server.master.balancer;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.function.Function;
 
-import org.apache.accumulo.core.client.IsolatedScanner;
-import org.apache.accumulo.core.client.RowIterator;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.ComparablePair;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
-import org.apache.commons.lang.mutable.MutableInt;
+import org.apache.commons.lang3.mutable.MutableInt;
+import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Table;
 
 /**
  * A balancer that evenly spreads groups of tablets across all tablet server. This balancer
@@ -68,11 +65,13 @@ import com.google.common.collect.Table;
  * <p>
  * To use this balancer you must extend it and implement {@link #getPartitioner()}. See
  * {@link RegexGroupBalancer} as an example.
+ *
+ * @deprecated since 2.1.0. Use {@link org.apache.accumulo.core.spi.balancer.GroupBalancer} instead.
  */
-
+@Deprecated(since = "2.1.0")
 public abstract class GroupBalancer extends TabletBalancer {
 
-  private final String tableId;
+  private final TableId tableId;
   private long lastRun = 0;
 
   /**
@@ -80,12 +79,24 @@ public abstract class GroupBalancer extends TabletBalancer {
    */
   protected abstract Function<KeyExtent,String> getPartitioner();
 
-  public GroupBalancer(String tableId) {
+  public GroupBalancer(TableId tableId) {
     this.tableId = tableId;
+
+    LoggerFactory.getLogger(getClass().getName())
+        .warn("{} has been deprecated and will be "
+            + "removed in a future release. Please update your configuration to use the equivalent "
+            + "{} instead.", getClass().getName(),
+            org.apache.accumulo.core.spi.balancer.GroupBalancer.class.getName());
+
   }
 
-  protected Iterable<Pair<KeyExtent,Location>> getLocationProvider() {
-    return new MetadataLocationProvider();
+  protected Map<KeyExtent,TServerInstance> getLocationProvider() {
+    Map<KeyExtent,TServerInstance> tablets = new LinkedHashMap<>();
+    for (var tm : TabletsMetadata.builder(context).forTable(tableId).fetch(LOCATION, PREV_ROW)
+        .build()) {
+      tablets.put(tm.getExtent(), tm.getLocation());
+    }
+    return tablets;
   }
 
   /**
@@ -113,7 +124,7 @@ public abstract class GroupBalancer extends TabletBalancer {
     }
 
     for (KeyExtent keyExtent : migrations) {
-      if (keyExtent.getTableId().equals(tableId)) {
+      if (keyExtent.tableId().equals(tableId)) {
         return false;
       }
     }
@@ -125,7 +136,7 @@ public abstract class GroupBalancer extends TabletBalancer {
   public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current,
       Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignments) {
 
-    if (current.size() == 0) {
+    if (current.isEmpty()) {
       return;
     }
 
@@ -137,11 +148,11 @@ public abstract class GroupBalancer extends TabletBalancer {
       if (last != null) {
         // Maintain locality
         String fakeSessionID = " ";
-        TServerInstance simple = new TServerInstance(last.getLocation(), fakeSessionID);
+        TServerInstance simple = new TServerInstance(last.getHostAndPort(), fakeSessionID);
         Iterator<TServerInstance> find = current.tailMap(simple).keySet().iterator();
         if (find.hasNext()) {
           TServerInstance tserver = find.next();
-          if (tserver.host().equals(last.host())) {
+          if (tserver.getHost().equals(last.getHost())) {
             assignments.put(entry.getKey(), tserver);
             continue;
           }
@@ -187,7 +198,7 @@ public abstract class GroupBalancer extends TabletBalancer {
     // possibly have 2 tablets from a group. Below is an illustration of an ideal balancing of extra
     // tablets. To understand the illustration, the first column
     // shows tserver T1 with 2 tablets from G1, 1 tablet from G2, and two tablets from G3. EE means
-    // empty, put it there so eclipse formating would not mess up
+    // empty, put it there so eclipse formatting would not mess up
     // table.
     //
     // T1 | T2 | T3 | T4 | T5 | T6
@@ -232,16 +243,16 @@ public abstract class GroupBalancer extends TabletBalancer {
     Function<KeyExtent,String> partitioner = getPartitioner();
 
     // collect stats about current state
-    for (Pair<KeyExtent,Location> entry : getLocationProvider()) {
-      String group = partitioner.apply(entry.getFirst());
-      Location loc = entry.getSecond();
+    for (var tablet : getLocationProvider().entrySet()) {
+      String group = partitioner.apply(tablet.getKey());
+      var loc = tablet.getValue();
 
-      if (loc.equals(Location.NONE) || !tservers.containsKey(loc.getTserverInstance())) {
+      if (loc == null || !tservers.containsKey(loc)) {
         return 5000;
       }
 
       groupCounts.increment(group, 1);
-      TserverGroupInfo tgi = tservers.get(loc.getTserverInstance());
+      TserverGroupInfo tgi = tservers.get(loc);
       tgi.addGroup(group);
     }
 
@@ -249,9 +260,9 @@ public abstract class GroupBalancer extends TabletBalancer {
 
     int totalExtra = 0;
     for (String group : groupCounts.keySet()) {
-      long groupCount = groupCounts.get(group);
+      int groupCount = groupCounts.getInt(group);
       totalExtra += groupCount % current.size();
-      expectedCounts.put(group, (int) (groupCount / current.size()));
+      expectedCounts.put(group, (groupCount / current.size()));
     }
 
     // The number of extra tablets from all groups that each tserver must have.
@@ -285,40 +296,6 @@ public abstract class GroupBalancer extends TabletBalancer {
     lastRun = System.currentTimeMillis();
 
     return 5000;
-  }
-
-  public static class Location {
-    public static final Location NONE = new Location();
-    private final TServerInstance tserverInstance;
-
-    public Location() {
-      this(null);
-    }
-
-    public Location(TServerInstance tsi) {
-      tserverInstance = tsi;
-    }
-
-    public TServerInstance getTserverInstance() {
-      return tserverInstance;
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hashCode(tserverInstance);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (o instanceof Location) {
-        Location ol = ((Location) o);
-        if (tserverInstance == ol.tserverInstance) {
-          return true;
-        }
-        return tserverInstance.equals(ol.tserverInstance);
-      }
-      return false;
-    }
   }
 
   static class TserverGroupInfo {
@@ -450,7 +427,7 @@ public abstract class GroupBalancer extends TabletBalancer {
 
     @Override
     public String toString() {
-      return tsi.toString();
+      return tsi.getHostPortSession();
     }
 
   }
@@ -467,7 +444,7 @@ public abstract class GroupBalancer extends TabletBalancer {
 
   private static class Moves {
 
-    private final Table<TServerInstance,String,List<Move>> moves = HashBasedTable.create();
+    private final HashBasedTable<TServerInstance,String,List<Move>> moves = HashBasedTable.create();
     private int totalMoves = 0;
 
     public void move(String group, int num, TserverGroupInfo src, TserverGroupInfo dest) {
@@ -500,7 +477,7 @@ public abstract class GroupBalancer extends TabletBalancer {
       move.count--;
       if (move.count == 0) {
         srcMoves.remove(srcMoves.size() - 1);
-        if (srcMoves.size() == 0) {
+        if (srcMoves.isEmpty()) {
           moves.remove(src, group);
         }
       }
@@ -515,7 +492,7 @@ public abstract class GroupBalancer extends TabletBalancer {
 
   private void balanceExtraExtra(Map<TServerInstance,TserverGroupInfo> tservers, int maxExtraGroups,
       Moves moves) {
-    Table<String,TServerInstance,TserverGroupInfo> surplusExtra = HashBasedTable.create();
+    HashBasedTable<String,TServerInstance,TserverGroupInfo> surplusExtra = HashBasedTable.create();
     for (TserverGroupInfo tgi : tservers.values()) {
       Map<String,Integer> extras = tgi.getExtras();
       if (extras.size() > maxExtraGroups) {
@@ -529,7 +506,7 @@ public abstract class GroupBalancer extends TabletBalancer {
     ArrayList<TServerInstance> serversToRemove = new ArrayList<>();
 
     for (TserverGroupInfo destTgi : tservers.values()) {
-      if (surplusExtra.size() == 0) {
+      if (surplusExtra.isEmpty()) {
         break;
       }
 
@@ -556,7 +533,7 @@ public abstract class GroupBalancer extends TabletBalancer {
           }
         }
 
-        if (serversToRemove.size() > 0) {
+        if (!serversToRemove.isEmpty()) {
           surplusExtra.columnKeySet().removeAll(serversToRemove);
         }
 
@@ -585,7 +562,7 @@ public abstract class GroupBalancer extends TabletBalancer {
     }
 
     balanceExtraMultiple(tservers, maxExtraGroups, moves, extraMultiple, false);
-    if (moves.size() < getMaxMigrations() && extraMultiple.size() > 0) {
+    if (moves.size() < getMaxMigrations() && !extraMultiple.isEmpty()) {
       // no place to move so must exceed maxExtra temporarily... subsequent balancer calls will
       // smooth things out
       balanceExtraMultiple(tservers, maxExtraGroups, moves, extraMultiple, true);
@@ -629,7 +606,7 @@ public abstract class GroupBalancer extends TabletBalancer {
           extraMultiple.remove(pair.getFirst(), pair.getSecond());
         }
 
-        if (extraMultiple.size() == 0 || moves.size() >= getMaxMigrations()) {
+        if (extraMultiple.isEmpty() || moves.size() >= getMaxMigrations()) {
           break;
         }
       }
@@ -639,7 +616,7 @@ public abstract class GroupBalancer extends TabletBalancer {
   private void balanceExtraExpected(Map<TServerInstance,TserverGroupInfo> tservers,
       int expectedExtra, Moves moves) {
 
-    Table<String,TServerInstance,TserverGroupInfo> extraSurplus = HashBasedTable.create();
+    HashBasedTable<String,TServerInstance,TserverGroupInfo> extraSurplus = HashBasedTable.create();
 
     for (TserverGroupInfo tgi : tservers.values()) {
       Map<String,Integer> extras = tgi.getExtras();
@@ -653,7 +630,7 @@ public abstract class GroupBalancer extends TabletBalancer {
     ArrayList<TServerInstance> emptyServers = new ArrayList<>();
     ArrayList<Pair<String,TServerInstance>> emptyServerGroups = new ArrayList<>();
     for (TserverGroupInfo destTgi : tservers.values()) {
-      if (extraSurplus.size() == 0) {
+      if (extraSurplus.isEmpty()) {
         break;
       }
 
@@ -688,7 +665,7 @@ public abstract class GroupBalancer extends TabletBalancer {
           }
         }
 
-        if (emptyServers.size() > 0) {
+        if (!emptyServers.isEmpty()) {
           extraSurplus.columnKeySet().removeAll(emptyServers);
         }
 
@@ -753,64 +730,21 @@ public abstract class GroupBalancer extends TabletBalancer {
 
     Function<KeyExtent,String> partitioner = getPartitioner();
 
-    for (Pair<KeyExtent,Location> entry : getLocationProvider()) {
-      String group = partitioner.apply(entry.getFirst());
-      Location loc = entry.getSecond();
+    for (var tablet : getLocationProvider().entrySet()) {
+      String group = partitioner.apply(tablet.getKey());
+      var loc = tablet.getValue();
 
-      if (loc.equals(Location.NONE) || !current.contains(loc.getTserverInstance())) {
+      if (loc == null || !current.contains(loc)) {
         migrationsOut.clear();
         return;
       }
 
-      TServerInstance dest = moves.removeMove(loc.getTserverInstance(), group);
+      TServerInstance dest = moves.removeMove(loc, group);
       if (dest != null) {
-        migrationsOut.add(new TabletMigration(entry.getFirst(), loc.getTserverInstance(), dest));
+        migrationsOut.add(new TabletMigration(tablet.getKey(), loc, dest));
         if (moves.size() == 0) {
           break;
         }
-      }
-    }
-  }
-
-  static class LocationFunction
-      implements Function<Iterator<Entry<Key,Value>>,Pair<KeyExtent,Location>> {
-    @Override
-    public Pair<KeyExtent,Location> apply(Iterator<Entry<Key,Value>> input) {
-      Location loc = Location.NONE;
-      KeyExtent extent = null;
-      while (input.hasNext()) {
-        Entry<Key,Value> entry = input.next();
-        if (entry.getKey().getColumnFamily()
-            .equals(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME)) {
-          loc = new Location(
-              new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier()));
-        } else if (MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN
-            .hasColumns(entry.getKey())) {
-          extent = new KeyExtent(entry.getKey().getRow(), entry.getValue());
-        }
-      }
-
-      return new Pair<>(extent, loc);
-    }
-
-  }
-
-  class MetadataLocationProvider implements Iterable<Pair<KeyExtent,Location>> {
-
-    @Override
-    public Iterator<Pair<KeyExtent,Location>> iterator() {
-      try {
-        Scanner scanner = new IsolatedScanner(
-            context.getConnector().createScanner(MetadataTable.NAME, Authorizations.EMPTY));
-        scanner.fetchColumnFamily(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
-        MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
-        scanner.setRange(MetadataSchema.TabletsSection.getRange(tableId));
-
-        RowIterator rowIter = new RowIterator(scanner);
-
-        return Iterators.transform(rowIter, new LocationFunction());
-      } catch (Exception e) {
-        throw new RuntimeException(e);
       }
     }
   }

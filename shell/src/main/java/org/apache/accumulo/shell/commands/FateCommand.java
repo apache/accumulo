@@ -1,25 +1,29 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Formatter;
@@ -28,18 +32,16 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.util.Base64;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.AdminUtil;
+import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.ReadOnlyRepo;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -58,13 +60,8 @@ import com.google.gson.JsonSerializer;
 
 /**
  * Manage FATE transactions
- *
  */
 public class FateCommand extends Command {
-
-  private static final String SCHEME = "digest";
-
-  private static final String USER = "accumulo";
 
   // this class serializes references to interfaces with the concrete class name
   private static class InterfaceSerializer<T> implements JsonSerializer<T> {
@@ -83,8 +80,8 @@ public class FateCommand extends Command {
     public String asBase64;
 
     ByteArrayContainer(byte[] ba) {
-      asUtf8 = new String(ba, StandardCharsets.UTF_8);
-      asBase64 = Base64.encodeBase64URLSafeString(ba);
+      asUtf8 = new String(ba, UTF_8);
+      asBase64 = Base64.getUrlEncoder().encodeToString(ba);
     }
   }
 
@@ -111,10 +108,19 @@ public class FateCommand extends Command {
   private Option statusOption;
   private Option disablePaginationOpt;
 
+  private long parseTxid(String s) {
+    if (FateTxId.isFormatedTid(s)) {
+      return FateTxId.fromString(s);
+    } else {
+      return Long.parseLong(s, 16);
+    }
+  }
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws ParseException, KeeperException, InterruptedException, IOException {
-    Instance instance = shellState.getInstance();
+    ClientContext context = shellState.getContext();
+    var siteConfig = SiteConfiguration.auto();
     String[] args = cl.getArgs();
     if (args.length <= 0) {
       throw new ParseException("Must provide a command to execute");
@@ -124,10 +130,10 @@ public class FateCommand extends Command {
 
     AdminUtil<FateCommand> admin = new AdminUtil<>(false);
 
-    String path = ZooUtil.getRoot(instance) + Constants.ZFATE;
-    String masterPath = ZooUtil.getRoot(instance) + Constants.ZMASTER_LOCK;
-    IZooReaderWriter zk =
-        getZooReaderWriter(shellState.getInstance(), cl.getOptionValue(secretOption.getOpt()));
+    String path = context.getZooKeeperRoot() + Constants.ZFATE;
+    var managerLockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
+    ZooReaderWriter zk =
+        getZooReaderWriter(context, siteConfig, cl.getOptionValue(secretOption.getOpt()));
     ZooStore<FateCommand> zs = new ZooStore<>(path, zk);
 
     if ("fail".equals(cmd)) {
@@ -135,7 +141,7 @@ public class FateCommand extends Command {
         throw new ParseException("Must provide transaction ID");
       }
       for (int i = 1; i < args.length; i++) {
-        if (!admin.prepFail(zs, zk, masterPath, args[i])) {
+        if (!admin.prepFail(zs, zk, managerLockPath, args[i])) {
           System.out.printf("Could not fail transaction: %s%n", args[i]);
           failedCommand = true;
         }
@@ -145,8 +151,8 @@ public class FateCommand extends Command {
         throw new ParseException("Must provide transaction ID");
       }
       for (int i = 1; i < args.length; i++) {
-        if (admin.prepDelete(zs, zk, masterPath, args[i])) {
-          admin.deleteLocks(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, args[i]);
+        if (admin.prepDelete(zs, zk, managerLockPath, args[i])) {
+          admin.deleteLocks(zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, args[i]);
         } else {
           System.out.printf("Could not delete transaction: %s%n", args[i]);
           failedCommand = true;
@@ -159,7 +165,7 @@ public class FateCommand extends Command {
         filterTxid = new HashSet<>(args.length);
         for (int i = 1; i < args.length; i++) {
           try {
-            Long val = Long.parseLong(args[i], 16);
+            Long val = parseTxid(args[i]);
             filterTxid.add(val);
           } catch (NumberFormatException nfe) {
             // Failed to parse, will exit instead of displaying everything since the intention was
@@ -175,11 +181,11 @@ public class FateCommand extends Command {
       if (cl.hasOption(statusOption.getOpt())) {
         filterStatus = EnumSet.noneOf(TStatus.class);
         String[] tstat = cl.getOptionValues(statusOption.getOpt());
-        for (int i = 0; i < tstat.length; i++) {
+        for (String element : tstat) {
           try {
-            filterStatus.add(TStatus.valueOf(tstat[i]));
+            filterStatus.add(TStatus.valueOf(element));
           } catch (IllegalArgumentException iae) {
-            System.out.printf("Invalid transaction status name: %s%n", tstat[i]);
+            System.out.printf("Invalid transaction status name: %s%n", element);
             return 1;
           }
         }
@@ -187,7 +193,7 @@ public class FateCommand extends Command {
 
       StringBuilder buf = new StringBuilder(8096);
       Formatter fmt = new Formatter(buf);
-      admin.print(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, fmt, filterTxid,
+      admin.print(zs, zk, context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS, fmt, filterTxid,
           filterStatus);
       shellState.printLines(Collections.singletonList(buf.toString()).iterator(),
           !cl.hasOption(disablePaginationOpt.getOpt()));
@@ -199,7 +205,7 @@ public class FateCommand extends Command {
       } else {
         txids = new ArrayList<>();
         for (int i = 1; i < args.length; i++) {
-          txids.add(Long.parseLong(args[i], 16));
+          txids.add(parseTxid(args[i]));
         }
       }
 
@@ -224,15 +230,15 @@ public class FateCommand extends Command {
     return failedCommand ? 1 : 0;
   }
 
-  protected synchronized IZooReaderWriter getZooReaderWriter(Instance instance, String secret) {
+  protected synchronized ZooReaderWriter getZooReaderWriter(ClientContext context,
+      SiteConfiguration siteConfig, String secret) {
 
     if (secret == null) {
-      AccumuloConfiguration conf = SiteConfiguration.getInstance();
-      secret = conf.get(Property.INSTANCE_SECRET);
+      secret = siteConfig.get(Property.INSTANCE_SECRET);
     }
 
-    return new ZooReaderWriter(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(),
-        SCHEME, (USER + ":" + secret).getBytes());
+    return new ZooReaderWriter(context.getZooKeepers(), context.getZooKeepersSessionTimeOut(),
+        secret);
   }
 
   @Override

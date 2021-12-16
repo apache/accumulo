@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.replication;
 
@@ -26,6 +28,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 /**
  * Helper methods to create Status protobuf messages
  */
+@Deprecated
 public class StatusUtil {
 
   private static final Status INF_END_REPLICATION_STATUS, CLOSED_STATUS;
@@ -211,7 +214,7 @@ public class StatusUtil {
    */
   public static boolean isFullyReplicated(Status status) {
     if (status.getInfiniteEnd()) {
-      return Long.MAX_VALUE == status.getBegin();
+      return status.getBegin() == Long.MAX_VALUE;
     } else {
       return status.getBegin() >= status.getEnd();
     }
@@ -226,7 +229,7 @@ public class StatusUtil {
    */
   public static boolean isWorkRequired(Status status) {
     if (status.getInfiniteEnd()) {
-      return Long.MAX_VALUE != status.getBegin();
+      return status.getBegin() != Long.MAX_VALUE;
     } else {
       return status.getBegin() < status.getEnd();
     }

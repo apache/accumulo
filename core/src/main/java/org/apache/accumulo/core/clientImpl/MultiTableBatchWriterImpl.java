@@ -1,0 +1,155 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.accumulo.core.clientImpl;
+
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.lang.ref.Cleaner.Cleanable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.MultiTableBatchWriter;
+import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.util.cleaner.CleanerUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.util.concurrent.UncheckedExecutionException;
+
+public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
+
+  private static final Logger log = LoggerFactory.getLogger(MultiTableBatchWriterImpl.class);
+
+  private class TableBatchWriter implements BatchWriter {
+
+    private final TableId tableId;
+
+    private TableBatchWriter(TableId tableId) {
+      this.tableId = tableId;
+    }
+
+    @Override
+    public void addMutation(Mutation m) throws MutationsRejectedException {
+      checkArgument(m != null, "m is null");
+      bw.addMutation(tableId, m);
+    }
+
+    @Override
+    public void addMutations(Iterable<Mutation> iterable) throws MutationsRejectedException {
+      bw.addMutation(tableId, iterable.iterator());
+    }
+
+    @Override
+    public void close() {
+      throw new UnsupportedOperationException(
+          "Must close all tables, can not close an individual table");
+    }
+
+    @Override
+    public void flush() {
+      throw new UnsupportedOperationException(
+          "Must flush all tables, can not flush an individual table");
+    }
+  }
+
+  private final ConcurrentHashMap<TableId,BatchWriter> tableWriters = new ConcurrentHashMap<>();
+  private final AtomicBoolean closed = new AtomicBoolean(false);
+  private final ClientContext context;
+  private final TabletServerBatchWriter bw;
+  private final Cleanable cleanable;
+
+  MultiTableBatchWriterImpl(ClientContext context, BatchWriterConfig config) {
+    checkArgument(context != null, "context is null");
+    checkArgument(config != null, "config is null");
+    this.context = context;
+    this.bw = new TabletServerBatchWriter(context, config);
+    this.cleanable = CleanerUtil.unclosed(this, MultiTableBatchWriter.class, closed, log, bw);
+  }
+
+  @Override
+  public boolean isClosed() {
+    return closed.get();
+  }
+
+  @Override
+  public void close() throws MutationsRejectedException {
+    if (closed.compareAndSet(false, true)) {
+      // deregister cleanable, but it won't run because it checks
+      // the value of closed first, which is now true
+      cleanable.clean();
+      bw.close();
+    }
+  }
+
+  /**
+   * Returns the table ID for the given table name.
+   *
+   * @param tableName
+   *          The name of the table which to find the ID for
+   * @return The table ID, or null if the table name doesn't exist
+   */
+  private TableId getId(String tableName) throws TableNotFoundException {
+    try {
+      return Tables.getTableId(context, tableName);
+    } catch (UncheckedExecutionException e) {
+      Throwable cause = e.getCause();
+
+      log.error("Unexpected exception when fetching table id for {}", tableName);
+
+      if (cause == null) {
+        throw new RuntimeException(e);
+      } else if (cause instanceof TableNotFoundException) {
+        throw (TableNotFoundException) cause;
+      } else if (cause instanceof TableOfflineException) {
+        throw (TableOfflineException) cause;
+      }
+
+      throw e;
+    }
+  }
+
+  @Override
+  public BatchWriter getBatchWriter(String tableName) throws TableNotFoundException {
+    checkArgument(tableName != null, "tableName is null");
+
+    TableId tableId = getId(tableName);
+
+    BatchWriter tbw = tableWriters.get(tableId);
+    if (tbw == null) {
+      tbw = new TableBatchWriter(tableId);
+      BatchWriter current = tableWriters.putIfAbsent(tableId, tbw);
+      // return the current one if another thread created one first
+      return current != null ? current : tbw;
+    } else {
+      return tbw;
+    }
+  }
+
+  @Override
+  public void flush() throws MutationsRejectedException {
+    bw.flush();
+  }
+
+}

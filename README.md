@@ -15,95 +15,55 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-Apache Accumulo
-===============
+[![Apache Accumulo][logo]][accumulo]
+--
+[![Build Status][ti]][tl] [![Maven Central][mi]][ml] [![Javadoc][ji]][jl] [![Apache License][li]][ll]
 
-The [Apache Accumulo™][1] sorted, distributed key/value store is a robust,
-scalable, high performance data storage and retrieval system.  Apache Accumulo
-is based on Google's [BigTable][4] design and is built on top of Apache
-[Hadoop][5], [Zookeeper][6], and [Thrift][7]. Apache Accumulo features a few
-novel improvements on the BigTable design in the form of cell-based access
-control and a server-side programming mechanism that can modify key/value pairs
-at various points in the data management process. Other notable improvements
-and feature are outlined [here][8].
+[Apache Accumulo][accumulo] is a sorted, distributed key/value store that provides robust,
+scalable data storage and retrieval. With Apache Accumulo, users can store and manage large
+data sets across a cluster. Accumulo uses [Apache Hadoop]'s HDFS to store its data and
+[Apache Zookeeper] for consensus.
 
-To install and run an Accumulo binary distribution, follow the [install][2]
-instructions.
+Download the latest version of Apache Accumulo on the [project website][dl].
 
-Documentation
--------------
+## Getting Started
 
-Accumulo has the following documentation which is viewable on the [Accumulo website][1]
-using the links below:
+* Follow the [quick start] to install and run Accumulo
+* Read the [Accumulo documentation][docs]
+* Run the [Accumulo examples][examples] to learn how to write Accumulo clients
+* View the [Javadocs][javadocs] to learn the [Accumulo API][api]
 
-* [User Manual][10] - In-depth developer and administrator documentation.
-* [Examples][11] - Code with corresponding README files that give step by step
-instructions for running the example.
+More resources can be found on the [project website][accumulo].
 
-This documentation can also be found in Accumulo distributions:
+## Building
 
-* **Binary distribution** - The User Manual can be found in the `docs` directory.  The
-Examples Readmes can be found in `docs/examples`. While the source for the Examples is
-not included, the distribution has a jar with the compiled examples. This makes it easy
-to run them after following the [install][2] instructions.
-
-* **Source distribution** - The [Example Source][14], [Example Readmes][15], and
-[User Manual Source][16] can all be found in the source distribution.
-
-Building
---------
-
-Accumulo uses [Maven][9] to compile, [test][3], and package its source.  The
-following command will build the binary tar.gz from source.  Note, these
-instructions will not work for the Accumulo binary distribution as it does not
-include source.  If you just want to build without waiting for the tests to
-run, add `-DskipTests`.
+Accumulo uses [Maven] to compile, [test], and package its source. The following
+command will build the binary tar.gz from source. Add `-DskipTests` to build without
+waiting for the tests to run.
 
     mvn package
 
-This command produces a file at the following location.
+This command produces `assemble/target/accumulo-<version>-bin.tar.gz`
 
-    assemble/target/accumulo-<version>-bin.tar.gz
+## Contributing
 
-API
+Contributions are welcome to all Apache Accumulo repositories.
+
+If you want to contribute, read [our guide on our website][contribute].
+
+## Export Control
+
+<details>
+<summary>Click here to show/hide details</summary>
+
 ---
-
-The public Accumulo API is composed of :
-
-All public types in the following packages and their subpackages excluding
-those named *impl*, *thrift*, or *crypto*.
-
-   * org.apache.accumulo.core.client
-   * org.apache.accumulo.core.data
-   * org.apache.accumulo.core.security
-   * org.apache.accumulo.minicluster
-
-A type is a class, interface, or enum.  Anything with public or protected
-acccess in an API type is in the API.  This includes, but is not limited to:
-methods, members classes, interfaces, and enums.  Package-private types in
-the above packages are *not* considered public API.
-
-The following regex matches imports that are *not* Accumulo public API.  This
-regex can be used with [RegexpSingleline][13] to automatically find suspicious
-imports in a project using Accumulo.
-
-```
-import\s+org\.apache\.accumulo\.(.*\.(impl|thrift|crypto)\..*|(?!core|minicluster).*|core\.(?!client|data|security).*)
-```
-
-The Accumulo project maintains binary compatibility across this API within a
-major release, as defined in the Java Language Specification 3rd ed. Starting
-with Accumulo 1.6.2 and 1.7.0 all API changes will follow [semver 2.0][12]
-
-Export Control
---------------
 
 This distribution includes cryptographic software. The country in which you
 currently reside may have restrictions on the import, possession, use, and/or
 re-export to another country, of encryption software. BEFORE using any
 encryption software, please check your country's laws, regulations and
 policies concerning the import, possession, or use, and re-export of encryption
-software, to see if this is permitted. See <http://www.wassenaar.org/> for more
+software, to see if this is permitted. See <https://www.wassenaar.org/> for more
 information.
 
 The U.S. Government Department of Commerce, Bureau of Industry and Security
@@ -120,26 +80,32 @@ The following provides more details on the included cryptographic software:
 Apache Accumulo uses the built-in java cryptography libraries in its RFile
 encryption implementation. See [oracle's export-regulations doc][java-export]
 for more details for on Java's cryptography features. Apache Accumulo also uses
-the bouncycastle library for some crypographic technology as well. See
-[the BouncyCastle FAQ][bouncy-faq] for
+the bouncycastle library for some cryptographic technology as well. See
+[the BouncyCastle site][bouncy-site] for
 more details on bouncycastle's cryptography features.
 
+</details>
 
-[1]: http://accumulo.apache.org
-[2]: INSTALL.md
-[3]: TESTING.md
-[4]: https://research.google.com/archive/bigtable.html
-[5]: https://hadoop.apache.org
-[6]: https://zookeeper.apache.org
-[7]: https://thrift.apache.org
-[8]: https://accumulo.apache.org/notable_features
-[9]: https://maven.apache.org
-[10]: https://accumulo.apache.org/latest/accumulo_user_manual
-[11]: https://accumulo.apache.org/latest/examples
-[12]: http://semver.org/spec/v2.0.0
-[13]: http://checkstyle.sourceforge.net/config_regexp.html
-[14]: examples/simple/src/main/java/org/apache/accumulo/examples/simple
-[15]: docs/src/main/resources/examples
-[16]: docs/src/main/asciidoc
-[java-export]: http://www.oracle.com/us/products/export/export-regulations-345813.html
-[bouncy-faq]: http://www.bouncycastle.org/wiki/display/JA1/Frequently+Asked+Questions
+[api]: https://accumulo.apache.org/api
+[accumulo]: https://accumulo.apache.org
+[logo]: contrib/accumulo-logo.png
+[quick start]: https://accumulo.apache.org/docs/2.x/getting-started/quickstart
+[test]: TESTING.md
+[Apache Hadoop]: https://hadoop.apache.org
+[Apache Zookeeper]: https://zookeeper.apache.org
+[Maven]: https://maven.apache.org
+[docs]: https://accumulo.apache.org/latest/accumulo_user_manual
+[examples]: https://github.com/apache/accumulo-examples
+[javadocs]: https://accumulo.apache.org/latest/apidocs
+[li]: https://img.shields.io/badge/license-ASL-blue.svg
+[ll]: https://www.apache.org/licenses/LICENSE-2.0
+[mi]: https://maven-badges.herokuapp.com/maven-central/org.apache.accumulo/accumulo-core/badge.svg
+[ml]: https://maven-badges.herokuapp.com/maven-central/org.apache.accumulo/accumulo-core/
+[ji]: https://www.javadoc.io/badge/org.apache.accumulo/accumulo-core.svg
+[jl]: https://www.javadoc.io/doc/org.apache.accumulo/accumulo-core
+[ti]: https://github.com/apache/accumulo/workflows/QA/badge.svg
+[tl]: https://github.com/apache/accumulo/actions
+[java-export]: https://www.oracle.com/us/products/export/export-regulations-345813.html
+[bouncy-site]: https://bouncycastle.org
+[dl]: https://accumulo.apache.org/downloads
+[contribute]: https://accumulo.apache.org/how-to-contribute

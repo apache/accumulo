@@ -1,20 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.security.handler;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,6 +37,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.commons.codec.digest.Crypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,22 +50,37 @@ import org.slf4j.LoggerFactory;
 class ZKSecurityTool {
   private static final Logger log = LoggerFactory.getLogger(ZKSecurityTool.class);
   private static final int SALT_LENGTH = 8;
+  private static final SecureRandom random = new SecureRandom();
 
   // Generates a byte array salt of length SALT_LENGTH
   private static byte[] generateSalt() {
-    final SecureRandom random = new SecureRandom();
     byte[] salt = new byte[SALT_LENGTH];
     random.nextBytes(salt);
     return salt;
   }
 
+  // only present for testing DO NOT USE!
+  @Deprecated(since = "2.1.0")
+  static byte[] createOutdatedPass(byte[] password) throws AccumuloException {
+    byte[] salt = generateSalt();
+    try {
+      return convertPass(password, salt);
+    } catch (NoSuchAlgorithmException e) {
+      log.error("Count not create hashed password", e);
+      throw new AccumuloException("Count not create hashed password", e);
+    }
+  }
+
+  private static final String PW_HASH_ALGORITHM_OUTDATED = "SHA-256";
+
   private static byte[] hash(byte[] raw) throws NoSuchAlgorithmException {
-    MessageDigest md = MessageDigest.getInstance(Constants.PW_HASH_ALGORITHM);
+    MessageDigest md = MessageDigest.getInstance(PW_HASH_ALGORITHM_OUTDATED);
     md.update(raw);
     return md.digest();
   }
 
-  public static boolean checkPass(byte[] password, byte[] zkData) {
+  @Deprecated(since = "2.1.0")
+  static boolean checkPass(byte[] password, byte[] zkData) {
     if (zkData == null)
       return false;
 
@@ -73,17 +93,7 @@ class ZKSecurityTool {
       log.error("Count not create hashed password", e);
       return false;
     }
-    return java.util.Arrays.equals(passwordToCheck, zkData);
-  }
-
-  public static byte[] createPass(byte[] password) throws AccumuloException {
-    byte[] salt = generateSalt();
-    try {
-      return convertPass(password, salt);
-    } catch (NoSuchAlgorithmException e) {
-      log.error("Count not create hashed password", e);
-      throw new AccumuloException("Count not create hashed password", e);
-    }
+    return MessageDigest.isEqual(passwordToCheck, zkData);
   }
 
   private static byte[] convertPass(byte[] password, byte[] salt) throws NoSuchAlgorithmException {
@@ -95,6 +105,24 @@ class ZKSecurityTool {
     System.arraycopy(salt, 0, saltedHash, 0, SALT_LENGTH);
     System.arraycopy(hashed, 0, saltedHash, SALT_LENGTH, hashed.length);
     return saltedHash; // contains salt+hash(password+salt)
+  }
+
+  public static byte[] createPass(byte[] password) throws AccumuloException {
+    // we rely on default algorithm and salt length (SHA-512 and 8 bytes)
+    String cryptHash = Crypt.crypt(password);
+    return cryptHash.getBytes(UTF_8);
+  }
+
+  public static boolean checkCryptPass(byte[] password, byte[] zkData) {
+    String zkDataString = new String(zkData, UTF_8);
+    String cryptHash;
+    try {
+      cryptHash = Crypt.crypt(password, zkDataString);
+    } catch (IllegalArgumentException e) {
+      log.error("Unrecognized hash format", e);
+      return false;
+    }
+    return MessageDigest.isEqual(zkData, cryptHash.getBytes(UTF_8));
   }
 
   public static Authorizations convertAuthorizations(byte[] authorizations) {
@@ -177,5 +205,9 @@ class ZKSecurityTool {
 
   public static String getInstancePath(String instanceId) {
     return Constants.ZROOT + "/" + instanceId;
+  }
+
+  public static boolean isOutdatedPass(byte[] zkData) {
+    return zkData.length == 40;
   }
 }

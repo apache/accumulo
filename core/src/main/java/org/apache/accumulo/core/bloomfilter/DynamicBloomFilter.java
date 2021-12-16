@@ -1,5 +1,4 @@
 /*
- *
  * Copyright (c) 2005, European Commission project OneLab under contract 034819
  * (http://www.one-lab.org)
  * All rights reserved.
@@ -29,25 +28,6 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.apache.accumulo.core.bloomfilter;
 
 import java.io.DataInput;
@@ -179,8 +159,8 @@ public class DynamicBloomFilter extends Filter {
       return true;
     }
 
-    for (int i = 0; i < matrix.length; i++) {
-      if (matrix[i].membershipTest(key)) {
+    for (BloomFilter bloomFilter : matrix) {
+      if (bloomFilter.membershipTest(key)) {
         return true;
       }
     }
@@ -190,8 +170,8 @@ public class DynamicBloomFilter extends Filter {
 
   @Override
   public void not() {
-    for (int i = 0; i < matrix.length; i++) {
-      matrix[i].not();
+    for (BloomFilter bloomFilter : matrix) {
+      bloomFilter.not();
     }
   }
 
@@ -233,8 +213,8 @@ public class DynamicBloomFilter extends Filter {
   public String toString() {
     StringBuilder res = new StringBuilder();
 
-    for (int i = 0; i < matrix.length; i++) {
-      res.append(matrix[i]);
+    for (BloomFilter bloomFilter : matrix) {
+      res.append(bloomFilter);
       res.append(Character.LINE_SEPARATOR);
     }
     return res.toString();
@@ -248,8 +228,8 @@ public class DynamicBloomFilter extends Filter {
     out.writeInt(nr);
     out.writeInt(currentNbRecord);
     out.writeInt(matrix.length);
-    for (int i = 0; i < matrix.length; i++) {
-      matrix[i].write(out);
+    for (BloomFilter bloomFilter : matrix) {
+      bloomFilter.write(out);
     }
   }
 

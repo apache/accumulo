@@ -1,21 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.Files.newBufferedReader;
+import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -24,6 +29,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -31,53 +37,74 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.impl.Namespaces;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.client.summary.summarizers.DeletesSummarizer;
+import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.categories.SunnyDayTests;
+import org.apache.accumulo.test.compaction.TestCompactionStrategy;
 import org.apache.accumulo.test.functional.SlowIterator;
-import org.apache.accumulo.tracer.TraceServer;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.tools.DistCp;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.impl.DumbTerminal;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assume;
@@ -93,15 +120,20 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
-import jline.console.ConsoleReader;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
 public class ShellServerIT extends SharedMiniClusterBase {
+
+  @SuppressWarnings("removal")
+  private static final Property VFS_CONTEXT_CLASSPATH_PROPERTY =
+      Property.VFS_CONTEXT_CLASSPATH_PROPERTY;
+
   public static class TestOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();
 
     @Override
-    public void write(int b) throws IOException {
+    public void write(int b) {
       sb.append((char) (0xff & b));
     }
 
@@ -121,7 +153,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     private int offset = 0;
 
     @Override
-    public int read() throws IOException {
+    public int read() {
       if (offset == source.length())
         return '\n';
       else
@@ -134,7 +166,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-  private static abstract class ErrorMessageCallback {
+  private abstract static class ErrorMessageCallback {
     public abstract String getErrorMessage();
   }
 
@@ -152,17 +184,21 @@ public class ShellServerIT extends SharedMiniClusterBase {
     public TestOutputStream output;
     public StringInputStream input;
     public Shell shell;
+    public LineReader reader;
+    public Terminal terminal;
 
     TestShell(String user, String rootPass, String instanceName, String zookeepers, File configFile)
         throws IOException {
-      ClientConfiguration clientConf;
-      clientConf = ClientConfiguration.fromFile(configFile);
+      ClientInfo info = ClientInfo.from(configFile.toPath());
       // start the shell
       output = new TestOutputStream();
       input = new StringInputStream();
-      shell = new Shell(new ConsoleReader(input, output));
+      terminal = new DumbTerminal(input, output);
+      terminal.setSize(new Size(80, 24));
+      reader = LineReaderBuilder.builder().terminal(terminal).build();
+      shell = new Shell(reader);
       shell.setLogErrorsToConsole();
-      if (clientConf.hasSasl()) {
+      if (info.saslEnabled()) {
         // Pull the kerberos principal out when we're using SASL
         shell.config("-u", user, "-z", instanceName, zookeepers, "--config-file",
             configFile.getAbsolutePath());
@@ -225,27 +261,32 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     void assertGoodExit(String s, boolean stringPresent, ErrorMessageCallback callback) {
       shellLog.debug("Shell Output: '{}'", output.get());
-      if (0 != shell.getExitCode()) {
+      if (shell.getExitCode() != 0) {
         String errorMsg = callback.getErrorMessage();
         assertEquals(errorMsg, 0, shell.getExitCode());
       }
 
-      if (s.length() > 0)
+      if (!s.isEmpty())
         assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
             output.get().contains(s));
     }
 
     void assertBadExit(String s, boolean stringPresent, ErrorMessageCallback callback) {
       shellLog.debug(output.get());
-      if (0 == shell.getExitCode()) {
+      if (shell.getExitCode() == 0) {
         String errorMsg = callback.getErrorMessage();
         assertTrue(errorMsg, shell.getExitCode() > 0);
       }
 
-      if (s.length() > 0)
+      if (!s.isEmpty())
         assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent,
             output.get().contains(s));
       shell.resetExitCode();
+    }
+
+    void writeToHistory(String cmd) {
+      input.set(cmd);
+      reader.readLine();
     }
   }
 
@@ -253,7 +294,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   private TestShell ts;
 
-  private static Process traceProcess;
   private static String rootPath;
 
   @Rule
@@ -266,7 +306,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
       cfg.setNumTservers(1);
       // Set the min span to 0 so we will definitely get all the traces back. See ACCUMULO-4365
       Map<String,String> siteConf = cfg.getSiteConfig();
-      siteConf.put(Property.TRACE_SPAN_RECEIVER_PREFIX.getKey() + "tracer.span.min.ms", "0");
       cfg.setSiteConfig(siteConf);
     }
   }
@@ -276,47 +315,37 @@ public class ShellServerIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.startMiniClusterWithConfig(new ShellServerITConfigCallback());
     rootPath = getMiniClusterDir().getAbsolutePath();
 
+    String userDir = System.getProperty("user.dir");
+
     // history file is updated in $HOME
     System.setProperty("HOME", rootPath);
-    System.setProperty("hadoop.tmp.dir", System.getProperty("user.dir") + "/target/hadoop-tmp");
+    System.setProperty("hadoop.tmp.dir", userDir + "/target/hadoop-tmp");
 
-    traceProcess = getCluster().exec(TraceServer.class);
-
-    Connector conn = getCluster().getConnector(getPrincipal(), getToken());
-    TableOperations tops = conn.tableOperations();
-
-    // give the tracer some time to start
-    while (!tops.exists("trace")) {
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
-    }
   }
 
   @Before
   public void setupShell() throws Exception {
     ts = new TestShell(getPrincipal(), getRootPassword(),
         getCluster().getConfig().getInstanceName(), getCluster().getConfig().getZooKeepers(),
-        getCluster().getConfig().getClientConfFile());
+        getCluster().getConfig().getClientPropsFile());
   }
 
   @AfterClass
-  public static void tearDownAfterClass() throws Exception {
-    if (null != traceProcess) {
-      traceProcess.destroy();
-    }
-
+  public static void tearDownAfterClass() {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
   @After
   public void deleteTables() throws Exception {
-    Connector c = getConnector();
-    for (String table : c.tableOperations().list()) {
-      if (!table.startsWith(Namespaces.ACCUMULO_NAMESPACE + ".") && !table.equals("trace"))
-        try {
-          c.tableOperations().delete(table);
-        } catch (TableNotFoundException e) {
-          // don't care
-        }
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      for (String table : c.tableOperations().list()) {
+        if (!table.startsWith(Namespace.ACCUMULO.name() + ".") && !table.equals("trace"))
+          try {
+            c.tableOperations().delete(table);
+          } catch (TableNotFoundException e) {
+            // don't care
+          }
+      }
     }
   }
 
@@ -330,9 +359,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     return 60;
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void exporttableImporttable() throws Exception {
-    final String table = name.getMethodName(), table2 = table + "2";
+    final String table = getUniqueNames(1)[0];
+    final String table2 = table + "2";
 
     // exporttable / importtable
     ts.exec("createtable " + table + " -evc", true);
@@ -341,12 +372,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("config -t " + table + " -s table.split.threshold=345M", true);
     ts.exec("offline " + table, true);
     File exportDir = new File(rootPath, "ShellServerIT.export");
-    String exportUri = "file://" + exportDir.toString();
-    String localTmp = "file://" + new File(rootPath, "ShellServerIT.tmp").toString();
+    String exportUri = "file://" + exportDir;
+    String localTmp = "file://" + new File(rootPath, "ShellServerIT.tmp");
     ts.exec("exporttable -t " + table + " " + exportUri, true);
     DistCp cp = newDistCp(new Configuration(false));
-    String import_ = "file://" + new File(rootPath, "ShellServerIT.import").toString();
-    if (getCluster().getClientConfig().hasSasl()) {
+    String import_ = "file://" + new File(rootPath, "ShellServerIT.import");
+    ClientInfo info = ClientInfo.from(getCluster().getClientProperties());
+    if (info.saslEnabled()) {
       // DistCp bugs out trying to get a fs delegation token to perform the cp. Just copy it
       // ourselves by hand.
       FileSystem fs = getCluster().getFileSystem();
@@ -362,19 +394,19 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
       // Implement a poor-man's DistCp
       try (BufferedReader reader =
-          new BufferedReader(new FileReader(new File(exportDir, "distcp.txt")))) {
+          new BufferedReader(new FileReader(new File(exportDir, "distcp.txt"), UTF_8))) {
         for (String line; (line = reader.readLine()) != null;) {
           Path exportedFile = new Path(line);
           // There isn't a cp on FileSystem??
-          log.info("Copying " + line + " to " + localTmpPath);
+          log.info("Copying {} to {}", line, localTmpPath);
           fs.copyToLocalFile(exportedFile, localTmpPath);
           Path tmpFile = new Path(localTmpPath, exportedFile.getName());
-          log.info("Moving " + tmpFile + " to the import directory " + importDir);
+          log.info("Moving {} to the import directory {}", tmpFile, importDir);
           fs.moveFromLocalFile(tmpFile, importDir);
         }
       }
     } else {
-      String[] distCpArgs = new String[] {"-f", exportUri + "/distcp.txt", import_};
+      String[] distCpArgs = {"-f", exportUri + "/distcp.txt", import_};
       assertEquals("Failed to run distcp: " + Arrays.toString(distCpArgs), 0, cp.run(distCpArgs));
     }
     ts.exec("importtable " + table2 + " " + import_, true);
@@ -408,7 +440,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void setscaniterDeletescaniter() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     // setscaniter, deletescaniter
     ts.exec("createtable " + table);
@@ -424,6 +456,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void execfile() throws Exception {
     // execfile
@@ -437,19 +470,19 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void egrep() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     // egrep
     ts.exec("createtable " + table);
     make10();
     String lines = ts.exec("egrep row[123]", true);
-    assertTrue(lines.split("\n").length - 1 == 3);
+    assertEquals(3, lines.split("\n").length - 1);
     ts.exec("deletetable -f " + table);
   }
 
   @Test
   public void du() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     // create and delete a table so we get out of a table context in the shell
     ts.exec("notable", true);
@@ -467,25 +500,29 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.shell.execCommand("du -h", false, false);
     String o = ts.output.get();
     // for some reason, there's a bit of fluctuation
-    assertTrue("Output did not match regex: '" + o + "'",
-        o.matches(".*[1-9][0-9][0-9]\\s\\[" + table + "\\]\\n"));
+    assertMatches(o, ".*[1-9][0-9][0-9]\\s\\[" + table + "]\\n");
     ts.exec("deletetable -f " + table);
   }
 
+  /*
+   * This test should be deleted when the debug command is removed
+   */
+  @Deprecated(since = "2.0.0")
   @Test
   public void debug() throws Exception {
-    ts.exec("debug", true, "off", true);
-    ts.exec("debug on", true);
-    ts.exec("debug", true, "on", true);
-    ts.exec("debug off", true);
-    ts.exec("debug", true, "off", true);
-    ts.exec("debug debug", false);
-    ts.exec("debug debug debug", false);
+    String expectMsg = "The debug command is deprecated";
+    ts.exec("debug", false, expectMsg);
+    ts.exec("debug on", false, expectMsg);
+    ts.exec("debug", false, expectMsg);
+    ts.exec("debug off", false, expectMsg);
+    ts.exec("debug", false, expectMsg);
+    ts.exec("debug debug", false, expectMsg);
+    ts.exec("debug debug debug", false, expectMsg);
   }
 
   @Test
   public void user() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
     final boolean kerberosEnabled = getToken() instanceof KerberosToken;
 
     // createuser, deleteuser, user, users, droptable, grant, revoke
@@ -527,7 +564,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void durability() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
     ts.exec("createtable " + table);
     ts.exec("insert -d none a cf cq randomGunkaASDFWEAQRd");
     ts.exec("insert -d foo a cf cq2 2", false, "foo", true);
@@ -537,7 +574,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void iter() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     // setshelliter, listshelliter, deleteshelliter
     ts.exec("createtable " + table);
@@ -586,74 +623,82 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void setIterOptionPrompt() throws Exception {
-    Connector conn = getConnector();
-    String tableName = name.getMethodName();
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      final String[] tableNames = getUniqueNames(4);
+      final String tableName0 = tableNames[0];
 
-    ts.exec("createtable " + tableName);
-    ts.input.set("\n\n");
-    // Setting a non-optiondescriber with no name should fail
-    ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30", false);
+      ts.exec("createtable " + tableName0);
+      ts.input.set("\n\n");
+      // Setting a non-optiondescriber with no name should fail
+      ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30", false);
 
-    // Name as option will work
-    ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30 -name cfcounter",
-        true);
+      // Name as option will work
+      ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30 -name cfcounter",
+          true);
 
-    String expectedKey = "table.iterator.scan.cfcounter";
-    String expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
-    TableOperations tops = conn.tableOperations();
-    checkTableForProperty(tops, tableName, expectedKey, expectedValue);
+      String expectedKey = "table.iterator.scan.cfcounter";
+      String expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
+      TableOperations tops = client.tableOperations();
+      checkTableForProperty(tops, tableName0, expectedKey, expectedValue);
 
-    ts.exec("deletetable " + tableName, true);
-    tableName = tableName + "1";
+      ts.exec("deletetable " + tableName0, true);
 
-    ts.exec("createtable " + tableName, true);
+      final String tableName1 = tableNames[1];
 
-    ts.input.set("customcfcounter\n\n");
+      ts.exec("createtable " + tableName1, true);
 
-    // Name on the CLI should override OptionDescriber (or user input name, in this case)
-    ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30", true);
-    expectedKey = "table.iterator.scan.customcfcounter";
-    expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
-    checkTableForProperty(tops, tableName, expectedKey, expectedValue);
+      ts.input.set("customcfcounter\n\n");
 
-    ts.exec("deletetable " + tableName, true);
-    tableName = tableName + "1";
+      // Name on the CLI should override OptionDescriber (or user input name, in this case)
+      ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30", true);
+      expectedKey = "table.iterator.scan.customcfcounter";
+      expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
+      checkTableForProperty(tops, tableName1, expectedKey, expectedValue);
 
-    ts.exec("createtable " + tableName, true);
+      ts.exec("deletetable " + tableName1, true);
 
-    ts.input.set("customcfcounter\nname1 value1\nname2 value2\n\n");
+      final String tableName2 = tableNames[2];
 
-    // Name on the CLI should override OptionDescriber (or user input name, in this case)
-    ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30", true);
-    expectedKey = "table.iterator.scan.customcfcounter";
-    expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
-    checkTableForProperty(tops, tableName, expectedKey, expectedValue);
-    expectedKey = "table.iterator.scan.customcfcounter.opt.name1";
-    expectedValue = "value1";
-    checkTableForProperty(tops, tableName, expectedKey, expectedValue);
-    expectedKey = "table.iterator.scan.customcfcounter.opt.name2";
-    expectedValue = "value2";
-    checkTableForProperty(tops, tableName, expectedKey, expectedValue);
+      ts.exec("createtable " + tableName2, true);
 
-    ts.exec("deletetable " + tableName, true);
-    tableName = tableName + "1";
+      ts.input.set("customcfcounter\nname1 value1\nname2 value2\n\n");
 
-    ts.exec("createtable " + tableName, true);
+      // Name on the CLI should override OptionDescriber (or user input name, in this case)
+      ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30", true);
+      expectedKey = "table.iterator.scan.customcfcounter";
+      expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
+      checkTableForProperty(tops, tableName2, expectedKey, expectedValue);
+      expectedKey = "table.iterator.scan.customcfcounter.opt.name1";
+      expectedValue = "value1";
+      checkTableForProperty(tops, tableName2, expectedKey, expectedValue);
+      expectedKey = "table.iterator.scan.customcfcounter.opt.name2";
+      expectedValue = "value2";
+      checkTableForProperty(tops, tableName2, expectedKey, expectedValue);
 
-    ts.input.set("\nname1 value1.1,value1.2,value1.3\nname2 value2\n\n");
+      ts.exec("deletetable " + tableName2, true);
 
-    // Name on the CLI should override OptionDescriber (or user input name, in this case)
-    ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30 -name cfcounter",
-        true);
-    expectedKey = "table.iterator.scan.cfcounter";
-    expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
-    checkTableForProperty(tops, tableName, expectedKey, expectedValue);
-    expectedKey = "table.iterator.scan.cfcounter.opt.name1";
-    expectedValue = "value1.1,value1.2,value1.3";
-    checkTableForProperty(tops, tableName, expectedKey, expectedValue);
-    expectedKey = "table.iterator.scan.cfcounter.opt.name2";
-    expectedValue = "value2";
-    checkTableForProperty(tops, tableName, expectedKey, expectedValue);
+      String tableName3 = tableNames[3];
+
+      ts.exec("createtable " + tableName3, true);
+
+      ts.input.set("\nname1 value1.1,value1.2,value1.3\nname2 value2\n\n");
+
+      // Name on the CLI should override OptionDescriber (or user input name, in this case)
+      ts.exec("setiter -scan -class " + COLUMN_FAMILY_COUNTER_ITERATOR + " -p 30 -name cfcounter",
+          true);
+      expectedKey = "table.iterator.scan.cfcounter";
+      expectedValue = "30," + COLUMN_FAMILY_COUNTER_ITERATOR;
+      checkTableForProperty(tops, tableName3, expectedKey, expectedValue);
+      expectedKey = "table.iterator.scan.cfcounter.opt.name1";
+      expectedValue = "value1.1,value1.2,value1.3";
+      checkTableForProperty(tops, tableName3, expectedKey, expectedValue);
+      expectedKey = "table.iterator.scan.cfcounter.opt.name2";
+      expectedValue = "value2";
+      checkTableForProperty(tops, tableName3, expectedKey, expectedValue);
+
+      ts.exec("deletetable " + tableName3, true);
+
+    }
   }
 
   protected void checkTableForProperty(TableOperations tops, String tableName, String expectedKey,
@@ -674,7 +719,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void notable() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     // notable
     ts.exec("createtable " + table, true);
@@ -698,7 +743,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void addauths() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
     // addauths
     ts.exec("createtable " + table + " -evc");
     boolean success = false;
@@ -709,10 +754,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
             new ErrorMessageCallback() {
               @Override
               public String getErrorMessage() {
-                try {
-                  Connector c = getConnector();
+                try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
                   return "Current auths for root are: "
-                      + c.securityOperations().getUserAuthorizations("root").toString();
+                      + c.securityOperations().getUserAuthorizations("root");
                 } catch (Exception e) {
                   return "Could not check authorizations";
                 }
@@ -800,14 +844,15 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void classpath() throws Exception {
     // classpath
-    ts.exec("classpath", true, "Level 2: Java Classloader (loads everything"
-        + " defined by java classpath) URL classpath items are", true);
+    ts.exec("classpath", true,
+        "Level: 2, Name: app, class: jdk.internal.loader.ClassLoaders$AppClassLoader: configuration not inspectable",
+        true);
   }
 
   @Test
   public void clearCls() throws Exception {
     // clear/cls
-    if (ts.shell.getReader().getTerminal().isAnsiSupported()) {
+    if (!Terminal.TYPE_DUMB.equalsIgnoreCase(ts.shell.getTerminal().getType())) {
       ts.exec("cls", true, "[1;1H");
       ts.exec("clear", true, "[2J");
     } else {
@@ -818,7 +863,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void clonetable() throws Exception {
-    final String table = name.getMethodName(), clone = table + "_clone";
+    final String table = getUniqueNames(1)[0];
+    final String clone = table + "_clone";
 
     // clonetable
     ts.exec("createtable " + table + " -evc");
@@ -828,6 +874,30 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("scan", true, "value", true);
     ts.exec("clonetable " + table + " " + clone);
     // verify constraint, config, and splits were cloned
+    ts.exec("table " + clone);
+    ts.exec("scan", true, "value", true);
+    ts.exec("constraint --list -t " + clone, true, "VisibilityConstraint=2", true);
+    ts.exec("config -t " + clone + " -np", true, "123M", true);
+    ts.exec("getsplits -t " + clone, true, "a\nb\nc\n");
+    ts.exec("deletetable -f " + table);
+    ts.exec("deletetable -f " + clone);
+  }
+
+  @Test
+  public void clonetableOffline() throws Exception {
+    final String table = getUniqueNames(1)[0];
+    final String clone = table + "_clone";
+
+    // clonetable
+    ts.exec("createtable " + table + " -evc");
+    ts.exec("config -t " + table + " -s table.split.threshold=123M", true);
+    ts.exec("addsplits -t " + table + " a b c", true);
+    ts.exec("insert a b c value");
+    ts.exec("scan", true, "value", true);
+    ts.exec("clonetable " + table + " " + clone + " -o");
+    // verify constraint, config, and splits were cloned
+    ts.exec("table " + clone);
+    ts.exec("scan", false, "TableOfflineException", true);
     ts.exec("constraint --list -t " + clone, true, "VisibilityConstraint=2", true);
     ts.exec("config -t " + clone + " -np", true, "123M", true);
     ts.exec("getsplits -t " + clone, true, "a\nb\nc\n");
@@ -837,7 +907,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void createTableWithProperties() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     // create table with initial properties
     String testProp = "table.custom.description=description,table.custom.testProp=testProp,"
@@ -847,25 +917,24 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert a b c value", true);
     ts.exec("scan", true, "value", true);
 
-    Connector connector = getConnector();
-    for (Entry<String,String> entry : connector.tableOperations().getProperties(table)) {
-      if (entry.getKey().equals("table.custom.description"))
-        assertTrue("Initial property was not set correctly",
-            entry.getValue().equals("description"));
+    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
+      accumuloClient.tableOperations().getConfiguration(table).forEach((key, value) -> {
+        if (key.equals("table.custom.description"))
+          assertEquals("Initial property was not set correctly", "description", value);
 
-      if (entry.getKey().equals("table.custom.testProp"))
-        assertTrue("Initial property was not set correctly", entry.getValue().equals("testProp"));
+        if (key.equals("table.custom.testProp"))
+          assertEquals("Initial property was not set correctly", "testProp", value);
 
-      if (entry.getKey().equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
-        assertTrue("Initial property was not set correctly", entry.getValue().equals("10K"));
-
+        if (key.equals(Property.TABLE_SPLIT_THRESHOLD.getKey()))
+          assertEquals("Initial property was not set correctly", "10K", value);
+      });
     }
     ts.exec("deletetable -f " + table);
   }
 
   @Test
   public void testCompactions() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     // compact
     ts.exec("createtable " + table);
@@ -914,7 +983,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void testCompactionSelection() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
     final String clone = table + "_clone";
 
     ts.exec("createtable " + table);
@@ -950,11 +1019,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertEquals(2, countFiles(cloneId));
 
     // create two large files
-    Random rand = new Random();
     StringBuilder sb = new StringBuilder("insert b v q ");
-    for (int i = 0; i < 10000; i++) {
-      sb.append('a' + rand.nextInt(26));
-    }
+    random.ints(10_000, 0, 26).forEach(i -> sb.append('a' + i));
 
     ts.exec(sb.toString());
     ts.exec("flush -w");
@@ -1031,7 +1097,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void testCompactionSelectionAndStrategy() throws Exception {
 
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     ts.exec("createtable " + table);
 
@@ -1042,7 +1108,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void testScanScample() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     // compact
     ts.exec("createtable " + table);
@@ -1092,7 +1158,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void constraint() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     // constraint
     ts.exec("constraint -l -t " + MetadataTable.NAME + "", true, "MetadataConstraints=1", true);
@@ -1111,7 +1177,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void deletemany() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     // deletemany
     ts.exec("createtable " + table);
@@ -1140,7 +1206,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void deleterows() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     ts.exec("createtable " + table);
     final String tableId = getTableId(table);
@@ -1163,7 +1229,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // 2nd file for that tablet
     // If we notice this, compact and then move on.
     List<String> files = getFiles(tableId);
-    if (3 < files.size()) {
+    if (files.size() > 3) {
       log.info("More than 3 files were found, compacting before proceeding");
       ts.exec("compact -w -t " + table);
       files = getFiles(tableId);
@@ -1179,7 +1245,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void groups() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     ts.exec("createtable " + table);
     ts.exec("setgroups -t " + table + " alpha=a,b,c num=3,2,1");
@@ -1198,10 +1264,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert row2 cf1 cq 2468ace", true);
 
     ArrayList<String> expectedDefault = new ArrayList<>(4);
-    expectedDefault.add("row cf:cq []    1234abcd");
-    expectedDefault.add("row cf1:cq1 []    9876fedc");
-    expectedDefault.add("row2 cf:cq []    13579bdf");
-    expectedDefault.add("row2 cf1:cq []    2468ace");
+    expectedDefault.add("row cf:cq []\t1234abcd");
+    expectedDefault.add("row cf1:cq1 []\t9876fedc");
+    expectedDefault.add("row2 cf:cq []\t13579bdf");
+    expectedDefault.add("row2 cf1:cq []\t2468ace");
     ArrayList<String> actualDefault = new ArrayList<>(4);
     boolean isFirst = true;
     for (String s : ts.exec("scan -np", true).split("[\n\r]+")) {
@@ -1213,10 +1279,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
 
     ArrayList<String> expectedFormatted = new ArrayList<>(4);
-    expectedFormatted.add("row cf:cq []    0x31 0x32 0x33 0x34 0x61 0x62 0x63 0x64");
-    expectedFormatted.add("row cf1:cq1 []    0x39 0x38 0x37 0x36 0x66 0x65 0x64 0x63");
-    expectedFormatted.add("row2 cf:cq []    0x31 0x33 0x35 0x37 0x39 0x62 0x64 0x66");
-    expectedFormatted.add("row2 cf1:cq []    0x32 0x34 0x36 0x38 0x61 0x63 0x65");
+    expectedFormatted.add("row cf:cq []\t0x31 0x32 0x33 0x34 0x61 0x62 0x63 0x64");
+    expectedFormatted.add("row cf1:cq1 []\t0x39 0x38 0x37 0x36 0x66 0x65 0x64 0x63");
+    expectedFormatted.add("row2 cf:cq []\t0x31 0x33 0x35 0x37 0x39 0x62 0x64 0x66");
+    expectedFormatted.add("row2 cf1:cq []\t0x32 0x34 0x36 0x38 0x61 0x63 0x65");
     ts.exec("formatter -t formatter_test -f " + HexFormatter.class.getName(), true);
     ArrayList<String> actualFormatted = new ArrayList<>(4);
     isFirst = true;
@@ -1246,10 +1312,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     private Iterator<Entry<Key,Value>> iter = null;
     private FormatterConfig config;
 
-    private final static String tab = "\t";
-    private final static String newline = "\n";
-
-    public HexFormatter() {}
+    private static final String tab = "\t";
+    private static final String newline = "\n";
 
     @Override
     public boolean hasNext() {
@@ -1278,7 +1342,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
       for (byte b : v.get()) {
         if ((b >= 48 && b <= 57) || (b >= 97 && b <= 102)) {
-          sb.append(String.format("0x%x ", Integer.valueOf(b)));
+          sb.append(String.format("0x%x ", (int) b));
         }
       }
 
@@ -1322,7 +1386,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void grep() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     ts.exec("createtable " + table, true);
     make10();
@@ -1349,41 +1413,100 @@ public class ShellServerIT extends SharedMiniClusterBase {
     }
   }
 
-  // @Test(timeout = 45000)
+  @Test
   public void history() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
+    // test clear history command works
+    ts.writeToHistory("foo");
+    ts.exec("history", true, "foo", true);
     ts.exec("history -c", true);
-    ts.exec("createtable " + table);
+    ts.exec("history", true, "foo", false);
+
+    // Verify commands are not currently in history then write to history file. Does not execute
+    // table ops.
+    ts.exec("history", true, table, false);
+    ts.exec("history", true, "createtable", false);
+    ts.exec("history", true, "deletetable", false);
+    ts.writeToHistory("createtable " + table);
+    ts.writeToHistory("deletetable -f " + table);
+
+    // test that history command prints contents of history file
+    ts.exec("history", true, "createtable " + table, true);
+    ts.exec("history", true, "deletetable -f " + table, true);
+  }
+
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
+  @Test
+  public void importDirectoryOld() throws Exception {
+    final String table = getUniqueNames(1)[0];
+    Configuration conf = new Configuration();
+    FileSystem fs = FileSystem.get(conf);
+    File errorsDir = new File(rootPath, "errors_" + table);
+    assertTrue(errorsDir.mkdir());
+    fs.mkdirs(new Path(errorsDir.toString()));
+    File importDir = createRFiles(conf, fs, table);
+    ts.exec("createtable " + table, true);
+    ts.exec("importdirectory " + importDir + " " + errorsDir + " true", true);
+    ts.exec("scan -r 00000000", true, "00000000", true);
+    ts.exec("scan -r 00000099", true, "00000099", true);
     ts.exec("deletetable -f " + table);
-    ts.exec("history", true, table, true);
-    ts.exec("history", true, "history", true);
   }
 
   @Test
   public void importDirectory() throws Exception {
-    final String table = name.getMethodName();
-
+    final String table = getUniqueNames(1)[0];
     Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
-    File importDir = new File(rootPath, "import");
+    File importDir = createRFiles(conf, fs, table);
+    ts.exec("createtable " + table, true);
+    ts.exec("importdirectory " + importDir + " true", true);
+    ts.exec("scan -r 00000000", true, "00000000", true);
+    ts.exec("scan -r 00000099", true, "00000099", true);
+    ts.exec("deletetable -f " + table);
+  }
+
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
+  @Test
+  public void importDirectoryWithOptions() throws Exception {
+    final String table = getUniqueNames(1)[0];
+    Configuration conf = new Configuration();
+    FileSystem fs = FileSystem.get(conf);
+    File importDir = createRFiles(conf, fs, table);
+    ts.exec("createtable " + table, true);
+    ts.exec("notable", true);
+    ts.exec("importdirectory -t " + table + " -i " + importDir + " true", true);
+    ts.exec("scan -t " + table + " -r 00000000", true, "00000000", true);
+    ts.exec("scan -t " + table + " -r 00000099", true, "00000099", true);
+    // Attempt to re-import without -i option, error should occur
+    ts.exec("importdirectory -t " + table + " " + importDir + " true", false);
+    // Attempt re-import once more, this time with -i option. No error should occur, only a
+    // message indicating the directory was empty and zero files were imported
+    ts.exec("importdirectory -t " + table + " -i " + importDir + " true", true);
+    ts.exec("scan -t " + table + " -r 00000000", true, "00000000", true);
+    ts.exec("scan -t " + table + " -r 00000099", true, "00000099", true);
+    ts.exec("deletetable -f " + table);
+  }
+
+  private File createRFiles(final Configuration conf, final FileSystem fs, final String postfix)
+      throws IOException {
+    File importDir = new File(rootPath, "import_" + postfix);
     assertTrue(importDir.mkdir());
     String even = new File(importDir, "even.rf").toString();
     String odd = new File(importDir, "odd.rf").toString();
-    File errorsDir = new File(rootPath, "errors");
-    assertTrue(errorsDir.mkdir());
-    fs.mkdirs(new Path(errorsDir.toString()));
-    AccumuloConfiguration aconf = AccumuloConfiguration.getDefaultConfiguration();
+    AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     FileSKVWriter evenWriter = FileOperations.getInstance().newWriterBuilder()
-        .forFile(even, fs, conf).withTableConfiguration(aconf).build();
+        .forFile(even, fs, conf, CryptoServiceFactory.newDefaultInstance())
+        .withTableConfiguration(aconf).build();
     evenWriter.startDefaultLocalityGroup();
-    FileSKVWriter oddWriter = FileOperations.getInstance().newWriterBuilder().forFile(odd, fs, conf)
+    FileSKVWriter oddWriter = FileOperations.getInstance().newWriterBuilder()
+        .forFile(odd, fs, conf, CryptoServiceFactory.newDefaultInstance())
         .withTableConfiguration(aconf).build();
     oddWriter.startDefaultLocalityGroup();
     long timestamp = System.currentTimeMillis();
     Text cf = new Text("cf");
     Text cq = new Text("cq");
-    Value value = new Value("value".getBytes());
+    Value value = new Value("value");
     for (int i = 0; i < 100; i += 2) {
       Key key = new Key(new Text(String.format("%8d", i)), cf, cq, timestamp);
       evenWriter.append(key, value);
@@ -1393,11 +1516,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     evenWriter.close();
     oddWriter.close();
     assertEquals(0, ts.shell.getExitCode());
-    ts.exec("createtable " + table, true);
-    ts.exec("importdirectory " + importDir + " " + errorsDir + " true", true);
-    ts.exec("scan -r 00000000", true, "00000000", true);
-    ts.exec("scan -r 00000099", true, "00000099", true);
-    ts.exec("deletetable -f " + table);
+    return importDir;
   }
 
   @Test
@@ -1407,7 +1526,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void interpreter() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     ts.exec("createtable " + table, true);
     ts.exec("interpreter -l", true, "HexScan", false);
@@ -1424,7 +1543,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void listcompactions() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     ts.exec("createtable " + table, true);
     ts.exec(
@@ -1448,7 +1567,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void maxrow() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     ts.exec("createtable " + table, true);
     ts.exec("insert a cf cq value", true);
@@ -1463,7 +1582,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void merge() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     ts.exec("createtable " + table);
     ts.exec("addsplits a m z");
@@ -1495,7 +1614,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void renametable() throws Exception {
-    final String table = name.getMethodName() + "1", rename = name.getMethodName() + "2";
+    final String[] tableNames = getUniqueNames(2);
+    final String table = tableNames[0];
+    final String rename = tableNames[1];
 
     ts.exec("createtable " + table);
     ts.exec("insert this is a value");
@@ -1508,7 +1629,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void tables() throws Exception {
-    final String table = name.getMethodName(), table1 = table + "_z", table2 = table + "_a";
+    final String table = getUniqueNames(1)[0];
+    // table sort order is part of test.
+    final String table1 = table + "_z";
+    final String table2 = table + "_a";
     ts.exec("createtable " + table1);
     ts.exec("createtable " + table2);
     ts.exec("notable");
@@ -1523,12 +1647,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("systempermissions");
     assertEquals(12, ts.output.get().split("\n").length - 1);
     ts.exec("tablepermissions", true);
-    assertEquals(6, ts.output.get().split("\n").length - 1);
+    assertEquals(7, ts.output.get().split("\n").length - 1);
   }
 
   @Test
   public void listscans() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     ts.exec("createtable " + table, true);
 
@@ -1536,71 +1660,79 @@ public class ShellServerIT extends SharedMiniClusterBase {
     for (int i = 0; i < 6; i++) {
       ts.exec("insert " + i + " cf cq value", true);
     }
-    Connector connector = getConnector();
-    final Scanner s = connector.createScanner(table, Authorizations.EMPTY);
-    IteratorSetting cfg = new IteratorSetting(30, SlowIterator.class);
-    SlowIterator.setSleepTime(cfg, 500);
-    s.addScanIterator(cfg);
 
-    Thread thread = new Thread() {
-      @Override
-      public void run() {
-        try {
-          Iterators.size(s.iterator());
-        } catch (Exception ex) {
-          throw new RuntimeException(ex);
+    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build();
+        Scanner s = accumuloClient.createScanner(table, Authorizations.EMPTY)) {
+      IteratorSetting cfg = new IteratorSetting(30, SlowIterator.class);
+      SlowIterator.setSleepTime(cfg, 500);
+      s.addScanIterator(cfg);
+
+      Thread thread = new Thread(() -> Iterators.size(s.iterator()));
+      thread.start();
+
+      List<String> scans = new ArrayList<>();
+      // Try to find the active scan for about 15seconds
+      for (int i = 0; i < 50 && scans.isEmpty(); i++) {
+        String currentScans = ts.exec("listscans", true);
+        log.info("Got output from listscans:\n{}", currentScans);
+        String[] lines = currentScans.split("\n");
+        for (int scanOffset = 2; scanOffset < lines.length; scanOffset++) {
+          String currentScan = lines[scanOffset];
+          if (currentScan.contains(table)) {
+            log.info("Retaining scan: {}", currentScan);
+            scans.add(currentScan);
+          } else {
+            log.info("Ignoring scan because of wrong table: {}", currentScan);
+          }
         }
+        sleepUninterruptibly(300, TimeUnit.MILLISECONDS);
       }
-    };
-    thread.start();
+      thread.join();
 
-    List<String> scans = new ArrayList<>();
-    // Try to find the active scan for about 15seconds
-    for (int i = 0; i < 50 && scans.isEmpty(); i++) {
-      String currentScans = ts.exec("listscans", true);
-      log.info("Got output from listscans:\n" + currentScans);
-      String[] lines = currentScans.split("\n");
-      for (int scanOffset = 2; scanOffset < lines.length; scanOffset++) {
-        String currentScan = lines[scanOffset];
-        if (currentScan.contains(table)) {
-          log.info("Retaining scan: " + currentScan);
-          scans.add(currentScan);
-        } else {
-          log.info("Ignoring scan because of wrong table: " + currentScan);
+      assertFalse("Could not find any active scans over table " + table, scans.isEmpty());
+
+      for (String scan : scans) {
+        if (!scan.contains("RUNNING")) {
+          log.info("Ignoring scan because it doesn't contain 'RUNNING': {}", scan);
+          continue;
         }
+        String[] parts = scan.split("\\|");
+        assertEquals("Expected 14 colums, but found " + parts.length + " instead for '"
+            + Arrays.toString(parts) + "'", 14, parts.length);
+        String tserver = parts[0].trim();
+        // TODO: any way to tell if the client address is accurate? could be local IP, host,
+        // loopback...?
+        String hostPortPattern = ".+:\\d+";
+        assertMatches(tserver, hostPortPattern);
+        assertTrue(accumuloClient.instanceOperations().getTabletServers().contains(tserver));
+        String client = parts[1].trim();
+        assertMatches(client, hostPortPattern);
+        // Scan ID should be a long (throwing an exception if it fails to parse)
+        Long r = Long.parseLong(parts[11].trim());
+        assertNotNull(r);
       }
-      sleepUninterruptibly(300, TimeUnit.MILLISECONDS);
     }
-    thread.join();
-
-    assertFalse("Could not find any active scans over table " + table, scans.isEmpty());
-
-    for (String scan : scans) {
-      if (!scan.contains("RUNNING")) {
-        log.info("Ignoring scan because it doesn't contain 'RUNNING': " + scan);
-        continue;
-      }
-      String parts[] = scan.split("\\|");
-      assertEquals("Expected 14 colums, but found " + parts.length + " instead for '"
-          + Arrays.toString(parts) + "'", 14, parts.length);
-      String tserver = parts[0].trim();
-      // TODO: any way to tell if the client address is accurate? could be local IP, host,
-      // loopback...?
-      String hostPortPattern = ".+:\\d+";
-      assertTrue(tserver.matches(hostPortPattern));
-      assertTrue(getConnector().instanceOperations().getTabletServers().contains(tserver));
-      String client = parts[1].trim();
-      assertTrue(client + " does not match " + hostPortPattern, client.matches(hostPortPattern));
-      // Scan ID should be a long (throwing an exception if it fails to parse)
-      Long.parseLong(parts[11].trim());
-    }
-
     ts.exec("deletetable -f " + table, true);
   }
 
   @Test
-  public void testPertableClasspath() throws Exception {
-    final String table = name.getMethodName();
+  public void testPerTableClasspathLegacyJar() throws Exception {
+
+    File fooConstraintJar = initJar("/FooConstraint.jar");
+
+    verifyPerTableClasspath(fooConstraintJar);
+  }
+
+  @Test
+  public void testPerTableClasspath_2_1_Jar() throws Exception {
+
+    File fooConstraintJar = initJar("/FooConstraint_2_1.jar");
+
+    verifyPerTableClasspath(fooConstraintJar);
+  }
+
+  public void verifyPerTableClasspath(final File fooConstraintJar) throws IOException {
+    final String table = getUniqueNames(1)[0];
 
     File fooFilterJar = File.createTempFile("FooFilter", ".jar", new File(rootPath));
 
@@ -1608,16 +1740,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
         fooFilterJar);
     fooFilterJar.deleteOnExit();
 
-    File fooConstraintJar = File.createTempFile("FooConstraint", ".jar", new File(rootPath));
-    FileUtils.copyInputStreamToFile(this.getClass().getResourceAsStream("/FooConstraint.jar"),
-        fooConstraintJar);
-    fooConstraintJar.deleteOnExit();
-
-    ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1="
-        + fooFilterJar.toURI().toString() + "," + fooConstraintJar.toURI().toString(), true);
+    ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1=" + fooFilterJar.toURI()
+        + "," + fooConstraintJar.toURI(), true);
 
     ts.exec("createtable " + table, true);
-    ts.exec("config -t " + table + " -s " + Property.TABLE_CLASSPATH.getKey() + "=cx1", true);
+    ts.exec("config -t " + table + " -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=cx1",
+        true);
 
     sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
 
@@ -1643,26 +1771,17 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("insert ok foo q v", true);
 
     ts.exec("deletetable -f " + table, true);
-    ts.exec("config -d " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
+    ts.exec("config -d " + VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
 
   }
 
-  @Test
-  public void trace() throws Exception {
-    // Make sure to not collide with the "trace" table
-    final String table = name.getMethodName() + "Test";
+  private File initJar(final String jarPath) throws IOException {
 
-    ts.exec("trace on", true);
-    ts.exec("createtable " + table, true);
-    ts.exec("insert a b c value", true);
-    ts.exec("scan -np", true, "value", true);
-    ts.exec("deletetable -f " + table);
-    ts.exec("sleep 1");
-    String trace = ts.exec("trace off");
-    System.out.println(trace);
-    assertTrue(trace.contains("sendMutations"));
-    assertTrue(trace.contains("startScan"));
-    assertTrue(trace.contains("DeleteTable"));
+    File fooConstraintJar = File.createTempFile("FooConstraint", ".jar", new File(rootPath));
+    FileUtils.copyInputStreamToFile(this.getClass().getResourceAsStream(jarPath), fooConstraintJar);
+    fooConstraintJar.deleteOnExit();
+
+    return fooConstraintJar;
   }
 
   @Test
@@ -1676,74 +1795,82 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void namespaces() throws Exception {
+    final String[] names = getUniqueNames(5);
+
+    final String tableName = names[0];
+    final String ns_1 = names[1];
+    final String ns_2 = names[2];
+    final String ns_3 = names[3];
+    final String ns_4 = names[4];
+
     ts.exec("namespaces", true, "\"\"", true); // default namespace, displayed as quoted empty
                                                // string
-    ts.exec("namespaces", true, Namespaces.ACCUMULO_NAMESPACE, true);
-    ts.exec("createnamespace thing1", true);
+    ts.exec("namespaces", true, Namespace.ACCUMULO.name(), true);
+    ts.exec("createnamespace " + ns_1, true);
     String namespaces = ts.exec("namespaces");
-    assertTrue(namespaces.contains("thing1"));
+    assertTrue(namespaces.contains(ns_1));
 
-    ts.exec("renamenamespace thing1 thing2");
+    ts.exec("renamenamespace " + ns_1 + " " + ns_2);
     namespaces = ts.exec("namespaces");
-    assertTrue(namespaces.contains("thing2"));
-    assertTrue(!namespaces.contains("thing1"));
+    assertTrue(namespaces.contains(ns_2));
+    assertFalse(namespaces.contains(ns_1));
 
     // can't delete a namespace that still contains tables, unless you do -f
-    ts.exec("createtable thing2.thingy", true);
-    ts.exec("deletenamespace thing2");
+    ts.exec("createtable " + ns_2 + "." + tableName, true);
+    ts.exec("deletenamespace " + ns_2);
     ts.exec("y");
-    ts.exec("namespaces", true, "thing2", true);
+    ts.exec("namespaces", true, ns_2, true);
 
-    ts.exec("du -ns thing2", true, "thing2.thingy", true);
+    ts.exec("du -ns " + ns_2, true, ns_2 + "." + tableName, true);
 
     // all "TableOperation" commands can take a namespace
-    ts.exec("offline -ns thing2", true);
-    ts.exec("online -ns thing2", true);
-    ts.exec("flush -ns thing2", true);
-    ts.exec("compact -ns thing2", true);
-    ts.exec("createnamespace testers3", true);
-    ts.exec("createtable testers3.1", true);
-    ts.exec("createtable testers3.2", true);
-    ts.exec("deletetable -ns testers3 -f", true);
-    ts.exec("tables", true, "testers3.1", false);
-    ts.exec("namespaces", true, "testers3", true);
-    ts.exec("deletenamespace testers3 -f", true);
+    ts.exec("offline -ns " + ns_2, true);
+    ts.exec("online -ns " + ns_2, true);
+    ts.exec("flush -ns " + ns_2, true);
+    ts.exec("compact -ns " + ns_2, true);
+    ts.exec("createnamespace " + ns_3, true);
+    ts.exec("createtable " + ns_3 + ".1", true);
+    ts.exec("createtable " + ns_3 + ".2", true);
+    ts.exec("deletetable -ns " + ns_3 + " -f", true);
+    ts.exec("tables", true, ns_3 + ".1", false);
+    ts.exec("namespaces", true, ns_3, true);
+    ts.exec("deletenamespace " + ns_3 + " -f", true);
     ts.input.set("true\n\n\n\nSTRING\n");
-    ts.exec("setiter -ns thing2 -scan -class " + SUMMING_COMBINER_ITERATOR + " -p 10 -n name",
+    ts.exec("setiter -ns " + ns_2 + " -scan -class " + SUMMING_COMBINER_ITERATOR + " -p 10 -n name",
         true);
-    ts.exec("listiter -ns thing2 -scan", true, "Summing", true);
-    ts.exec("deleteiter -ns thing2 -n name -scan", true);
+    ts.exec("listiter -ns " + ns_2 + " -scan", true, "Summing", true);
+    ts.exec("deleteiter -ns " + ns_2 + " -n name -scan", true);
     ts.exec("createuser dude");
     ts.exec("pass");
     ts.exec("pass");
-    ts.exec("grant Namespace.CREATE_TABLE -ns thing2 -u dude", true);
-    ts.exec("revoke Namespace.CREATE_TABLE -ns thing2 -u dude", true);
+    ts.exec("grant Namespace.CREATE_TABLE -ns " + ns_2 + " -u dude", true);
+    ts.exec("revoke Namespace.CREATE_TABLE -ns " + ns_2 + " -u dude", true);
 
     // properties override and such
-    ts.exec("config -ns thing2 -s table.file.max=44444", true);
-    ts.exec("config -ns thing2", true, "44444", true);
-    ts.exec("config -t thing2.thingy", true, "44444", true);
-    ts.exec("config -t thing2.thingy -s table.file.max=55555", true);
-    ts.exec("config -t thing2.thingy", true, "55555", true);
+    ts.exec("config -ns " + ns_2 + " -s table.file.max=44444", true);
+    ts.exec("config -ns " + ns_2, true, "44444", true);
+    ts.exec("config -t " + ns_2 + "." + tableName, true, "44444", true);
+    ts.exec("config -t " + ns_2 + "." + tableName + " -s table.file.max=55555", true);
+    ts.exec("config -t " + ns_2 + "." + tableName, true, "55555", true);
 
     // can copy properties when creating
-    ts.exec("createnamespace thing3 -cc thing2", true);
-    ts.exec("config -ns thing3", true, "44444", true);
+    ts.exec("createnamespace " + ns_4 + " -cc " + ns_2, true);
+    ts.exec("config -ns " + ns_4, true, "44444", true);
 
-    ts.exec("deletenamespace -f thing2", true);
-    ts.exec("namespaces", true, "thing2", false);
-    ts.exec("tables", true, "thing2.thingy", false);
+    ts.exec("deletenamespace -f " + ns_2, true);
+    ts.exec("namespaces", true, ns_2, false);
+    ts.exec("tables", true, ns_2 + "." + tableName, false);
 
     // put constraints on a namespace
-    ts.exec("constraint -ns thing3 -a"
-        + " org.apache.accumulo.examples.simple.constraints.NumericValueConstraint", true);
-    ts.exec("createtable thing3.constrained", true);
-    ts.exec("table thing3.constrained", true);
+    ts.exec("constraint -ns " + ns_4
+        + " -a org.apache.accumulo.test.constraints.NumericValueConstraint", true);
+    ts.exec("createtable " + ns_4 + ".constrained", true);
+    ts.exec("table " + ns_4 + ".constrained", true);
     ts.exec("constraint -d 1");
     // should fail
     ts.exec("constraint -l", true, "NumericValueConstraint", true);
     ts.exec("insert r cf cq abc", false);
-    ts.exec("constraint -ns thing3 -d 1");
+    ts.exec("constraint -ns " + ns_4 + " -d 1");
     ts.exec("sleep 1");
     ts.exec("insert r cf cq abc", true);
   }
@@ -1773,30 +1900,46 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Test
+  public void scansWithColon() throws Exception {
+    ts.exec("createtable twithcolontest");
+    ts.exec("insert row c:f cq value");
+    ts.exec("scan -r row -cf c:f", true, "value");
+    ts.exec("scan -b row -cf c:f  -cq cq -e row", true, "value");
+    ts.exec("scan -b row -c cf -cf c:f  -cq cq -e row", false, "mutually exclusive");
+    ts.exec("scan -b row -cq col1 -e row", false, "Option -cf is required when using -cq");
+    ts.exec("deletetable -f twithcolontest");
+  }
+
+  @Test
   public void scansWithClassLoaderContext() throws IOException {
+
     try {
-      Class.forName(VALUE_REVERSING_ITERATOR);
+      var clazzName = Class.forName(VALUE_REVERSING_ITERATOR);
+      log.warn("Found {} on classpath - failing test", clazzName);
       fail("ValueReversingIterator already on the classpath");
     } catch (ClassNotFoundException e) {
       // expected; iterator is already on the class path
     }
-    ts.exec("createtable t");
+
+    final String tableName = getUniqueNames(1)[0];
+
+    ts.exec("createtable " + tableName);
     // Assert that the TabletServer does not know anything about our class
-    String result =
-        ts.exec("setiter -scan -n reverse -t t -p 21 -class " + VALUE_REVERSING_ITERATOR);
+    String result = ts.exec(
+        "setiter -scan -n reverse -t " + tableName + " -p 21 -class " + VALUE_REVERSING_ITERATOR);
     assertTrue(result.contains("class not found"));
     make10();
     setupFakeContextPath();
     // Add the context to the table so that setiter works.
-    result = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "="
+    result = ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY + FAKE_CONTEXT + "="
         + FAKE_CONTEXT_CLASSPATH);
-    assertEquals("root@miniInstance t> config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY
+    assertEquals("root@miniInstance " + tableName + "> config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY
         + FAKE_CONTEXT + "=" + FAKE_CONTEXT_CLASSPATH + "\n", result);
 
-    result = ts.exec("config -t t -s table.classpath.context=" + FAKE_CONTEXT);
-    assertEquals(
-        "root@miniInstance t> config -t t -s table.classpath.context=" + FAKE_CONTEXT + "\n",
-        result);
+    result = ts.exec("config -t " + tableName + " -s " + Property.TABLE_CLASSLOADER_CONTEXT.getKey()
+        + "=" + FAKE_CONTEXT);
+    assertEquals("root@miniInstance " + tableName + "> config -t " + tableName + " -s "
+        + Property.TABLE_CLASSLOADER_CONTEXT.getKey() + "=" + FAKE_CONTEXT + "\n", result);
 
     result = ts.exec("setshelliter -pn baz -n reverse -p 21 -class " + VALUE_REVERSING_ITERATOR);
     assertTrue(result.contains("The iterator class does not implement OptionDescriber"));
@@ -1823,9 +1966,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     setupRealContextPath();
     // Define a new classloader context, but don't set it on the table
-    result = ts.exec("config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "="
+    result = ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY + REAL_CONTEXT + "="
         + REAL_CONTEXT_CLASSPATH);
-    assertEquals("root@miniInstance t> config -s " + Property.VFS_CONTEXT_CLASSPATH_PROPERTY
+    assertEquals("root@miniInstance " + tableName + "> config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY
         + REAL_CONTEXT + "=" + REAL_CONTEXT_CLASSPATH + "\n", result);
     // Override the table classloader context with the REAL implementation of
     // ValueReversingIterator, which does reverse the value.
@@ -1851,7 +1994,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertEquals(11, result.split("\n").length);
     assertTrue(result.contains("eulav"));
     assertFalse(result.contains("value"));
-    ts.exec("deletetable -f t");
+    ts.exec("deletetable -f " + tableName);
   }
 
   /**
@@ -1862,14 +2005,14 @@ public class ShellServerIT extends SharedMiniClusterBase {
    */
   @Test
   public void testScanTableWithIterSetWithoutProfile() throws Exception {
-    final String table = name.getMethodName();
+    final String table = getUniqueNames(1)[0];
 
     // create a table
     ts.exec("createtable " + table, true);
 
     // add some data
     ts.exec("insert foo a b c", true);
-    ts.exec("scan", true, "foo a:b []    c");
+    ts.exec("scan", true, "foo a:b []\tc");
 
     // create a normal iterator while in current table context
     ts.input.set("\n1000\n\n");
@@ -1887,7 +2030,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // add some data
     ts.exec("insert foo a b c", true);
     ts.exec("notable");
-    ts.exec("scan -t " + table, true, "foo a:b []    c");
+    ts.exec("scan -t " + table, true, "foo a:b []\tc");
 
     // create a normal iterator which in current table context
     ts.input.set("\n1000\n\n");
@@ -1896,6 +2039,58 @@ public class ShellServerIT extends SharedMiniClusterBase {
     // re-scan the table. Should not see data.
     ts.exec("scan -t " + table, true, "", true);
     ts.exec("deletetable -f " + table);
+  }
+
+  /**
+   * Validate importdirectory command accepts adding -t tablename option or the accepts original
+   * format that uses the current working table. Currently this test does not validate the actual
+   * import - only the command syntax.
+   *
+   * @throws Exception
+   *           any exception is a test failure.
+   */
+  @Test
+  public void importDirectoryCmdFmt() throws Exception {
+    final String table = getUniqueNames(1)[0];
+
+    File importDir = new File(rootPath, "import_" + table);
+    assertTrue(importDir.mkdir());
+    File errorsDir = new File(rootPath, "errors_" + table);
+    assertTrue(errorsDir.mkdir());
+
+    // expect fail - table does not exist.
+    ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), false,
+        "TableNotFoundException");
+
+    ts.exec(String.format("table %s", table), false, "TableNotFoundException");
+
+    ts.exec("createtable " + table, true);
+
+    // validate -t option is used.
+    ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), true);
+
+    // validate -t option is used.
+    ts.exec(String.format("importdirectory -t %s %s %s false", table, importDir, errorsDir), true);
+
+    // validate -t and -i option is used with new bulk import.
+    // This will fail as there are no files in the import directory
+    ts.exec(String.format("importdirectory -t %s %s false", table, importDir), false);
+
+    // validate -t and -i option is used with new bulk import.
+    // This should pass even if no files in import directory. Empty import dir is ignored.
+    ts.exec(String.format("importdirectory -t %s %s false -i", table, importDir), true);
+
+    // validate original cmd format.
+    ts.exec(String.format("table %s", table), true);
+    ts.exec(String.format("importdirectory %s %s false", importDir, errorsDir), true);
+
+    // expect fail - invalid command,
+    ts.exec("importdirectory false", false, "Expected 2 or 3 arguments. There was 1.");
+
+    // expect fail - original cmd without a table.
+    ts.exec("notable", true);
+    ts.exec(String.format("importdirectory %s %s false", importDir, errorsDir), false,
+        "java.lang.IllegalStateException: Not in a table context.");
   }
 
   private static final String FAKE_CONTEXT = "FAKE";
@@ -1966,12 +2161,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec(
         "scan -t " + MetadataTable.NAME + " -np -c file -b " + tableId + " -e " + tableId + "~");
 
-    log.debug("countFiles(): " + ts.output.get());
+    log.debug("countFiles(): {}", ts.output.get());
 
-    String[] lines = StringUtils.split(ts.output.get(), "\n");
+    String[] lines = ts.output.get().split("\n");
     ts.output.clear();
 
-    if (0 == lines.length) {
+    if (lines.length == 0) {
       return Collections.emptyList();
     }
 
@@ -1983,20 +2178,765 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   private String getTableId(String tableName) throws Exception {
-    Connector conn = getConnector();
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-    for (int i = 0; i < 5; i++) {
-      Map<String,String> nameToId = conn.tableOperations().tableIdMap();
-      if (nameToId.containsKey(tableName)) {
-        return nameToId.get(tableName);
-      } else {
-        Thread.sleep(1000);
+      for (int i = 0; i < 5; i++) {
+        Map<String,String> nameToId = client.tableOperations().tableIdMap();
+        if (nameToId.containsKey(tableName)) {
+          return nameToId.get(tableName);
+        } else {
+          Thread.sleep(1000);
+        }
       }
-    }
 
-    fail("Could not find ID for table: " + tableName);
-    // Will never get here
-    return null;
+      fail("Could not find ID for table: " + tableName);
+      // Will never get here
+      return null;
+    }
   }
 
+  private static void assertMatches(String output, String pattern) {
+    var p = Pattern.compile(pattern).asMatchPredicate();
+    assertTrue("Pattern " + pattern + " did not match output : " + output, p.test(output));
+  }
+
+  private static void assertNotContains(String output, String subsequence) {
+    assertFalse("Expected '" + subsequence + "' would not occur in output : " + output,
+        output.contains(subsequence));
+  }
+
+  @Test
+  public void testSummaries() throws Exception {
+    String tableName = getUniqueNames(1)[0];
+    ts.exec("createtable " + tableName);
+    ts.exec(
+        "config -t " + tableName + " -s table.summarizer.del=" + DeletesSummarizer.class.getName());
+    ts.exec(
+        "config -t " + tableName + " -s table.summarizer.fam=" + FamilySummarizer.class.getName());
+
+    ts.exec("addsplits -t " + tableName + " r1 r2");
+    ts.exec("insert r1 f1 q1 v1");
+    ts.exec("insert r2 f2 q1 v3");
+    ts.exec("insert r2 f2 q2 v4");
+    ts.exec("insert r3 f3 q1 v5");
+    ts.exec("insert r3 f3 q2 v6");
+    ts.exec("insert r3 f3 q3 v7");
+    ts.exec("flush -t " + tableName + " -w");
+
+    String output = ts.exec("summaries");
+    assertMatches(output, "(?sm).*^.*deletes\\s+=\\s+0.*$.*");
+    assertMatches(output, "(?sm).*^.*total\\s+=\\s+6.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f1\\s+=\\s+1.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f3\\s+=\\s+3.*$.*");
+
+    ts.exec("delete r1 f1 q2");
+    ts.exec("delete r2 f2 q1");
+    ts.exec("flush -t " + tableName + " -w");
+
+    output = ts.exec("summaries");
+    assertMatches(output, "(?sm).*^.*deletes\\s+=\\s+2.*$.*");
+    assertMatches(output, "(?sm).*^.*total\\s+=\\s+8.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f1\\s+=\\s+1.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f3\\s+=\\s+3.*$.*");
+
+    output = ts.exec("summaries -e r2");
+    assertMatches(output, "(?sm).*^.*deletes\\s+=\\s+2.*$.*");
+    assertMatches(output, "(?sm).*^.*total\\s+=\\s+5.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f1\\s+=\\s+1.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
+    assertNotContains(output, "c:f3");
+
+    output = ts.exec("summaries -b r2");
+    assertMatches(output, "(?sm).*^.*deletes\\s+=\\s+0.*$.*");
+    assertMatches(output, "(?sm).*^.*total\\s+=\\s+3.*$.*");
+    assertNotContains(output, "c:f1");
+    assertNotContains(output, "c:f2");
+    assertMatches(output, "(?sm).*^.*c:f3\\s+=\\s+3.*$.*");
+
+    output = ts.exec("summaries -b r1 -e r2");
+    assertMatches(output, "(?sm).*^.*deletes\\s+=\\s+1.*$.*");
+    assertMatches(output, "(?sm).*^.*total\\s+=\\s+3.*$.*");
+    assertNotContains(output, "c:f1");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
+    assertNotContains(output, "c:f3");
+
+    output = ts.exec("summaries -sr .*Family.*");
+    assertNotContains(output, "deletes ");
+    assertMatches(output, "(?sm).*^.*c:f1\\s+=\\s+1.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f3\\s+=\\s+3.*$.*");
+
+    output = ts.exec("summaries -b r1 -e r2 -sr .*Family.*");
+    assertNotContains(output, "deletes ");
+    assertNotContains(output, "c:f1");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
+    assertNotContains(output, "c:f3");
+  }
+
+  @Test
+  public void testSummarySelection() throws Exception {
+    String tableName = getUniqueNames(1)[0];
+    ts.exec("createtable " + tableName);
+    // will create a few files and do not want them compacted
+    ts.exec("config -t " + tableName + " -s " + Property.TABLE_MAJC_RATIO + "=10");
+
+    ts.exec("insert r1 f1 q1 v1");
+    ts.exec("insert r2 f2 q1 v2");
+    ts.exec("flush -t " + tableName + " -w");
+
+    ts.exec(
+        "config -t " + tableName + " -s table.summarizer.fam=" + FamilySummarizer.class.getName());
+
+    ts.exec("insert r1 f2 q1 v3");
+    ts.exec("insert r3 f3 q1 v4");
+    ts.exec("flush -t " + tableName + " -w");
+
+    String output = ts.exec("summaries");
+    assertNotContains(output, "c:f1");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+1.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f3\\s+=\\s+1.*$.*");
+    // check that there are two files, with one missing summary info
+    assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]1[,]\\s+extra[:]0.*$.*");
+
+    // compact only the file missing summary info
+    ts.exec("compact -t " + tableName + " --sf-no-summary -w");
+    output = ts.exec("summaries");
+    assertMatches(output, "(?sm).*^.*c:f1\\s+=\\s+1.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f3\\s+=\\s+1.*$.*");
+    // check that there are two files, with none missing summary info
+    assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]0[,]\\s+extra[:]0.*$.*");
+
+    // create a situation where files has summary data outside of tablet
+    ts.exec("addsplits -t " + tableName + " r2");
+    output = ts.exec("summaries -e r2");
+    assertMatches(output, "(?sm).*^.*c:f1\\s+=\\s+1.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f3\\s+=\\s+1.*$.*");
+    // check that there are two files, with one having extra summary info
+    assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]0[,]\\s+extra[:]1.*$.*");
+
+    // compact only the files with extra summary info
+    ts.exec("compact -t " + tableName + " --sf-extra-summary -w");
+    output = ts.exec("summaries -e r2");
+    assertMatches(output, "(?sm).*^.*c:f1\\s+=\\s+1.*$.*");
+    assertMatches(output, "(?sm).*^.*c:f2\\s+=\\s+2.*$.*");
+    assertNotContains(output, "c:f3");
+    // check that there are two files, with none having extra summary info
+    assertMatches(output, "(?sm).*^.*total[:]2[,]\\s+missing[:]0[,]\\s+extra[:]0.*$.*");
+  }
+
+  @Test
+  public void testCreateTableWithLocalityGroups() throws Exception {
+    final String table = getUniqueNames(1)[0];
+    ts.exec("createtable " + table + " -l locg1=fam1,fam2", true);
+    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
+      Map<String,Set<Text>> lMap = accumuloClient.tableOperations().getLocalityGroups(table);
+      Set<Text> expectedColFams = Set.of(new Text("fam1"), new Text("fam2"));
+      for (Entry<String,Set<Text>> entry : lMap.entrySet()) {
+        assertEquals("locg1", entry.getKey());
+        assertTrue(entry.getValue().containsAll(expectedColFams));
+      }
+      ts.exec("deletetable -f " + table);
+    }
+  }
+
+  /**
+   * Due to the existing complexity of the createtable command, the createtable help only displays
+   * an example of setting one locality group. It is possible to set multiple groups if needed. This
+   * test verifies that capability.
+   */
+  @Test
+  public void testCreateTableWithMultipleLocalityGroups() throws Exception {
+    final String table = getUniqueNames(1)[0];
+    ts.exec("createtable " + table + " -l locg1=fam1,fam2 locg2=colfam1", true);
+    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
+      Map<String,Set<Text>> lMap = accumuloClient.tableOperations().getLocalityGroups(table);
+      assertTrue(lMap.containsKey("locg1"));
+      assertTrue(lMap.containsKey("locg2"));
+      Set<Text> expectedColFams1 = Set.of(new Text("fam1"), new Text("fam2"));
+      Set<Text> expectedColFams2 = Set.of(new Text("colfam1"));
+      assertTrue(lMap.get("locg1").containsAll(expectedColFams1));
+      assertTrue(lMap.get("locg2").containsAll(expectedColFams2));
+      ts.exec("deletetable -f " + table);
+    }
+  }
+
+  @Test
+  public void testCreateTableWithLocalityGroupsBadArguments() throws IOException {
+    final String table = getUniqueNames(1)[0];
+    ts.exec("createtable " + table + " -l locg1 fam1,fam2", false);
+    ts.exec("createtable " + table + "-l", false);
+    ts.exec("createtable " + table + " -l locg1 = fam1,fam2", false);
+    ts.exec("createtable " + table + " -l locg1=fam1 ,fam2", false);
+    ts.exec("createtable " + table + " -l locg1=fam1,fam2 locg1=fam3,fam4", false);
+    ts.exec("createtable " + table + " -l locg1=fam1,fam2 locg2=fam1", false);
+    ts.exec("createtable " + table + " -l locg1", false);
+    ts.exec("createtable " + table + " group=fam1", false);
+    ts.exec("createtable " + table + "-l fam1,fam2", false);
+  }
+
+  @Test
+  public void testCreateTableWithIterators() throws Exception {
+    final String tmpTable = "tmpTable";
+    final String table = getUniqueNames(1)[0];
+
+    // create iterator profile
+    // Will use tmpTable for creating profile since setshelliter is requiring a table
+    // even though its command line help indicates that it is optional. Likely due to
+    // the fact that setshelliter extends setiter, which does require a table argument.
+    ts.exec("createtable " + tmpTable, true);
+    String output = ts.exec("tables");
+    assertTrue(output.contains(tmpTable));
+
+    ts.input.set("\n5000\n\n");
+    ts.exec("setshelliter -n itname -p 10 -pn profile1 -ageoff", true);
+    output = ts.exec("listshelliter");
+    assertTrue(output.contains("Profile : profile1"));
+
+    // create table making use of the iterator profile
+    ts.exec("createtable " + table + " -i profile1:scan,minc", true);
+    ts.exec("insert foo a b c", true);
+    ts.exec("scan", true, "foo a:b []\tc");
+    ts.exec("sleep 6", true);
+    ts.exec("scan", true, "", true);
+    ts.exec("deletetable -f " + table);
+    ts.exec("deletetable -f " + tmpTable);
+  }
+
+  /**
+   * Due to the existing complexity of the createtable command, the createtable help only displays
+   * an example of setting one iterator upon table creation. It is possible to set multiple if
+   * needed. This test verifies that capability.
+   */
+  @Test
+  public void testCreateTableWithMultipleIterators() throws Exception {
+    final String tmpTable = "tmpTable";
+    final String table = getUniqueNames(1)[0];
+
+    // create iterator profile
+    // Will use tmpTable for creating profile since setshelliter is requiring a table
+    // even though its command line help indicates that it is optional. Likely due to
+    // the fact that setshelliter extends setiter, which does require a table argument.
+    ts.exec("createtable " + tmpTable, true);
+    String output = ts.exec("tables");
+    assertTrue(output.contains(tmpTable));
+
+    ts.input.set("\n5000\n\n");
+    ts.exec("setshelliter -n itname -p 10 -pn profile1 -ageoff", true);
+    output = ts.exec("listshelliter");
+    assertTrue(output.contains("Profile : profile1"));
+
+    ts.input.set("2\n");
+    ts.exec("setshelliter -n iter2 -p 11 -pn profile2 -vers", true);
+    output = ts.exec("listshelliter");
+    assertTrue(output.contains("Profile : profile2"));
+
+    // create table making use of the iterator profiles
+    ts.exec("createtable " + table + " -i profile1:scan,minc profile2:all ", true);
+    ts.exec("insert foo a b c", true);
+    ts.exec("scan", true, "foo a:b []\tc");
+    ts.exec("sleep 6", true);
+    ts.exec("scan", true, "", true);
+    output = ts.exec("listiter -t " + table + " -all");
+    assertTrue(output.contains("Iterator itname, scan scope options"));
+    assertTrue(output.contains("Iterator itname, minc scope options"));
+    assertFalse(output.contains("Iterator itname, majc scope options"));
+    assertTrue(output.contains("Iterator iter2, scan scope options"));
+    assertTrue(output.contains("Iterator iter2, minc scope options"));
+    assertTrue(output.contains("Iterator iter2, majc scope options"));
+    ts.exec("deletetable -f " + table);
+    ts.exec("deletetable -f " + tmpTable);
+  }
+
+  @Test
+  public void testCreateTableWithIteratorsBadArguments() throws IOException {
+    final String tmpTable = "tmpTable";
+    final String table = getUniqueNames(1)[0];
+    ts.exec("createtable " + tmpTable, true);
+    String output = ts.exec("tables");
+    assertTrue(output.contains(tmpTable));
+    ts.input.set("\n5000\n\n");
+    ts.exec("setshelliter -n itname -p 10 -pn profile1 -ageoff", true);
+    output = ts.exec("listshelliter");
+    assertTrue(output.contains("Profile : profile1"));
+    // test various bad argument calls
+    ts.exec("createtable " + table + " -i noprofile:scan,minc", false);
+    ts.exec("createtable " + table + " -i profile1:scan,minc,all,majc", false);
+    ts.exec("createtable " + table + " -i profile1:scan,all,majc", false);
+    ts.exec("createtable " + table + " -i profile1:scan,min,majc", false);
+    ts.exec("createtable " + table + " -i profile1:scan,max,all", false);
+    ts.exec("createtable " + table + " -i profile1:", false);
+    ts.exec("createtable " + table + " -i profile1: ", false);
+    ts.exec("createtable " + table + " -i profile1:-scan", false);
+    ts.exec("createtable " + table + " profile1:majc", false);
+    ts.exec("createtable " + table + " -i profile1: all", false);
+    ts.exec("createtable " + table + " -i profile1: All", false);
+    ts.exec("createtable " + table + " -i profile1: scan", false);
+    ts.exec("createtable " + table + " -i profile1:minc scan", false);
+    ts.exec("createtable " + table + " -i profile1:minc,Scan", false);
+    ts.exec("createtable " + table + " -i profile1:minc, scan", false);
+    ts.exec("createtable " + table + " -i profile1:minc,,scan", false);
+    ts.exec("createtable " + table + " -i profile1:minc,minc", false);
+    ts.exec("createtable " + table + " -i profile1:minc,Minc", false);
+    ts.exec("createtable " + table + " -i profile1:minc, ,scan", false);
+    ts.exec("createtable " + table + "-i", false);
+    ts.exec("createtable " + table + "-i ", false);
+    ts.exec("deletetable -f " + tmpTable);
+  }
+
+  /**
+   * Verify that table can be created in offline status and then be brought online.
+   */
+  @Test
+  public void testCreateTableOffline() throws IOException {
+    final String tableName = getUniqueNames(1)[0];
+    ts.exec("createtable " + tableName + " -o", true);
+    String output = ts.exec("tables");
+    assertTrue(output.contains(tableName));
+    output = ts.exec("scan -t " + tableName, false, "is offline", true);
+    assertTrue(output.contains("TableOfflineException"));
+    ts.exec("table " + tableName, true);
+    ts.exec("online", true);
+    ts.exec("scan", true);
+    ts.exec("deletetable -f " + tableName, true);
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and un-encoded with no repeats or blank lines.
+   */
+  @Test
+  public void testCreateTableWithSplitsFile1()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      generateSplitsFile(splitsFile, 1000, 12, false, false, true, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
+      final String tableName = getUniqueNames(1)[0];
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, unsorted and un-encoded with no repeats or blank lines.
+   */
+  @Test
+  public void testCreateTableWithSplitsFile2()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      generateSplitsFile(splitsFile, 300, 12, false, false, false, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
+      final String tableName = getUniqueNames(1)[0];
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and encoded with no repeats or blank lines.
+   */
+  @Test
+  public void testCreateTableWithSplitsFile3()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      generateSplitsFile(splitsFile, 100, 23, false, true, true, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
+      final String tableName = getUniqueNames(1)[0];
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and un-encoded with a blank line and no repeats.
+   */
+  @Test
+  public void testCreateTableWithSplitsFile4()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      generateSplitsFile(splitsFile, 100, 31, false, false, true, true, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
+      final String tableName = getUniqueNames(1)[0];
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and un-encoded with a blank line and no repeats.
+   */
+  @Test
+  public void testCreateTableWithSplitsFile5()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      generateSplitsFile(splitsFile, 100, 32, false, false, true, false, true);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
+      final String tableName = getUniqueNames(1)[0];
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, unsorted and un-encoded with a blank line and repeats.
+   */
+  @Test
+  public void testCreateTableWithSplitsFile6()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      generateSplitsFile(splitsFile, 100, 12, false, false, false, true, true);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
+      final String tableName = getUniqueNames(1)[0];
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and encoded with a blank line and repeats.
+   */
+  @Test
+  public void testCreateTableWithSplitsFile7()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      generateSplitsFile(splitsFile, 100, 12, false, false, true, true, true);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
+      final String tableName = getUniqueNames(1)[0];
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits file will be empty.
+   */
+  @Test(expected = org.apache.accumulo.core.client.TableNotFoundException.class)
+  public void testCreateTableWithEmptySplitFile()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      generateSplitsFile(splitsFile, 0, 0, false, false, false, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
+      final String tableName = getUniqueNames(1)[0];
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, false);
+      Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table that used splits from another table.
+   */
+  @Test
+  public void testCreateTableWithCopySplitsFromOtherTable()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    // create a table and add some splits
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      final String[] tableNames = getUniqueNames(2);
+      final String tableName0 = tableNames[0];
+      final String tableName2 = tableNames[1];
+
+      ts.exec("createtable " + tableName0, true);
+      String output = ts.exec("tables", true);
+      assertTrue(output.contains(tableName0));
+      ts.exec("table " + tableName0, true);
+      // add splits to this table using the addsplits command.
+      List<Text> splits = new ArrayList<>();
+      splits.add(new Text("ccccc"));
+      splits.add(new Text("fffff"));
+      splits.add(new Text("mmmmm"));
+      splits.add(new Text("sssss"));
+      ts.exec("addsplits " + splits.get(0) + " " + splits.get(1) + " " + splits.get(2) + " "
+          + splits.get(3), true);
+      // Now create a table that will used the previous tables splits and create them at table
+      // creation
+      ts.exec("createtable " + tableName2 + " --copy-splits " + tableName0, true);
+      ts.exec("table " + tableName0, true);
+      String tablesOutput = ts.exec("tables", true);
+      assertTrue(tablesOutput.contains(tableName2));
+      Collection<Text> createdSplits = client.tableOperations().listSplits(tableName2);
+      assertEquals(new TreeSet<>(splits), new TreeSet<>(createdSplits));
+      ts.exec("deletetable -f " + tableName0, true);
+      ts.exec("deletetable -f " + tableName2, true);
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and encoded with no repeats or blank lines.
+   */
+  @Test
+  public void testCreateTableWithBinarySplitsFile1()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      generateSplitsFile(splitsFile, 200, 12, true, true, true, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
+      final String tableName = getUniqueNames(1)[0];
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, unsorted and encoded with no repeats or blank lines.
+   */
+  @Test
+  public void testCreateTableWithBinarySplitsFile2()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      generateSplitsFile(splitsFile, 300, 12, true, true, false, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
+      final String tableName = getUniqueNames(1)[0];
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and encoded with no repeats or blank lines.
+   */
+  @Test
+  public void testCreateTableWithBinarySplitsFile3()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      generateSplitsFile(splitsFile, 100, 23, true, true, true, false, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
+      final String tableName = getUniqueNames(1)[0];
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and encoded with a blank line and no repeats.
+   */
+  @Test
+  public void testCreateTableWithBinarySplitsFile4()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      generateSplitsFile(splitsFile, 100, 31, true, true, true, true, false);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
+      final String tableName = getUniqueNames(1)[0];
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and encoded with a blank line and no repeats.
+   */
+  @Test
+  public void testCreateTableWithBinarySplitsFile5()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      generateSplitsFile(splitsFile, 100, 32, true, true, true, false, true);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
+      final String tableName = getUniqueNames(1)[0];
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, unsorted and encoded with a blank line and repeats.
+   */
+  @Test
+  public void testCreateTableWithBinarySplitsFile6()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      generateSplitsFile(splitsFile, 100, 12, true, true, false, true, true);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
+      final String tableName = getUniqueNames(1)[0];
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  /**
+   * Use shell to create a table with a supplied file containing splits.
+   *
+   * The splits will be contained in a file, sorted and encoded with a blank line and repeats.
+   */
+  @Test
+  public void testCreateTableWithBinarySplitsFile7()
+      throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
+    String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      generateSplitsFile(splitsFile, 100, 12, true, true, true, true, true);
+      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
+      final String tableName = getUniqueNames(1)[0];
+      ts.exec("createtable " + tableName + " -sf " + splitsFile, true);
+      Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
+      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+    } finally {
+      Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  private SortedSet<Text> readSplitsFromFile(final String splitsFile) throws IOException {
+    SortedSet<Text> splits = new TreeSet<>();
+    try (BufferedReader reader = newBufferedReader(Paths.get(splitsFile))) {
+      String split;
+      while ((split = reader.readLine()) != null) {
+        Text unencodedString = decode(split);
+        if (unencodedString != null)
+          splits.add(unencodedString);
+      }
+    }
+    return splits;
+  }
+
+  private void generateSplitsFile(final String splitsFile, final int numItems, final int len,
+      final boolean binarySplits, final boolean encoded, final boolean sort,
+      final boolean addBlankLine, final boolean repeat) throws IOException {
+
+    java.nio.file.Path splitsPath = java.nio.file.Paths.get(splitsFile);
+    int insertAt = (len % 2 == 0) ? len / 2 : (len + 1) / 2;
+    Collection<Text> sortedSplits = null;
+    Collection<Text> randomSplits;
+
+    if (binarySplits)
+      randomSplits = generateBinarySplits(numItems, len);
+    else
+      randomSplits = generateNonBinarySplits(numItems, len);
+
+    if (sort)
+      sortedSplits = new TreeSet<>(randomSplits);
+
+    try (BufferedWriter writer = Files.newBufferedWriter(splitsPath, UTF_8)) {
+      int cnt = 0;
+      Collection<Text> splits;
+      if (sort)
+        splits = sortedSplits;
+      else
+        splits = randomSplits;
+
+      for (Text text : splits) {
+        if (addBlankLine && cnt++ == insertAt)
+          writer.write('\n');
+        writer.write(encode(text, encoded) + '\n');
+        if (repeat)
+          writer.write(encode(text, encoded) + '\n');
+      }
+    }
+  }
+
+  private Collection<Text> generateNonBinarySplits(final int numItems, final int len) {
+    Set<Text> splits = new HashSet<>();
+    for (int i = 0; i < numItems; i++) {
+      splits.add(getRandomText(len));
+    }
+    return splits;
+  }
+
+  private Collection<Text> generateBinarySplits(final int numItems, final int len) {
+    Set<Text> splits = new HashSet<>();
+    for (int i = 0; i < numItems; i++) {
+      byte[] split = new byte[len];
+      random.nextBytes(split);
+      splits.add(new Text(split));
+    }
+    return splits;
+  }
+
+  private Text getRandomText(final int len) {
+    int desiredLen = Math.min(len, 32);
+    return new Text(
+        String.valueOf(UUID.randomUUID()).replaceAll("-", "").substring(0, desiredLen - 1));
+  }
+
+  private static String encode(final Text text, final boolean encode) {
+    if (text.toString().isBlank())
+      return null;
+    return encode ? Base64.getEncoder().encodeToString(TextUtil.getBytes(text)) : text.toString();
+  }
+
+  private Text decode(final String text) {
+    if (requireNonNull(text).isBlank())
+      return null;
+    return new Text(text);
+  }
 }

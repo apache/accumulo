@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.mapreduce;
 
@@ -23,18 +25,13 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.mapreduce.impl.SplitUtils;
-import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase.TokenSource;
-import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
@@ -44,8 +41,6 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.Base64;
-import org.apache.accumulo.core.util.DeprecationUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
@@ -54,15 +49,19 @@ import org.apache.log4j.Level;
 
 /**
  * The Class RangeInputSplit. Encapsulates an Accumulo range for use in Map Reduce jobs.
+ *
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
+@Deprecated(since = "2.0.0")
 public class RangeInputSplit extends InputSplit implements Writable {
   private Range range;
   private String[] locations;
   private String tableId, tableName, instanceName, zooKeepers, principal;
-  private TokenSource tokenSource;
+  private org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource tokenSource;
   private String tokenFile;
   private AuthenticationToken token;
-  private Boolean offline, mockInstance, isolatedScan, localIterators;
+  private Boolean offline, isolatedScan, localIterators;
   private Authorizations auths;
   private Set<Pair<Text,Text>> fetchedColumns;
   private List<IteratorSetting> iterators;
@@ -95,7 +94,8 @@ public class RangeInputSplit extends InputSplit implements Writable {
   }
 
   public static float getProgress(ByteSequence start, ByteSequence end, ByteSequence position) {
-    return SplitUtils.getProgress(start, end, position);
+    return org.apache.accumulo.core.clientImpl.mapreduce.SplitUtils.getProgress(start, end,
+        position);
   }
 
   public float getProgress(Key currentKey) {
@@ -129,7 +129,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
    */
   @Override
   public long getLength() throws IOException {
-    return SplitUtils.getRangeLength(range);
+    return org.apache.accumulo.core.clientImpl.mapreduce.SplitUtils.getRangeLength(range);
   }
 
   @Override
@@ -160,17 +160,14 @@ public class RangeInputSplit extends InputSplit implements Writable {
     }
 
     if (in.readBoolean()) {
-      mockInstance = in.readBoolean();
-    }
-
-    if (in.readBoolean()) {
       int numColumns = in.readInt();
       List<String> columns = new ArrayList<>(numColumns);
       for (int i = 0; i < numColumns; i++) {
         columns.add(in.readUTF());
       }
 
-      fetchedColumns = InputConfigurator.deserializeFetchedColumns(columns);
+      fetchedColumns = org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator
+          .deserializeFetchedColumns(columns);
     }
 
     if (in.readBoolean()) {
@@ -184,13 +181,15 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
     if (in.readBoolean()) {
       int ordinal = in.readInt();
-      this.tokenSource = TokenSource.values()[ordinal];
+      this.tokenSource =
+          org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource
+              .values()[ordinal];
 
       switch (this.tokenSource) {
         case INLINE:
           String tokenClass = in.readUTF();
           byte[] base64TokenBytes = in.readUTF().getBytes(UTF_8);
-          byte[] tokenBytes = Base64.decodeBase64(base64TokenBytes);
+          byte[] tokenBytes = Base64.getDecoder().decode(base64TokenBytes);
 
           this.token = AuthenticationTokenSerializer.deserialize(tokenClass, tokenBytes);
           break;
@@ -235,88 +234,85 @@ public class RangeInputSplit extends InputSplit implements Writable {
     out.writeUTF(tableName);
     out.writeUTF(tableId);
     out.writeInt(locations.length);
-    for (int i = 0; i < locations.length; ++i)
-      out.writeUTF(locations[i]);
+    for (String location : locations)
+      out.writeUTF(location);
 
-    out.writeBoolean(null != isolatedScan);
-    if (null != isolatedScan) {
+    out.writeBoolean(isolatedScan != null);
+    if (isolatedScan != null) {
       out.writeBoolean(isolatedScan);
     }
 
-    out.writeBoolean(null != offline);
-    if (null != offline) {
+    out.writeBoolean(offline != null);
+    if (offline != null) {
       out.writeBoolean(offline);
     }
 
-    out.writeBoolean(null != localIterators);
-    if (null != localIterators) {
+    out.writeBoolean(localIterators != null);
+    if (localIterators != null) {
       out.writeBoolean(localIterators);
     }
 
-    out.writeBoolean(null != mockInstance);
-    if (null != mockInstance) {
-      out.writeBoolean(mockInstance);
-    }
-
-    out.writeBoolean(null != fetchedColumns);
-    if (null != fetchedColumns) {
-      String[] cols = InputConfigurator.serializeColumns(fetchedColumns);
+    out.writeBoolean(fetchedColumns != null);
+    if (fetchedColumns != null) {
+      String[] cols = org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator
+          .serializeColumns(fetchedColumns);
       out.writeInt(cols.length);
       for (String col : cols) {
         out.writeUTF(col);
       }
     }
 
-    out.writeBoolean(null != auths);
-    if (null != auths) {
+    out.writeBoolean(auths != null);
+    if (auths != null) {
       out.writeUTF(auths.serialize());
     }
 
-    out.writeBoolean(null != principal);
-    if (null != principal) {
+    out.writeBoolean(principal != null);
+    if (principal != null) {
       out.writeUTF(principal);
     }
 
-    out.writeBoolean(null != tokenSource);
-    if (null != tokenSource) {
+    out.writeBoolean(tokenSource != null);
+    if (tokenSource != null) {
       out.writeInt(tokenSource.ordinal());
 
-      if (null != token && null != tokenFile) {
+      if (token != null && tokenFile != null) {
         throw new IOException(
             "Cannot use both inline AuthenticationToken and file-based AuthenticationToken");
-      } else if (null != token) {
+      } else if (token != null) {
         out.writeUTF(token.getClass().getName());
-        out.writeUTF(Base64.encodeBase64String(AuthenticationTokenSerializer.serialize(token)));
+        out.writeUTF(
+            Base64.getEncoder().encodeToString(AuthenticationTokenSerializer.serialize(token)));
       } else {
         out.writeUTF(tokenFile);
       }
     }
 
-    out.writeBoolean(null != instanceName);
-    if (null != instanceName) {
+    out.writeBoolean(instanceName != null);
+    if (instanceName != null) {
       out.writeUTF(instanceName);
     }
 
-    out.writeBoolean(null != zooKeepers);
-    if (null != zooKeepers) {
+    out.writeBoolean(zooKeepers != null);
+    if (zooKeepers != null) {
       out.writeUTF(zooKeepers);
     }
 
-    out.writeBoolean(null != iterators);
-    if (null != iterators) {
+    out.writeBoolean(iterators != null);
+    if (iterators != null) {
       out.writeInt(iterators.size());
       for (IteratorSetting iterator : iterators) {
         iterator.write(out);
       }
     }
 
-    out.writeBoolean(null != level);
-    if (null != level) {
+    out.writeBoolean(level != null);
+    if (level != null) {
       out.writeInt(level.toInt());
     }
 
-    out.writeBoolean(null != samplerConfig);
-    if (null != samplerConfig) {
+    out.writeBoolean(samplerConfig != null);
+    if (samplerConfig != null) {
       new SamplerConfigurationImpl(samplerConfig).write(out);
     }
   }
@@ -326,7 +322,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
    *
    * @deprecated since 1.6.1, use getTableName() instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.6.1")
   public String getTable() {
     return getTableName();
   }
@@ -340,7 +336,7 @@ public class RangeInputSplit extends InputSplit implements Writable {
    *
    * @deprecated since 1.6.1, use setTableName() instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.6.1")
   public void setTable(String table) {
     setTableName(table);
   }
@@ -358,28 +354,26 @@ public class RangeInputSplit extends InputSplit implements Writable {
   }
 
   /**
-   * @see #getInstance(ClientConfiguration)
+   * @see #getInstance(org.apache.accumulo.core.client.ClientConfiguration)
    * @deprecated since 1.7.0, use getInstance(ClientConfiguration) instead.
    */
-  @Deprecated
-  public Instance getInstance() {
-    return getInstance(ClientConfiguration.loadDefault());
+  @Deprecated(since = "1.7.0")
+  public org.apache.accumulo.core.client.Instance getInstance() {
+    return getInstance(org.apache.accumulo.core.client.ClientConfiguration.loadDefault());
   }
 
-  public Instance getInstance(ClientConfiguration base) {
+  public org.apache.accumulo.core.client.Instance
+      getInstance(org.apache.accumulo.core.client.ClientConfiguration base) {
     if (null == instanceName) {
       return null;
-    }
-
-    if (isMockInstance()) {
-      return DeprecationUtil.makeMockInstance(getInstanceName());
     }
 
     if (null == zooKeepers) {
       return null;
     }
 
-    return new ZooKeeperInstance(base.withInstance(getInstanceName()).withZkHosts(getZooKeepers()));
+    return new org.apache.accumulo.core.client.ZooKeeperInstance(
+        base.withInstance(getInstanceName()).withZkHosts(getZooKeepers()));
   }
 
   public String getInstanceName() {
@@ -411,12 +405,14 @@ public class RangeInputSplit extends InputSplit implements Writable {
   }
 
   public void setToken(AuthenticationToken token) {
-    this.tokenSource = TokenSource.INLINE;
+    this.tokenSource =
+        org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource.INLINE;
     this.token = token;
   }
 
   public void setToken(String tokenFile) {
-    this.tokenSource = TokenSource.FILE;
+    this.tokenSource =
+        org.apache.accumulo.core.clientImpl.mapreduce.lib.ConfiguratorBase.TokenSource.FILE;
     this.tokenFile = tokenFile;
   }
 
@@ -430,22 +426,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
 
   public void setLocations(String[] locations) {
     this.locations = Arrays.copyOf(locations, locations.length);
-  }
-
-  /**
-   * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework
-   */
-  @Deprecated
-  public Boolean isMockInstance() {
-    return mockInstance;
-  }
-
-  /**
-   * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework
-   */
-  @Deprecated
-  public void setMockInstance(Boolean mockInstance) {
-    this.mockInstance = mockInstance;
   }
 
   public Boolean isIsolatedScan() {
@@ -522,7 +502,6 @@ public class RangeInputSplit extends InputSplit implements Writable {
     sb.append(" authenticationTokenFile: ").append(tokenFile);
     sb.append(" Authorizations: ").append(auths);
     sb.append(" offlineScan: ").append(offline);
-    sb.append(" mockInstance: ").append(mockInstance);
     sb.append(" isolatedScan: ").append(isolatedScan);
     sb.append(" localIterators: ").append(localIterators);
     sb.append(" fetchColumns: ").append(fetchedColumns);

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to you under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.iteratortest.framework;
 
@@ -59,8 +61,7 @@ public class JUnitFrameworkTest extends BaseJUnit4IteratorTest {
   public static Object[][] parameters() {
     IteratorTestInput input = getIteratorInput();
     IteratorTestOutput output = getIteratorOutput();
-    List<IteratorTestCase> tests =
-        Collections.<IteratorTestCase>singletonList(new NoopIteratorTestCase());
+    List<IteratorTestCase> tests = Collections.singletonList(new NoopIteratorTestCase());
     return BaseJUnit4IteratorTest.createParameters(input, output, tests);
   }
 
@@ -68,15 +69,14 @@ public class JUnitFrameworkTest extends BaseJUnit4IteratorTest {
 
   private static TreeMap<Key,Value> createData() {
     TreeMap<Key,Value> data = new TreeMap<>();
-    data.put(new Key("1", "a", ""), new Value("1a".getBytes()));
-    data.put(new Key("2", "a", ""), new Value("2a".getBytes()));
-    data.put(new Key("3", "a", ""), new Value("3a".getBytes()));
+    data.put(new Key("1", "a", ""), new Value("1a"));
+    data.put(new Key("2", "a", ""), new Value("2a"));
+    data.put(new Key("3", "a", ""), new Value("3a"));
     return data;
   }
 
   private static IteratorTestInput getIteratorInput() {
-    return new IteratorTestInput(IdentityIterator.class, Collections.<String,String>emptyMap(),
-        new Range(), DATA);
+    return new IteratorTestInput(IdentityIterator.class, Collections.emptyMap(), new Range(), DATA);
   }
 
   private static IteratorTestOutput getIteratorOutput() {

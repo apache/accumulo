@@ -1,33 +1,39 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.minicluster;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Properties;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+
+import com.google.common.base.Preconditions;
 
 /**
  * A utility class that will create Zookeeper and Accumulo processes that write all of their data to
@@ -36,7 +42,7 @@ import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
  *
  * @since 1.5.0
  */
-public class MiniAccumuloCluster {
+public class MiniAccumuloCluster implements AutoCloseable {
 
   private MiniAccumuloClusterImpl impl;
 
@@ -47,7 +53,7 @@ public class MiniAccumuloCluster {
   /**
    *
    * @param dir
-   *          An empty or nonexistant temp directoy that Accumulo and Zookeeper can store data in.
+   *          An empty or nonexistent temp directory that Accumulo and Zookeeper can store data in.
    *          Creating the directory is left to the user. Java 7, Guava, and Junit provide methods
    *          for creating temporary directories.
    * @param rootPassword
@@ -104,6 +110,19 @@ public class MiniAccumuloCluster {
   }
 
   /**
+   * @since 2.0.1
+   */
+  @Override
+  public void close() throws IOException {
+    try {
+      this.stop();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
    * @since 1.6.0
    */
   public MiniAccumuloConfig getConfig() {
@@ -114,16 +133,53 @@ public class MiniAccumuloCluster {
    * Utility method to get a connector to the MAC.
    *
    * @since 1.6.0
+   * @deprecated since 2.0.0, replaced by {@link #createAccumuloClient(String, AuthenticationToken)}
    */
-  public Connector getConnector(String user, String passwd)
+  @Deprecated(since = "2.0.0")
+  public org.apache.accumulo.core.client.Connector getConnector(String user, String passwd)
       throws AccumuloException, AccumuloSecurityException {
-    return impl.getConnector(user, new PasswordToken(passwd));
+    return org.apache.accumulo.core.client.Connector
+        .from(impl.createAccumuloClient(user, new PasswordToken(passwd)));
+  }
+
+  /**
+   * Utility method to create an {@link AccumuloClient} with connection to the MAC. The
+   * AccumuloClient object should be closed by user
+   *
+   * @since 2.0.0
+   */
+  public AccumuloClient createAccumuloClient(String user, AuthenticationToken token) {
+    return impl.createAccumuloClient(user, token);
   }
 
   /**
    * @since 1.6.0
+   * @deprecated since 2.0.0, replaced by {@link #getClientProperties()}
    */
-  public ClientConfiguration getClientConfig() {
+  @Deprecated(since = "2.0.0")
+  public org.apache.accumulo.core.client.ClientConfiguration getClientConfig() {
     return impl.getClientConfig();
+  }
+
+  /**
+   * @return Connection properties for cluster
+   * @since 2.0.0
+   */
+  public Properties getClientProperties() {
+    return impl.getClientProperties();
+  }
+
+  /**
+   * Construct client {@link Properties} using a {@link MiniAccumuloCluster} directory
+   *
+   * @param directory
+   *          MiniAccumuloCluster directory
+   * @return {@link Properties} for that directory
+   * @since 2.0.0
+   */
+  public static Properties getClientProperties(File directory) {
+    File clientProps = new File(new File(directory, "conf"), "accumulo-client.properties");
+    Preconditions.checkArgument(clientProps.exists());
+    return ClientInfoImpl.toProperties(clientProps.toPath());
   }
 }

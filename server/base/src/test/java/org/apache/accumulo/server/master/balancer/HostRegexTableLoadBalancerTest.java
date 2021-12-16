@@ -1,21 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.master.balancer;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -32,32 +37,47 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.regex.Pattern;
 
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.impl.KeyExtent;
-import org.apache.accumulo.core.data.thrift.TKeyExtent;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.master.state.TServerInstance;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.master.state.TabletMigration;
-import org.apache.thrift.TException;
 import org.junit.Test;
 
-import com.google.common.base.Predicate;
-
+@Deprecated(since = "2.1.0")
 public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalancerTest {
+
+  public void init() {
+    ServerContext context1 = createMockContext();
+    replay(context1);
+    final TestServerConfigurationFactory factory = new TestServerConfigurationFactory(context1);
+    initFactory(factory);
+  }
+
+  private void initFactory(ServerConfigurationFactory factory) {
+    ServerContext context = createMockContext();
+    expect(context.getConfiguration()).andReturn(factory.getSystemConfiguration()).anyTimes();
+    expect(context.getTableConfiguration(FOO.getId()))
+        .andReturn(factory.getTableConfiguration(FOO.getId())).anyTimes();
+    expect(context.getTableConfiguration(BAR.getId()))
+        .andReturn(factory.getTableConfiguration(BAR.getId())).anyTimes();
+    expect(context.getTableConfiguration(BAZ.getId()))
+        .andReturn(factory.getTableConfiguration(BAZ.getId())).anyTimes();
+    replay(context);
+    init(context);
+  }
 
   @Test
   public void testInit() {
-    init(factory);
+    init();
     assertEquals("OOB check interval value is incorrect", 7000, this.getOobCheckMillis());
-    @SuppressWarnings("deprecation")
-    long poolRecheckMillis = this.getPoolRecheckMillis();
-    assertEquals("Pool check interval value is incorrect", 0, poolRecheckMillis);
     assertEquals("Max migrations is incorrect", 4, this.getMaxMigrations());
     assertEquals("Max outstanding migrations is incorrect", 10, this.getMaxOutstandingMigrations());
     assertFalse(isIpBasedRegex());
@@ -67,20 +87,11 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     assertEquals(Pattern.compile("r01.*").pattern(), patterns.get(FOO.getTableName()).pattern());
     assertTrue(patterns.containsKey(BAR.getTableName()));
     assertEquals(Pattern.compile("r02.*").pattern(), patterns.get(BAR.getTableName()).pattern());
-    Map<String,String> tids = this.getTableIdToTableName();
-    assertEquals(3, tids.size());
-    assertTrue(tids.containsKey(FOO.getId()));
-    assertEquals(FOO.getTableName(), tids.get(FOO.getId()));
-    assertTrue(tids.containsKey(BAR.getId()));
-    assertEquals(BAR.getTableName(), tids.get(BAR.getId()));
-    assertTrue(tids.containsKey(BAZ.getId()));
-    assertEquals(BAZ.getTableName(), tids.get(BAZ.getId()));
-    assertEquals(false, this.isIpBasedRegex());
   }
 
   @Test
   public void testBalance() {
-    init(factory);
+    init();
     Set<KeyExtent> migrations = new HashSet<>();
     List<TabletMigration> migrationsOut = new ArrayList<>();
     long wait = this.balance(Collections.unmodifiableSortedMap(createCurrent(15)), migrations,
@@ -126,7 +137,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   @Test
   public void testBalanceWithTooManyOutstandingMigrations() {
     List<TabletMigration> migrationsOut = new ArrayList<>();
-    init(factory);
+    init();
     // lets say we already have migrations ongoing for the FOO and BAR table extends (should be 5 of
     // each of them) for a total of 10
     Set<KeyExtent> migrations = new HashSet<>();
@@ -141,7 +152,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testSplitCurrentByRegexUsingHostname() {
-    init(factory);
+    init();
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> groups =
         this.splitCurrentByRegex(createCurrent(15));
     assertEquals(3, groups.size());
@@ -173,38 +184,16 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testSplitCurrentByRegexUsingOverlappingPools() {
-    init(new TestServerConfigurationFactory(instance) {
+    ServerContext context = createMockContext();
+    replay(context);
+    initFactory(new TestServerConfigurationFactory(context) {
       @Override
-      public TableConfiguration getTableConfiguration(String tableId) {
-        return new TableConfiguration(getInstance(), tableId, null) {
-          HashMap<String,String> tableProperties = new HashMap<>();
-          {
-            tableProperties
-                .put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + FOO.getTableName(), "r.*");
-            tableProperties.put(
-                HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(),
-                "r01.*|r02.*");
-          }
-
-          @Override
-          public String get(Property property) {
-            return tableProperties.get(property.name());
-          }
-
-          @Override
-          public void getProperties(Map<String,String> props, Predicate<String> filter) {
-            for (Entry<String,String> e : tableProperties.entrySet()) {
-              if (filter.apply(e.getKey())) {
-                props.put(e.getKey(), e.getValue());
-              }
-            }
-          }
-
-          @Override
-          public long getUpdateCount() {
-            return 0;
-          }
-        };
+      public synchronized AccumuloConfiguration getSystemConfiguration() {
+        HashMap<String,String> props = new HashMap<>(DEFAULT_TABLE_PROPERTIES);
+        props.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + FOO.getTableName(), "r.*");
+        props.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(),
+            "r01.*|r02.*");
+        return new ConfigurationCopy(props);
       }
     });
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> groups =
@@ -251,47 +240,19 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testSplitCurrentByRegexUsingIP() {
-    init(new TestServerConfigurationFactory(instance) {
+    ServerContext context = createMockContext();
+    replay(context);
+    initFactory(new TestServerConfigurationFactory(context) {
       @Override
-      public synchronized AccumuloConfiguration getConfiguration() {
+      public synchronized AccumuloConfiguration getSystemConfiguration() {
         HashMap<String,String> props = new HashMap<>();
         props.put(HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK_KEY, "30s");
         props.put(HostRegexTableLoadBalancer.HOST_BALANCER_REGEX_USING_IPS_KEY, "true");
+        props.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + FOO.getTableName(),
+            "192\\.168\\.0\\.[1-5]");
+        props.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(),
+            "192\\.168\\.0\\.[6-9]|192\\.168\\.0\\.10");
         return new ConfigurationCopy(props);
-      }
-
-      @Override
-      public TableConfiguration getTableConfiguration(String tableId) {
-        return new TableConfiguration(getInstance(), tableId, null) {
-          HashMap<String,String> tableProperties = new HashMap<>();
-          {
-            tableProperties.put(
-                HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + FOO.getTableName(),
-                "192\\.168\\.0\\.[1-5]");
-            tableProperties.put(
-                HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(),
-                "192\\.168\\.0\\.[6-9]|192\\.168\\.0\\.10");
-          }
-
-          @Override
-          public String get(Property property) {
-            return tableProperties.get(property.name());
-          }
-
-          @Override
-          public void getProperties(Map<String,String> props, Predicate<String> filter) {
-            for (Entry<String,String> e : tableProperties.entrySet()) {
-              if (filter.apply(e.getKey())) {
-                props.put(e.getKey(), e.getValue());
-              }
-            }
-          }
-
-          @Override
-          public long getUpdateCount() {
-            return 0;
-          }
-        };
       }
     });
     assertTrue(isIpBasedRegex());
@@ -326,7 +287,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testAllUnassigned() {
-    init(factory);
+    init();
     Map<KeyExtent,TServerInstance> assignments = new HashMap<>();
     Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
     for (List<KeyExtent> extents : tableExtents.values()) {
@@ -351,14 +312,14 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     // Ensure assignments are correct
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
       if (!tabletInBounds(e.getKey(), e.getValue())) {
-        fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().host());
+        fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().getHost());
       }
     }
   }
 
   @Test
   public void testAllAssigned() {
-    init(factory);
+    init();
     Map<KeyExtent,TServerInstance> assignments = new HashMap<>();
     Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
     this.getAssignments(Collections.unmodifiableSortedMap(allTabletServers),
@@ -368,7 +329,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testPartiallyAssigned() {
-    init(factory);
+    init();
     Map<KeyExtent,TServerInstance> assignments = new HashMap<>();
     Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
     int i = 0;
@@ -397,14 +358,14 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     // Ensure assignments are correct
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
       if (!tabletInBounds(e.getKey(), e.getValue())) {
-        fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().host());
+        fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().getHost());
       }
     }
   }
 
   @Test
   public void testUnassignedWithNoTServers() {
-    init(factory);
+    init();
     Map<KeyExtent,TServerInstance> assignments = new HashMap<>();
     Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
     for (KeyExtent ke : tableExtents.get(BAR.getTableName())) {
@@ -414,9 +375,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     // Remove the BAR tablet servers from current
     List<TServerInstance> removals = new ArrayList<>();
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
-      if (e.getKey().host().equals("192.168.0.6") || e.getKey().host().equals("192.168.0.7")
-          || e.getKey().host().equals("192.168.0.8") || e.getKey().host().equals("192.168.0.9")
-          || e.getKey().host().equals("192.168.0.10")) {
+      if (e.getKey().getHost().equals("192.168.0.6") || e.getKey().getHost().equals("192.168.0.7")
+          || e.getKey().getHost().equals("192.168.0.8")
+          || e.getKey().getHost().equals("192.168.0.9")
+          || e.getKey().getHost().equals("192.168.0.10")) {
         removals.add(e.getKey());
       }
     }
@@ -430,14 +392,14 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     // Ensure tablets are assigned in default pool
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
       if (tabletInBounds(e.getKey(), e.getValue())) {
-        fail("tablet unexpectedly in bounds: " + e.getKey() + " -> " + e.getValue().host());
+        fail("tablet unexpectedly in bounds: " + e.getKey() + " -> " + e.getValue().getHost());
       }
     }
   }
 
   @Test
   public void testUnassignedWithNoDefaultPool() {
-    init(factory);
+    init();
     Map<KeyExtent,TServerInstance> assignments = new HashMap<>();
     Map<KeyExtent,TServerInstance> unassigned = new HashMap<>();
     for (KeyExtent ke : tableExtents.get(BAR.getTableName())) {
@@ -448,11 +410,15 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     // Remove the BAR tablet servers and default pool from current
     List<TServerInstance> removals = new ArrayList<>();
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
-      if (e.getKey().host().equals("192.168.0.6") || e.getKey().host().equals("192.168.0.7")
-          || e.getKey().host().equals("192.168.0.8") || e.getKey().host().equals("192.168.0.9")
-          || e.getKey().host().equals("192.168.0.10") || e.getKey().host().equals("192.168.0.11")
-          || e.getKey().host().equals("192.168.0.12") || e.getKey().host().equals("192.168.0.13")
-          || e.getKey().host().equals("192.168.0.14") || e.getKey().host().equals("192.168.0.15")) {
+      if (e.getKey().getHost().equals("192.168.0.6") || e.getKey().getHost().equals("192.168.0.7")
+          || e.getKey().getHost().equals("192.168.0.8")
+          || e.getKey().getHost().equals("192.168.0.9")
+          || e.getKey().getHost().equals("192.168.0.10")
+          || e.getKey().getHost().equals("192.168.0.11")
+          || e.getKey().getHost().equals("192.168.0.12")
+          || e.getKey().getHost().equals("192.168.0.13")
+          || e.getKey().getHost().equals("192.168.0.14")
+          || e.getKey().getHost().equals("192.168.0.15")) {
         removals.add(e.getKey());
       }
     }
@@ -468,14 +434,14 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     // Ensure tablets are assigned in default pool
     for (Entry<KeyExtent,TServerInstance> e : assignments.entrySet()) {
       if (tabletInBounds(e.getKey(), e.getValue())) {
-        fail("tablet unexpectedly in bounds: " + e.getKey() + " -> " + e.getValue().host());
+        fail("tablet unexpectedly in bounds: " + e.getKey() + " -> " + e.getValue().getHost());
       }
     }
   }
 
   @Test
   public void testOutOfBoundsTablets() {
-    init(factory);
+    init();
     // Wait to trigger the out of bounds check which will call our version of
     // getOnlineTabletsForTable
     UtilWaitThread.sleep(11000);
@@ -486,23 +452,22 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   }
 
   @Override
-  public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId)
-      throws ThriftSecurityException, TException {
+  public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, TableId tableId) {
     // Report incorrect information so that balance will create an assignment
     List<TabletStats> tablets = new ArrayList<>();
-    if (tableId.equals(BAR.getId()) && tserver.host().equals("192.168.0.1")) {
+    if (tableId.equals(BAR.getId()) && tserver.getHost().equals("192.168.0.1")) {
       // Report that we have a bar tablet on this server
       TKeyExtent tke = new TKeyExtent();
-      tke.setTable(BAR.getId().getBytes());
+      tke.setTable(BAR.getId().canonical().getBytes(UTF_8));
       tke.setEndRow("11".getBytes());
       tke.setPrevEndRow("10".getBytes());
       TabletStats ts = new TabletStats();
       ts.setExtent(tke);
       tablets.add(ts);
-    } else if (tableId.equals(FOO.getId()) && tserver.host().equals("192.168.0.6")) {
+    } else if (tableId.equals(FOO.getId()) && tserver.getHost().equals("192.168.0.6")) {
       // Report that we have a foo tablet on this server
       TKeyExtent tke = new TKeyExtent();
-      tke.setTable(FOO.getId().getBytes());
+      tke.setTable(FOO.getId().canonical().getBytes(UTF_8));
       tke.setEndRow("1".getBytes());
       tke.setPrevEndRow("0".getBytes());
       TabletStats ts = new TabletStats();

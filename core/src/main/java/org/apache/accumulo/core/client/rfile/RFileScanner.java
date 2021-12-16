@@ -1,63 +1,73 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.client.rfile;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
-import org.apache.accumulo.core.client.impl.ScannerOptions;
 import org.apache.accumulo.core.client.rfile.RFileScannerBuilder.InputArgs;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.clientImpl.ScannerOptions;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.IterConfigUtil;
+import org.apache.accumulo.core.conf.IterLoad;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
-import org.apache.accumulo.core.file.blockfile.cache.CacheEntry;
-import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
-import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache.Options;
-import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
+import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
+import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
+import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
+import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.iterators.IteratorAdapter;
-import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.cache.BlockCache;
+import org.apache.accumulo.core.spi.cache.BlockCacheManager;
+import org.apache.accumulo.core.spi.cache.CacheEntry;
+import org.apache.accumulo.core.spi.cache.CacheType;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.io.Text;
@@ -70,22 +80,14 @@ class RFileScanner extends ScannerOptions implements Scanner {
   private static final Range EMPTY_RANGE = new Range();
 
   private Range range;
+  private BlockCacheManager blockCacheManager = null;
   private BlockCache dataCache = null;
   private BlockCache indexCache = null;
   private Opts opts;
   private int batchSize = 1000;
   private long readaheadThreshold = 3;
-
-  private static final long CACHE_BLOCK_SIZE = AccumuloConfiguration.getDefaultConfiguration()
-      .getMemoryInBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
-
-  private static final EnumSet<Options> CACHE_OPTS;
-
-  static {
-    EnumSet<Options> cacheOpts = EnumSet.allOf(Options.class);
-    cacheOpts.remove(Options.ENABLE_LOCKS);
-    CACHE_OPTS = cacheOpts;
-  }
+  private AccumuloConfiguration tableConf;
+  private CryptoService cryptoService;
 
   static class Opts {
     InputArgs in;
@@ -105,10 +107,6 @@ class RFileScanner extends ScannerOptions implements Scanner {
   // block is accessed the entire thing is read into memory immediately allocating and deallocating
   // a decompressor. If the user does not read all data, no decompressors are left allocated.
   private static class NoopCache implements BlockCache {
-    @Override
-    public CacheEntry cacheBlock(String blockName, byte[] buf, boolean inMemory) {
-      return null;
-    }
 
     @Override
     public CacheEntry cacheBlock(String blockName, byte[] buf) {
@@ -121,8 +119,8 @@ class RFileScanner extends ScannerOptions implements Scanner {
     }
 
     @Override
-    public CacheEntry getBlockNoStats(String blockName) {
-      return null;
+    public long getMaxHeapSize() {
+      return getMaxSize();
     }
 
     @Override
@@ -131,8 +129,56 @@ class RFileScanner extends ScannerOptions implements Scanner {
     }
 
     @Override
-    public Lock getLoadLock(String blockName) {
-      return null;
+    public Stats getStats() {
+      return new BlockCache.Stats() {
+        @Override
+        public long hitCount() {
+          return 0L;
+        }
+
+        @Override
+        public long requestCount() {
+          return 0L;
+        }
+      };
+    }
+
+    @Override
+    public CacheEntry getBlock(String blockName, Loader loader) {
+      Map<String,Loader> depLoaders = loader.getDependencies();
+      Map<String,byte[]> depData;
+
+      switch (depLoaders.size()) {
+        case 0:
+          depData = Collections.emptyMap();
+          break;
+        case 1:
+          Entry<String,Loader> entry = depLoaders.entrySet().iterator().next();
+          depData = Collections.singletonMap(entry.getKey(),
+              getBlock(entry.getKey(), entry.getValue()).getBuffer());
+          break;
+        default:
+          depData = new HashMap<>();
+          depLoaders.forEach((k, v) -> depData.put(k, getBlock(k, v).getBuffer()));
+      }
+
+      byte[] data = loader.load(Integer.MAX_VALUE, depData);
+
+      return new CacheEntry() {
+
+        @Override
+        public byte[] getBuffer() {
+          return data;
+        }
+
+        @Override
+        public <T extends Weighable> T getIndex(Supplier<T> supplier) {
+          return null;
+        }
+
+        @Override
+        public void indexWeightChanged() {}
+      };
     }
   }
 
@@ -143,17 +189,41 @@ class RFileScanner extends ScannerOptions implements Scanner {
     }
 
     this.opts = opts;
-    if (opts.indexCacheSize > 0) {
-      this.indexCache = new LruBlockCache(opts.indexCacheSize, CACHE_BLOCK_SIZE, CACHE_OPTS);
+    if (opts.tableConfig != null && !opts.tableConfig.isEmpty()) {
+      ConfigurationCopy tableCC = new ConfigurationCopy(DefaultConfiguration.getInstance());
+      opts.tableConfig.forEach(tableCC::set);
+      this.tableConf = tableCC;
     } else {
-      this.indexCache = new NoopCache();
+      this.tableConf = DefaultConfiguration.getInstance();
     }
 
-    if (opts.dataCacheSize > 0) {
-      this.dataCache = new LruBlockCache(opts.dataCacheSize, CACHE_BLOCK_SIZE, CACHE_OPTS);
-    } else {
+    if (opts.indexCacheSize > 0 || opts.dataCacheSize > 0) {
+      ConfigurationCopy cc = tableConf instanceof ConfigurationCopy ? (ConfigurationCopy) tableConf
+          : new ConfigurationCopy(tableConf);
+      try {
+        blockCacheManager = BlockCacheManagerFactory.getClientInstance(cc);
+        if (opts.indexCacheSize > 0) {
+          cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(opts.indexCacheSize));
+        }
+        if (opts.dataCacheSize > 0) {
+          cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(opts.dataCacheSize));
+        }
+        blockCacheManager.start(new BlockCacheConfiguration(cc));
+        this.indexCache = blockCacheManager.getBlockCache(CacheType.INDEX);
+        this.dataCache = blockCacheManager.getBlockCache(CacheType.DATA);
+      } catch (RuntimeException e) {
+        throw e;
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+    if (indexCache == null) {
+      this.indexCache = new NoopCache();
+    }
+    if (this.dataCache == null) {
       this.dataCache = new NoopCache();
     }
+    this.cryptoService = CryptoServiceFactory.newInstance(tableConf, ClassloaderType.JAVA);
   }
 
   @Override
@@ -180,24 +250,6 @@ class RFileScanner extends ScannerOptions implements Scanner {
   @Override
   public void setClassLoaderContext(String classLoaderContext) {
     throw new UnsupportedOperationException();
-  }
-
-  @Deprecated
-  @Override
-  public void setTimeOut(int timeOut) {
-    if (timeOut == Integer.MAX_VALUE)
-      setTimeout(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-    else
-      setTimeout(timeOut, TimeUnit.SECONDS);
-  }
-
-  @Deprecated
-  @Override
-  public int getTimeOut() {
-    long timeout = getTimeout(TimeUnit.SECONDS);
-    if (timeout >= Integer.MAX_VALUE)
-      return Integer.MAX_VALUE;
-    return (int) timeout;
   }
 
   @Override
@@ -257,7 +309,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
     super.updateScanIteratorOption(iteratorName, key, value);
   }
 
-  private class IterEnv extends BaseIteratorEnvironment {
+  private class IterEnv implements IteratorEnvironment {
     @Override
     public IteratorScope getIteratorScope() {
       return IteratorScope.scan;
@@ -289,12 +341,16 @@ class RFileScanner extends ScannerOptions implements Scanner {
     try {
       RFileSource[] sources = opts.in.getSources();
       List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<>(sources.length);
-      for (int i = 0; i < sources.length; i++) {
-        FSDataInputStream inputStream = (FSDataInputStream) sources[i].getInputStream();
 
-        readers.add(new RFile.Reader(new CachableBlockFile.Reader("source-" + i, inputStream,
-            sources[i].getLength(), opts.in.getConf(), dataCache, indexCache,
-            AccumuloConfiguration.getDefaultConfiguration())));
+      CacheProvider cacheProvider = new BasicCacheProvider(indexCache, dataCache);
+
+      for (int i = 0; i < sources.length; i++) {
+        // TODO may have been a bug with multiple files and caching in older version...
+        FSDataInputStream inputStream = (FSDataInputStream) sources[i].getInputStream();
+        CachableBuilder cb =
+            new CachableBuilder().input(inputStream, "source-" + i).length(sources[i].getLength())
+                .conf(opts.in.getConf()).cacheProvider(cacheProvider).cryptoService(cryptoService);
+        readers.add(new RFile.Reader(cb));
       }
 
       if (getSamplerConfiguration() != null) {
@@ -316,25 +372,26 @@ class RFileScanner extends ScannerOptions implements Scanner {
       if (opts.useSystemIterators) {
         SortedSet<Column> cols = this.getFetchedColumns();
         families = LocalityGroupUtil.families(cols);
-        iterator =
-            IteratorUtil.setupSystemScanIterators(iterator, cols, getAuthorizations(), EMPTY_BYTES);
+        iterator = SystemIteratorUtil.setupSystemScanIterators(iterator, cols, getAuthorizations(),
+            EMPTY_BYTES, tableConf);
       }
 
       try {
-        if (opts.tableConfig != null && opts.tableConfig.size() > 0) {
-          ConfigurationCopy conf = new ConfigurationCopy(opts.tableConfig);
-          iterator = IteratorUtil.loadIterators(IteratorScope.scan, iterator, null, conf,
-              serverSideIteratorList, serverSideIteratorOptions, new IterEnv());
+        if (opts.tableConfig != null && !opts.tableConfig.isEmpty()) {
+          IterLoad il = IterConfigUtil.loadIterConf(IteratorScope.scan, serverSideIteratorList,
+              serverSideIteratorOptions, tableConf);
+          iterator = IterConfigUtil.loadIterators(iterator,
+              il.iterEnv(new IterEnv()).useAccumuloClassLoader(true));
         } else {
-          iterator = IteratorUtil.loadIterators(iterator, serverSideIteratorList,
-              serverSideIteratorOptions, new IterEnv(), false, null);
+          iterator = IterConfigUtil.loadIterators(iterator,
+              new IterLoad().iters(serverSideIteratorList).iterOpts(serverSideIteratorOptions)
+                  .iterEnv(new IterEnv()).useAccumuloClassLoader(false));
         }
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
 
-      iterator.seek(getRange() == null ? EMPTY_RANGE : getRange(), families,
-          families.size() == 0 ? false : true);
+      iterator.seek(getRange() == null ? EMPTY_RANGE : getRange(), families, !families.isEmpty());
       return new IteratorAdapter(iterator);
 
     } catch (IOException e) {
@@ -344,20 +401,19 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
   @Override
   public void close() {
-    if (dataCache instanceof LruBlockCache) {
-      ((LruBlockCache) dataCache).shutdown();
-    }
-
-    if (indexCache instanceof LruBlockCache) {
-      ((LruBlockCache) indexCache).shutdown();
-    }
-
     try {
       for (RFileSource source : opts.in.getSources()) {
         source.getInputStream().close();
       }
     } catch (IOException e) {
       throw new RuntimeException(e);
+    }
+    try {
+      if (this.blockCacheManager != null) {
+        this.blockCacheManager.stop();
+      }
+    } catch (Exception e1) {
+      throw new RuntimeException(e1);
     }
   }
 }

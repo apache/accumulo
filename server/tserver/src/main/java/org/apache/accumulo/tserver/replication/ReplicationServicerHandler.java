@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.replication;
 
@@ -21,24 +23,23 @@ import java.util.Map;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.replication.AccumuloReplicationReplayer;
 import org.apache.accumulo.core.replication.thrift.KeyValues;
 import org.apache.accumulo.core.replication.thrift.RemoteReplicationErrorCode;
 import org.apache.accumulo.core.replication.thrift.RemoteReplicationException;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Iface;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- */
+@Deprecated
 public class ReplicationServicerHandler implements Iface {
   private static final Logger log = LoggerFactory.getLogger(ReplicationServicerHandler.class);
 
@@ -49,15 +50,17 @@ public class ReplicationServicerHandler implements Iface {
   }
 
   @Override
-  public long replicateLog(String tableId, WalEdits data, TCredentials tcreds)
-      throws RemoteReplicationException, TException {
+  public long replicateLog(String tableIdStr, WalEdits data, TCredentials tcreds)
+      throws TException {
+    TableId tableId = TableId.of(tableIdStr);
     log.debug("Got replication request to tableID {} with {} edits", tableId, data.getEditsSize());
-    tabletServer.getSecurityOperation().authenticateUser(tabletServer.rpcCreds(), tcreds);
+    tabletServer.getSecurityOperation().authenticateUser(tabletServer.getContext().rpcCreds(),
+        tcreds);
 
     String tableName;
 
     try {
-      tableName = Tables.getTableName(tabletServer.getInstance(), tableId);
+      tableName = Tables.getTableName(tabletServer.getContext(), tableId);
     } catch (TableNotFoundException e) {
       log.error("Could not find table with id {}", tableId);
       throw new RemoteReplicationException(RemoteReplicationErrorCode.TABLE_DOES_NOT_EXIST,
@@ -71,7 +74,7 @@ public class ReplicationServicerHandler implements Iface {
     String propertyForHandlerTable = Property.TSERV_REPLICATION_REPLAYERS.getKey() + tableId;
 
     String handlerClassForTable = replicationHandlers.get(propertyForHandlerTable);
-    if (null == handlerClassForTable) {
+    if (handlerClassForTable == null) {
       if (!replicationHandlers.isEmpty()) {
         log.debug("Could not find replication replayer for {}", tableId);
       }
@@ -94,8 +97,8 @@ public class ReplicationServicerHandler implements Iface {
     // Create an instance
     AccumuloReplicationReplayer replayer;
     try {
-      replayer = clz.newInstance();
-    } catch (InstantiationException | IllegalAccessException e1) {
+      replayer = clz.getDeclaredConstructor().newInstance();
+    } catch (ReflectiveOperationException e1) {
       log.error("Could not instantiate replayer class {}", clz.getName());
       throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_INSTANTIATE_REPLAYER,
           "Could not instantiate replayer class" + clz.getName());
@@ -103,11 +106,11 @@ public class ReplicationServicerHandler implements Iface {
 
     long entriesReplicated;
     try {
-      entriesReplicated = replayer.replicateLog(tabletServer, tableName, data);
+      entriesReplicated = replayer.replicateLog(tabletServer.getContext(), tableName, data);
     } catch (AccumuloException | AccumuloSecurityException e) {
       log.error("Could not get connection", e);
       throw new RemoteReplicationException(RemoteReplicationErrorCode.CANNOT_AUTHENTICATE,
-          "Cannot get connector as " + tabletServer.getCredentials().getPrincipal());
+          "Cannot get connection as " + tabletServer.getContext().getCredentials().getPrincipal());
     }
 
     log.debug("Replicated {} mutations to {}", entriesReplicated, tableName);
@@ -116,8 +119,7 @@ public class ReplicationServicerHandler implements Iface {
   }
 
   @Override
-  public long replicateKeyValues(String tableId, KeyValues data, TCredentials creds)
-      throws RemoteReplicationException, TException {
+  public long replicateKeyValues(String tableId, KeyValues data, TCredentials creds) {
     throw new UnsupportedOperationException();
   }
 

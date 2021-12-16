@@ -1,30 +1,38 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.client.rfile;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.client.summary.Summarizer;
+import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
+import org.apache.accumulo.core.client.summary.Summary;
+import org.apache.accumulo.core.client.summary.Summary.FileStatistics;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
@@ -50,7 +58,7 @@ public class RFile {
    *
    * @since 1.8.0
    */
-  public static interface InputArguments {
+  public interface InputArguments {
     /**
      * Specify RFiles to read from. When multiple inputs are specified the {@link Scanner}
      * constructed will present a merged view.
@@ -78,7 +86,7 @@ public class RFile {
    *
    * @since 1.8.0
    */
-  public static interface ScannerFSOptions extends ScannerOptions {
+  public interface ScannerFSOptions extends ScannerOptions {
     /**
      * Optionally provide a FileSystem to open RFiles. If not specified, the FileSystem will be
      * constructed using configuration on the classpath.
@@ -96,7 +104,7 @@ public class RFile {
    *
    * @since 1.8.0
    */
-  public static interface ScannerOptions {
+  public interface ScannerOptions {
 
     /**
      * By default the {@link Scanner} created will setup the default Accumulo system iterators. The
@@ -121,7 +129,7 @@ public class RFile {
      *
      * @return this
      */
-    public ScannerOptions withoutSystemIterators();
+    ScannerOptions withoutSystemIterators();
 
     /**
      * The authorizations passed here will be used to filter Keys, from the {@link Scanner}, based
@@ -131,7 +139,7 @@ public class RFile {
      *          scan with these authorizations
      * @return this
      */
-    public ScannerOptions withAuthorizations(Authorizations auths);
+    ScannerOptions withAuthorizations(Authorizations auths);
 
     /**
      * Enabling this option will cache RFiles data in memory. This option is useful when doing lots
@@ -141,7 +149,7 @@ public class RFile {
      *          the size of the data cache in bytes.
      * @return this
      */
-    public ScannerOptions withDataCache(long cacheSize);
+    ScannerOptions withDataCache(long cacheSize);
 
     /**
      * Enabling this option will cache RFiles indexes in memory. Index data within a RFile is used
@@ -152,7 +160,7 @@ public class RFile {
      *          the size of the index cache in bytes.
      * @return this
      */
-    public ScannerOptions withIndexCache(long cacheSize);
+    ScannerOptions withIndexCache(long cacheSize);
 
     /**
      * This option allows limiting the {@link Scanner} from reading data outside of a given range. A
@@ -161,30 +169,35 @@ public class RFile {
      *
      * @return this
      */
-    public ScannerOptions withBounds(Range range);
+    ScannerOptions withBounds(Range range);
 
     /**
      * Construct the {@link Scanner} with iterators specified in a tables properties. Properties for
-     * a table can be obtained by calling {@link TableOperations#getProperties(String)}
+     * a table can be obtained by calling {@link TableOperations#getProperties(String)}. Any
+     * property that impacts file behavior regardless of whether it has the
+     * {@link Property#TABLE_PREFIX} may be accepted and used. For example, cache and crypto
+     * properties could be passed here.
      *
      * @param props
      *          iterable over Accumulo table key value properties.
      * @return this
      */
-    public ScannerOptions withTableProperties(Iterable<Entry<String,String>> props);
+    ScannerOptions withTableProperties(Iterable<Entry<String,String>> props);
 
     /**
-     * @see #withTableProperties(Iterable)
+     * @see #withTableProperties(Iterable) Any property that impacts file behavior regardless of
+     *      whether it has the {@link Property#TABLE_PREFIX} may be accepted and used. For example,
+     *      cache and crypto properties could be passed here.
      * @param props
      *          a map instead of an Iterable
      * @return this
      */
-    public ScannerOptions withTableProperties(Map<String,String> props);
+    ScannerOptions withTableProperties(Map<String,String> props);
 
     /**
      * @return a Scanner over RFile using the specified options.
      */
-    public Scanner build();
+    Scanner build();
   }
 
   /**
@@ -196,24 +209,170 @@ public class RFile {
 
   /**
    * This is an intermediate interface in a larger builder pattern. Supports setting the required
-   * output sink to write a RFile to.
+   * input sources for reading summary data from an RFile.
+   *
+   * @since 2.0.0
+   */
+  public interface SummaryInputArguments {
+    /**
+     * Specify RFiles to read from. When multiple inputs are specified the summary data will be
+     * merged.
+     *
+     * @param inputs
+     *          one or more RFiles to read.
+     * @return this
+     */
+    SummaryOptions from(RFileSource... inputs);
+
+    /**
+     * Specify RFiles to read from. When multiple are specified the summary data will be merged.
+     *
+     * @param files
+     *          one or more RFiles to read.
+     * @return this
+     */
+    SummaryFSOptions from(String... files);
+  }
+
+  /**
+   * This is an intermediate interface in a larger builder pattern. Enables optionally setting a
+   * FileSystem to read RFile summary data from.
+   *
+   * @since 2.0.0
+   */
+  public interface SummaryFSOptions extends SummaryOptions {
+    /**
+     * Optionally provide a FileSystem to open RFiles. If not specified, the FileSystem will be
+     * constructed using configuration on the classpath.
+     *
+     * @param fs
+     *          use this FileSystem to open files.
+     * @return this
+     */
+    SummaryOptions withFileSystem(FileSystem fs);
+  }
+
+  /**
+   * This is an intermediate interface in a large builder pattern. Allows setting options for
+   * retrieving summary data.
+   *
+   * @since 2.0.0
+   */
+  public interface SummaryOptions {
+    /**
+     * Retrieve summaries with provided tables properties. Properties for a table can be obtained by
+     * calling {@link TableOperations#getProperties(String)}. Any property that impacts file
+     * behavior regardless of whether it has the {@link Property#TABLE_PREFIX} may be accepted and
+     * used. For example, cache and crypto properties could be passed here.
+     *
+     * @param props
+     *          iterable over Accumulo table key value properties.
+     * @return this
+     */
+    SummaryOptions withTableProperties(Iterable<Entry<String,String>> props);
+
+    /**
+     * @see #withTableProperties(Iterable) Any property that impacts file behavior regardless of
+     *      whether it has the {@link Property#TABLE_PREFIX} may be accepted and used. For example,
+     *      cache and crypto properties could be passed here.
+     * @param props
+     *          a map instead of an Iterable
+     * @return this
+     */
+    SummaryOptions withTableProperties(Map<String,String> props);
+
+    /**
+     * This method allows retrieving a subset of summary data from a file. If a file has lots of
+     * separate summaries, reading a subset may be faster.
+     *
+     * @param summarySelector
+     *          Only read summary data that was generated with configuration that this predicate
+     *          matches.
+     * @return this
+     */
+    SummaryOptions selectSummaries(Predicate<SummarizerConfiguration> summarySelector);
+
+    /**
+     * Summary data may possibly be stored at a more granular level than the entire file. However
+     * there is no guarantee of this. If the data was stored at a more granular level, then this
+     * will get a subset of the summary data. The subset will very likely be an inaccurate
+     * approximation.
+     *
+     * @param startRow
+     *          A non-null start row. The startRow is used exclusively.
+     * @return this
+     *
+     * @see FileStatistics#getExtra()
+     */
+    SummaryOptions startRow(Text startRow);
+
+    /**
+     * @param startRow
+     *          UTF-8 encodes startRow. The startRow is used exclusively.
+     * @return this
+     * @see #startRow(Text)
+     */
+    SummaryOptions startRow(CharSequence startRow);
+
+    /**
+     * Summary data may possibly be stored at a more granular level than the entire file. However
+     * there is no guarantee of this. If the data was stored at a more granular level, then this
+     * will get a subset of the summary data. The subset will very likely be an inaccurate
+     * approximation.
+     *
+     * @param endRow
+     *          A non-null end row. The end row is used inclusively.
+     * @return this
+     *
+     * @see FileStatistics#getExtra()
+     */
+    SummaryOptions endRow(Text endRow);
+
+    /**
+     * @param endRow
+     *          UTF-8 encodes endRow. The end row is used inclusively.
+     * @return this
+     * @see #endRow(Text)
+     */
+    SummaryOptions endRow(CharSequence endRow);
+
+    /**
+     * Reads summary data from file.
+     *
+     * @return The summary data in the file that satisfied the selection criteria.
+     */
+    Collection<Summary> read() throws IOException;
+  }
+
+  /**
+   * Entry point for reading summary data from RFiles.
+   *
+   * @since 2.0.0
+   */
+  public static SummaryInputArguments summaries() {
+    return new RFileSummariesRetriever();
+  }
+
+  /**
+   * This is an intermediate interface in a larger builder pattern. Supports setting the required
+   * output sink to write a RFile to. The filename parameter requires the ".rf" extension.
    *
    * @since 1.8.0
    */
-  public static interface OutputArguments {
+  public interface OutputArguments {
     /**
      * @param filename
-     *          name of file to write RFile data
+     *          name of file to write RFile data, ending with the ".rf" extension
      * @return this
      */
-    public WriterFSOptions to(String filename);
+    WriterFSOptions to(String filename);
 
     /**
      * @param out
      *          output stream to write RFile data
      * @return this
      */
-    public WriterOptions to(OutputStream out);
+    WriterOptions to(OutputStream out);
   }
 
   /**
@@ -222,7 +381,7 @@ public class RFile {
    *
    * @since 1.8.0
    */
-  public static interface WriterFSOptions extends WriterOptions {
+  public interface WriterFSOptions extends WriterOptions {
     /**
      * Optionally provide a FileSystem to open a file to write a RFile. If not specified, the
      * FileSystem will be constructed using configuration on the classpath.
@@ -240,7 +399,20 @@ public class RFile {
    *
    * @since 1.8.0
    */
-  public static interface WriterOptions {
+  public interface WriterOptions {
+
+    /**
+     * Enable generating summary data in the created RFile by running {@link Summarizer}'s based on
+     * the specified configuration.
+     *
+     * @param summarizerConf
+     *          Configuration for summarizer to run.
+     * @since 2.0.0
+     */
+    default WriterOptions withSummarizers(SummarizerConfiguration... summarizerConf) {
+      throw new UnsupportedOperationException();
+    }
+
     /**
      * An option to store sample data in the generated RFile.
      *
@@ -251,11 +423,13 @@ public class RFile {
      *           a sampler.
      * @return this
      */
-    public WriterOptions withSampler(SamplerConfiguration samplerConf);
+    WriterOptions withSampler(SamplerConfiguration samplerConf);
 
     /**
      * Create an RFile using the same configuration as an Accumulo table. Properties for a table can
-     * be obtained by calling {@link TableOperations#getProperties(String)}
+     * be obtained by calling {@link TableOperations#getProperties(String)}. Any property that
+     * impacts file behavior regardless of whether it has the {@link Property#TABLE_PREFIX} may be
+     * accepted and used. For example, cache and crypto properties could be passed here.
      *
      * @param props
      *          iterable over Accumulo table key value properties.
@@ -264,12 +438,12 @@ public class RFile {
      *           sampler.
      * @return this
      */
-    public WriterOptions withTableProperties(Iterable<Entry<String,String>> props);
+    WriterOptions withTableProperties(Iterable<Entry<String,String>> props);
 
     /**
      * @see #withTableProperties(Iterable)
      */
-    public WriterOptions withTableProperties(Map<String,String> props);
+    WriterOptions withTableProperties(Map<String,String> props);
 
     /**
      * @param maxSize
@@ -279,12 +453,12 @@ public class RFile {
      *          cache.
      * @return this
      */
-    public WriterOptions withVisibilityCacheSize(int maxSize);
+    WriterOptions withVisibilityCacheSize(int maxSize);
 
     /**
      * @return a new RfileWriter created with the options previously specified.
      */
-    public RFileWriter build() throws IOException;
+    RFileWriter build() throws IOException;
   }
 
   /**

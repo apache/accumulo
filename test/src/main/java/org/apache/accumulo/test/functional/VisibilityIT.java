@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
@@ -30,10 +32,10 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -62,51 +64,49 @@ public class VisibilityIT extends AccumuloClusterHarness {
 
   @Before
   public void emptyAuths() throws Exception {
-    Connector c = getConnector();
-    origAuths = c.securityOperations().getUserAuthorizations(getAdminPrincipal());
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      origAuths = c.securityOperations().getUserAuthorizations(getAdminPrincipal());
+    }
   }
 
   @After
   public void resetAuths() throws Exception {
-    Connector c = getConnector();
-    if (null != origAuths) {
-      c.securityOperations().changeUserAuthorizations(getAdminPrincipal(), origAuths);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      if (origAuths != null) {
+        c.securityOperations().changeUserAuthorizations(getAdminPrincipal(), origAuths);
+      }
     }
   }
 
   @Test
   public void run() throws Exception {
-    Connector c = getConnector();
-    String[] tableNames = getUniqueNames(2);
-    String table = tableNames[0];
-    c.tableOperations().create(table);
-    String table2 = tableNames[1];
-    c.tableOperations().create(table2);
-    c.tableOperations().setProperty(table2, Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(),
-        "DEFLABEL");
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String[] tableNames = getUniqueNames(2);
+      String table = tableNames[0];
+      c.tableOperations().create(table);
+      String table2 = tableNames[1];
+      c.tableOperations().create(table2);
+      c.tableOperations().setProperty(table2, Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(),
+          "DEFLABEL");
 
-    insertData(c, table);
-    queryData(c, table);
-    deleteData(c, table);
+      insertData(c, table);
+      queryData(c, table);
+      deleteData(c, table);
 
-    insertDefaultData(c, table2);
-    queryDefaultData(c, table2);
-
+      insertDefaultData(c, table2);
+      queryDefaultData(c, table2);
+    }
   }
 
   private static SortedSet<String> nss(String... labels) {
     TreeSet<String> ts = new TreeSet<>();
-
-    for (String s : labels) {
-      ts.add(s);
-    }
-
+    Collections.addAll(ts, labels);
     return ts;
   }
 
   private void mput(Mutation m, String cf, String cq, String cv, String val) {
     ColumnVisibility le = new ColumnVisibility(cv.getBytes(UTF_8));
-    m.put(new Text(cf), new Text(cq), le, new Value(val.getBytes(UTF_8)));
+    m.put(new Text(cf), new Text(cq), le, new Value(val));
   }
 
   private void mputDelete(Mutation m, String cf, String cq, String cv) {
@@ -114,45 +114,41 @@ public class VisibilityIT extends AccumuloClusterHarness {
     m.putDelete(new Text(cf), new Text(cq), le);
   }
 
-  private void insertData(Connector c, String tableName) throws Exception {
+  private void insertData(AccumuloClient c, String tableName) throws Exception {
 
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-    Mutation m1 = new Mutation(new Text("row1"));
-
-    mput(m1, "cf1", "cq1", "", "v1");
-    mput(m1, "cf1", "cq1", "A", "v2");
-    mput(m1, "cf1", "cq1", "B", "v3");
-    mput(m1, "cf1", "cq1", "A&B", "v4");
-    mput(m1, "cf1", "cq1", "A&(L|M)", "v5");
-    mput(m1, "cf1", "cq1", "B&(L|M)", "v6");
-    mput(m1, "cf1", "cq1", "A&B&(L|M)", "v7");
-    mput(m1, "cf1", "cq1", "A&B&(L)", "v8");
-    mput(m1, "cf1", "cq1", "A&FOO", "v9");
-    mput(m1, "cf1", "cq1", "A&FOO&(L|M)", "v10");
-    mput(m1, "cf1", "cq1", "FOO", "v11");
-    mput(m1, "cf1", "cq1", "(A|B)&FOO&(L|M)", "v12");
-    mput(m1, "cf1", "cq1", "A&B&(L|M|FOO)", "v13");
-
-    bw.addMutation(m1);
-    bw.close();
+    try (BatchWriter bw = c.createBatchWriter(tableName)) {
+      Mutation m1 = new Mutation(new Text("row1"));
+      mput(m1, "cf1", "cq1", "", "v1");
+      mput(m1, "cf1", "cq1", "A", "v2");
+      mput(m1, "cf1", "cq1", "B", "v3");
+      mput(m1, "cf1", "cq1", "A&B", "v4");
+      mput(m1, "cf1", "cq1", "A&(L|M)", "v5");
+      mput(m1, "cf1", "cq1", "B&(L|M)", "v6");
+      mput(m1, "cf1", "cq1", "A&B&(L|M)", "v7");
+      mput(m1, "cf1", "cq1", "A&B&(L)", "v8");
+      mput(m1, "cf1", "cq1", "A&FOO", "v9");
+      mput(m1, "cf1", "cq1", "A&FOO&(L|M)", "v10");
+      mput(m1, "cf1", "cq1", "FOO", "v11");
+      mput(m1, "cf1", "cq1", "(A|B)&FOO&(L|M)", "v12");
+      mput(m1, "cf1", "cq1", "A&B&(L|M|FOO)", "v13");
+      bw.addMutation(m1);
+    }
   }
 
-  private void deleteData(Connector c, String tableName) throws Exception {
+  private void deleteData(AccumuloClient c, String tableName) throws Exception {
 
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-    Mutation m1 = new Mutation(new Text("row1"));
-
-    mputDelete(m1, "cf1", "cq1", "");
-    mputDelete(m1, "cf1", "cq1", "A");
-    mputDelete(m1, "cf1", "cq1", "A&B");
-    mputDelete(m1, "cf1", "cq1", "B&(L|M)");
-    mputDelete(m1, "cf1", "cq1", "A&B&(L)");
-    mputDelete(m1, "cf1", "cq1", "A&FOO&(L|M)");
-    mputDelete(m1, "cf1", "cq1", "(A|B)&FOO&(L|M)");
-    mputDelete(m1, "cf1", "cq1", "FOO&A"); // should not delete anything
-
-    bw.addMutation(m1);
-    bw.close();
+    try (BatchWriter bw = c.createBatchWriter(tableName)) {
+      Mutation m1 = new Mutation(new Text("row1"));
+      mputDelete(m1, "cf1", "cq1", "");
+      mputDelete(m1, "cf1", "cq1", "A");
+      mputDelete(m1, "cf1", "cq1", "A&B");
+      mputDelete(m1, "cf1", "cq1", "B&(L|M)");
+      mputDelete(m1, "cf1", "cq1", "A&B&(L)");
+      mputDelete(m1, "cf1", "cq1", "A&FOO&(L|M)");
+      mputDelete(m1, "cf1", "cq1", "(A|B)&FOO&(L|M)");
+      mputDelete(m1, "cf1", "cq1", "FOO&A"); // should not delete anything
+      bw.addMutation(m1);
+    }
 
     Map<Set<String>,Set<String>> expected = new HashMap<>();
 
@@ -170,16 +166,14 @@ public class VisibilityIT extends AccumuloClusterHarness {
         nss("A", "B", "FOO", "L", "M", "Z"), expected);
   }
 
-  private void insertDefaultData(Connector c, String tableName) throws Exception {
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
-    Mutation m1 = new Mutation(new Text("row1"));
-
-    mput(m1, "cf1", "cq1", "BASE", "v1");
-    mput(m1, "cf1", "cq2", "DEFLABEL", "v2");
-    mput(m1, "cf1", "cq3", "", "v3");
-
-    bw.addMutation(m1);
-    bw.close();
+  private void insertDefaultData(AccumuloClient c, String tableName) throws Exception {
+    try (BatchWriter bw = c.createBatchWriter(tableName)) {
+      Mutation m1 = new Mutation(new Text("row1"));
+      mput(m1, "cf1", "cq1", "BASE", "v1");
+      mput(m1, "cf1", "cq2", "DEFLABEL", "v2");
+      mput(m1, "cf1", "cq3", "", "v3");
+      bw.addMutation(m1);
+    }
   }
 
   private static void uniqueCombos(List<Set<String>> all, Set<String> prefix, Set<String> suffix) {
@@ -197,7 +191,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
     }
   }
 
-  private void queryData(Connector c, String tableName) throws Exception {
+  private void queryData(AccumuloClient c, String tableName) throws Exception {
     Map<Set<String>,Set<String>> expected = new HashMap<>();
     expected.put(nss(), nss("v1"));
     expected.put(nss("A"), nss("v2"));
@@ -227,8 +221,8 @@ public class VisibilityIT extends AccumuloClusterHarness {
     queryData(c, tableName, nss("A", "B", "FOO", "L", "M", "Z"), nss(), expected);
   }
 
-  private void queryData(Connector c, String tableName, Set<String> allAuths, Set<String> userAuths,
-      Map<Set<String>,Set<String>> expected) throws Exception {
+  private void queryData(AccumuloClient c, String tableName, Set<String> allAuths,
+      Set<String> userAuths, Map<Set<String>,Set<String>> expected) throws Exception {
 
     c.securityOperations().changeUserAuthorizations(getAdminPrincipal(),
         new Authorizations(nbas(userAuths)));
@@ -254,22 +248,23 @@ public class VisibilityIT extends AccumuloClusterHarness {
 
   }
 
-  private void queryDefaultData(Connector c, String tableName) throws Exception {
-    Scanner scanner;
-
+  private void queryDefaultData(AccumuloClient c, String tableName) throws Exception {
     // should return no records
     c.securityOperations().changeUserAuthorizations(getAdminPrincipal(),
         new Authorizations("BASE", "DEFLABEL"));
-    scanner = getConnector().createScanner(tableName, new Authorizations());
-    verifyDefault(scanner, 0);
+    try (Scanner scanner = c.createScanner(tableName, new Authorizations())) {
+      verifyDefault(scanner, 0);
+    }
 
     // should return one record
-    scanner = getConnector().createScanner(tableName, new Authorizations("BASE"));
-    verifyDefault(scanner, 1);
+    try (Scanner scanner = c.createScanner(tableName, new Authorizations("BASE"))) {
+      verifyDefault(scanner, 1);
+    }
 
     // should return all three records
-    scanner = getConnector().createScanner(tableName, new Authorizations("BASE", "DEFLABEL"));
-    verifyDefault(scanner, 3);
+    try (Scanner scanner = c.createScanner(tableName, new Authorizations("BASE", "DEFLABEL"))) {
+      verifyDefault(scanner, 3);
+    }
   }
 
   private void verifyDefault(Scanner scanner, int expectedCount) throws Exception {
@@ -278,8 +273,8 @@ public class VisibilityIT extends AccumuloClusterHarness {
       throw new Exception("actual count " + actual + " != expected count " + expectedCount);
   }
 
-  private void verify(Connector c, String tableName, Set<String> auths, Set<String> expectedValues)
-      throws Exception {
+  private void verify(AccumuloClient c, String tableName, Set<String> auths,
+      Set<String> expectedValues) throws Exception {
     ByteArraySet bas = nbas(auths);
 
     try {
@@ -297,15 +292,16 @@ public class VisibilityIT extends AccumuloClusterHarness {
     return bas;
   }
 
-  private void verify(Connector c, String tableName, ByteArraySet nss, String... expected)
+  private void verify(AccumuloClient c, String tableName, ByteArraySet nss, String... expected)
       throws Exception {
-    Scanner scanner = c.createScanner(tableName, new Authorizations(nss));
-    verify(scanner.iterator(), expected);
+    try (Scanner scanner = c.createScanner(tableName, new Authorizations(nss));
+        BatchScanner bs = c.createBatchScanner(tableName, new Authorizations(nss), 3)) {
 
-    BatchScanner bs = getConnector().createBatchScanner(tableName, new Authorizations(nss), 3);
-    bs.setRanges(Collections.singleton(new Range()));
-    verify(bs.iterator(), expected);
-    bs.close();
+      verify(scanner.iterator(), expected);
+
+      bs.setRanges(Collections.singleton(new Range()));
+      verify(bs.iterator(), expected);
+    }
   }
 
   private void verify(Iterator<Entry<Key,Value>> iter, String... expected) throws Exception {
@@ -325,7 +321,7 @@ public class VisibilityIT extends AccumuloClusterHarness {
       }
     }
 
-    if (valuesSeen.size() != 0) {
+    if (!valuesSeen.isEmpty()) {
       throw new Exception("Saw more values than expected " + valuesSeen);
     }
   }

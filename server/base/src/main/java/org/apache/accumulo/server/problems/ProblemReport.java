@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.problems;
 
@@ -28,30 +30,28 @@ import java.net.UnknownHostException;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Encoding;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 
 public class ProblemReport {
-  private String tableId;
+  private TableId tableId;
   private ProblemType problemType;
   private String resource;
   private String exception;
   private String server;
   private long creationTime;
 
-  public ProblemReport(String tableId, ProblemType problemType, String resource, String server,
+  public ProblemReport(TableId tableId, ProblemType problemType, String resource, String server,
       Throwable e, long creationTime) {
     requireNonNull(tableId, "tableId is null");
     requireNonNull(problemType, "problemType is null");
@@ -77,16 +77,16 @@ public class ProblemReport {
     this.creationTime = creationTime;
   }
 
-  public ProblemReport(String tableId, ProblemType problemType, String resource, String server,
+  public ProblemReport(TableId tableId, ProblemType problemType, String resource, String server,
       Throwable e) {
     this(tableId, problemType, resource, server, e, System.currentTimeMillis());
   }
 
-  public ProblemReport(String tableId, ProblemType problemType, String resource, Throwable e) {
+  public ProblemReport(TableId tableId, ProblemType problemType, String resource, Throwable e) {
     this(tableId, problemType, resource, null, e);
   }
 
-  private ProblemReport(String table, ProblemType problemType, String resource, byte enc[])
+  private ProblemReport(TableId table, ProblemType problemType, String resource, byte[] enc)
       throws IOException {
     requireNonNull(table, "table is null");
     requireNonNull(problemType, "problemType is null");
@@ -120,7 +120,7 @@ public class ProblemReport {
     return baos.toByteArray();
   }
 
-  private void decode(byte enc[]) throws IOException {
+  private void decode(byte[] enc) throws IOException {
     ByteArrayInputStream bais = new ByteArrayInputStream(enc);
     DataInputStream dis = new DataInputStream(bais);
 
@@ -139,75 +139,67 @@ public class ProblemReport {
     }
   }
 
-  void removeFromMetadataTable(AccumuloServerContext context) throws Exception {
+  void removeFromMetadataTable(ServerContext context) throws Exception {
     Mutation m = new Mutation(new Text("~err_" + tableId));
     m.putDelete(new Text(problemType.name()), new Text(resource));
     MetadataTableUtil.getMetadataTable(context).update(m);
   }
 
-  void saveToMetadataTable(AccumuloServerContext context) throws Exception {
+  void saveToMetadataTable(ServerContext context) throws Exception {
     Mutation m = new Mutation(new Text("~err_" + tableId));
     m.put(new Text(problemType.name()), new Text(resource), new Value(encode()));
     MetadataTableUtil.getMetadataTable(context).update(m);
   }
 
-  void removeFromZooKeeper() throws Exception {
-    removeFromZooKeeper(ZooReaderWriter.getInstance(), HdfsZooInstance.getInstance());
+  void removeFromZooKeeper(ServerContext context) throws Exception {
+    removeFromZooKeeper(context.getZooReaderWriter(), context);
   }
 
-  void removeFromZooKeeper(ZooReaderWriter zoorw, Instance instance)
+  void removeFromZooKeeper(ZooReaderWriter zoorw, ServerContext context)
       throws IOException, KeeperException, InterruptedException {
-    String zpath = getZPath(instance);
+    String zpath = getZPath(context.getZooKeeperRoot());
     zoorw.recursiveDelete(zpath, NodeMissingPolicy.SKIP);
   }
 
-  void saveToZooKeeper() throws Exception {
-    saveToZooKeeper(ZooReaderWriter.getInstance(), HdfsZooInstance.getInstance());
-  }
-
-  void saveToZooKeeper(ZooReaderWriter zoorw, Instance instance)
+  void saveToZooKeeper(ServerContext context)
       throws IOException, KeeperException, InterruptedException {
-    zoorw.putPersistentData(getZPath(instance), encode(), NodeExistsPolicy.OVERWRITE);
+    context.getZooReaderWriter().putPersistentData(getZPath(context.getZooKeeperRoot()), encode(),
+        NodeExistsPolicy.OVERWRITE);
   }
 
-  private String getZPath(Instance instance) throws IOException {
+  private String getZPath(String zkRoot) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
-    dos.writeUTF(getTableName());
+    dos.writeUTF(getTableId().canonical());
     dos.writeUTF(getProblemType().name());
     dos.writeUTF(getResource());
     dos.close();
     baos.close();
 
-    String zpath = ZooUtil.getRoot(instance) + Constants.ZPROBLEMS + "/"
+    return zkRoot + Constants.ZPROBLEMS + "/"
         + Encoding.encodeAsBase64FileName(new Text(baos.toByteArray()));
-    return zpath;
   }
 
-  static ProblemReport decodeZooKeeperEntry(String node) throws Exception {
-    return decodeZooKeeperEntry(node, ZooReaderWriter.getInstance(), HdfsZooInstance.getInstance());
-  }
-
-  static ProblemReport decodeZooKeeperEntry(String node, ZooReaderWriter zoorw, Instance instance)
+  static ProblemReport decodeZooKeeperEntry(ServerContext context, String node)
       throws IOException, KeeperException, InterruptedException {
-    byte bytes[] = Encoding.decodeBase64FileName(node);
+    byte[] bytes = Encoding.decodeBase64FileName(node);
 
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
     DataInputStream dis = new DataInputStream(bais);
 
-    String tableId = dis.readUTF();
+    TableId tableId = TableId.of(dis.readUTF());
     String problemType = dis.readUTF();
     String resource = dis.readUTF();
 
-    String zpath = ZooUtil.getRoot(instance) + Constants.ZPROBLEMS + "/" + node;
-    byte[] enc = zoorw.getData(zpath, null);
+    String zpath = context.getZooKeeperRoot() + Constants.ZPROBLEMS + "/" + node;
+    byte[] enc = context.getZooReaderWriter().getData(zpath);
 
     return new ProblemReport(tableId, ProblemType.valueOf(problemType), resource, enc);
 
   }
 
   public static ProblemReport decodeMetadataEntry(Entry<Key,Value> entry) throws IOException {
-    String tableId = entry.getKey().getRow().toString().substring("~err_".length());
+    TableId tableId = TableId.of(entry.getKey().getRow().toString().substring("~err_".length()));
     String problemType = entry.getKey().getColumnFamily().toString();
     String resource = entry.getKey().getColumnQualifier().toString();
 
@@ -215,7 +207,7 @@ public class ProblemReport {
         entry.getValue().get());
   }
 
-  public String getTableName() {
+  public TableId getTableId() {
     return tableId;
   }
 

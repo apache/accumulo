@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client;
 
@@ -25,19 +27,18 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.junit.Test;
 
-/**
- *
- */
 public class BatchWriterConfigTest {
 
   @Test
   public void testReasonableDefaults() {
-    long expectedMaxMemory = 50 * 1024 * 1024l;
-    long expectedMaxLatency = 120000l;
+    long expectedMaxMemory = 50 * 1024 * 1024L;
+    long expectedMaxLatency = 120000L;
     long expectedTimeout = Long.MAX_VALUE;
     int expectedMaxWriteThreads = 3;
     Durability expectedDurability = Durability.DEFAULT;
@@ -53,15 +54,15 @@ public class BatchWriterConfigTest {
   @Test
   public void testOverridingDefaults() {
     BatchWriterConfig bwConfig = new BatchWriterConfig();
-    bwConfig.setMaxMemory(1123581321l);
+    bwConfig.setMaxMemory(1123581321L);
     bwConfig.setMaxLatency(22, TimeUnit.HOURS);
     bwConfig.setTimeout(33, TimeUnit.DAYS);
     bwConfig.setMaxWriteThreads(42);
     bwConfig.setDurability(Durability.NONE);
 
-    assertEquals(1123581321l, bwConfig.getMaxMemory());
-    assertEquals(22 * 60 * 60 * 1000l, bwConfig.getMaxLatency(TimeUnit.MILLISECONDS));
-    assertEquals(33 * 24 * 60 * 60 * 1000l, bwConfig.getTimeout(TimeUnit.MILLISECONDS));
+    assertEquals(1123581321L, bwConfig.getMaxMemory());
+    assertEquals(22 * 60 * 60 * 1000L, bwConfig.getMaxLatency(TimeUnit.MILLISECONDS));
+    assertEquals(33 * 24 * 60 * 60 * 1000L, bwConfig.getTimeout(TimeUnit.MILLISECONDS));
     assertEquals(42, bwConfig.getMaxWriteThreads());
     assertEquals(Durability.NONE, bwConfig.getDurability());
   }
@@ -133,18 +134,18 @@ public class BatchWriterConfigTest {
   public void testSerialize() throws IOException {
     // make sure we aren't testing defaults
     final BatchWriterConfig bwDefaults = new BatchWriterConfig();
-    assertNotEquals(7654321l, bwDefaults.getMaxLatency(TimeUnit.MILLISECONDS));
-    assertNotEquals(9898989l, bwDefaults.getTimeout(TimeUnit.MILLISECONDS));
+    assertNotEquals(7654321L, bwDefaults.getMaxLatency(TimeUnit.MILLISECONDS));
+    assertNotEquals(9898989L, bwDefaults.getTimeout(TimeUnit.MILLISECONDS));
     assertNotEquals(42, bwDefaults.getMaxWriteThreads());
-    assertNotEquals(1123581321l, bwDefaults.getMaxMemory());
+    assertNotEquals(1123581321L, bwDefaults.getMaxMemory());
     assertNotEquals(Durability.FLUSH, bwDefaults.getDurability());
 
     // test setting all fields
     BatchWriterConfig bwConfig = new BatchWriterConfig();
-    bwConfig.setMaxLatency(7654321l, TimeUnit.MILLISECONDS);
-    bwConfig.setTimeout(9898989l, TimeUnit.MILLISECONDS);
+    bwConfig.setMaxLatency(7654321L, TimeUnit.MILLISECONDS);
+    bwConfig.setTimeout(9898989L, TimeUnit.MILLISECONDS);
     bwConfig.setMaxWriteThreads(42);
-    bwConfig.setMaxMemory(1123581321l);
+    bwConfig.setMaxMemory(1123581321L);
     bwConfig.setDurability(Durability.FLUSH);
     byte[] bytes = createBytes(bwConfig);
     checkBytes(bwConfig, bytes);
@@ -201,6 +202,24 @@ public class BatchWriterConfigTest {
     assertEquals(cfg1.hashCode(), cfg2.hashCode());
   }
 
+  @Test
+  public void testMerge() {
+    BatchWriterConfig cfg1 = new BatchWriterConfig(), cfg2 = new BatchWriterConfig();
+    cfg1.setMaxMemory(1234);
+    cfg2.setMaxMemory(5858);
+    cfg2.setDurability(Durability.LOG);
+    cfg2.setMaxLatency(456, TimeUnit.MILLISECONDS);
+
+    assertEquals(Durability.DEFAULT, cfg1.getDurability());
+
+    BatchWriterConfig merged = cfg1.merge(cfg2);
+
+    assertEquals(1234, merged.getMaxMemory());
+    assertEquals(Durability.LOG, merged.getDurability());
+    assertEquals(456, merged.getMaxLatency(TimeUnit.MILLISECONDS));
+    assertEquals(3, merged.getMaxWriteThreads());
+  }
+
   private byte[] createBytes(BatchWriterConfig bwConfig) throws IOException {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     bwConfig.write(new DataOutputStream(baos));
@@ -218,6 +237,14 @@ public class BatchWriterConfigTest {
     assertEquals(bwConfig.getTimeout(TimeUnit.MILLISECONDS),
         createdConfig.getTimeout(TimeUnit.MILLISECONDS));
     assertEquals(bwConfig.getMaxWriteThreads(), createdConfig.getMaxWriteThreads());
+  }
+
+  @Test
+  public void countClientProps() {
+    // count the number in case one gets added to in one place but not the other
+    ClientProperty[] bwProps = Arrays.stream(ClientProperty.values())
+        .filter(c -> c.name().startsWith("BATCH_WRITER")).toArray(ClientProperty[]::new);
+    assertEquals(5, bwProps.length);
   }
 
 }

@@ -7,13 +7,14 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
@@ -21,12 +22,13 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.LinkedList;
 
+import org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlockQueue;
 import org.junit.Test;
 
 public class TestCachedBlockQueue {
 
   @Test
-  public void testQueue() throws Exception {
+  public void testQueue() {
 
     CachedBlock cb1 = new CachedBlock(1000, "cb1", 1);
     CachedBlock cb2 = new CachedBlock(1500, "cb2", 2);
@@ -58,7 +60,8 @@ public class TestCachedBlockQueue {
 
     assertEquals(queue.heapSize(), expectedSize);
 
-    LinkedList<org.apache.accumulo.core.file.blockfile.cache.CachedBlock> blocks = queue.getList();
+    LinkedList<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks =
+        queue.getList();
     assertEquals(blocks.poll().getName(), "cb1");
     assertEquals(blocks.poll().getName(), "cb2");
     assertEquals(blocks.poll().getName(), "cb3");
@@ -71,7 +74,7 @@ public class TestCachedBlockQueue {
   }
 
   @Test
-  public void testQueueSmallBlockEdgeCase() throws Exception {
+  public void testQueueSmallBlockEdgeCase() {
 
     CachedBlock cb1 = new CachedBlock(1000, "cb1", 1);
     CachedBlock cb2 = new CachedBlock(1500, "cb2", 2);
@@ -110,7 +113,8 @@ public class TestCachedBlockQueue {
 
     assertEquals(queue.heapSize(), expectedSize);
 
-    LinkedList<org.apache.accumulo.core.file.blockfile.cache.CachedBlock> blocks = queue.getList();
+    LinkedList<org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock> blocks =
+        queue.getList();
     assertEquals(blocks.poll().getName(), "cb0");
     assertEquals(blocks.poll().getName(), "cb1");
     assertEquals(blocks.poll().getName(), "cb2");
@@ -124,7 +128,7 @@ public class TestCachedBlockQueue {
   }
 
   private static class CachedBlock
-      extends org.apache.accumulo.core.file.blockfile.cache.CachedBlock {
+      extends org.apache.accumulo.core.file.blockfile.cache.lru.CachedBlock {
     public CachedBlock(long heapSize, String name, long accessTime) {
       super(name, new byte[(int) (heapSize - CachedBlock.PER_BLOCK_OVERHEAD)], accessTime, false);
     }

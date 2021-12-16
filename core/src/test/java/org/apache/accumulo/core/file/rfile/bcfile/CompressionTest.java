@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.file.rfile.bcfile;
 
@@ -21,7 +23,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -63,6 +64,34 @@ public class CompressionTest {
       // that is okay
     }
 
+    extClazz = System.getProperty(Compression.Algorithm.CONF_LZ4_CLASS);
+    clazz = (extClazz != null) ? extClazz : "org.apache.hadoop.io.compress.Lz4Codec";
+    try {
+      CompressionCodec codec =
+          (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+
+      assertNotNull(codec);
+
+      isSupported.put(Compression.Algorithm.LZ4, true);
+
+    } catch (ClassNotFoundException e) {
+      // that is okay
+    }
+
+    extClazz = System.getProperty(Compression.Algorithm.CONF_BZIP2_CLASS);
+    clazz = (extClazz != null) ? extClazz : "org.apache.hadoop.io.compress.BZip2Codec";
+    try {
+      CompressionCodec codec =
+          (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+
+      assertNotNull(codec);
+
+      isSupported.put(Compression.Algorithm.BZIP2, true);
+
+    } catch (ClassNotFoundException e) {
+      // that is okay
+    }
+
     extClazz = System.getProperty(Compression.Algorithm.CONF_SNAPPY_CLASS);
     clazz = (extClazz != null) ? extClazz : "org.apache.hadoop.io.compress.SnappyCodec";
     try {
@@ -77,15 +106,29 @@ public class CompressionTest {
       // that is okay
     }
 
+    extClazz = System.getProperty(Compression.Algorithm.CONF_ZSTD_CLASS);
+    clazz = (extClazz != null) ? extClazz : "org.apache.hadoop.io.compress.ZStandardCodec";
+    try {
+      CompressionCodec codec =
+          (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
+
+      assertNotNull(codec);
+
+      isSupported.put(Compression.Algorithm.ZSTANDARD, true);
+
+    } catch (ClassNotFoundException e) {
+      // that is okay
+    }
+
   }
 
   @Test
-  public void testSingle() throws IOException {
+  public void testSingle() {
 
     for (final Algorithm al : Algorithm.values()) {
-      if (isSupported.get(al) != null && isSupported.get(al) == true) {
+      if (isSupported.get(al) != null && isSupported.get(al)) {
 
-        // first call to issupported should be true
+        // first call to isSupported should be true
         assertTrue(al + " is not supported, but should be", al.isSupported());
 
         assertNotNull(al + " should have a non-null codec", al.getCodec());
@@ -96,10 +139,10 @@ public class CompressionTest {
   }
 
   @Test
-  public void testSingleNoSideEffect() throws IOException {
+  public void testSingleNoSideEffect() {
 
     for (final Algorithm al : Algorithm.values()) {
-      if (isSupported.get(al) != null && isSupported.get(al) == true) {
+      if (isSupported.get(al) != null && isSupported.get(al)) {
 
         assertTrue(al + " is not supported, but should be", al.isSupported());
 
@@ -115,12 +158,12 @@ public class CompressionTest {
   }
 
   @Test(timeout = 60 * 1000)
-  public void testManyStartNotNull() throws IOException, InterruptedException, ExecutionException {
+  public void testManyStartNotNull() throws InterruptedException, ExecutionException {
 
     for (final Algorithm al : Algorithm.values()) {
-      if (isSupported.get(al) != null && isSupported.get(al) == true) {
+      if (isSupported.get(al) != null && isSupported.get(al)) {
 
-        // first call to issupported should be true
+        // first call to isSupported should be true
         assertTrue(al + " is not supported, but should be", al.isSupported());
 
         final CompressionCodec codec = al.getCodec();
@@ -132,14 +175,9 @@ public class CompressionTest {
         ArrayList<Future<Boolean>> results = new ArrayList<>();
 
         for (int i = 0; i < 30; i++) {
-          results.add(service.submit(new Callable<Boolean>() {
-
-            @Override
-            public Boolean call() throws Exception {
-              assertNotNull(al + " should not be null", al.getCodec());
-              return true;
-            }
-
+          results.add(service.submit(() -> {
+            assertNotNull(al + " should not be null", al.getCodec());
+            return true;
           }));
         }
 
@@ -162,13 +200,12 @@ public class CompressionTest {
 
   // don't start until we have created the codec
   @Test(timeout = 60 * 1000)
-  public void testManyDontStartUntilThread()
-      throws IOException, InterruptedException, ExecutionException {
+  public void testManyDontStartUntilThread() throws InterruptedException, ExecutionException {
 
     for (final Algorithm al : Algorithm.values()) {
-      if (isSupported.get(al) != null && isSupported.get(al) == true) {
+      if (isSupported.get(al) != null && isSupported.get(al)) {
 
-        // first call to issupported should be true
+        // first call to isSupported should be true
         assertTrue(al + " is not supported, but should be", al.isSupported());
 
         ExecutorService service = Executors.newFixedThreadPool(10);
@@ -177,14 +214,9 @@ public class CompressionTest {
 
         for (int i = 0; i < 30; i++) {
 
-          results.add(service.submit(new Callable<Boolean>() {
-
-            @Override
-            public Boolean call() throws Exception {
-              assertNotNull(al + " should have a non-null codec", al.getCodec());
-              return true;
-            }
-
+          results.add(service.submit(() -> {
+            assertNotNull(al + " should have a non-null codec", al.getCodec());
+            return true;
           }));
         }
 
@@ -204,12 +236,12 @@ public class CompressionTest {
   }
 
   @Test(timeout = 60 * 1000)
-  public void testThereCanBeOnlyOne() throws IOException, InterruptedException, ExecutionException {
+  public void testThereCanBeOnlyOne() throws InterruptedException, ExecutionException {
 
     for (final Algorithm al : Algorithm.values()) {
-      if (isSupported.get(al) != null && isSupported.get(al) == true) {
+      if (isSupported.get(al) != null && isSupported.get(al)) {
 
-        // first call to issupported should be true
+        // first call to isSupported should be true
         assertTrue(al + " is not supported, but should be", al.isSupported());
 
         ExecutorService service = Executors.newFixedThreadPool(20);
@@ -222,18 +254,14 @@ public class CompressionTest {
         final HashSet<Integer> testSet = new HashSet<>();
 
         for (int i = 0; i < 40; i++) {
-          list.add(new Callable<Boolean>() {
-
-            @Override
-            public Boolean call() throws Exception {
-              CompressionCodec codec = al.getCodec();
-              assertNotNull(al + " resulted in a non-null codec", codec);
-              // add the identity hashcode to the set.
-              synchronized (testSet) {
-                testSet.add(System.identityHashCode(codec));
-              }
-              return true;
+          list.add(() -> {
+            CompressionCodec codec = al.getCodec();
+            assertNotNull(al + " resulted in a non-null codec", codec);
+            // add the identity hashcode to the set.
+            synchronized (testSet) {
+              testSet.add(System.identityHashCode(codec));
             }
+            return true;
           });
         }
 

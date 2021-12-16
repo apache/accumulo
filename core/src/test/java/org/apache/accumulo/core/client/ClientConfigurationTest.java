@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client;
 
@@ -22,22 +24,29 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 
-import org.apache.accumulo.core.client.ClientConfiguration.ClientProperty;
-import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.PropertiesConfiguration;
 import org.junit.Test;
 
+@SuppressWarnings("deprecation")
 public class ClientConfigurationTest {
+
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_NAME =
+      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_NAME;
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_HOST =
+      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST;
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_TIMEOUT =
+      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT;
+  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty RPC_SSL_TRUSTSTORE_TYPE =
+      ClientConfiguration.ClientProperty.RPC_SSL_TRUSTSTORE_TYPE;
+
   @Test
-  public void testOverrides() throws Exception {
+  public void testOverrides() {
     ClientConfiguration clientConfig = createConfig();
     assertExpectedConfig(clientConfig);
   }
 
   @Test
-  public void testSerialization() throws Exception {
+  public void testSerialization() {
     ClientConfiguration clientConfig = createConfig();
     // sanity check that we're starting with what we're expecting
     assertExpectedConfig(clientConfig);
@@ -48,26 +57,16 @@ public class ClientConfigurationTest {
   }
 
   private void assertExpectedConfig(ClientConfiguration clientConfig) {
-    assertEquals("firstZkHosts", clientConfig.get(ClientProperty.INSTANCE_ZK_HOST));
-    assertEquals("secondInstanceName", clientConfig.get(ClientProperty.INSTANCE_NAME));
-    assertEquals("123s", clientConfig.get(ClientProperty.INSTANCE_ZK_TIMEOUT));
-    assertEquals(ClientProperty.RPC_SSL_TRUSTSTORE_TYPE.getDefaultValue(),
-        clientConfig.get(ClientProperty.RPC_SSL_TRUSTSTORE_TYPE));
+    assertEquals("firstZkHosts", clientConfig.get(INSTANCE_ZK_HOST));
+    assertEquals("secondInstanceName", clientConfig.get(INSTANCE_NAME));
+    assertEquals("123s", clientConfig.get(INSTANCE_ZK_TIMEOUT));
+    assertEquals(RPC_SSL_TRUSTSTORE_TYPE.getDefaultValue(),
+        clientConfig.get(RPC_SSL_TRUSTSTORE_TYPE));
   }
 
   private ClientConfiguration createConfig() {
-    Configuration first = new PropertiesConfiguration();
-    first.addProperty(ClientProperty.INSTANCE_ZK_HOST.getKey(), "firstZkHosts");
-    Configuration second = new PropertiesConfiguration();
-    second.addProperty(ClientProperty.INSTANCE_ZK_HOST.getKey(), "secondZkHosts");
-    second.addProperty(ClientProperty.INSTANCE_NAME.getKey(), "secondInstanceName");
-    Configuration third = new PropertiesConfiguration();
-    third.addProperty(ClientProperty.INSTANCE_ZK_HOST.getKey(), "thirdZkHosts");
-    third.addProperty(ClientProperty.INSTANCE_NAME.getKey(), "thirdInstanceName");
-    third.addProperty(ClientProperty.INSTANCE_ZK_TIMEOUT.getKey(), "123s");
-    @SuppressWarnings("deprecation")
-    ClientConfiguration clientConf = new ClientConfiguration(Arrays.asList(first, second, third));
-    return clientConf;
+    return ClientConfiguration.create().with(INSTANCE_ZK_HOST, "firstZkHosts")
+        .with(INSTANCE_NAME, "secondInstanceName").with(INSTANCE_ZK_TIMEOUT, "123s");
   }
 
   @Test
@@ -90,7 +89,7 @@ public class ClientConfigurationTest {
     assertEquals(clientConf.toString(),
         ClientConfiguration.getClientConfPath(clientConf.toString()));
 
-    // Something that doesn't exist should return itself (specifially, it shouldn't error)
+    // Something that doesn't exist should return itself (specifically, it shouldn't error)
     final File missing = new File("foobarbaz12332112");
     assertEquals(missing.toString(), ClientConfiguration.getClientConfPath(missing.toString()));
 

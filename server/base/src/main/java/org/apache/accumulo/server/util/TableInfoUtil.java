@@ -1,32 +1,31 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.util;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.Compacting;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 
-/**
- *
- */
 public class TableInfoUtil {
 
   public static void add(TableInfo total, TableInfo more) {
@@ -70,7 +69,7 @@ public class TableInfoUtil {
     return summary;
   }
 
-  public static Map<String,Double> summarizeTableStats(MasterMonitorInfo mmi) {
+  public static Map<String,Double> summarizeTableStats(ManagerMonitorInfo mmi) {
     Map<String,Double> compactingByTable = new HashMap<>();
     if (mmi != null && mmi.tServerInfo != null) {
       for (TabletServerStatus status : mmi.tServerInfo) {
@@ -78,7 +77,7 @@ public class TableInfoUtil {
           for (String table : status.tableMap.keySet()) {
             Double holdTime = compactingByTable.get(table);
             compactingByTable.put(table,
-                Math.max(holdTime == null ? 0. : holdTime.doubleValue(), status.holdTime));
+                Math.max(holdTime == null ? 0. : holdTime, status.holdTime));
           }
         }
       }

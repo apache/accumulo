@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.problems;
 
@@ -24,47 +26,49 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.Encoding;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.server.MockServerContext;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
 
 public class ProblemReportTest {
-  private static final String TABLE_ID = "table";
+  private static final TableId TABLE_ID = TableId.of("table");
   private static final String RESOURCE = "resource";
   private static final String SERVER = "server";
 
-  private Instance instance;
+  private ServerContext context;
   private ZooReaderWriter zoorw;
   private ProblemReport r;
 
   @Before
-  public void setUp() throws Exception {
-    instance = createMock(Instance.class);
-    expect(instance.getInstanceID()).andReturn("instance");
-    replay(instance);
-
+  public void setUp() {
+    context = MockServerContext.getWithZK("instance", "", 30_000);
     zoorw = createMock(ZooReaderWriter.class);
+    expect(context.getZooReaderWriter()).andReturn(zoorw).anyTimes();
+    replay(context);
   }
 
   @Test
   public void testGetters() {
     long now = System.currentTimeMillis();
     r = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null, now);
-    assertEquals(TABLE_ID, r.getTableName());
+    assertEquals(TABLE_ID, r.getTableId());
     assertSame(ProblemType.FILE_READ, r.getProblemType());
     assertEquals(RESOURCE, r.getResource());
     assertEquals(SERVER, r.getServer());
@@ -82,24 +86,24 @@ public class ProblemReportTest {
   @Test
   public void testEquals() {
     r = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
-    assertTrue(r.equals(r));
+    assertEquals(r, r);
     ProblemReport r2 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
-    assertTrue(r.equals(r2));
-    assertTrue(r2.equals(r));
+    assertEquals(r, r2);
+    assertEquals(r2, r);
     ProblemReport rx1 =
-        new ProblemReport(TABLE_ID + "x", ProblemType.FILE_READ, RESOURCE, SERVER, null);
-    assertFalse(r.equals(rx1));
+        new ProblemReport(MetadataTable.ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
+    assertNotEquals(r, rx1);
     ProblemReport rx2 = new ProblemReport(TABLE_ID, ProblemType.FILE_WRITE, RESOURCE, SERVER, null);
-    assertFalse(r.equals(rx2));
+    assertNotEquals(r, rx2);
     ProblemReport rx3 =
         new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE + "x", SERVER, null);
-    assertFalse(r.equals(rx3));
+    assertNotEquals(r, rx3);
     ProblemReport re1 =
         new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER + "x", null);
-    assertTrue(r.equals(re1));
+    assertEquals(r, re1);
     ProblemReport re2 = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER,
         new IllegalArgumentException("yikes"));
-    assertTrue(r.equals(re2));
+    assertEquals(r, re2);
   }
 
   @Test
@@ -121,11 +125,11 @@ public class ProblemReportTest {
     assertEquals(r.hashCode(), re2.hashCode());
   }
 
-  private byte[] makeZPathFileName(String table, ProblemType problemType, String resource)
+  private byte[] makeZPathFileName(TableId table, ProblemType problemType, String resource)
       throws Exception {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
-    dos.writeUTF(table);
+    dos.writeUTF(table.canonical());
     dos.writeUTF(problemType.name());
     dos.writeUTF(resource);
     dos.close();
@@ -158,7 +162,7 @@ public class ProblemReportTest {
     zoorw.recursiveDelete(path, NodeMissingPolicy.SKIP);
     replay(zoorw);
 
-    r.removeFromZooKeeper(zoorw, instance);
+    r.removeFromZooKeeper(zoorw, context);
     verify(zoorw);
   }
 
@@ -174,7 +178,7 @@ public class ProblemReportTest {
         .andReturn(true);
     replay(zoorw);
 
-    r.saveToZooKeeper(zoorw, instance);
+    r.saveToZooKeeper(context);
     verify(zoorw);
   }
 
@@ -185,12 +189,12 @@ public class ProblemReportTest {
     long now = System.currentTimeMillis();
     byte[] encoded = encodeReportData(now, SERVER, "excmsg");
 
-    expect(zoorw.getData(ZooUtil.getRoot("instance") + Constants.ZPROBLEMS + "/" + node, null))
+    expect(zoorw.getData(ZooUtil.getRoot("instance") + Constants.ZPROBLEMS + "/" + node))
         .andReturn(encoded);
     replay(zoorw);
 
-    r = ProblemReport.decodeZooKeeperEntry(node, zoorw, instance);
-    assertEquals(TABLE_ID, r.getTableName());
+    r = ProblemReport.decodeZooKeeperEntry(context, node);
+    assertEquals(TABLE_ID, r.getTableId());
     assertSame(ProblemType.FILE_READ, r.getProblemType());
     assertEquals(RESOURCE, r.getResource());
     assertEquals(SERVER, r.getServer());

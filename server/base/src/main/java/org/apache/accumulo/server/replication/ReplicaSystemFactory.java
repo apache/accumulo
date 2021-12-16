@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.replication;
 
@@ -20,14 +22,13 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Map.Entry;
 
+import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
-/**
- *
- */
+@Deprecated
 public class ReplicaSystemFactory {
   private static final Logger log = LoggerFactory.getLogger(ReplicaSystemFactory.class);
 
@@ -36,22 +37,22 @@ public class ReplicaSystemFactory {
    *          {@link ReplicaSystem} implementation class name
    * @return A {@link ReplicaSystem} object from the given name
    */
-  public ReplicaSystem get(String value) {
+  public ReplicaSystem get(ServerContext context, String value) {
     final Entry<String,String> entry = parseReplicaSystemConfiguration(value);
 
     try {
       Class<?> clz = Class.forName(entry.getKey());
 
       if (ReplicaSystem.class.isAssignableFrom(clz)) {
-        Object o = clz.newInstance();
+        Object o = clz.getDeclaredConstructor().newInstance();
         ReplicaSystem rs = (ReplicaSystem) o;
-        rs.configure(entry.getValue());
+        rs.configure(context, entry.getValue());
         return rs;
       }
 
       throw new IllegalArgumentException(
           "Class is not assignable to ReplicaSystem: " + entry.getKey());
-    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+    } catch (ReflectiveOperationException e) {
       log.error("Error creating ReplicaSystem object", e);
       throw new IllegalArgumentException(e);
     }
@@ -70,7 +71,7 @@ public class ReplicaSystemFactory {
     requireNonNull(value);
 
     int index = value.indexOf(',');
-    if (-1 == index) {
+    if (index == -1) {
       throw new IllegalArgumentException(
           "Expected comma separator between replication system name and configuration");
     }
@@ -92,7 +93,7 @@ public class ReplicaSystemFactory {
   public static String getPeerConfigurationValue(Class<? extends ReplicaSystem> system,
       String configuration) {
     String systemName = system.getName() + ",";
-    if (null == configuration) {
+    if (configuration == null) {
       return systemName;
     }
 

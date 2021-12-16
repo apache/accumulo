@@ -1,22 +1,23 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.Iterator;
@@ -24,19 +25,19 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
@@ -64,12 +65,14 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
 
   @Before
   public void reduceSessionIdle() throws Exception {
-    InstanceOperations ops = getConnector().instanceOperations();
-    sessionIdle = ops.getSystemConfiguration().get(Property.TSERV_SESSION_MAXIDLE.getKey());
-    ops.setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(), getMaxIdleTimeString());
-    log.info("Waiting for existing session idle time to expire");
-    Thread.sleep(AccumuloConfiguration.getTimeInMillis(sessionIdle));
-    log.info("Finished waiting");
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      InstanceOperations ops = client.instanceOperations();
+      sessionIdle = ops.getSystemConfiguration().get(Property.TSERV_SESSION_MAXIDLE.getKey());
+      ops.setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(), getMaxIdleTimeString());
+      log.info("Waiting for existing session idle time to expire");
+      Thread.sleep(ConfigurationTypeHelper.getTimeInMillis(sessionIdle));
+      log.info("Finished waiting");
+    }
   }
 
   /**
@@ -83,42 +86,43 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
 
   @After
   public void resetSessionIdle() throws Exception {
-    if (null != sessionIdle) {
-      getConnector().instanceOperations().setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(),
-          sessionIdle);
+    if (sessionIdle != null) {
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+        client.instanceOperations().setProperty(Property.TSERV_SESSION_MAXIDLE.getKey(),
+            sessionIdle);
+      }
     }
   }
 
   @Test
   public void run() throws Exception {
-    Connector c = getConnector();
-    String tableName = getUniqueNames(1)[0];
-    c.tableOperations().create(tableName);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
 
-    BatchWriter bw = c.createBatchWriter(tableName, new BatchWriterConfig());
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        for (int i = 0; i < 100000; i++) {
+          Mutation m = new Mutation(new Text(String.format("%08d", i)));
+          for (int j = 0; j < 3; j++)
+            m.put("cf1", "cq" + j, i + "_" + j);
 
-    for (int i = 0; i < 100000; i++) {
-      Mutation m = new Mutation(new Text(String.format("%08d", i)));
-      for (int j = 0; j < 3; j++)
-        m.put(new Text("cf1"), new Text("cq" + j), new Value((i + "_" + j).getBytes(UTF_8)));
+          bw.addMutation(m);
+        }
+      }
 
-      bw.addMutation(m);
+      try (Scanner scanner = c.createScanner(tableName, new Authorizations())) {
+        scanner.setBatchSize(1000);
+
+        Iterator<Entry<Key,Value>> iter = scanner.iterator();
+
+        verify(iter, 0, 200);
+
+        // sleep three times the session timeout
+        sleepUninterruptibly(9, TimeUnit.SECONDS);
+
+        verify(iter, 200, 100000);
+      }
     }
-
-    bw.close();
-
-    Scanner scanner = c.createScanner(tableName, new Authorizations());
-    scanner.setBatchSize(1000);
-
-    Iterator<Entry<Key,Value>> iter = scanner.iterator();
-
-    verify(iter, 0, 200);
-
-    // sleep three times the session timeout
-    sleepUninterruptibly(9, TimeUnit.SECONDS);
-
-    verify(iter, 200, 100000);
-
   }
 
   protected void verify(Iterator<Entry<Key,Value>> iter, int start, int stop) throws Exception {

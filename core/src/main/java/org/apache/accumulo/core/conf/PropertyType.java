@@ -1,44 +1,45 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.conf;
 
 import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
-import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.util.Pair;
-import org.apache.commons.lang.math.IntRange;
+import org.apache.commons.lang3.Range;
 import org.apache.hadoop.fs.Path;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Collections2;
+import com.google.common.base.Preconditions;
 
 /**
  * Types of {@link Property} values. Each type has a short name, a description, and a regex which
  * valid values match. All of these fields are optional.
  */
 public enum PropertyType {
-  PREFIX(null, Predicates.<String>alwaysFalse(), null),
+  PREFIX(null, x -> false, null),
 
   TIMEDURATION("duration", boundedUnits(0, Long.MAX_VALUE, true, "", "ms", "s", "m", "h", "d"),
       "A non-negative integer optionally followed by a unit of time (whitespace"
@@ -50,15 +51,27 @@ public enum PropertyType {
           + " and 'a'.\nUnless otherwise stated, the max value for the duration"
           + " represented in milliseconds is " + Long.MAX_VALUE),
 
-  MEMORY("memory", boundedUnits(0, Long.MAX_VALUE, false, "", "B", "K", "M", "G"),
-      "A positive integer optionally followed by a unit of memory (whitespace"
-          + " disallowed), as in 2G.\n"
-          + "If no unit is specified, bytes are assumed. Valid units are 'B', 'K',"
-          + " 'M', 'G', for bytes, kilobytes, megabytes, and gigabytes.\n"
-          + "Examples of valid memories are '1024', '20B', '100K', '1500M', '2G'.\n"
+  BYTES("bytes", boundedUnits(0, Long.MAX_VALUE, false, "", "B", "K", "M", "G"),
+      "A positive integer optionally followed by a unit of memory (whitespace disallowed).\n"
+          + "If no unit is specified, bytes are assumed. Valid units are 'B',"
+          + " 'K', 'M' or 'G' for bytes, kilobytes, megabytes, gigabytes.\n"
+          + "Examples of valid memories are '1024', '20B', '100K', '1500M', '2G', '20%'.\n"
           + "Examples of invalid memories are '1M500K', '1M 2K', '1MB', '1.5G',"
           + " '1,024K', '', and 'a'.\n"
-          + "Unless otherwise stated, the max value for the memory represented in" + " bytes is "
+          + "Unless otherwise stated, the max value for the memory represented in bytes is "
+          + Long.MAX_VALUE),
+
+  MEMORY("memory", boundedUnits(0, Long.MAX_VALUE, false, "", "B", "K", "M", "G", "%"),
+      "A positive integer optionally followed by a unit of memory or a"
+          + " percentage (whitespace disallowed).\n"
+          + "If a percentage is specified, memory will be a percentage of the"
+          + " max memory allocated to a Java process (set by the JVM option -Xmx).\n"
+          + "If no unit is specified, bytes are assumed. Valid units are 'B',"
+          + " 'K', 'M', 'G', '%' for bytes, kilobytes, megabytes, gigabytes, and" + " percentage.\n"
+          + "Examples of valid memories are '1024', '20B', '100K', '1500M', '2G', '20%'.\n"
+          + "Examples of invalid memories are '1M500K', '1M 2K', '1MB', '1.5G',"
+          + " '1,024K', '', and 'a'.\n"
+          + "Unless otherwise stated, the max value for the memory represented in bytes is "
           + Long.MAX_VALUE),
 
   HOSTLIST("host list",
@@ -69,9 +82,9 @@ public enum PropertyType {
           + " 'localhost:2000,www.example.com,10.10.1.1:500' and 'localhost'.\n"
           + "Examples of invalid host lists are '', ':1000', and 'localhost:80000'"),
 
-  @SuppressWarnings("unchecked")
   PORT("port",
-      Predicates.or(new Bounds(1024, 65535), in(true, "0"), new PortRange("\\d{4,5}-\\d{4,5}")),
+      x -> Stream.of(new Bounds(1024, 65535), in(true, "0"), new PortRange("\\d{4,5}-\\d{4,5}"))
+          .anyMatch(y -> y.test(x)),
       "An positive integer in the range 1024-65535 (not already in use or"
           + " specified elsewhere in the configuration),\n"
           + "zero to indicate any open ephemeral port, or a range of positive"
@@ -87,19 +100,19 @@ public enum PropertyType {
           + " '5%', '0.2%', '0.0005'.\n"
           + "Examples of invalid fractions/percentages are '', '10 percent'," + " 'Hulk Hogan'"),
 
-  PATH("path", Predicates.<String>alwaysTrue(),
+  PATH("path", x -> true,
       "A string that represents a filesystem path, which can be either relative"
-          + " or absolute to some directory. The filesystem depends on the property."
-          + " The following environment variables will be substituted: "
-          + Constants.PATH_PROPERTY_ENV_VARS),
+          + " or absolute to some directory. The filesystem depends on the property. "
+          + "Substitutions of the ACCUMULO_HOME environment variable can be done in the system "
+          + "config file using '${env:ACCUMULO_HOME}' or similar."),
 
-  ABSOLUTEPATH("absolute path", new Predicate<String>() {
-    @Override
-    public boolean apply(final String input) {
-      return input == null || input.trim().isEmpty() || new Path(input.trim()).isAbsolute();
-    }
-  }, "An absolute filesystem path. The filesystem depends on the property."
-      + " This is the same as path, but enforces that its root is explicitly" + " specified."),
+  // VFS_CLASSLOADER_CACHE_DIR's default value is a special case, for documentation purposes
+  @SuppressWarnings("removal")
+  ABSOLUTEPATH("absolute path",
+      x -> x == null || x.trim().isEmpty() || new Path(x.trim()).isAbsolute()
+          || x.equals(Property.VFS_CLASSLOADER_CACHE_DIR.getDefaultValue()),
+      "An absolute filesystem path. The filesystem depends on the property."
+          + " This is the same as path, but enforces that its root is explicitly" + " specified."),
 
   CLASSNAME("java class", new Matches("[\\w$.]*"),
       "A fully qualified java class name representing a class on the classpath.\n"
@@ -109,24 +122,31 @@ public enum PropertyType {
       "A list of fully qualified java class names representing classes on the classpath.\n"
           + "An example is 'java.lang.String', rather than 'String'"),
 
-  DURABILITY("durability", in(true, null, "none", "log", "flush", "sync"),
+  DURABILITY("durability", in(false, null, "default", "none", "log", "flush", "sync"),
       "One of 'none', 'log', 'flush' or 'sync'."),
 
-  STRING("string", Predicates.<String>alwaysTrue(),
+  GC_POST_ACTION("gc_post_action", in(true, null, "none", "flush", "compact"),
+      "One of 'none', 'flush', or 'compact'."),
+
+  STRING("string", x -> true,
       "An arbitrary string of characters whose format is unspecified and"
           + " interpreted based on the context of the property to which it applies."),
 
   BOOLEAN("boolean", in(false, null, "true", "false"),
       "Has a value of either 'true' or 'false' (case-insensitive)"),
 
-  URI("uri", Predicates.<String>alwaysTrue(), "A valid URI");
+  URI("uri", x -> true, "A valid URI");
 
   private String shortname, format;
-  private Predicate<String> predicate;
+  // Field is transient because enums are Serializable, but Predicates aren't necessarily,
+  // and our lambdas certainly aren't; This shouldn't matter because enum serialization doesn't
+  // store fields, so this is a false positive in our spotbugs version
+  // see https://github.com/spotbugs/spotbugs/issues/740
+  private transient Predicate<String> predicate;
 
   private PropertyType(String shortname, Predicate<String> predicate, String formatDescription) {
     this.shortname = shortname;
-    this.predicate = predicate;
+    this.predicate = Objects.requireNonNull(predicate);
     this.format = formatDescription;
   }
 
@@ -150,40 +170,35 @@ public enum PropertyType {
    * @return true if value is valid or null, or if this type has no regex
    */
   public boolean isValidFormat(String value) {
-    return predicate.apply(value);
+    // this can't happen because enum fields aren't serialized, so it doesn't matter if the
+    // predicate was transient or not, but it's probably not hurting anything to check and provide
+    // the helpful error message for troubleshooting, just in case
+    Preconditions.checkState(predicate != null,
+        "Predicate was null, maybe this enum was serialized????");
+    return predicate.test(value);
   }
 
-  private static Predicate<String> in(final boolean caseSensitive, final String... strings) {
-    List<String> allowedSet = Arrays.asList(strings);
+  private static Predicate<String> in(final boolean caseSensitive, final String... allowedSet) {
     if (caseSensitive) {
-      return Predicates.in(allowedSet);
+      return x -> Arrays.stream(allowedSet)
+          .anyMatch(y -> (x == null && y == null) || (x != null && x.equals(y)));
     } else {
-      Function<String,String> toLower = new Function<String,String>() {
-        @Override
-        public String apply(final String input) {
-          return input == null ? null : input.toLowerCase();
-        }
-      };
-      return Predicates.compose(Predicates.in(Collections2.transform(allowedSet, toLower)),
-          toLower);
+      Function<String,String> toLower = x -> x == null ? null : x.toLowerCase();
+      return x -> Arrays.stream(allowedSet).map(toLower)
+          .anyMatch(y -> (x == null && y == null) || (x != null && toLower.apply(x).equals(y)));
     }
   }
 
   private static Predicate<String> boundedUnits(final long lowerBound, final long upperBound,
       final boolean caseSensitive, final String... suffixes) {
-    return Predicates.or(Predicates.isNull(), Predicates.and(new HasSuffix(caseSensitive, suffixes),
-        Predicates.compose(new Bounds(lowerBound, upperBound), new StripUnits())));
+    Predicate<String> suffixCheck = new HasSuffix(caseSensitive, suffixes);
+    return x -> x == null
+        || (suffixCheck.test(x) && new Bounds(lowerBound, upperBound).test(stripUnits.apply(x)));
   }
 
-  private static class StripUnits implements Function<String,String> {
-    private static Pattern SUFFIX_REGEX = Pattern.compile("[^\\d]*$");
-
-    @Override
-    public String apply(final String input) {
-      requireNonNull(input);
-      return SUFFIX_REGEX.matcher(input.trim()).replaceAll("");
-    }
-  }
+  private static final Pattern SUFFIX_REGEX = Pattern.compile("[^\\d]*$");
+  private static final Function<String,String> stripUnits =
+      x -> x == null ? null : SUFFIX_REGEX.matcher(x.trim()).replaceAll("");
 
   private static class HasSuffix implements Predicate<String> {
 
@@ -194,14 +209,14 @@ public enum PropertyType {
     }
 
     @Override
-    public boolean apply(final String input) {
+    public boolean test(final String input) {
       requireNonNull(input);
-      Matcher m = StripUnits.SUFFIX_REGEX.matcher(input);
+      Matcher m = SUFFIX_REGEX.matcher(input);
       if (m.find()) {
         if (m.groupCount() != 0) {
           throw new AssertionError(m.groupCount());
         }
-        return p.apply(m.group());
+        return p.test(m.group());
       } else {
         return true;
       }
@@ -210,13 +225,13 @@ public enum PropertyType {
 
   private static class FractionPredicate implements Predicate<String> {
     @Override
-    public boolean apply(final String input) {
+    public boolean test(final String input) {
       if (input == null) {
         return true;
       }
       try {
         double d;
-        if (input.length() > 0 && input.charAt(input.length() - 1) == '%') {
+        if (!input.isEmpty() && input.charAt(input.length() - 1) == '%') {
           d = Double.parseDouble(input.substring(0, input.length() - 1));
         } else {
           d = Double.parseDouble(input);
@@ -246,7 +261,7 @@ public enum PropertyType {
     }
 
     @Override
-    public boolean apply(final String input) {
+    public boolean test(final String input) {
       if (input == null) {
         return true;
       }
@@ -259,10 +274,7 @@ public enum PropertyType {
       if (number < lowerBound || (!lowerInclusive && number == lowerBound)) {
         return false;
       }
-      if (number > upperBound || (!upperInclusive && number == upperBound)) {
-        return false;
-      }
-      return true;
+      return number <= upperBound && (upperInclusive || number != upperBound);
     }
 
   }
@@ -285,7 +297,7 @@ public enum PropertyType {
     }
 
     @Override
-    public boolean apply(final String input) {
+    public boolean test(final String input) {
       // TODO when the input is null, it just means that the property wasn't set
       // we can add checks for not null for required properties with
       // Predicates.and(Predicates.notNull(), ...),
@@ -298,15 +310,15 @@ public enum PropertyType {
 
   public static class PortRange extends Matches {
 
-    private static final IntRange VALID_RANGE = new IntRange(1024, 65535);
+    public static final Range<Integer> VALID_RANGE = Range.between(1024, 65535);
 
     public PortRange(final String pattern) {
       super(pattern);
     }
 
     @Override
-    public boolean apply(final String input) {
-      if (super.apply(input)) {
+    public boolean test(final String input) {
+      if (super.test(input)) {
         try {
           PortRange.parse(input);
           return true;
@@ -318,17 +330,16 @@ public enum PropertyType {
       }
     }
 
-    public static Pair<Integer,Integer> parse(String portRange) {
+    public static IntStream parse(String portRange) {
       int idx = portRange.indexOf('-');
       if (idx != -1) {
         int low = Integer.parseInt(portRange.substring(0, idx));
         int high = Integer.parseInt(portRange.substring(idx + 1));
-        if (!VALID_RANGE.containsInteger(low) || !VALID_RANGE.containsInteger(high)
-            || !(low <= high)) {
+        if (!VALID_RANGE.contains(low) || !VALID_RANGE.contains(high) || low > high) {
           throw new IllegalArgumentException(
               "Invalid port range specified, only 1024 to 65535 supported.");
         }
-        return new Pair<>(low, high);
+        return IntStream.rangeClosed(low, high);
       }
       throw new IllegalArgumentException(
           "Invalid port range specification, must use M-N notation.");

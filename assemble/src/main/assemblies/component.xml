@@ -1,19 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Licensed to the Apache Software Foundation (ASF) under one or more
-  contributor license agreements.  See the NOTICE file distributed with
-  this work for additional information regarding copyright ownership.
-  The ASF licenses this file to You under the Apache License, Version 2.0
-  (the "License"); you may not use this file except in compliance with
-  the License.  You may obtain a copy of the License at
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
 
       http://www.apache.org/licenses/LICENSE-2.0
 
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
 -->
 <component xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/component/1.1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/component/1.1.2 http://maven.apache.org/xsd/component-1.1.2.xsd">
@@ -23,23 +27,55 @@
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
       <useProjectArtifact>false</useProjectArtifact>
-      <outputFileNameMapping>${artifact.artifactId}${dashClassifier?}.${artifact.extension}</outputFileNameMapping>
       <useTransitiveDependencies>false</useTransitiveDependencies>
       <includes>
-        <!-- if you update this list, you should also update the assembly
-        pom.xml section which executes the maven-dependency-plugin to generate a
-        version listing for packaged artifacts -->
         <include>${groupId}:${artifactId}-*</include>
         <include>com.beust:jcommander</include>
+        <include>com.fasterxml:classmate</include>
+        <include>com.fasterxml.jackson.core:jackson-annotations</include>
+        <include>com.fasterxml.jackson.core:jackson-core</include>
+        <include>com.fasterxml.jackson.core:jackson-databind</include>
+        <include>com.fasterxml.jackson.jaxrs:jackson-jaxrs-base:jar:jakarta</include>
+        <include>com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider:jar:jakarta</include>
+        <include>com.fasterxml.jackson.module:jackson-module-jaxb-annotations:jar:jakarta</include>
+        <include>com.github.ben-manes.caffeine:caffeine</include>
         <include>com.google.code.gson:gson</include>
+        <include>com.google.guava:failureaccess</include>
         <include>com.google.guava:guava</include>
         <include>com.google.protobuf:protobuf-java</include>
-        <include>commons-configuration:commons-configuration</include>
-        <include>javax.servlet:javax.servlet-api</include>
-        <include>jline:jline</include>
+        <include>com.lmax:disruptor</include>
+        <include>commons-cli:commons-cli</include>
+        <include>commons-codec:commons-codec</include>
+        <include>commons-io:commons-io</include>
+        <include>commons-logging:commons-logging</include>
+        <include>com.sun.istack:istack-commons-runtime</include>
+        <include>io.opentelemetry:opentelemetry-api</include>
+        <include>io.opentelemetry:opentelemetry-context</include>
+        <include>io.opentelemetry:opentelemetry-semconv</include>
+        <include>io.micrometer:micrometer-core</include>
+        <include>jakarta.activation:jakarta.activation-api</include>
+        <include>jakarta.annotation:jakarta.annotation-api</include>
+        <include>jakarta.el:jakarta.el-api</include>
+        <include>jakarta.inject:jakarta.inject-api</include>
+        <include>jakarta.servlet:jakarta.servlet-api</include>
+        <include>jakarta.validation:jakarta.validation-api</include>
+        <include>jakarta.ws.rs:jakarta.ws.rs-api</include>
+        <include>jakarta.xml.bind:jakarta.xml.bind-api</include>
+        <include>org.apache.commons:commons-collections4</include>
+        <include>org.apache.commons:commons-configuration2</include>
+        <include>org.apache.commons:commons-lang3</include>
         <include>org.apache.commons:commons-math3</include>
+        <include>org.apache.commons:commons-text</include>
         <include>org.apache.commons:commons-vfs2</include>
-        <include>org.apache.htrace:htrace-core</include>
+        <include>org.apache.datasketches:datasketches-java</include>
+        <include>org.apache.htrace:htrace-core4</include>
+        <include>org.apache.logging.log4j:log4j-1.2-api</include>
+        <include>org.apache.logging.log4j:log4j-api</include>
+        <include>org.apache.logging.log4j:log4j-core</include>
+        <include>org.apache.logging.log4j:log4j-jcl</include>
+        <include>org.apache.logging.log4j:log4j-jul</include>
+        <include>org.apache.logging.log4j:log4j-slf4j-impl</include>
+        <include>org.apache.logging.log4j:log4j-web</include>
         <include>org.apache.thrift:libthrift</include>
         <include>org.eclipse.jetty:jetty-http</include>
         <include>org.eclipse.jetty:jetty-io</include>
@@ -47,22 +83,34 @@
         <include>org.eclipse.jetty:jetty-server</include>
         <include>org.eclipse.jetty:jetty-servlet</include>
         <include>org.eclipse.jetty:jetty-util</include>
+        <include>org.freemarker:freemarker</include>
+        <include>org.glassfish.hk2:hk2-api</include>
+        <include>org.glassfish.hk2:hk2-locator</include>
+        <include>org.glassfish.hk2:hk2-utils</include>
+        <include>org.glassfish:jakarta.el</include>
+        <include>org.glassfish.jaxb:jaxb-core</include>
+        <include>org.glassfish.jaxb:jaxb-runtime</include>
+        <include>org.glassfish.jersey.containers:jersey-container-jetty-http</include>
+        <include>org.glassfish.jersey.containers:jersey-container-servlet-core</include>
+        <include>org.glassfish.jersey.containers:jersey-container-servlet</include>
+        <include>org.glassfish.jersey.core:jersey-client</include>
+        <include>org.glassfish.jersey.core:jersey-common</include>
+        <include>org.glassfish.jersey.core:jersey-server</include>
+        <include>org.glassfish.jersey.ext:jersey-bean-validation</include>
+        <include>org.glassfish.jersey.ext:jersey-entity-filtering</include>
+        <include>org.glassfish.jersey.ext:jersey-mvc-freemarker</include>
+        <include>org.glassfish.jersey.ext:jersey-mvc</include>
+        <include>org.glassfish.jersey.inject:jersey-hk2</include>
+        <include>org.glassfish.jersey.media:jersey-media-jaxb</include>
+        <include>org.glassfish.jersey.media:jersey-media-json-jackson</include>
+        <include>org.hdrhistogram:HdrHistogram</include>
+        <include>org.hibernate.validator:hibernate-validator</include>
+        <include>org.javassist:javassist</include>
+        <include>org.jboss.logging:jboss-logging</include>
+        <include>org.jline:jline</include>
+        <include>org.latencyutils:LatencyUtils</include>
         <include>org.slf4j:slf4j-api</include>
-        <include>org.slf4j:slf4j-log4j12</include>
-      </includes>
-      <excludes>
-        <exclude>${groupId}:${artifactId}-docs</exclude>
-      </excludes>
-    </dependencySet>
-    <dependencySet>
-      <outputDirectory>docs</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <useProjectArtifact>false</useProjectArtifact>
-      <outputFileNameMapping>${artifactId}_user_manual.${artifact.extension}</outputFileNameMapping>
-      <useTransitiveDependencies>false</useTransitiveDependencies>
-      <includes>
-        <include>${groupId}:${artifactId}-docs:html:user-manual</include>
+        <include>org.yaml:snakeyaml</include>
       </includes>
     </dependencySet>
   </dependencySets>
@@ -73,176 +121,23 @@
       <fileMode>0755</fileMode>
     </fileSet>
     <fileSet>
-      <directory>../examples/simple</directory>
-      <outputDirectory>examples/simple</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <includes>
-        <include>src/main/**</include>
-      </includes>
-    </fileSet>
-    <fileSet>
-      <directory>./</directory>
-      <outputDirectory>lib/ext</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <excludes>
-        <exclude>*/**</exclude>
-      </excludes>
-    </fileSet>
-    <fileSet>
-      <directory>./</directory>
-      <outputDirectory>logs</outputDirectory>
-      <directoryMode>0700</directoryMode>
-      <excludes>
-        <exclude>*/**</exclude>
-      </excludes>
-    </fileSet>
-    <fileSet>
-      <directory>../docs/src/main/resources</directory>
-      <outputDirectory>docs</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <includes>
-        <include>*.html</include>
-        <include>*.css</include>
-        <include>examples/*</include>
-      </includes>
-    </fileSet>
-    <fileSet>
-      <directory>../docs/target</directory>
-      <outputDirectory>docs</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <includes>
-        <include>config.html</include>
-      </includes>
-    </fileSet>
-    <fileSet>
-      <directory>conf</directory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0755</fileMode>
-      <includes>
-        <include>**/*.sh</include>
-      </includes>
-    </fileSet>
-    <fileSet>
       <directory>conf</directory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
-      <excludes>
-        <exclude>**/*.sh</exclude>
-      </excludes>
     </fileSet>
     <fileSet>
-      <!-- preserve old behavior of extra copy in conf -->
-      <directory>conf/templates</directory>
+      <directory>target/example-configs</directory>
       <outputDirectory>conf</outputDirectory>
       <directoryMode>0755</directoryMode>
       <fileMode>0644</fileMode>
-      <includes>
-        <include>accumulo.policy.example</include>
-      </includes>
     </fileSet>
     <fileSet>
-      <directory>target/example-configs</directory>
-      <outputDirectory>conf/examples</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0755</fileMode>
-      <includes>
-        <include>**/*.sh</include>
-      </includes>
-    </fileSet>
-    <fileSet>
-      <directory>target/example-configs</directory>
-      <outputDirectory>conf/examples</outputDirectory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <excludes>
-        <exclude>**/*.sh</exclude>
-      </excludes>
-    </fileSet>
-    <fileSet>
-      <directory>../test</directory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0755</fileMode>
-      <includes>
-        <include>**/*.sh</include>
-        <include>**/*.py</include>
-        <include>**/*.pl</include>
-      </includes>
-      <excludes>
-        <exclude>src/**</exclude>
-        <exclude>target/**</exclude>
-        <exclude>**/continuous-env.sh</exclude>
-      </excludes>
-    </fileSet>
-    <fileSet>
-      <directory>../test</directory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <excludes>
-        <exclude>**/.*/**</exclude>
-        <exclude>pom.xml</exclude>
-        <exclude>src/**</exclude>
-        <exclude>target/**</exclude>
-        <exclude>**/*.sh</exclude>
-        <exclude>**/*.py</exclude>
-        <exclude>**/*.pl</exclude>
-        <exclude>**/*.pyc</exclude>
-        <exclude>**/*.pyo</exclude>
-        <exclude>**/walkers.txt</exclude>
-        <exclude>**/ingesters.txt</exclude>
-        <exclude>**/randomwalk/conf/logger.xml</exclude>
-        <exclude>**/randomwalk/conf/randomwalk.conf</exclude>
-        <exclude>**/randomwalk/conf/walkers</exclude>
-      </excludes>
-    </fileSet>
-    <!-- Lift generated thrift proxy code into its own directory -->
-    <fileSet>
-      <directory>../proxy/target</directory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <outputDirectory>proxy/thrift</outputDirectory>
-      <includes>
-        <include>gen-cpp/**</include>
-        <include>gen-py/**</include>
-        <include>gen-rb/**</include>
-      </includes>
-    </fileSet>
-    <fileSet>
-      <directory>../proxy</directory>
-      <directoryMode>0755</directoryMode>
+      <directory>target</directory>
+      <outputDirectory>conf</outputDirectory>
       <fileMode>0644</fileMode>
       <includes>
-        <include>README</include>
-        <include>proxy.properties</include>
-      </includes>
-    </fileSet>
-    <fileSet>
-      <directory>../proxy/examples</directory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0755</fileMode>
-      <includes>
-        <include>**/*.py</include>
-        <include>**/*.rb</include>
-      </includes>
-    </fileSet>
-    <fileSet>
-      <directory>../proxy/examples</directory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <excludes>
-        <exclude>**/*.py</exclude>
-        <exclude>**/*.rb</exclude>
-      </excludes>
-    </fileSet>
-    <fileSet>
-      <directory>../proxy/src/main/thrift</directory>
-      <directoryMode>0755</directoryMode>
-      <fileMode>0644</fileMode>
-      <outputDirectory>proxy/thrift</outputDirectory>
-      <includes>
-        <include>*.thrift</include>
+        <include>accumulo-client.properties</include>
+        <include>jshell-init.jsh</include>
       </includes>
     </fileSet>
     <fileSet>
@@ -250,16 +145,7 @@
       <fileMode>0644</fileMode>
       <includes>
         <include>README.md</include>
-        <include>INSTALL.md</include>
         <include>BUILD.md</include>
-      </includes>
-    </fileSet>
-    <fileSet>
-      <directory>target</directory>
-      <outputDirectory>lib</outputDirectory>
-      <fileMode>0644</fileMode>
-      <includes>
-        <include>VERSIONS</include>
       </includes>
     </fileSet>
     <fileSet>

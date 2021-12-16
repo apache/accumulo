@@ -1,30 +1,36 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.log;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
+import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class LogFileKeyTest {
@@ -45,11 +51,11 @@ public class LogFileKeyTest {
     LogFileKey mut = nk(LogEvents.MUTATION, 1, 3);
     LogFileKey mmut = nk(LogEvents.MANY_MUTATIONS, 1, 3);
 
-    assertTrue(start.compareTo(finish) == 0);
-    assertTrue(finish.compareTo(start) == 0);
+    assertEquals(0, start.compareTo(finish));
+    assertEquals(0, finish.compareTo(start));
 
-    assertTrue(mut.compareTo(mmut) == 0);
-    assertTrue(mmut.compareTo(mut) == 0);
+    assertEquals(0, mut.compareTo(mmut));
+    assertEquals(0, mmut.compareTo(mut));
   }
 
   @Test
@@ -96,5 +102,49 @@ public class LogFileKeyTest {
       assertEquals(keys, testList);
     }
 
+  }
+
+  private void testToFromKey(int tabletId, long seq) throws IOException {
+    var logFileKey = nk(LogEvents.DEFINE_TABLET, tabletId, seq);
+    logFileKey.tablet = new KeyExtent(TableId.of("5"), new Text("b"), null);
+    Key k = logFileKey.toKey();
+
+    var converted = LogFileKey.fromKey(k);
+    assertEquals("Failed to convert tabletId = " + tabletId + " seq = " + seq, logFileKey,
+        converted);
+  }
+
+  @Test
+  public void convertToKeyLargeTabletId() throws IOException {
+    // test continuous range of numbers to make sure all cases of signed bytes are covered
+    for (int i = -1_000; i < 1_000_000; i++) {
+      testToFromKey(i, 1);
+    }
+  }
+
+  @Test
+  public void convertToKeyLargeSeq() throws IOException {
+    // use numbers large enough to cover all bytes used
+    testToFromKey(1, 8); // 1 byte
+    testToFromKey(1, 1_000L); // 2 bytes
+    testToFromKey(1, 1_222_333L); // 3 bytes
+    testToFromKey(1, 100_000_000L); // 4 bytes
+    testToFromKey(1, 111_222_333_444L); // 5 bytes
+    testToFromKey(1, 1_000_222_333_777L); // 6 bytes
+    testToFromKey(1, 5_222_000_222_333_777L); // 7 bytes
+    testToFromKey(1, 500_222_333_444_555_666L); // 8 bytes
+
+    // test with more tabletId bytes
+    testToFromKey(-1000, 500_222_333_444_555_666L);
+    testToFromKey(10_000_000, 500_222_333_444_555_666L);
+    testToFromKey(Integer.MAX_VALUE, Long.MAX_VALUE);
+    testToFromKey(Integer.MIN_VALUE, Long.MAX_VALUE);
+    testToFromKey(Integer.MIN_VALUE, 0);
+    testToFromKey(Integer.MAX_VALUE, 0);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testNegativeSeq() throws IOException {
+    testToFromKey(1, -1);
   }
 }

@@ -1,24 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to you under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.iteratortest.testcases;
 
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.Collection;
-import java.util.Random;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.ByteSequence;
@@ -29,7 +31,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 import org.apache.accumulo.iteratortest.IteratorTestUtil;
-import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +38,7 @@ import org.slf4j.LoggerFactory;
  * Test case that verifies that an iterator can use the generated instance from {@code deepCopy}.
  */
 public class ReSeekTestCase extends OutputVerifyingTestCase {
+  private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(ReSeekTestCase.class);
 
   /**
@@ -45,19 +47,13 @@ public class ReSeekTestCase extends OutputVerifyingTestCase {
    */
   private static final int RESEEK_INTERVAL = 4;
 
-  private final Random random;
-
-  public ReSeekTestCase() {
-    this.random = new Random();
-  }
-
   @Override
   public IteratorTestOutput test(IteratorTestInput testInput) {
     final SortedKeyValueIterator<Key,Value> skvi = IteratorTestUtil.instantiateIterator(testInput);
     final SortedKeyValueIterator<Key,Value> source = IteratorTestUtil.createSource(testInput);
 
     try {
-      skvi.init(source, testInput.getIteratorOptions(), new SimpleIteratorEnvironment());
+      skvi.init(source, testInput.getIteratorOptions(), testInput.getIteratorEnvironment());
       skvi.seek(testInput.getRange(), testInput.getFamilies(), testInput.isInclusive());
       return new IteratorTestOutput(consume(skvi, testInput));
     } catch (IOException e) {
@@ -94,7 +90,7 @@ public class ReSeekTestCase extends OutputVerifyingTestCase {
         final SortedKeyValueIterator<Key,Value> sourceCopy =
             IteratorTestUtil.createSource(testInput);
 
-        skvi.init(sourceCopy, testInput.getIteratorOptions(), new SimpleIteratorEnvironment());
+        skvi.init(sourceCopy, testInput.getIteratorOptions(), testInput.getIteratorEnvironment());
 
         // The new range, resume where we left off (non-inclusive), with same families filter
         final Range newRange =

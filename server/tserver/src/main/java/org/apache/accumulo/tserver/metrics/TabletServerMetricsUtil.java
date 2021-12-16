@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.metrics;
 
@@ -34,7 +36,7 @@ public class TabletServerMetricsUtil {
 
   public long getEntries() {
     long result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets()) {
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
       result += tablet.getNumEntries();
     }
     return result;
@@ -42,73 +44,57 @@ public class TabletServerMetricsUtil {
 
   public long getEntriesInMemory() {
     long result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets()) {
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
       result += tablet.getNumEntriesInMemory();
     }
     return result;
   }
 
-  public double getIngest() {
+  public double getIngestCount() {
     double result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets()) {
-      result += tablet.ingestRate();
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
+      result += tablet.totalIngest();
     }
     return result;
   }
 
-  public double getIngestByteRate() {
+  public double getIngestByteCount() {
     double result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets()) {
-      result += tablet.ingestByteRate();
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
+      result += tablet.totalIngestBytes();
     }
     return result;
   }
 
-  public double getQueryRate() {
+  public double getQueryByteCount() {
     double result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets()) {
-      result += tablet.queryRate();
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
+      result += tablet.totalQueryResultsBytes();
     }
     return result;
   }
 
-  public double getQueryByteRate() {
+  public double getScannedCount() {
     double result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets()) {
-      result += tablet.queryByteRate();
-    }
-    return result;
-  }
-
-  public double getScannedRate() {
-    double result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets()) {
-      result += tablet.scanRate();
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
+      result += tablet.totalScannedCount();
     }
     return result;
   }
 
   public int getMajorCompactions() {
-    int result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets()) {
-      if (tablet.isMajorCompactionRunning())
-        result++;
-    }
-    return result;
+    var mgr = tserver.getCompactionManager();
+    return mgr == null ? 0 : mgr.getCompactionsRunning();
   }
 
   public int getMajorCompactionsQueued() {
-    int result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets()) {
-      if (tablet.isMajorCompactionQueued())
-        result++;
-    }
-    return result;
+    var mgr = tserver.getCompactionManager();
+    return mgr == null ? 0 : mgr.getCompactionsQueued();
   }
 
   public int getMinorCompactions() {
     int result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets()) {
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
       if (tablet.isMinorCompactionRunning())
         result++;
     }
@@ -117,7 +103,7 @@ public class TabletServerMetricsUtil {
 
   public int getMinorCompactionsQueued() {
     int result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets()) {
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
       if (tablet.isMinorCompactionQueued())
         result++;
     }
@@ -132,10 +118,18 @@ public class TabletServerMetricsUtil {
     return tserver.getOpeningCount();
   }
 
-  public long getQueries() {
+  public long getLookupCount() {
     long result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets()) {
-      result += tablet.totalQueries();
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
+      result += tablet.totalLookupCount();
+    }
+    return result;
+  }
+
+  public long getQueryResultCount() {
+    long result = 0;
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
+      result += tablet.totalQueriesResults();
     }
     return result;
   }
@@ -159,7 +153,7 @@ public class TabletServerMetricsUtil {
   public double getAverageFilesPerTablet() {
     int count = 0;
     long result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets()) {
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
       result += tablet.getDatafiles().size();
       count++;
     }

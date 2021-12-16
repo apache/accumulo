@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -46,10 +48,10 @@ public class ListIterCommand extends Command {
 
     final Map<String,EnumSet<IteratorScope>> iterators;
     if (namespaces) {
-      iterators = shellState.getConnector().namespaceOperations()
+      iterators = shellState.getAccumuloClient().namespaceOperations()
           .listIterators(OptUtil.getNamespaceOpt(cl, shellState));
     } else if (tables) {
-      iterators = shellState.getConnector().tableOperations()
+      iterators = shellState.getAccumuloClient().tableOperations()
           .listIterators(OptUtil.getTableOpt(cl, shellState));
     } else {
       throw new IllegalArgumentException("No table or namespace specified");
@@ -83,10 +85,10 @@ public class ListIterCommand extends Command {
         if (desiredScopes.contains(scope)) {
           IteratorSetting setting;
           if (namespaces) {
-            setting = shellState.getConnector().namespaceOperations()
+            setting = shellState.getAccumuloClient().namespaceOperations()
                 .getIteratorSetting(OptUtil.getNamespaceOpt(cl, shellState), name, scope);
           } else if (tables) {
-            setting = shellState.getConnector().tableOperations()
+            setting = shellState.getAccumuloClient().tableOperations()
                 .getIteratorSetting(OptUtil.getTableOpt(cl, shellState), name, scope);
           } else {
             throw new IllegalArgumentException("No table or namespace specified");
@@ -105,7 +107,7 @@ public class ListIterCommand extends Command {
       }
     }
     sb.append("-");
-    shellState.getReader().println(sb.toString());
+    shellState.getWriter().println(sb);
 
     return 0;
   }

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.logger;
 
@@ -20,8 +22,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.DataInputStream;
 import java.io.EOFException;
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -32,23 +34,28 @@ import java.util.regex.Pattern;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.tserver.log.DfsLogger;
-import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
-import org.apache.accumulo.tserver.log.RecoveryLogReader;
+import org.apache.accumulo.tserver.log.RecoveryLogsIterator;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
-public class LogReader {
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@AutoService(KeywordExecutable.class)
+public class LogReader implements KeywordExecutable {
+
   private static final Logger log = LoggerFactory.getLogger(LogReader.class);
 
   static class Opts extends Help {
@@ -66,55 +73,72 @@ public class LogReader {
   }
 
   /**
-   * Dump a Log File (Map or Sequence) to stdout. Will read from HDFS or local file system.
+   * Dump a Log File to stdout. Will read from HDFS or local file system.
    *
    * @param args
    *          - first argument is the file to print
    */
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws Exception {
+    new LogReader().execute(args);
+  }
+
+  @Override
+  public String keyword() {
+    return "wal-info";
+  }
+
+  @Override
+  public String description() {
+    return "Prints WAL Info";
+  }
+
+  @SuppressFBWarnings(value = "DM_EXIT",
+      justification = "System.exit is fine here because it's a utility class executed by a main()")
+  @Override
+  public void execute(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(LogReader.class.getName(), args);
-    VolumeManager fs = VolumeManagerImpl.get();
-
-    Matcher rowMatcher = null;
-    KeyExtent ke = null;
-    Text row = null;
+    opts.parseArgs("accumulo wal-info", args);
     if (opts.files.isEmpty()) {
-      new JCommander(opts).usage();
-      return;
-    }
-    if (opts.row != null)
-      row = new Text(opts.row);
-    if (opts.extent != null) {
-      String sa[] = opts.extent.split(";");
-      ke = new KeyExtent(sa[0], new Text(sa[1]), new Text(sa[2]));
-    }
-    if (opts.regexp != null) {
-      Pattern pattern = Pattern.compile(opts.regexp);
-      rowMatcher = pattern.matcher("");
+      System.err.println("No WAL files were given");
+      System.exit(1);
     }
 
-    Set<Integer> tabletIds = new HashSet<>();
+    var siteConfig = SiteConfiguration.auto();
+    ServerContext context = new ServerContext(siteConfig);
+    try (VolumeManager fs = context.getVolumeManager()) {
 
-    for (String file : opts.files) {
+      Matcher rowMatcher = null;
+      KeyExtent ke = null;
+      Text row = null;
+      if (opts.row != null) {
+        row = new Text(opts.row);
+      }
+      if (opts.extent != null) {
+        String[] sa = opts.extent.split(";");
+        ke = new KeyExtent(TableId.of(sa[0]), new Text(sa[1]), new Text(sa[2]));
+      }
+      if (opts.regexp != null) {
+        Pattern pattern = Pattern.compile(opts.regexp);
+        rowMatcher = pattern.matcher("");
+      }
 
-      Path path = new Path(file);
-      LogFileKey key = new LogFileKey();
-      LogFileValue value = new LogFileValue();
+      Set<Integer> tabletIds = new HashSet<>();
 
-      if (fs.isFile(path)) {
-        try (final FSDataInputStream fsinput = fs.open(path)) {
-          // read log entries from a simple hdfs file
-          DFSLoggerInputStreams streams;
-          try {
-            streams = DfsLogger.readHeaderAndReturnStream(fsinput, SiteConfiguration.getInstance());
-          } catch (LogHeaderIncompleteException e) {
-            log.warn("Could not read header for " + path + ". Ignoring...");
+      for (String file : opts.files) {
+        Path path = new Path(file);
+        LogFileKey key = new LogFileKey();
+        LogFileValue value = new LogFileValue();
+
+        // ensure it's a regular non-sorted WAL file, and not a single sorted WAL in RFile format
+        if (fs.getFileStatus(path).isFile()) {
+          if (file.endsWith(".rf")) {
+            log.error("Unable to read from a single RFile. A non-sorted WAL file was expected. "
+                + "To read sorted WALs, please pass in a directory containing the sorted recovery logs.");
             continue;
           }
-          DataInputStream input = streams.getDecryptingInputStream();
 
-          try {
+          try (final FSDataInputStream fsinput = fs.open(path);
+              DataInputStream input = DfsLogger.getDecryptingStream(fsinput, siteConfig)) {
             while (true) {
               try {
                 key.readFields(input);
@@ -124,17 +148,20 @@ public class LogReader {
               }
               printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
             }
-          } finally {
-            input.close();
+          } catch (LogHeaderIncompleteException e) {
+            log.warn("Could not read header for {} . Ignoring...", path);
+            continue;
           }
-        }
-      } else {
-        // read the log entries sorted in a map file
-        try (RecoveryLogReader input = new RecoveryLogReader(fs, path)) {
-          while (input.hasNext()) {
-            Entry<LogFileKey,LogFileValue> entry = input.next();
-            printLogEvent(entry.getKey(), entry.getValue(), row, rowMatcher, ke, tabletIds,
-                opts.maxMutations);
+        } else {
+          // read the log entries in a sorted RFile. This has to be a directory that contains the
+          // finished file.
+          try (var rli = new RecoveryLogsIterator(context, Collections.singletonList(path), null,
+              null, false)) {
+            while (rli.hasNext()) {
+              Entry<LogFileKey,LogFileValue> entry = rli.next();
+              printLogEvent(entry.getKey(), entry.getValue(), row, rowMatcher, ke, tabletIds,
+                  opts.maxMutations);
+            }
           }
         }
       }
@@ -174,16 +201,15 @@ public class LogReader {
           }
         }
 
-        if (!found)
+        if (!found) {
           return;
+        }
       } else {
         return;
       }
 
     }
-
     System.out.println(key);
     System.out.println(LogFileValue.format(value, maxMutations));
   }
-
 }

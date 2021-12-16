@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.replication;
 
@@ -22,6 +24,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 
+import org.apache.accumulo.core.data.TableId;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
@@ -31,15 +34,16 @@ import org.apache.hadoop.io.WritableUtils;
 /**
  * Container for where some work needs to be replicated
  */
+@Deprecated
 public class ReplicationTarget implements Writable {
 
   private String peerName;
   private String remoteIdentifier;
-  private String sourceTableId;
+  private TableId sourceTableId;
 
   public ReplicationTarget() {}
 
-  public ReplicationTarget(String peerName, String remoteIdentifier, String sourceTableId) {
+  public ReplicationTarget(String peerName, String remoteIdentifier, TableId sourceTableId) {
     this.peerName = peerName;
     this.remoteIdentifier = remoteIdentifier;
     this.sourceTableId = sourceTableId;
@@ -61,35 +65,35 @@ public class ReplicationTarget implements Writable {
     this.remoteIdentifier = remoteIdentifier;
   }
 
-  public String getSourceTableId() {
+  public TableId getSourceTableId() {
     return sourceTableId;
   }
 
-  public void setSourceTableId(String sourceTableId) {
+  public void setSourceTableId(TableId sourceTableId) {
     this.sourceTableId = sourceTableId;
   }
 
   @Override
   public void write(DataOutput out) throws IOException {
-    if (null == peerName) {
+    if (peerName == null) {
       out.writeBoolean(false);
     } else {
       out.writeBoolean(true);
       WritableUtils.writeString(out, peerName);
     }
 
-    if (null == remoteIdentifier) {
+    if (remoteIdentifier == null) {
       out.writeBoolean(false);
     } else {
       out.writeBoolean(true);
       WritableUtils.writeString(out, remoteIdentifier);
     }
 
-    if (null == sourceTableId) {
+    if (sourceTableId == null) {
       out.writeBoolean(false);
     } else {
       out.writeBoolean(true);
-      WritableUtils.writeString(out, sourceTableId);
+      WritableUtils.writeString(out, sourceTableId.canonical());
     }
   }
 
@@ -102,7 +106,7 @@ public class ReplicationTarget implements Writable {
       this.remoteIdentifier = WritableUtils.readString(in);
     }
     if (in.readBoolean()) {
-      this.sourceTableId = WritableUtils.readString(in);
+      this.sourceTableId = TableId.of(WritableUtils.readString(in));
     }
   }
 

@@ -1,21 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -33,7 +36,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,7 +61,7 @@ public class ColumnSliceFilterTest {
   private static Key newKeyValue(SortedMap<Key,Value> tm, String row, String cf, String cq,
       String val) {
     Key k = newKey(row, cf, cq);
-    tm.put(k, new Value(val.getBytes()));
+    tm.put(k, new Value(val));
     return k;
   }
 
@@ -67,7 +70,7 @@ public class ColumnSliceFilterTest {
   }
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     columnSliceFilter.describeOptions();
     iteratorEnvironment = new DefaultIteratorEnvironment();
     is = new IteratorSetting(1, ColumnSliceFilter.class);
@@ -82,13 +85,13 @@ public class ColumnSliceFilterTest {
     columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, true);
 
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_2);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_3);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_6);
     columnSliceFilter.next();
     assertFalse(columnSliceFilter.hasTop());
   }
@@ -102,16 +105,16 @@ public class ColumnSliceFilterTest {
     columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_2);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_3);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_6);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_4));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_4);
     columnSliceFilter.next();
     assertFalse(columnSliceFilter.hasTop());
   }
@@ -125,10 +128,10 @@ public class ColumnSliceFilterTest {
     columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_3);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_6);
     columnSliceFilter.next();
     assertFalse(columnSliceFilter.hasTop());
   }
@@ -142,13 +145,13 @@ public class ColumnSliceFilterTest {
     columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_3);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_6);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_4));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_4);
     columnSliceFilter.next();
     assertFalse(columnSliceFilter.hasTop());
   }
@@ -162,16 +165,16 @@ public class ColumnSliceFilterTest {
     columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_2);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_1));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_1);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_3);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_6);
     columnSliceFilter.next();
     assertFalse(columnSliceFilter.hasTop());
   }
@@ -185,19 +188,19 @@ public class ColumnSliceFilterTest {
     columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_2);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_3);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_6);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_4));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_4);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_5));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_5);
     columnSliceFilter.next();
     assertFalse(columnSliceFilter.hasTop());
   }
@@ -211,28 +214,28 @@ public class ColumnSliceFilterTest {
     columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_2);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_1));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_1);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_3));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_3);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_6));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_6);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_4));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_4);
     columnSliceFilter.next();
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_5));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_5);
     columnSliceFilter.next();
     assertFalse(columnSliceFilter.hasTop());
   }
 
   @Test
-  public void testStartAfterEnd() throws IOException {
+  public void testStartAfterEnd() {
     try {
       ColumnSliceFilter.setSlice(is, "20080204", "20080202");
       fail("IllegalArgumentException expected but not thrown");
@@ -242,7 +245,7 @@ public class ColumnSliceFilterTest {
   }
 
   @Test
-  public void testStartEqualToEndStartInclusiveEndExclusive() throws IOException {
+  public void testStartEqualToEndStartInclusiveEndExclusive() {
     try {
       ColumnSliceFilter.setSlice(is, "20080202", "20080202");
       fail("IllegalArgumentException expected but not thrown");
@@ -252,7 +255,7 @@ public class ColumnSliceFilterTest {
   }
 
   @Test
-  public void testStartEqualToEndStartExclusiveEndInclusive() throws IOException {
+  public void testStartEqualToEndStartExclusiveEndInclusive() {
     try {
       ColumnSliceFilter.setSlice(is, "20080202", false, "20080202", true);
       fail("IllegalArgumentException expected but not thrown");
@@ -270,7 +273,7 @@ public class ColumnSliceFilterTest {
     columnSliceFilter.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(columnSliceFilter.hasTop());
-    assertTrue(columnSliceFilter.getTopKey().equals(KEY_2));
+    assertEquals(columnSliceFilter.getTopKey(), KEY_2);
     columnSliceFilter.next();
     assertFalse(columnSliceFilter.hasTop());
   }

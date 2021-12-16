@@ -1,49 +1,51 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
-import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.system.CountingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.CountingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.junit.Test;
 
 public class FirstEntryInRowIteratorTest {
 
   private static long process(TreeMap<Key,Value> sourceMap, TreeMap<Key,Value> resultMap,
-      Range range, int numScans) throws IOException {
-    org.apache.accumulo.core.iterators.SortedMapIterator source = new SortedMapIterator(sourceMap);
+      Range range, IteratorSetting iteratorSetting) throws IOException {
+    SortedMapIterator source = new SortedMapIterator(sourceMap);
     CountingIterator counter = new CountingIterator(source);
     FirstEntryInRowIterator feiri = new FirstEntryInRowIterator();
-    IteratorEnvironment env = new BaseIteratorEnvironment();
+    IteratorEnvironment env = new DefaultIteratorEnvironment();
 
-    feiri.init(counter, Collections.singletonMap(FirstEntryInRowIterator.NUM_SCANS_STRING_NAME,
-        Integer.toString(numScans)), env);
+    feiri.init(counter, iteratorSetting.getOptions(), env);
 
-    feiri.seek(range, Collections.<ByteSequence>emptySet(), false);
+    feiri.seek(range, Set.of(), false);
     while (feiri.hasTop()) {
       resultMap.put(feiri.getTopKey(), feiri.getTopValue());
       feiri.next();
@@ -54,13 +56,17 @@ public class FirstEntryInRowIteratorTest {
   @Test
   public void test() throws IOException {
     TreeMap<Key,Value> sourceMap = new TreeMap<>();
-    Value emptyValue = new Value("".getBytes());
+    Value emptyValue = new Value("");
+    IteratorSetting iteratorSetting = new IteratorSetting(1, FirstEntryInRowIterator.class);
+    FirstEntryInRowIterator.setNumScansBeforeSeek(iteratorSetting, 10);
+    assertTrue(
+        iteratorSetting.getOptions().containsKey(FirstEntryInRowIterator.NUM_SCANS_STRING_NAME));
     sourceMap.put(new Key("r1", "cf", "cq"), emptyValue);
     sourceMap.put(new Key("r2", "cf", "cq"), emptyValue);
     sourceMap.put(new Key("r3", "cf", "cq"), emptyValue);
     TreeMap<Key,Value> resultMap = new TreeMap<>();
     long numSourceEntries = sourceMap.size();
-    long numNexts = process(sourceMap, resultMap, new Range(), 10);
+    long numNexts = process(sourceMap, resultMap, new Range(), iteratorSetting);
     assertEquals(numNexts, numSourceEntries);
     assertEquals(sourceMap.size(), resultMap.size());
 
@@ -68,18 +74,21 @@ public class FirstEntryInRowIteratorTest {
       sourceMap.put(new Key("r2", "cf", "cq" + i), emptyValue);
     }
     resultMap.clear();
+
     numNexts = process(sourceMap, resultMap,
-        new Range(new Key("r1"), (new Key("r2")).followingKey(PartialKey.ROW)), 10);
+        new Range(new Key("r1"), (new Key("r2")).followingKey(PartialKey.ROW)), iteratorSetting);
     assertEquals(numNexts, resultMap.size() + 10);
     assertEquals(resultMap.size(), 2);
 
     resultMap.clear();
-    numNexts = process(sourceMap, resultMap, new Range(new Key("r1"), new Key("r2", "cf2")), 10);
+    numNexts = process(sourceMap, resultMap, new Range(new Key("r1"), new Key("r2", "cf2")),
+        iteratorSetting);
     assertEquals(numNexts, resultMap.size() + 10);
     assertEquals(resultMap.size(), 2);
 
     resultMap.clear();
-    numNexts = process(sourceMap, resultMap, new Range(new Key("r1"), new Key("r4")), 10);
+    numNexts =
+        process(sourceMap, resultMap, new Range(new Key("r1"), new Key("r4")), iteratorSetting);
     assertEquals(numNexts, resultMap.size() + 10);
     assertEquals(resultMap.size(), 3);
   }

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test;
 
@@ -22,10 +24,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.net.URI;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -35,45 +36,43 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.util.Admin;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -83,19 +82,19 @@ import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.junit.Test;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class VolumeIT extends ConfigurableMacBase {
 
-  private static final Text EMPTY = new Text();
-  private static final Value EMPTY_VALUE = new Value(new byte[] {});
   private File volDirBase;
-  private Path v1, v2;
+  private Path v1, v2, v3;
+  private List<String> expected = new ArrayList<>();
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 5 * 60;
+    return 10 * 60;
   }
 
-  @SuppressWarnings("deprecation")
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     File baseDir = cfg.getDir();
@@ -104,13 +103,18 @@ public class VolumeIT extends ConfigurableMacBase {
     File v2f = new File(volDirBase, "v2");
     v1 = new Path("file://" + v1f.getAbsolutePath());
     v2 = new Path("file://" + v2f.getAbsolutePath());
+    File v3f = new File(volDirBase, "v3");
+    v3 = new Path("file://" + v3f.getAbsolutePath());
+    // setup expected rows
+    for (int i = 0; i < 100; i++) {
+      String row = String.format("%06d", i * 100 + 3);
+      expected.add(row + ":cf1:cq1:1");
+    }
 
     // Run MAC on two locations in the local file system
-    URI v1Uri = v1.toUri();
-    cfg.setProperty(Property.INSTANCE_DFS_DIR, v1Uri.getPath());
-    cfg.setProperty(Property.INSTANCE_DFS_URI, v1Uri.getScheme() + v1Uri.getHost());
-    cfg.setProperty(Property.INSTANCE_VOLUMES, v1.toString() + "," + v2.toString());
+    cfg.setProperty(Property.INSTANCE_VOLUMES, v1 + "," + v2);
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
+    cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey(), "15s");
 
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -121,49 +125,46 @@ public class VolumeIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     // create a table
-    Connector connector = getConnector();
-    String tableName = getUniqueNames(1)[0];
-    connector.tableOperations().create(tableName);
-    SortedSet<Text> partitions = new TreeSet<>();
-    // with some splits
-    for (String s : "d,m,t".split(","))
-      partitions.add(new Text(s));
-    connector.tableOperations().addSplits(tableName, partitions);
-    // scribble over the splits
-    BatchWriter bw = connector.createBatchWriter(tableName, new BatchWriterConfig());
-    String[] rows = "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",");
-    for (String s : rows) {
-      Mutation m = new Mutation(new Text(s));
-      m.put(EMPTY, EMPTY, EMPTY_VALUE);
-      bw.addMutation(m);
-    }
-    bw.close();
-    // write the data to disk, read it back
-    connector.tableOperations().flush(tableName, null, null, true);
-    Scanner scanner = connector.createScanner(tableName, Authorizations.EMPTY);
-    int i = 0;
-    for (Entry<Key,Value> entry : scanner) {
-      assertEquals(rows[i++], entry.getKey().getRow().toString());
-    }
-    // verify the new files are written to the different volumes
-    scanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    scanner.setRange(new Range("1", "1<"));
-    scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-    int fileCount = 0;
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      // create set of splits
+      SortedSet<Text> partitions = new TreeSet<>();
+      for (String s : "d,m,t".split(","))
+        partitions.add(new Text(s));
+      // create table with splits
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(partitions);
+      client.tableOperations().create(tableName, ntc);
+      // scribble over the splits
+      VolumeChooserIT.writeDataToTable(client, tableName, VolumeChooserIT.alpha_rows);
+      // write the data to disk, read it back
+      client.tableOperations().flush(tableName, null, null, true);
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        int i = 0;
+        for (Entry<Key,Value> entry : scanner) {
+          assertEquals(VolumeChooserIT.alpha_rows[i++], entry.getKey().getRow().toString());
+        }
+      }
+      // verify the new files are written to the different volumes
+      try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+        scanner.setRange(new Range("1", "1<"));
+        scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+        int fileCount = 0;
 
-    for (Entry<Key,Value> entry : scanner) {
-      boolean inV1 = entry.getKey().getColumnQualifier().toString().contains(v1.toString());
-      boolean inV2 = entry.getKey().getColumnQualifier().toString().contains(v2.toString());
-      assertTrue(inV1 || inV2);
-      fileCount++;
+        for (Entry<Key,Value> entry : scanner) {
+          boolean inV1 = entry.getKey().getColumnQualifier().toString().contains(v1.toString());
+          boolean inV2 = entry.getKey().getColumnQualifier().toString().contains(v2.toString());
+          assertTrue(inV1 || inV2);
+          fileCount++;
+        }
+        assertEquals(4, fileCount);
+        List<DiskUsage> diskUsage =
+            client.tableOperations().getDiskUsage(Collections.singleton(tableName));
+        assertEquals(1, diskUsage.size());
+        long usage = diskUsage.get(0).getUsage();
+        log.debug("usage {}", usage);
+        assertTrue(usage > 700 && usage < 900);
+      }
     }
-    assertEquals(4, fileCount);
-    List<DiskUsage> diskUsage =
-        connector.tableOperations().getDiskUsage(Collections.singleton(tableName));
-    assertEquals(1, diskUsage.size());
-    long usage = diskUsage.get(0).getUsage().longValue();
-    log.debug("usage {}", usage);
-    assertTrue(usage > 700 && usage < 800);
   }
 
   private void verifyData(List<String> expected, Scanner createScanner) {
@@ -179,141 +180,42 @@ public class VolumeIT extends ConfigurableMacBase {
     Collections.sort(expected);
     Collections.sort(actual);
 
+    createScanner.close();
     assertEquals(expected, actual);
   }
 
   @Test
-  public void testRelativePaths() throws Exception {
+  public void testAddVolumes() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      String[] tableNames = getUniqueNames(2);
 
-    List<String> expected = new ArrayList<>();
+      String uuid = verifyAndShutdownCluster(client, tableNames[0]);
 
-    Connector connector = getConnector();
-    String tableName = getUniqueNames(1)[0];
-    connector.tableOperations().create(tableName,
-        new NewTableConfiguration().withoutDefaultIterators());
+      updateConfig(config -> config.setProperty(Property.INSTANCE_VOLUMES.getKey(),
+          v1 + "," + v2 + "," + v3));
 
-    String tableId = connector.tableOperations().tableIdMap().get(tableName);
+      // initialize volume
+      assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
 
-    SortedSet<Text> partitions = new TreeSet<>();
-    // with some splits
-    for (String s : "c,g,k,p,s,v".split(","))
-      partitions.add(new Text(s));
+      checkVolumesInitialized(Arrays.asList(v1, v2, v3), uuid);
 
-    connector.tableOperations().addSplits(tableName, partitions);
+      // start cluster and verify that new volume is used
+      cluster.start();
 
-    BatchWriter bw = connector.createBatchWriter(tableName, new BatchWriterConfig());
-
-    // create two files in each tablet
-
-    String[] rows = "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",");
-    for (String s : rows) {
-      Mutation m = new Mutation(s);
-      m.put("cf1", "cq1", "1");
-      bw.addMutation(m);
-      expected.add(s + ":cf1:cq1:1");
+      verifyVolumesUsed(client, tableNames[1], false, v1, v2, v3);
     }
-
-    bw.flush();
-    connector.tableOperations().flush(tableName, null, null, true);
-
-    for (String s : rows) {
-      Mutation m = new Mutation(s);
-      m.put("cf1", "cq1", "2");
-      bw.addMutation(m);
-      expected.add(s + ":cf1:cq1:2");
-    }
-
-    bw.close();
-    connector.tableOperations().flush(tableName, null, null, true);
-
-    verifyData(expected, connector.createScanner(tableName, Authorizations.EMPTY));
-
-    connector.tableOperations().offline(tableName, true);
-
-    connector.securityOperations().grantTablePermission("root", MetadataTable.NAME,
-        TablePermission.WRITE);
-
-    Scanner metaScanner = connector.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    metaScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
-
-    BatchWriter mbw = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
-
-    for (Entry<Key,Value> entry : metaScanner) {
-      String cq = entry.getKey().getColumnQualifier().toString();
-      if (cq.startsWith(v1.toString())) {
-        Path path = new Path(cq);
-        String relPath = "/" + path.getParent().getName() + "/" + path.getName();
-        Mutation fileMut = new Mutation(entry.getKey().getRow());
-        fileMut.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
-        fileMut.put(entry.getKey().getColumnFamily().toString(), relPath,
-            entry.getValue().toString());
-        mbw.addMutation(fileMut);
-      }
-    }
-
-    mbw.close();
-
-    connector.tableOperations().online(tableName, true);
-
-    verifyData(expected, connector.createScanner(tableName, Authorizations.EMPTY));
-
-    connector.tableOperations().compact(tableName, null, null, true, true);
-
-    verifyData(expected, connector.createScanner(tableName, Authorizations.EMPTY));
-
-    for (Entry<Key,Value> entry : metaScanner) {
-      String cq = entry.getKey().getColumnQualifier().toString();
-      Path path = new Path(cq);
-      assertTrue("relative path not deleted " + path.toString(), path.depth() > 2);
-    }
-
   }
 
-  @Test
-  public void testAddVolumes() throws Exception {
+  // grab uuid before shutting down cluster
+  private String verifyAndShutdownCluster(AccumuloClient c, String tableName) throws Exception {
+    String uuid = c.instanceOperations().getInstanceID();
 
-    String[] tableNames = getUniqueNames(2);
+    verifyVolumesUsed(c, tableName, false, v1, v2);
 
-    // grab this before shutting down cluster
-    String uuid = new ZooKeeperInstance(cluster.getClientConfig()).getInstanceID();
-
-    verifyVolumesUsed(tableNames[0], false, v1, v2);
-
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+    assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
     cluster.stop();
 
-    Configuration conf = new Configuration(false);
-    conf.addResource(
-        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
-
-    File v3f = new File(volDirBase, "v3");
-    assertTrue(v3f.mkdir() || v3f.isDirectory());
-    Path v3 = new Path("file://" + v3f.getAbsolutePath());
-
-    conf.set(Property.INSTANCE_VOLUMES.getKey(),
-        v1.toString() + "," + v2.toString() + "," + v3.toString());
-    BufferedOutputStream fos = new BufferedOutputStream(
-        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
-    conf.writeXml(fos);
-    fos.close();
-
-    // initialize volume
-    assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
-
-    // check that all volumes are initialized
-    for (Path volumePath : Arrays.asList(v1, v2, v3)) {
-      FileSystem fs = volumePath.getFileSystem(CachedConfiguration.getInstance());
-      Path vp = new Path(volumePath, ServerConstants.INSTANCE_ID_DIR);
-      FileStatus[] iids = fs.listStatus(vp);
-      assertEquals(1, iids.length);
-      assertEquals(uuid, iids[0].getPath().getName());
-    }
-
-    // start cluster and verify that new volume is used
-    cluster.start();
-
-    verifyVolumesUsed(tableNames[1], false, v1, v2, v3);
+    return uuid;
   }
 
   @Test
@@ -321,227 +223,189 @@ public class VolumeIT extends ConfigurableMacBase {
 
     String[] tableNames = getUniqueNames(2);
 
-    // grab this before shutting down cluster
-    String uuid = new ZooKeeperInstance(cluster.getClientConfig()).getInstanceID();
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
-    verifyVolumesUsed(tableNames[0], false, v1, v2);
+      String uuid = verifyAndShutdownCluster(client, tableNames[0]);
 
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
-    cluster.stop();
+      updateConfig(config -> config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2 + "," + v3));
 
-    Configuration conf = new Configuration(false);
-    conf.addResource(
-        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
+      // initialize volume
+      assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
 
-    File v3f = new File(volDirBase, "v3");
-    assertTrue(v3f.mkdir() || v3f.isDirectory());
-    Path v3 = new Path("file://" + v3f.getAbsolutePath());
+      checkVolumesInitialized(Arrays.asList(v1, v2, v3), uuid);
 
-    conf.set(Property.INSTANCE_VOLUMES.getKey(), v2.toString() + "," + v3.toString());
-    BufferedOutputStream fos = new BufferedOutputStream(
-        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
-    conf.writeXml(fos);
-    fos.close();
+      // start cluster and verify that new volume is used
+      cluster.start();
 
-    // initialize volume
-    assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").waitFor());
+      // verify we can still read the tables (tableNames[0] is likely to have a file still on v1)
+      verifyData(expected, client.createScanner(tableNames[0], Authorizations.EMPTY));
 
-    // check that all volumes are initialized
-    for (Path volumePath : Arrays.asList(v1, v2, v3)) {
-      FileSystem fs = volumePath.getFileSystem(CachedConfiguration.getInstance());
-      Path vp = new Path(volumePath, ServerConstants.INSTANCE_ID_DIR);
+      // v1 should not have any data for tableNames[1]
+      verifyVolumesUsed(client, tableNames[1], false, v2, v3);
+    }
+  }
+
+  // check that all volumes are initialized
+  private void checkVolumesInitialized(List<Path> volumes, String uuid) throws Exception {
+    for (Path volumePath : volumes) {
+      FileSystem fs = volumePath.getFileSystem(cluster.getServerContext().getHadoopConf());
+      Path vp = new Path(volumePath, Constants.INSTANCE_ID_DIR);
       FileStatus[] iids = fs.listStatus(vp);
       assertEquals(1, iids.length);
       assertEquals(uuid, iids[0].getPath().getName());
     }
-
-    // start cluster and verify that new volume is used
-    cluster.start();
-
-    // Make sure we can still read the tables (tableNames[0] is very likely to have a file still on
-    // v1)
-    List<String> expected = new ArrayList<>();
-    for (int i = 0; i < 100; i++) {
-      String row = String.format("%06d", i * 100 + 3);
-      expected.add(row + ":cf1:cq1:1");
-    }
-
-    verifyData(expected, getConnector().createScanner(tableNames[0], Authorizations.EMPTY));
-
-    // v1 should not have any data for tableNames[1]
-    verifyVolumesUsed(tableNames[1], false, v2, v3);
   }
 
-  private void writeData(String tableName, Connector conn)
-      throws AccumuloException, AccumuloSecurityException, TableExistsException,
-      TableNotFoundException, MutationsRejectedException {
+  private void writeData(String tableName, AccumuloClient client) throws AccumuloException,
+      AccumuloSecurityException, TableExistsException, TableNotFoundException {
+
     TreeSet<Text> splits = new TreeSet<>();
     for (int i = 1; i < 100; i++) {
       splits.add(new Text(String.format("%06d", i * 100)));
     }
 
-    conn.tableOperations().create(tableName);
-    conn.tableOperations().addSplits(tableName, splits);
+    NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+    client.tableOperations().create(tableName, ntc);
 
-    BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig());
-    for (int i = 0; i < 100; i++) {
-      String row = String.format("%06d", i * 100 + 3);
-      Mutation m = new Mutation(row);
-      m.put("cf1", "cq1", "1");
-      bw.addMutation(m);
+    try (BatchWriter bw = client.createBatchWriter(tableName)) {
+      for (int i = 0; i < 100; i++) {
+        String row = String.format("%06d", i * 100 + 3);
+        Mutation m = new Mutation(row);
+        m.put("cf1", "cq1", "1");
+        bw.addMutation(m);
+      }
     }
-
-    bw.close();
   }
 
-  private void verifyVolumesUsed(String tableName, boolean shouldExist, Path... paths)
-      throws Exception {
+  private void verifyVolumesUsed(AccumuloClient client, String tableName, boolean shouldExist,
+      Path... paths) throws Exception {
 
-    Connector conn = getConnector();
-
-    List<String> expected = new ArrayList<>();
-    for (int i = 0; i < 100; i++) {
-      String row = String.format("%06d", i * 100 + 3);
-      expected.add(row + ":cf1:cq1:1");
-    }
-
-    if (!conn.tableOperations().exists(tableName)) {
+    if (!client.tableOperations().exists(tableName)) {
       assertFalse(shouldExist);
 
-      writeData(tableName, conn);
+      writeData(tableName, client);
 
-      verifyData(expected, conn.createScanner(tableName, Authorizations.EMPTY));
+      verifyData(expected, client.createScanner(tableName, Authorizations.EMPTY));
 
-      conn.tableOperations().flush(tableName, null, null, true);
+      client.tableOperations().flush(tableName, null, null, true);
     }
 
-    verifyData(expected, conn.createScanner(tableName, Authorizations.EMPTY));
+    verifyData(expected, client.createScanner(tableName, Authorizations.EMPTY));
 
-    String tableId = conn.tableOperations().tableIdMap().get(tableName);
-    Scanner metaScanner = conn.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(metaScanner);
-    metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    metaScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
+    TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+    try (Scanner metaScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      metaScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+      metaScanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
-    int counts[] = new int[paths.length];
+      int[] counts = new int[paths.length];
 
-    outer: for (Entry<Key,Value> entry : metaScanner) {
-      String cf = entry.getKey().getColumnFamily().toString();
-      String cq = entry.getKey().getColumnQualifier().toString();
+      outer: for (Entry<Key,Value> entry : metaScanner) {
+        String path = entry.getKey().getColumnQualifier().toString();
 
-      String path;
-      if (cf.equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME.toString()))
-        path = cq;
-      else
-        path = entry.getValue().toString();
-
-      for (int i = 0; i < paths.length; i++) {
-        if (path.startsWith(paths[i].toString())) {
-          counts[i]++;
-          continue outer;
-        }
-      }
-
-      fail("Unexpected volume " + path);
-    }
-
-    // keep retrying until WAL state information in ZooKeeper stabilizes or until test times out
-    retry: while (true) {
-      Instance i = conn.getInstance();
-      ZooReaderWriter zk =
-          new ZooReaderWriter(i.getZooKeepers(), i.getZooKeepersSessionTimeOut(), "");
-      WalStateManager wals = new WalStateManager(i, zk);
-      try {
-        outer: for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
-          for (Path path : paths) {
-            if (entry.getKey().toString().startsWith(path.toString())) {
-              continue outer;
-            }
+        for (int i = 0; i < paths.length; i++) {
+          if (path.startsWith(paths[i].toString())) {
+            counts[i]++;
+            continue outer;
           }
-          log.warn("Unexpected volume " + entry.getKey() + " (" + entry.getValue() + ")");
-          continue retry;
         }
-      } catch (WalMarkerException e) {
-        Throwable cause = e.getCause();
-        if (cause instanceof NoNodeException) {
-          // ignore WALs being cleaned up
-          continue retry;
-        }
-        throw e;
+
+        fail("Unexpected volume " + path);
       }
-      break;
+
+      // keep retrying until WAL state information in ZooKeeper stabilizes or until test times out
+      retry: while (true) {
+        WalStateManager wals = new WalStateManager(getServerContext());
+        try {
+          outer: for (Entry<Path,WalState> entry : wals.getAllState().entrySet()) {
+            for (Path path : paths) {
+              if (entry.getKey().toString().startsWith(path.toString())) {
+                continue outer;
+              }
+            }
+            log.warn("Unexpected volume " + entry.getKey() + " (" + entry.getValue() + ")");
+            continue retry;
+          }
+        } catch (WalMarkerException e) {
+          Throwable cause = e.getCause();
+          if (cause instanceof NoNodeException) {
+            // ignore WALs being cleaned up
+            continue retry;
+          }
+          throw e;
+        }
+        break;
+      }
+
+      // if a volume is chosen randomly for each tablet, then the probability that a volume will not
+      // be chosen for any tablet is ((num_volumes -
+      // 1)/num_volumes)^num_tablets. For 100 tablets and 3 volumes the probability that only 2
+      // volumes would be chosen is 2.46e-18
+
+      int sum = 0;
+      for (int count : counts) {
+        assertTrue(count > 0);
+        sum += count;
+      }
+
+      assertEquals(100, sum);
     }
-
-    // if a volume is chosen randomly for each tablet, then the probability that a volume will not
-    // be chosen for any tablet is ((num_volumes -
-    // 1)/num_volumes)^num_tablets. For 100 tablets and 3 volumes the probability that only 2
-    // volumes would be chosen is 2.46e-18
-
-    int sum = 0;
-    for (int count : counts) {
-      assertTrue(count > 0);
-      sum += count;
-    }
-
-    assertEquals(200, sum);
-
   }
 
   @Test
   public void testRemoveVolumes() throws Exception {
-    String[] tableNames = getUniqueNames(2);
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      String[] tableNames = getUniqueNames(2);
 
-    verifyVolumesUsed(tableNames[0], false, v1, v2);
+      verifyVolumesUsed(client, tableNames[0], false, v1, v2);
 
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
-    cluster.stop();
+      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
+      cluster.stop();
 
-    Configuration conf = new Configuration(false);
-    conf.addResource(
-        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
+      updateConfig(config -> config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2.toString()));
 
-    conf.set(Property.INSTANCE_VOLUMES.getKey(), v2.toString());
-    BufferedOutputStream fos = new BufferedOutputStream(
-        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
-    conf.writeXml(fos);
-    fos.close();
+      // start cluster and verify that volume was decommissioned
+      cluster.start();
 
-    // start cluster and verify that volume was decommisioned
-    cluster.start();
+      client.tableOperations().compact(tableNames[0], null, null, true, true);
 
-    Connector conn = cluster.getConnector("root", new PasswordToken(ROOT_PASSWORD));
-    conn.tableOperations().compact(tableNames[0], null, null, true, true);
+      verifyVolumesUsed(client, tableNames[0], true, v2);
 
-    verifyVolumesUsed(tableNames[0], true, v2);
+      client.tableOperations().compact(RootTable.NAME, new CompactionConfig().setWait(true));
 
-    // check that root tablet is not on volume 1
-    ZooReader zreader = new ZooReader(cluster.getZooKeepers(), 30000);
-    String zpath = ZooUtil.getRoot(new ZooKeeperInstance(cluster.getClientConfig()))
-        + RootTable.ZROOT_TABLET_PATH;
-    String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
-    assertTrue(rootTabletDir.startsWith(v2.toString()));
+      // check that root tablet is not on volume 1
+      int count = 0;
+      for (StoredTabletFile file : ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT)
+          .getFiles()) {
+        assertTrue(file.getMetaUpdateDelete().startsWith(v2.toString()));
+        count++;
+      }
 
-    conn.tableOperations().clone(tableNames[0], tableNames[1], true, new HashMap<String,String>(),
-        new HashSet<String>());
+      assertTrue(count > 0);
 
-    conn.tableOperations().flush(MetadataTable.NAME, null, null, true);
-    conn.tableOperations().flush(RootTable.NAME, null, null, true);
+      client.tableOperations().clone(tableNames[0], tableNames[1], true, new HashMap<>(),
+          new HashSet<>());
 
-    verifyVolumesUsed(tableNames[0], true, v2);
-    verifyVolumesUsed(tableNames[1], true, v2);
+      client.tableOperations().flush(MetadataTable.NAME, null, null, true);
+      client.tableOperations().flush(RootTable.NAME, null, null, true);
 
+      verifyVolumesUsed(client, tableNames[0], true, v2);
+      verifyVolumesUsed(client, tableNames[1], true, v2);
+    }
   }
 
-  private void testReplaceVolume(boolean cleanShutdown) throws Exception {
+  private void testReplaceVolume(AccumuloClient client, boolean cleanShutdown) throws Exception {
     String[] tableNames = getUniqueNames(3);
 
-    verifyVolumesUsed(tableNames[0], false, v1, v2);
+    verifyVolumesUsed(client, tableNames[0], false, v1, v2);
 
     // write to 2nd table, but do not flush data to disk before shutdown
-    writeData(tableNames[1], cluster.getConnector("root", new PasswordToken(ROOT_PASSWORD)));
+    try (AccumuloClient c2 =
+        cluster.createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
+      writeData(tableNames[1], c2);
+    }
 
     if (cleanShutdown)
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").waitFor());
+      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
 
     cluster.stop();
 
@@ -555,55 +419,73 @@ public class VolumeIT extends ConfigurableMacBase {
     assertTrue("Failed to rename " + v2f + " to " + v9f, v2f.renameTo(v9f));
     Path v9 = new Path(v9f.toURI());
 
-    Configuration conf = new Configuration(false);
-    conf.addResource(
-        new Path(cluster.getConfig().getConfDir().toURI().toString(), "accumulo-site.xml"));
-
-    conf.set(Property.INSTANCE_VOLUMES.getKey(), v8 + "," + v9);
-    conf.set(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey(), v1 + " " + v8 + "," + v2 + " " + v9);
-    BufferedOutputStream fos = new BufferedOutputStream(
-        new FileOutputStream(new File(cluster.getConfig().getConfDir(), "accumulo-site.xml")));
-    conf.writeXml(fos);
-    fos.close();
+    updateConfig(config -> {
+      config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v8 + "," + v9);
+      config.setProperty(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey(),
+          v1 + " " + v8 + "," + v2 + " " + v9);
+    });
 
     // start cluster and verify that volumes were replaced
     cluster.start();
 
-    verifyVolumesUsed(tableNames[0], true, v8, v9);
-    verifyVolumesUsed(tableNames[1], true, v8, v9);
+    verifyVolumesUsed(client, tableNames[0], true, v8, v9);
+    verifyVolumesUsed(client, tableNames[1], true, v8, v9);
 
     // verify writes to new dir
-    getConnector().tableOperations().compact(tableNames[0], null, null, true, true);
-    getConnector().tableOperations().compact(tableNames[1], null, null, true, true);
+    client.tableOperations().compact(tableNames[0], null, null, true, true);
+    client.tableOperations().compact(tableNames[1], null, null, true, true);
 
-    verifyVolumesUsed(tableNames[0], true, v8, v9);
-    verifyVolumesUsed(tableNames[1], true, v8, v9);
+    verifyVolumesUsed(client, tableNames[0], true, v8, v9);
+    verifyVolumesUsed(client, tableNames[1], true, v8, v9);
+
+    client.tableOperations().compact(RootTable.NAME, new CompactionConfig().setWait(true));
 
     // check that root tablet is not on volume 1 or 2
-    ZooReader zreader = new ZooReader(cluster.getZooKeepers(), 30000);
-    String zpath = ZooUtil.getRoot(new ZooKeeperInstance(cluster.getClientConfig()))
-        + RootTable.ZROOT_TABLET_PATH;
-    String rootTabletDir = new String(zreader.getData(zpath, false, null), UTF_8);
-    assertTrue(rootTabletDir.startsWith(v8.toString()) || rootTabletDir.startsWith(v9.toString()));
+    int count = 0;
+    for (StoredTabletFile file : ((ClientContext) client).getAmple().readTablet(RootTable.EXTENT)
+        .getFiles()) {
+      assertTrue(file.getMetaUpdateDelete().startsWith(v8.toString())
+          || file.getMetaUpdateDelete().startsWith(v9.toString()));
+      count++;
+    }
 
-    getConnector().tableOperations().clone(tableNames[1], tableNames[2], true,
-        new HashMap<String,String>(), new HashSet<String>());
+    assertTrue(count > 0);
 
-    getConnector().tableOperations().flush(MetadataTable.NAME, null, null, true);
-    getConnector().tableOperations().flush(RootTable.NAME, null, null, true);
+    client.tableOperations().clone(tableNames[1], tableNames[2], true, new HashMap<>(),
+        new HashSet<>());
 
-    verifyVolumesUsed(tableNames[0], true, v8, v9);
-    verifyVolumesUsed(tableNames[1], true, v8, v9);
-    verifyVolumesUsed(tableNames[2], true, v8, v9);
+    client.tableOperations().flush(MetadataTable.NAME, null, null, true);
+    client.tableOperations().flush(RootTable.NAME, null, null, true);
+
+    verifyVolumesUsed(client, tableNames[0], true, v8, v9);
+    verifyVolumesUsed(client, tableNames[1], true, v8, v9);
+    verifyVolumesUsed(client, tableNames[2], true, v8, v9);
   }
 
   @Test
   public void testCleanReplaceVolumes() throws Exception {
-    testReplaceVolume(true);
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      testReplaceVolume(client, true);
+    }
   }
 
   @Test
   public void testDirtyReplaceVolumes() throws Exception {
-    testReplaceVolume(false);
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      testReplaceVolume(client, false);
+    }
+  }
+
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths provided by test")
+  private void updateConfig(Consumer<PropertiesConfiguration> updater) throws Exception {
+    var file = new File(cluster.getAccumuloPropertiesPath());
+    var config = new PropertiesConfiguration();
+    try (FileReader out = new FileReader(file, UTF_8)) {
+      config.read(out);
+    }
+    updater.accept(config);
+    try (FileWriter out = new FileWriter(file, UTF_8)) {
+      config.write(out);
+    }
   }
 }

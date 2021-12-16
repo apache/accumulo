@@ -1,27 +1,32 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.minicluster;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.FileReader;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map.Entry;
@@ -30,7 +35,6 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -45,8 +49,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.io.FileUtils;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -54,7 +58,14 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MiniAccumuloClusterTest {
+
+  @SuppressWarnings("removal")
+  private static final Property VFS_CONTEXT_CLASSPATH_PROPERTY =
+      Property.VFS_CONTEXT_CLASSPATH_PROPERTY;
 
   public static File testDir;
 
@@ -86,9 +97,10 @@ public class MiniAccumuloClusterTest {
     assertEquals("dfs.replication", DFSConfigKeys.DFS_REPLICATION_KEY);
   }
 
+  @SuppressWarnings("deprecation")
   @Test(timeout = 30000)
   public void test() throws Exception {
-    Connector conn = accumulo.getConnector("root", "superSecret");
+    org.apache.accumulo.core.client.Connector conn = accumulo.getConnector("root", "superSecret");
 
     conn.tableOperations().create("table1", new NewTableConfiguration());
 
@@ -104,7 +116,7 @@ public class MiniAccumuloClusterTest {
 
     conn.tableOperations().attachIterator("table1", is);
 
-    Connector uconn = accumulo.getConnector("user1", "pass1");
+    org.apache.accumulo.core.client.Connector uconn = accumulo.getConnector("user1", "pass1");
 
     BatchWriter bw = uconn.createBatchWriter("table1", new BatchWriterConfig());
 
@@ -136,7 +148,7 @@ public class MiniAccumuloClusterTest {
       } else if (entry.getKey().getColumnQualifierData().toString().equals("CRC")) {
         assertEquals("123", entry.getValue().toString());
       } else {
-        assertTrue(false);
+        fail();
       }
       count++;
     }
@@ -161,19 +173,21 @@ public class MiniAccumuloClusterTest {
   public TemporaryFolder folder =
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
+  @SuppressWarnings("deprecation")
   @Test(timeout = 60000)
   public void testPerTableClasspath() throws Exception {
 
-    Connector conn = accumulo.getConnector("root", "superSecret");
+    org.apache.accumulo.core.client.Connector conn = accumulo.getConnector("root", "superSecret");
 
     conn.tableOperations().create("table2");
 
     File jarFile = folder.newFile("iterator.jar");
     FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), jarFile);
 
-    conn.instanceOperations().setProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1",
+    conn.instanceOperations().setProperty(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1",
         jarFile.toURI().toString());
-    conn.tableOperations().setProperty("table2", Property.TABLE_CLASSPATH.getKey(), "cx1");
+    conn.tableOperations().setProperty("table2", Property.TABLE_CLASSLOADER_CONTEXT.getKey(),
+        "cx1");
     conn.tableOperations().attachIterator("table2",
         new IteratorSetting(100, "foocensor", "org.apache.accumulo.test.FooFilter"));
 
@@ -203,8 +217,7 @@ public class MiniAccumuloClusterTest {
 
     assertEquals(2, count);
 
-    conn.instanceOperations()
-        .removeProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
+    conn.instanceOperations().removeProperty(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
     conn.tableOperations().delete("table2");
   }
 
@@ -230,13 +243,14 @@ public class MiniAccumuloClusterTest {
   @Test
   public void testRandomPorts() throws Exception {
     File confDir = new File(testDir, "conf");
-    File accumuloSite = new File(confDir, "accumulo-site.xml");
-    Configuration conf = new Configuration(false);
-    conf.addResource(accumuloSite.toURI().toURL());
+    File accumuloProps = new File(confDir, "accumulo.properties");
+    var config = new PropertiesConfiguration();
+    try (var reader = new FileReader(accumuloProps, UTF_8)) {
+      config.read(reader);
+    }
     for (Property randomPortProp : new Property[] {Property.TSERV_CLIENTPORT, Property.MONITOR_PORT,
-        Property.MONITOR_LOG4J_PORT, Property.MASTER_CLIENTPORT, Property.TRACE_PORT,
-        Property.GC_PORT}) {
-      String value = conf.get(randomPortProp.getKey());
+        Property.MANAGER_CLIENTPORT, Property.GC_PORT}) {
+      String value = config.getString(randomPortProp.getKey());
       assertNotNull("Found no value for " + randomPortProp, value);
       assertEquals("0", value);
     }

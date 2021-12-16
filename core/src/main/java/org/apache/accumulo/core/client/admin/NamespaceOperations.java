@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.admin;
 
@@ -84,7 +86,16 @@ public interface NamespaceOperations {
 
   /**
    * Create an empty namespace with no initial configuration. Valid names for a namespace contain
-   * letters, numbers, and the underscore character.
+   * letters, numbers, and the underscore character. A safe way to ignore namespaces that do exist
+   * would be to do something like the following:
+   *
+   * <pre>
+   * try {
+   *   connector.namespaceOperations().create("mynamespace");
+   * } catch (NamespaceExistsException e) {
+   *   // ignore or log
+   * }
+   * </pre>
    *
    * @param namespace
    *          the name of the namespace
@@ -179,7 +190,8 @@ public interface NamespaceOperations {
 
   /**
    * Gets properties of a namespace, which are inherited by tables in this namespace. Note that
-   * recently changed properties may not be available immediately.
+   * recently changed properties may not be available immediately. Method calls
+   * {@link #getConfiguration(String)} and then calls .entrySet() on the map.
    *
    * @param namespace
    *          the name of the namespace
@@ -193,7 +205,29 @@ public interface NamespaceOperations {
    *           if the specified namespace doesn't exist
    * @since 1.6.0
    */
-  Iterable<Entry<String,String>> getProperties(String namespace)
+  default Iterable<Entry<String,String>> getProperties(String namespace)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
+    return getConfiguration(namespace).entrySet();
+  }
+
+  /**
+   * Gets properties of a namespace, which are inherited by tables in this namespace. Note that
+   * recently changed properties may not be available immediately. This new method returns a Map
+   * instead of an Iterable.
+   *
+   * @param namespace
+   *          the name of the namespace
+   * @return all properties visible by this namespace (system and per-table properties). Note that
+   *         recently changed properties may not be visible immediately.
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   * @throws NamespaceNotFoundException
+   *           if the specified namespace doesn't exist
+   * @since 2.1.0
+   */
+  Map<String,String> getConfiguration(String namespace)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException;
 
   /**

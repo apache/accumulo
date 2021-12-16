@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -45,7 +47,7 @@ public class DeleteManyCommand extends ScanCommand {
     // handle first argument, if present, the authorizations list to
     // scan with
     final Authorizations auths = getAuths(cl, shellState);
-    final Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
+    final Scanner scanner = shellState.getAccumuloClient().createScanner(tableName, auths);
 
     scanner.addScanIterator(
         new IteratorSetting(Integer.MAX_VALUE, "NOVALUE", SortedKeyIterator.class));
@@ -62,7 +64,7 @@ public class DeleteManyCommand extends ScanCommand {
     fetchColumns(cl, scanner, interpeter);
 
     // output / delete the records
-    final BatchWriter writer = shellState.getConnector().createBatchWriter(tableName,
+    final BatchWriter writer = shellState.getAccumuloClient().createBatchWriter(tableName,
         new BatchWriterConfig().setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS));
     FormatterConfig config = new FormatterConfig();
     config.setPrintTimestamps(cl.hasOption(timestampOpt.getOpt()));

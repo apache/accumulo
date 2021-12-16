@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
@@ -34,27 +36,24 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.VisibilityEvaluator;
 import org.apache.accumulo.core.security.VisibilityParseException;
 import org.apache.accumulo.core.util.BadArgumentException;
-import org.apache.commons.collections.map.LRUMap;
+import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- *
+ * A SortedKeyValueIterator that filters based on ColumnVisibility.
  */
 public class VisibilityFilter extends Filter implements OptionDescriber {
 
   protected VisibilityEvaluator ve;
-  protected LRUMap cache;
+  protected Map<ByteSequence,Boolean> cache;
+
   private static final Logger log = LoggerFactory.getLogger(VisibilityFilter.class);
+
   private static final String AUTHS = "auths";
   private static final String FILTER_INVALID_ONLY = "filterInvalid";
 
   private boolean filterInvalid;
-
-  /**
-   *
-   */
-  public VisibilityFilter() {}
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
@@ -69,14 +68,14 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
           : new Authorizations(auths.getBytes(UTF_8));
       this.ve = new VisibilityEvaluator(authObj);
     }
-    this.cache = new LRUMap(1000);
+    this.cache = new LRUMap<>(1000);
   }
 
   @Override
   public boolean accept(Key k, Value v) {
     ByteSequence testVis = k.getColumnVisibilityData();
     if (filterInvalid) {
-      Boolean b = (Boolean) cache.get(testVis);
+      Boolean b = cache.get(testVis);
       if (b != null)
         return b;
       try {
@@ -92,19 +91,18 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
         return true;
       }
 
-      Boolean b = (Boolean) cache.get(testVis);
+      Boolean b = cache.get(testVis);
       if (b != null)
         return b;
 
       try {
-        Boolean bb = ve.evaluate(new ColumnVisibility(testVis.toArray()));
+        boolean bb = ve.evaluate(new ColumnVisibility(testVis.toArray()));
         cache.put(testVis, bb);
         return bb;
       } catch (VisibilityParseException | BadArgumentException e) {
         log.error("Parse Error", e);
         return false;
       }
-
     }
   }
 

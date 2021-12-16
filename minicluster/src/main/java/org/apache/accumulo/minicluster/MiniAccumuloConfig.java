@@ -1,25 +1,27 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.minicluster;
 
 import java.io.File;
 import java.util.Map;
 
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 
 /**
  * Holds configuration for {@link MiniAccumuloCluster}. Required configurations must be passed to
@@ -41,7 +43,7 @@ public class MiniAccumuloConfig {
 
   /**
    * @param dir
-   *          An empty or nonexistant directory that Accumulo and Zookeeper can store data in.
+   *          An empty or nonexistent directory that Accumulo and Zookeeper can store data in.
    *          Creating the directory is left to the user. Java 7, Guava, and Junit provide methods
    *          for creating temporary directories.
    * @param rootPassword
@@ -76,7 +78,7 @@ public class MiniAccumuloConfig {
    * Calling this method is optional. If not set, it defaults to an empty map.
    *
    * @param siteConfig
-   *          key/values that you normally put in accumulo-site.xml can be put here.
+   *          key/values that you normally put in accumulo.properties can be put here.
    */
   public MiniAccumuloConfig setSiteConfig(Map<String,String> siteConfig) {
     impl.setSiteConfig(siteConfig);
@@ -97,6 +99,21 @@ public class MiniAccumuloConfig {
   }
 
   /**
+   * Configure an existing ZooKeeper instance to use. Calling this method is optional. If not set, a
+   * new ZooKeeper instance is created.
+   *
+   * @param existingZooKeepers
+   *          Connection string for a already-running ZooKeeper instance. A null value will turn off
+   *          this feature.
+   *
+   * @since 2.1.0
+   */
+  public MiniAccumuloConfig setExistingZooKeepers(String existingZooKeepers) {
+    impl.setExistingZooKeepers(existingZooKeepers);
+    return this;
+  }
+
+  /**
    * Configure the time to wait for ZooKeeper to startup. Calling this method is optional. The
    * default is 20000 milliseconds
    *
@@ -111,7 +128,7 @@ public class MiniAccumuloConfig {
   }
 
   /**
-   * Sets the amount of memory to use in the master process. Calling this method is optional.
+   * Sets the amount of memory to use in the manager process. Calling this method is optional.
    * Default memory is 128M
    *
    * @param serverType
@@ -253,6 +270,19 @@ public class MiniAccumuloConfig {
    */
   public MiniAccumuloConfig setNativeLibPaths(String... nativePathItems) {
     impl.setNativeLibPaths(nativePathItems);
+    return this;
+  }
+
+  /**
+   * Sets the classpath elements to use when spawning processes.
+   *
+   * @param classpathItems
+   *          the classpathItems to set
+   * @return the current instance
+   * @since 2.0.0
+   */
+  public MiniAccumuloConfig setClasspath(String... classpathItems) {
+    impl.setClasspathItems(classpathItems);
     return this;
   }
 }

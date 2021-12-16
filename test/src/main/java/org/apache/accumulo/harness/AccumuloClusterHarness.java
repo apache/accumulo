@@ -1,51 +1,49 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.harness;
 
 import static com.google.common.base.Preconditions.checkState;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.util.Properties;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.cluster.ClusterUsers;
 import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.harness.conf.AccumuloClusterConfiguration;
 import org.apache.accumulo.harness.conf.AccumuloClusterPropertyConfiguration;
-import org.apache.accumulo.harness.conf.AccumuloMiniClusterConfiguration;
 import org.apache.accumulo.harness.conf.StandaloneAccumuloClusterConfiguration;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.categories.StandaloneCapableClusterTests;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -57,8 +55,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * General Integration-Test base class that provides access to an Accumulo instance for testing.
- * This instance could be MAC or a standalone instance.
+ * Integration-Test base class that provides a MAC instance per test. WARNING: This IT type will
+ * setup and teardown an entire cluster for every test annotated with @Test and is reserved for more
+ * advanced ITs that do crazy things. For more typical, expected behavior of a cluster see
+ * {@link SharedMiniClusterBase}. This instance can be MAC or a standalone instance.
  */
 @Category(StandaloneCapableClusterTests.class)
 public abstract class AccumuloClusterHarness extends AccumuloITBase
@@ -66,7 +66,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   private static final Logger log = LoggerFactory.getLogger(AccumuloClusterHarness.class);
   private static final String TRUE = Boolean.toString(true);
 
-  public static enum ClusterType {
+  public enum ClusterType {
     MINI, STANDALONE;
 
     public boolean isDynamic() {
@@ -82,11 +82,11 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   protected static TestingKdc krb;
 
   @BeforeClass
-  public static void setUp() throws Exception {
+  public static void setUpHarness() throws Exception {
     clusterConf = AccumuloClusterPropertyConfiguration.get();
     type = clusterConf.getClusterType();
 
-    if (ClusterType.MINI == type
+    if (type == ClusterType.MINI
         && TRUE.equals(System.getProperty(MiniClusterHarness.USE_KERBEROS_FOR_IT_OPTION))) {
       krb = new TestingKdc();
       krb.start();
@@ -97,8 +97,8 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   }
 
   @AfterClass
-  public static void tearDownKdc() throws Exception {
-    if (null != krb) {
+  public static void tearDownHarness() {
+    if (krb != null) {
       krb.stop();
     }
   }
@@ -121,12 +121,9 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
         MiniClusterHarness miniClusterHarness = new MiniClusterHarness();
         // Intrinsically performs the callback to let tests alter MiniAccumuloConfig and
         // core-site.xml
-        MiniAccumuloClusterImpl impl = miniClusterHarness.create(this, getAdminToken(), krb);
-        cluster = impl;
-        // MAC makes a ClientConf for us, just set it
-        ((AccumuloMiniClusterConfiguration) clusterConf).setClientConf(impl.getClientConfig());
+        cluster = miniClusterHarness.create(this, getAdminToken(), krb, this);
         // Login as the "root" user
-        if (null != krb) {
+        if (krb != null) {
           ClusterUser rootUser = krb.getRootUser();
           // Log in the 'client' user
           UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
@@ -136,28 +133,31 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
       case STANDALONE:
         StandaloneAccumuloClusterConfiguration conf =
             (StandaloneAccumuloClusterConfiguration) clusterConf;
-        ClientConfiguration clientConf = conf.getClientConf();
         StandaloneAccumuloCluster standaloneCluster =
-            new StandaloneAccumuloCluster(conf.getInstance(), clientConf, conf.getTmpDirectory(),
-                conf.getUsers(), conf.getAccumuloServerUser());
+            new StandaloneAccumuloCluster(conf.getClientInfo(), conf.getTmpDirectory(),
+                conf.getUsers(), conf.getServerAccumuloConfDir());
         // If these are provided in the configuration, pass them into the cluster
         standaloneCluster.setAccumuloHome(conf.getAccumuloHome());
         standaloneCluster.setClientAccumuloConfDir(conf.getClientAccumuloConfDir());
-        standaloneCluster.setServerAccumuloConfDir(conf.getServerAccumuloConfDir());
         standaloneCluster.setHadoopConfDir(conf.getHadoopConfDir());
+        // If these were not provided then ensure they are not null
+        standaloneCluster
+            .setServerCmdPrefix(conf.getServerCmdPrefix() == null ? "" : conf.getServerCmdPrefix());
+        standaloneCluster
+            .setClientCmdPrefix(conf.getClientCmdPrefix() == null ? "" : conf.getClientCmdPrefix());
+        cluster = standaloneCluster;
 
         // For SASL, we need to get the Hadoop configuration files as well otherwise UGI will log in
         // as SIMPLE instead of KERBEROS
-        Configuration hadoopConfiguration = standaloneCluster.getHadoopConfiguration();
-        if (clientConf.hasSasl()) {
+        if (saslEnabled()) {
+          // Note that getting the Hadoop config creates a servercontext which wacks up the
+          // AccumuloClientIT test so if SASL is enabled then the testclose() will fail
+          Configuration hadoopConfiguration = standaloneCluster.getHadoopConfiguration();
           UserGroupInformation.setConfiguration(hadoopConfiguration);
           // Login as the admin user to start the tests
           UserGroupInformation.loginUserFromKeytab(conf.getAdminPrincipal(),
               conf.getAdminKeytab().getAbsolutePath());
         }
-
-        // Set the implementation
-        cluster = standaloneCluster;
         break;
       default:
         throw new RuntimeException("Unhandled type");
@@ -172,71 +172,37 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
       cleanupUsers();
     }
 
-    switch (type) {
-      case MINI:
-        if (null != krb) {
-          final String traceTable = Property.TRACE_TABLE.getDefaultValue();
-          final ClusterUser systemUser = krb.getAccumuloServerUser(), rootUser = krb.getRootUser();
-
-          // Login as the trace user
-          UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
-              systemUser.getKeytab().getAbsolutePath());
-
-          // Open a connector as the system user (ensures the user will exist for us to assign
-          // permissions to)
-          UserGroupInformation.loginUserFromKeytab(systemUser.getPrincipal(),
-              systemUser.getKeytab().getAbsolutePath());
-          Connector conn = cluster.getConnector(systemUser.getPrincipal(), new KerberosToken());
-
-          // Then, log back in as the "root" user and do the grant
-          UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
-              rootUser.getKeytab().getAbsolutePath());
-          conn = getConnector();
-
-          // Create the trace table
-          conn.tableOperations().create(traceTable);
-
-          // Trace user (which is the same kerberos principal as the system user, but using a normal
-          // KerberosToken) needs
-          // to have the ability to read, write and alter the trace table
-          conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
-              TablePermission.READ);
-          conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
-              TablePermission.WRITE);
-          conn.securityOperations().grantTablePermission(systemUser.getPrincipal(), traceTable,
-              TablePermission.ALTER_TABLE);
-        }
-        break;
-      default:
-        // do nothing
-    }
   }
 
   public void cleanupTables() throws Exception {
     final String tablePrefix = this.getClass().getSimpleName() + "_";
-    final TableOperations tops = getConnector().tableOperations();
-    for (String table : tops.list()) {
-      if (table.startsWith(tablePrefix)) {
-        log.debug("Removing table {}", table);
-        tops.delete(table);
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      final TableOperations tops = client.tableOperations();
+      for (String table : tops.list()) {
+        if (table.startsWith(tablePrefix)) {
+          log.debug("Removing table {}", table);
+          tops.delete(table);
+        }
       }
     }
   }
 
   public void cleanupUsers() throws Exception {
     final String userPrefix = this.getClass().getSimpleName();
-    final SecurityOperations secOps = getConnector().securityOperations();
-    for (String user : secOps.listLocalUsers()) {
-      if (user.startsWith(userPrefix)) {
-        log.info("Dropping local user {}", user);
-        secOps.dropLocalUser(user);
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      final SecurityOperations secOps = client.securityOperations();
+      for (String user : secOps.listLocalUsers()) {
+        if (user.startsWith(userPrefix)) {
+          log.info("Dropping local user {}", user);
+          secOps.dropLocalUser(user);
+        }
       }
     }
   }
 
   @After
   public void teardownCluster() throws Exception {
-    if (null != cluster) {
+    if (cluster != null) {
       if (type.isDynamic()) {
         cluster.stop();
       } else {
@@ -268,6 +234,27 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
     return clusterConf.getAdminPrincipal();
   }
 
+  public static Properties getClientProps() {
+    checkState(initialized);
+    return getCluster().getClientProperties();
+  }
+
+  public static ClientInfo getClientInfo() {
+    checkState(initialized);
+    return ClientInfo.from(getCluster().getClientProperties());
+  }
+
+  public static ServerContext getServerContext() {
+    return getCluster().getServerContext();
+  }
+
+  public static boolean saslEnabled() {
+    if (initialized) {
+      return getClientInfo().saslEnabled();
+    }
+    return false;
+  }
+
   public static AuthenticationToken getAdminToken() {
     checkState(initialized);
     return clusterConf.getAdminToken();
@@ -277,7 +264,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   public ClusterUser getAdminUser() {
     switch (type) {
       case MINI:
-        if (null == krb) {
+        if (krb == null) {
           PasswordToken passwordToken = (PasswordToken) getAdminToken();
           return new ClusterUser(getAdminPrincipal(),
               new String(passwordToken.getPassword(), UTF_8));
@@ -295,7 +282,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
   public ClusterUser getUser(int offset) {
     switch (type) {
       case MINI:
-        if (null != krb) {
+        if (krb != null) {
           // Defer to the TestingKdc when kerberos is on so we can get the keytab instead of a
           // password
           return krb.getClientPrincipal(offset);
@@ -323,20 +310,6 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
     return clusterConf;
   }
 
-  public Connector getConnector() {
-    try {
-      String princ = getAdminPrincipal();
-      AuthenticationToken token = getAdminToken();
-      log.debug("Creating connector as {} with {}", princ, token);
-      return cluster.getConnector(princ, token);
-    } catch (Exception e) {
-      log.error("Could not connect to Accumulo", e);
-      fail("Could not connect to Accumulo: " + e.getMessage());
-
-      throw new RuntimeException("Could not connect to Accumulo", e);
-    }
-  }
-
   // TODO Really don't want this here. Will ultimately need to abstract configuration method away
   // from MAConfig
   // and change over to something more generic
@@ -351,13 +324,4 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
     return true;
   }
 
-  /**
-   * Tries to give a reasonable directory which can be used to create temporary files for the test.
-   * Makes a basic attempt to create the directory if it does not already exist.
-   *
-   * @return A directory which can be expected to exist on the Cluster's FileSystem
-   */
-  public Path getUsableDir() throws IllegalArgumentException, IOException {
-    return cluster.getTemporaryPath();
-  }
 }

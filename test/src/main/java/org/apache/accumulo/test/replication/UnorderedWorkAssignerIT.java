@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.replication;
 
@@ -25,35 +27,40 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.master.replication.UnorderedWorkAssigner;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.manager.replication.UnorderedWorkAssigner;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
-import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore("Replication ITs are not stable and not currently maintained")
+@Deprecated
 public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
 
-  private Connector conn;
+  private AccumuloClient client;
   private MockUnorderedWorkAssigner assigner;
 
   private static class MockUnorderedWorkAssigner extends UnorderedWorkAssigner {
-    public MockUnorderedWorkAssigner(Connector conn) {
-      super(null, conn);
+    public MockUnorderedWorkAssigner(AccumuloClient client) {
+      super(null, client);
     }
 
     @Override
@@ -82,8 +89,8 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
     }
 
     @Override
-    protected void setConnector(Connector conn) {
-      super.setConnector(conn);
+    protected void setClient(AccumuloClient client) {
+      super.setClient(client);
     }
 
     @Override
@@ -109,19 +116,19 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
 
   @Before
   public void init() throws Exception {
-    conn = getConnector();
-    assigner = new MockUnorderedWorkAssigner(conn);
-    ReplicationTable.setOnline(conn);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client = Accumulo.newClient().from(getClientProperties()).build();
+    assigner = new MockUnorderedWorkAssigner(client);
+    ReplicationTable.setOnline(client);
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.WRITE);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.READ);
   }
 
   @Test
   public void createWorkForFilesNeedingIt() throws Exception {
-    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", "1"),
-        target2 = new ReplicationTarget("cluster1", "table2", "2");
+    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", TableId.of("1")),
+        target2 = new ReplicationTarget("cluster1", "table2", TableId.of("2"));
     Text serializedTarget1 = target1.toText(), serializedTarget2 = target2.toText();
     String keyTarget1 =
         target1.getPeerName() + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR
@@ -132,13 +139,13 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
             + target2.getSourceTableId();
 
     Status.Builder builder = Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true)
-        .setClosed(false).setCreatedTime(5l);
+        .setClosed(false).setCreatedTime(5L);
     Status status1 = builder.build();
-    builder.setCreatedTime(10l);
+    builder.setCreatedTime(10L);
     Status status2 = builder.build();
 
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     String filename1 = UUID.randomUUID().toString(), filename2 = UUID.randomUUID().toString();
     String file1 = "/accumulo/wal/tserver+port/" + filename1,
         file2 = "/accumulo/wal/tserver+port/" + filename2;
@@ -182,12 +189,12 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
 
   @Test
   public void doNotCreateWorkForFilesNotNeedingIt() throws Exception {
-    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", "1"),
-        target2 = new ReplicationTarget("cluster1", "table2", "2");
+    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", TableId.of("1")),
+        target2 = new ReplicationTarget("cluster1", "table2", TableId.of("2"));
     Text serializedTarget1 = target1.toText(), serializedTarget2 = target2.toText();
 
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     String filename1 = UUID.randomUUID().toString(), filename2 = UUID.randomUUID().toString();
     String file1 = "/accumulo/wal/tserver+port/" + filename1,
         file2 = "/accumulo/wal/tserver+port/" + filename2;
@@ -220,15 +227,15 @@ public class UnorderedWorkAssignerIT extends ConfigurableMacBase {
 
     assigner.setQueuedWork(queuedWork);
 
-    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", TableId.of("1"));
     String serializedTarget = target.getPeerName()
         + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getRemoteIdentifier()
         + DistributedWorkQueueWorkAssignerHelper.KEY_SEPARATOR + target.getSourceTableId();
 
-    queuedWork.add("wal1|" + serializedTarget.toString());
+    queuedWork.add("wal1|" + serializedTarget);
 
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     String file1 = "/accumulo/wal/tserver+port/wal1";
     Mutation m = new Mutation(file1);
     WorkSection.add(m, target.toText(), StatusUtil.openWithUnknownLengthValue());

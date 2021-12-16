@@ -1,49 +1,54 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.fs;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 
-import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.volume.Volume;
-import org.apache.accumulo.server.ServerConstants;
-import org.apache.hadoop.fs.ContentSummary;
+import org.apache.accumulo.core.volume.VolumeConfiguration;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.permission.FsPermission;
-
-import com.google.common.base.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A wrapper around multiple hadoop FileSystem objects, which are assumed to be different volumes.
  * This also concentrates a bunch of meta-operations like waiting for SAFE_MODE, and closing WALs.
  * N.B. implementations must be thread safe.
  */
-public interface VolumeManager {
+public interface VolumeManager extends AutoCloseable {
 
-  public static enum FileType {
-    TABLE(ServerConstants.TABLE_DIR),
-    WAL(ServerConstants.WAL_DIR),
-    RECOVERY(ServerConstants.RECOVERY_DIR);
+  enum FileType {
+    TABLE(Constants.TABLE_DIR), WAL(Constants.WAL_DIR), RECOVERY(Constants.RECOVERY_DIR);
 
     private String dir;
 
@@ -57,15 +62,19 @@ public interface VolumeManager {
 
     private static int endOfVolumeIndex(String path, String dir) {
       // Strip off the suffix that starts with the FileType (e.g. tables, wal, etc)
-      int dirIndex = path.indexOf('/' + dir);
+      int dirIndex = path.indexOf('/' + dir + '/');
+
       if (dirIndex != -1) {
         return dirIndex;
+      }
+
+      if (path.endsWith('/' + dir)) {
+        return path.length() - (dir.length() + 1);
       }
 
       if (path.contains(":"))
         throw new IllegalArgumentException(path + " is absolute, but does not contain " + dir);
       return -1;
-
     }
 
     public Path getVolume(Path path) {
@@ -90,13 +99,14 @@ public interface VolumeManager {
   }
 
   // close the underlying FileSystems
+  @Override
   void close() throws IOException;
 
   // forward to the appropriate FileSystem object
   FSDataOutputStream create(Path dest) throws IOException;
 
-  // forward to the appropriate FileSystem object
-  FSDataOutputStream create(Path path, boolean b) throws IOException;
+  // forward to the appropriate FileSystem object's create method with overwrite flag set to true
+  FSDataOutputStream overwrite(Path path) throws IOException;
 
   // forward to the appropriate FileSystem object
   FSDataOutputStream create(Path path, boolean b, int int1, short int2, long long1)
@@ -122,10 +132,10 @@ public interface VolumeManager {
   FileStatus getFileStatus(Path path) throws IOException;
 
   // find the appropriate FileSystem object given a path
-  Volume getVolumeByPath(Path path);
+  FileSystem getFileSystemByPath(Path path);
 
-  // return the item in options that is in the same volume as source
-  Path matchingFileSystem(Path source, String[] options);
+  // return the item in options that is in the same file system as source
+  Path matchingFileSystem(Path source, Set<String> options);
 
   // forward to appropriate FileSystem object.
   RemoteIterator<LocatedFileStatus> listStatus(final Path path, final boolean recursive)
@@ -147,14 +157,19 @@ public interface VolumeManager {
   // volumes
   boolean rename(Path path, Path newPath) throws IOException;
 
+  /**
+   * Rename lots of files at once in a thread pool and return once all the threads have completed.
+   * This operation should be idempotent to allow calling multiple times in the case of a partial
+   * completion.
+   */
+  void bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize, String poolName,
+      String transactionId) throws IOException;
+
   // forward to the appropriate FileSystem object
   boolean moveToTrash(Path sourcePath) throws IOException;
 
   // forward to the appropriate FileSystem object
   short getDefaultReplication(Path logPath);
-
-  // forward to the appropriate FileSystem object
-  boolean isFile(Path path) throws IOException;
 
   // all volume are ready to provide service (not in SafeMode, for example)
   boolean isReady() throws IOException;
@@ -162,28 +177,64 @@ public interface VolumeManager {
   // forward to the appropriate FileSystem object
   FileStatus[] globStatus(Path path) throws IOException;
 
-  // Convert a file or directory metadata reference into a path
-  Path getFullPath(Key key);
-
-  Path getFullPath(String tableId, String path);
-
-  // Given a filename, figure out the qualified path given multiple namespaces
-  Path getFullPath(FileType fileType, String fileName) throws IOException;
-
-  // forward to the appropriate FileSystem object
-  ContentSummary getContentSummary(Path dir) throws IOException;
-
   // decide on which of the given locations to create a new file
-  String choose(Optional<String> tableId, String[] options);
+  String choose(org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment env, Set<String> options);
+
+  // return all valid locations to create a new file
+  Set<String> choosable(org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment env,
+      Set<String> options);
+
+  // are sync and flush supported for the given path
+  boolean canSyncAndFlush(Path path);
 
   /**
-   * Fetch the default Volume
+   * Fetch the first configured instance Volume
    */
-  public Volume getDefaultVolume();
+  default Volume getFirst() {
+    return getVolumes().iterator().next();
+  }
 
   /**
-   * Fetch the configured Volumes, excluding the default Volume
+   * Fetch the configured instance Volumes
    */
-  public Collection<Volume> getVolumes();
+  Collection<Volume> getVolumes();
+
+  Logger log = LoggerFactory.getLogger(VolumeManager.class);
+
+  static String getInstanceIDFromHdfs(Path instanceDirectory, Configuration hadoopConf) {
+    try {
+      FileSystem fs =
+          VolumeConfiguration.fileSystemForPath(instanceDirectory.toString(), hadoopConf);
+      FileStatus[] files = null;
+      try {
+        files = fs.listStatus(instanceDirectory);
+      } catch (FileNotFoundException ex) {
+        // ignored
+      }
+      log.debug("Trying to read instance id from {}", instanceDirectory);
+      if (files == null || files.length == 0) {
+        log.error("unable to obtain instance id at {}", instanceDirectory);
+        throw new RuntimeException(
+            "Accumulo not initialized, there is no instance id at " + instanceDirectory);
+      } else if (files.length != 1) {
+        log.error("multiple potential instances in {}", instanceDirectory);
+        throw new RuntimeException(
+            "Accumulo found multiple possible instance ids in " + instanceDirectory);
+      } else {
+        return files[0].getPath().getName();
+      }
+    } catch (IOException e) {
+      log.error("Problem reading instance id out of hdfs at " + instanceDirectory, e);
+      throw new RuntimeException(
+          "Can't tell if Accumulo is initialized; can't read instance id at " + instanceDirectory,
+          e);
+    } catch (IllegalArgumentException exception) {
+      /* HDFS throws this when there's a UnknownHostException due to DNS troubles. */
+      if (exception.getCause() instanceof UnknownHostException) {
+        log.error("Problem reading instance id out of hdfs at " + instanceDirectory, exception);
+      }
+      throw exception;
+    }
+  }
 
 }

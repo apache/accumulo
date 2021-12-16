@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.master.balancer;
 
@@ -23,18 +25,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
-import org.apache.accumulo.core.client.impl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
+import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.trace.Tracer;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
-import org.apache.accumulo.server.master.state.TServerInstance;
+import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -43,34 +49,76 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
-public abstract class TabletBalancer {
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+/**
+ * This class is responsible for managing the distribution of tablets throughout an Accumulo
+ * cluster. In most cases, users will want a balancer implementation which ensures a uniform
+ * distribution of tablets, so that no individual tablet server is handling significantly more work
+ * than any other.
+ *
+ * <p>
+ * Implementations may wish to store configuration in Accumulo's system configuration using the
+ * {@link Property#GENERAL_ARBITRARY_PROP_PREFIX}. They may also benefit from using per-table
+ * configuration using {@link Property#TABLE_ARBITRARY_PROP_PREFIX}.
+ *
+ * @deprecated since 2.1.0. Use {@link org.apache.accumulo.core.spi.balancer.TabletBalancer}
+ *             instead.
+ */
+@Deprecated(since = "2.1.0")
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_INTERFACE",
+    justification = "Class is deprecated and will be removed.")
+public abstract class TabletBalancer
+    implements org.apache.accumulo.core.spi.balancer.TabletBalancer {
 
   private static final Logger log = LoggerFactory.getLogger(TabletBalancer.class);
 
-  protected ServerConfigurationFactory configuration;
+  protected ServerContext context;
 
-  protected AccumuloServerContext context;
+  @Override
+  public void init(BalancerEnvironment balancerEnvironment) {
+    var bei = (BalancerEnvironmentImpl) balancerEnvironment;
+    init(bei.getContext());
+  }
+
+  @Override
+  public void getAssignments(AssignmentParameters params) {
+    AssignmentParamsImpl api = (AssignmentParamsImpl) params;
+    getAssignments(api.thriftCurrentStatus(), api.thriftUnassigned(), api.thriftAssignmentsOut());
+  }
+
+  @Override
+  public long balance(BalanceParameters params) {
+    BalanceParamsImpl bpi = (BalanceParamsImpl) params;
+    List<TabletMigration> migrationsOut = new ArrayList<>();
+    long result = balance(bpi.thriftCurrentStatus(), bpi.thriftCurrentMigrations(), migrationsOut);
+    migrationsOut.forEach(mo -> bpi.addMigration(mo.tablet, mo.oldServer, mo.newServer));
+    return result;
+  }
 
   /**
    * Initialize the TabletBalancer. This gives the balancer the opportunity to read the
    * configuration.
+   *
+   * @deprecated since 2.0.0; use {@link #init(ServerContext)} instead.
    */
+  @Deprecated(since = "2.0.0")
   public void init(ServerConfigurationFactory conf) {
-    context = new AccumuloServerContext(conf);
-    configuration = conf;
+    init(conf.getServerContext());
   }
 
   /**
-   * @deprecated since 1.7.3 and 1.8.1; overriding this has no effect; subclasses should override
-   *             {@link #init(ServerConfigurationFactory)} instead.
+   * Initialize the TabletBalancer. This gives the balancer the opportunity to read the
+   * configuration.
+   *
+   * @since 2.0.0
    */
-  @Deprecated
-  public void init(ServerConfiguration conf) {
-    init((ServerConfigurationFactory) conf);
+  public void init(ServerContext context) {
+    this.context = context;
   }
 
   /**
-   * Assign tablets to tablet servers. This method is called whenever the master finds tablets that
+   * Assign tablets to tablet servers. This method is called whenever the manager finds tablets that
    * are unassigned.
    *
    * @param current
@@ -82,7 +130,7 @@ public abstract class TabletBalancer {
    * @param assignments
    *          A map from tablet to assigned server. Write-only.
    */
-  abstract public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current,
+  public abstract void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current,
       Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignments);
 
   /**
@@ -108,9 +156,9 @@ public abstract class TabletBalancer {
   public abstract long balance(SortedMap<TServerInstance,TabletServerStatus> current,
       Set<KeyExtent> migrations, List<TabletMigration> migrationsOut);
 
-  private static final long ONE_SECOND = 1000l;
+  private static final long ONE_SECOND = 1000L;
   private boolean stuck = false;
-  private long stuckNotificationTime = -1l;
+  private long stuckNotificationTime = -1L;
 
   protected static final long TIME_BETWEEN_BALANCER_WARNINGS = 60 * ONE_SECOND;
 
@@ -123,7 +171,7 @@ public abstract class TabletBalancer {
    * Be sure to pass in a properly scoped Logger instance so that messages indicate what part of the
    * system is having trouble.
    */
-  protected static abstract class BalancerProblem implements Runnable {
+  protected abstract static class BalancerProblem implements Runnable {
     protected final Logger balancerLog;
 
     public BalancerProblem(Logger logger) {
@@ -155,7 +203,7 @@ public abstract class TabletBalancer {
    * OutstandingMigrations is not thread safe.
    */
   protected static class OutstandingMigrations extends BalancerProblem {
-    public Set<KeyExtent> migrations = Collections.<KeyExtent>emptySet();
+    public Set<KeyExtent> migrations = Collections.emptySet();
 
     public OutstandingMigrations(Logger logger) {
       super(logger);
@@ -163,13 +211,13 @@ public abstract class TabletBalancer {
 
     @Override
     public void run() {
-      balancerLog.warn("Not balancing due to " + migrations.size() + " outstanding migrations.");
+      balancerLog.warn("Not balancing due to {} outstanding migrations.", migrations.size());
       /*
        * TODO ACCUMULO-2938 redact key extents in this output to avoid leaking protected
        * information.
        */
-      balancerLog
-          .debug("Sample up to 10 outstanding migrations: " + Iterables.limit(migrations, 10));
+      balancerLog.debug("Sample up to 10 outstanding migrations: {}",
+          Iterables.limit(migrations, 10));
     }
   }
 
@@ -178,14 +226,14 @@ public abstract class TabletBalancer {
    * provided logging handler more often than TIME_BETWEEN_BALANCER_WARNINGS
    */
   protected void constraintNotMet(BalancerProblem cause) {
-    if (!stuck) {
-      stuck = true;
-      stuckNotificationTime = System.currentTimeMillis();
-    } else {
+    if (stuck) {
       if ((System.currentTimeMillis() - stuckNotificationTime) > TIME_BETWEEN_BALANCER_WARNINGS) {
         cause.run();
         stuckNotificationTime = System.currentTimeMillis();
       }
+    } else {
+      stuck = true;
+      stuckNotificationTime = System.currentTimeMillis();
     }
   }
 
@@ -210,17 +258,16 @@ public abstract class TabletBalancer {
    * @throws TException
    *           any other problem
    */
-  public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId)
+  public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, TableId tableId)
       throws ThriftSecurityException, TException {
-    log.debug("Scanning tablet server " + tserver + " for table " + tableId);
-    Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(),
-        tserver.getLocation(), context);
+    log.debug("Scanning tablet server {} for table {}", tserver, tableId);
+    Client client = ThriftUtil.getClient(new Client.Factory(), tserver.getHostAndPort(), context);
     try {
-      return client.getTabletStats(Tracer.traceInfo(), context.rpcCreds(), tableId);
+      return client.getTabletStats(TraceUtil.traceInfo(), context.rpcCreds(), tableId.canonical());
     } catch (TTransportException e) {
-      log.error("Unable to connect to " + tserver + ": " + e);
+      log.error("Unable to connect to {}: ", tserver, e);
     } finally {
-      ThriftUtil.returnClient(client);
+      ThriftUtil.returnClient(client, context);
     }
     return null;
   }
@@ -239,23 +286,23 @@ public abstract class TabletBalancer {
     List<TabletMigration> result = new ArrayList<>(migrations.size());
     for (TabletMigration m : migrations) {
       if (m.tablet == null) {
-        log.warn("Balancer gave back a null tablet " + m);
+        log.warn("Balancer gave back a null tablet {}", m);
         continue;
       }
       if (m.newServer == null) {
-        log.warn("Balancer did not set the destination " + m);
+        log.warn("Balancer did not set the destination {}", m);
         continue;
       }
       if (m.oldServer == null) {
-        log.warn("Balancer did not set the source " + m);
+        log.warn("Balancer did not set the source {}", m);
         continue;
       }
       if (!current.contains(m.oldServer)) {
-        log.warn("Balancer wants to move a tablet from a server that is not current: " + m);
+        log.warn("Balancer wants to move a tablet from a server that is not current: {}", m);
         continue;
       }
       if (!current.contains(m.newServer)) {
-        log.warn("Balancer wants to move a tablet to a server that is not current: " + m);
+        log.warn("Balancer wants to move a tablet to a server that is not current: {}", m);
         continue;
       }
       result.add(m);

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.util;
 
@@ -21,46 +23,44 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.accumulo.core.cli.BatchWriterOpts;
-import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.Credentials;
-import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.TabletFileUtil;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.commons.collections.map.LRUMap;
+import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.fs.Path;
 
 import com.beust.jcommander.Parameter;
 
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
+
 /**
  * Remove file entries for map files that don't exist.
- *
  */
 public class RemoveEntriesForMissingFiles {
 
-  static class Opts extends ClientOpts {
+  static class Opts extends ServerUtilOpts {
     @Parameter(names = "--fix")
     boolean fix = false;
   }
@@ -93,7 +93,11 @@ public class RemoveEntriesForMissingFiles {
     @SuppressWarnings("unchecked")
     public void run() {
       try {
-        if (!fs.exists(path)) {
+        if (fs.exists(path)) {
+          synchronized (processing) {
+            cache.put(path, path);
+          }
+        } else {
           missing.incrementAndGet();
 
           Mutation m = new Mutation(key.getRow());
@@ -103,10 +107,6 @@ public class RemoveEntriesForMissingFiles {
             System.out.println("Reference " + path + " removed from " + key.getRow());
           } else {
             System.out.println("File " + path + " is missing");
-          }
-        } else {
-          synchronized (processing) {
-            cache.put(path, path);
           }
         }
       } catch (Exception e) {
@@ -120,19 +120,18 @@ public class RemoveEntriesForMissingFiles {
     }
   }
 
-  private static int checkTable(ClientContext context, String table, Range range, boolean fix)
+  private static int checkTable(ServerContext context, String tableName, Range range, boolean fix)
       throws Exception {
 
     @SuppressWarnings({"rawtypes"})
     Map cache = new LRUMap(100000);
     Set<Path> processing = new HashSet<>();
-    ExecutorService threadPool = Executors.newFixedThreadPool(16);
+    ExecutorService threadPool = ThreadPools.createFixedThreadPool(16, "CheckFileTasks");
 
-    System.out.printf("Scanning : %s %s\n", table, range);
+    System.out.printf("Scanning : %s %s\n", tableName, range);
 
-    VolumeManager fs = VolumeManagerImpl.get();
-    Connector connector = context.getConnector();
-    Scanner metadata = connector.createScanner(table, Authorizations.EMPTY);
+    VolumeManager fs = context.getVolumeManager();
+    Scanner metadata = context.createScanner(tableName, Authorizations.EMPTY);
     metadata.setRange(range);
     metadata.fetchColumnFamily(DataFileColumnFamily.NAME);
     int count = 0;
@@ -141,7 +140,7 @@ public class RemoveEntriesForMissingFiles {
     BatchWriter writer = null;
 
     if (fix)
-      writer = connector.createBatchWriter(MetadataTable.NAME, new BatchWriterConfig());
+      writer = context.createBatchWriter(MetadataTable.NAME);
 
     for (Entry<Key,Value> entry : metadata) {
       if (exceptionRef.get() != null)
@@ -149,7 +148,7 @@ public class RemoveEntriesForMissingFiles {
 
       count++;
       Key key = entry.getKey();
-      Path map = fs.getFullPath(key);
+      Path map = new Path(TabletFileUtil.validate(key.getColumnQualifierData().toString()));
 
       synchronized (processing) {
         while (processing.size() >= 64 || processing.contains(map))
@@ -169,7 +168,7 @@ public class RemoveEntriesForMissingFiles {
     threadPool.shutdown();
 
     synchronized (processing) {
-      while (processing.size() > 0)
+      while (!processing.isEmpty())
         processing.wait();
     }
 
@@ -184,36 +183,35 @@ public class RemoveEntriesForMissingFiles {
     return missing.get();
   }
 
-  static int checkAllTables(ClientContext context, boolean fix) throws Exception {
-    int missing =
-        checkTable(context, RootTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
+  static int checkAllTables(ServerContext context, boolean fix) throws Exception {
+    int missing = checkTable(context, RootTable.NAME, TabletsSection.getRange(), fix);
 
     if (missing == 0)
-      return checkTable(context, MetadataTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
+      return checkTable(context, MetadataTable.NAME, TabletsSection.getRange(), fix);
     else
       return missing;
   }
 
-  static int checkTable(ClientContext context, String tableName, boolean fix) throws Exception {
+  static int checkTable(ServerContext context, String tableName, boolean fix) throws Exception {
     if (tableName.equals(RootTable.NAME)) {
       throw new IllegalArgumentException("Can not check root table");
     } else if (tableName.equals(MetadataTable.NAME)) {
-      return checkTable(context, RootTable.NAME, MetadataSchema.TabletsSection.getRange(), fix);
+      return checkTable(context, RootTable.NAME, TabletsSection.getRange(), fix);
     } else {
-      String tableId = Tables.getTableId(context.getInstance(), tableName);
-      Range range = new KeyExtent(tableId, null, null).toMetadataRange();
+      TableId tableId = Tables.getTableId(context, tableName);
+      Range range = new KeyExtent(tableId, null, null).toMetaRange();
       return checkTable(context, MetadataTable.NAME, range, fix);
     }
   }
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    ScannerOpts scanOpts = new ScannerOpts();
-    BatchWriterOpts bwOpts = new BatchWriterOpts();
-    opts.parseArgs(RemoveEntriesForMissingFiles.class.getName(), args, scanOpts, bwOpts);
-
-    checkAllTables(new ClientContext(opts.getInstance(),
-        new Credentials(opts.getPrincipal(), opts.getToken()), ClientConfiguration.loadDefault()),
-        opts.fix);
+    opts.parseArgs(RemoveEntriesForMissingFiles.class.getName(), args);
+    Span span = TraceUtil.startSpan(RemoveEntriesForMissingFiles.class, "main");
+    try (Scope scope = span.makeCurrent()) {
+      checkAllTables(opts.getServerContext(), opts.fix);
+    } finally {
+      span.end();
+    }
   }
 }

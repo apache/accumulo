@@ -1,38 +1,35 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.mapreduce.lib.partition;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URI;
+import java.io.InputStream;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Scanner;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.mapreduce.lib.impl.DistributedCacheHelper;
-import org.apache.accumulo.core.util.Base64;
+import org.apache.accumulo.core.clientImpl.mapreduce.lib.DistributedCacheHelper;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.Job;
@@ -40,7 +37,11 @@ import org.apache.hadoop.mapreduce.Partitioner;
 
 /**
  * Hadoop partitioner that uses ranges, and optionally sub-bins based on hashing.
+ *
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce.partition instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
+@Deprecated(since = "2.0.0")
 public class RangePartitioner extends Partitioner<Text,Writable> implements Configurable {
   private static final String PREFIX = RangePartitioner.class.getName();
   private static final String CUTFILE_KEY = PREFIX + ".cutFile";
@@ -64,8 +65,9 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
 
     // both conditions work with numSubBins == 1, but this check is to avoid
     // hashing, when we don't need to, for speed
-    if (numSubBins < 2)
+    if (numSubBins < 2) {
       return index;
+    }
     return (key.toString().hashCode() & Integer.MAX_VALUE) % numSubBins + index * numSubBins;
   }
 
@@ -79,33 +81,26 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
     return _numSubBins;
   }
 
-  private Text cutPointArray[] = null;
+  private Text[] cutPointArray = null;
 
   private synchronized Text[] getCutPoints() throws IOException {
     if (cutPointArray == null) {
       String cutFileName = conf.get(CUTFILE_KEY);
-      Path[] cf = DistributedCacheHelper.getLocalCacheFiles(conf);
-
-      if (cf != null) {
-        for (Path path : cf) {
-          if (path.toUri().getPath()
-              .endsWith(cutFileName.substring(cutFileName.lastIndexOf('/')))) {
-            TreeSet<Text> cutPoints = new TreeSet<>();
-            Scanner in = new Scanner(new BufferedReader(
-                new InputStreamReader(new FileInputStream(path.toString()), UTF_8)));
-            try {
-              while (in.hasNextLine())
-                cutPoints.add(new Text(Base64.decodeBase64(in.nextLine().getBytes(UTF_8))));
-            } finally {
-              in.close();
-            }
-            cutPointArray = cutPoints.toArray(new Text[cutPoints.size()]);
-            break;
-          }
+      TreeSet<Text> cutPoints = new TreeSet<>();
+      try (
+          InputStream inputStream =
+              DistributedCacheHelper.openCachedFile(cutFileName, CUTFILE_KEY, conf);
+          Scanner in = new Scanner(inputStream, UTF_8)) {
+        while (in.hasNextLine()) {
+          cutPoints.add(new Text(Base64.getDecoder().decode(in.nextLine())));
         }
       }
-      if (cutPointArray == null)
-        throw new FileNotFoundException(cutFileName + " not found in distributed cache");
+
+      cutPointArray = cutPoints.toArray(new Text[cutPoints.size()]);
+
+      if (cutPointArray == null) {
+        throw new IOException("Cutpoint array not properly created from file" + cutFileName);
+      }
     }
     return cutPointArray;
   }
@@ -125,9 +120,8 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
    * points that represent ranges for partitioning
    */
   public static void setSplitFile(Job job, String file) {
-    URI uri = new Path(file).toUri();
-    DistributedCacheHelper.addCacheFile(uri, job.getConfiguration());
-    job.getConfiguration().set(CUTFILE_KEY, uri.getPath());
+    DistributedCacheHelper.addCacheFile(job, file, CUTFILE_KEY);
+    job.getConfiguration().set(CUTFILE_KEY, file);
   }
 
   /**

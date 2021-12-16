@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.mapreduce;
 
@@ -21,15 +23,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.TabletLocator;
-import org.apache.accumulo.core.client.mapreduce.lib.impl.InputConfigurator;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.clientImpl.mapreduce.lib.InputConfigurator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -54,7 +56,11 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * the desired generic types K,V.
  * <p>
  * See {@link AccumuloInputFormat} for an example implementation.
+ *
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapreduce instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
+@Deprecated(since = "2.0.0")
 public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
 
   /**
@@ -90,6 +96,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
    *          the Hadoop job instance to be configured
    * @param ranges
    *          the ranges that will be mapped over
+   * @see TableOperations#splitRangeByTablets(String, Range, int)
    * @since 1.5.0
    */
   public static void setRanges(Job job, Collection<Range> ranges) {
@@ -312,10 +319,10 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
 
   /**
-   * Controls the use of the {@link org.apache.accumulo.core.client.BatchScanner} in this job. Using
-   * this feature will group Ranges by their source tablet, producing an InputSplit per tablet
-   * rather than per Range. This batching helps to reduce overhead when querying a large number of
-   * small ranges. (ex: when doing quad-tree decomposition for spatial queries)
+   * Controls the use of the {@link BatchScanner} in this job. Using this feature will group Ranges
+   * by their source tablet, producing an InputSplit per tablet rather than per Range. This batching
+   * helps to reduce overhead when querying a large number of small ranges. (ex: when doing
+   * quad-tree decomposition for spatial queries)
    * <p>
    * In order to achieve good locality of InputSplits this option always clips the input Ranges to
    * tablet boundaries. This may result in one input Range contributing to several InputSplits.
@@ -343,8 +350,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   }
 
   /**
-   * Determines whether a configuration has the {@link org.apache.accumulo.core.client.BatchScanner}
-   * feature enabled.
+   * Determines whether a configuration has the {@link BatchScanner} feature enabled.
    *
    * @param context
    *          the Hadoop context for the configured job
@@ -374,28 +380,10 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
     InputConfigurator.setSamplerConfiguration(CLASS, job.getConfiguration(), samplerConfig);
   }
 
-  /**
-   * Initializes an Accumulo {@link org.apache.accumulo.core.client.impl.TabletLocator} based on the
-   * configuration.
-   *
-   * @param context
-   *          the Hadoop context for the configured job
-   * @return an Accumulo tablet locator
-   * @throws org.apache.accumulo.core.client.TableNotFoundException
-   *           if the table name set on the configuration doesn't exist
-   * @since 1.5.0
-   * @deprecated since 1.6.0
-   */
-  @Deprecated
-  protected static TabletLocator getTabletLocator(JobContext context)
-      throws TableNotFoundException {
-    return InputConfigurator.getTabletLocator(CLASS, context.getConfiguration(),
-        InputConfigurator.getInputTableName(CLASS, context.getConfiguration()));
-  }
-
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
 
     @Override
+    @Deprecated(since = "2.0.0")
     protected List<IteratorSetting> contextIterators(TaskAttemptContext context, String tableName) {
       return getIterators(context);
     }
@@ -409,7 +397,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      *          the scanner to configure
      * @deprecated since 1.7.0; Use {@link #contextIterators} instead.
      */
-    @Deprecated
+    @Deprecated(since = "1.7.0")
     protected void setupIterators(TaskAttemptContext context, Scanner scanner) {
       // tableName is given as null as it will be ignored in eventual call to #contextIterators
       setupIterators(context, scanner, null, null);
@@ -420,36 +408,10 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      *
      * @deprecated since 1.7.0; Use {@link #contextIterators} instead.
      */
-    @Deprecated
+    @Deprecated(since = "1.7.0")
     protected void setupIterators(TaskAttemptContext context, Scanner scanner,
         org.apache.accumulo.core.client.mapreduce.RangeInputSplit split) {
       setupIterators(context, scanner, null, split);
-    }
-  }
-
-  /**
-   * @deprecated since 1.5.2; Use {@link org.apache.accumulo.core.client.mapreduce.RangeInputSplit}
-   *             instead.
-   * @see org.apache.accumulo.core.client.mapreduce.RangeInputSplit
-   */
-  @Deprecated
-  public static class RangeInputSplit
-      extends org.apache.accumulo.core.client.mapreduce.RangeInputSplit {
-
-    public RangeInputSplit() {
-      super();
-    }
-
-    public RangeInputSplit(RangeInputSplit other) throws IOException {
-      super(other);
-    }
-
-    protected RangeInputSplit(String table, Range range, String[] locations) {
-      super(table, "", range, locations);
-    }
-
-    public RangeInputSplit(String table, String tableId, Range range, String[] locations) {
-      super(table, tableId, range, locations);
     }
   }
 }

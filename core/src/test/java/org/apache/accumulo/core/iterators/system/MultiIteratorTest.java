@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.system;
 
@@ -24,16 +26,18 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -53,7 +57,7 @@ public class MultiIteratorTest {
       String val) {
     Key k = newKey(row, ts);
     k.setDeleted(deleted);
-    tm.put(k, new Value(val.getBytes()));
+    tm.put(k, new Value(val));
   }
 
   public static Text newRow(int row) {
@@ -75,11 +79,11 @@ public class MultiIteratorTest {
       Range range = new Range(prevEndRow, false, endRow, true);
       if (init)
         for (SortedKeyValueIterator<Key,Value> iter : iters)
-          iter.seek(range, LocalityGroupUtil.EMPTY_CF_SET, false);
+          iter.seek(range, Set.of(), false);
       mi = new MultiIterator(iters, range);
 
       if (init)
-        mi.seek(range, LocalityGroupUtil.EMPTY_CF_SET, false);
+        mi.seek(range, Set.of(), false);
     }
 
     if (seekKey != null)
@@ -114,15 +118,6 @@ public class MultiIteratorTest {
     }
 
     verify(start, -1, seekKey, null, null, true, false, maps);
-  }
-
-  void verify(int start, int end, Key seekKey, Text endRow, Text prevEndRow,
-      List<TreeMap<Key,Value>> maps) throws IOException {
-    if (seekKey != null) {
-      verify(start, end, seekKey, endRow, prevEndRow, false, false, maps);
-    }
-
-    verify(start, end, seekKey, endRow, prevEndRow, true, false, maps);
   }
 
   @Test
@@ -283,50 +278,50 @@ public class MultiIteratorTest {
     mi.seek(new Range(null, true, newKey(5, 9), false), EMPTY_COL_FAMS, false);
 
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopKey().equals(newKey(3, 0)));
-    assertTrue(mi.getTopValue().toString().equals("1"));
+    assertEquals(mi.getTopKey(), newKey(3, 0));
+    assertEquals("1", mi.getTopValue().toString());
     mi.next();
 
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopKey().equals(newKey(4, 0)));
-    assertTrue(mi.getTopValue().toString().equals("2"));
+    assertEquals(mi.getTopKey(), newKey(4, 0));
+    assertEquals("2", mi.getTopValue().toString());
     mi.next();
 
     assertFalse(mi.hasTop());
 
     mi.seek(new Range(newKey(4, 10), true, newKey(5, 9), false), EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopKey().equals(newKey(4, 0)));
-    assertTrue(mi.getTopValue().toString().equals("2"));
+    assertEquals(mi.getTopKey(), newKey(4, 0));
+    assertEquals("2", mi.getTopValue().toString());
     mi.next();
 
     assertFalse(mi.hasTop());
 
     mi.seek(new Range(newKey(4, 10), true, newKey(6, 0), false), EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopKey().equals(newKey(4, 0)));
-    assertTrue(mi.getTopValue().toString().equals("2"));
+    assertEquals(mi.getTopKey(), newKey(4, 0));
+    assertEquals("2", mi.getTopValue().toString());
     mi.next();
 
     assertFalse(mi.hasTop());
 
     mi.seek(new Range(newKey(4, 10), true, newKey(6, 0), true), EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopKey().equals(newKey(4, 0)));
-    assertTrue(mi.getTopValue().toString().equals("2"));
+    assertEquals(mi.getTopKey(), newKey(4, 0));
+    assertEquals("2", mi.getTopValue().toString());
     mi.next();
 
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopKey().equals(newKey(6, 0)));
-    assertTrue(mi.getTopValue().toString().equals("3"));
+    assertEquals(mi.getTopKey(), newKey(6, 0));
+    assertEquals("3", mi.getTopValue().toString());
     mi.next();
 
     assertFalse(mi.hasTop());
 
     mi.seek(new Range(newKey(4, 0), true, newKey(6, 0), false), EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopKey().equals(newKey(4, 0)));
-    assertTrue(mi.getTopValue().toString().equals("2"));
+    assertEquals(mi.getTopKey(), newKey(4, 0));
+    assertEquals("2", mi.getTopValue().toString());
     mi.next();
 
     assertFalse(mi.hasTop());
@@ -336,8 +331,8 @@ public class MultiIteratorTest {
 
     mi.seek(new Range(newKey(4, 0), false, newKey(6, 0), true), EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopKey().equals(newKey(6, 0)));
-    assertTrue(mi.getTopValue().toString().equals("3"));
+    assertEquals(mi.getTopKey(), newKey(6, 0));
+    assertEquals("3", mi.getTopValue().toString());
     mi.next();
     assertFalse(mi.hasTop());
 
@@ -360,51 +355,51 @@ public class MultiIteratorTest {
     List<SortedKeyValueIterator<Key,Value>> skvil = new ArrayList<>(1);
     skvil.add(new SortedMapIterator(tm1));
 
-    KeyExtent extent = new KeyExtent("tablename", newRow(1), newRow(0));
+    KeyExtent extent = new KeyExtent(TableId.of("tablename"), newRow(1), newRow(0));
 
     MultiIterator mi = new MultiIterator(skvil, extent);
 
     Range r1 = new Range((Text) null, (Text) null);
     mi.seek(r1, EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopValue().toString().equals("5"));
+    assertEquals("5", mi.getTopValue().toString());
     mi.next();
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopValue().toString().equals("6"));
+    assertEquals("6", mi.getTopValue().toString());
     mi.next();
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopValue().toString().equals("7"));
+    assertEquals("7", mi.getTopValue().toString());
     mi.next();
     assertFalse(mi.hasTop());
 
     Range r2 = new Range(newKey(0, 0), true, newKey(1, 1), true);
     mi.seek(r2, EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopValue().toString().equals("5"));
+    assertEquals("5", mi.getTopValue().toString());
     mi.next();
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopValue().toString().equals("6"));
+    assertEquals("6", mi.getTopValue().toString());
     mi.next();
     assertFalse(mi.hasTop());
 
     Range r3 = new Range(newKey(0, 0), false, newKey(1, 1), false);
     mi.seek(r3, EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopValue().toString().equals("5"));
+    assertEquals("5", mi.getTopValue().toString());
     mi.next();
     assertFalse(mi.hasTop());
 
     Range r4 = new Range(newKey(1, 2), true, newKey(1, 1), false);
     mi.seek(r4, EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopValue().toString().equals("5"));
+    assertEquals("5", mi.getTopValue().toString());
     mi.next();
     assertFalse(mi.hasTop());
 
     Range r5 = new Range(newKey(1, 2), false, newKey(1, 1), true);
     mi.seek(r5, EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
-    assertTrue(mi.getTopValue().toString().equals("6"));
+    assertEquals("6", mi.getTopValue().toString());
     mi.next();
     assertFalse(mi.hasTop());
 

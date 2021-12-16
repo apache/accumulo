@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -30,7 +32,7 @@ import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TabletId;
@@ -51,7 +53,7 @@ public class InsertCommand extends Command {
 
   protected long getTimeout(final CommandLine cl) {
     if (cl.hasOption(timeoutOption.getLongOpt())) {
-      return AccumuloConfiguration.getTimeInMillis(cl.getOptionValue(timeoutOption.getLongOpt()));
+      return ConfigurationTypeHelper.getTimeInMillis(cl.getOptionValue(timeoutOption.getLongOpt()));
     }
 
     return Long.MAX_VALUE;
@@ -61,7 +63,8 @@ public class InsertCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
       ConstraintViolationException {
-    shellState.checkTableState();
+
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     final Mutation m = new Mutation(new Text(cl.getArgs()[0].getBytes(Shell.CHARSET)));
     final Text colf = new Text(cl.getArgs()[1].getBytes(Shell.CHARSET));
@@ -70,7 +73,7 @@ public class InsertCommand extends Command {
 
     if (cl.hasOption(insertOptAuths.getOpt())) {
       final ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(insertOptAuths.getOpt()));
-      Shell.log.debug("Authorization label will be set to: " + le.toString());
+      Shell.log.debug("Authorization label will be set to: {}", le);
 
       if (cl.hasOption(timestampOpt.getOpt()))
         m.put(colf, colq, le, Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())), val);
@@ -103,27 +106,26 @@ public class InsertCommand extends Command {
           throw new IllegalArgumentException("Unknown durability: " + userDurability);
       }
     }
-    final BatchWriter bw =
-        shellState.getConnector().createBatchWriter(shellState.getTableName(), cfg);
+    final BatchWriter bw = shellState.getAccumuloClient().createBatchWriter(tableName, cfg);
     bw.addMutation(m);
     try {
       bw.close();
     } catch (MutationsRejectedException e) {
       final ArrayList<String> lines = new ArrayList<>();
-      if (e.getSecurityErrorCodes().isEmpty() == false) {
+      if (!e.getSecurityErrorCodes().isEmpty()) {
         lines.add("\tAuthorization Failures:");
       }
       for (Entry<TabletId,Set<SecurityErrorCode>> entry : e.getSecurityErrorCodes().entrySet()) {
         lines.add("\t\t" + entry);
       }
-      if (e.getConstraintViolationSummaries().isEmpty() == false) {
+      if (!e.getConstraintViolationSummaries().isEmpty()) {
         lines.add("\tConstraint Failures:");
       }
       for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries()) {
-        lines.add("\t\t" + cvs.toString());
+        lines.add("\t\t" + cvs);
       }
 
-      if (lines.size() == 0 || e.getUnknownExceptions() > 0) {
+      if (lines.isEmpty() || e.getUnknownExceptions() > 0) {
         // must always print something
         lines.add(" " + e.getClass().getName() + " : " + e.getMessage());
         if (e.getCause() != null)
@@ -168,6 +170,8 @@ public class InsertCommand extends Command {
     durabilityOption = new Option("d", "durability", true,
         "durability to use for insert, should be one of \"none\" \"log\" \"flush\" or \"sync\"");
     o.addOption(durabilityOption);
+
+    o.addOption(OptUtil.tableOpt("table into which data will be inserted"));
 
     return o;
   }

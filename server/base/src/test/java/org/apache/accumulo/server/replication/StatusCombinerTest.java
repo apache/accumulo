@@ -1,22 +1,26 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.replication;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -27,23 +31,24 @@ import java.util.List;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
-import org.apache.accumulo.core.client.impl.BaseIteratorEnvironment;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.DevNull;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.junit.Before;
 import org.junit.Test;
 
+@Deprecated
 public class StatusCombinerTest {
 
   private StatusCombiner combiner;
   private Key key;
   private Status.Builder builder;
 
-  private static class TestIE extends BaseIteratorEnvironment {
+  private static class TestIE implements IteratorEnvironment {
     @Override
     public IteratorScope getIteratorScope() {
       return IteratorScope.scan;
@@ -66,7 +71,7 @@ public class StatusCombinerTest {
     // When combining only one message, we should get back the same instance
     Status ret = combiner.typedReduce(key, Collections.singleton(status).iterator());
     assertEquals(status, ret);
-    assertTrue(status == ret);
+    assertSame(status, ret);
   }
 
   @Test
@@ -74,10 +79,10 @@ public class StatusCombinerTest {
     Status orig = StatusUtil.fileCreated(100);
     Status status = StatusUtil.replicatedAndIngested(10, 20);
     Status ret = combiner.typedReduce(key, Arrays.asList(orig, status).iterator());
-    assertEquals(10l, ret.getBegin());
-    assertEquals(20l, ret.getEnd());
-    assertEquals(100l, ret.getCreatedTime());
-    assertEquals(false, ret.getClosed());
+    assertEquals(10L, ret.getBegin());
+    assertEquals(20L, ret.getEnd());
+    assertEquals(100L, ret.getCreatedTime());
+    assertFalse(ret.getClosed());
   }
 
   @Test
@@ -85,10 +90,10 @@ public class StatusCombinerTest {
     Status orig = StatusUtil.fileCreated(100);
     Status status = StatusUtil.replicatedAndIngested(builder, 10, 20);
     Status ret = combiner.typedReduce(key, Arrays.asList(orig, status).iterator());
-    assertEquals(10l, ret.getBegin());
-    assertEquals(20l, ret.getEnd());
-    assertEquals(100l, ret.getCreatedTime());
-    assertEquals(false, ret.getClosed());
+    assertEquals(10L, ret.getBegin());
+    assertEquals(20L, ret.getEnd());
+    assertEquals(100L, ret.getCreatedTime());
+    assertFalse(ret.getClosed());
   }
 
   @Test

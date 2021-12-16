@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.replication;
 
@@ -20,12 +22,14 @@ import static org.junit.Assert.assertEquals;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
+@Deprecated
 public class ReplicationSchemaTest {
 
   @Test
@@ -62,15 +66,15 @@ public class ReplicationSchemaTest {
 
   @Test
   public void extractTableId() {
-    String tableId = "1";
-    Key k = new Key(new Text("foo"), StatusSection.NAME, new Text(tableId));
+    TableId tableId = TableId.of("1");
+    Key k = new Key(new Text("foo"), StatusSection.NAME, new Text(tableId.canonical()));
     assertEquals(tableId, StatusSection.getTableId(k));
   }
 
   @Test
   public void extractTableIdUsingText() {
-    String tableId = "1";
-    Key k = new Key(new Text("foo"), StatusSection.NAME, new Text(tableId));
+    TableId tableId = TableId.of("1");
+    Key k = new Key(new Text("foo"), StatusSection.NAME, new Text(tableId.canonical()));
     assertEquals(tableId, StatusSection.getTableId(k));
   }
 

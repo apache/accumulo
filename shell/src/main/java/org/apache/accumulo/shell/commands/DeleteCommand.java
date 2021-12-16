@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -24,7 +26,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
@@ -41,7 +43,7 @@ public class DeleteCommand extends Command {
 
   protected long getTimeout(final CommandLine cl) {
     if (cl.hasOption(timeoutOption.getLongOpt())) {
-      return AccumuloConfiguration.getTimeInMillis(cl.getOptionValue(timeoutOption.getLongOpt()));
+      return ConfigurationTypeHelper.getTimeInMillis(cl.getOptionValue(timeoutOption.getLongOpt()));
     }
 
     return Long.MAX_VALUE;
@@ -51,11 +53,12 @@ public class DeleteCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
       ConstraintViolationException {
-    shellState.checkTableState();
 
     final Mutation m = new Mutation(new Text(cl.getArgs()[0].getBytes(Shell.CHARSET)));
     final Text colf = new Text(cl.getArgs()[1].getBytes(Shell.CHARSET));
     final Text colq = new Text(cl.getArgs()[2].getBytes(Shell.CHARSET));
+
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     if (cl.hasOption(deleteOptAuths.getOpt())) {
       final ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(deleteOptAuths.getOpt()));
@@ -69,7 +72,7 @@ public class DeleteCommand extends Command {
     } else {
       m.putDelete(colf, colq);
     }
-    final BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(),
+    final BatchWriter bw = shellState.getAccumuloClient().createBatchWriter(tableName,
         new BatchWriterConfig().setMaxMemory(Math.max(m.estimatedMemoryUsed(), 1024))
             .setMaxWriteThreads(1).setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS));
     bw.addMutation(m);
@@ -104,6 +107,8 @@ public class DeleteCommand extends Command {
             + " given assumes seconds. Units d,h,m,s,and ms are supported. e.g. 30s" + " or 100ms");
     timeoutOption.setArgName("timeout");
     o.addOption(timeoutOption);
+
+    o.addOption(OptUtil.tableOpt("table from which data will be deleted"));
 
     return o;
   }

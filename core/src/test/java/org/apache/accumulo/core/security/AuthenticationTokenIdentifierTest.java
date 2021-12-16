@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.security;
 
@@ -26,7 +28,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.junit.Test;
 
@@ -58,13 +60,13 @@ public class AuthenticationTokenIdentifierTest {
     AuthenticationTokenIdentifier token = new AuthenticationTokenIdentifier(principal);
     assertEquals(token, token);
     AuthenticationTokenIdentifier newToken =
-        new AuthenticationTokenIdentifier(principal, 1, 5l, 10l, "uuid");
+        new AuthenticationTokenIdentifier(principal, 1, 5L, 10L, "uuid");
     assertNotEquals(token, newToken);
     assertNotEquals(token.hashCode(), newToken.hashCode());
     AuthenticationTokenIdentifier dblNewToken = new AuthenticationTokenIdentifier(principal);
     dblNewToken.setKeyId(1);
-    dblNewToken.setIssueDate(5l);
-    dblNewToken.setExpirationDate(10l);
+    dblNewToken.setIssueDate(5L);
+    dblNewToken.setExpirationDate(10L);
     dblNewToken.setInstanceId("uuid");
   }
 

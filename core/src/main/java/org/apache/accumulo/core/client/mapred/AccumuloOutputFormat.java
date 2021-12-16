@@ -1,54 +1,51 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.mapred;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.ClientConfiguration;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
-import org.apache.accumulo.core.client.impl.AuthenticationTokenIdentifier;
-import org.apache.accumulo.core.client.impl.DelegationTokenImpl;
-import org.apache.accumulo.core.client.mapreduce.lib.impl.ConfiguratorBase;
-import org.apache.accumulo.core.client.mapreduce.lib.impl.OutputConfigurator;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
+import org.apache.accumulo.core.clientImpl.mapreduce.lib.OutputConfigurator;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -71,11 +68,15 @@ import org.apache.log4j.Logger;
  * <ul>
  * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, String, AuthenticationToken)}
  * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, String, String)}
- * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(JobConf, ClientConfiguration)}
+ * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(JobConf, org.apache.accumulo.core.client.ClientConfiguration)}
  * </ul>
  *
  * Other static methods are optional.
+ *
+ * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapred instead from the
+ *             accumulo-hadoop-mapreduce.jar
  */
+@Deprecated(since = "2.0.0")
 public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   private static final Class<?> CLASS = AccumuloOutputFormat.class;
@@ -107,9 +108,8 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
     if (token instanceof KerberosToken) {
       log.info("Received KerberosToken, attempting to fetch DelegationToken");
       try {
-        Instance instance = getInstance(job);
-        Connector conn = instance.getConnector(principal, token);
-        token = conn.securityOperations().getDelegationToken(new DelegationTokenConfig());
+        ClientContext client = OutputConfigurator.client(CLASS, job);
+        token = client.securityOperations().getDelegationToken(new DelegationTokenConfig());
       } catch (Exception e) {
         log.warn("Failed to automatically obtain DelegationToken, "
             + "Mappers/Reducers will likely fail to communicate with Accumulo", e);
@@ -185,7 +185,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @since 1.5.0
    * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobConf)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.6.0")
   protected static String getTokenClass(JobConf job) {
     return getAuthenticationToken(job).getClass().getName();
   }
@@ -196,7 +196,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @since 1.5.0
    * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobConf)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.6.0")
   protected static byte[] getToken(JobConf job) {
     return AuthenticationTokenSerializer.serialize(getAuthenticationToken(job));
   }
@@ -214,11 +214,11 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    */
   protected static AuthenticationToken getAuthenticationToken(JobConf job) {
     AuthenticationToken token = OutputConfigurator.getAuthenticationToken(CLASS, job);
-    return ConfiguratorBase.unwrapAuthenticationToken(job, token);
+    return OutputConfigurator.unwrapAuthenticationToken(job, token);
   }
 
   /**
-   * Configures a {@link ZooKeeperInstance} for this job.
+   * Configures a {@link org.apache.accumulo.core.client.ZooKeeperInstance} for this job.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -227,18 +227,18 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @param zooKeepers
    *          a comma-separated list of zookeeper servers
    * @since 1.5.0
-   * @deprecated since 1.6.0; Use {@link #setZooKeeperInstance(JobConf, ClientConfiguration)}
+   * @deprecated since 1.6.0; Use
+   *             {@link #setZooKeeperInstance(JobConf, org.apache.accumulo.core.client.ClientConfiguration)}
    *             instead.
    */
-
-  @Deprecated
+  @Deprecated(since = "1.6.0")
   public static void setZooKeeperInstance(JobConf job, String instanceName, String zooKeepers) {
-    setZooKeeperInstance(job,
-        new ClientConfiguration().withInstance(instanceName).withZkHosts(zooKeepers));
+    setZooKeeperInstance(job, org.apache.accumulo.core.client.ClientConfiguration.create()
+        .withInstance(instanceName).withZkHosts(zooKeepers));
   }
 
   /**
-   * Configures a {@link ZooKeeperInstance} for this job.
+   * Configures a {@link org.apache.accumulo.core.client.ZooKeeperInstance} for this job.
    *
    * @param job
    *          the Hadoop job instance to be configured
@@ -247,35 +247,22 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *          client configuration for specifying connection timeouts, SSL connection options, etc.
    * @since 1.6.0
    */
-  public static void setZooKeeperInstance(JobConf job, ClientConfiguration clientConfig) {
+  public static void setZooKeeperInstance(JobConf job,
+      org.apache.accumulo.core.client.ClientConfiguration clientConfig) {
     OutputConfigurator.setZooKeeperInstance(CLASS, job, clientConfig);
   }
 
   /**
-   * Configures a {@link org.apache.accumulo.core.client.mock.MockInstance} for this job.
-   *
-   * @param job
-   *          the Hadoop job instance to be configured
-   * @param instanceName
-   *          the Accumulo instance name
-   * @since 1.5.0
-   * @deprecated since 1.8.0; use MiniAccumuloCluster or a standard mock framework
-   */
-  @Deprecated
-  public static void setMockInstance(JobConf job, String instanceName) {
-    OutputConfigurator.setMockInstance(CLASS, job, instanceName);
-  }
-
-  /**
-   * Initializes an Accumulo {@link Instance} based on the configuration.
+   * Initializes an Accumulo {@link org.apache.accumulo.core.client.Instance} based on the
+   * configuration.
    *
    * @param job
    *          the Hadoop context for the configured job
    * @return an Accumulo instance
    * @since 1.5.0
-   * @see #setZooKeeperInstance(JobConf, ClientConfiguration)
+   * @see #setZooKeeperInstance(JobConf, org.apache.accumulo.core.client.ClientConfiguration)
    */
-  protected static Instance getInstance(JobConf job) {
+  protected static org.apache.accumulo.core.client.Instance getInstance(JobConf job) {
     return OutputConfigurator.getInstance(CLASS, job);
   }
 
@@ -434,7 +421,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
     private long mutCount = 0;
     private long valCount = 0;
 
-    private Connector conn;
+    private AccumuloClient client;
 
     protected AccumuloRecordWriter(JobConf job)
         throws AccumuloException, AccumuloSecurityException, IOException {
@@ -453,8 +440,8 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       this.defaultTableName = (tname == null) ? null : new Text(tname);
 
       if (!simulate) {
-        this.conn = getInstance(job).getConnector(getPrincipal(job), getAuthenticationToken(job));
-        mtbw = conn.createMultiTableBatchWriter(getBatchWriterOptions(job));
+        this.client = OutputConfigurator.client(CLASS, job);
+        mtbw = client.createMultiTableBatchWriter(getBatchWriterOptions(job));
       }
     }
 
@@ -482,7 +469,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
         try {
           addTable(table);
         } catch (final Exception e) {
-          log.error("Could not add table '" + table.toString() + "'", e);
+          log.error("Could not add table '" + table + "'", e);
           throw new IOException(e);
         }
 
@@ -503,9 +490,9 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       BatchWriter bw = null;
       String table = tableName.toString();
 
-      if (createTables && !conn.tableOperations().exists(table)) {
+      if (createTables && !client.tableOperations().exists(table)) {
         try {
-          conn.tableOperations().create(table);
+          client.tableOperations().create(table);
         } catch (AccumuloSecurityException e) {
           log.error("Accumulo security violation creating " + table, e);
           throw e;
@@ -519,9 +506,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       } catch (TableNotFoundException e) {
         log.error("Accumulo table " + table + " doesn't exist and cannot be created.", e);
         throw new AccumuloException(e);
-      } catch (AccumuloException e) {
-        throw e;
-      } catch (AccumuloSecurityException e) {
+      } catch (AccumuloException | AccumuloSecurityException e) {
         throw e;
       }
 
@@ -536,7 +521,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
           log.trace(String.format("Table %s column: %s:%s", table, hexDump(cu.getColumnFamily()),
               hexDump(cu.getColumnQualifier())));
           log.trace(String.format("Table %s security: %s", table,
-              new ColumnVisibility(cu.getColumnVisibility()).toString()));
+              new ColumnVisibility(cu.getColumnVisibility())));
           log.trace(String.format("Table %s value: %s", table, hexDump(cu.getValue())));
         }
       }
@@ -563,25 +548,21 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
       try {
         mtbw.close();
       } catch (MutationsRejectedException e) {
-        if (e.getSecurityErrorCodes().size() >= 0) {
-          HashMap<String,Set<SecurityErrorCode>> tables = new HashMap<>();
-          for (Entry<TabletId,Set<SecurityErrorCode>> ke : e.getSecurityErrorCodes().entrySet()) {
-            String tableId = ke.getKey().getTableId().toString();
-            Set<SecurityErrorCode> secCodes = tables.get(tableId);
-            if (secCodes == null) {
-              secCodes = new HashSet<>();
-              tables.put(tableId, secCodes);
-            }
-            secCodes.addAll(ke.getValue());
-          }
-
+        if (!e.getSecurityErrorCodes().isEmpty()) {
+          var tables = new HashMap<String,Set<SecurityErrorCode>>();
+          e.getSecurityErrorCodes().forEach((tabletId, secSet) -> {
+            var tableId = tabletId.getTable().canonical();
+            tables.computeIfAbsent(tableId, p -> new HashSet<>()).addAll(secSet);
+          });
           log.error("Not authorized to write to tables : " + tables);
         }
 
-        if (e.getConstraintViolationSummaries().size() > 0) {
+        if (!e.getConstraintViolationSummaries().isEmpty()) {
           log.error("Constraint violations : " + e.getConstraintViolationSummaries().size());
         }
         throw new IOException(e);
+      } finally {
+        client.close();
       }
     }
   }
@@ -591,15 +572,12 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
     if (!isConnectorInfoSet(job))
       throw new IOException("Connector info has not been set.");
     try {
-      // if the instance isn't configured, it will complain here
+      AccumuloClient c = OutputConfigurator.client(CLASS, job);
       String principal = getPrincipal(job);
       AuthenticationToken token = getAuthenticationToken(job);
-      Connector c = getInstance(job).getConnector(principal, token);
       if (!c.securityOperations().authenticateUser(principal, token))
         throw new IOException("Unable to authenticate user");
-    } catch (AccumuloException e) {
-      throw new IOException(e);
-    } catch (AccumuloSecurityException e) {
+    } catch (AccumuloException | AccumuloSecurityException e) {
       throw new IOException(e);
     }
   }

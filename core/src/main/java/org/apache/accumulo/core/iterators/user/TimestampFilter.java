@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
@@ -53,8 +55,6 @@ public class TimestampFilter extends Filter {
   private boolean hasStart;
   private boolean hasEnd;
 
-  public TimestampFilter() {}
-
   @Override
   public boolean accept(Key k, Value v) {
     long ts = k.getTimestamp();
@@ -62,9 +62,7 @@ public class TimestampFilter extends Filter {
       return false;
     if (hasStart && !startInclusive && ts == start)
       return false;
-    if (hasEnd && !endInclusive && ts == end)
-      return false;
-    return true;
+    return !hasEnd || endInclusive || ts != end;
   }
 
   @Override
@@ -139,7 +137,7 @@ public class TimestampFilter extends Filter {
 
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    if (super.validateOptions(options) == false)
+    if (!super.validateOptions(options))
       return false;
     boolean hasStart = false;
     boolean hasEnd = false;
@@ -291,7 +289,7 @@ public class TimestampFilter extends Filter {
    *          boolean indicating whether the start is inclusive
    */
   public static void setStart(IteratorSetting is, long start, boolean startInclusive) {
-    is.addOption(START, LONG_PREFIX + Long.toString(start));
+    is.addOption(START, LONG_PREFIX + start);
     is.addOption(START_INCL, Boolean.toString(startInclusive));
   }
 
@@ -306,7 +304,7 @@ public class TimestampFilter extends Filter {
    *          boolean indicating whether the end is inclusive
    */
   public static void setEnd(IteratorSetting is, long end, boolean endInclusive) {
-    is.addOption(END, LONG_PREFIX + Long.toString(end));
+    is.addOption(END, LONG_PREFIX + end);
     is.addOption(END_INCL, Boolean.toString(endInclusive));
   }
 }

@@ -1,29 +1,33 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -38,9 +42,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.iterators.system.ColumnQualifierFilter;
-import org.apache.accumulo.core.iterators.system.VisibilityFilter;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnQualifierFilter;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.VisibilityFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
@@ -55,18 +59,14 @@ public class FilterTest {
     @Override
     public boolean accept(Key k, Value v) {
       // System.out.println(k.getRow());
-      if (k.getRow().toString().endsWith("0"))
-        return true;
-      return false;
+      return k.getRow().toString().endsWith("0");
     }
   }
 
   public static class SimpleFilter2 extends Filter {
     @Override
     public boolean accept(Key k, Value v) {
-      if (k.getColumnFamily().toString().equals("a"))
-        return false;
-      return true;
+      return !k.getColumnFamily().toString().equals("a");
     }
   }
 
@@ -91,20 +91,20 @@ public class FilterTest {
       Key k = new Key(new Text(String.format("%03d", i)), colf, colq);
       tm.put(k, dv);
     }
-    assertTrue(tm.size() == 1000);
+    assertEquals(1000, tm.size());
 
     Filter filter1 = new SimpleFilter();
     filter1.init(new SortedMapIterator(tm), EMPTY_OPTS, null);
     filter1.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(filter1);
-    assertTrue("size = " + size, size == 100);
+    assertEquals(100, size);
 
     Filter fi = new SimpleFilter();
     fi.init(new SortedMapIterator(tm), EMPTY_OPTS, null);
     Key k = new Key(new Text("500"));
     fi.seek(new Range(k, null), EMPTY_COL_FAMS, false);
     size = size(fi);
-    assertTrue("size = " + size, size == 50);
+    assertEquals(50, size);
 
     filter1 = new SimpleFilter();
     filter1.init(new SortedMapIterator(tm), EMPTY_OPTS, null);
@@ -112,7 +112,7 @@ public class FilterTest {
     filter2.init(filter1, EMPTY_OPTS, null);
     filter2.seek(new Range(), EMPTY_COL_FAMS, false);
     size = size(filter2);
-    assertTrue("size = " + size, size == 0);
+    assertEquals(0, size);
   }
 
   @Test
@@ -126,7 +126,7 @@ public class FilterTest {
       Key k = new Key(new Text(String.format("%03d", i)), colf, colq);
       tm.put(k, dv);
     }
-    assertTrue(tm.size() == 1000);
+    assertEquals(1000, tm.size());
 
     Filter filter = new SimpleFilter();
 
@@ -136,20 +136,20 @@ public class FilterTest {
     filter.init(new SortedMapIterator(tm), is.getOptions(), null);
     filter.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(filter);
-    assertTrue("size = " + size, size == 900);
+    assertEquals(900, size);
 
     filter.init(new SortedMapIterator(tm), is.getOptions(), null);
     Key k = new Key(new Text("500"));
     filter.seek(new Range(k, null), EMPTY_COL_FAMS, false);
     size = size(filter);
-    assertTrue("size = " + size, size == 450);
+    assertEquals(450, size);
 
     filter.init(new SortedMapIterator(tm), EMPTY_OPTS, null);
     Filter filter2 = new SimpleFilter2();
     filter2.init(filter, is.getOptions(), null);
     filter2.seek(new Range(), EMPTY_COL_FAMS, false);
     size = size(filter2);
-    assertTrue("size = " + size, size == 100);
+    assertEquals(100, size);
   }
 
   @Test
@@ -163,7 +163,7 @@ public class FilterTest {
       Key k = new Key(new Text(String.format("%03d", i)), colf, colq);
       tm.put(k, dv);
     }
-    assertTrue(tm.size() == 1000);
+    assertEquals(1000, tm.size());
 
     SimpleFilter filter = new SimpleFilter();
 
@@ -174,10 +174,10 @@ public class FilterTest {
     SortedKeyValueIterator<Key,Value> copy = filter.deepCopy(null);
     filter.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(filter);
-    assertTrue("size = " + size, size == 900);
+    assertEquals(900, size);
     copy.seek(new Range(), EMPTY_COL_FAMS, false);
     size = size(copy);
-    assertTrue("size = " + size, size == 900);
+    assertEquals(900, size);
   }
 
   @Test
@@ -192,25 +192,25 @@ public class FilterTest {
       k.setTimestamp(i);
       tm.put(k, dv);
     }
-    assertTrue(tm.size() == 1000);
+    assertEquals(1000, tm.size());
 
     SortedKeyValueIterator<Key,Value> a = new AgeOffFilter();
     IteratorSetting is = new IteratorSetting(1, AgeOffFilter.class);
-    AgeOffFilter.setTTL(is, 101l);
-    AgeOffFilter.setCurrentTime(is, 1001l);
+    AgeOffFilter.setTTL(is, 101L);
+    AgeOffFilter.setCurrentTime(is, 1001L);
     AgeOffFilter.setNegate(is, true);
     assertTrue(((AgeOffFilter) a).validateOptions(is.getOptions()));
     try {
       ((AgeOffFilter) a).validateOptions(EMPTY_OPTS);
-      assertTrue(false);
+      fail();
     } catch (IllegalArgumentException e) {}
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a = a.deepCopy(null);
     SortedKeyValueIterator<Key,Value> copy = a.deepCopy(null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 900);
+    assertEquals(900, size(a));
     copy.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(copy), 900);
+    assertEquals(900, size(copy));
   }
 
   @Test
@@ -220,34 +220,34 @@ public class FilterTest {
     Value dv = new Value();
     TreeMap<Key,Value> tm = new TreeMap<>();
     IteratorSetting is = new IteratorSetting(1, ColumnAgeOffFilter.class);
-    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a"), 901l);
+    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a"), 901L);
     long ts = System.currentTimeMillis();
 
     for (long i = 0; i < 1000; i++) {
       Key k = new Key(new Text(String.format("%03d", i)), colf, colq, ts - i);
       tm.put(k, dv);
     }
-    assertTrue(tm.size() == 1000);
+    assertEquals(1000, tm.size());
 
     ColumnAgeOffFilter a = new ColumnAgeOffFilter();
     assertTrue(a.validateOptions(is.getOptions()));
     a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 902);
+    assertEquals(902, size(a));
 
-    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a", "b"), 101l);
+    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a", "b"), 101L);
     a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 102);
+    assertEquals(102, size(a));
 
     ColumnAgeOffFilter.removeTTL(is, new IteratorSetting.Column("a", "b"));
     a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     a = (ColumnAgeOffFilter) a.deepCopy(null);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 902);
+    assertEquals(902, size(a));
   }
 
   /**
@@ -260,7 +260,7 @@ public class FilterTest {
     Value dv = new Value();
     TreeMap<Key,Value> tm = new TreeMap<>();
     IteratorSetting is = new IteratorSetting(1, ColumnAgeOffFilter.class);
-    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a"), 901l);
+    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a"), 901L);
     ColumnAgeOffFilter.setNegate(is, true);
     long ts = System.currentTimeMillis();
 
@@ -268,27 +268,27 @@ public class FilterTest {
       Key k = new Key(new Text(String.format("%03d", i)), colf, colq, ts - i);
       tm.put(k, dv);
     }
-    assertTrue(tm.size() == 1000);
+    assertEquals(1000, tm.size());
 
     ColumnAgeOffFilter a = new ColumnAgeOffFilter();
     assertTrue(a.validateOptions(is.getOptions()));
     a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 98);
+    assertEquals(98, size(a));
 
-    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a", "b"), 101l);
+    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a", "b"), 101L);
     a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 898);
+    assertEquals(898, size(a));
 
     ColumnAgeOffFilter.removeTTL(is, new IteratorSetting.Column("a", "b"));
     a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     a = (ColumnAgeOffFilter) a.deepCopy(null);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 98);
+    assertEquals(98, size(a));
   }
 
   /**
@@ -302,34 +302,34 @@ public class FilterTest {
     Value dv = new Value();
     TreeMap<Key,Value> tm = new TreeMap<>();
     IteratorSetting is = new IteratorSetting(1, ColumnAgeOffFilter.class);
-    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("negate"), 901l);
+    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("negate"), 901L);
     long ts = System.currentTimeMillis();
 
     for (long i = 0; i < 1000; i++) {
       Key k = new Key(new Text(String.format("%03d", i)), colf, colq, ts - i);
       tm.put(k, dv);
     }
-    assertTrue(tm.size() == 1000);
+    assertEquals(1000, tm.size());
 
     ColumnAgeOffFilter a = new ColumnAgeOffFilter();
     assertTrue(a.validateOptions(is.getOptions()));
     a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 902);
+    assertEquals(902, size(a));
 
-    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("negate", "b"), 101l);
+    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("negate", "b"), 101L);
     a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 102);
+    assertEquals(102, size(a));
 
     ColumnAgeOffFilter.removeTTL(is, new IteratorSetting.Column("negate", "b"));
     a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     a = (ColumnAgeOffFilter) a.deepCopy(null);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 902);
+    assertEquals(902, size(a));
   }
 
   @Test
@@ -354,28 +354,28 @@ public class FilterTest {
         colq = colq2;
       }
       Key k = new Key(new Text(String.format("%03d", i)), colf, colq);
-      k.setTimestamp(157l);
+      k.setTimestamp(157L);
       tm.put(k, dv);
     }
-    assertTrue(tm.size() == 1000);
+    assertEquals(1000, tm.size());
 
     SortedKeyValueIterator<Key,Value> a =
         ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 1000);
+    assertEquals(1000, size(a));
 
     hsc = new HashSet<>();
     hsc.add(new Column("a".getBytes(), "b".getBytes(), null));
     a = ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(a);
-    assertTrue("size was " + size, size == 500);
+    assertEquals(500, size);
 
     hsc = new HashSet<>();
     a = ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     size = size(a);
-    assertTrue("size was " + size, size == 1000);
+    assertEquals(1000, size);
   }
 
   @Test
@@ -395,22 +395,20 @@ public class FilterTest {
           new Text(lea[i % 4].getExpression()));
       tm.put(k, dv);
     }
-    assertTrue(tm.size() == 1000);
+    assertEquals(1000, tm.size());
 
     SortedKeyValueIterator<Key,Value> a =
         VisibilityFilter.wrap(new SortedMapIterator(tm), auths, le2.getExpression());
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(a);
-    assertTrue("size was " + size, size == 750);
+    assertEquals(750, size);
   }
 
   private SortedKeyValueIterator<Key,Value> ncqf(TreeMap<Key,Value> tm, Column... columns)
       throws IOException {
     HashSet<Column> hsc = new HashSet<>();
 
-    for (Column column : columns) {
-      hsc.add(column);
-    }
+    Collections.addAll(hsc, columns);
 
     SortedKeyValueIterator<Key,Value> a =
         ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);
@@ -429,28 +427,28 @@ public class FilterTest {
     tm.put(new Key(new Text(String.format("%03d", 4)), new Text("b"), new Text("x")), dv);
     tm.put(new Key(new Text(String.format("%03d", 5)), new Text("b"), new Text("y")), dv);
 
-    assertTrue(tm.size() == 5);
+    assertEquals(5, tm.size());
 
     int size = size(ncqf(tm, new Column("c".getBytes(), null, null)));
-    assertTrue(size == 5);
+    assertEquals(5, size);
 
     size = size(ncqf(tm, new Column("a".getBytes(), null, null)));
-    assertTrue(size == 5);
+    assertEquals(5, size);
 
     size = size(ncqf(tm, new Column("a".getBytes(), "x".getBytes(), null)));
-    assertTrue(size == 1);
+    assertEquals(1, size);
 
     size = size(ncqf(tm, new Column("a".getBytes(), "x".getBytes(), null),
         new Column("b".getBytes(), "x".getBytes(), null)));
-    assertTrue(size == 2);
+    assertEquals(2, size);
 
     size = size(ncqf(tm, new Column("a".getBytes(), "x".getBytes(), null),
         new Column("b".getBytes(), "y".getBytes(), null)));
-    assertTrue(size == 2);
+    assertEquals(2, size);
 
     size = size(ncqf(tm, new Column("a".getBytes(), "x".getBytes(), null),
         new Column("b".getBytes(), null, null)));
-    assertTrue(size == 3);
+    assertEquals(3, size);
   }
 
   @Test
@@ -461,13 +459,13 @@ public class FilterTest {
       Key k = new Key(String.format("%03d", i), "a", "b", i % 10 == 0 ? "vis" : "");
       tm.put(k, v);
     }
-    assertTrue(tm.size() == 1000);
+    assertEquals(1000, tm.size());
 
     Filter filter = new ReqVisFilter();
     filter.init(new SortedMapIterator(tm), EMPTY_OPTS, null);
     filter.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(filter);
-    assertTrue("size = " + size, size == 100);
+    assertEquals(100, size);
   }
 
   @Test
@@ -482,7 +480,7 @@ public class FilterTest {
       k.setTimestamp(i);
       tm.put(k, dv);
     }
-    assertTrue(tm.size() == 100);
+    assertEquals(100, tm.size());
 
     SimpleDateFormat dateParser = new SimpleDateFormat("yyyyMMddHHmmssz");
     long baseTime = dateParser.parse("19990101000000GMT").getTime();
@@ -492,59 +490,59 @@ public class FilterTest {
       k.setTimestamp(baseTime + (i * 1000));
       tm.put(k, dv);
     }
-    assertTrue(tm.size() == 100);
+    assertEquals(100, tm.size());
     TimestampFilter a = new TimestampFilter();
     IteratorSetting is = new IteratorSetting(1, TimestampFilter.class);
     TimestampFilter.setRange(is, "19990101010011GMT+01:00", "19990101010031GMT+01:00");
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a = (TimestampFilter) a.deepCopy(null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 21);
+    assertEquals(21, size(a));
     TimestampFilter.setRange(is, baseTime + 11000, baseTime + 31000);
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 21);
+    assertEquals(21, size(a));
 
     TimestampFilter.setEnd(is, "19990101000031GMT", false);
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 20);
+    assertEquals(20, size(a));
 
     TimestampFilter.setStart(is, "19990101000011GMT", false);
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 19);
+    assertEquals(19, size(a));
 
     TimestampFilter.setEnd(is, "19990101000031GMT", true);
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 20);
+    assertEquals(20, size(a));
 
     is.clearOptions();
     TimestampFilter.setStart(is, "19990101000011GMT", true);
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 89);
+    assertEquals(89, size(a));
 
     TimestampFilter.setStart(is, "19990101000011GMT", false);
     assertTrue(a.validateOptions(is.getOptions()));
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 88);
+    assertEquals(88, size(a));
 
     is.clearOptions();
     TimestampFilter.setEnd(is, "19990101000031GMT", true);
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 32);
+    assertEquals(32, size(a));
 
     TimestampFilter.setEnd(is, "19990101000031GMT", false);
     assertTrue(a.validateOptions(is.getOptions()));
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 31);
+    assertEquals(31, size(a));
 
-    TimestampFilter.setEnd(is, 253402300800001l, true);
+    TimestampFilter.setEnd(is, 253402300800001L, true);
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
 
     is.clearOptions();
@@ -552,18 +550,18 @@ public class FilterTest {
     assertTrue(a.validateOptions(is.getOptions()));
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 89);
+    assertEquals(89, size(a));
 
     is.clearOptions();
     is.addOption(TimestampFilter.END, "19990101000031GMT");
     assertTrue(a.validateOptions(is.getOptions()));
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 32);
+    assertEquals(32, size(a));
 
     try {
       a.validateOptions(EMPTY_OPTS);
-      assertTrue(false);
+      fail();
     } catch (IllegalArgumentException e) {}
   }
 
@@ -584,13 +582,13 @@ public class FilterTest {
     k = new Key(new Text("10"), colf, colq);
     tm.put(k, dv);
 
-    assertTrue(tm.size() == 4);
+    assertEquals(4, tm.size());
 
     Filter filter = new SimpleFilter();
     filter.init(new SortedMapIterator(tm), EMPTY_OPTS, null);
     filter.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(filter);
-    assertTrue("size = " + size, size == 3);
+    assertEquals(3, size);
 
   }
 }

@@ -1,21 +1,24 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.mapreduce.lib.partition;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -24,9 +27,10 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.junit.Test;
 
+@Deprecated(since = "2.0.0")
 public class RangePartitionerTest {
 
-  private static Text[] cutArray = new Text[] {new Text("A"), new Text("B"), new Text("C")};
+  private static Text[] cutArray = {new Text("A"), new Text("B"), new Text("C")};
 
   @Test
   public void testNoSubBins() throws IOException {
@@ -62,7 +66,7 @@ public class RangePartitionerTest {
 
   private void checkExpectedRangeBins(int numSubBins, String[] strings, int[] rangeEnds)
       throws IOException {
-    assertTrue(strings.length == rangeEnds.length);
+    assertEquals(strings.length, rangeEnds.length);
     for (int i = 0; i < strings.length; ++i) {
       int endRange = rangeEnds[i];
       int startRange = endRange + 1 - numSubBins;
@@ -74,11 +78,11 @@ public class RangePartitionerTest {
   }
 
   private void checkExpectedBins(int numSubBins, String[] strings, int[] bins) throws IOException {
-    assertTrue(strings.length == bins.length);
+    assertEquals(strings.length, bins.length);
     for (int i = 0; i < strings.length; ++i) {
       int bin = bins[i], part =
           prepPartitioner(numSubBins).findPartition(new Text(strings[i]), cutArray, numSubBins);
-      assertTrue(bin == part);
+      assertEquals(bin, part);
     }
   }
 }

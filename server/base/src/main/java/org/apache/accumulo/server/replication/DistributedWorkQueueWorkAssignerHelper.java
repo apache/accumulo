@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.replication;
 
@@ -20,14 +22,13 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 
 import com.google.common.collect.Maps;
 
-/**
- *
- */
+@Deprecated
 public class DistributedWorkQueueWorkAssignerHelper {
 
   public static final String KEY_SEPARATOR = "|";
@@ -56,7 +57,7 @@ public class DistributedWorkQueueWorkAssignerHelper {
     requireNonNull(queueKey);
 
     int index = queueKey.indexOf(KEY_SEPARATOR);
-    if (-1 == index) {
+    if (index == -1) {
       throw new IllegalArgumentException(
           "Could not find expected separator in queue key '" + queueKey + "'");
     }
@@ -64,19 +65,20 @@ public class DistributedWorkQueueWorkAssignerHelper {
     String filename = queueKey.substring(0, index);
 
     int secondIndex = queueKey.indexOf(KEY_SEPARATOR, index + 1);
-    if (-1 == secondIndex) {
+    if (secondIndex == -1) {
       throw new IllegalArgumentException(
           "Could not find expected separator in queue key '" + queueKey + "'");
     }
 
     int thirdIndex = queueKey.indexOf(KEY_SEPARATOR, secondIndex + 1);
-    if (-1 == thirdIndex) {
+    if (thirdIndex == -1) {
       throw new IllegalArgumentException(
           "Could not find expected seperator in queue key '" + queueKey + "'");
     }
 
     return Maps.immutableEntry(filename,
         new ReplicationTarget(queueKey.substring(index + 1, secondIndex),
-            queueKey.substring(secondIndex + 1, thirdIndex), queueKey.substring(thirdIndex + 1)));
+            queueKey.substring(secondIndex + 1, thirdIndex),
+            TableId.of(queueKey.substring(thirdIndex + 1))));
   }
 }

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
@@ -24,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -33,11 +35,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.commons.collections.BufferOverflowException;
 import org.apache.hadoop.io.Text;
 
 /**
- *
  * The RowEncodingIterator is designed to provide row-isolation so that queries see mutations as
  * atomic. It does so by encapsulating an entire row of key/value pairs into a single key/value
  * pair, which is returned through the client as an atomic operation. This is an abstract class,
@@ -89,7 +89,7 @@ public abstract class RowEncodingIterator
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     RowEncodingIterator newInstance;
     try {
-      newInstance = this.getClass().newInstance();
+      newInstance = this.getClass().getDeclaredConstructor().newInstance();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -107,7 +107,7 @@ public abstract class RowEncodingIterator
       return;
     Text currentRow;
     do {
-      if (sourceIter.hasTop() == false)
+      if (!sourceIter.hasTop())
         return;
       currentRow = new Text(sourceIter.getTopKey().getRow());
       keys.clear();
@@ -119,8 +119,8 @@ public abstract class RowEncodingIterator
         values.add(new Value(sourceTopValue));
         kvBufSize += sourceTopKey.getSize() + sourceTopValue.getSize() + 128;
         if (kvBufSize > maxBufferSize) {
-          throw new BufferOverflowException("Exceeded buffer size of " + maxBufferSize
-              + " for row: " + sourceTopKey.getRow().toString());
+          throw new IllegalArgumentException(
+              "Exceeded buffer size of " + maxBufferSize + " for row: " + sourceTopKey.getRow());
         }
         sourceIter.next();
       }
@@ -166,7 +166,8 @@ public abstract class RowEncodingIterator
       IteratorEnvironment env) throws IOException {
     sourceIter = source;
     if (options.containsKey(MAX_BUFFER_SIZE_OPT)) {
-      maxBufferSize = AccumuloConfiguration.getMemoryInBytes(options.get(MAX_BUFFER_SIZE_OPT));
+      maxBufferSize =
+          ConfigurationTypeHelper.getFixedMemoryAsBytes(options.get(MAX_BUFFER_SIZE_OPT));
     }
   }
 
@@ -185,7 +186,7 @@ public abstract class RowEncodingIterator
   public boolean validateOptions(Map<String,String> options) {
     String maxBufferSizeStr = options.get(MAX_BUFFER_SIZE_OPT);
     try {
-      AccumuloConfiguration.getMemoryInBytes(maxBufferSizeStr);
+      ConfigurationTypeHelper.getFixedMemoryAsBytes(maxBufferSizeStr);
     } catch (Exception e) {
       throw new IllegalArgumentException(
           "Failed to parse opt " + MAX_BUFFER_SIZE_OPT + " " + maxBufferSizeStr, e);

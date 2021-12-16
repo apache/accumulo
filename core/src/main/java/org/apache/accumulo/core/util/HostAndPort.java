@@ -1,25 +1,24 @@
 /*
  * Copyright (C) 2011 The Guava Authors
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
- * the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-
 package org.apache.accumulo.core.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Serializable;
-
-import com.google.common.base.Strings;
 
 /**
  * This class was copied from Guava release 23.0 to replace the older Guava 14 version that had been
@@ -58,9 +57,7 @@ import com.google.common.base.Strings;
  * Note that this is not an exhaustive list, because these methods are only concerned with brackets,
  * colons, and port numbers. Full validation of the host field (if desired) is the caller's
  * responsibility.
- *
  */
-
 public final class HostAndPort implements Serializable {
   /** Magic value indicating the absence of a port number. */
   private static final int NO_PORT = -1;
@@ -108,7 +105,7 @@ public final class HostAndPort implements Serializable {
    *           occurring.
    */
   public int getPort() {
-    checkState(hasPort());
+    checkState(hasPort(), "the address does not include a port");
     return port;
   }
 
@@ -146,7 +143,7 @@ public final class HostAndPort implements Serializable {
    *           if nothing meaningful could be parsed.
    */
   public static HostAndPort fromString(String hostPortString) {
-    java.util.Objects.requireNonNull(hostPortString);
+    hostPortString = java.util.Objects.requireNonNull(hostPortString);
     String host;
     String portString = null;
     boolean hasBracketlessColons = false;
@@ -169,7 +166,7 @@ public final class HostAndPort implements Serializable {
     }
 
     int port = NO_PORT;
-    if (!Strings.isNullOrEmpty(portString)) {
+    if (portString != null && !portString.trim().isEmpty()) {
       // Try to parse the whole port string as a number.
       // JDK7 accepts leading plus signs. We don't want to.
       checkArgument(!portString.startsWith("+"), "Unparseable port number: %s", hostPortString);
@@ -275,4 +272,12 @@ public final class HostAndPort implements Serializable {
   }
 
   private static final long serialVersionUID = 0;
+
+  /**
+   * Returns the current port number, with a default if no port is defined.
+   */
+  public int getPortOrDefault(int defaultPort) {
+    return hasPort() ? port : defaultPort;
+  }
+
 }

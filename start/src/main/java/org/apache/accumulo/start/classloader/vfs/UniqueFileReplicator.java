@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.start.classloader.vfs;
 
@@ -33,25 +35,27 @@ import org.apache.commons.vfs2.provider.VfsComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- */
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@Deprecated
 public class UniqueFileReplicator implements VfsComponent, FileReplicator {
 
   private static final char[] TMP_RESERVED_CHARS =
-      new char[] {'?', '/', '\\', ' ', '&', '"', '\'', '*', '#', ';', ':', '<', '>', '|'};
+      {'?', '/', '\\', ' ', '&', '"', '\'', '*', '#', ';', ':', '<', '>', '|'};
   private static final Logger log = LoggerFactory.getLogger(UniqueFileReplicator.class);
 
   private File tempDir;
   private VfsComponentContext context;
-  private List<File> tmpFiles = Collections.synchronizedList(new ArrayList<File>());
+  private List<File> tmpFiles = Collections.synchronizedList(new ArrayList<>());
 
   public UniqueFileReplicator(File tempDir) {
     this.tempDir = tempDir;
     if (!tempDir.exists() && !tempDir.mkdirs())
-      log.warn("Unexpected error creating directory " + tempDir);
+      log.warn("Unexpected error creating directory {}", tempDir);
   }
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "input files are specified by admin, not unchecked user input")
   @Override
   public File replicateFile(FileObject srcFile, FileSelector selector) throws FileSystemException {
     String baseName = srcFile.getName().getBaseName();
@@ -91,15 +95,15 @@ public class UniqueFileReplicator implements VfsComponent, FileReplicator {
     synchronized (tmpFiles) {
       for (File tmpFile : tmpFiles) {
         if (!tmpFile.delete())
-          log.warn("File does not exist: " + tmpFile);
+          log.warn("File does not exist: {}", tmpFile);
       }
     }
 
     if (tempDir.exists()) {
       String[] list = tempDir.list();
       int numChildren = list == null ? 0 : list.length;
-      if (0 == numChildren && !tempDir.delete())
-        log.warn("Cannot delete empty directory: " + tempDir);
+      if (numChildren == 0 && !tempDir.delete())
+        log.warn("Cannot delete empty directory: {}", tempDir);
     }
   }
 }

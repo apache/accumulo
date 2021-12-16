@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.shell.commands;
 
@@ -38,19 +40,20 @@ public class AddAuthsCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException {
-    final String user = cl.getOptionValue(userOpt.getOpt(), shellState.getConnector().whoami());
+    final String user =
+        cl.getOptionValue(userOpt.getOpt(), shellState.getAccumuloClient().whoami());
     final String scanOpts = cl.getOptionValue(scanOptAuths.getOpt());
     Authorizations auths =
-        shellState.getConnector().securityOperations().getUserAuthorizations(user);
+        shellState.getAccumuloClient().securityOperations().getUserAuthorizations(user);
     StringBuilder userAuths = new StringBuilder();
     if (!auths.isEmpty()) {
-      userAuths.append(auths.toString());
+      userAuths.append(auths);
       userAuths.append(",");
     }
     userAuths.append(scanOpts);
-    shellState.getConnector().securityOperations().changeUserAuthorizations(user,
+    shellState.getAccumuloClient().securityOperations().changeUserAuthorizations(user,
         ScanCommand.parseAuthorizations(userAuths.toString()));
-    Shell.log.debug("Changed record-level authorizations for user " + user);
+    Shell.log.debug("Changed record-level authorizations for user {}", user);
     return 0;
   }
 

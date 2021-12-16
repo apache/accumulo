@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.security.tokens;
 
@@ -33,7 +35,6 @@ import javax.security.auth.Destroyable;
 import org.apache.hadoop.io.Writable;
 
 /**
- *
  * @since 1.5.0
  */
 public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
@@ -45,7 +46,7 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
    *
    * @since 1.6.0
    */
-  public static final class AuthenticationTokenSerializer {
+  final class AuthenticationTokenSerializer {
     /**
      * A convenience method to create tokens from serialized bytes, created by
      * {@link #serialize(AuthenticationToken)}
@@ -64,7 +65,7 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
         byte[] tokenBytes) {
       T type = null;
       try {
-        type = tokenType.newInstance();
+        type = tokenType.getDeclaredConstructor().newInstance();
       } catch (Exception e) {
         throw new IllegalArgumentException("Cannot instantiate " + tokenType.getName(), e);
       }
@@ -251,7 +252,7 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
     }
   }
 
-  static class TokenProperty implements Comparable<TokenProperty> {
+  class TokenProperty implements Comparable<TokenProperty> {
     private String key, description;
     private boolean masked;
 
@@ -296,9 +297,9 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
     }
   }
 
-  public void init(Properties properties);
+  void init(Properties properties);
 
-  public Set<TokenProperty> getProperties();
+  Set<TokenProperty> getProperties();
 
-  public AuthenticationToken clone();
+  AuthenticationToken clone();
 }

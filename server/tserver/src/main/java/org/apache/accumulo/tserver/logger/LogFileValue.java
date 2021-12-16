@@ -1,32 +1,40 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.logger;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
+import java.io.DataInputStream;
 import java.io.DataOutput;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.hadoop.io.Writable;
 
@@ -63,7 +71,7 @@ public class LogFileValue implements Writable {
   }
 
   public static String format(LogFileValue lfv, int maxMutations) {
-    if (lfv.mutations.size() == 0)
+    if (lfv.mutations.isEmpty())
       return "";
     StringBuilder builder = new StringBuilder();
     builder.append(lfv.mutations.size() + " mutations:\n");
@@ -89,6 +97,28 @@ public class LogFileValue implements Writable {
   @Override
   public String toString() {
     return format(this, 5);
+  }
+
+  /**
+   * Convert list of mutations to a byte array and use to create a Value
+   */
+  public Value toValue() throws IOException {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    write(new DataOutputStream(baos));
+    return new Value(baos.toByteArray());
+  }
+
+  /**
+   * Get the mutations from the Value
+   */
+  public static LogFileValue fromValue(Value value) {
+    LogFileValue logFileValue = new LogFileValue();
+    try (var bais = new ByteArrayInputStream(value.get())) {
+      logFileValue.readFields(new DataInputStream(bais));
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+    return logFileValue;
   }
 
 }

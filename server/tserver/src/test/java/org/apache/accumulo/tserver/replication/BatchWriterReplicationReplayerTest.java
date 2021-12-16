@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.replication;
 
@@ -26,16 +28,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.nio.ByteBuffer;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.thrift.TMutation;
+import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.tserver.logger.LogEvents;
@@ -46,30 +45,24 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-/**
- *
- */
+@Deprecated
 public class BatchWriterReplicationReplayerTest {
 
   private ClientContext context;
-  private Connector conn;
   private AccumuloConfiguration conf;
   private BatchWriter bw;
 
   @Before
-  public void setUpContext() throws AccumuloException, AccumuloSecurityException {
-    conn = createMock(Connector.class);
+  public void setUpContext() {
     conf = createMock(AccumuloConfiguration.class);
     bw = createMock(BatchWriter.class);
     context = createMock(ClientContext.class);
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
-    expect(context.getConnector()).andReturn(conn).anyTimes();
-    replay(context);
   }
 
   @After
   public void verifyMock() {
-    verify(context, conn, conf, bw);
+    verify(context, conf, bw);
   }
 
   @Test
@@ -78,7 +71,7 @@ public class BatchWriterReplicationReplayerTest {
     final String tableName = "foo";
     final long systemTimestamp = 1000;
     final BatchWriterConfig bwCfg = new BatchWriterConfig();
-    bwCfg.setMaxMemory(1l);
+    bwCfg.setMaxMemory(1L);
 
     LogFileKey key = new LogFileKey();
     key.event = LogEvents.MANY_MUTATIONS;
@@ -122,9 +115,9 @@ public class BatchWriterReplicationReplayerTest {
     expectedMutation.put("cf", "cq4", sMutation.getSystemTimestamp(), "value");
     expectedMutation.put("cf", "cq5", sMutation.getSystemTimestamp(), "value");
 
-    expect(conf.getMemoryInBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY))
+    expect(conf.getAsBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY))
         .andReturn(bwCfg.getMaxMemory());
-    expect(conn.createBatchWriter(tableName, bwCfg)).andReturn(bw);
+    expect(context.createBatchWriter(tableName, bwCfg)).andReturn(bw);
 
     bw.addMutations(Lists.newArrayList(expectedMutation));
     expectLastCall().once();
@@ -132,7 +125,7 @@ public class BatchWriterReplicationReplayerTest {
     bw.close();
     expectLastCall().once();
 
-    replay(conn, conf, bw);
+    replay(context, conf, bw);
 
     replayer.replicateLog(context, tableName, edits);
   }
@@ -144,7 +137,7 @@ public class BatchWriterReplicationReplayerTest {
     final long systemTimestamp = 1000;
     final String peerName = "peer";
     final BatchWriterConfig bwCfg = new BatchWriterConfig();
-    bwCfg.setMaxMemory(1l);
+    bwCfg.setMaxMemory(1L);
 
     LogFileKey key = new LogFileKey();
     key.event = LogEvents.MANY_MUTATIONS;
@@ -194,9 +187,9 @@ public class BatchWriterReplicationReplayerTest {
     // We expect our peer name to be preserved in the mutation that gets written
     expectedMutation.addReplicationSource(peerName);
 
-    expect(conf.getMemoryInBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY))
+    expect(conf.getAsBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY))
         .andReturn(bwCfg.getMaxMemory());
-    expect(conn.createBatchWriter(tableName, bwCfg)).andReturn(bw);
+    expect(context.createBatchWriter(tableName, bwCfg)).andReturn(bw);
 
     bw.addMutations(Lists.newArrayList(expectedMutation));
     expectLastCall().once();
@@ -204,7 +197,7 @@ public class BatchWriterReplicationReplayerTest {
     bw.close();
     expectLastCall().once();
 
-    replay(conn, conf, bw);
+    replay(context, conf, bw);
 
     replayer.replicateLog(context, tableName, edits);
   }

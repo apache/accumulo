@@ -1,44 +1,46 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.core.conf.ClientProperty.CONDITIONAL_WRITER_THREADS_MAX;
+import static org.apache.accumulo.core.conf.ClientProperty.CONDITIONAL_WRITER_TIMEOUT_MAX;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.security.Authorizations;
 
 /**
- *
  * @since 1.6.0
  */
 public class ConditionalWriterConfig {
 
-  private static final Long DEFAULT_TIMEOUT = Long.MAX_VALUE;
+  private static final Long DEFAULT_TIMEOUT = getDefaultTimeout();
+  private static final Integer DEFAULT_MAX_WRITE_THREADS =
+      Integer.parseInt(CONDITIONAL_WRITER_THREADS_MAX.getDefaultValue());
+
   private Long timeout = null;
-
-  private static final Integer DEFAULT_MAX_WRITE_THREADS = 3;
   private Integer maxWriteThreads = null;
-
-  private Authorizations auths = Authorizations.EMPTY;
-
-  private Durability durability = Durability.DEFAULT;
-
+  private Authorizations auths = null;
+  private Durability durability = null;
   private String classLoaderContext = null;
 
   /**
@@ -125,7 +127,7 @@ public class ConditionalWriterConfig {
   }
 
   public Authorizations getAuthorizations() {
-    return auths;
+    return auths != null ? auths : Authorizations.EMPTY;
   }
 
   public long getTimeout(TimeUnit timeUnit) {
@@ -137,7 +139,13 @@ public class ConditionalWriterConfig {
   }
 
   public Durability getDurability() {
-    return durability;
+    return durability != null ? durability : Durability.DEFAULT;
+  }
+
+  private static long getDefaultTimeout() {
+    long defVal =
+        ConfigurationTypeHelper.getTimeInMillis(CONDITIONAL_WRITER_TIMEOUT_MAX.getDefaultValue());
+    return defVal != 0L ? defVal : Long.MAX_VALUE;
   }
 
   /**
@@ -172,6 +180,30 @@ public class ConditionalWriterConfig {
    */
   public String getClassLoaderContext() {
     return this.classLoaderContext;
+  }
+
+  private static <T> T merge(T o1, T o2) {
+    if (o1 != null)
+      return o1;
+    return o2;
+  }
+
+  /**
+   * Merge this ConditionalWriterConfig with another. If config is set in both, preference will be
+   * given to this config.
+   *
+   * @param other
+   *          Another ConditionalWriterConfig
+   * @return Merged ConditionalWriterConfig
+   * @since 2.1.0
+   */
+  public ConditionalWriterConfig merge(ConditionalWriterConfig other) {
+    ConditionalWriterConfig result = new ConditionalWriterConfig();
+    result.timeout = merge(this.timeout, other.timeout);
+    result.maxWriteThreads = merge(this.maxWriteThreads, other.maxWriteThreads);
+    result.durability = merge(this.durability, other.durability);
+    result.auths = merge(this.auths, other.auths);
+    return result;
   }
 
 }

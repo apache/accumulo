@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.replication;
 
@@ -23,18 +25,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.replication.AccumuloReplicationReplayer;
-import org.apache.accumulo.core.replication.thrift.KeyValues;
 import org.apache.accumulo.core.replication.thrift.RemoteReplicationErrorCode;
 import org.apache.accumulo.core.replication.thrift.RemoteReplicationException;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
@@ -50,19 +49,20 @@ import org.slf4j.LoggerFactory;
  * Use a BatchWriter to replay WAL entries to an Accumulo table. This assumes that all WAL entries
  * are for this table. Pruning out undesired entries is expected to be done by the sender.
  */
+@Deprecated
 public class BatchWriterReplicationReplayer implements AccumuloReplicationReplayer {
   private static final Logger log = LoggerFactory.getLogger(BatchWriterReplicationReplayer.class);
 
   @Override
   public long replicateLog(ClientContext context, String tableName, WalEdits data)
-      throws RemoteReplicationException, AccumuloException, AccumuloSecurityException {
+      throws RemoteReplicationException {
     final LogFileKey key = new LogFileKey();
     final LogFileValue value = new LogFileValue();
     final long memoryInBytes =
-        context.getConfiguration().getMemoryInBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY);
+        context.getConfiguration().getAsBytes(Property.TSERV_REPLICATION_BW_REPLAYER_MEMORY);
 
     BatchWriter bw = null;
-    long mutationsApplied = 0l;
+    long mutationsApplied = 0L;
     try {
       for (ByteBuffer edit : data.getEdits()) {
         DataInputStream dis = new DataInputStream(ByteBufferUtil.toByteArrayInputStream(edit));
@@ -79,11 +79,11 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
         }
 
         // Create the batchScanner if we don't already have one.
-        if (null == bw) {
+        if (bw == null) {
           BatchWriterConfig bwConfig = new BatchWriterConfig();
           bwConfig.setMaxMemory(memoryInBytes);
           try {
-            bw = context.getConnector().createBatchWriter(tableName, bwConfig);
+            bw = context.createBatchWriter(tableName, bwConfig);
           } catch (TableNotFoundException e) {
             throw new RemoteReplicationException(RemoteReplicationErrorCode.TABLE_DOES_NOT_EXIST,
                 "Table " + tableName + " does not exist");
@@ -97,7 +97,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
         // otherwise
         // the local system will assign a new timestamp.
         List<Mutation> mutationsCopy = new ArrayList<>(value.mutations.size());
-        long mutationsCopied = 0l;
+        long mutationsCopied = 0L;
         for (Mutation orig : value.mutations) {
           if (orig instanceof ServerMutation) {
             mutationsCopied++;
@@ -108,10 +108,10 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
               long timestamp;
 
               // If the update doesn't have a timestamp, pull it from the ServerMutation
-              if (!update.hasTimestamp()) {
-                timestamp = origServer.getSystemTimestamp();
-              } else {
+              if (update.hasTimestamp()) {
                 timestamp = update.getTimestamp();
+              } else {
+                timestamp = origServer.getSystemTimestamp();
               }
 
               // TODO ACCUMULO-2937 cache the CVs
@@ -127,7 +127,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
 
             // We also need to preserve the replicationSource information to prevent cycles
             Set<String> replicationSources = orig.getReplicationSources();
-            if (null != replicationSources && !replicationSources.isEmpty()) {
+            if (replicationSources != null && !replicationSources.isEmpty()) {
               for (String replicationSource : replicationSources) {
                 copy.addReplicationSource(replicationSource);
               }
@@ -155,7 +155,7 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
         mutationsApplied += mutationsCopy.size();
       }
     } finally {
-      if (null != bw) {
+      if (bw != null) {
         try {
           bw.close();
         } catch (MutationsRejectedException e) {
@@ -169,12 +169,6 @@ public class BatchWriterReplicationReplayer implements AccumuloReplicationReplay
     log.info("Applied {} mutations in total to {}", mutationsApplied, tableName);
 
     return mutationsApplied;
-  }
-
-  @Override
-  public long replicateKeyValues(ClientContext context, String tableName, KeyValues kvs) {
-    // TODO Implement me
-    throw new UnsupportedOperationException();
   }
 
 }

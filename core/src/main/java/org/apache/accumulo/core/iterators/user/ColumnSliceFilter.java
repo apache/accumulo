@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators.user;
 
@@ -50,29 +52,15 @@ public class ColumnSliceFilter extends Filter {
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-    if (options.containsKey(START_BOUND)) {
-      startBound = options.get(START_BOUND);
-    } else {
-      startBound = null;
-    }
+    startBound = options.getOrDefault(START_BOUND, null);
 
-    if (options.containsKey(START_INCLUSIVE)) {
-      startInclusive = Boolean.parseBoolean(options.get(START_INCLUSIVE));
-    } else {
-      startInclusive = true;
-    }
+    startInclusive = options.containsKey(START_INCLUSIVE)
+        ? Boolean.parseBoolean(options.get(START_INCLUSIVE)) : true;
 
-    if (options.containsKey(END_BOUND)) {
-      endBound = options.get(END_BOUND);
-    } else {
-      endBound = null;
-    }
+    endBound = options.getOrDefault(END_BOUND, null);
 
-    if (options.containsKey(END_INCLUSIVE)) {
-      endInclusive = Boolean.parseBoolean(options.get(END_INCLUSIVE));
-    } else {
-      endInclusive = false;
-    }
+    endInclusive = options.containsKey(END_INCLUSIVE)
+        ? Boolean.parseBoolean(options.get(END_INCLUSIVE)) : false;
   }
 
   @Override

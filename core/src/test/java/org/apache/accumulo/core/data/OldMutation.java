@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.data;
 
@@ -24,7 +26,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.accumulo.core.data.thrift.TMutation;
+import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.TextUtil;
@@ -48,7 +50,7 @@ public class OldMutation implements Writable {
   private static class ByteBuffer {
 
     int offset;
-    byte data[] = new byte[64];
+    byte[] data = new byte[64];
 
     private void reserve(int l) {
       if (offset + l > data.length) {
@@ -104,7 +106,7 @@ public class OldMutation implements Writable {
     }
 
     public byte[] toArray() {
-      byte ret[] = new byte[offset];
+      byte[] ret = new byte[offset];
       System.arraycopy(data, 0, ret, 0, offset);
       return ret;
     }
@@ -113,9 +115,9 @@ public class OldMutation implements Writable {
 
   private static class SimpleReader {
     int offset;
-    byte data[];
+    byte[] data;
 
-    SimpleReader(byte b[]) {
+    SimpleReader(byte[] b) {
       this.data = b;
     }
 
@@ -132,7 +134,7 @@ public class OldMutation implements Writable {
           + ((data[offset++] & 255) << 8) + ((data[offset++] & 255) << 0));
     }
 
-    void readBytes(byte b[]) {
+    void readBytes(byte[] b) {
       System.arraycopy(data, offset, b, 0, b.length);
       offset += b.length;
     }
@@ -186,7 +188,7 @@ public class OldMutation implements Writable {
     return row;
   }
 
-  private void put(byte b[]) {
+  private void put(byte[] b) {
     buffer.add(b.length);
     buffer.add(b);
   }
@@ -226,7 +228,7 @@ public class OldMutation implements Writable {
     } else {
       if (values == null)
         values = new ArrayList<>();
-      byte copy[] = new byte[val.length];
+      byte[] copy = new byte[val.length];
       System.arraycopy(val, 0, copy, 0, val.length);
       values.add(copy);
       put(-1 * values.size());
@@ -246,12 +248,12 @@ public class OldMutation implements Writable {
   }
 
   public void put(Text columnFamily, Text columnQualifier, Value value) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value.get());
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, false, value.get());
   }
 
   public void put(Text columnFamily, Text columnQualifier, ColumnVisibility columnVisibility,
       Value value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false,
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, false,
         value.get());
   }
 
@@ -266,12 +268,12 @@ public class OldMutation implements Writable {
   }
 
   public void putDelete(Text columnFamily, Text columnQualifier) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, true, EMPTY_BYTES);
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, true, EMPTY_BYTES);
   }
 
   public void putDelete(Text columnFamily, Text columnQualifier,
       ColumnVisibility columnVisibility) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true,
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, true,
         EMPTY_BYTES);
   }
 
@@ -286,12 +288,12 @@ public class OldMutation implements Writable {
   }
 
   public void put(CharSequence columnFamily, CharSequence columnQualifier, Value value) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value.get());
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, false, value.get());
   }
 
   public void put(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility, Value value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false,
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, false,
         value.get());
   }
 
@@ -307,12 +309,12 @@ public class OldMutation implements Writable {
   }
 
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, true, EMPTY_BYTES);
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, true, EMPTY_BYTES);
   }
 
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true,
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, true,
         EMPTY_BYTES);
   }
 
@@ -327,12 +329,12 @@ public class OldMutation implements Writable {
   }
 
   public void put(CharSequence columnFamily, CharSequence columnQualifier, CharSequence value) {
-    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value);
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0L, false, value);
   }
 
   public void put(CharSequence columnFamily, CharSequence columnQualifier,
       ColumnVisibility columnVisibility, CharSequence value) {
-    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false, value);
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0L, false, value);
   }
 
   public void put(CharSequence columnFamily, CharSequence columnQualifier, long timestamp,
@@ -351,7 +353,7 @@ public class OldMutation implements Writable {
     if (len == 0)
       return EMPTY_BYTES;
 
-    byte bytes[] = new byte[len];
+    byte[] bytes = new byte[len];
     in.readBytes(bytes);
     return bytes;
   }
@@ -452,17 +454,17 @@ public class OldMutation implements Writable {
     entries = in.readInt();
 
     boolean valuesPresent = in.readBoolean();
-    if (!valuesPresent) {
-      values = null;
-    } else {
+    if (valuesPresent) {
       values = new ArrayList<>();
       int numValues = in.readInt();
       for (int i = 0; i < numValues; i++) {
         len = in.readInt();
-        byte val[] = new byte[len];
+        byte[] val = new byte[len];
         in.readFully(val);
         values.add(val);
       }
+    } else {
+      values = null;
     }
   }
 
@@ -480,8 +482,7 @@ public class OldMutation implements Writable {
     else {
       out.writeBoolean(true);
       out.writeInt(values.size());
-      for (int i = 0; i < values.size(); i++) {
-        byte val[] = values.get(i);
+      for (byte[] val : values) {
         out.writeInt(val.length);
         out.write(val);
       }

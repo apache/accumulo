@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.replication;
 
@@ -28,7 +30,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -42,24 +43,23 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer.Client;
 import org.apache.accumulo.core.replication.thrift.WalEdits;
-import org.apache.accumulo.core.security.thrift.TCredentials;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
-import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem.ReplicationStats;
-import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem.WalClientExecReturn;
-import org.apache.accumulo.tserver.replication.AccumuloReplicaSystem.WalReplication;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
+@Deprecated
 public class AccumuloReplicaSystemTest {
 
   @Test
@@ -71,7 +71,7 @@ public class AccumuloReplicaSystemTest {
     LogFileValue value = new LogFileValue();
 
     // What is seq used for?
-    key.seq = 1l;
+    key.seq = 1L;
 
     /*
      * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing
@@ -79,22 +79,21 @@ public class AccumuloReplicaSystemTest {
      * are solely for testing that each LogEvents is handled, order is not important.
      */
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent("1", null, null);
+    key.tablet = new KeyExtent(TableId.of("1"), null, null);
     key.tabletId = 1;
-
     key.write(dos);
     value.write(dos);
 
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
 
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent("2", null, null);
+    key.tablet = new KeyExtent(TableId.of("2"), null, null);
     key.tabletId = 2;
     value.mutations = Collections.emptyList();
 
@@ -111,7 +110,7 @@ public class AccumuloReplicaSystemTest {
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("badrow")));
+    value.mutations = Arrays.asList(new ServerMutation(new Text("badrow")));
 
     key.write(dos);
     value.write(dos);
@@ -125,7 +124,7 @@ public class AccumuloReplicaSystemTest {
     value.write(dos);
 
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent("1", null, null);
+    key.tablet = new KeyExtent(TableId.of("1"), null, null);
     key.tabletId = 3;
     value.mutations = Collections.emptyList();
 
@@ -143,7 +142,7 @@ public class AccumuloReplicaSystemTest {
     key.event = LogEvents.MUTATION;
     key.tabletId = 3;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -160,9 +159,8 @@ public class AccumuloReplicaSystemTest {
     Status status =
         Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
-    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
-        new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
-        new HashSet<Integer>());
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", TableId.of("1")), dis,
+        new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE, new HashSet<>());
 
     // We stopped because we got to the end of the file
     assertEquals(9, repl.entriesConsumed);
@@ -180,7 +178,7 @@ public class AccumuloReplicaSystemTest {
     LogFileValue value = new LogFileValue();
 
     // What is seq used for?
-    key.seq = 1l;
+    key.seq = 1L;
 
     /*
      * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing
@@ -188,7 +186,7 @@ public class AccumuloReplicaSystemTest {
      * are solely for testing that each LogEvents is handled, order is not important.
      */
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent("1", null, null);
+    key.tablet = new KeyExtent(TableId.of("1"), null, null);
     key.tabletId = 1;
 
     key.write(dos);
@@ -197,13 +195,13 @@ public class AccumuloReplicaSystemTest {
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
 
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent("2", null, null);
+    key.tablet = new KeyExtent(TableId.of("2"), null, null);
     key.tabletId = 2;
     value.mutations = Collections.emptyList();
 
@@ -220,7 +218,7 @@ public class AccumuloReplicaSystemTest {
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("badrow")));
+    value.mutations = Arrays.asList(new ServerMutation(new Text("badrow")));
 
     key.write(dos);
     value.write(dos);
@@ -234,7 +232,7 @@ public class AccumuloReplicaSystemTest {
     value.write(dos);
 
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent("1", null, null);
+    key.tablet = new KeyExtent(TableId.of("1"), null, null);
     key.tabletId = 3;
     value.mutations = Collections.emptyList();
 
@@ -252,7 +250,7 @@ public class AccumuloReplicaSystemTest {
     key.event = LogEvents.MUTATION;
     key.tabletId = 3;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -272,9 +270,8 @@ public class AccumuloReplicaSystemTest {
     Status status =
         Status.newBuilder().setBegin(0).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
-    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
-        new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
-        new HashSet<Integer>());
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", TableId.of("1")), dis,
+        new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE, new HashSet<>());
 
     // We stopped because we got to the end of the file
     assertEquals(Long.MAX_VALUE, repl.entriesConsumed);
@@ -296,11 +293,11 @@ public class AccumuloReplicaSystemTest {
     value.mutations = new ArrayList<>();
 
     Mutation m = new Mutation("row");
-    m.put("", "", new Value(new byte[0]));
+    m.put("", "", new Value());
     value.mutations.add(m);
 
     m = new Mutation("row2");
-    m.put("", "", new Value(new byte[0]));
+    m.put("", "", new Value());
     m.addReplicationSource("peer");
     value.mutations.add(m);
 
@@ -308,7 +305,8 @@ public class AccumuloReplicaSystemTest {
     DataOutputStream out = new DataOutputStream(baos);
 
     // Replicate our 2 mutations to "peer", from tableid 1 to tableid 1
-    ars.writeValueAvoidingReplicationCycles(out, value, new ReplicationTarget("peer", "1", "1"));
+    ars.writeValueAvoidingReplicationCycles(out, value,
+        new ReplicationTarget("peer", "1", TableId.of("1")));
 
     out.close();
 
@@ -342,9 +340,8 @@ public class AccumuloReplicaSystemTest {
     Status status =
         Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(true).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(new byte[0]));
-    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
-        new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
-        new HashSet<Integer>());
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", TableId.of("1")), dis,
+        new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE, new HashSet<>());
 
     // We stopped because we got to the end of the file
     assertEquals(Long.MAX_VALUE, repl.entriesConsumed);
@@ -368,9 +365,8 @@ public class AccumuloReplicaSystemTest {
     Status status =
         Status.newBuilder().setBegin(100).setEnd(0).setInfiniteEnd(true).setClosed(false).build();
     DataInputStream dis = new DataInputStream(new ByteArrayInputStream(new byte[0]));
-    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
-        new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE,
-        new HashSet<Integer>());
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", TableId.of("1")), dis,
+        new Path("/accumulo/wals/tserver+port/wal"), status, Long.MAX_VALUE, new HashSet<>());
 
     // We stopped because we got to the end of the file
     assertEquals(0, repl.entriesConsumed);
@@ -388,7 +384,7 @@ public class AccumuloReplicaSystemTest {
     LogFileValue value = new LogFileValue();
 
     // What is seq used for?
-    key.seq = 1l;
+    key.seq = 1L;
 
     /*
      * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing
@@ -396,7 +392,7 @@ public class AccumuloReplicaSystemTest {
      * are solely for testing that each LogEvents is handled, order is not important.
      */
     key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent("1", null, null);
+    key.tablet = new KeyExtent(TableId.of("1"), null, null);
     key.tabletId = 1;
 
     key.write(dos);
@@ -405,7 +401,7 @@ public class AccumuloReplicaSystemTest {
     key.tablet = null;
     key.event = LogEvents.MUTATION;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -414,7 +410,7 @@ public class AccumuloReplicaSystemTest {
     key.event = LogEvents.MUTATION;
     key.tabletId = 1;
     key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.<Mutation>asList(new ServerMutation(new Text("row")));
+    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
 
     key.write(dos);
     value.write(dos);
@@ -435,8 +431,8 @@ public class AccumuloReplicaSystemTest {
     HashSet<Integer> tids = new HashSet<>();
 
     // Only consume the first mutation, not the second
-    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
-        new Path("/accumulo/wals/tserver+port/wal"), status, 1l, tids);
+    WalReplication repl = ars.getWalEdits(new ReplicationTarget("peer", "1", TableId.of("1")), dis,
+        new Path("/accumulo/wals/tserver+port/wal"), status, 1L, tids);
 
     // We stopped because we got to the end of the file
     assertEquals(2, repl.entriesConsumed);
@@ -447,8 +443,8 @@ public class AccumuloReplicaSystemTest {
     status = Status.newBuilder(status).setBegin(2).build();
 
     // Consume the rest of the mutations
-    repl = ars.getWalEdits(new ReplicationTarget("peer", "1", "1"), dis,
-        new Path("/accumulo/wals/tserver+port/wal"), status, 1l, tids);
+    repl = ars.getWalEdits(new ReplicationTarget("peer", "1", TableId.of("1")), dis,
+        new Path("/accumulo/wals/tserver+port/wal"), status, 1L, tids);
 
     // We stopped because we got to the end of the file
     assertEquals(1, repl.entriesConsumed);
@@ -461,19 +457,19 @@ public class AccumuloReplicaSystemTest {
   public void dontSendEmptyDataToPeer() throws Exception {
     Client replClient = createMock(Client.class);
     AccumuloReplicaSystem ars = createMock(AccumuloReplicaSystem.class);
-    WalEdits edits = new WalEdits(Collections.<ByteBuffer>emptyList());
+    WalEdits edits = new WalEdits(Collections.emptyList());
     WalReplication walReplication = new WalReplication(edits, 0, 0, 0);
 
-    ReplicationTarget target = new ReplicationTarget("peer", "2", "1");
+    ReplicationTarget target = new ReplicationTarget("peer", "2", TableId.of("1"));
     DataInputStream input = null;
-    Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
+    Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID());
     Status status = null;
     long sizeLimit = Long.MAX_VALUE;
     String remoteTableId = target.getRemoteIdentifier();
     TCredentials tcreds = null;
     Set<Integer> tids = new HashSet<>();
 
-    WalClientExecReturn walClientExec = ars.new WalClientExecReturn(target, input, p, status,
+    WalClientExecReturn walClientExec = new WalClientExecReturn(ars, target, input, p, status,
         sizeLimit, remoteTableId, tcreds, tids);
 
     expect(ars.getWalEdits(target, input, p, status, sizeLimit, tids)).andReturn(walReplication);
@@ -484,26 +480,26 @@ public class AccumuloReplicaSystemTest {
 
     verify(replClient, ars);
 
-    assertEquals(new ReplicationStats(0l, 0l, 0l), stats);
+    assertEquals(new ReplicationStats(0L, 0L, 0L), stats);
   }
 
   @Test
   public void consumedButNotSentDataShouldBeRecorded() throws Exception {
     Client replClient = createMock(Client.class);
     AccumuloReplicaSystem ars = createMock(AccumuloReplicaSystem.class);
-    WalEdits edits = new WalEdits(Collections.<ByteBuffer>emptyList());
+    WalEdits edits = new WalEdits(Collections.emptyList());
     WalReplication walReplication = new WalReplication(edits, 0, 5, 0);
 
-    ReplicationTarget target = new ReplicationTarget("peer", "2", "1");
+    ReplicationTarget target = new ReplicationTarget("peer", "2", TableId.of("1"));
     DataInputStream input = null;
-    Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID().toString());
+    Path p = new Path("/accumulo/wals/tserver+port/" + UUID.randomUUID());
     Status status = null;
     long sizeLimit = Long.MAX_VALUE;
     String remoteTableId = target.getRemoteIdentifier();
     TCredentials tcreds = null;
     Set<Integer> tids = new HashSet<>();
 
-    WalClientExecReturn walClientExec = ars.new WalClientExecReturn(target, input, p, status,
+    WalClientExecReturn walClientExec = new WalClientExecReturn(ars, target, input, p, status,
         sizeLimit, remoteTableId, tcreds, tids);
 
     expect(ars.getWalEdits(target, input, p, status, sizeLimit, tids)).andReturn(walReplication);
@@ -514,13 +510,13 @@ public class AccumuloReplicaSystemTest {
 
     verify(replClient, ars);
 
-    assertEquals(new ReplicationStats(0l, 0l, 5l), stats);
+    assertEquals(new ReplicationStats(0L, 0L, 5L), stats);
   }
 
   @Test
-  public void testUserPassword() throws Exception {
+  public void testUserPassword() {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
-    ReplicationTarget target = new ReplicationTarget("peer", "peer_table", "1");
+    ReplicationTarget target = new ReplicationTarget("peer", "peer_table", TableId.of("1"));
     String user = "user", password = "password";
 
     Map<String,String> confMap = new HashMap<>();
@@ -533,9 +529,9 @@ public class AccumuloReplicaSystemTest {
   }
 
   @Test
-  public void testUserKeytab() throws Exception {
+  public void testUserKeytab() {
     AccumuloReplicaSystem ars = new AccumuloReplicaSystem();
-    ReplicationTarget target = new ReplicationTarget("peer", "peer_table", "1");
+    ReplicationTarget target = new ReplicationTarget("peer", "peer_table", TableId.of("1"));
     String user = "user", keytab = "/etc/security/keytabs/replication.keytab";
 
     Map<String,String> confMap = new HashMap<>();

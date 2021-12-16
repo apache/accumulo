@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.start.classloader.vfs;
 
@@ -25,6 +27,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import org.apache.commons.vfs2.FileChangeEvent;
 import org.apache.commons.vfs2.FileListener;
@@ -40,15 +44,21 @@ import org.slf4j.LoggerFactory;
  * Classloader that delegates operations to a VFSClassLoader object. This class also listens for
  * changes in any of the files/directories that are in the classpath and will recreate the delegate
  * object if there is any change in the classpath.
- *
  */
+@Deprecated
 public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingClassLoader {
 
   private static final Logger log = LoggerFactory.getLogger(AccumuloReloadingVFSClassLoader.class);
 
-  // set to 5 mins. The rational behind this large time is to avoid a gazillion tservers all asking
+  // set to 5 mins. The rationale behind this large time is to avoid a gazillion tservers all asking
   // the name node for info too frequently.
   private static final int DEFAULT_TIMEOUT = 5 * 60 * 1000;
+
+  private volatile long maxWaitInterval = 60000;
+
+  private volatile long maxRetries = -1;
+
+  private volatile long sleepInterval = 5000;
 
   private FileObject[] files;
   private VFSClassLoader cl;
@@ -59,15 +69,10 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   private final ThreadPoolExecutor executor;
   {
     BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(2);
-    ThreadFactory factory = new ThreadFactory() {
-
-      @Override
-      public Thread newThread(Runnable r) {
-        Thread t = new Thread(r);
-        t.setDaemon(true);
-        return t;
-      }
-
+    ThreadFactory factory = r -> {
+      Thread t = new Thread(r);
+      t.setDaemon(true);
+      return t;
     };
     executor = new ThreadPoolExecutor(1, 1, 1, SECONDS, queue, factory);
   }
@@ -80,7 +85,41 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
           FileSystemManager vfs = AccumuloVFSClassLoader.generateVfs();
           FileObject[] files = AccumuloVFSClassLoader.resolve(vfs, uris);
 
-          log.debug("Rebuilding dynamic classloader using files- " + stringify(files));
+          long retries = 0;
+          long currentSleepMillis = sleepInterval;
+
+          if (files.length == 0) {
+            while (files.length == 0 && retryPermitted(retries)) {
+
+              try {
+                log.debug("VFS path was empty.  Waiting " + currentSleepMillis + " ms to retry");
+                Thread.sleep(currentSleepMillis);
+
+                files = AccumuloVFSClassLoader.resolve(vfs, uris);
+                retries++;
+
+                currentSleepMillis = Math.min(maxWaitInterval, currentSleepMillis + sleepInterval);
+
+              } catch (InterruptedException e) {
+                log.error("VFS Retry Interruped", e);
+                throw new RuntimeException(e);
+              }
+
+            }
+
+            // There is a chance that the listener was removed from the top level directory or
+            // its children if they were deleted within some time window. Re-add files to be
+            // monitored. The Monitor will ignore files that are already/still being monitored.
+            // forEachCatchRTEs will capture a stream of thrown exceptions.
+            // and can collect them to list or reduce into one exception
+
+            forEachCatchRTEs(Arrays.stream(files), o -> {
+              addFileToMonitor(o);
+              log.debug("monitoring {}", o);
+            });
+          }
+
+          log.debug("Rebuilding dynamic classloader using files- {}", stringify(files));
 
           VFSClassLoader cl;
           if (preDelegate)
@@ -94,7 +133,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
           try {
             Thread.sleep(DEFAULT_TIMEOUT);
           } catch (InterruptedException ie) {
-            log.error("{}", e.getMessage(), ie);
+            log.error("{}", ie.getMessage(), ie);
           }
         }
       }
@@ -147,18 +186,71 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     files = AccumuloVFSClassLoader.resolve(vfs, uris, pathsToMonitor);
 
     if (preDelegate)
-      cl = new VFSClassLoader(files, vfs, parent.getClassLoader());
+      cl = new VFSClassLoader(files, vfs, parent.getClassLoader()) {
+        @Override
+        public String getName() {
+          return "AccumuloReloadingVFSClassLoader (loads everything defined by general.dynamic.classpaths)";
+        }
+      };
     else
-      cl = new PostDelegatingVFSClassLoader(files, vfs, parent.getClassLoader());
+      cl = new PostDelegatingVFSClassLoader(files, vfs, parent.getClassLoader()) {
+        @Override
+        public String getName() {
+          return "AccumuloReloadingVFSClassLoader (loads everything defined by general.dynamic.classpaths)";
+        }
+      };
 
     monitor = new DefaultFileMonitor(this);
     monitor.setDelay(monitorDelay);
     monitor.setRecursive(false);
-    for (FileObject file : pathsToMonitor) {
-      monitor.addFile(file);
-      log.debug("monitoring " + file);
-    }
+
+    forEachCatchRTEs(pathsToMonitor.stream(), o -> {
+      addFileToMonitor(o);
+      log.debug("monitoring {}", o);
+    });
+
     monitor.start();
+  }
+
+  private void addFileToMonitor(FileObject file) throws RuntimeException {
+    try {
+      if (monitor != null)
+        monitor.addFile(file);
+    } catch (RuntimeException re) {
+      if (re.getMessage().contains("files-cache"))
+        log.error("files-cache error adding {} to VFS monitor. "
+            + "There is no implementation for files-cache in VFS2", file, re);
+      else
+        log.error("Runtime error adding {} to VFS monitor", file, re);
+
+      throw re;
+    }
+  }
+
+  private void removeFile(FileObject file) throws RuntimeException {
+    try {
+      if (monitor != null)
+        monitor.removeFile(file);
+    } catch (RuntimeException re) {
+      log.error("Error removing file from VFS cache {}", file, re);
+      throw re;
+    }
+  }
+
+  public static <T> void forEachCatchRTEs(Stream<T> stream, Consumer<T> consumer) {
+    stream.flatMap(o -> {
+      try {
+        consumer.accept(o);
+        return null;
+      } catch (RuntimeException e) {
+        return Stream.of(e);
+      }
+    }).reduce((e1, e2) -> {
+      e1.addSuppressed(e2);
+      return e1;
+    }).ifPresent(e -> {
+      throw e;
+    });
   }
 
   public AccumuloReloadingVFSClassLoader(String uris, FileSystemManager vfs,
@@ -166,15 +258,17 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     this(uris, vfs, parent, DEFAULT_TIMEOUT, preDelegate);
   }
 
-  synchronized public FileObject[] getFiles() {
-    return Arrays.copyOf(this.files, this.files.length);
-  }
-
   /**
    * Should be ok if this is not called because the thread started by DefaultFileMonitor is a daemon
    * thread
    */
   public void close() {
+
+    forEachCatchRTEs(Stream.of(files), o -> {
+      removeFile(o);
+      log.debug("Removing file from monitoring {}", o);
+    });
+
     executor.shutdownNow();
     monitor.stop();
   }
@@ -182,21 +276,21 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   @Override
   public void fileCreated(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
-      log.debug(event.getFile().getURL().toString() + " created, recreating classloader");
+      log.debug("{} created, recreating classloader", event.getFileObject().getURL());
     scheduleRefresh();
   }
 
   @Override
   public void fileDeleted(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
-      log.debug(event.getFile().getURL().toString() + " deleted, recreating classloader");
+      log.debug("{} deleted, recreating classloader", event.getFileObject().getURL());
     scheduleRefresh();
   }
 
   @Override
   public void fileChanged(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
-      log.debug(event.getFile().getURL().toString() + " changed, recreating classloader");
+      log.debug("{} changed, recreating classloader", event.getFileObject().getURL());
     scheduleRefresh();
   }
 
@@ -206,7 +300,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
 
     for (FileObject f : files) {
       try {
-        buf.append("\t").append(f.getURL().toString()).append("\n");
+        buf.append("\t").append(f.getURL()).append("\n");
       } catch (FileSystemException e) {
         log.error("Error getting URL for file", e);
       }
@@ -215,4 +309,13 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     return buf.toString();
   }
 
+  // VisibleForTesting intentionally not using annotation from Guava because it adds unwanted
+  // dependency
+  void setMaxRetries(long maxRetries) {
+    this.maxRetries = maxRetries;
+  }
+
+  private boolean retryPermitted(long retries) {
+    return (maxRetries < 0 || retries < maxRetries);
+  }
 }

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.replication;
 
@@ -24,16 +26,15 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.zookeeper.ZooCache;
+import org.apache.accumulo.server.ServerContext;
 import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
+@Deprecated
 public class ReplicationUtilTest {
 
-  AccumuloServerContext context;
-  ZooCache zc;
+  ServerContext context;
   AccumuloConfiguration conf;
   Map<String,String> confEntries;
   ReplicaSystemFactory factory;
@@ -41,13 +42,12 @@ public class ReplicationUtilTest {
 
   @Before
   public void setup() {
-    context = EasyMock.createMock(AccumuloServerContext.class);
-    zc = EasyMock.createMock(ZooCache.class);
+    context = EasyMock.createMock(ServerContext.class);
     conf = EasyMock.createMock(AccumuloConfiguration.class);
     EasyMock.expect(context.getConfiguration()).andReturn(conf).anyTimes();
     factory = new ReplicaSystemFactory();
 
-    util = new ReplicationUtil(context, zc, factory);
+    util = new ReplicationUtil(context, factory);
     confEntries = new HashMap<>();
   }
 

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.tserver.replication;
 
@@ -22,11 +24,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
@@ -34,7 +32,7 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.replication.ReplicationTarget;
-import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.replication.ReplicaSystem;
 import org.apache.accumulo.server.replication.ReplicaSystemFactory;
@@ -52,26 +50,23 @@ import com.google.protobuf.InvalidProtocolBufferException;
 /**
  * Transmit the given data to a peer
  */
+@Deprecated
 public class ReplicationProcessor implements Processor {
   private static final Logger log = LoggerFactory.getLogger(ReplicationProcessor.class);
 
-  private final ClientContext context;
-  private final AccumuloConfiguration conf;
-  private final VolumeManager fs;
+  private final ServerContext context;
   private final ReplicaSystemHelper helper;
   private final ReplicaSystemFactory factory;
 
-  public ReplicationProcessor(ClientContext context, AccumuloConfiguration conf, VolumeManager fs) {
+  public ReplicationProcessor(ServerContext context) {
     this.context = context;
-    this.conf = conf;
-    this.fs = fs;
     this.helper = new ReplicaSystemHelper(context);
     this.factory = new ReplicaSystemFactory();
   }
 
   @Override
   public ReplicationProcessor newProcessor() {
-    return new ReplicationProcessor(context, context.getConfiguration(), fs);
+    return new ReplicationProcessor(context);
   }
 
   @Override
@@ -101,11 +96,11 @@ public class ReplicationProcessor implements Processor {
     Status status;
     try {
       status = getStatus(file, target);
-    } catch (ReplicationTableOfflineException | AccumuloException | AccumuloSecurityException e) {
+    } catch (ReplicationTableOfflineException e) {
       log.error("Could not look for replication record", e);
       throw new IllegalStateException("Could not look for replication record", e);
     } catch (InvalidProtocolBufferException e) {
-      log.error("Could not deserialize Status from Work section for {} and ", file, target);
+      log.error("Could not deserialize Status from Work section for {} and {}", file, target);
       throw new RuntimeException("Could not parse Status for work record", e);
     } catch (NoSuchElementException e) {
       log.error("Assigned work for {} to {} but could not find work record", file, target);
@@ -151,15 +146,15 @@ public class ReplicationProcessor implements Processor {
     String peerType = getPeerType(target.getPeerName());
 
     // Get the peer that we're replicating to
-    return factory.get(peerType);
+    return factory.get(context, peerType);
   }
 
   protected String getPeerType(String peerName) {
     // Find the configured replication peer so we know how to replicate to it
     Map<String,String> configuredPeers =
-        conf.getAllPropertiesWithPrefix(Property.REPLICATION_PEERS);
+        context.getConfiguration().getAllPropertiesWithPrefix(Property.REPLICATION_PEERS);
     String peerType = configuredPeers.get(Property.REPLICATION_PEERS.getKey() + peerName);
-    if (null == peerType) {
+    if (peerType == null) {
       String msg = "Cannot process replication for unknown peer: " + peerName;
       log.warn(msg);
       throw new IllegalArgumentException(msg);
@@ -169,7 +164,7 @@ public class ReplicationProcessor implements Processor {
   }
 
   protected boolean doesFileExist(Path filePath, ReplicationTarget target) throws IOException {
-    if (!fs.exists(filePath)) {
+    if (!context.getVolumeManager().exists(filePath)) {
       log.warn("Received work request for {} and {}, but the file doesn't exist", filePath, target);
       return false;
     }
@@ -178,12 +173,10 @@ public class ReplicationProcessor implements Processor {
   }
 
   protected Status getStatus(String file, ReplicationTarget target)
-      throws ReplicationTableOfflineException, AccumuloException, AccumuloSecurityException,
-      InvalidProtocolBufferException {
-    Scanner s = ReplicationTable.getScanner(context.getConnector());
+      throws ReplicationTableOfflineException, InvalidProtocolBufferException {
+    Scanner s = ReplicationTable.getScanner(context);
     s.setRange(Range.exact(file));
     s.fetchColumn(WorkSection.NAME, target.toText());
-
     return Status.parseFrom(Iterables.getOnlyElement(s).getValue().get());
   }
 }

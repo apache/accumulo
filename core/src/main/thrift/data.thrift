@@ -1,21 +1,23 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
-namespace java org.apache.accumulo.core.data.thrift
-namespace cpp org.apache.accumulo.core.data.thrift
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+namespace java org.apache.accumulo.core.dataImpl.thrift
+namespace cpp org.apache.accumulo.core.dataImpl.thrift
 
 include "security.thrift"
 include "client.thrift"
@@ -149,8 +151,43 @@ struct TConditionalSession {
   3:i64 ttl
 }
 
+struct TSummarizerConfiguration {
+  1:string classname
+  2:map<string, string> options
+  3:string configId
+}
+
+struct TSummary {
+  1:map<string, i64> summary
+  2:TSummarizerConfiguration config
+  3:i64 filesContaining
+  4:i64 filesExceeding
+  5:i64 filesLarge
+}
+
+struct TSummaries {
+  1:bool finished
+  2:i64 sessionId
+  3:i64 totalFiles
+  4:i64 deletedFiles
+  5:list<TSummary> summaries
+}
+
+struct TRowRange {
+  1:binary startRow
+  2:binary endRow
+}
+
+struct TSummaryRequest {
+  1:string tableId
+  2:TRowRange bounds
+  3:list<TSummarizerConfiguration> summarizers
+  4:string summarizerPattern
+}
+
 typedef map<TKeyExtent, list<TConditionalMutation>> CMBatch
 
 typedef map<TKeyExtent, list<TMutation>> UpdateBatch
 
 typedef map<TKeyExtent, map<string, MapFileInfo>> TabletFiles
+

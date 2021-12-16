@@ -1,56 +1,58 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.server.master.balancer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.Function;
 
-import org.apache.accumulo.core.data.impl.KeyExtent;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.util.MapCounter;
-import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
-
+@Deprecated(since = "2.1.0")
 public class GroupBalancerTest {
 
-  private static Function<KeyExtent,String> partitioner = new Function<KeyExtent,String>() {
+  private static final SecureRandom random = new SecureRandom();
+
+  private static Function<KeyExtent,String> partitioner = new Function<>() {
 
     @Override
     public String apply(KeyExtent input) {
-      return (input == null || input.getEndRow() == null) ? null
-          : input.getEndRow().toString().substring(0, 2);
+      return (input == null || input.endRow() == null) ? null
+          : input.endRow().toString().substring(0, 2);
     }
   };
 
@@ -70,7 +72,7 @@ public class GroupBalancerTest {
 
     public void addTablet(String er, String location) {
       TServerInstance tsi = new TServerInstance(location, 6);
-      tabletLocs.put(new KeyExtent("b", er == null ? null : new Text(er), null),
+      tabletLocs.put(new KeyExtent(TableId.of("b"), er == null ? null : new Text(er), null),
           new TServerInstance(location, 6));
       tservers.add(tsi);
     }
@@ -80,20 +82,11 @@ public class GroupBalancerTest {
     }
 
     public void balance(final int maxMigrations) {
-      GroupBalancer balancer = new GroupBalancer("1") {
+      GroupBalancer balancer = new GroupBalancer(TableId.of("1")) {
 
         @Override
-        protected Iterable<Pair<KeyExtent,Location>> getLocationProvider() {
-          return Iterables.transform(tabletLocs.entrySet(),
-              new Function<Map.Entry<KeyExtent,TServerInstance>,Pair<KeyExtent,Location>>() {
-
-                @Override
-                public Pair<KeyExtent,Location>
-                    apply(final Entry<KeyExtent,TServerInstance> input) {
-                  return new Pair<>(input.getKey(), new Location(input.getValue()));
-                }
-              });
-
+        protected Map<KeyExtent,TServerInstance> getLocationProvider() {
+          return tabletLocs;
         }
 
         @Override
@@ -138,7 +131,7 @@ public class GroupBalancerTest {
           tabletLocs.put(tabletMigration.tablet, tabletMigration.newServer);
         }
 
-        if (migrationsOut.size() == 0) {
+        if (migrationsOut.isEmpty()) {
           break;
         }
       }
@@ -193,18 +186,13 @@ public class GroupBalancerTest {
         assertTrue(tserverExtra <= maxExtraGroups);
       }
     }
-
-    Map<KeyExtent,TServerInstance> getLocations() {
-      return tabletLocs;
-    }
   }
 
   @Test
   public void testSingleGroup() {
 
-    String tests[][] = new String[][] {new String[] {"a", "b", "c", "d"},
-        new String[] {"a", "b", "c"}, new String[] {"a", "b", "c", "d", "e"},
-        new String[] {"a", "b", "c", "d", "e", "f", "g"},
+    String[][] tests = {new String[] {"a", "b", "c", "d"}, new String[] {"a", "b", "c"},
+        new String[] {"a", "b", "c", "d", "e"}, new String[] {"a", "b", "c", "d", "e", "f", "g"},
         new String[] {"a", "b", "c", "d", "e", "f", "g", "h"},
         new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i"}, new String[] {"a"}};
 
@@ -226,9 +214,8 @@ public class GroupBalancerTest {
 
   @Test
   public void testTwoGroups() {
-    String tests[][] = new String[][] {new String[] {"a", "b", "c", "d"},
-        new String[] {"a", "b", "c"}, new String[] {"a", "b", "c", "d", "e"},
-        new String[] {"a", "b", "c", "d", "e", "f", "g"},
+    String[][] tests = {new String[] {"a", "b", "c", "d"}, new String[] {"a", "b", "c"},
+        new String[] {"a", "b", "c", "d", "e"}, new String[] {"a", "b", "c", "d", "e", "f", "g"},
         new String[] {"a", "b", "c", "d", "e", "f", "g", "h"},
         new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i"}, new String[] {"a"}};
 
@@ -256,9 +243,8 @@ public class GroupBalancerTest {
 
   @Test
   public void testThreeGroups() {
-    String tests[][] = new String[][] {new String[] {"a", "b", "c", "d"},
-        new String[] {"a", "b", "c"}, new String[] {"a", "b", "c", "d", "e"},
-        new String[] {"a", "b", "c", "d", "e", "f", "g"},
+    String[][] tests = {new String[] {"a", "b", "c", "d"}, new String[] {"a", "b", "c"},
+        new String[] {"a", "b", "c", "d", "e"}, new String[] {"a", "b", "c", "d", "e", "f", "g"},
         new String[] {"a", "b", "c", "d", "e", "f", "g", "h"},
         new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i"}, new String[] {"a"}};
 
@@ -339,12 +325,11 @@ public class GroupBalancerTest {
   @Test
   public void bigTest() {
     TabletServers tservers = new TabletServers();
-    Random rand = new Random(42);
 
     for (int g = 1; g <= 60; g++) {
       for (int t = 1; t <= 241; t++) {
         tservers.addTablet(String.format("%02d:%d", g, t),
-            "192.168.1." + (rand.nextInt(249) + 1) + ":9997");
+            "192.168.1." + (random.nextInt(249) + 1) + ":9997");
       }
     }
 
@@ -358,12 +343,11 @@ public class GroupBalancerTest {
   @Test
   public void bigTest2() {
     TabletServers tservers = new TabletServers();
-    Random rand = new Random(42);
 
     for (int g = 1; g <= 60; g++) {
-      for (int t = 1; t <= rand.nextInt(1000); t++) {
+      for (int t = 1; t <= random.nextInt(1000); t++) {
         tservers.addTablet(String.format("%02d:%d", g, t),
-            "192.168.1." + (rand.nextInt(249) + 1) + ":9997");
+            "192.168.1." + (random.nextInt(249) + 1) + ":9997");
       }
     }
 

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.security;
 
@@ -22,6 +24,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -32,7 +35,6 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 
 /**
@@ -155,9 +157,9 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     if (authsString.startsWith(HEADER)) {
       // it's the new format
       authsString = authsString.substring(HEADER.length());
-      if (authsString.length() > 0) {
+      if (!authsString.isEmpty()) {
         for (String encAuth : authsString.split(",")) {
-          byte[] auth = Base64.decodeBase64(encAuth.getBytes(UTF_8));
+          byte[] auth = Base64.getDecoder().decode(encAuth);
           auths.add(new ArrayByteSequence(auth));
         }
         checkAuths();
@@ -346,7 +348,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     for (byte[] auth : authsList) {
       sb.append(sep);
       sep = ",";
-      sb.append(Base64.encodeBase64String(auth));
+      sb.append(Base64.getEncoder().encodeToString(auth));
     }
 
     return sb.toString();

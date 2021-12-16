@@ -1,118 +1,132 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.conf;
 
-import java.util.ArrayList;
+import static java.util.Objects.requireNonNull;
+
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.conf.ConfigurationObserver;
-import org.apache.accumulo.core.conf.ObservableConfiguration;
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.IterConfigUtil;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.thrift.IterInfo;
-import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.compaction.CompactionDispatcher;
+import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.conf.ZooCachePropertyAccessor.PropCacheKey;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
-
-public class TableConfiguration extends ObservableConfiguration {
-  private static final Logger log = LoggerFactory.getLogger(TableConfiguration.class);
+public class TableConfiguration extends AccumuloConfiguration {
 
   private static final Map<PropCacheKey,ZooCache> propCaches = new java.util.HashMap<>();
 
-  private ZooCachePropertyAccessor propCacheAccessor = null;
-  private final Instance instance;
+  private final AtomicReference<ZooCachePropertyAccessor> propCacheAccessor =
+      new AtomicReference<>();
+  private final ServerContext context;
   private final NamespaceConfiguration parent;
   private ZooCacheFactory zcf = new ZooCacheFactory();
 
-  private final String tableId;
+  private final TableId tableId;
 
-  private EnumMap<IteratorScope,AtomicReference<ParsedIteratorConfig>> iteratorConfig;
+  private final EnumMap<IteratorScope,Deriver<ParsedIteratorConfig>> iteratorConfig;
 
-  public TableConfiguration(Instance instance, String tableId, NamespaceConfiguration parent) {
-    this.instance = instance;
-    this.tableId = tableId;
-    this.parent = parent;
+  private final Deriver<ScanDispatcher> scanDispatchDeriver;
+  private final Deriver<CompactionDispatcher> compactionDispatchDeriver;
+
+  public TableConfiguration(ServerContext context, TableId tableId, NamespaceConfiguration parent) {
+    this.context = requireNonNull(context);
+    this.tableId = requireNonNull(tableId);
+    this.parent = requireNonNull(parent);
 
     iteratorConfig = new EnumMap<>(IteratorScope.class);
     for (IteratorScope scope : IteratorScope.values()) {
-      iteratorConfig.put(scope, new AtomicReference<ParsedIteratorConfig>(null));
+      iteratorConfig.put(scope, newDeriver(conf -> {
+        Map<String,Map<String,String>> allOpts = new HashMap<>();
+        List<IterInfo> iters =
+            IterConfigUtil.parseIterConf(scope, Collections.emptyList(), allOpts, conf);
+        return new ParsedIteratorConfig(iters, allOpts, ClassLoaderUtil.tableContext(conf));
+      }));
     }
+
+    scanDispatchDeriver = newDeriver(conf -> createScanDispatcher(conf, context, tableId));
+    compactionDispatchDeriver =
+        newDeriver(conf -> createCompactionDispatcher(conf, context, tableId));
   }
 
   void setZooCacheFactory(ZooCacheFactory zcf) {
     this.zcf = zcf;
   }
 
-  private synchronized ZooCachePropertyAccessor getPropCacheAccessor() {
-    if (propCacheAccessor == null) {
-      synchronized (propCaches) {
-        PropCacheKey key = new PropCacheKey(instance.getInstanceID(), tableId);
-        ZooCache propCache = propCaches.get(key);
-        if (propCache == null) {
-          propCache = zcf.getZooCache(instance.getZooKeepers(),
-              instance.getZooKeepersSessionTimeOut(), new TableConfWatcher(instance));
-          propCaches.put(key, propCache);
-        }
-        propCacheAccessor = new ZooCachePropertyAccessor(propCache);
+  private ZooCache getZooCache() {
+    synchronized (propCaches) {
+      PropCacheKey key = new PropCacheKey(context.getInstanceID(), tableId.canonical());
+      ZooCache propCache = propCaches.get(key);
+      if (propCache == null) {
+        propCache = zcf.getZooCache(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
+        propCaches.put(key, propCache);
       }
+      return propCache;
     }
-    return propCacheAccessor;
   }
 
-  @Override
-  public void addObserver(ConfigurationObserver co) {
-    if (tableId == null) {
-      String err = "Attempt to add observer for non-table configuration";
-      log.error(err);
-      throw new RuntimeException(err);
+  private ZooCachePropertyAccessor getPropCacheAccessor() {
+    // updateAndGet below always calls compare and set, so avoid if not null
+    ZooCachePropertyAccessor zcpa = propCacheAccessor.get();
+    if (zcpa != null) {
+      return zcpa;
     }
-    iterator();
-    super.addObserver(co);
-  }
 
-  @Override
-  public void removeObserver(ConfigurationObserver co) {
-    if (tableId == null) {
-      String err = "Attempt to remove observer for non-table configuration";
-      log.error(err);
-      throw new RuntimeException(err);
-    }
-    super.removeObserver(co);
+    return propCacheAccessor
+        .updateAndGet(pca -> pca == null ? new ZooCachePropertyAccessor(getZooCache()) : pca);
   }
 
   private String getPath() {
-    return ZooUtil.getRoot(instance.getInstanceID()) + Constants.ZTABLES + "/" + tableId
-        + Constants.ZTABLE_CONF;
+    return context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_CONF;
+  }
+
+  @Override
+  public boolean isPropertySet(Property prop, boolean cacheAndWatch) {
+    if (!cacheAndWatch) {
+      throw new UnsupportedOperationException(
+          "Table configuration only supports checking if a property is set in cache.");
+    }
+
+    if (getPropCacheAccessor().isPropertySet(prop, getPath())) {
+      return true;
+    }
+
+    return parent.isPropertySet(prop, cacheAndWatch);
   }
 
   @Override
@@ -125,16 +139,8 @@ public class TableConfiguration extends ObservableConfiguration {
     getPropCacheAccessor().getProperties(props, getPath(), filter, parent, null);
   }
 
-  public String getTableId() {
+  public TableId getTableId() {
     return tableId;
-  }
-
-  /**
-   * returns the actual NamespaceConfiguration that corresponds to the current parent namespace.
-   */
-  public NamespaceConfiguration getNamespaceConfiguration() {
-    return new ServerConfigurationFactory(parent.inst)
-        .getNamespaceConfiguration(parent.namespaceId);
   }
 
   /**
@@ -148,8 +154,10 @@ public class TableConfiguration extends ObservableConfiguration {
 
   @Override
   public synchronized void invalidateCache() {
-    if (null != propCacheAccessor) {
-      propCacheAccessor.invalidateCache();
+    ZooCachePropertyAccessor pca = propCacheAccessor.get();
+
+    if (pca != null) {
+      pca.invalidateCache();
     }
     // Else, if the accessor is null, we could lock and double-check
     // to see if it happened to be created so we could invalidate its cache
@@ -170,18 +178,13 @@ public class TableConfiguration extends ObservableConfiguration {
     private final List<IterInfo> tableIters;
     private final Map<String,Map<String,String>> tableOpts;
     private final String context;
-    private final long updateCount;
 
     private ParsedIteratorConfig(List<IterInfo> ii, Map<String,Map<String,String>> opts,
-        String context, long updateCount) {
-      this.tableIters = ImmutableList.copyOf(ii);
-      Builder<String,Map<String,String>> imb = ImmutableMap.builder();
-      for (Entry<String,Map<String,String>> entry : opts.entrySet()) {
-        imb.put(entry.getKey(), ImmutableMap.copyOf(entry.getValue()));
-      }
-      tableOpts = imb.build();
+        String context) {
+      this.tableIters = List.copyOf(ii);
+      tableOpts = opts.entrySet().stream()
+          .collect(Collectors.toUnmodifiableMap(Entry::getKey, e -> Map.copyOf(e.getValue())));
       this.context = context;
-      this.updateCount = updateCount;
     }
 
     public List<IterInfo> getIterInfo() {
@@ -192,25 +195,82 @@ public class TableConfiguration extends ObservableConfiguration {
       return tableOpts;
     }
 
-    public String getContext() {
+    public String getServiceEnv() {
       return context;
     }
   }
 
   public ParsedIteratorConfig getParsedIteratorConfig(IteratorScope scope) {
-    long count = getUpdateCount();
-    AtomicReference<ParsedIteratorConfig> ref = iteratorConfig.get(scope);
-    ParsedIteratorConfig pic = ref.get();
-    if (pic == null || pic.updateCount != count) {
-      List<IterInfo> iters = new ArrayList<>();
-      Map<String,Map<String,String>> allOptions = new HashMap<>();
-      IteratorUtil.parseIterConf(scope, iters, allOptions, this);
-      ParsedIteratorConfig newPic =
-          new ParsedIteratorConfig(iters, allOptions, get(Property.TABLE_CLASSPATH), count);
-      ref.compareAndSet(pic, newPic);
-      pic = newPic;
-    }
+    return iteratorConfig.get(scope).derive();
+  }
 
-    return pic;
+  private static ScanDispatcher createScanDispatcher(AccumuloConfiguration conf,
+      ServerContext context, TableId tableId) {
+    ScanDispatcher newDispatcher = Property.createTableInstanceFromPropertyName(conf,
+        Property.TABLE_SCAN_DISPATCHER, ScanDispatcher.class, null);
+
+    Map<String,String> opts =
+        conf.getAllPropertiesWithPrefixStripped(Property.TABLE_SCAN_DISPATCHER_OPTS);
+
+    newDispatcher.init(new ScanDispatcher.InitParameters() {
+
+      private final ServiceEnvironment senv = new ServiceEnvironmentImpl(context);
+
+      @Override
+      public TableId getTableId() {
+        return tableId;
+      }
+
+      @Override
+      public Map<String,String> getOptions() {
+        return opts;
+      }
+
+      @Override
+      public ServiceEnvironment getServiceEnv() {
+        return senv;
+      }
+    });
+
+    return newDispatcher;
+  }
+
+  private static CompactionDispatcher createCompactionDispatcher(AccumuloConfiguration conf,
+      ServerContext context, TableId tableId) {
+    CompactionDispatcher newDispatcher = Property.createTableInstanceFromPropertyName(conf,
+        Property.TABLE_COMPACTION_DISPATCHER, CompactionDispatcher.class, null);
+
+    Map<String,String> opts =
+        conf.getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_DISPATCHER_OPTS);
+
+    newDispatcher.init(new CompactionDispatcher.InitParameters() {
+
+      private final ServiceEnvironment senv = new ServiceEnvironmentImpl(context);
+
+      @Override
+      public TableId getTableId() {
+        return tableId;
+      }
+
+      @Override
+      public Map<String,String> getOptions() {
+        return opts;
+      }
+
+      @Override
+      public ServiceEnvironment getServiceEnv() {
+        return senv;
+      }
+    });
+
+    return newDispatcher;
+  }
+
+  public ScanDispatcher getScanDispatcher() {
+    return scanDispatchDeriver.derive();
+  }
+
+  public CompactionDispatcher getCompactionDispatcher() {
+    return compactionDispatchDeriver.derive();
   }
 }

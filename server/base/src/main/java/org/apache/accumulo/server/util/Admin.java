@@ -1,25 +1,28 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.server.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
+import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -34,40 +37,33 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
-import org.apache.accumulo.core.client.impl.ClientContext;
-import org.apache.accumulo.core.client.impl.ClientExec;
-import org.apache.accumulo.core.client.impl.MasterClient;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.trace.Tracer;
+import org.apache.accumulo.core.singletons.SingletonManager;
+import org.apache.accumulo.core.singletons.SingletonManager.Mode;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.server.AccumuloServerContext;
-import org.apache.accumulo.server.cli.ClientOpts;
-import org.apache.accumulo.server.conf.ServerConfigurationFactory;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,13 +71,16 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Lists;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @AutoService(KeywordExecutable.class)
 public class Admin implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(Admin.class);
 
-  static class AdminOpts extends ClientOpts {
+  static class AdminOpts extends ServerUtilOpts {
     @Parameter(names = {"-f", "--force"},
         description = "force the given server to stop by removing its lock")
     boolean force = false;
@@ -109,7 +108,11 @@ public class Admin implements KeywordExecutable {
     String tableName = null;
   }
 
-  @Parameters(commandDescription = "stop the master")
+  @Parameters(commandDescription = "stop the manager")
+  static class StopManagerCommand {}
+
+  @Deprecated(since = "2.1.0")
+  @Parameters(commandDescription = "stop the master (DEPRECATED -- use stopManager instead)")
   static class StopMasterCommand {}
 
   @Parameters(commandDescription = "stop all the servers")
@@ -148,7 +151,12 @@ public class Admin implements KeywordExecutable {
     boolean users = false;
   }
 
-  @Parameters(commandDescription = "redistribute tablet directories across the current volume list")
+  private static final String RV_DEPRECATION_MSG =
+      "Randomizing tablet directories is deprecated and now does nothing. Accumulo now always"
+          + " calls the volume chooser for each file created by a tablet, so its no longer "
+          + "necessary.";
+
+  @Parameters(commandDescription = RV_DEPRECATION_MSG)
   static class RandomizeVolumesCommand {
     @Parameter(names = {"-t"}, description = "table to update", required = true)
     String tableName = null;
@@ -164,12 +172,23 @@ public class Admin implements KeywordExecutable {
   }
 
   @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.CORE;
+  }
+
+  @Override
+  public String description() {
+    return "Executes administrative commands";
+  }
+
+  @SuppressFBWarnings(value = "DM_EXIT", justification = "System.exit okay for CLI tool")
+  @Override
   public void execute(final String[] args) {
     boolean everything;
 
     AdminOpts opts = new AdminOpts();
     JCommander cl = new JCommander(opts);
-    cl.setProgramName(Admin.class.getName());
+    cl.setProgramName("accumulo admin");
 
     CheckTabletsCommand checkTabletsCommand = new CheckTabletsCommand();
     cl.addCommand("checkTablets", checkTabletsCommand);
@@ -190,6 +209,8 @@ public class Admin implements KeywordExecutable {
     cl.addCommand("stop", stopOpts);
     StopAllCommand stopAllOpts = new StopAllCommand();
     cl.addCommand("stopAll", stopAllOpts);
+    StopManagerCommand stopManagerOpts = new StopManagerCommand();
+    cl.addCommand("stopManager", stopManagerOpts);
     StopMasterCommand stopMasterOpts = new StopMasterCommand();
     cl.addCommand("stopMaster", stopMasterOpts);
 
@@ -203,22 +224,20 @@ public class Admin implements KeywordExecutable {
       return;
     }
 
-    AccumuloConfiguration siteConf = SiteConfiguration.getInstance();
+    ServerContext context = opts.getServerContext();
+
+    AccumuloConfiguration conf = context.getConfiguration();
     // Login as the server on secure HDFS
-    if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
-      SecurityUtil.serverLogin(siteConf);
+    if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+      SecurityUtil.serverLogin(conf);
     }
 
-    Instance instance = opts.getInstance();
-    ServerConfigurationFactory confFactory = new ServerConfigurationFactory(instance);
-
     try {
-      ClientContext context = new AccumuloServerContext(confFactory);
 
       int rc = 0;
 
       if (cl.getParsedCommand().equals("listInstances")) {
-        ListInstances.listInstances(instance.getZooKeepers(), listIntancesOpts.printAll,
+        ListInstances.listInstances(context.getZooKeepers(), listIntancesOpts.printAll,
             listIntancesOpts.printErrors);
       } else if (cl.getParsedCommand().equals("ping")) {
         if (ping(context, pingCommand.args) != 0)
@@ -245,7 +264,7 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("volumes")) {
         ListVolumesUsed.listVolumes(context);
       } else if (cl.getParsedCommand().equals("randomizeVolumes")) {
-        rc = RandomizeVolumes.randomize(context.getConnector(), randomizeVolumesOpts.tableName);
+        System.out.println(RV_DEPRECATION_MSG);
       } else {
         everything = cl.getParsedCommand().equals("stopAll");
 
@@ -266,15 +285,16 @@ public class Admin implements KeywordExecutable {
     } catch (Exception e) {
       log.error("{}", e.getMessage(), e);
       System.exit(3);
+    } finally {
+      SingletonManager.setMode(Mode.CLOSED);
     }
   }
 
-  private static int ping(ClientContext context, List<String> args)
-      throws AccumuloException, AccumuloSecurityException {
+  private static int ping(ClientContext context, List<String> args) {
 
-    InstanceOperations io = context.getConnector().instanceOperations();
+    InstanceOperations io = context.instanceOperations();
 
-    if (args.size() == 0) {
+    if (args.isEmpty()) {
       args = io.getTabletServers();
     }
 
@@ -299,31 +319,25 @@ public class Admin implements KeywordExecutable {
    * an attempt to initiate flushes of all tables and give up if it takes too long.
    *
    */
-  private static void flushAll(final ClientContext context)
-      throws AccumuloException, AccumuloSecurityException {
+  private static void flushAll(final ClientContext context) {
 
     final AtomicInteger flushesStarted = new AtomicInteger(0);
 
-    Runnable flushTask = new Runnable() {
-
-      @Override
-      public void run() {
-        try {
-          Connector conn = context.getConnector();
-          Set<String> tables = conn.tableOperations().tableIdMap().keySet();
-          for (String table : tables) {
-            if (table.equals(MetadataTable.NAME))
-              continue;
-            try {
-              conn.tableOperations().flush(table, null, null, false);
-              flushesStarted.incrementAndGet();
-            } catch (TableNotFoundException e) {
-              // ignore
-            }
+    Runnable flushTask = () -> {
+      try {
+        Set<String> tables = context.tableOperations().tableIdMap().keySet();
+        for (String table : tables) {
+          if (table.equals(MetadataTable.NAME))
+            continue;
+          try {
+            context.tableOperations().flush(table, null, null, false);
+            flushesStarted.incrementAndGet();
+          } catch (TableNotFoundException e) {
+            // ignore
           }
-        } catch (Exception e) {
-          log.warn("Failed to intiate flush {}", e.getMessage());
         }
+      } catch (Exception e) {
+        log.warn("Failed to intiate flush {}", e.getMessage());
       }
     };
 
@@ -355,36 +369,26 @@ public class Admin implements KeywordExecutable {
 
   private static void stopServer(final ClientContext context, final boolean tabletServersToo)
       throws AccumuloException, AccumuloSecurityException {
-    MasterClient.execute(context, new ClientExec<MasterClientService.Client>() {
-      @Override
-      public void execute(MasterClientService.Client client) throws Exception {
-        client.shutdown(Tracer.traceInfo(), context.rpcCreds(), tabletServersToo);
-      }
-    });
+    ManagerClient.executeVoid(context,
+        client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo));
   }
 
   private static void stopTabletServer(final ClientContext context, List<String> servers,
       final boolean force) throws AccumuloException, AccumuloSecurityException {
-    if (context.getInstance().getMasterLocations().size() == 0) {
-      log.info("No masters running. Not attempting safe unload of tserver.");
+    if (context.getManagerLocations().isEmpty()) {
+      log.info("No managers running. Not attempting safe unload of tserver.");
       return;
     }
-    final Instance instance = context.getInstance();
-    final String zTServerRoot = getTServersZkPath(instance);
-    final ZooCache zc = new ZooCacheFactory().getZooCache(instance.getZooKeepers(),
-        instance.getZooKeepersSessionTimeOut());
+    final String zTServerRoot = getTServersZkPath(context);
+    final ZooCache zc = context.getZooCache();
     for (String server : servers) {
       for (int port : context.getConfiguration().getPort(Property.TSERV_CLIENTPORT)) {
         HostAndPort address = AddressUtil.parseAddress(server, port);
         final String finalServer =
             qualifyWithZooKeeperSessionId(zTServerRoot, zc, address.toString());
-        log.info("Stopping server " + finalServer);
-        MasterClient.execute(context, new ClientExec<MasterClientService.Client>() {
-          @Override
-          public void execute(MasterClientService.Client client) throws Exception {
-            client.shutdownTabletServer(Tracer.traceInfo(), context.rpcCreds(), finalServer, force);
-          }
-        });
+        log.info("Stopping server {}", finalServer);
+        ManagerClient.executeVoid(context, client -> client
+            .shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(), finalServer, force));
       }
     }
   }
@@ -392,14 +396,13 @@ public class Admin implements KeywordExecutable {
   /**
    * Get the parent ZNode for tservers for the given instance
    *
-   * @param instance
-   *          The Instance
+   * @param context
+   *          ClientContext
    * @return The tservers znode for the instance
    */
-  static String getTServersZkPath(Instance instance) {
-    requireNonNull(instance);
-    final String instanceRoot = ZooUtil.getRoot(instance);
-    return instanceRoot + Constants.ZTSERVERS;
+  static String getTServersZkPath(ClientContext context) {
+    requireNonNull(context);
+    return context.getZooKeeperRoot() + Constants.ZTSERVERS;
   }
 
   /**
@@ -412,19 +415,15 @@ public class Admin implements KeywordExecutable {
    */
   static String qualifyWithZooKeeperSessionId(String zTServerRoot, ZooCache zooCache,
       String hostAndPort) {
-    try {
-      long sessionId = ZooLock.getSessionId(zooCache, zTServerRoot + "/" + hostAndPort);
-      if (0 == sessionId) {
-        return hostAndPort;
-      }
-      return hostAndPort + "[" + Long.toHexString(sessionId) + "]";
-    } catch (InterruptedException | KeeperException e) {
-      log.warn("Failed to communicate with ZooKeeper to find session ID for TabletServer.");
+    var zLockPath = ServiceLock.path(zTServerRoot + "/" + hostAndPort);
+    long sessionId = ServiceLock.getSessionId(zooCache, zLockPath);
+    if (sessionId == 0) {
       return hostAndPort;
     }
+    return hostAndPort + "[" + Long.toHexString(sessionId) + "]";
   }
 
-  private static final String ACCUMULO_SITE_BACKUP_FILE = "accumulo-site.xml.bak";
+  private static final String ACCUMULO_SITE_BACKUP_FILE = "accumulo.properties.bak";
   private static final String NS_FILE_SUFFIX = "_ns.cfg";
   private static final String USER_FILE_SUFFIX = "_user.cfg";
   private static final MessageFormat configFormat = new MessageFormat("config -t {0} -s {1}\n");
@@ -445,6 +444,8 @@ public class Admin implements KeywordExecutable {
   private Map<String,String> siteConfig, systemConfig;
   private List<String> localUsers;
 
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input")
   public void printConfig(ClientContext context, DumpConfigCommand opts) throws Exception {
 
     File outputDirectory = null;
@@ -458,61 +459,60 @@ public class Admin implements KeywordExecutable {
         throw new IllegalArgumentException(opts.directory + " is not writable");
       }
     }
-    Connector connector = context.getConnector();
-    defaultConfig = AccumuloConfiguration.getDefaultConfiguration();
-    siteConfig = connector.instanceOperations().getSiteConfiguration();
-    systemConfig = connector.instanceOperations().getSystemConfiguration();
+    defaultConfig = DefaultConfiguration.getInstance();
+    siteConfig = context.instanceOperations().getSiteConfiguration();
+    systemConfig = context.instanceOperations().getSystemConfiguration();
     if (opts.allConfiguration || opts.users) {
-      localUsers = Lists.newArrayList(connector.securityOperations().listLocalUsers());
+      localUsers = Lists.newArrayList(context.securityOperations().listLocalUsers());
       Collections.sort(localUsers);
     }
 
     if (opts.allConfiguration) {
       // print accumulo site
-      printSystemConfiguration(connector, outputDirectory);
+      printSystemConfiguration(outputDirectory);
       // print namespaces
-      for (String namespace : connector.namespaceOperations().list()) {
-        printNameSpaceConfiguration(connector, namespace, outputDirectory);
+      for (String namespace : context.namespaceOperations().list()) {
+        printNameSpaceConfiguration(context, namespace, outputDirectory);
       }
       // print tables
-      SortedSet<String> tableNames = connector.tableOperations().list();
+      SortedSet<String> tableNames = context.tableOperations().list();
       for (String tableName : tableNames) {
-        printTableConfiguration(connector, tableName, outputDirectory);
+        printTableConfiguration(context, tableName, outputDirectory);
       }
       // print users
       for (String user : localUsers) {
-        printUserConfiguration(connector, user, outputDirectory);
+        printUserConfiguration(context, user, outputDirectory);
       }
     } else {
       if (opts.systemConfiguration) {
-        printSystemConfiguration(connector, outputDirectory);
+        printSystemConfiguration(outputDirectory);
       }
       if (opts.namespaceConfiguration) {
-        for (String namespace : connector.namespaceOperations().list()) {
-          printNameSpaceConfiguration(connector, namespace, outputDirectory);
+        for (String namespace : context.namespaceOperations().list()) {
+          printNameSpaceConfiguration(context, namespace, outputDirectory);
         }
       }
-      if (opts.tables.size() > 0) {
+      if (!opts.tables.isEmpty()) {
         for (String tableName : opts.tables) {
-          printTableConfiguration(connector, tableName, outputDirectory);
+          printTableConfiguration(context, tableName, outputDirectory);
         }
       }
       if (opts.users) {
         for (String user : localUsers) {
-          printUserConfiguration(connector, user, outputDirectory);
+          printUserConfiguration(context, user, outputDirectory);
         }
       }
     }
   }
 
   private String getDefaultConfigValue(String key) {
-    if (null == key)
+    if (key == null)
       return null;
 
     String defaultValue = null;
     try {
       Property p = Property.getPropertyByKey(key);
-      if (null == p)
+      if (p == null)
         return defaultValue;
       defaultValue = defaultConfig.get(p);
     } catch (IllegalArgumentException e) {
@@ -521,106 +521,105 @@ public class Admin implements KeywordExecutable {
     return defaultValue;
   }
 
-  private void printNameSpaceConfiguration(Connector connector, String namespace,
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input")
+  private void printNameSpaceConfiguration(AccumuloClient accumuloClient, String namespace,
       File outputDirectory)
       throws IOException, AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     File namespaceScript = new File(outputDirectory, namespace + NS_FILE_SUFFIX);
-    FileWriter nsWriter = new FileWriter(namespaceScript);
-    nsWriter.write(createNsFormat.format(new String[] {namespace}));
-    TreeMap<String,String> props = new TreeMap<>();
-    for (Entry<String,String> p : connector.namespaceOperations().getProperties(namespace)) {
-      props.put(p.getKey(), p.getValue());
-    }
-    for (Entry<String,String> entry : props.entrySet()) {
-      String defaultValue = getDefaultConfigValue(entry.getKey());
-      if (defaultValue == null || !defaultValue.equals(entry.getValue())) {
-        if (!entry.getValue().equals(siteConfig.get(entry.getKey()))
-            && !entry.getValue().equals(systemConfig.get(entry.getKey()))) {
-          nsWriter.write(nsConfigFormat
-              .format(new String[] {namespace, entry.getKey() + "=" + entry.getValue()}));
+    try (BufferedWriter nsWriter = new BufferedWriter(new FileWriter(namespaceScript, UTF_8))) {
+      nsWriter.write(createNsFormat.format(new String[] {namespace}));
+      Map<String,String> props = ImmutableSortedMap
+          .copyOf(accumuloClient.namespaceOperations().getConfiguration(namespace));
+      for (Entry<String,String> entry : props.entrySet()) {
+        String defaultValue = getDefaultConfigValue(entry.getKey());
+        if (defaultValue == null || !defaultValue.equals(entry.getValue())) {
+          if (!entry.getValue().equals(siteConfig.get(entry.getKey()))
+              && !entry.getValue().equals(systemConfig.get(entry.getKey()))) {
+            nsWriter.write(nsConfigFormat
+                .format(new String[] {namespace, entry.getKey() + "=" + entry.getValue()}));
+          }
         }
       }
     }
-    nsWriter.close();
   }
 
-  private static void printUserConfiguration(Connector connector, String user, File outputDirectory)
-      throws IOException, AccumuloException, AccumuloSecurityException {
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input")
+  private static void printUserConfiguration(AccumuloClient accumuloClient, String user,
+      File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException {
     File userScript = new File(outputDirectory, user + USER_FILE_SUFFIX);
-    FileWriter userWriter = new FileWriter(userScript);
-    userWriter.write(createUserFormat.format(new String[] {user}));
-    Authorizations auths = connector.securityOperations().getUserAuthorizations(user);
-    userWriter.write(userAuthsFormat.format(new String[] {user, auths.toString()}));
-    for (SystemPermission sp : SystemPermission.values()) {
-      if (connector.securityOperations().hasSystemPermission(user, sp)) {
-        userWriter.write(sysPermFormat.format(new String[] {sp.name(), user}));
+    try (BufferedWriter userWriter = new BufferedWriter(new FileWriter(userScript, UTF_8))) {
+      userWriter.write(createUserFormat.format(new String[] {user}));
+      Authorizations auths = accumuloClient.securityOperations().getUserAuthorizations(user);
+      userWriter.write(userAuthsFormat.format(new String[] {user, auths.toString()}));
+      for (SystemPermission sp : SystemPermission.values()) {
+        if (accumuloClient.securityOperations().hasSystemPermission(user, sp)) {
+          userWriter.write(sysPermFormat.format(new String[] {sp.name(), user}));
+        }
       }
-    }
-    for (String namespace : connector.namespaceOperations().list()) {
-      for (NamespacePermission np : NamespacePermission.values()) {
-        if (connector.securityOperations().hasNamespacePermission(user, namespace, np)) {
-          userWriter.write(nsPermFormat.format(new String[] {np.name(), namespace, user}));
+      for (String namespace : accumuloClient.namespaceOperations().list()) {
+        for (NamespacePermission np : NamespacePermission.values()) {
+          if (accumuloClient.securityOperations().hasNamespacePermission(user, namespace, np)) {
+            userWriter.write(nsPermFormat.format(new String[] {np.name(), namespace, user}));
+          }
+        }
+      }
+      for (String tableName : accumuloClient.tableOperations().list()) {
+        for (TablePermission perm : TablePermission.values()) {
+          if (accumuloClient.securityOperations().hasTablePermission(user, tableName, perm)) {
+            userWriter.write(tablePermFormat.format(new String[] {perm.name(), tableName, user}));
+          }
         }
       }
     }
-    for (String tableName : connector.tableOperations().list()) {
-      for (TablePermission perm : TablePermission.values()) {
-        if (connector.securityOperations().hasTablePermission(user, tableName, perm)) {
-          userWriter.write(tablePermFormat.format(new String[] {perm.name(), tableName, user}));
-        }
-      }
-    }
-
-    userWriter.close();
   }
 
-  private void printSystemConfiguration(Connector connector, File outputDirectory)
-      throws IOException, AccumuloException, AccumuloSecurityException {
-    Configuration conf = new Configuration(false);
+  private void printSystemConfiguration(File outputDirectory) throws IOException {
+    TreeMap<String,String> conf = new TreeMap<>();
     TreeMap<String,String> site = new TreeMap<>(siteConfig);
     for (Entry<String,String> prop : site.entrySet()) {
       String defaultValue = getDefaultConfigValue(prop.getKey());
       if (!prop.getValue().equals(defaultValue) && !systemConfig.containsKey(prop.getKey())) {
-        conf.set(prop.getKey(), prop.getValue());
+        conf.put(prop.getKey(), prop.getValue());
       }
     }
     TreeMap<String,String> system = new TreeMap<>(systemConfig);
     for (Entry<String,String> prop : system.entrySet()) {
       String defaultValue = getDefaultConfigValue(prop.getKey());
       if (!prop.getValue().equals(defaultValue)) {
-        conf.set(prop.getKey(), prop.getValue());
+        conf.put(prop.getKey(), prop.getValue());
       }
     }
     File siteBackup = new File(outputDirectory, ACCUMULO_SITE_BACKUP_FILE);
-    FileOutputStream fos = new FileOutputStream(siteBackup);
-    try {
-      conf.writeXml(fos);
-    } finally {
-      fos.close();
+    try (BufferedWriter fw = new BufferedWriter(new FileWriter(siteBackup, UTF_8))) {
+      for (Entry<String,String> prop : conf.entrySet()) {
+        fw.write(prop.getKey() + "=" + prop.getValue() + "\n");
+      }
     }
   }
 
-  private void printTableConfiguration(Connector connector, String tableName, File outputDirectory)
-      throws AccumuloException, TableNotFoundException, IOException, AccumuloSecurityException {
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input")
+  private void printTableConfiguration(AccumuloClient accumuloClient, String tableName,
+      File outputDirectory) throws AccumuloException, TableNotFoundException, IOException {
     File tableBackup = new File(outputDirectory, tableName + ".cfg");
-    FileWriter writer = new FileWriter(tableBackup);
-    writer.write(createTableFormat.format(new String[] {tableName}));
-    TreeMap<String,String> props = new TreeMap<>();
-    for (Entry<String,String> p : connector.tableOperations().getProperties(tableName)) {
-      props.put(p.getKey(), p.getValue());
-    }
-    for (Entry<String,String> prop : props.entrySet()) {
-      if (prop.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
-        String defaultValue = getDefaultConfigValue(prop.getKey());
-        if (defaultValue == null || !defaultValue.equals(prop.getValue())) {
-          if (!prop.getValue().equals(siteConfig.get(prop.getKey()))
-              && !prop.getValue().equals(systemConfig.get(prop.getKey()))) {
-            writer.write(configFormat
-                .format(new String[] {tableName, prop.getKey() + "=" + prop.getValue()}));
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(tableBackup, UTF_8))) {
+      writer.write(createTableFormat.format(new String[] {tableName}));
+      Map<String,String> props =
+          ImmutableSortedMap.copyOf(accumuloClient.tableOperations().getConfiguration(tableName));
+      for (Entry<String,String> prop : props.entrySet()) {
+        if (prop.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
+          String defaultValue = getDefaultConfigValue(prop.getKey());
+          if (defaultValue == null || !defaultValue.equals(prop.getValue())) {
+            if (!prop.getValue().equals(siteConfig.get(prop.getKey()))
+                && !prop.getValue().equals(systemConfig.get(prop.getKey()))) {
+              writer.write(configFormat
+                  .format(new String[] {tableName, prop.getKey() + "=" + prop.getValue()}));
+            }
           }
         }
       }
     }
-    writer.close();
   }
 }

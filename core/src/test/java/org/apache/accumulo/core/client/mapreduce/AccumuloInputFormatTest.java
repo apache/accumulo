@@ -1,27 +1,29 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.client.mapreduce;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -29,13 +31,13 @@ import java.util.Set;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.util.Base64;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.junit.Test;
 
+@Deprecated(since = "2.0.0")
 public class AccumuloInputFormatTest {
 
   /**
@@ -52,7 +54,7 @@ public class AccumuloInputFormatTest {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     is.write(new DataOutputStream(baos));
     String iterators = conf.get("AccumuloInputFormat.ScanOpts.Iterators");
-    assertEquals(Base64.encodeBase64String(baos.toByteArray()), iterators);
+    assertEquals(Base64.getEncoder().encodeToString(baos.toByteArray()), iterators);
   }
 
   @Test
@@ -72,7 +74,7 @@ public class AccumuloInputFormatTest {
     List<IteratorSetting> list = AccumuloInputFormat.getIterators(job);
 
     // Check the list size
-    assertTrue(list.size() == 3);
+    assertEquals(3, list.size());
 
     // Walk the list and make sure our settings are correct
     IteratorSetting setting = list.get(0);
@@ -150,7 +152,7 @@ public class AccumuloInputFormatTest {
     List<IteratorSetting> list = AccumuloInputFormat.getIterators(job);
 
     // Check the list size
-    assertTrue(list.size() == 3);
+    assertEquals(3, list.size());
 
     // Walk the list and make sure our settings are correct
     IteratorSetting setting = list.get(0);
@@ -181,14 +183,14 @@ public class AccumuloInputFormatTest {
     RegExFilter.setRegexs(is, regex, null, null, null, false);
     AccumuloInputFormat.addIterator(job, is);
 
-    assertTrue(regex.equals(AccumuloInputFormat.getIterators(job).get(0).getName()));
+    assertEquals(regex, AccumuloInputFormat.getIterators(job).get(0).getName());
   }
 
   @Test
   public void testEmptyColumnFamily() throws IOException {
     Job job = Job.getInstance();
     Set<Pair<Text,Text>> cols = new HashSet<>();
-    cols.add(new Pair<Text,Text>(new Text(""), null));
+    cols.add(new Pair<>(new Text(""), null));
     cols.add(new Pair<>(new Text("foo"), new Text("bar")));
     cols.add(new Pair<>(new Text(""), new Text("bar")));
     cols.add(new Pair<>(new Text(""), new Text("")));

@@ -1,20 +1,21 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
-
 package org.apache.accumulo.core.file.rfile;
 
 import static org.junit.Assert.assertEquals;
@@ -28,7 +29,7 @@ import com.google.common.primitives.Bytes;
 public class KeyShortenerTest {
 
   private static final byte[] E = new byte[0];
-  private static final byte[] FF = new byte[] {(byte) 0xff};
+  private static final byte[] FF = {(byte) 0xff};
 
   private void assertBetween(Key p, Key s, Key c) {
     assertTrue(p.compareTo(s) < 0);
@@ -38,6 +39,7 @@ public class KeyShortenerTest {
   private void testKeys(Key prev, Key current, Key expected) {
     Key sk = KeyShortener.shorten(prev, current);
     assertBetween(prev, sk, current);
+    assertEquals(expected, sk);
   }
 
   /**
@@ -105,8 +107,7 @@ public class KeyShortenerTest {
     byte[] ff1 = Bytes.concat(apendFF("mop"), "b".getBytes());
     byte[] ff2 = Bytes.concat(apendFF("mop"), FF, "b".getBytes());
 
-    byte[] eff1 = Bytes.concat(apendFF("mop"), FF, FF);
-    byte[] eff2 = Bytes.concat(apendFF("mop"), FF, FF, FF);
+    String eff1 = "moq";
 
     testKeys(newKey(ff1, "f89222", "q90232e", 34), new Key("mor56", "f89222", "q90232e"),
         newKey(eff1, E, E, 0));
@@ -116,11 +117,11 @@ public class KeyShortenerTest {
         newKey("r1", "f1", eff1, 0));
 
     testKeys(newKey(ff2, "f89222", "q90232e", 34), new Key("mor56", "f89222", "q90232e"),
-        newKey(eff2, E, E, 0));
+        newKey(eff1, E, E, 0));
     testKeys(newKey("r1", ff2, "q90232e", 34), new Key("r1", "mor56", "q90232e"),
-        newKey("r1", eff2, E, 0));
+        newKey("r1", eff1, E, 0));
     testKeys(newKey("r1", "f1", ff2, 34), new Key("r1", "f1", "mor56"),
-        newKey("r1", "f1", eff2, 0));
+        newKey("r1", "f1", eff1, 0));
 
   }
 

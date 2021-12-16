@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.core.iterators;
 
@@ -22,7 +24,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -35,7 +36,7 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.conf.ColumnSet;
+import org.apache.accumulo.core.iteratorsImpl.conf.ColumnSet;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -188,16 +189,14 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   private void sawDelete() {
     if (isMajorCompaction && !reduceOnFullCompactionOnly) {
       try {
-        loggedMsgCache.get(this.getClass().getName(), new Callable<Boolean>() {
-          @Override
-          public Boolean call() throws Exception {
-            sawDeleteLog.error("Combiner of type {} saw a delete during a"
-                + " partial compaction. This could cause undesired results. See"
-                + " ACCUMULO-2232. Will not log subsequent occurences for at least" + " 1 hour.",
-                Combiner.this.getClass().getSimpleName());
-            // the value is not used and does not matter
-            return Boolean.TRUE;
-          }
+        loggedMsgCache.get(this.getClass().getName(), () -> {
+          sawDeleteLog.error(
+              "Combiner of type {} saw a delete during a"
+                  + " partial compaction. This could cause undesired results. See"
+                  + " ACCUMULO-2232. Will not log subsequent occurences for at least" + " 1 hour.",
+              Combiner.this.getClass().getSimpleName());
+          // the value is not used and does not matter
+          return Boolean.TRUE;
         });
       } catch (ExecutionException e) {
         throw new RuntimeException(e);
@@ -278,18 +277,18 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     combineAllColumns = false;
     if (options.containsKey(ALL_OPTION)) {
       combineAllColumns = Boolean.parseBoolean(options.get(ALL_OPTION));
-      if (combineAllColumns)
-        return;
     }
 
-    if (!options.containsKey(COLUMNS_OPTION))
-      throw new IllegalArgumentException("Must specify " + COLUMNS_OPTION + " option");
+    if (!combineAllColumns) {
+      if (!options.containsKey(COLUMNS_OPTION))
+        throw new IllegalArgumentException("Must specify " + COLUMNS_OPTION + " option");
 
-    String encodedColumns = options.get(COLUMNS_OPTION);
-    if (encodedColumns.length() == 0)
-      throw new IllegalArgumentException("The " + COLUMNS_OPTION + " must not be empty");
+      String encodedColumns = options.get(COLUMNS_OPTION);
+      if (encodedColumns.isEmpty())
+        throw new IllegalArgumentException("The " + COLUMNS_OPTION + " must not be empty");
 
-    combiners = new ColumnSet(Lists.newArrayList(Splitter.on(",").split(encodedColumns)));
+      combiners = new ColumnSet(Lists.newArrayList(Splitter.on(",").split(encodedColumns)));
+    }
 
     isMajorCompaction = env.getIteratorScope() == IteratorScope.majc;
 
@@ -301,7 +300,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     }
 
     if (reduceOnFullCompactionOnly && isMajorCompaction && !env.isFullMajorCompaction()) {
-      // adjust configuration so that no columns are combined for a partial maror compaction
+      // adjust configuration so that no columns are combined for a partial major compaction
       combineAllColumns = false;
       combiners = new ColumnSet();
     }
@@ -313,7 +312,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     // TODO test
     Combiner newInstance;
     try {
-      newInstance = this.getClass().newInstance();
+      newInstance = this.getClass().getDeclaredConstructor().newInstance();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -357,7 +356,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
           "options must include " + ALL_OPTION + " or " + COLUMNS_OPTION);
 
     String encodedColumns = options.get(COLUMNS_OPTION);
-    if (encodedColumns.length() == 0)
+    if (encodedColumns.isEmpty())
       throw new IllegalArgumentException("empty columns specified in option " + COLUMNS_OPTION);
 
     for (String columns : Splitter.on(",").split(encodedColumns)) {

@@ -1,30 +1,31 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.replication;
 
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationTarget;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.replication.ReplicaSystem;
 import org.apache.accumulo.server.replication.ReplicaSystemHelper;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,7 @@ import org.slf4j.LoggerFactory;
  * <p>
  * Default sleep amount is 0ms
  */
+@Deprecated
 public class MockReplicaSystem implements ReplicaSystem {
   private static final Logger log = LoggerFactory.getLogger(MockReplicaSystem.class);
 
@@ -75,7 +77,7 @@ public class MockReplicaSystem implements ReplicaSystem {
           "Tried to update status in replication table for {} as {}, but the table did not exist",
           p, ProtobufUtil.toString(newStatus), e);
       return status;
-    } catch (AccumuloException | AccumuloSecurityException e) {
+    } catch (AccumuloException e) {
       log.error("Tried to record new status in replication table for {} as {}, but got an error", p,
           ProtobufUtil.toString(newStatus), e);
       return status;
@@ -85,8 +87,8 @@ public class MockReplicaSystem implements ReplicaSystem {
   }
 
   @Override
-  public void configure(String configuration) {
-    if (StringUtils.isBlank(configuration)) {
+  public void configure(ServerContext context, String configuration) {
+    if (configuration.isBlank()) {
       log.debug("No configuration, using default sleep of {}", sleep);
       return;
     }

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.apache.accumulo.test.replication;
 
@@ -26,43 +28,48 @@ import static org.junit.Assert.assertTrue;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.OrderSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.master.replication.SequentialWorkAssigner;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.accumulo.manager.replication.SequentialWorkAssigner;
 import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHelper;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
-import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore("Replication ITs are not stable and not currently maintained")
+@Deprecated
 public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
-  private Connector conn;
+  private AccumuloClient client;
   private MockSequentialWorkAssigner assigner;
 
   private static class MockSequentialWorkAssigner extends SequentialWorkAssigner {
 
-    public MockSequentialWorkAssigner(Connector conn) {
-      super(null, conn);
+    public MockSequentialWorkAssigner(AccumuloClient client) {
+      super(null, client);
     }
 
     @Override
-    public void setConnector(Connector conn) {
-      super.setConnector(conn);
+    public void setClient(AccumuloClient client) {
+      super.setClient(client);
     }
 
     @Override
-    public void setQueuedWork(Map<String,Map<String,String>> queuedWork) {
+    public void setQueuedWork(Map<String,Map<TableId,String>> queuedWork) {
       super.setQueuedWork(queuedWork);
     }
 
@@ -95,23 +102,23 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
   @Before
   public void init() throws Exception {
-    conn = getConnector();
-    assigner = new MockSequentialWorkAssigner(conn);
+    client = Accumulo.newClient().from(getClientProperties()).build();
+    assigner = new MockSequentialWorkAssigner(client);
     // grant ourselves write to the replication table
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.READ);
-    conn.securityOperations().grantTablePermission(conn.whoami(), ReplicationTable.NAME,
+    client.securityOperations().grantTablePermission(client.whoami(), ReplicationTable.NAME,
         TablePermission.WRITE);
-    ReplicationTable.setOnline(conn);
+    ReplicationTable.setOnline(client);
   }
 
   @Test
   public void createWorkForFilesInCorrectOrder() throws Exception {
-    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", TableId.of("1"));
     Text serializedTarget = target.toText();
 
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     // We want the name of file2 to sort before file1
     String filename1 = "z_file1", filename2 = "a_file1";
     String file1 = "/accumulo/wal/tserver+port/" + filename1,
@@ -142,7 +149,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     bw.close();
 
     DistributedWorkQueue workQueue = createMock(DistributedWorkQueue.class);
-    Map<String,Map<String,String>> queuedWork = new HashMap<>();
+    Map<String,Map<TableId,String>> queuedWork = new HashMap<>();
     assigner.setQueuedWork(queuedWork);
     assigner.setWorkQueue(workQueue);
     assigner.setMaxQueueSize(Integer.MAX_VALUE);
@@ -161,7 +168,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
     assertEquals(1, queuedWork.size());
     assertTrue(queuedWork.containsKey("cluster1"));
-    Map<String,String> cluster1Work = queuedWork.get("cluster1");
+    Map<TableId,String> cluster1Work = queuedWork.get("cluster1");
     assertEquals(1, cluster1Work.size());
     assertTrue(cluster1Work.containsKey(target.getSourceTableId()));
     assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target),
@@ -170,14 +177,14 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
   @Test
   public void workAcrossTablesHappensConcurrently() throws Exception {
-    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", "1");
+    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", TableId.of("1"));
     Text serializedTarget1 = target1.toText();
 
-    ReplicationTarget target2 = new ReplicationTarget("cluster1", "table2", "2");
+    ReplicationTarget target2 = new ReplicationTarget("cluster1", "table2", TableId.of("2"));
     Text serializedTarget2 = target2.toText();
 
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     // We want the name of file2 to sort before file1
     String filename1 = "z_file1", filename2 = "a_file1";
     String file1 = "/accumulo/wal/tserver+port/" + filename1,
@@ -208,7 +215,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     bw.close();
 
     DistributedWorkQueue workQueue = createMock(DistributedWorkQueue.class);
-    Map<String,Map<String,String>> queuedWork = new HashMap<>();
+    Map<String,Map<TableId,String>> queuedWork = new HashMap<>();
     assigner.setQueuedWork(queuedWork);
     assigner.setWorkQueue(workQueue);
     assigner.setMaxQueueSize(Integer.MAX_VALUE);
@@ -233,7 +240,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     assertEquals(1, queuedWork.size());
     assertTrue(queuedWork.containsKey("cluster1"));
 
-    Map<String,String> cluster1Work = queuedWork.get("cluster1");
+    Map<TableId,String> cluster1Work = queuedWork.get("cluster1");
     assertEquals(2, cluster1Work.size());
     assertTrue(cluster1Work.containsKey(target1.getSourceTableId()));
     assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target1),
@@ -246,14 +253,14 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
   @Test
   public void workAcrossPeersHappensConcurrently() throws Exception {
-    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", "1");
+    ReplicationTarget target1 = new ReplicationTarget("cluster1", "table1", TableId.of("1"));
     Text serializedTarget1 = target1.toText();
 
-    ReplicationTarget target2 = new ReplicationTarget("cluster2", "table1", "1");
+    ReplicationTarget target2 = new ReplicationTarget("cluster2", "table1", TableId.of("1"));
     Text serializedTarget2 = target2.toText();
 
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     // We want the name of file2 to sort before file1
     String filename1 = "z_file1", filename2 = "a_file1";
     String file1 = "/accumulo/wal/tserver+port/" + filename1,
@@ -284,7 +291,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     bw.close();
 
     DistributedWorkQueue workQueue = createMock(DistributedWorkQueue.class);
-    Map<String,Map<String,String>> queuedWork = new HashMap<>();
+    Map<String,Map<TableId,String>> queuedWork = new HashMap<>();
     assigner.setQueuedWork(queuedWork);
     assigner.setWorkQueue(workQueue);
     assigner.setMaxQueueSize(Integer.MAX_VALUE);
@@ -309,13 +316,13 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     assertEquals(2, queuedWork.size());
     assertTrue(queuedWork.containsKey("cluster1"));
 
-    Map<String,String> cluster1Work = queuedWork.get("cluster1");
+    Map<TableId,String> cluster1Work = queuedWork.get("cluster1");
     assertEquals(1, cluster1Work.size());
     assertTrue(cluster1Work.containsKey(target1.getSourceTableId()));
     assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target1),
         cluster1Work.get(target1.getSourceTableId()));
 
-    Map<String,String> cluster2Work = queuedWork.get("cluster2");
+    Map<TableId,String> cluster2Work = queuedWork.get("cluster2");
     assertEquals(1, cluster2Work.size());
     assertTrue(cluster2Work.containsKey(target2.getSourceTableId()));
     assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target2),
@@ -324,11 +331,11 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
   @Test
   public void reprocessingOfCompletedWorkRemovesWork() throws Exception {
-    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", "1");
+    ReplicationTarget target = new ReplicationTarget("cluster1", "table1", TableId.of("1"));
     Text serializedTarget = target.toText();
 
     // Create two mutations, both of which need replication work done
-    BatchWriter bw = ReplicationTable.getBatchWriter(conn);
+    BatchWriter bw = ReplicationTable.getBatchWriter(client);
     // We want the name of file2 to sort before file1
     String filename1 = "z_file1", filename2 = "a_file1";
     String file1 = "/accumulo/wal/tserver+port/" + filename1,
@@ -361,8 +368,8 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
     DistributedWorkQueue workQueue = createMock(DistributedWorkQueue.class);
 
     // Treat filename1 as we have already submitted it for replication
-    Map<String,Map<String,String>> queuedWork = new HashMap<>();
-    Map<String,String> queuedWorkForCluster = new HashMap<>();
+    Map<String,Map<TableId,String>> queuedWork = new HashMap<>();
+    Map<TableId,String> queuedWorkForCluster = new HashMap<>();
     queuedWorkForCluster.put(target.getSourceTableId(),
         DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename1, target));
     queuedWork.put("cluster1", queuedWorkForCluster);
@@ -385,7 +392,7 @@ public class SequentialWorkAssignerIT extends ConfigurableMacBase {
 
     assertEquals(1, queuedWork.size());
     assertTrue(queuedWork.containsKey("cluster1"));
-    Map<String,String> cluster1Work = queuedWork.get("cluster1");
+    Map<TableId,String> cluster1Work = queuedWork.get("cluster1");
     assertEquals(1, cluster1Work.size());
     assertTrue(cluster1Work.containsKey(target.getSourceTableId()));
     assertEquals(DistributedWorkQueueWorkAssignerHelper.getQueueKey(filename2, target),
