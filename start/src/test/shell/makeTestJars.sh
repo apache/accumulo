@@ -29,4 +29,5 @@ do
     sed "s/testX/test$x/" < src/test/java/test/TestTemplate > target/generated-sources/$x/test/TestObject.java
     $JAVA_HOME/bin/javac -cp target/test-classes target/generated-sources/$x/test/TestObject.java -d target/generated-sources/$x
     $JAVA_HOME/bin/jar -cf target/test-classes/ClassLoaderTest$x/Test.jar -C target/generated-sources/$x test/TestObject.class
+    rm -r target/generated-sources/$x
 done
