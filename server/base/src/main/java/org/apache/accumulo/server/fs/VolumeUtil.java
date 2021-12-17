@@ -34,7 +34,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
-import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
@@ -181,7 +180,7 @@ public class VolumeUtil {
           filesToAdd, zooLock, context);
       if (replicate) {
         @SuppressWarnings("deprecation")
-        Status status = StatusUtil.fileClosed();
+        Status status = org.apache.accumulo.server.replication.StatusUtil.fileClosed();
         log.debug("Tablet directory switched, need to record old log files {} {}", logsToRemove,
             ProtobufUtil.toString(status));
         // Before deleting these logs, we need to mark them for replication

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver;
 
+import static org.apache.accumulo.tserver.AssignmentHandler.checkTabletMetadata;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -65,7 +66,7 @@ public class CheckTabletMetadataTest {
     try {
       TabletMetadata tm = TabletMetadata.convertRow(tabletMeta.entrySet().iterator(),
           EnumSet.allOf(ColumnType.class), true);
-      assertFalse(TabletServer.checkTabletMetadata(ke, tsi, tm));
+      assertFalse(checkTabletMetadata(ke, tsi, tm));
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -78,7 +79,7 @@ public class CheckTabletMetadataTest {
     try {
       TabletMetadata tm = TabletMetadata.convertRow(copy.entrySet().iterator(),
           EnumSet.allOf(ColumnType.class), true);
-      assertFalse(TabletServer.checkTabletMetadata(ke, tsi, tm));
+      assertFalse(checkTabletMetadata(ke, tsi, tm));
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -101,7 +102,7 @@ public class CheckTabletMetadataTest {
 
     TabletMetadata tm = TabletMetadata.convertRow(tabletMeta.entrySet().iterator(),
         EnumSet.allOf(ColumnType.class), true);
-    assertTrue(TabletServer.checkTabletMetadata(ke, tsi, tm));
+    assertTrue(checkTabletMetadata(ke, tsi, tm));
 
     assertFail(tabletMeta, ke, new TServerInstance("127.0.0.1:9998", 4));
     assertFail(tabletMeta, ke, new TServerInstance("127.0.0.1:9998", 5));

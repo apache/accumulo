@@ -51,8 +51,10 @@ public class CheckCompactionConfigTest {
   public static final TemporaryFolder folder =
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
+  // currently not working
+  // cannot parse unrecognized property key (test.ci.common.accumulo.server.props)
   @Test
-  public void testValidInput() throws IOException {
+  public void testValidInput() throws Exception {
     String inputString = ("test.ci.common.accumulo.server.props=\\\n"
         + "tserver.compaction.major.service.cs1.planner="
         + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \\\n"
@@ -73,29 +75,75 @@ public class CheckCompactionConfigTest {
   }
 
   @Test
-  public void testBadPropsFilePath() {
-    String[] args = {"/home/foo/bar/myProperties.properties"};
-    String expectedErrorMsg = "File at given path could not be found";
-    var e = assertThrows(FileNotFoundException.class, () -> CheckCompactionConfig.main(args));
-    assertEquals(expectedErrorMsg, e.getMessage());
+  public void testValidInput2() throws Exception {
+    String inputString = ("tserver.compaction.major.service.cs1.planner="
+        + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
+        + "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n"
+        + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n"
+        + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':4},\\\n"
+        + "{'name':'large','type':'internal','numThreads':2}]").replaceAll("'", "\"");
+
+    String filePath = writeToFileAndReturnPath(inputString);
+
+    CheckCompactionConfig.main(new String[] {filePath});
   }
 
   @Test
-  public void testThrowsErrorForMultipleServerProps() throws IOException {
-    //@formatter:off
-    String inputString =
-            "test.first.common.accumulo.server.props=\\\n" +
-            "foo=bar\n\n" +
-            "test.second.common.accumulo.server.props=\\\n" +
-            "foo=bar";
-    //@formatter:on
-    String expectedErrorMsg = "expected one element but was:";
+  public void testThrowsExternalNumThreadsError() throws IOException {
+    String inputString = ("tserver.compaction.major.service.cs1.planner="
+        + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
+        + "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n"
+        + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n"
+        + "{'name':'medium','type':'external','maxSize':'128M','numThreads':4},\\\n"
+        + "{'name':'large','type':'internal','numThreads':2}]").replaceAll("'", "\"");
+    String expectedErrorMsg = "'numThreads' should not be specified for external compactions";
 
     String filePath = writeToFileAndReturnPath(inputString);
 
     var e = assertThrows(IllegalArgumentException.class,
         () -> CheckCompactionConfig.main(new String[] {filePath}));
-    assertTrue(e.getMessage().contains(expectedErrorMsg));
+    assertEquals(e.getMessage(), expectedErrorMsg);
+  }
+
+  @Test
+  public void testNegativeThreadCount() throws IOException {
+    String inputString = ("tserver.compaction.major.service.cs1.planner="
+        + "org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner \n"
+        + "tserver.compaction.major.service.cs1.planner.opts.executors=\\\n"
+        + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n"
+        + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':-4},\\\n"
+        + "{'name':'large','type':'internal','numThreads':2}]").replaceAll("'", "\"");
+    String expectedErrorMsg = "Positive number of threads required : -4";
+
+    String filePath = writeToFileAndReturnPath(inputString);
+
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> CheckCompactionConfig.main(new String[] {filePath}));
+    assertEquals(e.getMessage(), expectedErrorMsg);
+  }
+
+  @Test
+  public void testNoPlanner() throws Exception {
+    String inputString = ("tserver.compaction.major.service.cs1.planner.opts.executors=\\\n"
+        + "[{'name':'small','type':'internal','maxSize':'16M','numThreads':8},\\\n"
+        + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':4},\\\n"
+        + "{'name':'large','type':'internal','numThreads':2}]").replaceAll("'", "\"");
+
+    String expectedErrorMsg = "Incomplete compaction service definitions, missing planner class";
+
+    String filePath = writeToFileAndReturnPath(inputString);
+
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> CheckCompactionConfig.main(new String[] {filePath}));
+    assertTrue(e.getMessage().startsWith(expectedErrorMsg));
+  }
+
+  @Test
+  public void testBadPropsFilePath() {
+    String[] args = {"/home/foo/bar/myProperties.properties"};
+    String expectedErrorMsg = "File at given path could not be found";
+    var e = assertThrows(FileNotFoundException.class, () -> CheckCompactionConfig.main(args));
+    assertEquals(expectedErrorMsg, e.getMessage());
   }
 
   private String writeToFileAndReturnPath(String inputString) throws IOException {
@@ -104,7 +152,7 @@ public class CheckCompactionConfigTest {
         BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
       bufferedWriter.write(inputString);
     }
-    log.debug("Wrote to path: {}\nWith string:\n{}", file.getAbsolutePath(), inputString);
+    log.info("Wrote to path: {}\nWith string:\n{}", file.getAbsolutePath(), inputString);
     return file.getAbsolutePath();
   }
 }

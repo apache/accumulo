@@ -26,7 +26,6 @@ import static org.junit.Assert.fail;
 
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.replication.ReplicationTable;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -55,7 +54,7 @@ public class TableIdTest {
   public void testCacheNoDuplicates() {
 
     @SuppressWarnings("deprecation")
-    TableId REPL_TABLE_ID = ReplicationTable.ID;
+    TableId REPL_TABLE_ID = org.apache.accumulo.core.replication.ReplicationTable.ID;
 
     // the next two lines just preloads the built-ins, since they now exist in a separate class from
     // TableId, and aren't preloaded when the TableId class is referenced

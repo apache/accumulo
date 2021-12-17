@@ -73,10 +73,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
-import org.apache.accumulo.core.replication.ReplicationConstants;
-import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
-import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
-import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
@@ -100,8 +96,6 @@ import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
-import org.apache.accumulo.server.replication.ReplicationUtil;
-import org.apache.accumulo.server.replication.StatusCombiner;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.tables.TableManager;
@@ -140,7 +134,8 @@ public class Initialize implements KeywordExecutable {
   private static final String DEFAULT_ROOT_USER = "root";
   private static final String TABLE_TABLETS_TABLET_DIR = "table_info";
   @SuppressWarnings("deprecation")
-  private static final TableId REPLICATION_TABLE = ReplicationTable.ID;
+  private static final TableId REPLICATION_TABLE =
+      org.apache.accumulo.core.replication.ReplicationTable.ID;
 
   private static ZooReaderWriter zoo = null;
 
@@ -217,7 +212,7 @@ public class Initialize implements KeywordExecutable {
     // Combiner
     // configured
     @SuppressWarnings("deprecation")
-    Class<StatusCombiner> statusCombinerClass = StatusCombiner.class;
+    var statusCombinerClass = org.apache.accumulo.server.replication.StatusCombiner.class;
     IteratorSetting setting =
         new IteratorSetting(9, ReplicationTableUtil.COMBINER_NAME, statusCombinerClass);
     Combiner.setColumns(setting, Collections.singletonList(new Column(ReplicationSection.COLF)));
@@ -232,13 +227,15 @@ public class Initialize implements KeywordExecutable {
 
     // add combiners to replication table
     @SuppressWarnings("deprecation")
-    String replicationCombinerName = ReplicationTable.COMBINER_NAME;
+    String replicationCombinerName =
+        org.apache.accumulo.core.replication.ReplicationTable.COMBINER_NAME;
     setting = new IteratorSetting(30, replicationCombinerName, statusCombinerClass);
     setting.setPriority(30);
     @SuppressWarnings("deprecation")
-    Text statusSectionName = StatusSection.NAME;
+    Text statusSectionName =
+        org.apache.accumulo.core.replication.ReplicationSchema.StatusSection.NAME;
     @SuppressWarnings("deprecation")
-    Text workSectionName = WorkSection.NAME;
+    Text workSectionName = org.apache.accumulo.core.replication.ReplicationSchema.WorkSection.NAME;
     Combiner.setColumns(setting,
         Arrays.asList(new Column(statusSectionName), new Column(workSectionName)));
     for (IteratorScope scope : EnumSet.allOf(IteratorScope.class)) {
@@ -252,7 +249,8 @@ public class Initialize implements KeywordExecutable {
     }
     // add locality groups to replication table
     @SuppressWarnings("deprecation")
-    Map<String,Set<Text>> replicationLocalityGroups = ReplicationTable.LOCALITY_GROUPS;
+    Map<String,Set<Text>> replicationLocalityGroups =
+        org.apache.accumulo.core.replication.ReplicationTable.LOCALITY_GROUPS;
     for (Entry<String,Set<Text>> g : replicationLocalityGroups.entrySet()) {
       initialReplicationTableConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX + g.getKey(),
           LocalityGroupUtil.encodeColumnFamilies(g.getValue()));
@@ -261,7 +259,8 @@ public class Initialize implements KeywordExecutable {
         Joiner.on(",").join(replicationLocalityGroups.keySet()));
     // add formatter to replication table
     @SuppressWarnings("deprecation")
-    String replicationFormatterClassName = ReplicationUtil.STATUS_FORMATTER_CLASS_NAME;
+    String replicationFormatterClassName =
+        org.apache.accumulo.server.replication.ReplicationUtil.STATUS_FORMATTER_CLASS_NAME;
     initialReplicationTableConf.put(Property.TABLE_FORMATTER_CLASS.getKey(),
         replicationFormatterClassName);
   }
@@ -618,7 +617,7 @@ public class Initialize implements KeywordExecutable {
     TableManager.prepareNewTableState(zoo, uuid, MetadataTable.ID, Namespace.ACCUMULO.id(),
         MetadataTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
     @SuppressWarnings("deprecation")
-    String replicationTableName = ReplicationTable.NAME;
+    String replicationTableName = org.apache.accumulo.core.replication.ReplicationTable.NAME;
     TableManager.prepareNewTableState(zoo, uuid, REPLICATION_TABLE, Namespace.ACCUMULO.id(),
         replicationTableName, TableState.OFFLINE, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, EMPTY_BYTE_ARRAY,
@@ -654,11 +653,12 @@ public class Initialize implements KeywordExecutable {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMONITOR_LOCK, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
     @SuppressWarnings("deprecation")
-    String replicationZBase = ReplicationConstants.ZOO_BASE;
+    String replicationZBase = org.apache.accumulo.core.replication.ReplicationConstants.ZOO_BASE;
     zoo.putPersistentData(zkInstanceRoot + replicationZBase, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
     @SuppressWarnings("deprecation")
-    String replicationZServers = ReplicationConstants.ZOO_TSERVERS;
+    String replicationZServers =
+        org.apache.accumulo.core.replication.ReplicationConstants.ZOO_TSERVERS;
     zoo.putPersistentData(zkInstanceRoot + replicationZServers, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + WalStateManager.ZWALS, EMPTY_BYTE_ARRAY,

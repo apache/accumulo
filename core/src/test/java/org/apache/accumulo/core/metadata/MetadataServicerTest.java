@@ -30,7 +30,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.replication.ReplicationTable;
 import org.easymock.EasyMock;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -42,9 +41,11 @@ public class MetadataServicerTest {
   private static ClientContext context;
 
   @SuppressWarnings("deprecation")
-  private static final TableId REPL_TABLE_ID = ReplicationTable.ID;
+  private static final TableId REPL_TABLE_ID =
+      org.apache.accumulo.core.replication.ReplicationTable.ID;
   @SuppressWarnings("deprecation")
-  private static final String REPL_TABLE_NAME = ReplicationTable.NAME;
+  private static final String REPL_TABLE_NAME =
+      org.apache.accumulo.core.replication.ReplicationTable.NAME;
 
   @BeforeClass
   public static void setupContext() {

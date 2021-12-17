@@ -64,9 +64,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
-import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
-import org.apache.accumulo.core.replication.ReplicationTable;
-import org.apache.accumulo.core.replication.ReplicationTableOfflineException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -83,7 +80,6 @@ import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockWatcher;
 import org.apache.accumulo.gc.metrics.GcCycleMetrics;
 import org.apache.accumulo.gc.metrics.GcMetrics;
-import org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -424,8 +420,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     public Iterator<Entry<String,Status>> getReplicationNeededIterator() {
       AccumuloClient client = getContext();
       try {
-        Scanner s = ReplicationTable.getScanner(client);
-        StatusSection.limit(s);
+        Scanner s = org.apache.accumulo.core.replication.ReplicationTable.getScanner(client);
+        org.apache.accumulo.core.replication.ReplicationSchema.StatusSection.limit(s);
         return Iterators.transform(s.iterator(), input -> {
           String file = input.getKey().getRow().toString();
           Status stat;
@@ -437,7 +433,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           }
           return Maps.immutableEntry(file, stat);
         });
-      } catch (ReplicationTableOfflineException e) {
+      } catch (org.apache.accumulo.core.replication.ReplicationTableOfflineException e) {
         // No elements that we need to preclude
         return Collections.emptyIterator();
       }
@@ -532,7 +528,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           Span replSpan = TraceUtil.startSpan(this.getClass(), "replicationClose");
           try (Scope replScope = replSpan.makeCurrent()) {
             @SuppressWarnings("deprecation")
-            CloseWriteAheadLogReferences closeWals = new CloseWriteAheadLogReferences(getContext());
+            Runnable closeWals =
+                new org.apache.accumulo.gc.replication.CloseWriteAheadLogReferences(getContext());
             closeWals.run();
           } catch (Exception e) {
             TraceUtil.setException(replSpan, e, false);

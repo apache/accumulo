@@ -241,10 +241,8 @@ public enum Property {
       "The maximum size of a message that can be sent to a server.", "1.5.0"),
   @Experimental
   GENERAL_OPENTELEMETRY_ENABLED("general.opentelemetry.enabled", "false", PropertyType.BOOLEAN,
-      "Enables tracing functionality using OpenTelemetry.", "2.1.0"),
-  @Experimental
-  GENERAL_OPENTELEMETRY_FACTORY("general.opentelemetry.factory", "", PropertyType.CLASSNAME,
-      "Name of class that implements OpenTelemetryFactory", "2.1.0"),
+      "Enables tracing functionality using OpenTelemetry (assuming OpenTelemetry is configured).",
+      "2.1.0"),
   GENERAL_SIMPLETIMER_THREADPOOL_SIZE("general.server.simpletimer.threadpool.size", "1",
       PropertyType.COUNT, "The number of threads to use for " + "server-internal scheduled tasks",
       "1.7.0"),
@@ -971,7 +969,7 @@ public enum Property {
       "1.3.5"),
   TABLE_FILE_COMPRESSION_TYPE("table.file.compress.type", "gz", PropertyType.STRING,
       "Compression algorithm used on index and data blocks before they are"
-          + " written. Possible values: zstd, gz, snappy, lzo, none",
+          + " written. Possible values: zstd, gz, snappy, bzip2, lzo, lz4, none",
       "1.3.5"),
   TABLE_FILE_COMPRESSED_BLOCK_SIZE("table.file.compress.blocksize", "100k", PropertyType.BYTES,
       "The maximum size of data blocks in RFiles before they are compressed and written.", "1.3.5"),

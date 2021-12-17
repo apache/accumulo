@@ -19,28 +19,25 @@
 package org.apache.accumulo.server.conf;
 
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.StringReader;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
+import java.util.Set;
 
 import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
-import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
-import org.apache.accumulo.core.spi.compaction.ExecutorManager;
-import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
+import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
+import org.apache.accumulo.core.util.ConfigurationImpl;
+import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
+import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
-import com.google.common.collect.Iterables;
 
 @AutoService(KeywordExecutable.class)
 public class CheckCompactionConfig implements KeywordExecutable {
@@ -62,12 +59,12 @@ public class CheckCompactionConfig implements KeywordExecutable {
     return "Checks compaction config";
   }
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws Exception {
     new CheckCompactionConfig().execute(args);
   }
 
   @Override
-  public void execute(String[] args) throws IOException {
+  public void execute(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs("accumulo check-compaction-config", args);
 
@@ -79,73 +76,72 @@ public class CheckCompactionConfig implements KeywordExecutable {
     if (!path.toFile().exists())
       throw new FileNotFoundException("File at given path could not be found");
 
-    // Extract properties from props file at given path
-    Properties allProps = ClientInfoImpl.toProperties(path);
-    log.debug("All props: {}", allProps);
+    AccumuloConfiguration config = SiteConfiguration.fromFile(path.toFile()).build();
+    var servicesConfig = new CompactionServicesConfig(config, log::warn);
+    ServiceEnvironment senv = createServiceEnvironment(config);
 
-    // Extract server props from set of all props
-    Map<String,String> serverPropsMap = getPropertiesWithSuffix(allProps, ".accumulo.server.props");
-
-    // Ensure there is exactly one server prop in the map and get its value
-    // The value should be compaction properties
-    String compactionPropertiesString = Iterables.getOnlyElement(serverPropsMap.values());
-
-    // Create a props object for compaction props
-    StringReader sr = new StringReader(compactionPropertiesString.replace(' ', '\n'));
-    Properties serverProps = new Properties();
-    serverProps.load(sr);
-
-    // Extract executors options from compactions props
-    Map<String,String> executorsProperties =
-        getPropertiesWithSuffix(serverProps, ".planner.opts.executors");
-
-    for (String executorJson : executorsProperties.values()) {
-
-      CompactionPlanner.InitParameters params = new CompactionPlanner.InitParameters() {
-        @Override
-        public ServiceEnvironment getServiceEnvironment() {
-          return null;
-        }
-
-        @Override
-        public Map<String,String> getOptions() {
-          return Map.of("executors", executorJson);
-        }
-
-        @Override
-        public String getFullyQualifiedOption(String key) {
-          return null;
-        }
-
-        @Override
-        public ExecutorManager getExecutorManager() {
-          return new ExecutorManager() {
-            @Override
-            public CompactionExecutorId createExecutor(String name, int threads) {
-              return CompactionExecutorIdImpl.externalId(name);
-            }
-
-            @Override
-            public CompactionExecutorId getExternalExecutor(String name) {
-              return CompactionExecutorIdImpl.externalId(name);
-            }
-          };
-        }
-      };
-
-      new DefaultCompactionPlanner().parseExecutors(params);
+    Set<String> defaultServices = Set.of("default", "meta", "root");
+    if (servicesConfig.getPlanners().keySet().equals(defaultServices)) {
+      throw new IllegalArgumentException("Only the default compaction services were created");
     }
+
+    for (var entry : servicesConfig.getPlanners().entrySet()) {
+      String serviceId = entry.getKey();
+      String plannerClassName = entry.getValue();
+
+      log.info("Service id: {}, planner class:{}", serviceId, plannerClassName);
+
+      Class<? extends CompactionPlanner> plannerClass =
+          Class.forName(plannerClassName).asSubclass(CompactionPlanner.class);
+      CompactionPlanner planner = plannerClass.getDeclaredConstructor().newInstance();
+
+      var initParams = new CompactionPlannerInitParams(CompactionServiceId.of(serviceId),
+          servicesConfig.getOptions().get(serviceId), senv);
+
+      planner.init(initParams);
+
+      initParams.getRequestedExecutors()
+          .forEach((execId, numThreads) -> log.info(
+              "Compaction service '{}' requested creation of thread pool '{}' with {} threads.",
+              serviceId, execId, numThreads));
+
+      initParams.getRequestedExternalExecutors()
+          .forEach(execId -> log.info(
+              "Compaction service '{}' requested with external execution queue '{}'", serviceId,
+              execId));
+
+    }
+
     log.info("Properties file has passed all checks.");
   }
 
-  private static Map<String,String> getPropertiesWithSuffix(Properties serverProps, String suffix) {
-    final Map<String,String> map = new HashMap<>();
-    log.debug("Retrieving properties that end with '{}'", suffix);
-    serverProps.forEach((k, v) -> {
-      log.debug("{}={}", k, v);
-      if (k.toString().endsWith(suffix))
-        map.put((String) k, (String) v);
-    });
-    return map;
+  private ServiceEnvironment createServiceEnvironment(AccumuloConfiguration config) {
+    return new ServiceEnvironment() {
+
+      @Override
+      public <T> T instantiate(TableId tableId, String className, Class<T> base) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public <T> T instantiate(String className, Class<T> base) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public String getTableName(TableId tableId) {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public Configuration getConfiguration(TableId tableId) {
+        return new ConfigurationImpl(config);
+      }
+
+      @Override
+      public Configuration getConfiguration() {
+        return new ConfigurationImpl(config);
+      }
+    };
   }
 }

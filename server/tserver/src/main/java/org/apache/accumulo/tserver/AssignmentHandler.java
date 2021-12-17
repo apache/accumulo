@@ -25,9 +25,12 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.manager.state.Assignment;
@@ -45,6 +48,7 @@ import org.slf4j.LoggerFactory;
 
 class AssignmentHandler implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(AssignmentHandler.class);
+  private static final String METADATA_ISSUE = "Saw metadata issue when loading tablet : ";
   private final KeyExtent extent;
   private final int retryAttempt;
   private final TabletServer server;
@@ -102,7 +106,7 @@ class AssignmentHandler implements Runnable {
     try {
       tabletMetadata = server.getContext().getAmple().readTablet(extent);
 
-      canLoad = TabletServer.checkTabletMetadata(extent, server.getTabletSession(), tabletMetadata);
+      canLoad = checkTabletMetadata(extent, server.getTabletSession(), tabletMetadata);
 
       if (canLoad && tabletMetadata.sawOldPrevEndRow()) {
         KeyExtent fixedExtent =
@@ -232,5 +236,44 @@ class AssignmentHandler implements Runnable {
         }
       }, reschedule, TimeUnit.MILLISECONDS);
     }
+  }
+
+  public static boolean checkTabletMetadata(KeyExtent extent, TServerInstance instance,
+      TabletMetadata meta) throws AccumuloException {
+
+    if (meta == null) {
+      log.info(METADATA_ISSUE + "{}, its metadata was not found.", extent);
+      return false;
+    }
+
+    if (!meta.sawPrevEndRow()) {
+      throw new AccumuloException(METADATA_ISSUE + "metadata entry does not have prev row ("
+          + meta.getTableId() + " " + meta.getEndRow() + ")");
+    }
+
+    if (!extent.equals(meta.getExtent())) {
+      log.info(METADATA_ISSUE + "tablet extent mismatch {} {}", extent, meta.getExtent());
+      return false;
+    }
+
+    if (meta.getDirName() == null) {
+      throw new AccumuloException(
+          METADATA_ISSUE + "metadata entry does not have directory (" + meta.getExtent() + ")");
+    }
+
+    if (meta.getTime() == null && !extent.equals(RootTable.EXTENT)) {
+      throw new AccumuloException(
+          METADATA_ISSUE + "metadata entry does not have time (" + meta.getExtent() + ")");
+    }
+
+    TabletMetadata.Location loc = meta.getLocation();
+
+    if (loc == null || loc.getType() != TabletMetadata.LocationType.FUTURE
+        || !instance.equals(loc)) {
+      log.info(METADATA_ISSUE + "Unexpected location {} {}", extent, loc);
+      return false;
+    }
+
+    return true;
   }
 }
