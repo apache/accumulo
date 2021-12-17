@@ -662,7 +662,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       }
     }
     sb.append("-\n");
-    writer.print(sb.toString());
+    writer.print(sb);
   }
 
   public String getDefaultPrompt() {

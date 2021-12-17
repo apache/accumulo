@@ -148,11 +148,11 @@ public class GetManagerStats {
     }
   }
 
-  private static void out(int indent, String string, Object... args) {
+  private static void out(int indent, String fmtString, Object... args) {
     for (int i = 0; i < indent; i++) {
       System.out.print(" ");
     }
-    System.out.println(String.format(string, args));
+    System.out.printf(fmtString + "%n", args);
   }
 
 }

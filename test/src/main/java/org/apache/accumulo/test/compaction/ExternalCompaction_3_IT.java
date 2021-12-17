@@ -179,6 +179,10 @@ public class ExternalCompaction_3_IT extends AccumuloClusterHarness
       }
       assertTrue(matches > 0);
 
+      // Delete the table to cancel the running compaction, else the ExternalDoNothingCompactor
+      // will run forever
+      client.tableOperations().delete(table1);
+
     }
   }
 

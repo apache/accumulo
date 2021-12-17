@@ -359,10 +359,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE,
                 "offlineTable", OLD_TEST_TABLE_NAME)));
-    assertEquals(1,
-        findAuditMessage(auditMessages,
-            String.format(AuditedSecurityOperation.CAN_EXPORT_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME,
-                exportDir.toString())));
+    assertEquals(1, findAuditMessage(auditMessages, String.format(
+        AuditedSecurityOperation.CAN_EXPORT_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME, exportDir)));
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_IMPORT_AUDIT_TEMPLATE, NEW_TEST_TABLE_NAME,

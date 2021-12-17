@@ -92,6 +92,6 @@ public class PrintableTable {
 
     int[][] data = {{0, 3, 1, 0, 0, 0}, {2, 0, 0, 0, 0, 0}, {2, 0, 4, 0, 0, 0}};
 
-    System.out.println(new PrintableTable(columns, rows, data).toString());
+    System.out.println(new PrintableTable(columns, rows, data));
   }
 }

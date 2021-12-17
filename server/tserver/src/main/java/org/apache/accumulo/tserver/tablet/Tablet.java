@@ -82,6 +82,7 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.security.Authorizations;
@@ -1401,12 +1402,7 @@ public class Tablet {
         throw new RuntimeException(msg);
       }
 
-      if (!tabletMeta.getFilesMap().equals(getDatafileManager().getDatafileSizes())) {
-        String msg = "Data files in differ from in memory data " + extent + "  "
-            + tabletMeta.getFilesMap() + "  " + getDatafileManager().getDatafileSizes();
-        log.error(msg);
-        throw new RuntimeException(msg);
-      }
+      compareToDataInMemory(tabletMeta);
     } catch (Exception e) {
       String msg = "Failed to do close consistency check for tablet " + extent;
       log.error(msg, e);
@@ -1422,6 +1418,25 @@ public class Tablet {
     }
 
     // TODO check lastFlushID and lostCompactID - ACCUMULO-1290
+  }
+
+  private void compareToDataInMemory(TabletMetadata tabletMetadata) {
+    if (!tabletMetadata.getFilesMap().equals(getDatafileManager().getDatafileSizes())) {
+      String msg = "Data files in " + extent + " differ from in-memory data "
+          + tabletMetadata.getFilesMap() + " " + getDatafileManager().getDatafileSizes();
+      log.error(msg);
+    }
+  }
+
+  public synchronized void compareTabletInfo(Long updateCounter, TabletMetadata tabletMetadata) {
+    if (isClosed() || isClosing()) {
+      return;
+    }
+    // if the counter didn't change, compare metadata to what is in memory
+    if (updateCounter == this.getUpdateCount()) {
+      this.compareToDataInMemory(tabletMetadata);
+    }
+    // if counter did change, don't compare metadata and try again later
   }
 
   /**
@@ -2232,6 +2247,10 @@ public class Tablet {
 
   DatafileManager getDatafileManager() {
     return datafileManager;
+  }
+
+  public synchronized long getUpdateCount() {
+    return getDatafileManager().getUpdateCount();
   }
 
   TabletMemory getTabletMemory() {

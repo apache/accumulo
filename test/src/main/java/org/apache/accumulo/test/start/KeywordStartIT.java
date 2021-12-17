@@ -36,6 +36,7 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.compactor.CompactorExecutable;
 import org.apache.accumulo.coordinator.CoordinatorExecutable;
+import org.apache.accumulo.core.file.rfile.GenerateSplits;
 import org.apache.accumulo.core.file.rfile.PrintInfo;
 import org.apache.accumulo.core.util.CreateToken;
 import org.apache.accumulo.core.util.Help;
@@ -111,6 +112,7 @@ public class KeywordStartIT {
     expectSet.put("convert-config", ConvertConfig.class);
     expectSet.put("create-token", CreateToken.class);
     expectSet.put("gc", GCExecutable.class);
+    expectSet.put("generate-splits", GenerateSplits.class);
     expectSet.put("help", Help.class);
     expectSet.put("info", Info.class);
     expectSet.put("init", Initialize.class);

@@ -18,55 +18,45 @@
  */
 package org.apache.accumulo.monitor.rest.compactions.external;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
+import jakarta.validation.constraints.NotNull;
+
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.tabletserver.thrift.InputFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RunningCompactorInfo extends CompactorInfo {
-  private static Logger log = LoggerFactory.getLogger(RunningCompactorInfo.class);
+  private static final Logger log = LoggerFactory.getLogger(RunningCompactorInfo.class);
 
   // Variable names become JSON keys
   public String ecid;
   public String kind;
   public String tableId;
-  public List<CompactionInputFile> inputFiles;
   public int numFiles;
-  public String outputFile;
   public float progress = 0f;
   public long duration;
   public String status;
   public long lastUpdate;
 
-  public RunningCompactorInfo(long fetchedTime, String ecid, TExternalCompaction ec) {
+  public RunningCompactorInfo() {
+    super();
+  }
+
+  public RunningCompactorInfo(long fetchedTime, String ecid, @NotNull TExternalCompaction ec) {
     super(fetchedTime, ec.getQueueName(), ec.getCompactor());
     this.ecid = ecid;
     var updates = ec.getUpdates();
     var job = ec.getJob();
     kind = job.getKind().name();
     tableId = KeyExtent.fromThrift(job.extent).tableId().canonical();
-    inputFiles = convertInputFiles(job.files);
-    numFiles = inputFiles.size();
-    outputFile = job.outputFile;
+    numFiles = job.files.size();
     updateProgress(updates);
     log.debug("Parsed running compaction {} for {} with progress = {}%", status, ecid, progress);
-  }
-
-  private List<CompactionInputFile> convertInputFiles(List<InputFile> files) {
-    List<CompactionInputFile> list = new ArrayList<>();
-    files.forEach(f -> list
-        .add(new CompactionInputFile(f.metadataFileEntry, f.size, f.entries, f.timestamp)));
-    // sorted largest to smallest
-    list.sort((o1, o2) -> Long.compare(o2.size, o1.size));
-    return list;
   }
 
   /**

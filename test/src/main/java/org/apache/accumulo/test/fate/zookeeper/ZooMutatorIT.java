@@ -75,7 +75,7 @@ public class ZooMutatorIT {
   public void concurrentMutatorTest() throws Exception {
 
     try (ZooKeeperTestingServer szk = new ZooKeeperTestingServer()) {
-      szk.initPaths("/accumulo/" + UUID.randomUUID().toString());
+      szk.initPaths("/accumulo/" + UUID.randomUUID());
       ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 10_0000, "aPasswd");
 
       var executor = Executors.newFixedThreadPool(16);

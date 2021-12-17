@@ -69,10 +69,12 @@ class DatafileManager {
   // ensure we only have one reader/writer of our bulk file notes at at time
   private final Object bulkFileImportLock = new Object();
 
+  // This must be incremented whenever datafileSizes is mutated
+  private long updateCount;
+
   DatafileManager(Tablet tablet, SortedMap<StoredTabletFile,DataFileValue> datafileSizes) {
-    for (Entry<StoredTabletFile,DataFileValue> datafiles : datafileSizes.entrySet()) {
-      this.datafileSizes.put(datafiles.getKey(), datafiles.getValue());
-    }
+    this.datafileSizes.putAll(datafileSizes);
+    this.updateCount = 0L;
     this.tablet = tablet;
   }
 
@@ -260,6 +262,7 @@ class DatafileManager {
         }
         datafileSizes.put(tpath.getKey(), tpath.getValue());
       }
+      updateCount++;
 
       tablet.getTabletResources().importedMapFiles();
 
@@ -386,6 +389,7 @@ class DatafileManager {
           log.error("Adding file that is already in set {}", newFileStored);
         }
         datafileSizes.put(newFileStored, dfv);
+        updateCount++;
       }
 
       tablet.flushComplete(flushId);
@@ -456,6 +460,7 @@ class DatafileManager {
         datafileSizes.put(newFile, dfv);
         // could be used by a follow on compaction in a multipass compaction
       }
+      updateCount++;
 
       tablet.computeNumEntries();
 
@@ -502,6 +507,10 @@ class DatafileManager {
 
   public int getNumFiles() {
     return datafileSizes.size();
+  }
+
+  public long getUpdateCount() {
+    return updateCount;
   }
 
 }

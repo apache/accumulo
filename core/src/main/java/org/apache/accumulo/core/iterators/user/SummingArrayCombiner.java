@@ -225,7 +225,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
       StringBuilder sb = new StringBuilder(Long.toString(la.get(0)));
       for (int i = 1; i < la.size(); i++) {
         sb.append(",");
-        sb.append(Long.toString(la.get(i)));
+        sb.append(la.get(i));
       }
       return sb.toString().getBytes(UTF_8);
     }

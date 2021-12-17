@@ -89,9 +89,8 @@ public class TotalQueuedIT extends ConfigurableMacBase {
       double secs = diff / 1000.;
       double syncs = bytesSent / SMALL_QUEUE_SIZE;
       double syncsPerSec = syncs / secs;
-      System.out.println(
-          String.format("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)",
-              bytesSent, secs, ((long) syncs), syncsPerSec));
+      System.out.printf("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)%n",
+          bytesSent, secs, ((long) syncs), syncsPerSec);
       long update = getSyncs(c);
       System.out.println("Syncs " + (update - realSyncs));
       realSyncs = update;
@@ -116,9 +115,8 @@ public class TotalQueuedIT extends ConfigurableMacBase {
       secs = diff / 1000.;
       syncs = bytesSent / LARGE_QUEUE_SIZE;
       syncsPerSec = syncs / secs;
-      System.out.println(
-          String.format("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)",
-              bytesSent, secs, ((long) syncs), syncsPerSec));
+      System.out.printf("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)%n",
+          bytesSent, secs, ((long) syncs), syncsPerSec);
       update = getSyncs(c);
       System.out.println("Syncs " + (update - realSyncs));
       assertTrue(update - realSyncs < realSyncs);

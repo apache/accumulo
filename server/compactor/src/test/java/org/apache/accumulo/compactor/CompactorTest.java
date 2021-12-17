@@ -220,6 +220,9 @@ public class CompactorTest {
     }
 
     @Override
+    protected synchronized void checkIfCanceled() {}
+
+    @Override
     protected Runnable createCompactionJob(TExternalCompactionJob job, LongAdder totalInputEntries,
         LongAdder totalInputBytes, CountDownLatch started, CountDownLatch stopped,
         AtomicReference<Throwable> err) {
@@ -337,6 +340,7 @@ public class CompactorTest {
     EasyMock.expect(conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT)).andReturn(86400000L);
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
+    EasyMock.expect(context.getConfiguration()).andReturn(conf);
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
     EasyMock.expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
@@ -390,6 +394,7 @@ public class CompactorTest {
     EasyMock.expect(conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT)).andReturn(86400000L);
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
+    EasyMock.expect(context.getConfiguration()).andReturn(conf);
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
     EasyMock.expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
@@ -443,6 +448,7 @@ public class CompactorTest {
     EasyMock.expect(conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT)).andReturn(86400000L);
 
     ServerContext context = PowerMock.createNiceMock(ServerContext.class);
+    EasyMock.expect(context.getConfiguration()).andReturn(conf);
     ZooReaderWriter zrw = PowerMock.createNiceMock(ZooReaderWriter.class);
     ZooKeeper zk = PowerMock.createNiceMock(ZooKeeper.class);
     EasyMock.expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();

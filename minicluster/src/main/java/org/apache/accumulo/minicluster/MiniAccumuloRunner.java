@@ -134,7 +134,7 @@ public class MiniAccumuloRunner {
     }
   }
 
-  private static final String FORMAT_STRING = "  %-21s %s";
+  private static final String FORMAT_STRING = "  %-21s %s%n";
 
   public static class Opts extends Help {
     @Parameter(names = "-p", required = false, description = "properties file name",
@@ -288,22 +288,19 @@ public class MiniAccumuloRunner {
 
   private static void printInfo(MiniAccumuloCluster accumulo, int shutdownPort) {
     System.out.println("Mini Accumulo Cluster\n");
-    System.out.println(String.format(FORMAT_STRING, "Directory:",
-        accumulo.getConfig().getDir().getAbsoluteFile()));
-    System.out.println(String.format(FORMAT_STRING, "Logs:",
-        accumulo.getConfig().getImpl().getLogDir().getAbsoluteFile()));
-    System.out.println(
-        String.format(FORMAT_STRING, "Instance Name:", accumulo.getConfig().getInstanceName()));
-    System.out.println(
-        String.format(FORMAT_STRING, "Root Password:", accumulo.getConfig().getRootPassword()));
-    System.out.println(String.format(FORMAT_STRING, "ZooKeeper:", accumulo.getZooKeepers()));
+    System.out.printf(FORMAT_STRING, "Directory:", accumulo.getConfig().getDir().getAbsoluteFile());
+    System.out.printf(FORMAT_STRING, "Logs:",
+        accumulo.getConfig().getImpl().getLogDir().getAbsoluteFile());
+    System.out.printf(FORMAT_STRING, "Instance Name:", accumulo.getConfig().getInstanceName());
+    System.out.printf(FORMAT_STRING, "Root Password:", accumulo.getConfig().getRootPassword());
+    System.out.printf(FORMAT_STRING, "ZooKeeper:", accumulo.getZooKeepers());
 
     for (Pair<ServerType,Integer> pair : accumulo.getDebugPorts()) {
-      System.out.println(String.format(FORMAT_STRING, pair.getFirst().prettyPrint() + " JDWP Host:",
-          "localhost:" + pair.getSecond()));
+      System.out.printf(FORMAT_STRING, pair.getFirst().prettyPrint() + " JDWP Host:",
+          "localhost:" + pair.getSecond());
     }
 
-    System.out.println(String.format(FORMAT_STRING, "Shutdown Port:", shutdownPort));
+    System.out.printf(FORMAT_STRING, "Shutdown Port:", shutdownPort);
 
     System.out.println();
     System.out.println("  To connect with shell, use the following command : ");

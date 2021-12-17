@@ -328,7 +328,7 @@ public class WebViews {
   public Map<String,Object> getTracesSummary(
       @QueryParam("minutes") @DefaultValue("10") @Min(0) @Max(2592000) int minutes) {
     Map<String,Object> model = getModel();
-    model.put("title", "Traces for the last&nbsp;" + String.valueOf(minutes) + "&nbsp;minute(s)");
+    model.put("title", "Traces for the last&nbsp;" + minutes + "&nbsp;minute(s)");
 
     model.put("template", "summary.ftl");
     model.put("js", "summary.js");
@@ -353,8 +353,7 @@ public class WebViews {
       @QueryParam("type") @NotNull @Pattern(regexp = RESOURCE_REGEX) String type,
       @QueryParam("minutes") @DefaultValue("10") @Min(0) @Max(2592000) int minutes) {
     Map<String,Object> model = getModel();
-    model.put("title",
-        "Traces for " + type + " for the last " + String.valueOf(minutes) + " minute(s)");
+    model.put("title", "Traces for " + type + " for the last " + minutes + " minute(s)");
 
     model.put("template", "listType.ftl");
     model.put("js", "listType.js");

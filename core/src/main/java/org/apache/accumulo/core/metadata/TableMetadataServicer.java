@@ -77,7 +77,7 @@ abstract class TableMetadataServicer extends MetadataServicer {
     Text colf = new Text();
     Text colq = new Text();
 
-    KeyExtent currentKeyExtent = null;
+    KeyExtent currentKeyExtent;
     String location = null;
     Text row = null;
     // acquire this table's tablets from the metadata table which services it
