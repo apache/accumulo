@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static com.google.common.base.Preconditions.checkState;
+import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
@@ -34,6 +35,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
@@ -78,6 +80,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 /**
@@ -112,7 +115,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
       if (extents != null) {
         // setting multiple extents with forTablets(extents) is mutually exclusive with these
         // single-tablet options
-        checkState(range == null && table == null && level == DataLevel.USER && !checkConsistency);
+        checkState(range == null && table == null && level == null && !checkConsistency);
         return buildExtents(_client);
       }
 
@@ -128,44 +131,62 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     private TabletsMetadata buildExtents(AccumuloClient client) {
 
-      try {
-        BatchScanner scanner = client.createBatchScanner(level.metaTable(), Authorizations.EMPTY);
+      Map<DataLevel,List<KeyExtent>> groupedExtents =
+          extents.stream().collect(groupingBy(ke -> DataLevel.of(ke.tableId())));
 
-        var ranges = extents.stream().map(KeyExtent::toMetaRange).collect(toList());
-        scanner.setRanges(ranges);
+      List<Iterable<TabletMetadata>> iterables = new ArrayList<>();
 
-        boolean extentsPresent = extentsToFetch != null;
+      List<AutoCloseable> closables = new ArrayList<>();
 
-        if (!fetchedCols.isEmpty() && extentsPresent)
-          fetch(ColumnType.PREV_ROW);
+      Preconditions.checkState(extentsToFetch != null);
 
-        configureColumns(scanner);
-        IteratorSetting iterSetting = new IteratorSetting(100, WholeRowIterator.class);
-        scanner.addScanIterator(iterSetting);
+      if (!fetchedCols.isEmpty())
+        fetch(ColumnType.PREV_ROW);
 
-        Iterable<TabletMetadata> tmi = () -> {
-          Iterator<TabletMetadata> iter = Iterators.transform(scanner.iterator(), entry -> {
-            try {
-              return TabletMetadata.convertRow(WholeRowIterator
-                  .decodeRow(entry.getKey(), entry.getValue()).entrySet().iterator(), fetchedCols,
-                  saveKeyValues);
-            } catch (IOException e) {
-              throw new UncheckedIOException(e);
-            }
-          });
+      for (DataLevel level : groupedExtents.keySet()) {
+        if (level == DataLevel.ROOT) {
+          iterables.add(() -> Iterators
+              .singletonIterator(getRootMetadata((ClientContext) client, readConsistency)));
+        } else {
+          try {
+            BatchScanner scanner =
+                client.createBatchScanner(level.metaTable(), Authorizations.EMPTY);
 
-          if (extentsPresent) {
-            return Iterators.filter(iter,
-                tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent()));
-          } else {
-            return iter;
+            var ranges =
+                groupedExtents.get(level).stream().map(KeyExtent::toMetaRange).collect(toList());
+            scanner.setRanges(ranges);
+
+            configureColumns(scanner);
+            IteratorSetting iterSetting = new IteratorSetting(100, WholeRowIterator.class);
+            scanner.addScanIterator(iterSetting);
+
+            Iterable<TabletMetadata> tmi = () -> Iterators.transform(scanner.iterator(), entry -> {
+              try {
+                return TabletMetadata.convertRow(WholeRowIterator
+                    .decodeRow(entry.getKey(), entry.getValue()).entrySet().iterator(), fetchedCols,
+                    saveKeyValues);
+              } catch (IOException e) {
+                throw new UncheckedIOException(e);
+              }
+            });
+
+            iterables.add(tmi);
+            closables.add(scanner);
+
+          } catch (TableNotFoundException e) {
+            throw new RuntimeException(e);
           }
-        };
 
-        return new TabletsMetadata(scanner, tmi);
-      } catch (TableNotFoundException e) {
-        throw new RuntimeException(e);
+        }
       }
+
+      return new TabletsMetadata(() -> {
+        for (AutoCloseable closable : closables) {
+          closable.close();
+        }
+      }, Iterables.filter(Iterables.concat(iterables),
+          tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent())));
+
     }
 
     private TabletsMetadata buildNonRoot(AccumuloClient client) {
@@ -321,13 +342,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
     @Override
     public Options forTablets(Collection<KeyExtent> extents) {
-      if (extents.stream().map(KeyExtent::tableId).map(DataLevel::of)
-          .anyMatch(dl -> dl != DataLevel.USER)) {
-        throw new IllegalArgumentException(
-            "readTablets only supported for user tablets at this time.");
-      }
-
-      this.level = DataLevel.USER;
+      this.level = null;
       this.extents = extents;
       this.extentsToFetch = Set.copyOf(extents);
       return this;
@@ -512,24 +527,31 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         .convertToTabletMetadata();
   }
 
-  private final ScannerBase scanner;
+  private final AutoCloseable closeable;
 
   private final Iterable<TabletMetadata> tablets;
 
   private TabletsMetadata(TabletMetadata tm) {
-    this.scanner = null;
+    this.closeable = null;
     this.tablets = Collections.singleton(tm);
   }
 
-  private TabletsMetadata(ScannerBase scanner, Iterable<TabletMetadata> tmi) {
-    this.scanner = scanner;
+  private TabletsMetadata(AutoCloseable closeable, Iterable<TabletMetadata> tmi) {
+    this.closeable = closeable;
     this.tablets = tmi;
   }
 
   @Override
   public void close() {
-    if (scanner != null) {
-      scanner.close();
+    if (closeable != null) {
+      try {
+        closeable.close();
+      } catch (RuntimeException e) {
+        // avoid wrapping runtime w/ runtime
+        throw e;
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 
