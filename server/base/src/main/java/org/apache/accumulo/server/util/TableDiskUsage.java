@@ -214,10 +214,8 @@ public class TableDiskUsage {
     for (TableId tableId : tablesReferenced) {
       for (String tableDir : nameSpacesReferenced) {
         // Find each file and add its size
-
-        Path path = new Path(tableDir + "/" + tableId + "/*/*");
-        RemoteIterator<LocatedFileStatus> ri = fs.listStatus(path, false);
-
+        Path path = new Path(tableDir + "/" + tableId);
+        RemoteIterator<LocatedFileStatus> ri = fs.listStatus(path, true);
         while (ri.hasNext()) {
           FileStatus status = ri.next();
           String name = status.getPath().getName();
