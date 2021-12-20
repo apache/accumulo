@@ -46,7 +46,7 @@ public class ECResource {
   @GET
   public CoordinatorInfo getCoordinator() {
     var cc = monitor.getCompactorsInfo();
-    log.info("Got coordinator from monitor = {}", cc);
+    log.info("Got coordinator from monitor = {}", cc.getCoordinatorHost());
     return new CoordinatorInfo(cc.getCoordinatorHost(), cc);
   }
 
