@@ -19,15 +19,18 @@
 package org.apache.accumulo.tserver.metrics;
 
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
 
 import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 
 public class TabletServerScanMetrics implements MetricsProducer {
 
+  private final AtomicInteger openFiles = new AtomicInteger(0);
   private Timer scans;
   private DistributionSummary resultsPerScan;
   private DistributionSummary yields;
@@ -44,8 +47,18 @@ public class TabletServerScanMetrics implements MetricsProducer {
     yields.record(value);
   }
 
+  public void incrementOpenFiles(int numOpenFiles) {
+    openFiles.addAndGet(numOpenFiles);
+  }
+
+  public void decrementOpenFiles(int numOpenFiles) {
+    openFiles.addAndGet(numOpenFiles);
+  }
+
   @Override
   public void registerMetrics(MeterRegistry registry) {
+    Gauge.builder(METRICS_SCAN_OPEN_FILES, openFiles::get)
+        .description("Number of files open for scans").register(registry);
     scans = Timer.builder(METRICS_SCAN).description("Scans").register(registry);
     resultsPerScan = DistributionSummary.builder(METRICS_SCAN_RESULTS)
         .description("Results per scan").register(registry);
