@@ -23,6 +23,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
 
+import com.google.common.base.Preconditions;
+
 import io.micrometer.core.instrument.DistributionSummary;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -47,12 +49,13 @@ public class TabletServerScanMetrics implements MetricsProducer {
     yields.record(value);
   }
 
-  public void incrementOpenFiles(int numOpenFiles) {
-    openFiles.addAndGet(numOpenFiles);
+  public void incrementOpenFiles(int delta) {
+    Preconditions.checkArgument(delta > 0, "Parameter must be positive");
+    openFiles.addAndGet(delta);
   }
 
-  public void decrementOpenFiles(int numOpenFiles) {
-    openFiles.addAndGet(numOpenFiles < 0 ? numOpenFiles : numOpenFiles * -1);
+  public void decrementOpenFiles(int delta) {
+    openFiles.addAndGet(delta < 0 ? delta : delta * -1);
   }
 
   @Override
