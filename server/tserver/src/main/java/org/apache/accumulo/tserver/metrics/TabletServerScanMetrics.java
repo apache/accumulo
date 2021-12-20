@@ -52,7 +52,7 @@ public class TabletServerScanMetrics implements MetricsProducer {
   }
 
   public void decrementOpenFiles(int numOpenFiles) {
-    openFiles.addAndGet(numOpenFiles > 0 ? numOpenFiles : numOpenFiles * -1);
+    openFiles.addAndGet(numOpenFiles < 0 ? numOpenFiles : numOpenFiles * -1);
   }
 
   @Override
