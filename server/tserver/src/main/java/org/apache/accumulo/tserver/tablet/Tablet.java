@@ -1417,6 +1417,8 @@ public class Tablet {
       throw new RuntimeException(msg);
     }
 
+    // If a table hasn't been flushed before it was closed then lastFlushID will be -1 while
+    // getFlushID will be 0.
     try {
       long flushID = getFlushID();
       if (lastFlushID != 0 && flushID == 0) {
@@ -1425,9 +1427,13 @@ public class Tablet {
         throw new RuntimeException(msg);
       }
     } catch (NoNodeException e) {
-      e.printStackTrace();
+      String msg = "Failed to do close consistency check for tablet " + extent;
+      log.error(msg, e);
+      throw new RuntimeException(msg, e);
     }
 
+    // If a table hasn't been compacted before it was closed then lastCompactID will be -1 while
+    // getCompactionID will be 0.
     try {
       long compactID = getCompactionID().getFirst();
       if (lastCompactID != 0 && compactID == 0) {
@@ -1436,7 +1442,9 @@ public class Tablet {
         throw new RuntimeException(msg);
       }
     } catch (NoNodeException e) {
-      e.printStackTrace();
+      String msg = "Failed to do close consistency check for tablet " + extent;
+      log.error(msg, e);
+      throw new RuntimeException(msg, e);
     }
   }
 
