@@ -73,11 +73,11 @@ public class CompactionManager {
 
   private CompactionExecutorsMetrics ceMetrics;
 
+  private String lastDeprecationWarning = "";
+
   private Map<CompactionExecutorId,ExternalCompactionExecutor> externalExecutors;
 
   private Map<ExternalCompactionId,ExtCompInfo> runningExternalCompactions;
-
-  private String lastDeprecationWarning = "";
 
   static class ExtCompInfo {
     final KeyExtent extent;
