@@ -49,7 +49,7 @@ public class TabletServerScanMetrics implements MetricsProducer {
 
   public void incrementOpenFiles(int delta) {
     Math.max(0, delta);
-    openFiles.addAndGet(Math.max(0,delta));
+    openFiles.addAndGet(Math.max(0, delta));
   }
 
   public void decrementOpenFiles(int delta) {
