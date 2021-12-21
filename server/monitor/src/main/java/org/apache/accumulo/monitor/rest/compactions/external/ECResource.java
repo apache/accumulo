@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 @Path("/ec")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class ECResource {
-  private static Logger log = LoggerFactory.getLogger(ECResource.class);
+  private static final Logger log = LoggerFactory.getLogger(ECResource.class);
 
   @Inject
   private Monitor monitor;
