@@ -150,11 +150,6 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
       justification = "Field is written by Gson")
   @Override
   public void init(InitParameters params) {
-    parseExecutors(params);
-    determineMaxFilesToCompact(params);
-  }
-
-  public void parseExecutors(InitParameters params) {
     ExecutorConfig[] execConfigs =
         new Gson().fromJson(params.getOptions().get("executors"), ExecutorConfig[].class);
 
@@ -182,9 +177,9 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
         case "external":
           Preconditions.checkArgument(null == executorConfig.numThreads,
               "'numThreads' should not be specified for external compactions");
-          Objects.requireNonNull(executorConfig.queue,
+          String queue = Objects.requireNonNull(executorConfig.queue,
               "'queue' must be specified for external type");
-          ceid = params.getExecutorManager().getExternalExecutor(executorConfig.queue);
+          ceid = params.getExecutorManager().getExternalExecutor(queue);
           break;
         default:
           throw new IllegalArgumentException("type must be 'internal' or 'external'");
@@ -210,6 +205,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
             "Duplicate maxSize set in executors. " + params.getOptions().get("executors"));
       }
     });
+
+    determineMaxFilesToCompact(params);
   }
 
   @SuppressWarnings("removal")
