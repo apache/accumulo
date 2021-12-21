@@ -1412,12 +1412,32 @@ public class Tablet {
 
     if (!otherLogs.isEmpty() || !currentLogs.isEmpty() || !referencedLogs.isEmpty()) {
       String msg = "Closed tablet " + extent + " has walog entries in memory currentLogs = "
-          + currentLogs + "  otherLogs = " + otherLogs + " refererncedLogs = " + referencedLogs;
+          + currentLogs + "  otherLogs = " + otherLogs + " referencedLogs = " + referencedLogs;
       log.error(msg);
       throw new RuntimeException(msg);
     }
 
-    // TODO check lastFlushID and lostCompactID - ACCUMULO-1290
+    try {
+      long flushID = getFlushID();
+      if (lastFlushID != 0 && flushID == 0) {
+        String msg = "Closed tablet " + extent + " has not been flushed before being closed.";
+        log.error(msg);
+        throw new RuntimeException(msg);
+      }
+    } catch (NoNodeException e) {
+      e.printStackTrace();
+    }
+
+    try {
+      long compactID = getCompactionID().getFirst();
+      if (lastCompactID != 0 && compactID == 0) {
+        String msg = "Closed tablet " + extent + " has not been compacted before being closed.";
+        log.error(msg);
+        throw new RuntimeException(msg);
+      }
+    } catch (NoNodeException e) {
+      e.printStackTrace();
+    }
   }
 
   private void compareToDataInMemory(TabletMetadata tabletMetadata) {
