@@ -99,8 +99,10 @@ class ScanDataSource implements DataSource {
         fileReservationId = -1;
       }
 
-      if (fileManager != null)
+      if (fileManager != null) {
+        tablet.getTabletServer().getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
         fileManager.releaseOpenFiles(false);
+      }
 
       expectedDeletionCount = tablet.getDataSourceDeletions();
       iter = null;
@@ -142,6 +144,7 @@ class ScanDataSource implements DataSource {
       // only acquire the file manager when we know the tablet is open
       if (fileManager == null) {
         fileManager = tablet.getTabletResources().newScanFileManager(scanParams.getScanDispatch());
+        tablet.getTabletServer().getScanMetrics().incrementOpenFiles(fileManager.getNumOpenFiles());
         tablet.addActiveScans(this);
       }
 
@@ -243,6 +246,7 @@ class ScanDataSource implements DataSource {
     }
 
     if (fileManager != null) {
+      tablet.getTabletServer().getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
       fileManager.releaseOpenFiles(sawErrors);
       fileManager = null;
     }
