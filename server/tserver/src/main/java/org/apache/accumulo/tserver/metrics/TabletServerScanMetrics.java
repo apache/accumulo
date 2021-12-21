@@ -50,7 +50,7 @@ public class TabletServerScanMetrics implements MetricsProducer {
   }
 
   public void incrementOpenFiles(int delta) {
-    Preconditions.checkArgument(delta > 0, "Parameter must be positive");
+    Preconditions.checkArgument(delta >= 0, "Parameter must be zero or positive");
     openFiles.addAndGet(delta);
   }
 
