@@ -264,7 +264,7 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public RemoteIterator<LocatedFileStatus> listStatus(final Path path, final boolean recursive)
+  public RemoteIterator<LocatedFileStatus> listFiles(final Path path, final boolean recursive)
       throws IOException {
     return getFileSystemByPath(path).listFiles(path, recursive);
   }

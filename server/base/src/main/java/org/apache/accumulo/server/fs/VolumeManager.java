@@ -137,8 +137,8 @@ public interface VolumeManager extends AutoCloseable {
   // return the item in options that is in the same file system as source
   Path matchingFileSystem(Path source, Set<String> options);
 
-  // forward to appropriate FileSystem object.
-  RemoteIterator<LocatedFileStatus> listStatus(final Path path, final boolean recursive)
+  // forward to appropriate FileSystem object. Does not support globbing.
+  RemoteIterator<LocatedFileStatus> listFiles(final Path path, final boolean recursive)
       throws IOException;
 
   // forward to the appropriate FileSystem object
