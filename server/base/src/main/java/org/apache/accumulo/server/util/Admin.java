@@ -315,9 +315,8 @@ public class Admin implements KeywordExecutable {
   }
 
   /**
-   * flushing during shutdown is a performance optimization, its not required. The method will make
-   * an attempt to initiate flushes of all tables and give up if it takes too long.
-   *
+   * Flushing during shutdown is a performance optimization, it's not required. This method will
+   * attempt to initiate flushes of all tables and give up if it takes too long.
    */
   private static void flushAll(final ClientContext context) {
 
@@ -337,7 +336,7 @@ public class Admin implements KeywordExecutable {
           }
         }
       } catch (Exception e) {
-        log.warn("Failed to intiate flush {}", e.getMessage());
+        log.warn("Failed to initiate flush {}", e.getMessage());
       }
     };
 
