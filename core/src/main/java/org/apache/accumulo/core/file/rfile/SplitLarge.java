@@ -39,10 +39,12 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
 /**
  * Split an RFile into large and small key/value files.
  */
+@AutoService(KeywordExecutable.class)
 public class SplitLarge implements KeywordExecutable {
 
   static class Opts extends ConfigOpts {
