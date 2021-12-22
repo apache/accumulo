@@ -89,7 +89,7 @@ public class CreateEmpty implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "creates an empty rfile";
+    return "Creates an empty rfile";
   }
 
   @Override
