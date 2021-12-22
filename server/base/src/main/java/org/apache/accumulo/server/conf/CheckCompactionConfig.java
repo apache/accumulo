@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.conf;
 
 import java.io.FileNotFoundException;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.Set;
 
@@ -45,7 +46,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
   private final static Logger log = LoggerFactory.getLogger(CheckCompactionConfig.class);
 
   static class Opts extends Help {
-    @Parameter(description = "<path/to/props/file>")
+    @Parameter(description = "<path/to/props/file>",required = true)
     String filePath;
   }
 
@@ -56,7 +57,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Checks compaction config";
+    return "Verifies compaction config within a given file";
   }
 
   public static void main(String[] args) throws Exception {
