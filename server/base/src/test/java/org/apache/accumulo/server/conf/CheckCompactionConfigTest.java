@@ -142,15 +142,6 @@ public class CheckCompactionConfigTest {
     assertEquals(expectedErrorMsg, e.getMessage());
   }
 
-  @Test
-  public void testNoPropsFilePath() {
-    String[] emptyArgs = {};
-    String expectedErrorMsg = "No properties file was given";
-    var e =
-        assertThrows(IllegalArgumentException.class, () -> CheckCompactionConfig.main(emptyArgs));
-    assertEquals(e.getMessage(), expectedErrorMsg);
-  }
-
   private String writeToFileAndReturnPath(String inputString) throws IOException {
     File file = folder.newFile(testName.getMethodName() + ".properties");
     try (FileWriter fileWriter = new FileWriter(file, UTF_8);
