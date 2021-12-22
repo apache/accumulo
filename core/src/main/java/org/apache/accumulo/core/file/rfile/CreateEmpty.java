@@ -36,11 +36,13 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
+import com.google.auto.service.AutoService;
 
 /**
  * Create an empty RFile for use in recovering from data loss where Accumulo still refers internally
  * to a path.
  */
+@AutoService(KeywordExecutable.class)
 public class CreateEmpty implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(CreateEmpty.class);
 
