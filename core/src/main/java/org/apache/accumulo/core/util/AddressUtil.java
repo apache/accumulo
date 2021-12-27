@@ -61,7 +61,7 @@ public class AddressUtil {
     try {
       negativeTtl = Integer.parseInt(Security.getProperty("networkaddress.cache.negative.ttl"));
     } catch (NumberFormatException exception) {
-      log.warn("Failed to get JVM negative DNS responses cache TTL due to format problem "
+      log.warn("Failed to get JVM negative DNS response cache TTL due to format problem "
           + "(e.g. this JVM might not have the property). "
           + "Falling back to default based on Oracle JVM 1.4+ (10s)", exception);
     } catch (SecurityException exception) {
