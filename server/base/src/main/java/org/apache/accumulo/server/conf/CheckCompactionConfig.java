@@ -44,8 +44,13 @@ public class CheckCompactionConfig implements KeywordExecutable {
 
   private final static Logger log = LoggerFactory.getLogger(CheckCompactionConfig.class);
 
+  final static String DEFAULT = "default";
+  final static String META = "meta";
+  final static String ROOT = "root";
+
   static class Opts extends Help {
-    @Parameter(description = "<path/to/props/file>", required = true)
+    @Parameter(description = "<path> Local path to file containing compaction configuration",
+        required = true)
     String filePath;
   }
 
@@ -66,7 +71,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
   @Override
   public void execute(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs("accumulo check-compaction-config", args);
+    opts.parseArgs(keyword(), args);
 
     if (opts.filePath == null) {
       throw new IllegalArgumentException("No properties file was given");
@@ -80,9 +85,10 @@ public class CheckCompactionConfig implements KeywordExecutable {
     var servicesConfig = new CompactionServicesConfig(config, log::warn);
     ServiceEnvironment senv = createServiceEnvironment(config);
 
-    Set<String> defaultServices = Set.of("default", "meta", "root");
+    Set<String> defaultServices = Set.of(DEFAULT, META, ROOT);
     if (servicesConfig.getPlanners().keySet().equals(defaultServices)) {
-      throw new IllegalArgumentException("Only the default compaction services were created");
+      log.warn("Only the default compaction services were created - {}", defaultServices);
+      return;
     }
 
     for (var entry : servicesConfig.getPlanners().entrySet()) {

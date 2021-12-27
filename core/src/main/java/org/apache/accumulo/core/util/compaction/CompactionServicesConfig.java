@@ -70,11 +70,10 @@ public class CompactionServicesConfig {
 
       if (defaultServicePropsSet) {
 
-        String warning = String.format(
-            "The deprecated property %s was set. Properties with the prefix %s "
-                + "were also set, which replace the deprecated properties. The deprecated "
-                + "property was therefore ignored.",
-            Property.TSERV_MAJC_MAXCONCURRENT.getKey(), defaultServicePrefix);
+        String warning = "The deprecated property " + Property.TSERV_MAJC_MAXCONCURRENT.getKey()
+            + " was set. Properties with the prefix " + defaultServicePrefix
+            + " were also set which replace the deprecated properties. The deprecated property "
+            + "was therefore ignored.";
 
         deprecationWarningConsumer.accept(warning);
 
@@ -94,13 +93,11 @@ public class CompactionServicesConfig {
 
         configsCopy.putAll(defaultServiceConfigs);
 
-        String warning = String.format(
-            "The deprecated property %s was set. Properties with the prefix %s "
-                + "were not set, these should replace the deprecated properties. The old "
-                + "properties were automatically mapped to the new properties in process "
-                + "creating : %s.",
-            Property.TSERV_MAJC_MAXCONCURRENT.getKey(), defaultServicePrefix,
-            defaultServiceConfigs);
+        String warning = "The deprecated property " + Property.TSERV_MAJC_MAXCONCURRENT.getKey()
+            + " was set. Properties with the prefix " + defaultServicePrefix
+            + " were not set, these should replace the deprecated properties. The old properties "
+            + "were automatically mapped to the new properties in process creating : "
+            + defaultServiceConfigs + ".";
 
         deprecationWarningConsumer.accept(warning);
 
@@ -122,14 +119,14 @@ public class CompactionServicesConfig {
       var suffix = prop.substring(Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey().length());
       String[] tokens = suffix.split("\\.");
       if (tokens.length == 4 && tokens[1].equals("planner") && tokens[2].equals("opts")) {
-        getOptions().computeIfAbsent(tokens[0], k -> new HashMap<>()).put(tokens[3], val);
+        options.computeIfAbsent(tokens[0], k -> new HashMap<>()).put(tokens[3], val);
       } else if (tokens.length == 2 && tokens[1].equals("planner")) {
-        getPlanners().put(tokens[0], val);
+        planners.put(tokens[0], val);
       } else if (tokens.length == 3 && tokens[1].equals("rate") && tokens[2].equals("limit")) {
         var eprop = Property.getPropertyByKey(prop);
         if (eprop == null || aconf.isPropertySet(eprop, true)
             || !isDeprecatedThroughputSet(aconf)) {
-          getRateLimits().put(tokens[0], ConfigurationTypeHelper.getFixedMemoryAsBytes(val));
+          rateLimits.put(tokens[0], ConfigurationTypeHelper.getFixedMemoryAsBytes(val));
         }
       } else {
         throw new IllegalArgumentException("Malformed compaction service property " + prop);
@@ -138,7 +135,7 @@ public class CompactionServicesConfig {
 
     defaultRateLimit = getDefaultThroughput(aconf);
 
-    var diff = Sets.difference(getOptions().keySet(), getPlanners().keySet());
+    var diff = Sets.difference(options.keySet(), planners.keySet());
 
     if (!diff.isEmpty()) {
       throw new IllegalArgumentException(
