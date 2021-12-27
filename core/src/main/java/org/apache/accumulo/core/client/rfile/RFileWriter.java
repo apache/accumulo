@@ -103,7 +103,7 @@ public class RFileWriter implements AutoCloseable {
   private void _startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies)
       throws IOException {
     Preconditions.checkState(!startedDefaultLG,
-        "Cannont start a locality group after starting the default locality group");
+        "Cannot start a locality group after starting the default locality group");
     writer.startNewLocalityGroup(name, columnFamilies);
     startedLG = true;
   }

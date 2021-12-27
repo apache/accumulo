@@ -116,7 +116,7 @@ public class TestIngest {
     int cols = 1;
 
     @Parameter(names = "--random", description = "insert random rows and use"
-        + " the given number to seed the psuedo-random number generator")
+        + " the given number to seed the pseudo-random number generator")
     Integer random = null;
 
     @Parameter(names = "--size", description = "the size of the value to ingest")

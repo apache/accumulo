@@ -154,13 +154,13 @@ public class MaxOpenIT extends AccumuloClusterHarness {
         int col = VerifyIngest.getCol(entry.getKey());
 
         if (row < 0 || row >= NUM_TO_INGEST) {
-          throw new Exception("unexcepted row " + row);
+          throw new Exception("unexpected row " + row);
         }
 
         rval = TestIngest.genRandomValue(rval, 2, row, col);
 
         if (entry.getValue().compareTo(rval) != 0) {
-          throw new Exception("unexcepted value row=" + row + " col=" + col);
+          throw new Exception("unexpected value row=" + row + " col=" + col);
         }
       }
 

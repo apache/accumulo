@@ -149,7 +149,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     public boolean tryLock() {
       if (entry == -1) {
         entry = qlock.addEntry(new ParsedLock(this.lockType(), this.userData).getLockData());
-        log.info("Added lock entry {} userData {} lockTpye {}", entry,
+        log.info("Added lock entry {} userData {} lockType {}", entry,
             new String(this.userData, UTF_8), lockType());
       }
       SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entry);

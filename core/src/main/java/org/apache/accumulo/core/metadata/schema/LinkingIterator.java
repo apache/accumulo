@@ -72,7 +72,7 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
       Text defaultTabletRow = TabletsSection.encodeRow(prevTablet.getTableId(), null);
       if (range.contains(new Key(defaultTabletRow))) {
         throw new IllegalStateException(
-            "Scan range incudled default tablet, but did not see default tablet.  Last tablet seen : "
+            "Scan range included default tablet, but did not see default tablet.  Last tablet seen : "
                 + prevTablet.getExtent());
       }
     }

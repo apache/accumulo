@@ -298,7 +298,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
           loginAs(testUser);
           test_user_client.instanceOperations()
               .removeProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey());
-          throw new IllegalStateException("Should NOT be able to remove Sysem Property");
+          throw new IllegalStateException("Should NOT be able to remove System Property");
         } catch (AccumuloSecurityException e) {
           loginAs(rootUser);
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED
@@ -731,7 +731,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
         try {
           test_user_client.tableOperations().flush(tableName, new Text("myrow"), new Text("myrow~"),
               false);
-          throw new IllegalStateException("Should NOT be able to flsuh a table");
+          throw new IllegalStateException("Should NOT be able to flush a table");
         } catch (AccumuloSecurityException e) {
           if (e.getSecurityErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
             throw e;

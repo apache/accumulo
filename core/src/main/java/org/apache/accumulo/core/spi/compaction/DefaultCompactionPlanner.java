@@ -217,7 +217,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
         && params.getServiceEnvironment().getConfiguration()
             .isSet(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey())) {
       log.warn("The property " + Property.TSERV_MAJC_THREAD_MAXOPEN.getKey()
-          + " was set, it is deperecated.  Set the " + fqo + " option instead.");
+          + " was set, it is deprecated.  Set the " + fqo + " option instead.");
       this.maxFilesToCompact = Integer.parseInt(params.getServiceEnvironment().getConfiguration()
           .get(Property.TSERV_MAJC_THREAD_MAXOPEN.getKey()));
     } else {

@@ -92,7 +92,7 @@ public class SecurityUtil {
           && !principalName.isEmpty()) {
         log.info("Attempting to login with keytab as {}", principalName);
         UserGroupInformation.loginUserFromKeytab(principalName, keyTabPath);
-        log.info("Succesfully logged in as user {}", principalName);
+        log.info("Successfully logged in as user {}", principalName);
         return true;
       }
     } catch (IOException io) {
