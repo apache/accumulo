@@ -39,6 +39,15 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
+/**
+ * A command line tool that verifies that a given properties file will correctly configure
+ * compaction services.
+ *
+ * This tool takes, as input, a local path to a properties file containing the properties used to
+ * configure compaction services. The file is parsed and the user is presented with output detailing
+ * which (if any) compaction services would be created from the given properties, or an error
+ * describing why the given properties are incorrect.
+ */
 @AutoService(KeywordExecutable.class)
 public class CheckCompactionConfig implements KeywordExecutable {
 

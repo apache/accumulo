@@ -31,6 +31,12 @@ import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 
 import com.google.common.collect.Sets;
 
+/**
+ * This class serves to configure compaction services from an {@link AccumuloConfiguration} object.
+ *
+ * Specifically, compaction service properties (those prefixed by "tserver.compaction.major
+ * .service") are used.
+ */
 public class CompactionServicesConfig {
 
   private final Map<String,String> planners = new HashMap<>();
