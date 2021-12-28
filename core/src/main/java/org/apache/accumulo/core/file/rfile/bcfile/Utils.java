@@ -146,7 +146,7 @@ public final class Utils {
         out.writeLong(n);
         return;
       default:
-        throw new RuntimeException("Internel error");
+        throw new RuntimeException("Internal error");
     }
   }
 

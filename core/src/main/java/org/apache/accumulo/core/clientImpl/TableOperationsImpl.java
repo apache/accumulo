@@ -207,7 +207,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     if (timer != null) {
       timer.stop();
-      log.trace("tid={} Checked existance of {} in {}", Thread.currentThread().getId(), exists,
+      log.trace("tid={} Checked existence of {} in {}", Thread.currentThread().getId(), exists,
           String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
     }
 

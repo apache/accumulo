@@ -254,10 +254,10 @@ public class CompactCommand extends TableOperation {
         "Select files that do not have the summaries specified in the table configuration.");
     opts.addOption(enoSummaryOption);
     extraSummaryOption = new Option(null, "sf-extra-summary", false,
-        "Select files that have summary information which exceeds the tablets boundries.");
+        "Select files that have summary information which exceeds the tablets boundaries.");
     opts.addOption(extraSummaryOption);
     enoSampleOption = new Option(null, "sf-no-sample", false,
-        "Select files that have no sample data or sample data that differes"
+        "Select files that have no sample data or sample data that differs"
             + " from the table configuration.");
     opts.addOption(enoSampleOption);
     enameOption =
