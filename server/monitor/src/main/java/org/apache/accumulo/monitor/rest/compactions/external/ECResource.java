@@ -77,10 +77,9 @@ public class ECResource {
       ecMap = monitor.fetchRunningInfo();
       externalCompaction = ecMap.get(ecid);
       if (externalCompaction == null) {
-        log.warn("Failed to find details for ECID: {}", ecid);
-        return new RunningCompactorDetails();
+        throw new IllegalStateException("Failed to find details for ECID: " + ecid);
       }
     }
-    return new RunningCompactorDetails(System.currentTimeMillis(), ecid, externalCompaction);
+    return new RunningCompactorDetails(externalCompaction);
   }
 }
