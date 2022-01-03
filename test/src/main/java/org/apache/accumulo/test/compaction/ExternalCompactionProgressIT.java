@@ -36,11 +36,11 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactorInfo;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.thrift.TException;
@@ -63,7 +63,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
     STARTED, QUARTER, HALF, THREE_QUARTERS
   }
 
-  Map<String,RunningCompactorInfo> runningMap = new HashMap<>();
+  Map<String,RunningCompactionInfo> runningMap = new HashMap<>();
   List<EC_PROGRESS> progressList = new ArrayList<>();
 
   private final AtomicBoolean compactionFinished = new AtomicBoolean(false);
@@ -128,8 +128,8 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
     if (ecMap != null) {
       ecMap.forEach((ecid, ec) -> {
         // returns null if it's a new mapping
-        RunningCompactorInfo rci = new RunningCompactorInfo(System.currentTimeMillis(), ecid, ec);
-        RunningCompactorInfo previousRci = runningMap.put(ecid, rci);
+        RunningCompactionInfo rci = new RunningCompactionInfo(ec);
+        RunningCompactionInfo previousRci = runningMap.put(ecid, rci);
         if (previousRci == null) {
           log.debug("New ECID {} with inputFiles: {}", ecid, rci.numFiles);
         } else {

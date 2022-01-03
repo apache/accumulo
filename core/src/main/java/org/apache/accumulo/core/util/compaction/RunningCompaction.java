@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 
 public class RunningCompaction {
@@ -32,10 +33,13 @@ public class RunningCompaction {
   private final Map<Long,TCompactionStatusUpdate> updates = new TreeMap<>();
 
   public RunningCompaction(TExternalCompactionJob job, String compactorAddress, String queueName) {
-    super();
     this.job = job;
     this.compactorAddress = compactorAddress;
     this.queueName = queueName;
+  }
+
+  public RunningCompaction(TExternalCompaction tEC) {
+    this(tEC.getJob(), tEC.getCompactor(), tEC.getQueueName());
   }
 
   public Map<Long,TCompactionStatusUpdate> getUpdates() {

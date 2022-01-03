@@ -23,18 +23,15 @@ import java.util.List;
 
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.InputFile;
+import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 
-public class RunningCompactorDetails extends RunningCompactorInfo {
+public class RunningCompactorDetails extends RunningCompactionInfo {
   // Variable names become JSON keys
-  public List<CompactionInputFile> inputFiles = new ArrayList<>();
-  public String outputFile;
+  public final List<CompactionInputFile> inputFiles;
+  public final String outputFile;
 
-  public RunningCompactorDetails() {
-    super();
-  }
-
-  public RunningCompactorDetails(long fetchedTime, String ecid, TExternalCompaction ec) {
-    super(fetchedTime, ecid, ec);
+  public RunningCompactorDetails(TExternalCompaction ec) {
+    super(ec);
     var job = ec.getJob();
     inputFiles = convertInputFiles(job.files);
     outputFile = job.outputFile;
