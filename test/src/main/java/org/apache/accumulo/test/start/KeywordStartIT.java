@@ -50,6 +50,7 @@ import org.apache.accumulo.minicluster.MiniAccumuloRunner;
 import org.apache.accumulo.miniclusterImpl.MiniClusterExecutable;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.MonitorExecutable;
+import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.conf.CheckServerConfig;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
@@ -106,6 +107,7 @@ public class KeywordStartIT {
     assumeTrue(new File(System.getProperty("user.dir") + "/src").exists());
     TreeMap<String,Class<? extends KeywordExecutable>> expectSet = new TreeMap<>();
     expectSet.put("admin", Admin.class);
+    expectSet.put("check-compaction-config", CheckCompactionConfig.class);
     expectSet.put("check-server-config", CheckServerConfig.class);
     expectSet.put("compaction-coordinator", CoordinatorExecutable.class);
     expectSet.put("compactor", CompactorExecutable.class);
@@ -167,6 +169,7 @@ public class KeywordStartIT {
 
     HashSet<Class<?>> expectSet = new HashSet<>();
     expectSet.add(Admin.class);
+    expectSet.add(CheckCompactionConfig.class);
     expectSet.add(CreateToken.class);
     expectSet.add(Info.class);
     expectSet.add(Initialize.class);
@@ -190,12 +193,11 @@ public class KeywordStartIT {
   private static boolean hasMain(Class<?> classToCheck) {
     Method main;
     try {
-      main = classToCheck.getMethod("main", new String[0].getClass());
+      main = classToCheck.getMethod("main", String[].class);
     } catch (NoSuchMethodException e) {
       return false;
     }
-    return main != null && Modifier.isPublic(main.getModifiers())
-        && Modifier.isStatic(main.getModifiers());
+    return Modifier.isPublic(main.getModifiers()) && Modifier.isStatic(main.getModifiers());
   }
 
   private static class NoOp implements KeywordExecutable {
