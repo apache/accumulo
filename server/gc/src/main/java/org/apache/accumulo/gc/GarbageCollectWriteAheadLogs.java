@@ -229,7 +229,7 @@ public class GarbageCollectWriteAheadLogs {
       status.currentLog = new GcCycleStats();
 
     } catch (Exception e) {
-      log.error("exception occured while garbage collecting write ahead logs", e);
+      log.error("exception occurred while garbage collecting write ahead logs", e);
     }
   }
 

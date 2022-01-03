@@ -204,7 +204,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
   synchronized boolean removeKey(Integer keyId) {
     requireNonNull(keyId);
 
-    log.debug("Removing AuthenticatioKey with keyId {}", keyId);
+    log.debug("Removing AuthenticationKey with keyId {}", keyId);
 
     return allKeys.remove(keyId) != null;
   }

@@ -39,6 +39,7 @@ import org.apache.accumulo.coordinator.CoordinatorExecutable;
 import org.apache.accumulo.core.file.rfile.CreateEmpty;
 import org.apache.accumulo.core.file.rfile.GenerateSplits;
 import org.apache.accumulo.core.file.rfile.PrintInfo;
+import org.apache.accumulo.core.file.rfile.SplitLarge;
 import org.apache.accumulo.core.util.CreateToken;
 import org.apache.accumulo.core.util.Help;
 import org.apache.accumulo.core.util.Version;
@@ -127,6 +128,7 @@ public class KeywordStartIT {
     expectSet.put("version", Version.class);
     expectSet.put("zookeeper", ZooKeeperMain.class);
     expectSet.put("create-empty", CreateEmpty.class);
+    expectSet.put("split-large", SplitLarge.class);
 
     Iterator<Entry<String,Class<? extends KeywordExecutable>>> expectIter =
         expectSet.entrySet().iterator();

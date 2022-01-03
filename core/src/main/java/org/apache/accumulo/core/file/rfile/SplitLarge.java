@@ -33,16 +33,19 @@ import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.RFile.Writer;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
 /**
  * Split an RFile into large and small key/value files.
  */
-public class SplitLarge {
+@AutoService(KeywordExecutable.class)
+public class SplitLarge implements KeywordExecutable {
 
   static class Opts extends ConfigOpts {
     @Parameter(names = "-m",
@@ -53,10 +56,25 @@ public class SplitLarge {
   }
 
   public static void main(String[] args) throws Exception {
+    new SplitLarge().execute(args);
+  }
+
+  @Override
+  public String keyword() {
+    return "split-large";
+  }
+
+  @Override
+  public String description() {
+    return "Splits an RFile into large and small key/value files";
+  }
+
+  @Override
+  public void execute(String[] args) throws Exception {
     Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
     Opts opts = new Opts();
-    opts.parseArgs(SplitLarge.class.getName(), args);
+    opts.parseArgs("accumulo split-large", args);
 
     for (String file : opts.files) {
       AccumuloConfiguration aconf = opts.getSiteConfiguration();
@@ -95,7 +113,6 @@ public class SplitLarge {
             }
             iter.next();
           }
-
         }
       }
     }

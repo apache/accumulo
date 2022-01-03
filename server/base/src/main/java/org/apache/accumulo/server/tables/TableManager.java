@@ -292,7 +292,7 @@ public class TableManager {
           }
           break;
         default:
-          log.warn("Unandled {}", event);
+          log.warn("Unhandled {}", event);
       }
     }
   }

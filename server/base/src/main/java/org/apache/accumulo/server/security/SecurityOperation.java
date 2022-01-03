@@ -127,7 +127,7 @@ public class SecurityOperation {
         || !authenticator.validSecurityHandlers()
         || !permHandle.validSecurityHandlers(authent, author))
       throw new RuntimeException(authorizor + ", " + authenticator + ", and " + pm
-          + " do not play nice with eachother. Please choose authentication and"
+          + " do not play nice with each other. Please choose authentication and"
           + " authorization mechanisms that are compatible with one another.");
 
     isKerberos = KerberosAuthenticator.class.isAssignableFrom(authenticator.getClass());

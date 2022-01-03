@@ -101,7 +101,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
                 currentSleepMillis = Math.min(maxWaitInterval, currentSleepMillis + sleepInterval);
 
               } catch (InterruptedException e) {
-                log.error("VFS Retry Interruped", e);
+                log.error("VFS Retry Interrupted", e);
                 throw new RuntimeException(e);
               }
 

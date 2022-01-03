@@ -29,7 +29,7 @@
   </parent>
   <artifactId>accumulo-manager</artifactId>
   <name>Apache Accumulo Manager Server</name>
-  <description>The manager server for Apache Accumulo for load balacing and other system-wide operations.</description>
+  <description>The manager server for Apache Accumulo for load balancing and other system-wide operations.</description>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>

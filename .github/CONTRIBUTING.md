@@ -17,7 +17,7 @@ limitations under the License.
 
 # Contributors Guide
 
-If you believe that you have found a [bug](https://github.com/apache/accumulo/labels/bug), please search for an existing [issue](https://github.com/apache/accumulo/issues) to see if it has already been reported. If you would like to add a new feature to Accumulo, please send an email with your idea to the [dev](mailto:dev@accumulo.apache.org) mail list. If it's appropriate, then we will create an issue.  For simple changes, its ok to just submit a pull request without an issue.
+If you believe that you have found a [bug](https://github.com/apache/accumulo/labels/bug), please search for an existing [issue](https://github.com/apache/accumulo/issues) to see if it has already been reported. If you would like to add a new feature to Accumulo, please send an email with your idea to the [dev](mailto:dev@accumulo.apache.org) mail list. If it's appropriate, then we will create an issue.  For simple changes, it's ok to just submit a pull request without an issue.
 
 ## Development
 
