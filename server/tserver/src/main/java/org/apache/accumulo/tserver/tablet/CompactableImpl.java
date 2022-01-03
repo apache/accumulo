@@ -66,6 +66,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionServices;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
+import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.compaction.CompactionStats;
@@ -1468,8 +1469,8 @@ public class CompactableImpl implements Compactable {
       return dispatch.getService();
     } catch (RuntimeException e) {
       log.error("Failed to dispatch compaction {} kind:{} hints:{}, falling back to {} service.",
-          getExtent(), kind, debugHints, CompactionManager.DEFAULT_SERVICE, e);
-      return CompactionManager.DEFAULT_SERVICE;
+          getExtent(), kind, debugHints, CompactionServicesConfig.DEFAULT_SERVICE, e);
+      return CompactionServicesConfig.DEFAULT_SERVICE;
     }
   }
 
