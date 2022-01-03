@@ -208,7 +208,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     if (timer != null) {
       timer.stop();
-      log.trace("tid={} Checked existance of {} in {}", Thread.currentThread().getId(), exists,
+      log.trace("tid={} Checked existence of {} in {}", Thread.currentThread().getId(), exists,
           String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
     }
 
@@ -691,28 +691,59 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   }
 
+  /**
+   * This version of listSplits is called when the maxSplits options is provided. If the value of
+   * maxSplits is greater than the number of existing splits, then all splits are returned and no
+   * additional processing is performed.
+   *
+   * But, if the value of maxSplits is less than the number of existing splits, maxSplit split
+   * values are returned. These split values are "evenly" selected from the existing splits based
+   * upon the algorithm implemented in the method.
+   *
+   * A stepSize is calculated based upon the number of splits requested and the total split count. A
+   * running sum adjusted by this stepSize is calculated as each split is parsed. Once this sum
+   * exceeds a value of 1, the current split point is selected to be returned. The sum is then
+   * decremented by 1 and the process continues until all existing splits have been parsed or
+   * maxSplits splits have been selected.
+   *
+   * @param tableName
+   *          the name of the table
+   * @param maxSplits
+   *          specifies the maximum number of splits to return
+   * @return a Collection containing a subset of evenly selected splits
+   */
   @Override
-  public Collection<Text> listSplits(String tableName, int maxSplits)
+  public Collection<Text> listSplits(final String tableName, final int maxSplits)
       throws TableNotFoundException, AccumuloSecurityException {
     // tableName is validated in _listSplits
-    List<Text> endRows = _listSplits(tableName);
-    if (endRows.size() <= maxSplits)
-      return endRows;
+    final List<Text> existingSplits = _listSplits(tableName);
 
-    double r = (maxSplits + 1) / (double) (endRows.size());
-    double pos = 0;
-    ArrayList<Text> subset = new ArrayList<>(maxSplits);
-    int j = 0;
-    for (int i = 0; i < endRows.size() && j < maxSplits; i++) {
-      pos += r;
-      while (pos > 1) {
-        subset.add(endRows.get(i));
-        j++;
-        pos -= 1;
-      }
+    // As long as maxSplits is equal to or larger than the number of current splits, the existing
+    // splits are returned and no additional processing is necessary.
+    if (existingSplits.size() <= maxSplits) {
+      return existingSplits;
     }
 
-    return subset;
+    // When the number of maxSplits requested is less than the number of existing splits, the
+    // following code populates the splitsSubset list 'evenly' from the existing splits
+    ArrayList<Text> splitsSubset = new ArrayList<>(maxSplits);
+    final int SELECTION_THRESHOLD = 1;
+
+    // stepSize can never be greater than 1 due to the if-loop check above.
+    final double stepSize = (maxSplits + 1) / (double) (existingSplits.size());
+    double selectionTrigger = 0.0;
+
+    for (Text existingSplit : existingSplits) {
+      if (splitsSubset.size() >= maxSplits) {
+        break;
+      }
+      selectionTrigger += stepSize;
+      if (selectionTrigger > SELECTION_THRESHOLD) {
+        splitsSubset.add(existingSplit);
+        selectionTrigger -= 1;
+      }
+    }
+    return splitsSubset;
   }
 
   @Override
@@ -729,7 +760,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
       // should not happen
       throw new AssertionError(e);
     }
-
   }
 
   @Override

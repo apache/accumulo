@@ -521,7 +521,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
           log.trace(String.format("Table %s column: %s:%s", table, hexDump(cu.getColumnFamily()),
               hexDump(cu.getColumnQualifier())));
           log.trace(String.format("Table %s security: %s", table,
-              new ColumnVisibility(cu.getColumnVisibility()).toString()));
+              new ColumnVisibility(cu.getColumnVisibility())));
           log.trace(String.format("Table %s value: %s", table, hexDump(cu.getValue())));
         }
       }

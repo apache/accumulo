@@ -276,7 +276,7 @@ public class TServerUtilsTest {
   public void testStartServerPortRange() throws Exception {
     TServer server = null;
     int[] port = findTwoFreeSequentialPorts(1024);
-    String portRange = Integer.toString(port[0]) + "-" + Integer.toString(port[1]);
+    String portRange = port[0] + "-" + port[1];
     conf.set(Property.TSERV_CLIENTPORT, portRange);
     try {
       ServerAddress address = startServer();
@@ -298,7 +298,7 @@ public class TServerUtilsTest {
     TServer server = null;
     InetAddress addr = InetAddress.getByName("localhost");
     int[] port = findTwoFreeSequentialPorts(1024);
-    String portRange = Integer.toString(port[0]) + "-" + Integer.toString(port[1]);
+    String portRange = port[0] + "-" + port[1];
     // Bind to the port
     conf.set(Property.TSERV_CLIENTPORT, portRange);
     try (ServerSocket s = new ServerSocket(port[0], 50, addr)) {

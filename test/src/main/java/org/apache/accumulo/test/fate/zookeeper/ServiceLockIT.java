@@ -65,7 +65,7 @@ public class ServiceLockIT {
   @BeforeClass
   public static void setup() throws Exception {
     szk = new ZooKeeperTestingServer();
-    szk.initPaths("/accumulo/" + UUID.randomUUID().toString());
+    szk.initPaths("/accumulo/" + UUID.randomUUID());
   }
 
   @AfterClass

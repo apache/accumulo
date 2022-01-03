@@ -1153,7 +1153,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
   public String toString() {
     StringBuilder sb = rowColumnStringBuilder();
     sb.append(" ");
-    sb.append(Long.toString(timestamp));
+    sb.append(timestamp);
     sb.append(" ");
     sb.append(deleted);
     return sb.toString();
@@ -1168,7 +1168,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
   public String toStringNoTruncate() {
     StringBuilder sb = rowColumnStringBuilder(Integer.MAX_VALUE);
     sb.append(" ");
-    sb.append(Long.toString(timestamp));
+    sb.append(timestamp);
     sb.append(" ");
     sb.append(deleted);
     return sb.toString();

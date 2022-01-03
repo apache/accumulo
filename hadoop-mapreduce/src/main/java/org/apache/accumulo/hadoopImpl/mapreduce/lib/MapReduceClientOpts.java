@@ -67,7 +67,7 @@ public class MapReduceClientOpts extends ClientOpts {
           if (!client.securityOperations().hasSystemPermission(client.whoami(),
               SystemPermission.OBTAIN_DELEGATION_TOKEN)) {
             log.error(
-                "{} doesn't have the {} SystemPermission neccesary to obtain a delegation"
+                "{} doesn't have the {} SystemPermission necessary to obtain a delegation"
                     + " token. MapReduce tasks cannot automatically use the client's"
                     + " credentials on remote servers. Delegation tokens provide a means to run"
                     + " MapReduce without distributing the user's credentials.",

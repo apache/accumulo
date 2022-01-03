@@ -124,7 +124,7 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
     Optional<String> callerClassName =
         StackWalker.getInstance(RETAIN_CLASS_REFERENCE).walk(findCallerITClass).map(Class::getName);
     // use the calling class name, or default to a unique name if IT class can't be found
-    return callerClassName.orElse(String.format("UnknownITClass-{}-{}", System.currentTimeMillis(),
+    return callerClassName.orElse(String.format("UnknownITClass-%d-%d", System.currentTimeMillis(),
         random.nextInt(Short.MAX_VALUE)));
   }
 

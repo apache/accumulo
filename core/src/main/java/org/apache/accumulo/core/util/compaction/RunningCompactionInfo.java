@@ -16,70 +16,54 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.monitor.rest.compactions.external;
+package org.apache.accumulo.core.util.compaction;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import static java.util.Objects.requireNonNull;
+
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.tabletserver.thrift.InputFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RunningCompactorInfo extends CompactorInfo {
-  private static Logger log = LoggerFactory.getLogger(RunningCompactorInfo.class);
+public class RunningCompactionInfo {
+  private static final Logger log = LoggerFactory.getLogger(RunningCompactionInfo.class);
 
-  // Variable names become JSON keys
-  public String ecid;
-  public String kind;
-  public String tableId;
-  public List<CompactionInputFile> inputFiles;
-  public int numFiles;
-  public String outputFile;
-  public float progress = 0f;
-  public long duration;
-  public String status;
-  public long lastUpdate;
-
-  public RunningCompactorInfo(long fetchedTime, String ecid, TExternalCompaction ec) {
-    super(fetchedTime, ec.getQueueName(), ec.getCompactor());
-    this.ecid = ecid;
-    var updates = ec.getUpdates();
-    var job = ec.getJob();
-    kind = job.getKind().name();
-    tableId = KeyExtent.fromThrift(job.extent).tableId().canonical();
-    inputFiles = convertInputFiles(job.files);
-    numFiles = inputFiles.size();
-    outputFile = job.outputFile;
-    updateProgress(updates);
-    log.debug("Parsed running compaction {} for {} with progress = {}%", status, ecid, progress);
-  }
-
-  private List<CompactionInputFile> convertInputFiles(List<InputFile> files) {
-    List<CompactionInputFile> list = new ArrayList<>();
-    files.forEach(f -> list
-        .add(new CompactionInputFile(f.metadataFileEntry, f.size, f.entries, f.timestamp)));
-    // sorted largest to smallest
-    list.sort((o1, o2) -> Long.compare(o2.size, o1.size));
-    return list;
-  }
+  // DO NOT CHANGE Variable names - they map to JSON keys in the Monitor
+  public final String server;
+  public final String queueName;
+  public final String ecid;
+  public final String kind;
+  public final String tableId;
+  public final int numFiles;
+  public final float progress;
+  public final long duration;
+  public final String status;
+  public final long lastUpdate;
 
   /**
-   * Calculate progress: the percentage of bytesRead out of bytesToBeCompacted of the last update.
-   * Also update the status.
+   * Info parsed about the external running compaction. Calculate the progress, which is defined as
+   * the percentage of bytesRead / bytesToBeCompacted of the last update.
    */
-  private void updateProgress(Map<Long,TCompactionStatusUpdate> updates) {
-    if (updates.isEmpty()) {
-      progress = 0f;
-      status = "na";
-    }
+  public RunningCompactionInfo(TExternalCompaction ec) {
+    requireNonNull(ec, "Thrift external compaction is null.");
+    var updates = requireNonNull(ec.getUpdates(), "Missing Thrift external compaction updates");
+    var job = requireNonNull(ec.getJob(), "Thrift external compaction job is null");
+
+    server = ec.getCompactor();
+    queueName = ec.getQueueName();
+    ecid = job.getExternalCompactionId();
+    kind = job.getKind().name();
+    tableId = KeyExtent.fromThrift(job.getExtent()).tableId().canonical();
+    numFiles = job.getFiles().size();
+
+    // parse the updates map
     long nowMillis = System.currentTimeMillis();
     long startedMillis = nowMillis;
+    float percent = 0f;
     long updateMillis;
     TCompactionStatusUpdate last;
 
@@ -102,28 +86,33 @@ public class RunningCompactorInfo extends CompactorInfo {
       updateMillis = lastEntry.getKey();
     } else {
       log.debug("No updates found for {}", ecid);
+      lastUpdate = nowMillis;
+      progress = percent;
+      status = "na";
       return;
     }
 
     long sinceLastUpdateSeconds = TimeUnit.MILLISECONDS.toSeconds(nowMillis - updateMillis);
     log.debug("Time since Last update {} - {} = {} seconds", nowMillis, updateMillis,
         sinceLastUpdateSeconds);
+
+    var total = last.getEntriesToBeCompacted();
+    if (total > 0) {
+      percent = (last.getEntriesRead() / (float) total) * 100;
+    }
+    lastUpdate = nowMillis - updateMillis;
+    progress = percent;
+
+    if (updates.isEmpty()) {
+      status = "na";
+    } else {
+      status = last.state.name();
+    }
+    log.debug("Parsed running compaction {} for {} with progress = {}%", status, ecid, progress);
     if (sinceLastUpdateSeconds > 30) {
       log.debug("Compaction hasn't progressed from {} in {} seconds.", progress,
           sinceLastUpdateSeconds);
     }
-
-    float percent;
-    var total = last.getEntriesToBeCompacted();
-    if (total <= 0) {
-      percent = 0f;
-    } else {
-      percent = (last.getEntriesRead() / (float) total) * 100;
-    }
-
-    lastUpdate = nowMillis - updateMillis;
-    status = last.state.name();
-    progress = percent;
   }
 
   @Override

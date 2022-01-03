@@ -20,20 +20,29 @@ package org.apache.accumulo.monitor.rest.compactions.external;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
+import org.apache.accumulo.core.tabletserver.thrift.InputFile;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 
-public class RunningCompactions {
+public class RunningCompactorDetails extends RunningCompactionInfo {
+  // Variable names become JSON keys
+  public final List<CompactionInputFile> inputFiles;
+  public final String outputFile;
 
-  public final List<RunningCompactionInfo> running = new ArrayList<>();
+  public RunningCompactorDetails(TExternalCompaction ec) {
+    super(ec);
+    var job = ec.getJob();
+    inputFiles = convertInputFiles(job.files);
+    outputFile = job.outputFile;
+  }
 
-  public RunningCompactions(Map<String,TExternalCompaction> rMap) {
-    if (rMap != null) {
-      for (var entry : rMap.entrySet()) {
-        running.add(new RunningCompactionInfo(entry.getValue()));
-      }
-    }
+  private List<CompactionInputFile> convertInputFiles(List<InputFile> files) {
+    List<CompactionInputFile> list = new ArrayList<>();
+    files.forEach(f -> list
+        .add(new CompactionInputFile(f.metadataFileEntry, f.size, f.entries, f.timestamp)));
+    // sorted largest to smallest
+    list.sort((o1, o2) -> Long.compare(o2.size, o1.size));
+    return list;
   }
 }

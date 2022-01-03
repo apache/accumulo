@@ -19,9 +19,11 @@
 package org.apache.accumulo.monitor.rest.compactions.external;
 
 import jakarta.inject.Inject;
+import jakarta.validation.constraints.NotNull;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.monitor.Monitor;
@@ -36,7 +38,7 @@ import org.slf4j.LoggerFactory;
 @Path("/ec")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class ECResource {
-  private static Logger log = LoggerFactory.getLogger(ECResource.class);
+  private static final Logger log = LoggerFactory.getLogger(ECResource.class);
 
   @Inject
   private Monitor monitor;
@@ -44,7 +46,7 @@ public class ECResource {
   @GET
   public CoordinatorInfo getCoordinator() {
     var cc = monitor.getCompactorsInfo();
-    log.info("Got coordinator from monitor = {}", cc);
+    log.info("Got coordinator from monitor = {}", cc.getCoordinatorHost());
     return new CoordinatorInfo(cc.getCoordinatorHost(), cc);
   }
 
@@ -57,6 +59,27 @@ public class ECResource {
   @Path("running")
   @GET
   public RunningCompactions getRunning() {
-    return new RunningCompactions(monitor.getRunningInfo());
+    return new RunningCompactions(monitor.fetchRunningInfo());
+  }
+
+  @Path("details")
+  @GET
+  public RunningCompactorDetails getDetails(@QueryParam("ecid") @NotNull String ecid) {
+    // make parameter more user-friendly by ensuring the ecid prefix is present
+    ecid = ecid.replace("ecid:", "ECID:");
+    if (!ecid.startsWith("ECID:"))
+      ecid = "ECID:" + ecid;
+
+    var ecMap = monitor.getEcRunningMap();
+    var externalCompaction = ecMap.get(ecid);
+    if (externalCompaction == null) {
+      // map could be old so fetch all running compactions and try again
+      ecMap = monitor.fetchRunningInfo();
+      externalCompaction = ecMap.get(ecid);
+      if (externalCompaction == null) {
+        throw new IllegalStateException("Failed to find details for ECID: " + ecid);
+      }
+    }
+    return new RunningCompactorDetails(externalCompaction);
   }
 }

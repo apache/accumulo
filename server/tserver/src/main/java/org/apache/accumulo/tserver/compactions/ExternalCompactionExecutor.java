@@ -162,7 +162,6 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
       }
 
       if (extJob == null) {
-        found = null;
         // nothing left in queue
         break;
       }
@@ -173,7 +172,6 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
           var ecj = extJob.compactable.reserveExternalCompaction(extJob.csid, extJob.getJob(),
               compactorId, externalCompactionId);
           if (ecj == null) {
-            found = null;
             break;
           } else {
             extJob.ecid = ecj.getExternalCompactionId();
@@ -185,7 +183,6 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
         }
       } else {
         queue.add(extJob);
-        found = null;
         break;
       }
     }

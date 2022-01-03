@@ -237,7 +237,7 @@ public class SourceSwitchingIterator implements InterruptibleIterator {
 
   private void _switchNow() throws IOException {
     if (onlySwitchAfterRow)
-      throw new IllegalStateException("Can only switch on row boundries");
+      throw new IllegalStateException("Can only switch on row boundaries");
 
     if (switchSource()) {
       if (key != null) {

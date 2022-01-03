@@ -430,7 +430,7 @@ public class TServerUtils {
       if (socketEnabledProtocols.isEmpty()) {
         // Bad configuration...
         throw new RuntimeException(
-            "No available protocols available for secure socket. Availaable protocols: "
+            "No available protocols available for secure socket. Available protocols: "
                 + Arrays.toString(sslServerSock.getEnabledProtocols()) + ", allowed protocols: "
                 + Arrays.toString(protocols));
       }

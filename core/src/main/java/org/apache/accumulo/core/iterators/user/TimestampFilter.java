@@ -289,7 +289,7 @@ public class TimestampFilter extends Filter {
    *          boolean indicating whether the start is inclusive
    */
   public static void setStart(IteratorSetting is, long start, boolean startInclusive) {
-    is.addOption(START, LONG_PREFIX + Long.toString(start));
+    is.addOption(START, LONG_PREFIX + start);
     is.addOption(START_INCL, Boolean.toString(startInclusive));
   }
 
@@ -304,7 +304,7 @@ public class TimestampFilter extends Filter {
    *          boolean indicating whether the end is inclusive
    */
   public static void setEnd(IteratorSetting is, long end, boolean endInclusive) {
-    is.addOption(END, LONG_PREFIX + Long.toString(end));
+    is.addOption(END, LONG_PREFIX + end);
     is.addOption(END_INCL, Boolean.toString(endInclusive));
   }
 }

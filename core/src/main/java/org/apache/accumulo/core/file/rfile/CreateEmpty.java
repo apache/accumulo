@@ -27,6 +27,7 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -35,12 +36,14 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
+import com.google.auto.service.AutoService;
 
 /**
  * Create an empty RFile for use in recovering from data loss where Accumulo still refers internally
  * to a path.
  */
-public class CreateEmpty {
+@AutoService(KeywordExecutable.class)
+public class CreateEmpty implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(CreateEmpty.class);
 
   public static class NamedLikeRFile implements IParameterValidator {
@@ -76,10 +79,25 @@ public class CreateEmpty {
   }
 
   public static void main(String[] args) throws Exception {
+    new CreateEmpty().execute(args);
+  }
+
+  @Override
+  public String keyword() {
+    return "create-empty";
+  }
+
+  @Override
+  public String description() {
+    return "Creates an empty rfile";
+  }
+
+  @Override
+  public void execute(String[] args) throws Exception {
     Configuration conf = new Configuration();
 
     Opts opts = new Opts();
-    opts.parseArgs(CreateEmpty.class.getName(), args);
+    opts.parseArgs("accumulo create-empty", args);
 
     for (String arg : opts.files) {
       Path path = new Path(arg);

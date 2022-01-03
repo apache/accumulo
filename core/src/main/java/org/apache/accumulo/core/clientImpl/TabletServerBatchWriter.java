@@ -740,14 +740,12 @@ public class TabletServerBatchWriter implements AutoCloseable {
       if (mutationsToSend == null)
         return;
       binningThreadPool.execute(() -> {
-        if (mutationsToSend != null) {
-          try {
-            log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
-                mutationsToSend.size());
-            addMutations(mutationsToSend);
-          } catch (Throwable e) {
-            updateUnknownErrors("Error processing mutation set", e);
-          }
+        try {
+          log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
+              mutationsToSend.size());
+          addMutations(mutationsToSend);
+        } catch (Throwable e) {
+          updateUnknownErrors("Error processing mutation set", e);
         }
       });
     }

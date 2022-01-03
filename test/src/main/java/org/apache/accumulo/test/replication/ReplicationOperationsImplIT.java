@@ -205,7 +205,7 @@ public class ReplicationOperationsImplIT extends ConfigurableMacBase {
 
     // After both metadata and replication
     assertTrue("Drain never finished", done.get());
-    assertFalse("Saw unexpectetd exception", exception.get());
+    assertFalse("Saw unexpected exception", exception.get());
   }
 
   @Test

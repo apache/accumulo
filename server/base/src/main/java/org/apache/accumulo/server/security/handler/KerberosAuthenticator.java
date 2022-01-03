@@ -175,7 +175,7 @@ public class KerberosAuthenticator implements Authenticator {
 
   @Override
   public void changePassword(String principal, AuthenticationToken token) {
-    throw new UnsupportedOperationException("Cannot change password with Kerberos authenticaton");
+    throw new UnsupportedOperationException("Cannot change password with Kerberos authentication");
   }
 
   @Override

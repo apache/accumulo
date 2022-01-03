@@ -281,8 +281,8 @@ public class MergeStats {
             in.reset(data, data.length);
             info.readFields(in);
           }
-          System.out.println(String.format("%25s  %10s %10s %s", table, info.getState(),
-              info.getOperation(), info.getExtent()));
+          System.out.printf("%25s  %10s %10s %s%n", table, info.getState(), info.getOperation(),
+              info.getExtent());
         }
       }
     } finally {

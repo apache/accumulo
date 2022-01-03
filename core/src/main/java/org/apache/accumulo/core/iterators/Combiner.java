@@ -193,7 +193,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
           sawDeleteLog.error(
               "Combiner of type {} saw a delete during a"
                   + " partial compaction. This could cause undesired results. See"
-                  + " ACCUMULO-2232. Will not log subsequent occurences for at least" + " 1 hour.",
+                  + " ACCUMULO-2232. Will not log subsequent occurrences for at least" + " 1 hour.",
               Combiner.this.getClass().getSimpleName());
           // the value is not used and does not matter
           return Boolean.TRUE;
