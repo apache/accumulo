@@ -238,6 +238,13 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td></td>
  * </tr>
  * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_TSERVER_MAJC_STUCK}</td>
+ * <td>Gauge</td>
+ * <td></td>
+ * </tr>
+ * <tr>
  * <td>queuedMajCs</td>
  * <td>Gauge</td>
  * <td>{@link #METRICS_TSERVER_MAJC_QUEUED}</td>
@@ -269,6 +276,13 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>onlineTablets</td>
  * <td>Gauge</td>
  * <td>{@link #METRICS_TSERVER_TABLETS_ONLINE}</td>
+ * <td>Gauge</td>
+ * <td></td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_TSERVER_TABLETS_LONG_ASSIGNMENTS}</td>
  * <td>Gauge</td>
  * <td></td>
  * </tr>
@@ -564,9 +578,12 @@ public interface MetricsProducer {
   String METRICS_TSERVER_MEM_ENTRIES = METRICS_TSERVER_PREFIX + "entries.mem";
   String METRICS_TSERVER_MAJC_QUEUED = METRICS_TSERVER_PREFIX + "majc.queued";
   String METRICS_TSERVER_MAJC_RUNNING = METRICS_TSERVER_PREFIX + "majc.running";
+  String METRICS_TSERVER_MAJC_STUCK = METRICS_TSERVER_PREFIX + "majc.stuck";
   String METRICS_TSERVER_MINC_QUEUED = METRICS_TSERVER_PREFIX + "minc.queued";
   String METRICS_TSERVER_MINC_RUNNING = METRICS_TSERVER_PREFIX + "minc.running";
   String METRICS_TSERVER_MINC_TOTAL = METRICS_TSERVER_PREFIX + "minc.total";
+  String METRICS_TSERVER_TABLETS_LONG_ASSIGNMENTS =
+      METRICS_TSERVER_PREFIX + "tablets.assignments.warning";
   String METRICS_TSERVER_TABLETS_ONLINE = METRICS_TSERVER_PREFIX + "tablets.online";
   String METRICS_TSERVER_TABLETS_OPENING = METRICS_TSERVER_PREFIX + "tablets.opening";
   String METRICS_TSERVER_TABLETS_UNOPENED = METRICS_TSERVER_PREFIX + "tablets.unopened";

@@ -34,6 +34,11 @@ public class TabletServerMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
+    Gauge
+        .builder(METRICS_TSERVER_TABLETS_LONG_ASSIGNMENTS, util,
+            TabletServerMetricsUtil::getLongTabletAssignments)
+        .description("Number of tablet assignments that are taking a long time").register(registry);
+
     Gauge.builder(METRICS_TSERVER_ENTRIES, util, TabletServerMetricsUtil::getEntries)
         .description("Number of entries").register(registry);
     Gauge.builder(METRICS_TSERVER_MEM_ENTRIES, util, TabletServerMetricsUtil::getEntriesInMemory)
@@ -46,6 +51,10 @@ public class TabletServerMetrics implements MetricsProducer {
         .description("Number of queued major compactions").register(registry);
     Gauge.builder(METRICS_TSERVER_MINC_RUNNING, util, TabletServerMetricsUtil::getMinorCompactions)
         .description("Number of active minor compactions").register(registry);
+    Gauge
+        .builder(METRICS_TSERVER_MAJC_STUCK, util,
+            TabletServerMetricsUtil::getMajorCompactionsStuck)
+        .description("Number of stuck major compactions").register(registry);
     Gauge
         .builder(METRICS_TSERVER_MINC_QUEUED, util,
             TabletServerMetricsUtil::getMinorCompactionsQueued)

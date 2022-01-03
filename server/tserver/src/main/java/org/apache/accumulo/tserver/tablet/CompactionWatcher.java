@@ -37,6 +37,7 @@ public class CompactionWatcher implements Runnable {
   private final Map<List<Long>,ObservedCompactionInfo> observedCompactions = new HashMap<>();
   private final AccumuloConfiguration config;
   private static boolean watching = false;
+  private static long totalStuck = 0;
 
   private static class ObservedCompactionInfo {
     CompactionInfo compactionInfo;
@@ -51,6 +52,10 @@ public class CompactionWatcher implements Runnable {
 
   public CompactionWatcher(AccumuloConfiguration config) {
     this.config = config;
+  }
+
+  public static long getTotalStuck() {
+    return totalStuck;
   }
 
   @Override
@@ -75,12 +80,15 @@ public class CompactionWatcher implements Runnable {
     HashMap<List<Long>,ObservedCompactionInfo> copy = new HashMap<>(observedCompactions);
     copy.keySet().removeAll(newKeys);
 
+    long unstuck = 0;
     for (ObservedCompactionInfo oci : copy.values()) {
+      unstuck++;
       if (oci.loggedWarning) {
         LoggerFactory.getLogger(CompactionWatcher.class).info("Compaction of {} is no longer stuck",
             oci.compactionInfo.getExtent());
       }
     }
+    totalStuck = Math.min(0, (totalStuck - unstuck));
 
     // remove any compaction that completed or made progress
     observedCompactions.keySet().retainAll(newKeys);
@@ -88,22 +96,26 @@ public class CompactionWatcher implements Runnable {
     long warnTime = config.getTimeInMillis(Property.TSERV_COMPACTION_WARN_TIME);
 
     // check for stuck compactions
+    long stuck = 0;
     for (ObservedCompactionInfo oci : observedCompactions.values()) {
-      if (time - oci.firstSeen > warnTime && !oci.loggedWarning) {
-        Thread compactionThread = oci.compactionInfo.getThread();
-        if (compactionThread != null) {
-          StackTraceElement[] trace = compactionThread.getStackTrace();
-          Exception e = new Exception(
-              "Possible stack trace of compaction stuck on " + oci.compactionInfo.getExtent());
-          e.setStackTrace(trace);
-          LoggerFactory.getLogger(CompactionWatcher.class)
-              .warn("Compaction of " + oci.compactionInfo.getExtent() + " to "
-                  + oci.compactionInfo.getOutputFile() + " has not made progress for at least "
-                  + (time - oci.firstSeen) + "ms", e);
-          oci.loggedWarning = true;
+      if (time - oci.firstSeen > warnTime) {
+        stuck++;
+        if (!oci.loggedWarning) {
+          Thread compactionThread = oci.compactionInfo.getThread();
+          if (compactionThread != null) {
+            StackTraceElement[] trace = compactionThread.getStackTrace();
+            Exception e = new Exception(
+                "Possible stack trace of compaction stuck on " + oci.compactionInfo.getExtent());
+            e.setStackTrace(trace);
+            LoggerFactory.getLogger(CompactionWatcher.class).warn("Compaction of "
+                + oci.compactionInfo.getExtent() + " to " + oci.compactionInfo.getOutputFile()
+                + " has not made progress for at least " + (time - oci.firstSeen) + "ms", e);
+            oci.loggedWarning = true;
+          }
         }
       }
     }
+    totalStuck += stuck;
   }
 
   public static synchronized void startWatching(ServerContext context) {
