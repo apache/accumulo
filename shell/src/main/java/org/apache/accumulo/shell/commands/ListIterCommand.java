@@ -107,7 +107,7 @@ public class ListIterCommand extends Command {
       }
     }
     sb.append("-");
-    shellState.getWriter().println(sb.toString());
+    shellState.getWriter().println(sb);
 
     return 0;
   }

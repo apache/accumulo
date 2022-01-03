@@ -188,7 +188,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
 
       // add a constraint that references a non-existent class
       client.tableOperations().setProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX + "1",
-          "com.foobar.nonExistantClass");
+          "com.foobar.nonExistentClass");
       sleepUninterruptibly(1, TimeUnit.SECONDS);
 
       // add a mutation

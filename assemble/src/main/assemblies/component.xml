@@ -67,6 +67,7 @@
         <include>org.apache.commons:commons-math3</include>
         <include>org.apache.commons:commons-text</include>
         <include>org.apache.commons:commons-vfs2</include>
+        <include>org.apache.datasketches:datasketches-java</include>
         <include>org.apache.htrace:htrace-core4</include>
         <include>org.apache.logging.log4j:log4j-1.2-api</include>
         <include>org.apache.logging.log4j:log4j-api</include>

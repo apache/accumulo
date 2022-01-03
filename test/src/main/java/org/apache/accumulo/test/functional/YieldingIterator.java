@@ -95,8 +95,7 @@ public class YieldingIterator extends WrappingIterator {
    */
   @Override
   public Value getTopValue() {
-    String value = Integer.toString(yieldNexts.get()) + ',' + Integer.toString(yieldSeeks.get())
-        + ',' + Integer.toString(rebuilds.get());
+    String value = yieldNexts.get() + "," + yieldSeeks.get() + "," + rebuilds.get();
     return new Value(value);
   }
 
@@ -108,7 +107,7 @@ public class YieldingIterator extends WrappingIterator {
 
     if (range.isStartKeyInclusive()) {
       // must be a new scan so re-initialize the counters
-      log.info("reseting counters");
+      log.info("resetting counters");
       resetCounters();
     } else {
       rebuilds.incrementAndGet();

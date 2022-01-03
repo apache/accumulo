@@ -52,7 +52,7 @@ import com.google.gson.GsonBuilder;
  */
 public class RootTabletMetadata {
 
-  private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+  private static final Gson GSON = new GsonBuilder().create();
 
   private static final ByteSequence CURR_LOC_FAM =
       new ArrayByteSequence(CurrentLocationColumnFamily.STR_NAME);

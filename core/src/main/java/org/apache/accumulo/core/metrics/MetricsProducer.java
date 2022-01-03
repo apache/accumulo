@@ -356,6 +356,13 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td></td>
  * </tr>
  * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_SCAN_OPEN_FILES}</td>
+ * <td>Gauge</td>
+ * <td></td>
+ * </tr>
+ * <tr>
  * <td>result</td>
  * <td>Stat</td>
  * <td>{@link #METRICS_SCAN_RESULTS}</td>
@@ -548,6 +555,7 @@ public interface MetricsProducer {
   String METRICS_REPLICATION_THREADS = METRICS_REPLICATION_PREFIX + "threads";
 
   String METRICS_SCAN = "accumulo.tserver.scans";
+  String METRICS_SCAN_OPEN_FILES = METRICS_SCAN + ".files.open";
   String METRICS_SCAN_RESULTS = METRICS_SCAN + ".result";
   String METRICS_SCAN_YIELDS = METRICS_SCAN + ".yields";
 

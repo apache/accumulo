@@ -544,7 +544,7 @@ public class BloomFilterLayer {
 
     t2 = System.currentTimeMillis();
 
-    out.printf("existant lookup rate %6.2f%n", 500 / ((t2 - t1) / 1000.0));
+    out.printf("existing lookup rate %6.2f%n", 500 / ((t2 - t1) / 1000.0));
     out.println("expected hits 500.  Receive hits: " + count);
     bmfr.close();
   }

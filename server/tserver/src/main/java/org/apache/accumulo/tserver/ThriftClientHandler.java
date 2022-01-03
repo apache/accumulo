@@ -912,7 +912,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       log.trace(
           String.format("UpSess %s %,d in %.3fs, at=[%s] ft=%.3fs(pt=%.3fs lt=%.3fs ct=%.3fs)",
               TServerUtils.clientAddress.get(), us.totalUpdates,
-              (System.currentTimeMillis() - us.startTime) / 1000.0, us.authTimes.toString(),
+              (System.currentTimeMillis() - us.startTime) / 1000.0, us.authTimes,
               us.flushTime / 1000.0, us.prepareTimes.sum() / 1000.0, us.walogTimes.sum() / 1000.0,
               us.commitTimes.sum() / 1000.0));
     }

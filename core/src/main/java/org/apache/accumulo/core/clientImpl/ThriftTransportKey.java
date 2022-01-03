@@ -109,7 +109,7 @@ public class ThriftTransportKey {
     } else if (isSasl()) {
       prefix = saslParams + ":";
     }
-    return prefix + server + " (" + Long.toString(timeout) + ")";
+    return prefix + server + " (" + timeout + ")";
   }
 
   public SslConnectionParams getSslParams() {

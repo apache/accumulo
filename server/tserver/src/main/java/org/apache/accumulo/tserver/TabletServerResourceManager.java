@@ -796,7 +796,7 @@ public class TabletServerResourceManager {
       ExecutorService executor = scanExecutors.get(prefs.getExecutorName());
       if (executor == null) {
         log.warn(
-            "For table id {}, {} dispatched to non-existant executor {} Using default executor.",
+            "For table id {}, {} dispatched to non-existent executor {} Using default executor.",
             tablet.tableId(), dispatcher.getClass().getName(), prefs.getExecutorName());
         executor = scanExecutors.get(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME);
       } else if ("meta".equals(prefs.getExecutorName())) {

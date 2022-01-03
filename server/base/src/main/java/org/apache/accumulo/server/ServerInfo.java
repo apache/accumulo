@@ -54,6 +54,7 @@ public class ServerInfo implements ClientInfo {
   private final VolumeManager volumeManager;
   private final ZooCache zooCache;
   private final ServerDirs serverDirs;
+  private final Credentials credentials;
 
   ServerInfo(SiteConfiguration siteConfig, String instanceName, String zooKeepers,
       int zooKeepersSessionTimeOut) {
@@ -84,6 +85,7 @@ public class ServerInfo implements ClientInfo {
           + instanceName + " does not exist in zookeeper");
     }
     serverDirs = new ServerDirs(siteConfig, hadoopConf);
+    credentials = SystemCredentials.get(instanceID, siteConfig);
   }
 
   ServerInfo(SiteConfiguration config) {
@@ -102,6 +104,7 @@ public class ServerInfo implements ClientInfo {
     zooKeepersSessionTimeOut = (int) config.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
     instanceName = InstanceOperationsImpl.lookupInstanceName(zooCache, UUID.fromString(instanceID));
+    credentials = SystemCredentials.get(instanceID, siteConfig);
   }
 
   ServerInfo(SiteConfiguration config, String instanceName, String instanceID) {
@@ -119,6 +122,7 @@ public class ServerInfo implements ClientInfo {
     zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
     this.instanceName = instanceName;
     serverDirs = new ServerDirs(siteConfig, hadoopConf);
+    credentials = SystemCredentials.get(instanceID, siteConfig);
   }
 
   public SiteConfiguration getSiteConfiguration() {
@@ -176,7 +180,7 @@ public class ServerInfo implements ClientInfo {
   }
 
   public Credentials getCredentials() {
-    return SystemCredentials.get(getInstanceID(), getSiteConfiguration());
+    return credentials;
   }
 
   @Override

@@ -106,6 +106,10 @@
       <artifactId>commons-math3</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.apache.datasketches</groupId>
+      <artifactId>datasketches-java</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-client-api</artifactId>
     </dependency>

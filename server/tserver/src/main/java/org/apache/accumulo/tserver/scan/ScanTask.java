@@ -61,7 +61,7 @@ public abstract class ScanTask<T> implements RunnableFuture<T> {
   public boolean cancel(boolean mayInterruptIfRunning) {
     if (!mayInterruptIfRunning)
       throw new IllegalArgumentException(
-          "Cancel will always attempt to interupt running next batch task");
+          "Cancel will always attempt to interrupt running next batch task");
 
     if (state.get() == CANCELED)
       return true;
