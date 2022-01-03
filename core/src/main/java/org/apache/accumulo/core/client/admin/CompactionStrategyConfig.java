@@ -48,7 +48,7 @@ public class CompactionStrategyConfig {
   /**
    * @param className
    *          The name of a class that implements
-   *          org.apache.accumulo.tserver.compaction.CompactionStrategy. This class must be exist on
+   *          org.apache.accumulo.tserver.compaction.CompactionStrategy. This class must exist on
    *          tservers.
    */
   public CompactionStrategyConfig(String className) {
