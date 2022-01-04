@@ -46,6 +46,13 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <th>Notes</th>
  * </tr>
  * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@link #METRICS_COMPACTOR_MAJC_STUCK}</td>
+ * <td>Gauge</td>
+ * <td></td>
+ * </tr>
+ * <tr>
  * <td>currentFateOps</td>
  * <td>Gauge</td>
  * <td>{@link #METRICS_FATE_TOTAL_IN_PROGRESS}</td>
@@ -530,6 +537,9 @@ import io.micrometer.core.instrument.MeterRegistry;
 public interface MetricsProducer {
 
   Logger LOG = LoggerFactory.getLogger(MetricsProducer.class);
+
+  String METRICS_COMPACTOR_PREFIX = "accumulo.compactor";
+  String METRICS_COMPACTOR_MAJC_STUCK = METRICS_COMPACTOR_PREFIX + "majc.stuck";
 
   String METRICS_FATE_PREFIX = "accumulo.fate.";
   String METRICS_FATE_TYPE_IN_PROGRESS = METRICS_FATE_PREFIX + "ops.in_progress_by_type";

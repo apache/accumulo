@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.tablet;
+package org.apache.accumulo.server.compaction;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -29,8 +29,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.compaction.CompactionInfo;
-import org.apache.accumulo.server.compaction.FileCompactor;
 import org.slf4j.LoggerFactory;
 
 public class CompactionWatcher implements Runnable {
@@ -80,15 +78,12 @@ public class CompactionWatcher implements Runnable {
     HashMap<List<Long>,ObservedCompactionInfo> copy = new HashMap<>(observedCompactions);
     copy.keySet().removeAll(newKeys);
 
-    long unstuck = 0;
     for (ObservedCompactionInfo oci : copy.values()) {
-      unstuck++;
       if (oci.loggedWarning) {
         LoggerFactory.getLogger(CompactionWatcher.class).info("Compaction of {} is no longer stuck",
             oci.compactionInfo.getExtent());
       }
     }
-    totalStuck = Math.min(0, (totalStuck - unstuck));
 
     // remove any compaction that completed or made progress
     observedCompactions.keySet().retainAll(newKeys);
@@ -115,7 +110,7 @@ public class CompactionWatcher implements Runnable {
         }
       }
     }
-    totalStuck += stuck;
+    totalStuck = stuck;
   }
 
   public static synchronized void startWatching(ServerContext context) {

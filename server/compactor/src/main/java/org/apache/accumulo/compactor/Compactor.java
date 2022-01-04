@@ -87,6 +87,7 @@ import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.compaction.CompactionInfo;
+import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.compaction.RetryableThriftCall;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
@@ -111,54 +112,7 @@ import com.google.common.base.Preconditions;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
-public class Compactor extends AbstractServer implements CompactorService.Iface {
-
-  private static class CompactionProgress implements MetricsProducer {
-    private final long warnTime;
-    private long time;
-    private long read;
-    private long written;
-    private boolean stuck = false;
-
-    public CompactionProgress(AccumuloConfiguration config) {
-      warnTime = config.getTimeInMillis(Property.TSERV_COMPACTION_WARN_TIME);
-    }
-
-    @Override
-    public void registerMetrics(MeterRegistry registry) {
-      Gauge.builder(METRICS_TSERVER_MAJC_STUCK, this, CompactionProgress::getNumStuck)
-          .description("Number of stuck major compactions").register(registry);
-    }
-
-    public long getNumStuck() {
-      return stuck ? 1 : 0;
-    }
-
-    public long getWarnTime() {
-      return warnTime;
-    }
-
-    public void reset() {
-      time = System.currentTimeMillis();
-      read = 0;
-      written = 0;
-    }
-
-    public boolean isStuck(long entriesRead, long entriesWritten) {
-      if (entriesRead == read && entriesWritten == written) {
-        if ((System.currentTimeMillis() - time) > warnTime) {
-          stuck = true;
-          return true;
-        }
-      } else {
-        time = System.currentTimeMillis();
-        read = entriesRead;
-        written = entriesWritten;
-      }
-      stuck = false;
-      return false;
-    }
-  }
+public class Compactor extends AbstractServer implements MetricsProducer, CompactorService.Iface {
 
   private static final SecureRandom random = new SecureRandom();
 
@@ -187,6 +141,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
   private final String queueName;
   protected final AtomicReference<ExternalCompactionId> currentCompactionId =
       new AtomicReference<>();
+  private final CompactionWatcher watcher;
 
   private SecurityOperation security;
   private ServiceLock compactorLock;
@@ -202,6 +157,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     queueName = opts.getQueueName();
     aconf = getConfiguration();
     setupSecurity();
+    watcher = new CompactionWatcher(aconf);
     var schedExecutor = ThreadPools.createGeneralScheduledExecutorService(aconf);
     startGCLogger(schedExecutor);
     startCancelChecker(schedExecutor, TIME_BETWEEN_CANCEL_CHECKS);
@@ -213,10 +169,21 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     queueName = opts.getQueueName();
     aconf = conf;
     setupSecurity();
+    watcher = new CompactionWatcher(aconf);
     var schedExecutor = ThreadPools.createGeneralScheduledExecutorService(aconf);
     startGCLogger(schedExecutor);
     startCancelChecker(schedExecutor, TIME_BETWEEN_CANCEL_CHECKS);
     printStartupMsg();
+  }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    Gauge.builder(METRICS_COMPACTOR_MAJC_STUCK, this, Compactor::getMajorCompactionsStuck)
+        .description("Number of stuck major compactions").register(registry);
+  }
+
+  public long getMajorCompactionsStuck() {
+    return CompactionWatcher.getTotalStuck();
   }
 
   protected void setupSecurity() {
@@ -681,8 +648,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     } catch (Exception e1) {
       LOG.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
-    final CompactionProgress progress = new CompactionProgress(aconf);
-    MetricsUtil.initializeProducers(progress);
+    MetricsUtil.initializeProducers(this);
 
     LOG.info("Compactor started, waiting for work");
     try {
@@ -730,7 +696,6 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
           final long waitTime = calculateProgressCheckTime(totalInputBytes.sum());
           LOG.debug("Progress checks will occur every {} seconds", waitTime);
           String percentComplete = "unknown";
-          progress.reset();
 
           while (!stopped.await(waitTime, TimeUnit.SECONDS)) {
             List<CompactionInfo> running =
@@ -747,10 +712,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
                     "Compaction in progress, read %d of %d input entries ( %s %s ), written %d entries",
                     info.getEntriesRead(), inputEntries, percentComplete, "%",
                     info.getEntriesWritten());
-                if (progress.isStuck(info.getEntriesRead(), info.getEntriesWritten())) {
-                  LOG.warn("Compaction of {} has not made progress for at least {} ms.",
-                      info.getExtent(), progress.getWarnTime());
-                }
+                watcher.run();
                 try {
                   LOG.debug("Updating coordinator with compaction progress: {}.", message);
                   TCompactionStatusUpdate update =

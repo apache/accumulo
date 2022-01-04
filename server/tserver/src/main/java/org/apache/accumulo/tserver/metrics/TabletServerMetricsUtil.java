@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.tserver.metrics;
 
+import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.TabletServerResourceManager.AssignmentWatcher;
-import org.apache.accumulo.tserver.tablet.CompactionWatcher;
 import org.apache.accumulo.tserver.tablet.Tablet;
 
 /**
