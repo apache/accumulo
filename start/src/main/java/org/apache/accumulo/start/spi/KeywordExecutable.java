@@ -28,7 +28,7 @@ import java.util.ServiceLoader;
  * All implementing classes who have an entry in
  * META-INF/services/{@link org.apache.accumulo.start.spi.KeywordExecutable} on the classpath will
  * be constructed by the {@link ServiceLoader}, so they should be lightweight and quickly
- * constructable with a mandatory no-argument constructor. Because of this, implementing classes
+ * constructible with a mandatory no-argument constructor. Because of this, implementing classes
  * could simply be factories which execute a different class, if that class is expensive to
  * construct or cannot have a no-argument constructor.
  *
