@@ -102,7 +102,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
@@ -609,19 +608,22 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   private void verifyUp() throws InterruptedException, IOException {
 
-    Objects.requireNonNull(getClusterControl().managerProcess, "Error starting Manager");
+    Objects.requireNonNull(getClusterControl().managerProcess,
+        "Error starting Manager - no process");
     Objects.requireNonNull(getClusterControl().managerProcess.info().startInstant().get(),
-        "Error starting Manager");
+        "Error starting Manager - instance not started");
 
-    Objects.requireNonNull(getClusterControl().gcProcess, "Error starting GC");
+    Objects.requireNonNull(getClusterControl().gcProcess, "Error starting GC - no process");
     Objects.requireNonNull(getClusterControl().gcProcess.info().startInstant().get(),
-        "Error starting GC");
+        "Error starting GC - instance not started");
 
     int tsExpectedCount = 0;
     for (Process tsp : getClusterControl().tabletServerProcesses) {
       tsExpectedCount++;
-      Objects.requireNonNull(tsp, "Error starting TabletServer");
-      Objects.requireNonNull(tsp.info().startInstant().get(), "Error starting Manager");
+      Objects.requireNonNull(tsp,
+          "Error starting TabletServer " + tsExpectedCount + " - no process");
+      Objects.requireNonNull(tsp.info().startInstant().get(),
+          "Error starting TabletServer " + tsExpectedCount + "- instance not started");
     }
 
     String zk = config.getExistingZooKeepers() != null ? config.getExistingZooKeepers()
@@ -637,10 +639,14 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
           byte[] bytes = zrw.getData(instanceNamePath);
           instanceId = new String(bytes, UTF_8);
+          break;
         }
       }
     } catch (KeeperException e) {
       throw new RuntimeException("Unable to read instance name from zookeeper.", e);
+    }
+    if (instanceId == null) {
+      throw new RuntimeException(config.getInstanceName() + " instance name not found in ZK");
     }
     String rootPath = ZooUtil.getRoot(instanceId);
 
@@ -653,25 +659,22 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         for (String child : zrw.getChildren(rootPath + Constants.ZTSERVERS)) {
           tsActualCount++;
           if (zrw.getChildren(rootPath + Constants.ZTSERVERS + "/" + child).isEmpty())
-            throw new RuntimeException("TServer not present in ZooKeeper");
+            throw new RuntimeException("TServer " + tsActualCount + "not present in ZooKeeper");
         }
       } catch (KeeperException e) {
         throw new RuntimeException("Unable to read TServer information from zookeeper.", e);
       }
-      if (tryCount == 10) {
+      if (tryCount >= 10) {
         throw new RuntimeException("Timed out waiting for TServer information in ZooKeeper");
       }
       Thread.sleep(1000);
     }
 
-    Preconditions.checkArgument(tsExpectedCount == tsActualCount,
-        "TServer count (" + tsActualCount + ") is not correct (" + tsExpectedCount + ").");
-
     try {
       tryCount = 0;
       while (zrw.getChildren(rootPath + Constants.ZMANAGER_LOCK).isEmpty()) {
         tryCount++;
-        if (tryCount == 10) {
+        if (tryCount >= 10) {
           throw new RuntimeException("Manager not present in ZooKeeper");
         }
         Thread.sleep(1000);
@@ -684,7 +687,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       tryCount = 0;
       while (zrw.getChildren(rootPath + Constants.ZGC_LOCK).isEmpty()) {
         tryCount++;
-        if (tryCount == 10) {
+        if (tryCount >= 10) {
           throw new RuntimeException("GC not present in ZooKeeper");
         }
         Thread.sleep(1000);
