@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.tserver.metrics;
 
-import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.TabletServerResourceManager.AssignmentWatcher;
 import org.apache.accumulo.tserver.tablet.Tablet;
@@ -96,10 +95,6 @@ public class TabletServerMetricsUtil {
   public int getMajorCompactionsQueued() {
     var mgr = tserver.getCompactionManager();
     return mgr == null ? 0 : mgr.getCompactionsQueued();
-  }
-
-  public long getMajorCompactionsStuck() {
-    return CompactionWatcher.getTotalStuck();
   }
 
   public int getMinorCompactions() {

@@ -109,7 +109,7 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
 
-import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class Compactor extends AbstractServer implements MetricsProducer, CompactorService.Iface {
@@ -178,12 +178,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    Gauge.builder(METRICS_COMPACTOR_MAJC_STUCK, this, Compactor::getMajorCompactionsStuck)
-        .description("Number of stuck major compactions").register(registry);
-  }
-
-  public long getMajorCompactionsStuck() {
-    return CompactionWatcher.getTotalStuck();
+    LongTaskTimer timer = LongTaskTimer.builder(METRICS_COMPACTOR_MAJC_STUCK)
+        .description("Number and duration of stuck major compactions").register(registry);
+    CompactionWatcher.setTimer(timer);
   }
 
   protected void setupSecurity() {
@@ -730,6 +727,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           }
           compactionThread.join();
           LOG.trace("Compaction thread finished.");
+          // Run the watcher again to clear out the finished compaction and set the
+          // stuck count to zero.
+          watcher.run();
 
           if (err.get() != null) {
             // maybe the error occured because the table was deleted or something like that, so

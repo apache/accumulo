@@ -49,7 +49,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>N/A</td>
  * <td>N/A</td>
  * <td>{@link #METRICS_COMPACTOR_MAJC_STUCK}</td>
- * <td>Gauge</td>
+ * <td>LongTaskTimer</td>
  * <td></td>
  * </tr>
  * <tr>
@@ -248,7 +248,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>N/A</td>
  * <td>N/A</td>
  * <td>{@link #METRICS_TSERVER_MAJC_STUCK}</td>
- * <td>Gauge</td>
+ * <td>LongTaskTimer</td>
  * <td></td>
  * </tr>
  * <tr>

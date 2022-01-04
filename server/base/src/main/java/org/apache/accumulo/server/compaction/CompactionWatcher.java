@@ -31,15 +31,24 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.LoggerFactory;
 
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.LongTaskTimer.Sample;
+
 public class CompactionWatcher implements Runnable {
+
+  public static void setTimer(LongTaskTimer ltt) {
+    timer = ltt;
+  }
+
   private final Map<List<Long>,ObservedCompactionInfo> observedCompactions = new HashMap<>();
   private final AccumuloConfiguration config;
   private static boolean watching = false;
-  private static long totalStuck = 0;
+  private static LongTaskTimer timer = null;
 
   private static class ObservedCompactionInfo {
-    CompactionInfo compactionInfo;
-    long firstSeen;
+    final CompactionInfo compactionInfo;
+    final long firstSeen;
+    Sample stuckSample;
     boolean loggedWarning;
 
     ObservedCompactionInfo(CompactionInfo ci, long time) {
@@ -50,10 +59,6 @@ public class CompactionWatcher implements Runnable {
 
   public CompactionWatcher(AccumuloConfiguration config) {
     this.config = config;
-  }
-
-  public static long getTotalStuck() {
-    return totalStuck;
   }
 
   @Override
@@ -79,6 +84,10 @@ public class CompactionWatcher implements Runnable {
     copy.keySet().removeAll(newKeys);
 
     for (ObservedCompactionInfo oci : copy.values()) {
+      if (oci.stuckSample != null) {
+        oci.stuckSample.stop();
+        oci.stuckSample = null;
+      }
       if (oci.loggedWarning) {
         LoggerFactory.getLogger(CompactionWatcher.class).info("Compaction of {} is no longer stuck",
             oci.compactionInfo.getExtent());
@@ -91,10 +100,9 @@ public class CompactionWatcher implements Runnable {
     long warnTime = config.getTimeInMillis(Property.TSERV_COMPACTION_WARN_TIME);
 
     // check for stuck compactions
-    long stuck = 0;
     for (ObservedCompactionInfo oci : observedCompactions.values()) {
       if (time - oci.firstSeen > warnTime) {
-        stuck++;
+        oci.stuckSample = timer == null ? null : timer.start();
         if (!oci.loggedWarning) {
           Thread compactionThread = oci.compactionInfo.getThread();
           if (compactionThread != null) {
@@ -110,7 +118,6 @@ public class CompactionWatcher implements Runnable {
         }
       }
     }
-    totalStuck = stuck;
   }
 
   public static synchronized void startWatching(ServerContext context) {
