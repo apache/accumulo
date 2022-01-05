@@ -41,6 +41,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
@@ -600,6 +601,101 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     if (executor == null) {
       executor = Executors.newSingleThreadExecutor();
     }
+
+    verifyUp();
+
+  }
+
+  private void verifyUp() throws InterruptedException, IOException {
+
+    Objects.requireNonNull(getClusterControl().managerProcess,
+        "Error starting Manager - no process");
+    Objects.requireNonNull(getClusterControl().managerProcess.info().startInstant().get(),
+        "Error starting Manager - instance not started");
+
+    Objects.requireNonNull(getClusterControl().gcProcess, "Error starting GC - no process");
+    Objects.requireNonNull(getClusterControl().gcProcess.info().startInstant().get(),
+        "Error starting GC - instance not started");
+
+    int tsExpectedCount = 0;
+    for (Process tsp : getClusterControl().tabletServerProcesses) {
+      tsExpectedCount++;
+      Objects.requireNonNull(tsp,
+          "Error starting TabletServer " + tsExpectedCount + " - no process");
+      Objects.requireNonNull(tsp.info().startInstant().get(),
+          "Error starting TabletServer " + tsExpectedCount + "- instance not started");
+    }
+
+    String zk = config.getExistingZooKeepers() != null ? config.getExistingZooKeepers()
+        : config.getZooKeepers();
+
+    ZooReaderWriter zrw =
+        new ZooReaderWriter(zk, 30000, Property.INSTANCE_SECRET.getDefaultValue());
+
+    String instanceId = null;
+    try {
+      for (String name : zrw.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
+        if (name.equals(config.getInstanceName())) {
+          String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
+          byte[] bytes = zrw.getData(instanceNamePath);
+          instanceId = new String(bytes, UTF_8);
+          break;
+        }
+      }
+    } catch (KeeperException e) {
+      throw new RuntimeException("Unable to read instance name from zookeeper.", e);
+    }
+    if (instanceId == null) {
+      throw new RuntimeException(config.getInstanceName() + " instance name not found in ZK");
+    }
+    String rootPath = ZooUtil.getRoot(instanceId);
+
+    int tsActualCount = 0;
+    int tryCount = 0;
+    while (tsActualCount != tsExpectedCount) {
+      tryCount++;
+      try {
+        tsActualCount = 0;
+        for (String child : zrw.getChildren(rootPath + Constants.ZTSERVERS)) {
+          tsActualCount++;
+          if (zrw.getChildren(rootPath + Constants.ZTSERVERS + "/" + child).isEmpty())
+            throw new RuntimeException("TServer " + tsActualCount + "not present in ZooKeeper");
+        }
+      } catch (KeeperException e) {
+        throw new RuntimeException("Unable to read TServer information from zookeeper.", e);
+      }
+      if (tryCount >= 10) {
+        throw new RuntimeException("Timed out waiting for TServer information in ZooKeeper");
+      }
+      Thread.sleep(1000);
+    }
+
+    try {
+      tryCount = 0;
+      while (zrw.getChildren(rootPath + Constants.ZMANAGER_LOCK).isEmpty()) {
+        tryCount++;
+        if (tryCount >= 10) {
+          throw new RuntimeException("Manager not present in ZooKeeper");
+        }
+        Thread.sleep(1000);
+      }
+    } catch (KeeperException e) {
+      throw new RuntimeException("Unable to read Manager information from zookeeper.", e);
+    }
+
+    try {
+      tryCount = 0;
+      while (zrw.getChildren(rootPath + Constants.ZGC_LOCK).isEmpty()) {
+        tryCount++;
+        if (tryCount >= 10) {
+          throw new RuntimeException("GC not present in ZooKeeper");
+        }
+        Thread.sleep(1000);
+      }
+    } catch (KeeperException e) {
+      throw new RuntimeException("Unable to read GC information from zookeeper.", e);
+    }
+
   }
 
   private List<String> buildRemoteDebugParams(int port) {
