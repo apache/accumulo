@@ -659,7 +659,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         for (String child : zrw.getChildren(rootPath + Constants.ZTSERVERS)) {
           tsActualCount++;
           if (zrw.getChildren(rootPath + Constants.ZTSERVERS + "/" + child).isEmpty())
-            throw new RuntimeException("TServer " + tsActualCount + "not present in ZooKeeper");
+            log.info("TServer " + tsActualCount + " not yet present in ZooKeeper");
         }
       } catch (KeeperException e) {
         throw new RuntimeException("Unable to read TServer information from zookeeper.", e);
