@@ -174,8 +174,9 @@ public interface AccumuloClient extends AutoCloseable {
    *          the name of the table to insert data into
    * @param config
    *          configuration used to create batch writer. This config will take precedence. Any unset
-   *          values will merged with config set when the AccumuloClient was created. If no config
-   *          was set during AccumuloClient creation, BatchWriterConfig defaults will be used.
+   *          values will be merged with the config set when the AccumuloClient was created. If no
+   *          config was set during AccumuloClient creation, BatchWriterConfig defaults will be
+   *          used.
    * @return BatchWriter object for configuring and writing data to
    */
   BatchWriter createBatchWriter(String tableName, BatchWriterConfig config)
@@ -196,14 +197,14 @@ public interface AccumuloClient extends AutoCloseable {
   /**
    * Factory method to create a Multi-Table BatchWriter connected to Accumulo. Multi-table batch
    * writers can queue data for multiple tables. Also data for multiple tables can be sent to a
-   * server in a single batch. Its an efficient way to ingest data into multiple tables from a
+   * server in a single batch. It's an efficient way to ingest data into multiple tables from a
    * single process.
    *
    * @param config
    *          configuration used to create multi-table batch writer. This config will take
-   *          precedence. Any unset values will merged with config set when the AccumuloClient was
-   *          created. If no config was set during AccumuloClient creation, BatchWriterConfig
-   *          defaults will be used.
+   *          precedence. Any unset values will be merged with the config set when the
+   *          AccumuloClient was created. If no config was set during AccumuloClient creation,
+   *          BatchWriterConfig defaults will be used.
    * @return MultiTableBatchWriter object for configuring and writing data to
    */
   MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config);

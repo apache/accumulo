@@ -126,10 +126,10 @@ public class MajorCompactionRequest implements Cloneable {
    * summary information.
    *
    * <p>
-   * When using summaries to make compaction decisions, its important to ensure that all summary
+   * When using summaries to make compaction decisions, it's important to ensure that all summary
    * data fits in the tablet server summary cache. The size of this cache is configured by code
-   * tserver.cache.summary.size}. Also its important to use the summarySelector predicate to only
-   * retrieve the needed summary data. Otherwise uneeded summary data could be brought into the
+   * tserver.cache.summary.size}. Also it's important to use the summarySelector predicate to only
+   * retrieve the needed summary data. Otherwise unneeded summary data could be brought into the
    * cache.
    *
    * <p>

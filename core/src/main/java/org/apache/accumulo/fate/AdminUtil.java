@@ -139,7 +139,7 @@ public class AdminUtil<T> {
     }
 
     /**
-     * @return The timestamp of when the operation was created in ISO format wiht UTC timezone.
+     * @return The timestamp of when the operation was created in ISO format with UTC timezone.
      */
     public String getTimeCreatedFormatted() {
       return timeCreated > 0 ? new Date(timeCreated).toInstant().atZone(ZoneOffset.UTC)

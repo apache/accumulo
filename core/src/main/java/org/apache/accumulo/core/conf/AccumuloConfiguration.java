@@ -464,7 +464,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     /**
      * This method was written with the goal of avoiding thread contention and minimizing
      * recomputation. Configuration can be accessed frequently by many threads. Ideally, threads
-     * working on unrelated task would not impeded each other because of accessing config.
+     * working on unrelated tasks would not impede each other because of accessing config.
      *
      * To avoid thread contention, synchronization and needless calls to compare and set were
      * avoided. For example if 100 threads are all calling compare and set in a loop this could
@@ -577,7 +577,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
           }
           prioritizerOpts.put(key, val);
         } else {
-          throw new IllegalStateException("Unkown scan executor option : " + opt);
+          throw new IllegalStateException("Unknown scan executor option : " + opt);
         }
       }
 

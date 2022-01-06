@@ -63,7 +63,7 @@ public interface CompactionPlanner {
     String getFullyQualifiedOption(String key);
 
     /**
-     * @return an execution mananger that can be used to created thread pools within a compaction
+     * @return an execution manager that can be used to created thread pools within a compaction
      *         service.
      */
     ExecutorManager getExecutorManager();

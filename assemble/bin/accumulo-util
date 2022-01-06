@@ -25,7 +25,7 @@ Usage: accumulo-util <command> (<argument> ...)
 Commands:
   build-native        Builds Accumulo native libraries
   dump-zoo            Dumps data in ZooKeeper
-  gen-monitor-cert    Generates Accumulo monitor certficate
+  gen-monitor-cert    Generates Accumulo monitor certificate
   load-jars-hdfs      Loads Accumulo jars in lib/ to HDFS for VFS classloader
   
 EOF
