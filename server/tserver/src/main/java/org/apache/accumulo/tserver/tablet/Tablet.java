@@ -1378,7 +1378,7 @@ public class Tablet {
 
     try {
       var tabletMeta = context.getAmple().readTablet(extent, ColumnType.FILES, ColumnType.LOGS,
-          ColumnType.ECOMP, ColumnType.PREV_ROW);
+          ColumnType.ECOMP, ColumnType.PREV_ROW, ColumnType.FLUSH_ID, ColumnType.COMPACT_ID);
 
       if (tabletMeta == null) {
         String msg = "Closed tablet " + extent + " not found in metadata";
@@ -1402,6 +1402,18 @@ public class Tablet {
         throw new RuntimeException(msg);
       }
 
+      if (tabletMeta.getFlushId().orElse(-1) != lastFlushID) {
+        String msg = "Closed tablet " + extent + " has not been flushed before being closed.";
+        log.error(msg);
+        throw new RuntimeException(msg);
+      }
+
+      if (tabletMeta.getCompactId().orElse(-1) != lastCompactID) {
+        String msg = "Closed tablet " + extent + " has not been compacted before being closed.";
+        log.error(msg);
+        throw new RuntimeException(msg);
+      }
+
       compareToDataInMemory(tabletMeta);
     } catch (Exception e) {
       String msg = "Failed to do close consistency check for tablet " + extent;
@@ -1415,36 +1427,6 @@ public class Tablet {
           + currentLogs + "  otherLogs = " + otherLogs + " referencedLogs = " + referencedLogs;
       log.error(msg);
       throw new RuntimeException(msg);
-    }
-
-    // If a table hasn't been flushed before it was closed then lastFlushID will be -1 while
-    // getFlushID will be 0.
-    try {
-      long flushID = getFlushID();
-      if (lastFlushID != 0 && flushID == 0) {
-        String msg = "Closed tablet " + extent + " has not been flushed before being closed.";
-        log.error(msg);
-        throw new RuntimeException(msg);
-      }
-    } catch (NoNodeException e) {
-      String msg = "Failed to do close consistency check for tablet " + extent;
-      log.error(msg, e);
-      throw new RuntimeException(msg, e);
-    }
-
-    // If a table hasn't been compacted before it was closed then lastCompactID will be -1 while
-    // getCompactionID will be 0.
-    try {
-      long compactID = getCompactionID().getFirst();
-      if (lastCompactID != 0 && compactID == 0) {
-        String msg = "Closed tablet " + extent + " has not been compacted before being closed.";
-        log.error(msg);
-        throw new RuntimeException(msg);
-      }
-    } catch (NoNodeException e) {
-      String msg = "Failed to do close consistency check for tablet " + extent;
-      log.error(msg, e);
-      throw new RuntimeException(msg, e);
     }
   }
 
