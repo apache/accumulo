@@ -1403,13 +1403,15 @@ public class Tablet {
       }
 
       if (tabletMeta.getFlushId().orElse(-1) != lastFlushID) {
-        String msg = "Closed tablet " + extent + " has not been flushed before being closed.";
+        String msg = "Closed tablet " + extent + " lastFlushID is inconsistent with metadata : "
+            + tabletMeta.getFlushId().orElse(-1) + " != " + lastFlushID;
         log.error(msg);
         throw new RuntimeException(msg);
       }
 
       if (tabletMeta.getCompactId().orElse(-1) != lastCompactID) {
-        String msg = "Closed tablet " + extent + " has not been compacted before being closed.";
+        String msg = "Closed tablet " + extent + " lastCompactID is inconsistent with metadata : "
+            + tabletMeta.getCompactId().orElse(-1) + " != " + lastCompactID;
         log.error(msg);
         throw new RuntimeException(msg);
       }
