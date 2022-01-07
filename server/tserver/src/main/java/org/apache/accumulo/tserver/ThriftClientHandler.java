@@ -369,7 +369,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     }
   }
 
-  private ScanResult continueScan(TInfo tinfo, long scanID, SingleScanSession scanSession)
+  protected ScanResult continueScan(TInfo tinfo, long scanID, SingleScanSession scanSession)
       throws NoSuchScanIDException, NotServingTabletException,
       org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException,
       TSampleNotPresentException {

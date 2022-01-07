@@ -25,7 +25,7 @@ import org.apache.accumulo.tserver.ThriftClientHandler;
 public class ExternalCompactionTServer extends TabletServer {
 
   ExternalCompactionTServer(ServerOpts opts, String[] args) {
-    super(opts, args);
+    super(opts, args, false);
   }
 
   @Override

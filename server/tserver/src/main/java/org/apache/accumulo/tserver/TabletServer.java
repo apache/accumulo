@@ -171,7 +171,7 @@ public class TabletServer extends AbstractServer {
   final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
   final ZooCache managerLockCache;
 
-  final TabletServerLogger logger;
+  TabletServerLogger logger;
 
   private TabletServerMetrics metrics;
   TabletServerUpdateMetrics updateMetrics;
@@ -187,10 +187,10 @@ public class TabletServer extends AbstractServer {
     return mincMetrics;
   }
 
-  private final LogSorter logSorter;
+  private LogSorter logSorter;
   @SuppressWarnings("deprecation")
   private org.apache.accumulo.tserver.replication.ReplicationWorker replWorker = null;
-  final TabletStatsKeeper statsKeeper;
+  TabletStatsKeeper statsKeeper;
   private final AtomicInteger logIdGenerator = new AtomicInteger();
 
   private final AtomicLong flushCounter = new AtomicLong(0);
@@ -225,16 +225,16 @@ public class TabletServer extends AbstractServer {
   private final AtomicLong totalMinorCompactions = new AtomicLong(0);
 
   private final ZooAuthenticationKeyWatcher authKeyWatcher;
-  private final WalStateManager walMarker;
+  private WalStateManager walMarker;
   private final ServerContext context;
 
   public static void main(String[] args) throws Exception {
-    try (TabletServer tserver = new TabletServer(new ServerOpts(), args)) {
+    try (TabletServer tserver = new TabletServer(new ServerOpts(), args, false)) {
       tserver.runServer();
     }
   }
 
-  protected TabletServer(ServerOpts opts, String[] args) {
+  protected TabletServer(ServerOpts opts, String[] args, boolean scanOnly) {
     super("tserver", opts, args);
     context = super.getContext();
     context.setupCrypto();
@@ -243,113 +243,118 @@ public class TabletServer extends AbstractServer {
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + getInstanceID());
     this.sessionManager = new SessionManager(context);
-    this.logSorter = new LogSorter(context, aconf);
-    @SuppressWarnings("deprecation")
-    var replWorker = new org.apache.accumulo.tserver.replication.ReplicationWorker(context);
-    this.replWorker = replWorker;
-    this.statsKeeper = new TabletStatsKeeper();
-    final int numBusyTabletsToLog = aconf.getCount(Property.TSERV_LOG_BUSY_TABLETS_COUNT);
-    final long logBusyTabletsDelay =
-        aconf.getTimeInMillis(Property.TSERV_LOG_BUSY_TABLETS_INTERVAL);
 
-    // check early whether the WAL directory supports sync. issue warning if
-    // it doesn't
-    checkWalCanSync(context);
+    if (!scanOnly) {
+      this.logSorter = new LogSorter(context, aconf);
+      @SuppressWarnings("deprecation")
+      var replWorker = new org.apache.accumulo.tserver.replication.ReplicationWorker(context);
+      this.replWorker = replWorker;
+      this.statsKeeper = new TabletStatsKeeper();
+      final int numBusyTabletsToLog = aconf.getCount(Property.TSERV_LOG_BUSY_TABLETS_COUNT);
+      final long logBusyTabletsDelay =
+          aconf.getTimeInMillis(Property.TSERV_LOG_BUSY_TABLETS_INTERVAL);
 
-    // This thread will calculate and log out the busiest tablets based on ingest count and
-    // query count every #{logBusiestTabletsDelay}
-    if (numBusyTabletsToLog > 0) {
+      // check early whether the WAL directory supports sync. issue warning if
+      // it doesn't
+      checkWalCanSync(context);
+
+      // This thread will calculate and log out the busiest tablets based on ingest count and
+      // query count every #{logBusiestTabletsDelay}
+      if (numBusyTabletsToLog > 0) {
+        context.getScheduledExecutor()
+            .scheduleWithFixedDelay(Threads.createNamedRunnable("BusyTabletLogger", new Runnable() {
+              private BusiestTracker ingestTracker =
+                  BusiestTracker.newBusiestIngestTracker(numBusyTabletsToLog);
+              private BusiestTracker queryTracker =
+                  BusiestTracker.newBusiestQueryTracker(numBusyTabletsToLog);
+
+              @Override
+              public void run() {
+                Collection<Tablet> tablets = onlineTablets.snapshot().values();
+                logBusyTablets(ingestTracker.computeBusiest(tablets), "ingest count");
+                logBusyTablets(queryTracker.computeBusiest(tablets), "query count");
+              }
+
+              private void logBusyTablets(List<ComparablePair<Long,KeyExtent>> busyTablets,
+                  String label) {
+
+                int i = 1;
+                for (Pair<Long,KeyExtent> pair : busyTablets) {
+                  log.debug("{} busiest tablet by {}: {} -- extent: {} ", i, label.toLowerCase(),
+                      pair.getFirst(), pair.getSecond());
+                  i++;
+                }
+              }
+            }), logBusyTabletsDelay, logBusyTabletsDelay, TimeUnit.MILLISECONDS);
+      }
+
       context.getScheduledExecutor()
-          .scheduleWithFixedDelay(Threads.createNamedRunnable("BusyTabletLogger", new Runnable() {
-            private BusiestTracker ingestTracker =
-                BusiestTracker.newBusiestIngestTracker(numBusyTabletsToLog);
-            private BusiestTracker queryTracker =
-                BusiestTracker.newBusiestQueryTracker(numBusyTabletsToLog);
-
+          .scheduleWithFixedDelay(Threads.createNamedRunnable("TabletRateUpdater", new Runnable() {
             @Override
             public void run() {
-              Collection<Tablet> tablets = onlineTablets.snapshot().values();
-              logBusyTablets(ingestTracker.computeBusiest(tablets), "ingest count");
-              logBusyTablets(queryTracker.computeBusiest(tablets), "query count");
-            }
-
-            private void logBusyTablets(List<ComparablePair<Long,KeyExtent>> busyTablets,
-                String label) {
-
-              int i = 1;
-              for (Pair<Long,KeyExtent> pair : busyTablets) {
-                log.debug("{} busiest tablet by {}: {} -- extent: {} ", i, label.toLowerCase(),
-                    pair.getFirst(), pair.getSecond());
-                i++;
+              long now = System.currentTimeMillis();
+              for (Tablet tablet : getOnlineTablets().values()) {
+                try {
+                  tablet.updateRates(now);
+                } catch (Exception ex) {
+                  log.error("Error updating rates for {}", tablet.getExtent(), ex);
+                }
               }
             }
-          }), logBusyTabletsDelay, logBusyTabletsDelay, TimeUnit.MILLISECONDS);
+          }), 5000, 5000, TimeUnit.MILLISECONDS);
+
+      @SuppressWarnings("deprecation")
+      final long walMaxSize = aconf
+          .getAsBytes(aconf.resolve(Property.TSERV_WAL_MAX_SIZE, Property.TSERV_WALOG_MAX_SIZE));
+      @SuppressWarnings("deprecation")
+      final long walMaxAge = aconf
+          .getTimeInMillis(aconf.resolve(Property.TSERV_WAL_MAX_AGE, Property.TSERV_WALOG_MAX_AGE));
+      final long minBlockSize =
+          context.getHadoopConf().getLong("dfs.namenode.fs-limits.min-block-size", 0);
+      if (minBlockSize != 0 && minBlockSize > walMaxSize) {
+        throw new RuntimeException("Unable to start TabletServer. Logger is set to use blocksize "
+            + walMaxSize + " but hdfs minimum block size is " + minBlockSize
+            + ". Either increase the " + Property.TSERV_WAL_MAX_SIZE
+            + " or decrease dfs.namenode.fs-limits.min-block-size in hdfs-site.xml.");
+      }
+
+      @SuppressWarnings("deprecation")
+      final long toleratedWalCreationFailures =
+          aconf.getCount(aconf.resolve(Property.TSERV_WAL_TOLERATED_CREATION_FAILURES,
+              Property.TSERV_WALOG_TOLERATED_CREATION_FAILURES));
+      @SuppressWarnings("deprecation")
+      final long walFailureRetryIncrement =
+          aconf.getTimeInMillis(aconf.resolve(Property.TSERV_WAL_TOLERATED_WAIT_INCREMENT,
+              Property.TSERV_WALOG_TOLERATED_WAIT_INCREMENT));
+      @SuppressWarnings("deprecation")
+      final long walFailureRetryMax =
+          aconf.getTimeInMillis(aconf.resolve(Property.TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION,
+              Property.TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION));
+      final RetryFactory walCreationRetryFactory =
+          Retry.builder().maxRetries(toleratedWalCreationFailures)
+              .retryAfter(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
+              .incrementBy(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
+              .maxWait(walFailureRetryMax, TimeUnit.MILLISECONDS).backOffFactor(1.5)
+              .logInterval(3, TimeUnit.MINUTES).createFactory();
+      // Tolerate infinite failures for the write, however backing off the same as for creation
+      // failures.
+      final RetryFactory walWritingRetryFactory = Retry.builder().infiniteRetries()
+          .retryAfter(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
+          .incrementBy(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
+          .maxWait(walFailureRetryMax, TimeUnit.MILLISECONDS).backOffFactor(1.5)
+          .logInterval(3, TimeUnit.MINUTES).createFactory();
+
+      logger = new TabletServerLogger(this, walMaxSize, syncCounter, flushCounter,
+          walCreationRetryFactory, walWritingRetryFactory, walMaxAge);
+      Threads.createThread("Split/MajC initiator", new MajorCompactor(context)).start();
+      FileSystemMonitor.start(aconf, Property.TSERV_MONITOR_FS);
+      walMarker = new WalStateManager(context);
     }
 
-    context.getScheduledExecutor()
-        .scheduleWithFixedDelay(Threads.createNamedRunnable("TabletRateUpdater", new Runnable() {
-          @Override
-          public void run() {
-            long now = System.currentTimeMillis();
-            for (Tablet tablet : getOnlineTablets().values()) {
-              try {
-                tablet.updateRates(now);
-              } catch (Exception ex) {
-                log.error("Error updating rates for {}", tablet.getExtent(), ex);
-              }
-            }
-          }
-        }), 5000, 5000, TimeUnit.MILLISECONDS);
-
-    @SuppressWarnings("deprecation")
-    final long walMaxSize =
-        aconf.getAsBytes(aconf.resolve(Property.TSERV_WAL_MAX_SIZE, Property.TSERV_WALOG_MAX_SIZE));
-    @SuppressWarnings("deprecation")
-    final long walMaxAge = aconf
-        .getTimeInMillis(aconf.resolve(Property.TSERV_WAL_MAX_AGE, Property.TSERV_WALOG_MAX_AGE));
-    final long minBlockSize =
-        context.getHadoopConf().getLong("dfs.namenode.fs-limits.min-block-size", 0);
-    if (minBlockSize != 0 && minBlockSize > walMaxSize) {
-      throw new RuntimeException("Unable to start TabletServer. Logger is set to use blocksize "
-          + walMaxSize + " but hdfs minimum block size is " + minBlockSize
-          + ". Either increase the " + Property.TSERV_WAL_MAX_SIZE
-          + " or decrease dfs.namenode.fs-limits.min-block-size in hdfs-site.xml.");
-    }
-
-    @SuppressWarnings("deprecation")
-    final long toleratedWalCreationFailures =
-        aconf.getCount(aconf.resolve(Property.TSERV_WAL_TOLERATED_CREATION_FAILURES,
-            Property.TSERV_WALOG_TOLERATED_CREATION_FAILURES));
-    @SuppressWarnings("deprecation")
-    final long walFailureRetryIncrement =
-        aconf.getTimeInMillis(aconf.resolve(Property.TSERV_WAL_TOLERATED_WAIT_INCREMENT,
-            Property.TSERV_WALOG_TOLERATED_WAIT_INCREMENT));
-    @SuppressWarnings("deprecation")
-    final long walFailureRetryMax =
-        aconf.getTimeInMillis(aconf.resolve(Property.TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION,
-            Property.TSERV_WALOG_TOLERATED_MAXIMUM_WAIT_DURATION));
-    final RetryFactory walCreationRetryFactory =
-        Retry.builder().maxRetries(toleratedWalCreationFailures)
-            .retryAfter(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
-            .incrementBy(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
-            .maxWait(walFailureRetryMax, TimeUnit.MILLISECONDS).backOffFactor(1.5)
-            .logInterval(3, TimeUnit.MINUTES).createFactory();
-    // Tolerate infinite failures for the write, however backing off the same as for creation
-    // failures.
-    final RetryFactory walWritingRetryFactory = Retry.builder().infiniteRetries()
-        .retryAfter(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
-        .incrementBy(walFailureRetryIncrement, TimeUnit.MILLISECONDS)
-        .maxWait(walFailureRetryMax, TimeUnit.MILLISECONDS).backOffFactor(1.5)
-        .logInterval(3, TimeUnit.MINUTES).createFactory();
-
-    logger = new TabletServerLogger(this, walMaxSize, syncCounter, flushCounter,
-        walCreationRetryFactory, walWritingRetryFactory, walMaxAge);
     this.resourceManager = new TabletServerResourceManager(context);
     this.security = AuditedSecurityOperation.getInstance(context);
-
     context.getScheduledExecutor().scheduleWithFixedDelay(TabletLocator::clearLocators, jitter(),
         jitter(), TimeUnit.MILLISECONDS);
-    walMarker = new WalStateManager(context);
 
     // Create the secret manager
     context.setSecretManager(new AuthenticationTokenSecretManager(context.getInstanceID(),
@@ -363,7 +368,12 @@ public class TabletServer extends AbstractServer {
     } else {
       authKeyWatcher = null;
     }
-    config();
+    log.info("Tablet server starting on {}", getHostname());
+    clientAddress = HostAndPort.fromParts(getHostname(), 0);
+
+    Runnable gcDebugTask = () -> gcLogger.logGCInfo(getConfiguration());
+    context.getScheduledExecutor().scheduleWithFixedDelay(gcDebugTask, 0, TIME_BETWEEN_GC_CHECKS,
+        TimeUnit.MILLISECONDS);
   }
 
   public String getInstanceID() {
@@ -1000,22 +1010,6 @@ public class TabletServer extends AbstractServer {
             + " Data loss may occur.", logPath);
       }
     }
-  }
-
-  private void config() {
-    log.info("Tablet server starting on {}", getHostname());
-    Threads.createThread("Split/MajC initiator", new MajorCompactor(context)).start();
-
-    clientAddress = HostAndPort.fromParts(getHostname(), 0);
-
-    final AccumuloConfiguration aconf = getConfiguration();
-
-    FileSystemMonitor.start(aconf, Property.TSERV_MONITOR_FS);
-
-    Runnable gcDebugTask = () -> gcLogger.logGCInfo(getConfiguration());
-
-    context.getScheduledExecutor().scheduleWithFixedDelay(gcDebugTask, 0, TIME_BETWEEN_GC_CHECKS,
-        TimeUnit.MILLISECONDS);
   }
 
   public TabletServerStatus getStats(Map<TableId,MapCounter<ScanRunState>> scanCounts) {
