@@ -639,7 +639,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     };
     try (ZooKeeper zk = new ZooKeeper(getZooKeepers(), 60000, w)) {
 
-      String secret = getServerContext().getConfiguration().get(Property.INSTANCE_SECRET);
+      String secret = getSiteConfiguration().get(Property.INSTANCE_SECRET);
 
       for (int i = 0; i < 10; i++) {
         if (zk.getState().equals(States.CONNECTED)) {
@@ -649,7 +649,25 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           UtilWaitThread.sleep(1000);
       }
 
-      String rootPath = Constants.ZROOT + "/" + getServerContext().getInstanceID();
+      String instanceId = null;
+      try {
+        for (String name : zk.getChildren(Constants.ZROOT + Constants.ZINSTANCES, null)) {
+          if (name.equals(config.getInstanceName())) {
+            String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
+            byte[] bytes = zk.getData(instanceNamePath, null, null);
+            instanceId = new String(bytes, UTF_8);
+            break;
+          }
+        }
+      } catch (KeeperException e) {
+        throw new RuntimeException("Unable to read instance id from zookeeper.", e);
+      }
+
+      if (instanceId == null) {
+        throw new RuntimeException("Unable to find instance id from zookeeper.");
+      }
+
+      String rootPath = Constants.ZROOT + "/" + instanceId;
 
       int tsActualCount = 0;
       int tryCount = 0;
