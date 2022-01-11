@@ -19,6 +19,7 @@
 package org.apache.accumulo.tserver.metrics;
 
 import org.apache.accumulo.tserver.TabletServer;
+import org.apache.accumulo.tserver.TabletServerResourceManager.AssignmentWatcher;
 import org.apache.accumulo.tserver.tablet.Tablet;
 
 /**
@@ -32,6 +33,10 @@ public class TabletServerMetricsUtil {
 
   public TabletServerMetricsUtil(TabletServer tserver) {
     this.tserver = tserver;
+  }
+
+  public long getLongTabletAssignments() {
+    return AssignmentWatcher.getLongAssignments();
   }
 
   public long getEntries() {
