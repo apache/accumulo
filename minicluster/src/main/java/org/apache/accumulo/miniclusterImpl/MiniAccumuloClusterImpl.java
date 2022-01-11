@@ -614,6 +614,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   private void verifyUp() throws InterruptedException, IOException {
 
+    int numTries = 10;
+
     requireNonNull(getClusterControl().managerProcess, "Error starting Manager - no process");
     requireNonNull(getClusterControl().managerProcess.info().startInstant().get(),
         "Error starting Manager - instance not started");
@@ -641,7 +643,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       String secret = getSiteConfiguration().get(Property.INSTANCE_SECRET);
 
-      for (int i = 0; i < 10; i++) {
+      for (int i = 0; i < numTries; i++) {
         if (zk.getState().equals(States.CONNECTED)) {
           zk.addAuthInfo("digest", ("accumulo" + ":" + secret).getBytes(UTF_8));
           break;
@@ -668,11 +670,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       }
 
       String rootPath = Constants.ZROOT + "/" + instanceId;
-
-      int tsActualCount = 0;
       int tryCount = 0;
+      int tsActualCount = 0;
       try {
-        while (tsActualCount != tsExpectedCount) {
+        tryCount = 0;
+        while (tsActualCount < tsExpectedCount) {
           tryCount++;
           tsActualCount = 0;
           for (String child : zk.getChildren(rootPath + Constants.ZTSERVERS, null)) {
@@ -680,7 +682,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
             if (zk.getChildren(rootPath + Constants.ZTSERVERS + "/" + child, null).isEmpty())
               log.info("TServer " + tsActualCount + " not yet present in ZooKeeper");
           }
-          if (tryCount >= 10) {
+          if (tryCount >= 100) {
             throw new RuntimeException("Timed out waiting for TServer information in ZooKeeper");
           }
           Thread.sleep(1000);
@@ -693,7 +695,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         tryCount = 0;
         while (zk.getChildren(rootPath + Constants.ZMANAGER_LOCK, null).isEmpty()) {
           tryCount++;
-          if (tryCount >= 10) {
+          if (tryCount >= numTries) {
             throw new RuntimeException("Manager not present in ZooKeeper");
           }
           Thread.sleep(1000);
@@ -706,7 +708,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         tryCount = 0;
         while (zk.getChildren(rootPath + Constants.ZGC_LOCK, null).isEmpty()) {
           tryCount++;
-          if (tryCount >= 10) {
+          if (tryCount >= numTries) {
             throw new RuntimeException("GC not present in ZooKeeper");
           }
           Thread.sleep(1000);
@@ -714,6 +716,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       } catch (KeeperException e) {
         throw new RuntimeException("Unable to read GC information from zookeeper.", e);
       }
+
     }
   }
 
