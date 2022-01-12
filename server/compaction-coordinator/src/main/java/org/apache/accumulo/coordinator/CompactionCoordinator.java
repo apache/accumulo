@@ -657,6 +657,14 @@ public class CompactionCoordinator extends AbstractServer
     return result;
   }
 
+  @Override
+  public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
+      throws TException {
+    var runningCompaction = RUNNING.get(ExternalCompactionId.of(externalCompactionId));
+    HostAndPort address = HostAndPort.fromString(runningCompaction.getCompactorAddress());
+    ExternalCompactionUtil.cancelCompaction(getContext(), address, externalCompactionId);
+  }
+
   private void deleteEmpty(ZooReaderWriter zoorw, String path)
       throws KeeperException, InterruptedException {
     try {

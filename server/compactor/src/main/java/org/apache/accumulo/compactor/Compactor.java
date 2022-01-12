@@ -360,6 +360,12 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     }
   }
 
+  @Override
+  public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
+      throws TException {
+    cancel(externalCompactionId);
+  }
+
   /**
    * Send an update to the CompactionCoordinator for this job
    *
