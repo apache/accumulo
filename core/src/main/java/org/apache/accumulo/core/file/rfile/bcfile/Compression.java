@@ -761,8 +761,10 @@ public final class Compression {
      */
     CompressionCodec createNewCodec(final String codecClazzProp, final String defaultClazz,
         final int bufferSize, final String bufferSizeConfigOpt) {
-      String extClazz =
-          (conf.get(codecClazzProp) == null ? System.getProperty(codecClazzProp) : null);
+      String extClazz = conf.get(codecClazzProp);
+      if (extClazz == null) {
+        extClazz = System.getProperty(codecClazzProp);
+      }
       String clazz = (extClazz != null) ? extClazz : defaultClazz;
       try {
         log.info("Trying to load codec class {} for {}", clazz, codecClazzProp);
@@ -770,7 +772,8 @@ public final class Compression {
         updateBuffer(config, bufferSizeConfigOpt, bufferSize);
         return (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), config);
       } catch (ClassNotFoundException e) {
-        // This is okay.
+        // This is not okay.
+        log.error("Unable to load codec class " + clazz + " for " + codecClazzProp, e);
       }
       return null;
     }
