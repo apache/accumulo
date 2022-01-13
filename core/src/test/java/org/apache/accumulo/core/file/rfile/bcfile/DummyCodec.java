@@ -62,6 +62,7 @@ public class DummyCodec implements Configurable, CompressionCodec {
    *          the location for the final output stream
    * @return a stream the user can write uncompressed data to have it compressed
    * @throws IOException
+   *           unsupported operation
    */
   @Override
   public CompressionOutputStream createOutputStream(OutputStream out) throws IOException {
@@ -78,6 +79,7 @@ public class DummyCodec implements Configurable, CompressionCodec {
    *          compressor to use
    * @return a stream the user can write uncompressed data to have it compressed
    * @throws IOException
+   *           unsupported operation
    */
   @Override
   public CompressionOutputStream createOutputStream(OutputStream out, Compressor compressor)
@@ -112,6 +114,7 @@ public class DummyCodec implements Configurable, CompressionCodec {
    *          the stream to read compressed bytes from
    * @return a stream to read uncompressed bytes from
    * @throws IOException
+   *           unsupported operation
    */
   @Override
   public CompressionInputStream createInputStream(InputStream in) throws IOException {
@@ -128,6 +131,7 @@ public class DummyCodec implements Configurable, CompressionCodec {
    *          decompressor to use
    * @return a stream to read uncompressed bytes from
    * @throws IOException
+   *           unsupported operation
    */
   @Override
   public CompressionInputStream createInputStream(InputStream in, Decompressor decompressor)
