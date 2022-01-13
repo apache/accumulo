@@ -36,7 +36,9 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.Lz4Codec;
 import org.apache.hadoop.util.ReflectionUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -44,8 +46,13 @@ public class CompressionTest {
 
   HashMap<Compression.Algorithm,Boolean> isSupported = new HashMap<>();
 
+  String extLz4 = null;
+
   @Before
   public void testSupport() {
+    // Capture initial LZ4 ext class
+    extLz4 = System.getProperty(Compression.Algorithm.CONF_LZ4_CLASS);
+
     // we can safely assert that GZ exists by virtue of it being the DefaultCodec
     isSupported.put(Compression.Algorithm.GZ, true);
 
@@ -119,7 +126,17 @@ public class CompressionTest {
     } catch (ClassNotFoundException e) {
       // that is okay
     }
+  }
 
+  @After
+  public void restoreSysProps() {
+    // Restore system property for next test
+    Algorithm.conf.clear();
+    if (extLz4 != null) {
+      System.setProperty(Compression.Algorithm.CONF_LZ4_CLASS, extLz4);
+    } else {
+      System.clearProperty(Compression.Algorithm.CONF_LZ4_CLASS);
+    }
   }
 
   @Test
@@ -280,6 +297,29 @@ public class CompressionTest {
         }
       }
     }
+  }
+
+  @Test
+  public void testHadoopCodecOverride() {
+    Algorithm.conf.set(Compression.Algorithm.CONF_LZ4_CLASS, DummyCodec.class.getName());
+    CompressionCodec dummyCodec = Compression.Algorithm.LZ4.createNewCodec(4096);
+    assertEquals("Hadoop override DummyCodec not loaded", DummyCodec.class, dummyCodec.getClass());
+  }
+
+  @Test
+  public void testSystemPropertyCodecOverride() {
+    System.setProperty(Compression.Algorithm.CONF_LZ4_CLASS, DummyCodec.class.getName());
+    CompressionCodec dummyCodec = Compression.Algorithm.LZ4.createNewCodec(4096);
+    assertEquals("System Property override DummyCodec not loaded", DummyCodec.class,
+        dummyCodec.getClass());
+  }
+
+  @Test
+  public void testHadoopCodecPriorityOverride() {
+    Algorithm.conf.set(Compression.Algorithm.CONF_LZ4_CLASS, Lz4Codec.class.getName());
+    System.setProperty(Compression.Algorithm.CONF_LZ4_CLASS, DummyCodec.class.getName());
+    CompressionCodec priorityCodec = Compression.Algorithm.LZ4.createNewCodec(4096);
+    assertEquals("Hadoop override Lz4Codec not loaded", Lz4Codec.class, priorityCodec.getClass());
   }
 
 }
