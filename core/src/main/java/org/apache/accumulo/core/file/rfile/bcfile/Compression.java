@@ -773,7 +773,8 @@ public final class Compression {
         return (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), config);
       } catch (ClassNotFoundException e) {
         // This is not okay.
-        log.error("Unable to load codec class " + clazz + " for " + codecClazzProp, e);
+        log.warn("Unable to load codec class {} for {}, reason: {}", clazz, codecClazzProp,
+            e.getMessage());
       }
       return null;
     }
