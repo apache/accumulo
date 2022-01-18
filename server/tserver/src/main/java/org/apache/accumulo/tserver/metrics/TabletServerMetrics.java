@@ -19,9 +19,11 @@
 package org.apache.accumulo.tserver.metrics;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.tserver.TabletServer;
 
 import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class TabletServerMetrics implements MetricsProducer {
@@ -34,6 +36,14 @@ public class TabletServerMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
+    LongTaskTimer timer = LongTaskTimer.builder(METRICS_TSERVER_MAJC_STUCK)
+        .description("Number and duration of stuck major compactions").register(registry);
+    CompactionWatcher.setTimer(timer);
+    Gauge
+        .builder(METRICS_TSERVER_TABLETS_LONG_ASSIGNMENTS, util,
+            TabletServerMetricsUtil::getLongTabletAssignments)
+        .description("Number of tablet assignments that are taking a long time").register(registry);
+
     Gauge.builder(METRICS_TSERVER_ENTRIES, util, TabletServerMetricsUtil::getEntries)
         .description("Number of entries").register(registry);
     Gauge.builder(METRICS_TSERVER_MEM_ENTRIES, util, TabletServerMetricsUtil::getEntriesInMemory)
