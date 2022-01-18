@@ -670,48 +670,37 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       }
 
       String rootPath = Constants.ZROOT + "/" + instanceId;
-      int tryCount = 0;
       int tsActualCount = 0;
       try {
-        tryCount = 0;
         while (tsActualCount < tsExpectedCount) {
-          tryCount++;
           tsActualCount = 0;
           for (String child : zk.getChildren(rootPath + Constants.ZTSERVERS, null)) {
-            tsActualCount++;
-            if (zk.getChildren(rootPath + Constants.ZTSERVERS + "/" + child, null).isEmpty())
+            if (zk.getChildren(rootPath + Constants.ZTSERVERS + "/" + child, null).isEmpty()) {
               log.info("TServer " + tsActualCount + " not yet present in ZooKeeper");
+            } else {
+              tsActualCount++;
+              log.info("TServer " + tsActualCount + " present in ZooKeeper");
+            }
           }
-          if (tryCount >= 100) {
-            throw new RuntimeException("Timed out waiting for TServer information in ZooKeeper");
-          }
-          Thread.sleep(1000);
+          Thread.sleep(500);
         }
       } catch (KeeperException e) {
         throw new RuntimeException("Unable to read TServer information from zookeeper.", e);
       }
 
       try {
-        tryCount = 0;
         while (zk.getChildren(rootPath + Constants.ZMANAGER_LOCK, null).isEmpty()) {
-          tryCount++;
-          if (tryCount >= numTries) {
-            throw new RuntimeException("Manager not present in ZooKeeper");
-          }
-          Thread.sleep(1000);
+          log.info("Manager not yet present in ZooKeeper");
+          Thread.sleep(500);
         }
       } catch (KeeperException e) {
         throw new RuntimeException("Unable to read Manager information from zookeeper.", e);
       }
 
       try {
-        tryCount = 0;
         while (zk.getChildren(rootPath + Constants.ZGC_LOCK, null).isEmpty()) {
-          tryCount++;
-          if (tryCount >= numTries) {
-            throw new RuntimeException("GC not present in ZooKeeper");
-          }
-          Thread.sleep(1000);
+          log.info("GC not yet present in ZooKeeper");
+          Thread.sleep(500);
         }
       } catch (KeeperException e) {
         throw new RuntimeException("Unable to read GC information from zookeeper.", e);
