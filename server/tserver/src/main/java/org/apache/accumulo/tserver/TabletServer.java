@@ -55,7 +55,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
@@ -73,8 +72,6 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.replication.thrift.ReplicationServicer;
@@ -107,6 +104,7 @@ import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.TabletLevel;
+import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -147,7 +145,6 @@ import org.apache.accumulo.tserver.session.Session;
 import org.apache.accumulo.tserver.session.SessionManager;
 import org.apache.accumulo.tserver.tablet.BulkImportCacheCleaner;
 import org.apache.accumulo.tserver.tablet.CommitSession;
-import org.apache.accumulo.tserver.tablet.CompactionWatcher;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletData;
 import org.apache.commons.collections4.map.LRUMap;
@@ -807,22 +804,6 @@ public class TabletServer extends AbstractServer {
     ThreadPools.createGeneralScheduledExecutorService(aconf).scheduleWithFixedDelay(() -> {
       final SortedMap<KeyExtent,Tablet> onlineTabletsSnapshot = onlineTablets.snapshot();
 
-      final SortedSet<KeyExtent> userExtents = new TreeSet<>();
-      final SortedSet<KeyExtent> nonUserExtents = new TreeSet<>();
-
-      // Create subsets of tablets based on DataLevel: one set who's DataLevel is USER and another
-      // containing the remaining tablets (those who's DataLevel is ROOT or METADATA).
-      // This needs to happen so we can use .readTablets() on the DataLevel.USER tablets in order
-      // to reduce RPCs.
-      // TODO: Push this partitioning, based on DataLevel, to ample - accumulo issue #2373
-      onlineTabletsSnapshot.forEach((ke, tablet) -> {
-        if (Ample.DataLevel.of(ke.tableId()) == Ample.DataLevel.USER) {
-          userExtents.add(ke);
-        } else {
-          nonUserExtents.add(ke);
-        }
-      });
-
       Map<KeyExtent,Long> updateCounts = new HashMap<>();
 
       // gather updateCounts for each tablet
@@ -830,19 +811,12 @@ public class TabletServer extends AbstractServer {
         updateCounts.put(ke, tablet.getUpdateCount());
       });
 
-      // gather metadata for all tablets with DataLevel.USER using readTablets()
+      // gather metadata for all tablets readTablets()
       try (TabletsMetadata tabletsMetadata = getContext().getAmple().readTablets()
-          .forTablets(userExtents).fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
+          .forTablets(onlineTabletsSnapshot.keySet()).fetch(FILES, LOGS, ECOMP, PREV_ROW).build()) {
 
-        Stream<TabletMetadata> userTablets = tabletsMetadata.stream();
-
-        // gather metadata for all tablets with DataLevel.ROOT or METADATA using readTablet()
-        Stream<TabletMetadata> nonUserTablets = nonUserExtents.stream().flatMap(extent -> Stream
-            .of(getContext().getAmple().readTablet(extent, FILES, LOGS, ECOMP, PREV_ROW)));
-
-        // combine both streams of TabletMetadata
         // for each tablet, compare its metadata to what is held in memory
-        Stream.concat(userTablets, nonUserTablets).forEach(tabletMetadata -> {
+        tabletsMetadata.forEach(tabletMetadata -> {
           KeyExtent extent = tabletMetadata.getExtent();
           Tablet tablet = onlineTabletsSnapshot.get(extent);
           Long counter = updateCounts.get(extent);

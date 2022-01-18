@@ -309,7 +309,7 @@ public class MultiThreadedRFileTest {
                 "Invalid key found for row " + part + " locality " + locality + " index " + i, key,
                 trf.iter.getTopKey());
             assertEquals(
-                "Invalie value found for row " + part + " locality " + locality + " index " + i,
+                "Invalid value found for row " + part + " locality " + locality + " index " + i,
                 value, trf.iter.getTopValue());
             last = trf.iter.getTopKey();
             trf.iter.next();
@@ -345,7 +345,7 @@ public class MultiThreadedRFileTest {
               "Invalid key found for row " + part + " locality " + locality + " index " + i, key,
               trf.iter.getTopKey());
           assertEquals(
-              "Invalie value found for row " + part + " locality " + locality + " index " + i,
+              "Invalid value found for row " + part + " locality " + locality + " index " + i,
               value, trf.iter.getTopValue());
           last = trf.iter.getTopKey();
           trf.iter.next();

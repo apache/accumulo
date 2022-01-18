@@ -20,7 +20,7 @@ package org.apache.accumulo.core.protobuf;
 
 import org.apache.accumulo.core.data.Value;
 
-import com.google.protobuf.GeneratedMessage;
+import com.google.protobuf.GeneratedMessageV3;
 import com.google.protobuf.TextFormat;
 
 /**
@@ -29,11 +29,11 @@ import com.google.protobuf.TextFormat;
 public class ProtobufUtil {
   private static final char LEFT_BRACKET = '[', RIGHT_BRACKET = ']';
 
-  public static Value toValue(GeneratedMessage msg) {
+  public static Value toValue(GeneratedMessageV3 msg) {
     return new Value(msg.toByteArray());
   }
 
-  public static String toString(GeneratedMessage msg) {
+  public static String toString(GeneratedMessageV3 msg) {
     // Too much typing
     return LEFT_BRACKET + TextFormat.shortDebugString(msg) + RIGHT_BRACKET;
   }

@@ -60,6 +60,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -86,6 +87,7 @@ import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.compaction.CompactionInfo;
+import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.compaction.RetryableThriftCall;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
@@ -107,7 +109,10 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
 
-public class Compactor extends AbstractServer implements CompactorService.Iface {
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.MeterRegistry;
+
+public class Compactor extends AbstractServer implements MetricsProducer, CompactorService.Iface {
 
   private static final SecureRandom random = new SecureRandom();
 
@@ -136,6 +141,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
   private final String queueName;
   protected final AtomicReference<ExternalCompactionId> currentCompactionId =
       new AtomicReference<>();
+  private final CompactionWatcher watcher;
 
   private SecurityOperation security;
   private ServiceLock compactorLock;
@@ -151,6 +157,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     queueName = opts.getQueueName();
     aconf = getConfiguration();
     setupSecurity();
+    watcher = new CompactionWatcher(aconf);
     var schedExecutor = ThreadPools.createGeneralScheduledExecutorService(aconf);
     startGCLogger(schedExecutor);
     startCancelChecker(schedExecutor, TIME_BETWEEN_CANCEL_CHECKS);
@@ -162,10 +169,18 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     queueName = opts.getQueueName();
     aconf = conf;
     setupSecurity();
+    watcher = new CompactionWatcher(aconf);
     var schedExecutor = ThreadPools.createGeneralScheduledExecutorService(aconf);
     startGCLogger(schedExecutor);
     startCancelChecker(schedExecutor, TIME_BETWEEN_CANCEL_CHECKS);
     printStartupMsg();
+  }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    LongTaskTimer timer = LongTaskTimer.builder(METRICS_COMPACTOR_MAJC_STUCK)
+        .description("Number and duration of stuck major compactions").register(registry);
+    CompactionWatcher.setTimer(timer);
   }
 
   protected void setupSecurity() {
@@ -630,6 +645,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     } catch (Exception e1) {
       LOG.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
+    MetricsUtil.initializeProducers(this);
 
     LOG.info("Compactor started, waiting for work");
     try {
@@ -693,6 +709,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
                     "Compaction in progress, read %d of %d input entries ( %s %s ), written %d entries",
                     info.getEntriesRead(), inputEntries, percentComplete, "%",
                     info.getEntriesWritten());
+                watcher.run();
                 try {
                   LOG.debug("Updating coordinator with compaction progress: {}.", message);
                   TCompactionStatusUpdate update =
@@ -710,6 +727,9 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
           }
           compactionThread.join();
           LOG.trace("Compaction thread finished.");
+          // Run the watcher again to clear out the finished compaction and set the
+          // stuck count to zero.
+          watcher.run();
 
           if (err.get() != null) {
             // maybe the error occured because the table was deleted or something like that, so
