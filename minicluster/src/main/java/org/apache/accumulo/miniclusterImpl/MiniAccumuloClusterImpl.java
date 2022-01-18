@@ -89,6 +89,7 @@ import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.tserver.NativeMap;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -332,6 +333,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public MiniAccumuloClusterImpl(MiniAccumuloConfigImpl config) throws IOException {
 
     this.config = config.initialize();
+
+    if (Boolean.TRUE.equals(Boolean
+        .valueOf(this.config.getSiteConfig().get(Property.TSERV_NATIVEMAP_ENABLED.name())))) {
+      if (!NativeMap.isLoaded())
+        throw new RuntimeException("MAC configured to use native maps, but unable to load the library.");
+    }
 
     mkdirs(config.getConfDir());
     mkdirs(config.getLogDir());
