@@ -295,7 +295,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     SamplerConfigurationImpl samplerConfImpl =
         SamplerConfigurationImpl.newSamplerConfig(acuTableConf);
 
-    if (scannerSamplerConfigImpl != null && (!scannerSamplerConfigImpl.equals(samplerConfImpl))) {
+    if (scannerSamplerConfigImpl != null && !scannerSamplerConfigImpl.equals(samplerConfImpl)) {
       throw new SampleNotPresentException();
     }
     for (TabletFile file : absFiles) {
