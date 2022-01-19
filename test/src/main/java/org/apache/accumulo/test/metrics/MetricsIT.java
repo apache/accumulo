@@ -85,13 +85,14 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
   public void confirmMetricsPublished() throws Exception {
     Set<String> flakyMetricNames = new HashSet<>();
     flakyMetricNames.add(METRICS_GC_WAL_ERRORS);
+    flakyMetricNames.add(METRICS_FATE_TYPE_IN_PROGRESS);
 
     Map<String,String> expectedMetricNames = this.getMetricFields();
     // We might not see these in the course of normal operations
     expectedMetricNames.remove(METRICS_SCAN_YIELDS);
     expectedMetricNames.remove(METRICS_UPDATE_ERRORS);
     expectedMetricNames.remove(METRICS_REPLICATION_QUEUE);
-    expectedMetricNames.remove(METRICS_FATE_TYPE_IN_PROGRESS);
+    expectedMetricNames.remove(METRICS_COMPACTOR_MAJC_STUCK);
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = this.getClass().getSimpleName();
