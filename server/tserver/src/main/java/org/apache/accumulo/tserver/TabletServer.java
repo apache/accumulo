@@ -208,7 +208,7 @@ public class TabletServer extends AbstractServer {
 
   HostAndPort clientAddress;
 
-  private volatile boolean serverStopRequested = false;
+  protected volatile boolean serverStopRequested = false;
   private volatile boolean shutdownComplete = false;
 
   private ServiceLock tabletServerLock;

@@ -78,6 +78,7 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockWatcher;
@@ -91,6 +92,7 @@ import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
+import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletData;
 import org.apache.thrift.TException;
@@ -102,6 +104,8 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
 
   private static final Logger LOG = LoggerFactory.getLogger(ScanServer.class);
 
+  private final String unreservedZNodePath;
+  private final String reservedZNodePath;
   private final ThriftClientHandler handler;
   private KeyExtent currentKE;
   private Tablet currentTablet;
@@ -109,6 +113,8 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   protected ScanServer(ServerOpts opts, String[] args) {
     super(opts, args, true);
     handler = new ThriftClientHandler(this);
+    unreservedZNodePath = getContext().getZooKeeperRoot() + Constants.ZSSERVERS + "/unreserved/";
+    reservedZNodePath = getContext().getZooKeeperRoot() + Constants.ZSSERVERS + "/reserved/";
   }
 
   /**
@@ -127,13 +133,12 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
         new TabletClientService.Processor<>(rpcProxy);
 
     Property maxMessageSizeProperty =
-        (getConfiguration().get(Property.TSERV_MAX_MESSAGE_SIZE) != null
-            ? Property.TSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
-    // TODO: Change properties
+        (getConfiguration().get(Property.SSERV_MAX_MESSAGE_SIZE) != null
+            ? Property.SSERV_MAX_MESSAGE_SIZE : Property.GENERAL_MAX_MESSAGE_SIZE);
     ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
-        Property.TSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
-        "Thrift Client Server", Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS,
-        Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK, maxMessageSizeProperty);
+        Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
+        "Thrift Client Server", Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS,
+        Property.SSERV_MINTHREADS_TIMEOUT, Property.SSERV_THREADCHECK, maxMessageSizeProperty);
 
     LOG.info("address = {}", sp.address);
     return sp;
@@ -152,6 +157,10 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   private ServiceLock announceExistence() {
     ZooReaderWriter zoo = getContext().getZooReaderWriter();
     try {
+
+      zoo.mkdirs(unreservedZNodePath);
+      zoo.mkdirs(reservedZNodePath);
+
       var zLockPath = ServiceLock.path(
           getContext().getZooKeeperRoot() + Constants.ZSSERVERS + "/" + getClientAddressString());
 
@@ -171,8 +180,10 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
 
         @Override
         public void lostLock(final LockLossReason reason) {
-          Halt.halt(1, () -> {
-            LOG.error("Lost scan server lock (reason = {}), exiting.", reason);
+          Halt.halt(serverStopRequested ? 0 : 1, () -> {
+            if (!serverStopRequested) {
+              LOG.error("Lost tablet server lock (reason = {}), exiting.", reason);
+            }
             gcLogger.logGCInfo(getConfiguration());
           });
         }
@@ -204,6 +215,12 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     }
   }
 
+  private void setInitialUnreservedState(String unreservedServerPath)
+      throws KeeperException, InterruptedException {
+    ZooReaderWriter zoo = getContext().getZooReaderWriter();
+    zoo.putEphemeralData(unreservedServerPath, new byte[0]);
+  }
+
   @Override
   public void run() {
     SecurityUtil.serverLogin(getConfiguration());
@@ -224,9 +241,19 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     } catch (Exception e1) {
       LOG.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
+    scanMetrics = new TabletServerScanMetrics();
+    MetricsUtil.initializeProducers(scanMetrics);
 
     try {
+      try {
+        setInitialUnreservedState(unreservedZNodePath + getClientAddressString());
+      } catch (Exception e2) {
+        throw new RuntimeException("Error setting initial unreserved state in ZooKeeper", e2);
+      }
 
+      while (!serverStopRequested) {
+        UtilWaitThread.sleep(1000);
+      }
     } finally {
       LOG.info("Stopping Thrift Servers");
       TServerUtils.stopTServer(address.getServer());
@@ -278,6 +305,11 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
         TabletData data = new TabletData(tabletMetadata);
         currentTablet = new Tablet(this, currentKE, trm, data);
         onlineTablets.put(currentKE, currentTablet);
+        return handler.startScan(tinfo, credentials, textent, range, columns, batchSize, ssiList,
+            ssio, authorizations, waitForWrites, isolated, readaheadThreshold, samplerConfig,
+            batchTimeOut, classLoaderContext, executionHints);
+      } else {
+        throw new RuntimeException("Unable to load tablet for scan");
       }
     } catch (Exception e) {
       if (currentTablet != null) {
@@ -293,11 +325,8 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       currentKE = null;
       currentTablet = null;
       throw new RuntimeException("Error creating tablet for scan", e);
-    }
+    } finally {}
 
-    return handler.startScan(tinfo, credentials, textent, range, columns, batchSize, ssiList, ssio,
-        authorizations, waitForWrites, isolated, readaheadThreshold, samplerConfig, batchTimeOut,
-        classLoaderContext, executionHints);
   }
 
   @Override
@@ -308,19 +337,23 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
 
   @Override
   public void closeScan(TInfo tinfo, long scanID) throws TException {
-    handler.closeScan(tinfo, scanID);
-    if (currentTablet != null) {
-      try {
-        currentTablet.close(false);
-      } catch (IOException e1) {
-        throw new RuntimeException("Error closing tablet", e1);
+    try {
+      handler.closeScan(tinfo, scanID);
+    } finally {
+      if (currentTablet != null) {
+        try {
+          currentTablet.close(false);
+        } catch (IOException e1) {
+          throw new RuntimeException("Error closing tablet", e1);
+        }
       }
+      if (currentKE != null) {
+        onlineTablets.remove(currentKE);
+      }
+      currentKE = null;
+      currentTablet = null;
     }
-    if (currentKE != null) {
-      onlineTablets.remove(currentKE);
-    }
-    currentKE = null;
-    currentTablet = null;
+
   }
 
   public static void main(String[] args) throws Exception {
@@ -331,19 +364,16 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
 
   @Override
   public String getRootTabletLocation() throws TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public String getInstanceId() throws TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public String getZooKeepers() throws TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
@@ -351,89 +381,66 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   public List<String> bulkImportFiles(TInfo tinfo, TCredentials credentials, long tid,
       String tableId, List<String> files, String errorDir, boolean setTime)
       throws ThriftSecurityException, ThriftTableOperationException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public boolean isActive(TInfo tinfo, long tid) throws TException {
-    // TODO Auto-generated method stub
     return false;
   }
 
   @Override
-  public void ping(TCredentials credentials) throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
-
-  }
+  public void ping(TCredentials credentials) throws ThriftSecurityException, TException {}
 
   @Override
   public List<TDiskUsage> getDiskUsage(Set<String> tables, TCredentials credentials)
       throws ThriftSecurityException, ThriftTableOperationException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public Set<String> listLocalUsers(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public void createLocalUser(TInfo tinfo, TCredentials credentials, String principal,
-      ByteBuffer password) throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
-
-  }
+      ByteBuffer password) throws ThriftSecurityException, TException {}
 
   @Override
   public void dropLocalUser(TInfo tinfo, TCredentials credentials, String principal)
-      throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
-
-  }
+      throws ThriftSecurityException, TException {}
 
   @Override
   public void changeLocalUserPassword(TInfo tinfo, TCredentials credentials, String principal,
-      ByteBuffer password) throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
-
-  }
+      ByteBuffer password) throws ThriftSecurityException, TException {}
 
   @Override
   public boolean authenticate(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
     return false;
   }
 
   @Override
   public boolean authenticateUser(TInfo tinfo, TCredentials credentials, TCredentials toAuth)
       throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
     return false;
   }
 
   @Override
   public void changeAuthorizations(TInfo tinfo, TCredentials credentials, String principal,
-      List<ByteBuffer> authorizations) throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
-
-  }
+      List<ByteBuffer> authorizations) throws ThriftSecurityException, TException {}
 
   @Override
   public List<ByteBuffer> getUserAuthorizations(TInfo tinfo, TCredentials credentials,
       String principal) throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public boolean hasSystemPermission(TInfo tinfo, TCredentials credentials, String principal,
       byte sysPerm) throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
     return false;
   }
 
@@ -441,7 +448,6 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   public boolean hasTablePermission(TInfo tinfo, TCredentials credentials, String principal,
       String tableName, byte tblPerm)
       throws ThriftSecurityException, ThriftTableOperationException, TException {
-    // TODO Auto-generated method stub
     return false;
   }
 
@@ -449,81 +455,58 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   public boolean hasNamespacePermission(TInfo tinfo, TCredentials credentials, String principal,
       String ns, byte tblNspcPerm)
       throws ThriftSecurityException, ThriftTableOperationException, TException {
-    // TODO Auto-generated method stub
     return false;
   }
 
   @Override
   public void grantSystemPermission(TInfo tinfo, TCredentials credentials, String principal,
-      byte permission) throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
-
-  }
+      byte permission) throws ThriftSecurityException, TException {}
 
   @Override
   public void revokeSystemPermission(TInfo tinfo, TCredentials credentials, String principal,
-      byte permission) throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
-
-  }
+      byte permission) throws ThriftSecurityException, TException {}
 
   @Override
   public void grantTablePermission(TInfo tinfo, TCredentials credentials, String principal,
       String tableName, byte permission)
-      throws ThriftSecurityException, ThriftTableOperationException, TException {
-    // TODO Auto-generated method stub
-
-  }
+      throws ThriftSecurityException, ThriftTableOperationException, TException {}
 
   @Override
   public void revokeTablePermission(TInfo tinfo, TCredentials credentials, String principal,
       String tableName, byte permission)
-      throws ThriftSecurityException, ThriftTableOperationException, TException {
-    // TODO Auto-generated method stub
-
-  }
+      throws ThriftSecurityException, ThriftTableOperationException, TException {}
 
   @Override
   public void grantNamespacePermission(TInfo tinfo, TCredentials credentials, String principal,
       String ns, byte permission)
-      throws ThriftSecurityException, ThriftTableOperationException, TException {
-    // TODO Auto-generated method stub
-
-  }
+      throws ThriftSecurityException, ThriftTableOperationException, TException {}
 
   @Override
   public void revokeNamespacePermission(TInfo tinfo, TCredentials credentials, String principal,
       String ns, byte permission)
-      throws ThriftSecurityException, ThriftTableOperationException, TException {
-    // TODO Auto-generated method stub
-
-  }
+      throws ThriftSecurityException, ThriftTableOperationException, TException {}
 
   @Override
   public Map<String,String> getConfiguration(TInfo tinfo, TCredentials credentials,
       ConfigurationType type) throws TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials,
       String tableName) throws ThriftTableOperationException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public Map<String,String> getNamespaceConfiguration(TInfo tinfo, TCredentials credentials,
       String ns) throws ThriftTableOperationException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public boolean checkClass(TInfo tinfo, TCredentials credentials, String className,
       String interfaceMatch) throws TException {
-    // TODO Auto-generated method stub
     return false;
   }
 
@@ -531,7 +514,6 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   public boolean checkTableClass(TInfo tinfo, TCredentials credentials, String tableId,
       String className, String interfaceMatch)
       throws ThriftSecurityException, ThriftTableOperationException, TException {
-    // TODO Auto-generated method stub
     return false;
   }
 
@@ -539,7 +521,6 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   public boolean checkNamespaceClass(TInfo tinfo, TCredentials credentials, String namespaceId,
       String className, String interfaceMatch)
       throws ThriftSecurityException, ThriftTableOperationException, TException {
-    // TODO Auto-generated method stub
     return false;
   }
 
@@ -550,57 +531,43 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       TSamplerConfiguration samplerConfig, long batchTimeOut, String classLoaderContext,
       Map<String,String> executionHints)
       throws ThriftSecurityException, TSampleNotPresentException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public MultiScanResult continueMultiScan(TInfo tinfo, long scanID)
       throws NoSuchScanIDException, TSampleNotPresentException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException, TException {
-    // TODO Auto-generated method stub
-
-  }
+  public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException, TException {}
 
   @Override
   public long startUpdate(TInfo tinfo, TCredentials credentials, TDurability durability)
       throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
     return 0;
   }
 
   @Override
   public void applyUpdates(TInfo tinfo, long updateID, TKeyExtent keyExtent,
-      List<TMutation> mutations) throws TException {
-    // TODO Auto-generated method stub
-
-  }
+      List<TMutation> mutations) throws TException {}
 
   @Override
   public UpdateErrors closeUpdate(TInfo tinfo, long updateID)
       throws NoSuchScanIDException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public void update(TInfo tinfo, TCredentials credentials, TKeyExtent keyExtent,
       TMutation mutation, TDurability durability) throws ThriftSecurityException,
-      NotServingTabletException, ConstraintViolationException, TException {
-    // TODO Auto-generated method stub
-
-  }
+      NotServingTabletException, ConstraintViolationException, TException {}
 
   @Override
   public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials,
       List<ByteBuffer> authorizations, String tableID, TDurability durability,
       String classLoaderContext) throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
@@ -608,144 +575,98 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   public List<TCMResult> conditionalUpdate(TInfo tinfo, long sessID,
       Map<TKeyExtent,List<TConditionalMutation>> mutations, List<String> symbols)
       throws NoSuchScanIDException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public void invalidateConditionalUpdate(TInfo tinfo, long sessID) throws TException {
-    // TODO Auto-generated method stub
-
-  }
+  public void invalidateConditionalUpdate(TInfo tinfo, long sessID) throws TException {}
 
   @Override
-  public void closeConditionalUpdate(TInfo tinfo, long sessID) throws TException {
-    // TODO Auto-generated method stub
-
-  }
+  public void closeConditionalUpdate(TInfo tinfo, long sessID) throws TException {}
 
   @Override
   public List<TKeyExtent> bulkImport(TInfo tinfo, TCredentials credentials, long tid,
       Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime)
       throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public void loadFiles(TInfo tinfo, TCredentials credentials, long tid, String dir,
-      Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime) throws TException {
-    // TODO Auto-generated method stub
-
-  }
+      Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime) throws TException {}
 
   @Override
   public void splitTablet(TInfo tinfo, TCredentials credentials, TKeyExtent extent,
-      ByteBuffer splitPoint) throws ThriftSecurityException, NotServingTabletException, TException {
-    // TODO Auto-generated method stub
-
-  }
+      ByteBuffer splitPoint)
+      throws ThriftSecurityException, NotServingTabletException, TException {}
 
   @Override
   public void loadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent)
-      throws TException {
-    // TODO Auto-generated method stub
-
-  }
+      throws TException {}
 
   @Override
   public void unloadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent,
-      TUnloadTabletGoal goal, long requestTime) throws TException {
-    // TODO Auto-generated method stub
-
-  }
+      TUnloadTabletGoal goal, long requestTime) throws TException {}
 
   @Override
   public void flush(TInfo tinfo, TCredentials credentials, String lock, String tableId,
-      ByteBuffer startRow, ByteBuffer endRow) throws TException {
-    // TODO Auto-generated method stub
-
-  }
+      ByteBuffer startRow, ByteBuffer endRow) throws TException {}
 
   @Override
   public void flushTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent)
-      throws TException {
-    // TODO Auto-generated method stub
-
-  }
+      throws TException {}
 
   @Override
   public void chop(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent)
-      throws TException {
-    // TODO Auto-generated method stub
-
-  }
+      throws TException {}
 
   @Override
   public void compact(TInfo tinfo, TCredentials credentials, String lock, String tableId,
-      ByteBuffer startRow, ByteBuffer endRow) throws TException {
-    // TODO Auto-generated method stub
-
-  }
+      ByteBuffer startRow, ByteBuffer endRow) throws TException {}
 
   @Override
   public TabletServerStatus getTabletServerStatus(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public List<TabletStats> getTabletStats(TInfo tinfo, TCredentials credentials, String tableId)
       throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public TabletStats getHistoricalStats(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public void halt(TInfo tinfo, TCredentials credentials, String lock)
-      throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
-
-  }
+      throws ThriftSecurityException, TException {}
 
   @Override
-  public void fastHalt(TInfo tinfo, TCredentials credentials, String lock) throws TException {
-    // TODO Auto-generated method stub
-
-  }
+  public void fastHalt(TInfo tinfo, TCredentials credentials, String lock) throws TException {}
 
   @Override
   public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames)
-      throws TException {
-    // TODO Auto-generated method stub
-
-  }
+      throws TException {}
 
   @Override
   public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) throws TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
@@ -753,7 +674,6 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   public TSummaries startGetSummaries(TInfo tinfo, TCredentials credentials,
       TSummaryRequest request)
       throws ThriftSecurityException, ThriftTableOperationException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
@@ -761,7 +681,6 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   public TSummaries startGetSummariesForPartition(TInfo tinfo, TCredentials credentials,
       TSummaryRequest request, int modulus, int remainder)
       throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
@@ -769,21 +688,18 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   public TSummaries startGetSummariesFromFiles(TInfo tinfo, TCredentials credentials,
       TSummaryRequest request, Map<String,List<TRowRange>> files)
       throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public TSummaries contiuneGetSummaries(TInfo tinfo, long sessionId)
       throws NoSuchScanIDException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public List<TCompactionQueueSummary> getCompactionQueueInfo(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
@@ -791,23 +707,16 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   public TExternalCompactionJob reserveCompactionJob(TInfo tinfo, TCredentials credentials,
       String queueName, long priority, String compactor, String externalCompactionId)
       throws ThriftSecurityException, TException {
-    // TODO Auto-generated method stub
     return null;
   }
 
   @Override
   public void compactionJobFinished(TInfo tinfo, TCredentials credentials,
       String externalCompactionId, TKeyExtent extent, long fileSize, long entries)
-      throws TException {
-    // TODO Auto-generated method stub
-
-  }
+      throws TException {}
 
   @Override
   public void compactionJobFailed(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent extent) throws TException {
-    // TODO Auto-generated method stub
-
-  }
+      String externalCompactionId, TKeyExtent extent) throws TException {}
 
 }

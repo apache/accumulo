@@ -72,6 +72,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
+import org.apache.accumulo.core.spi.scan.ScanServerLocator;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -102,6 +103,7 @@ public class ClientContext implements AccumuloClient {
 
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
+  private ScanServerLocator scanServerLocator;
   private ConditionalWriterConfig conditionalWriterConfig;
   private final AccumuloConfiguration serverConf;
   private final Configuration hadoopConf;
@@ -319,6 +321,22 @@ public class ClientContext implements AccumuloClient {
       batchWriterConfig = getBatchWriterConfig(info.getProperties());
     }
     return batchWriterConfig;
+  }
+
+  public synchronized ScanServerLocator getScanServerLocator() {
+    ensureOpen();
+    if (scanServerLocator == null) {
+      String clazz = ClientProperty.SCAN_SERVER_LOCATOR.getValue(info.getProperties());
+      try {
+        Class<? extends ScanServerLocator> impl =
+            Class.forName(clazz).asSubclass(ScanServerLocator.class);
+        scanServerLocator = impl.getDeclaredConstructor().newInstance();
+        scanServerLocator.setClientContext(this);
+      } catch (Exception e) {
+        throw new RuntimeException("Error creating ScanServerLocator implemenation: " + clazz, e);
+      }
+    }
+    return scanServerLocator;
   }
 
   static ConditionalWriterConfig getConditionalWriterConfig(Properties props) {

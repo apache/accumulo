@@ -60,6 +60,8 @@ import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.scan.ScanServerLocator;
+import org.apache.accumulo.core.spi.scan.ScanServerLocator.NoAvailableScanServerException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -70,6 +72,7 @@ import org.apache.accumulo.core.util.OpTimer;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -497,25 +500,45 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     for (final String tsLocation : locations) {
 
       final Map<KeyExtent,List<Range>> tabletsRanges = binnedRanges.get(tsLocation);
-      if (maxTabletsPerRequest == Integer.MAX_VALUE || tabletsRanges.size() == 1) {
-        QueryTask queryTask = new QueryTask(tsLocation, tabletsRanges, failures, receiver, columns);
-        queryTasks.add(queryTask);
+      if (options.isUseScanServer()) {
+        // Ignore the tablets location and find a scan server to use
+        ScanServerLocator ssl = context.getScanServerLocator();
+        tabletsRanges.forEach((k, v) -> {
+          try {
+            String location = ssl.reserveScanServer(k);
+            QueryTask queryTask = new QueryTask(location, Collections.singletonMap(k, v), failures,
+                receiver, columns);
+            queryTasks.add(queryTask);
+          } catch (NoAvailableScanServerException e) {
+            throw new RuntimeException(e);
+          } catch (KeeperException e) {
+            throw new RuntimeException(e);
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+          }
+        });
       } else {
-        HashMap<KeyExtent,List<Range>> tabletSubset = new HashMap<>();
-        for (Entry<KeyExtent,List<Range>> entry : tabletsRanges.entrySet()) {
-          tabletSubset.put(entry.getKey(), entry.getValue());
-          if (tabletSubset.size() >= maxTabletsPerRequest) {
+        if (maxTabletsPerRequest == Integer.MAX_VALUE || tabletsRanges.size() == 1) {
+          QueryTask queryTask =
+              new QueryTask(tsLocation, tabletsRanges, failures, receiver, columns);
+          queryTasks.add(queryTask);
+        } else {
+          HashMap<KeyExtent,List<Range>> tabletSubset = new HashMap<>();
+          for (Entry<KeyExtent,List<Range>> entry : tabletsRanges.entrySet()) {
+            tabletSubset.put(entry.getKey(), entry.getValue());
+            if (tabletSubset.size() >= maxTabletsPerRequest) {
+              QueryTask queryTask =
+                  new QueryTask(tsLocation, tabletSubset, failures, receiver, columns);
+              queryTasks.add(queryTask);
+              tabletSubset = new HashMap<>();
+            }
+          }
+
+          if (!tabletSubset.isEmpty()) {
             QueryTask queryTask =
                 new QueryTask(tsLocation, tabletSubset, failures, receiver, columns);
             queryTasks.add(queryTask);
-            tabletSubset = new HashMap<>();
           }
-        }
-
-        if (!tabletSubset.isEmpty()) {
-          QueryTask queryTask =
-              new QueryTask(tsLocation, tabletSubset, failures, receiver, columns);
-          queryTasks.add(queryTask);
         }
       }
     }

@@ -390,6 +390,29 @@ public enum Property {
           + "indefinitely. Default is 0 to block indefinitely. Only valid when tserver available "
           + "threshold is set greater than 0. Added with version 1.10",
       "1.10.0"),
+  // properties that are specific to scan server behavior
+  @Experimental
+  SSERV_PREFIX("sserver.", null, PropertyType.PREFIX,
+      "Properties in this category affect the behavior of the scan servers", "2.1.0"),
+  @Experimental
+  SSERV_PORTSEARCH("sserver.port.search", "true", PropertyType.BOOLEAN,
+      "if the ports above are in use, search higher ports until one is available", "2.1.0"),
+  @Experimental
+  SSERV_CLIENTPORT("sserver.port.client", "9996", PropertyType.PORT,
+      "The port used for handling client connections on the tablet servers", "2.1.0"),
+  @Experimental
+  SSERV_MAX_MESSAGE_SIZE("sserver.server.message.size.max", "1G", PropertyType.BYTES,
+      "The maximum size of a message that can be sent to a scan server.", "2.1.0"),
+  @Experimental
+  SSERV_MINTHREADS("sserver.server.threads.minimum", "2", PropertyType.COUNT,
+      "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
+  @Experimental
+  SSERV_MINTHREADS_TIMEOUT("sserver.server.threads.timeout", "10s", PropertyType.TIMEDURATION,
+      "The time after which incoming request threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely.",
+      "2.1.0"),
+  @Experimental
+  SSERV_THREADCHECK("sserver.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
+      "The time between adjustments of the thrift server thread pool.", "2.1.0"),
   // properties that are specific to tablet server behavior
   TSERV_PREFIX("tserver.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the tablet servers", "1.3.5"),

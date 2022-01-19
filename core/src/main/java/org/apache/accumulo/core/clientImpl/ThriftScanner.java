@@ -56,6 +56,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.scan.ScanServerLocator.NoAvailableScanServerException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
@@ -68,6 +69,7 @@ import org.apache.accumulo.core.util.OpTimer;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,7 +108,7 @@ public class ThriftScanner {
         ScanState scanState = new ScanState(context, extent.tableId(), authorizations, range,
             fetchedColumns, size, serverSideIteratorList, serverSideIteratorOptions, false,
             Constants.SCANNER_DEFAULT_READAHEAD_THRESHOLD, null, batchTimeOut, classLoaderContext,
-            null);
+            null, false);
 
         TabletType ttype = TabletType.type(extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
@@ -153,6 +155,7 @@ public class ThriftScanner {
     boolean skipStartRow;
     long readaheadThreshold;
     long batchTimeOut;
+    boolean runOnScanServer;
 
     Range range;
 
@@ -181,7 +184,7 @@ public class ThriftScanner {
         List<IterInfo> serverSideIteratorList,
         Map<String,Map<String,String>> serverSideIteratorOptions, boolean isolated,
         long readaheadThreshold, SamplerConfiguration samplerConfig, long batchTimeOut,
-        String classLoaderContext, Map<String,String> executionHints) {
+        String classLoaderContext, Map<String,String> executionHints, boolean useScanServer) {
       this.context = context;
       this.authorizations = authorizations;
       this.classLoaderContext = classLoaderContext;
@@ -218,6 +221,8 @@ public class ThriftScanner {
         this.executionHints = null; // avoid thrift serialization for empty map
       else
         this.executionHints = executionHints;
+
+      this.runOnScanServer = useScanServer;
     }
   }
 
@@ -421,6 +426,27 @@ public class ThriftScanner {
 
           TraceUtil.setException(child2, e, false);
           sleepMillis = pause(sleepMillis, maxSleepTime);
+        } catch (NoAvailableScanServerException e) {
+          error = "Scan failed, no available scan server for extent: " + loc.tablet_extent;
+          if (!error.equals(lastError))
+            log.debug("{}", error);
+          else if (log.isTraceEnabled())
+            log.trace("{}", error);
+          lastError = error;
+          loc = null;
+
+          // do not want to continue using the same scan id, if a timeout occurred could cause a
+          // batch to be skipped
+          // because a thread on the server side may still be processing the timed out continue scan
+          scanState.scanID = null;
+
+          if (scanState.isolated) {
+            TraceUtil.setException(child2, e, true);
+            throw new IsolationException();
+          }
+
+          TraceUtil.setException(child2, e, false);
+          sleepMillis = pause(sleepMillis, maxSleepTime);
         } finally {
           child2.end();
         }
@@ -441,14 +467,30 @@ public class ThriftScanner {
 
   private static List<KeyValue> scan(TabletLocation loc, ScanState scanState, ClientContext context)
       throws AccumuloSecurityException, NotServingTabletException, TException,
-      NoSuchScanIDException, TooManyFilesException, TSampleNotPresentException {
+      NoSuchScanIDException, TooManyFilesException, TSampleNotPresentException,
+      NoAvailableScanServerException {
     if (scanState.finished)
       return null;
 
     OpTimer timer = null;
 
     final TInfo tinfo = TraceUtil.traceInfo();
-    final HostAndPort parsedLocation = HostAndPort.fromString(loc.tablet_location);
+
+    HostAndPort parsedLocation = null;
+    if (scanState.runOnScanServer) {
+      try {
+        String sserver = context.getScanServerLocator().reserveScanServer(loc.tablet_extent);
+        parsedLocation = HostAndPort.fromString(sserver);
+      } catch (NoAvailableScanServerException e) {
+        throw new RuntimeException(e);
+      } catch (KeeperException e) {
+        throw new RuntimeException(e);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    } else {
+      parsedLocation = HostAndPort.fromString(loc.tablet_location);
+    }
     TabletClientService.Client client = ThriftUtil.getTServerClient(parsedLocation, context);
 
     String old = Thread.currentThread().getName();

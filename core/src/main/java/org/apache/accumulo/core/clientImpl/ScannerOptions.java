@@ -64,6 +64,8 @@ public class ScannerOptions implements ScannerBase {
 
   protected Map<String,String> executionHints = Collections.emptyMap();
 
+  private boolean useScanServer = false;
+
   protected ScannerOptions() {}
 
   public ScannerOptions(ScannerOptions so) {
@@ -181,6 +183,8 @@ public class ScannerOptions implements ScannerBase {
 
         // its an immutable map, so can avoid copy here
         dst.executionHints = src.executionHints;
+
+        dst.useScanServer = src.useScanServer;
       }
     }
   }
@@ -270,6 +274,14 @@ public class ScannerOptions implements ScannerBase {
   @Override
   public synchronized void setExecutionHints(Map<String,String> hints) {
     this.executionHints = Map.copyOf(Objects.requireNonNull(hints));
+  }
+
+  public boolean isUseScanServer() {
+    return useScanServer;
+  }
+
+  public void setUseScanServer(boolean useScanServer) {
+    this.useScanServer = useScanServer;
   }
 
 }
