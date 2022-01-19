@@ -320,4 +320,14 @@ public class ExternalCompactionUtil {
       ThriftUtil.returnClient(client, context);
     }
   }
+
+  /**
+   * If not present, prefix the ECID string with proper "ECID:" prefix.
+   */
+  public static String prefixECID(String ecid) {
+    ecid = ecid.replace("ecid:", "ECID:");
+    if (!ecid.startsWith("ECID:"))
+      ecid = "ECID:" + ecid;
+    return ecid;
+  }
 }

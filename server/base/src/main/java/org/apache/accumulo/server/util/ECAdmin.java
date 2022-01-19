@@ -130,6 +130,7 @@ public class ECAdmin implements KeywordExecutable {
 
   private void cancelCompaction(ServerContext context, String ecid) {
     CompactionCoordinatorService.Client coordinatorClient = null;
+    ecid = ExternalCompactionUtil.prefixECID(ecid);
     try {
       coordinatorClient = getCoordinatorClient(context);
       coordinatorClient.cancel(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
