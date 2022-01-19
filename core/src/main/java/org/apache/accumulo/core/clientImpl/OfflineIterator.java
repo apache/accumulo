@@ -76,9 +76,9 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   static class OfflineIteratorEnvironment implements IteratorEnvironment {
 
     private final Authorizations authorizations;
-    private AccumuloConfiguration conf;
-    private boolean useSample;
-    private SamplerConfiguration sampleConf;
+    private final AccumuloConfiguration conf;
+    private final boolean useSample;
+    private final SamplerConfiguration sampleConf;
 
     public OfflineIteratorEnvironment(Authorizations auths, AccumuloConfiguration acuTableConf,
         boolean useSample, SamplerConfiguration samplerConf) {
@@ -109,7 +109,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       return false;
     }
 
-    private ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<>();
+    private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators =
+        new ArrayList<>();
 
     @Deprecated(since = "2.0.0")
     @Override
@@ -151,11 +152,11 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private SortedKeyValueIterator<Key,Value> iter;
   private Range range;
   private KeyExtent currentExtent;
-  private TableId tableId;
-  private Authorizations authorizations;
-  private ClientContext context;
-  private ScannerOptions options;
-  private ArrayList<SortedKeyValueIterator<Key,Value>> readers;
+  private final TableId tableId;
+  private final Authorizations authorizations;
+  private final ClientContext context;
+  private final ScannerOptions options;
+  private final ArrayList<SortedKeyValueIterator<Key,Value>> readers;
 
   public OfflineIterator(ScannerOptions options, ClientContext context,
       Authorizations authorizations, Text table, Range range) {
@@ -210,7 +211,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
   private void nextTablet() throws TableNotFoundException, AccumuloException, IOException {
 
-    Range nextRange = null;
+    Range nextRange;
 
     if (currentExtent == null) {
       Text startRow;
@@ -223,12 +224,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       nextRange = new Range(TabletsSection.encodeRow(tableId, startRow), true, null, false);
     } else {
 
-      if (currentExtent.endRow() == null) {
-        iter = null;
-        return;
-      }
-
-      if (range.afterEndKey(new Key(currentExtent.endRow()).followingKey(PartialKey.ROW))) {
+      if (currentExtent.endRow() == null
+          || range.afterEndKey(new Key(currentExtent.endRow()).followingKey(PartialKey.ROW))) {
         iter = null;
         return;
       }
@@ -279,8 +276,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       Collection<StoredTabletFile> absFiles)
       throws TableNotFoundException, AccumuloException, IOException {
 
-    // TODO share code w/ tablet - ACCUMULO-1303
-
     // possible race condition here, if table is renamed
     String tableName = Tables.getTableName(context, tableId);
     AccumuloConfiguration acuTableConf =
@@ -300,13 +295,9 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     SamplerConfigurationImpl samplerConfImpl =
         SamplerConfigurationImpl.newSamplerConfig(acuTableConf);
 
-    if (scannerSamplerConfigImpl != null
-        && ((samplerConfImpl != null && !scannerSamplerConfigImpl.equals(samplerConfImpl))
-            || samplerConfImpl == null)) {
+    if (scannerSamplerConfigImpl != null && (!scannerSamplerConfigImpl.equals(samplerConfImpl))) {
       throw new SampleNotPresentException();
     }
-
-    // TODO need to close files - ACCUMULO-1303
     for (TabletFile file : absFiles) {
       FileSystem fs = VolumeConfiguration.fileSystemForPath(file.getPathStr(), conf);
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
