@@ -99,9 +99,6 @@ import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
@@ -334,8 +331,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     this.config = config.initialize();
 
-    if (Boolean.TRUE.equals(Boolean
-        .valueOf(this.config.getSiteConfig().get(Property.TSERV_NATIVEMAP_ENABLED.name())))) {
+    if (Boolean.valueOf(this.config.getSiteConfig().get(Property.TSERV_NATIVEMAP_ENABLED.name()))) {
       if (!NativeMap.isLoaded())
         throw new RuntimeException(
             "MAC configured to use native maps, but unable to load the library.");
@@ -640,14 +636,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           "Error starting TabletServer " + tsExpectedCount + "- instance not started");
     }
 
-    Watcher w = new Watcher() {
-      public void process(WatchedEvent event) {
-        if (event.getState() == KeeperState.Expired) {
-          log.debug("Session expired, state of current session : {}", event.getState());
-        }
-      }
-    };
-    try (ZooKeeper zk = new ZooKeeper(getZooKeepers(), 60000, w)) {
+    try (ZooKeeper zk = new ZooKeeper(getZooKeepers(), 60000, null)) {
 
       String secret = getSiteConfiguration().get(Property.INSTANCE_SECRET);
 
