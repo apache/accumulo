@@ -28,7 +28,7 @@ public class WhoAmICommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws IOException {
-    shellState.getReader().println(shellState.getAccumuloClient().whoami());
+    shellState.getWriter().println(shellState.getAccumuloClient().whoami());
     return 0;
   }
 

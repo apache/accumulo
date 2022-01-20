@@ -56,8 +56,7 @@ import org.slf4j.LoggerFactory;
  *
  * row: shardID, colfam: indexColf, colqual: doctype\0docID\0info, value: doc
  *
- * This iterator is commonly used with BatchScanner or AccumuloInputFormat, to parallelize the
- * search over all shardIDs.
+ * This iterator is commonly used with BatchScanner to parallelize the search over all shardIDs.
  */
 public class IndexedDocIterator extends IntersectingIterator {
   private static final Logger log = LoggerFactory.getLogger(IndexedDocIterator.class);

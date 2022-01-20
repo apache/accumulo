@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.server.constraints;
 
-import org.apache.accumulo.core.constraints.Constraint;
+import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.server.ServerContext;
 
 public interface SystemEnvironment extends Constraint.Environment {

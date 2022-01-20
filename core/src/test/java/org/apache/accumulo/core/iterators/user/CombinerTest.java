@@ -48,10 +48,10 @@ import org.apache.accumulo.core.iterators.LongCombiner.FixedLenEncoder;
 import org.apache.accumulo.core.iterators.LongCombiner.StringEncoder;
 import org.apache.accumulo.core.iterators.LongCombiner.VarLenEncoder;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.TypedValueCombiner;
 import org.apache.accumulo.core.iterators.ValueFormatException;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -776,11 +776,6 @@ public class CombinerTest {
     public List<Long> decode(byte[] b) {
       return new ArrayList<>();
     }
-
-    public List<Long> decode() {
-      return new ArrayList<>();
-    }
-
   }
 
   @Test

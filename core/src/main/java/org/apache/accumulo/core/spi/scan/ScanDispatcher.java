@@ -72,7 +72,7 @@ public interface ScanDispatcher {
    * @deprecated since 2.1.0 replaced by {@link DispatchParameters} and
    *             {@link ScanDispatcher#dispatch(DispatchParameters)}
    */
-  @Deprecated
+  @Deprecated(since = "2.1.0")
   public interface DispatchParmaters extends DispatchParameters {}
 
   /**
@@ -83,7 +83,7 @@ public interface ScanDispatcher {
    *             never call this. However the default implementation of
    *             {@link #dispatch(DispatchParameters)} calls this method.
    */
-  @Deprecated
+  @Deprecated(since = "2.1.0")
   default String dispatch(DispatchParmaters params) {
     throw new UnsupportedOperationException();
   }
@@ -116,11 +116,11 @@ public interface ScanDispatcher {
    * @since 2.1.0
    */
 
-  default ScanDirectives dispatch(DispatchParameters params) {
+  default ScanDispatch dispatch(DispatchParameters params) {
     String executor = dispatch((DispatchParmaters) params);
-    if (executor.equals(DefaultScanDirectives.DEFAULT_SCAN_DIRECTIVES.getExecutorName()))
-      return DefaultScanDirectives.DEFAULT_SCAN_DIRECTIVES;
+    if (executor.equals(DefaultScanDispatch.DEFAULT_SCAN_DISPATCH.getExecutorName()))
+      return DefaultScanDispatch.DEFAULT_SCAN_DISPATCH;
 
-    return ScanDirectives.builder().setExecutorName(executor).build();
+    return ScanDispatch.builder().setExecutorName(executor).build();
   }
 }

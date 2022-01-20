@@ -27,7 +27,7 @@ import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.scan.ScanDirectives;
+import org.apache.accumulo.core.spi.scan.ScanDispatch;
 
 /**
  * Information needed to execute a scan inside a tablet
@@ -43,7 +43,7 @@ public final class ScanParameters {
   private final SamplerConfiguration samplerConfig;
   private final long batchTimeOut;
   private final String classLoaderContext;
-  private volatile ScanDirectives directives;
+  private volatile ScanDispatch dispatch;
 
   public ScanParameters(int maxEntries, Authorizations authorizations, Set<Column> columnSet,
       List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, boolean isolated,
@@ -97,12 +97,12 @@ public final class ScanParameters {
     return classLoaderContext;
   }
 
-  public void setScanDirectives(ScanDirectives directives) {
-    this.directives = directives;
+  public void setScanDispatch(ScanDispatch dispatch) {
+    this.dispatch = dispatch;
   }
 
-  public ScanDirectives getScanDirectives() {
-    return directives;
+  public ScanDispatch getScanDispatch() {
+    return dispatch;
   }
 
   @Override

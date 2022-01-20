@@ -28,6 +28,7 @@ import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 
 import com.google.common.collect.Maps;
 
+@Deprecated
 public class DistributedWorkQueueWorkAssignerHelper {
 
   public static final String KEY_SEPARATOR = "|";
@@ -72,7 +73,7 @@ public class DistributedWorkQueueWorkAssignerHelper {
     int thirdIndex = queueKey.indexOf(KEY_SEPARATOR, secondIndex + 1);
     if (thirdIndex == -1) {
       throw new IllegalArgumentException(
-          "Could not find expected seperator in queue key '" + queueKey + "'");
+          "Could not find expected separator in queue key '" + queueKey + "'");
     }
 
     return Maps.immutableEntry(filename,

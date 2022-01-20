@@ -42,7 +42,7 @@ public class FormatterConfig {
 
     @Override
     public StringBuffer format(Date date, StringBuffer toAppendTo, FieldPosition fieldPosition) {
-      toAppendTo.append(Long.toString(date.getTime()));
+      toAppendTo.append(date.getTime());
       return toAppendTo;
     }
 

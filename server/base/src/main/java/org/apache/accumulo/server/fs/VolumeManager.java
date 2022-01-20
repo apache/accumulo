@@ -22,18 +22,20 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,9 +48,7 @@ import org.slf4j.LoggerFactory;
 public interface VolumeManager extends AutoCloseable {
 
   enum FileType {
-    TABLE(ServerConstants.TABLE_DIR),
-    WAL(ServerConstants.WAL_DIR),
-    RECOVERY(ServerConstants.RECOVERY_DIR);
+    TABLE(Constants.TABLE_DIR), WAL(Constants.WAL_DIR), RECOVERY(Constants.RECOVERY_DIR);
 
     private String dir;
 
@@ -62,15 +62,19 @@ public interface VolumeManager extends AutoCloseable {
 
     private static int endOfVolumeIndex(String path, String dir) {
       // Strip off the suffix that starts with the FileType (e.g. tables, wal, etc)
-      int dirIndex = path.indexOf('/' + dir);
+      int dirIndex = path.indexOf('/' + dir + '/');
+
       if (dirIndex != -1) {
         return dirIndex;
+      }
+
+      if (path.endsWith('/' + dir)) {
+        return path.length() - (dir.length() + 1);
       }
 
       if (path.contains(":"))
         throw new IllegalArgumentException(path + " is absolute, but does not contain " + dir);
       return -1;
-
     }
 
     public Path getVolume(Path path) {
@@ -130,8 +134,12 @@ public interface VolumeManager extends AutoCloseable {
   // find the appropriate FileSystem object given a path
   FileSystem getFileSystemByPath(Path path);
 
-  // return the item in options that is in the same volume as source
+  // return the item in options that is in the same file system as source
   Path matchingFileSystem(Path source, Set<String> options);
+
+  // forward to appropriate FileSystem object. Does not support globbing.
+  RemoteIterator<LocatedFileStatus> listFiles(final Path path, final boolean recursive)
+      throws IOException;
 
   // forward to the appropriate FileSystem object
   FileStatus[] listStatus(Path path) throws IOException;
@@ -149,6 +157,14 @@ public interface VolumeManager extends AutoCloseable {
   // volumes
   boolean rename(Path path, Path newPath) throws IOException;
 
+  /**
+   * Rename lots of files at once in a thread pool and return once all the threads have completed.
+   * This operation should be idempotent to allow calling multiple times in the case of a partial
+   * completion.
+   */
+  void bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize, String poolName,
+      String transactionId) throws IOException;
+
   // forward to the appropriate FileSystem object
   boolean moveToTrash(Path sourcePath) throws IOException;
 
@@ -162,31 +178,33 @@ public interface VolumeManager extends AutoCloseable {
   FileStatus[] globStatus(Path path) throws IOException;
 
   // decide on which of the given locations to create a new file
-  String choose(VolumeChooserEnvironment env, Set<String> options);
+  String choose(org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment env, Set<String> options);
 
   // return all valid locations to create a new file
-  Set<String> choosable(VolumeChooserEnvironment env, Set<String> options);
+  Set<String> choosable(org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment env,
+      Set<String> options);
 
   // are sync and flush supported for the given path
   boolean canSyncAndFlush(Path path);
 
   /**
-   * Fetch the default Volume
+   * Fetch the first configured instance Volume
    */
-  Volume getDefaultVolume();
+  default Volume getFirst() {
+    return getVolumes().iterator().next();
+  }
 
   /**
-   * Fetch the configured Volumes, excluding the default Volume
+   * Fetch the configured instance Volumes
    */
   Collection<Volume> getVolumes();
 
   Logger log = LoggerFactory.getLogger(VolumeManager.class);
 
-  static String getInstanceIDFromHdfs(Path instanceDirectory, AccumuloConfiguration conf,
-      Configuration hadoopConf) {
+  static String getInstanceIDFromHdfs(Path instanceDirectory, Configuration hadoopConf) {
     try {
-      FileSystem fs = VolumeConfiguration.getVolume(instanceDirectory.toString(), hadoopConf, conf)
-          .getFileSystem();
+      FileSystem fs =
+          VolumeConfiguration.fileSystemForPath(instanceDirectory.toString(), hadoopConf);
       FileStatus[] files = null;
       try {
         files = fs.listStatus(instanceDirectory);
@@ -195,7 +213,7 @@ public interface VolumeManager extends AutoCloseable {
       }
       log.debug("Trying to read instance id from {}", instanceDirectory);
       if (files == null || files.length == 0) {
-        log.error("unable obtain instance id at {}", instanceDirectory);
+        log.error("unable to obtain instance id at {}", instanceDirectory);
         throw new RuntimeException(
             "Accumulo not initialized, there is no instance id at " + instanceDirectory);
       } else if (files.length != 1) {

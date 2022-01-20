@@ -70,8 +70,20 @@
       <artifactId>commons-logging</artifactId>
     </dependency>
     <dependency>
-      <groupId>jline</groupId>
-      <artifactId>jline</artifactId>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-context</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-semconv</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
@@ -98,12 +110,12 @@
       <artifactId>commons-pool2</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.apache.hadoop</groupId>
-      <artifactId>hadoop-client-api</artifactId>
+      <groupId>org.apache.datasketches</groupId>
+      <artifactId>datasketches-java</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.apache.htrace</groupId>
-      <artifactId>htrace-core</artifactId>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-client-api</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
@@ -136,6 +148,10 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
@@ -262,6 +278,7 @@
               </includes>
               <excludes />
               <allows>
+                <allow>io[.]opentelemetry[.]api[.]OpenTelemetry</allow>
                 <allow>org[.]apache[.]hadoop[.]io[.]Text</allow>
                 <allow>org[.]apache[.]accumulo[.]core[.]client[.].*</allow>
                 <allow>org[.]apache[.]accumulo[.]core[.]data[.].*</allow>
@@ -388,20 +405,59 @@
       </build>
     </profile>
     <profile>
-      <!-- workaround for https://bugs.eclipse.org/bugs/show_bug.cgi?id=541772 -->
-      <id>m2e</id>
+      <!-- profile for running second execution of surefire without reusing forks -->
+      <!-- on by default, but disable with '-P !reuseForksFalse' or '-Dtest=SomeTest' -->
+      <id>reuseForksFalse</id>
       <activation>
         <property>
-          <name>m2e.version</name>
+          <name>!test</name>
         </property>
       </activation>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-client-runtime</artifactId>
-          <scope>compile</scope>
-        </dependency>
-      </dependencies>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-surefire-plugin</artifactId>
+              <configuration>
+                <!-- Tests that cannot run with reuseForks=true -->
+                <excludes>
+                  <exclude>**/InternerTest.java</exclude>
+                  <exclude>**/NamespaceIdTest.java</exclude>
+                  <exclude>**/TableIdTest.java</exclude>
+                  <exclude>**/HadoopCredentialProviderTest.java</exclude>
+                  <exclude>**/IdleRatioScanPrioritizerTest.java</exclude>
+                  <exclude>**/TestCfCqSlice.java</exclude>
+                  <exclude>**/TestCfCqSliceSeekingFilter.java</exclude>
+                  <exclude>**/core/constraints/DefaultKeySizeConstraintTest.java</exclude>
+                </excludes>
+              </configuration>
+              <executions>
+                <execution>
+                  <id>reuseForks-false-tests</id>
+                  <goals>
+                    <goal>test</goal>
+                  </goals>
+                  <configuration>
+                    <reuseForks>false</reuseForks>
+                    <excludes combine.self="override" />
+                    <includes>
+                      <include>**/InternerTest.java</include>
+                      <include>**/NamespaceIdTest.java</include>
+                      <include>**/TableIdTest.java</include>
+                      <include>**/HadoopCredentialProviderTest.java</include>
+                      <include>**/IdleRatioScanPrioritizerTest.java</include>
+                      <include>**/TestCfCqSlice.java</include>
+                      <include>**/TestCfCqSliceSeekingFilter.java</include>
+                      <exclude>**/core/constraints/DefaultKeySizeConstraintTest.java</exclude>
+                    </includes>
+                  </configuration>
+                </execution>
+              </executions>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
     </profile>
   </profiles>
 </project>

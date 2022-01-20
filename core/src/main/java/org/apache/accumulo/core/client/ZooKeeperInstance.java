@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
  *
  * @deprecated since 2.0.0, Use {@link Accumulo#newClient()} instead
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class ZooKeeperInstance implements Instance {
 
   private static final Logger log = LoggerFactory.getLogger(ZooKeeperInstance.class);
@@ -135,7 +135,7 @@ public class ZooKeeperInstance implements Instance {
 
   @Override
   public List<String> getMasterLocations() {
-    return ClientContext.getMasterLocations(zooCache, getInstanceID());
+    return ClientContext.getManagerLocations(zooCache, getInstanceID());
   }
 
   @Override
@@ -161,7 +161,7 @@ public class ZooKeeperInstance implements Instance {
       return null;
     }
 
-    return loc.getHostAndPort().toString();
+    return loc.getHostPort();
   }
 
   @Override

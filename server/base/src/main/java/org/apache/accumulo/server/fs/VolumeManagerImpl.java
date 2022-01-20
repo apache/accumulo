@@ -23,30 +23,39 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.spi.fs.VolumeChooser;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.volume.VolumeImpl;
-import org.apache.accumulo.server.fs.VolumeChooser.VolumeChooserException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.Trash;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
@@ -66,14 +75,12 @@ public class VolumeManagerImpl implements VolumeManager {
 
   private final Map<String,Volume> volumesByName;
   private final Multimap<URI,Volume> volumesByFileSystemUri;
-  private final Volume defaultVolume;
   private final VolumeChooser chooser;
   private final Configuration hadoopConf;
 
-  protected VolumeManagerImpl(Map<String,Volume> volumes, Volume defaultVolume,
-      AccumuloConfiguration conf, Configuration hadoopConf) {
+  protected VolumeManagerImpl(Map<String,Volume> volumes, AccumuloConfiguration conf,
+      Configuration hadoopConf) {
     this.volumesByName = volumes;
-    this.defaultVolume = defaultVolume;
     // We may have multiple directories used in a single FileSystem (e.g. testing)
     this.volumesByFileSystemUri = invertVolumesByFileSystem(volumesByName);
     ensureSyncIsEnabled();
@@ -87,7 +94,7 @@ public class VolumeManagerImpl implements VolumeManager {
       // null chooser handled below
     }
     if (chooser1 == null) {
-      throw new VolumeChooserException(
+      throw new RuntimeException(
           "Failed to load volume chooser specified by " + Property.GENERAL_VOLUME_CHOOSER);
     }
     chooser = chooser1;
@@ -104,9 +111,10 @@ public class VolumeManagerImpl implements VolumeManager {
   public static VolumeManager getLocalForTesting(String localBasePath) throws IOException {
     AccumuloConfiguration accConf = DefaultConfiguration.getInstance();
     Configuration hadoopConf = new Configuration();
-    Volume defaultLocalVolume = new VolumeImpl(FileSystem.getLocal(hadoopConf), localBasePath);
-    return new VolumeManagerImpl(Collections.singletonMap("", defaultLocalVolume),
-        defaultLocalVolume, accConf, hadoopConf);
+    FileSystem localFS = FileSystem.getLocal(hadoopConf);
+    Volume defaultLocalVolume = new VolumeImpl(localFS, localBasePath);
+    return new VolumeManagerImpl(Collections.singletonMap("", defaultLocalVolume), accConf,
+        hadoopConf);
   }
 
   @Override
@@ -238,24 +246,27 @@ public class VolumeManagerImpl implements VolumeManager {
 
   @Override
   public FileSystem getFileSystemByPath(Path path) {
-    if (!requireNonNull(path).toString().contains(":")) {
-      return defaultVolume.getFileSystem();
-    }
     FileSystem desiredFs;
     try {
-      desiredFs = path.getFileSystem(hadoopConf);
+      desiredFs = requireNonNull(path).getFileSystem(hadoopConf);
     } catch (IOException ex) {
       throw new UncheckedIOException(ex);
     }
     URI desiredFsUri = desiredFs.getUri();
     Collection<Volume> candidateVolumes = volumesByFileSystemUri.get(desiredFsUri);
     if (candidateVolumes != null) {
-      return candidateVolumes.stream().filter(volume -> volume.isValidPath(path))
+      return candidateVolumes.stream().filter(volume -> volume.containsPath(path))
           .map(Volume::getFileSystem).findFirst().orElse(desiredFs);
     } else {
       log.debug("Could not determine volume for Path: {}", path);
       return desiredFs;
     }
+  }
+
+  @Override
+  public RemoteIterator<LocatedFileStatus> listFiles(final Path path, final boolean recursive)
+      throws IOException {
+    return getFileSystemByPath(path).listFiles(path, recursive);
   }
 
   @Override
@@ -290,6 +301,45 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
+  public void bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize, String poolName,
+      String transactionId) throws IOException {
+    List<Future<Void>> results = new ArrayList<>();
+    ExecutorService workerPool = ThreadPools.createFixedThreadPool(poolSize, poolName);
+    oldToNewPathMap.forEach((oldPath, newPath) -> results.add(workerPool.submit(() -> {
+      boolean success;
+      try {
+        success = rename(oldPath, newPath);
+      } catch (IOException e) {
+        // The rename could have failed because this is the second time its running (failures
+        // could cause this to run multiple times).
+        if (!exists(newPath) || exists(oldPath)) {
+          throw e;
+        }
+        log.debug(
+            "Ignoring rename exception for {} because destination already exists. orig: {} new: {}",
+            transactionId, oldPath, newPath, e);
+        success = true;
+      }
+      if (!success && (!exists(newPath) || exists(oldPath))) {
+        throw new IOException("Rename operation " + transactionId + " returned false. orig: "
+            + oldPath + " new: " + newPath);
+      } else if (log.isTraceEnabled()) {
+        log.trace("{} moved {} to {}", transactionId, oldPath, newPath);
+      }
+      return null;
+    })));
+    workerPool.shutdown();
+    try {
+      while (!workerPool.awaitTermination(1000L, TimeUnit.MILLISECONDS)) {}
+      for (Future<Void> future : results) {
+        future.get();
+      }
+    } catch (InterruptedException | ExecutionException e) {
+      throw new IOException(e);
+    }
+  }
+
+  @Override
   public boolean moveToTrash(Path path) throws IOException {
     FileSystem fs = getFileSystemByPath(path);
     Trash trash = new Trash(fs, fs.getConf());
@@ -305,8 +355,10 @@ public class VolumeManagerImpl implements VolumeManager {
       throws IOException {
     final Map<String,Volume> volumes = new HashMap<>();
 
+    Set<String> volumeStrings = VolumeConfiguration.getVolumeUris(conf);
+
     // The "default" Volume for Accumulo (in case no volumes are specified)
-    for (String volumeUriOrDir : VolumeConfiguration.getVolumeUris(conf, hadoopConf)) {
+    for (String volumeUriOrDir : volumeStrings) {
       if (volumeUriOrDir.isBlank())
         throw new IllegalArgumentException("Empty volume specified in configuration");
 
@@ -322,8 +374,7 @@ public class VolumeManagerImpl implements VolumeManager {
       }
     }
 
-    Volume defaultVolume = VolumeConfiguration.getDefaultVolume(hadoopConf, conf);
-    return new VolumeManagerImpl(volumes, defaultVolume, conf, hadoopConf);
+    return new VolumeManagerImpl(volumes, conf, hadoopConf);
   }
 
   @Override
@@ -357,25 +408,27 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public String choose(VolumeChooserEnvironment env, Set<String> options) {
+  public String choose(org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment env,
+      Set<String> options) {
     final String choice;
     choice = chooser.choose(env, options);
     if (!options.contains(choice)) {
       String msg = "The configured volume chooser, '" + chooser.getClass()
           + "', or one of its delegates returned a volume not in the set of options provided";
-      throw new VolumeChooserException(msg);
+      throw new RuntimeException(msg);
     }
     return choice;
   }
 
   @Override
-  public Set<String> choosable(VolumeChooserEnvironment env, Set<String> options) {
+  public Set<String> choosable(org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment env,
+      Set<String> options) {
     final Set<String> choices = chooser.choosable(env, options);
     for (String choice : choices) {
       if (!options.contains(choice)) {
         String msg = "The configured volume chooser, '" + chooser.getClass()
             + "', or one of its delegates returned a volume not in the set of options provided";
-        throw new VolumeChooserException(msg);
+        throw new RuntimeException(msg);
       }
     }
     return choices;
@@ -401,11 +454,6 @@ public class VolumeManagerImpl implements VolumeManager {
       }
     }
     return true;
-  }
-
-  @Override
-  public Volume getDefaultVolume() {
-    return defaultVolume;
   }
 
   @Override

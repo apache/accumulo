@@ -44,12 +44,9 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
-import org.apache.accumulo.server.replication.StatusCombiner;
-import org.apache.accumulo.server.replication.StatusFormatter;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -65,7 +62,9 @@ public class ReplicationTableUtil {
   private static final Logger log = LoggerFactory.getLogger(ReplicationTableUtil.class);
 
   public static final String COMBINER_NAME = "replcombiner";
-  public static final String STATUS_FORMATTER_CLASS_NAME = StatusFormatter.class.getName();
+  @SuppressWarnings("deprecation")
+  public static final String STATUS_FORMATTER_CLASS_NAME =
+      org.apache.accumulo.server.replication.StatusFormatter.class.getName();
 
   private ReplicationTableUtil() {}
 
@@ -105,9 +104,10 @@ public class ReplicationTableUtil {
     if (!iterators.containsKey(COMBINER_NAME)) {
       // Set our combiner and combine all columns
       // Need to set the combiner beneath versioning since we don't want to turn it off
-      IteratorSetting setting = new IteratorSetting(9, COMBINER_NAME, StatusCombiner.class);
-      Combiner.setColumns(setting,
-          Collections.singletonList(new Column(MetadataSchema.ReplicationSection.COLF)));
+      @SuppressWarnings("deprecation")
+      var statusCombinerClass = org.apache.accumulo.server.replication.StatusCombiner.class;
+      IteratorSetting setting = new IteratorSetting(9, COMBINER_NAME, statusCombinerClass);
+      Combiner.setColumns(setting, Collections.singletonList(new Column(ReplicationSection.COLF)));
       try {
         tops.attachIterator(tableName, setting);
       } catch (AccumuloSecurityException | AccumuloException | TableNotFoundException e) {
@@ -116,14 +116,14 @@ public class ReplicationTableUtil {
     }
 
     // Make sure the StatusFormatter is set on the metadata table
-    Iterable<Entry<String,String>> properties;
+    Map<String,String> properties;
     try {
-      properties = tops.getProperties(tableName);
+      properties = tops.getConfiguration(tableName);
     } catch (AccumuloException | TableNotFoundException e) {
       throw new RuntimeException(e);
     }
 
-    for (Entry<String,String> property : properties) {
+    for (Entry<String,String> property : properties.entrySet()) {
       if (Property.TABLE_FORMATTER_CLASS.getKey().equals(property.getKey())) {
         if (!STATUS_FORMATTER_CLASS_NAME.equals(property.getValue())) {
           log.info("Setting formatter for {} from {} to {}", tableName, property.getValue(),
@@ -191,7 +191,7 @@ public class ReplicationTableUtil {
 
   private static Mutation createUpdateMutation(Text row, Value v, KeyExtent extent) {
     Mutation m = new Mutation(row);
-    m.put(MetadataSchema.ReplicationSection.COLF, new Text(extent.getTableId().canonical()), v);
+    m.put(ReplicationSection.COLF, new Text(extent.tableId().canonical()), v);
     return m;
   }
 }

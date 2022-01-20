@@ -258,22 +258,12 @@ function createTableCell(index, sortValue, showValue) {
 ///// REST Calls /////////////
 
 /**
- * REST GET call for the master information,
+ * REST GET call for the manager information,
  * stores it on a sessionStorage variable
  */
-function getMaster() {
-  return $.getJSON('/rest/master', function(data) {
-    sessionStorage.master = JSON.stringify(data);
-  });
-}
-
-/**
- * REST GET call for the zookeeper information,
- * stores it on a sessionStorage variable
- */
-function getZK() {
-  return $.getJSON('/rest/zk', function(data) {
-    sessionStorage.zk = JSON.stringify(data);
+function getManager() {
+  return $.getJSON('/rest/manager', function(data) {
+    sessionStorage.manager = JSON.stringify(data);
   });
 }
 
@@ -373,16 +363,6 @@ function getBulkImports() {
 }
 
 /**
- * REST GET call for the garbage collector,
- * stores it on a sessionStorage variable
- */
-function getGarbageCollector() {
-  return $.getJSON('/rest/gc', function(data) {
-    sessionStorage.gc = JSON.stringify(data);
-  });
-}
-
-/**
  * REST GET call for the server stats, stores it on a sessionStorage variable
  */
 function getServerStats() {
@@ -475,7 +455,10 @@ function clearTableProblems(tableID) {
   var call = '/rest/problems/summary?s=' + tableID;
   // Change plus sign to use ASCII value to send it as a URL query parameter
   call = sanitize(call);
-  $.post(call);
+  // make the rest call, passing success function callback
+  $.post(call, function () {
+    refreshProblems();
+  });
 }
 
 /**
@@ -490,7 +473,10 @@ function clearDetailsProblems(table, resource, type) {
    resource + '&ptype=' + type;
   // Changes plus sign to use ASCII value to send it as a URL query parameter
   call = sanitize(call);
-  $.post(call);
+  // make the rest call, passing success function callback
+  $.post(call, function () {
+    refreshProblems();
+  });
 }
 
 /**

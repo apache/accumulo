@@ -42,7 +42,8 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * @param options
    *          <code>Map</code> map of string option names to option values.
    * @param env
-   *          <code>IteratorEnvironment</code> environment in which iterator is being run.
+   *          <code>IteratorEnvironment</code> environment in which iterator is being run, provided
+   *          by Accumulo itself and is expected to be non-null.
    * @throws IOException
    *           unused.
    * @exception IllegalArgumentException
@@ -161,7 +162,8 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * either on the original or the copy. A proper implementation would call deepCopy on the source.
    *
    * @param env
-   *          <code>IteratorEnvironment</code> environment in which iterator is being run.
+   *          <code>IteratorEnvironment</code> environment in which iterator is being run, provided
+   *          by Accumulo itself and is expected to be non-null.
    * @return <code>SortedKeyValueIterator</code> a copy of this iterator (with the same source and
    *         settings).
    * @exception UnsupportedOperationException

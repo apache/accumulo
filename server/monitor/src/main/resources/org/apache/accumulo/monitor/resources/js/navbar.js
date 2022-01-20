@@ -49,10 +49,10 @@ function refreshSideBarNotifications() {
       undefined : JSON.parse(sessionStorage.status);
 
   // Setting individual status notification
-  if (data.masterStatus === 'OK') {
-    $('#masterStatusNotification').removeClass('error').addClass('normal');
+  if (data.managerStatus === 'OK') {
+    $('#managerStatusNotification').removeClass('error').addClass('normal');
   } else {
-    $('#masterStatusNotification').removeClass('normal').addClass('error');
+    $('#managerStatusNotification').removeClass('normal').addClass('error');
   }
   if (data.tServerStatus === 'OK') {
     $('#serverStatusNotification').removeClass('error').removeClass('warning').
@@ -71,12 +71,12 @@ function refreshSideBarNotifications() {
   }
 
   // Setting overall status notification
-  if (data.masterStatus === 'OK' &&
+  if (data.managerStatus === 'OK' &&
       data.tServerStatus === 'OK' &&
       data.gcStatus === 'OK') {
     $('#statusNotification').removeClass('error').removeClass('warning').
         addClass('normal');
-  } else if (data.masterStatus === 'ERROR' ||
+  } else if (data.managerStatus === 'ERROR' ||
       data.tServerStatus === 'ERROR' ||
       data.gcStatus === 'ERROR') {
     $('#statusNotification').removeClass('normal').removeClass('warning').

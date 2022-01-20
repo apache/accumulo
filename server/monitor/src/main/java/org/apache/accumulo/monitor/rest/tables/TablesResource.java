@@ -27,30 +27,30 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import javax.inject.Inject;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+import jakarta.inject.Inject;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 import org.apache.accumulo.monitor.rest.tservers.TabletServers;
-import org.apache.accumulo.server.master.state.MetaDataTableScanner;
-import org.apache.accumulo.server.master.state.TabletLocationState;
+import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.hadoop.io.Text;
@@ -81,7 +81,7 @@ public class TablesResource {
 
   public static TableInformationList getTables(Monitor monitor) {
     TableInformationList tableList = new TableInformationList();
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       return tableList;
     }
@@ -103,7 +103,7 @@ public class TablesResource {
       TableInfo tableInfo = tableStats.get(tableId);
       TableState tableState = tableManager.getTableState(tableId);
 
-      if (tableInfo != null && !tableState.equals(TableState.OFFLINE)) {
+      if (tableInfo != null && tableState != TableState.OFFLINE) {
         Double holdTime = compactingByTable.get(tableId.canonical());
         if (holdTime == null) {
           holdTime = 0.;
@@ -131,7 +131,7 @@ public class TablesResource {
       regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableIdStr) {
     String rootTabletLocation = monitor.getContext().getRootTabletLocation();
     TableId tableId = TableId.of(tableIdStr);
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
     // fail fast if unable to get monitor info
     if (mmi == null) {
       return new TabletServers();
@@ -150,15 +150,15 @@ public class TablesResource {
       String systemTableName =
           MetadataTable.ID.equals(tableId) ? RootTable.NAME : MetadataTable.NAME;
       MetaDataTableScanner scanner = new MetaDataTableScanner(monitor.getContext(),
-          new Range(TabletsSection.getRow(tableId, new Text()),
-              TabletsSection.getRow(tableId, null)),
+          new Range(TabletsSection.encodeRow(tableId, new Text()),
+              TabletsSection.encodeRow(tableId, null)),
           systemTableName);
 
       while (scanner.hasNext()) {
         TabletLocationState state = scanner.next();
         if (state.current != null) {
           try {
-            locs.add(state.current.hostPort());
+            locs.add(state.current.getHostPort());
           } catch (Exception ex) {
             scanner.close();
             return tabletServers;

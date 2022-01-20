@@ -34,7 +34,7 @@ import org.easymock.EasyMock;
 import org.junit.Before;
 import org.junit.Test;
 
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class ZooKeeperInstanceTest {
   private static final UUID IID = UUID.randomUUID();
   private static final String IID_STRING = IID.toString();

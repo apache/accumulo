@@ -38,26 +38,25 @@ public interface Volume {
   String getBasePath();
 
   /**
-   * Convert the given Path into a Path that is relative to the base path for this Volume
+   * Convert the given child path into a Path that is relative to the base path for this Volume. The
+   * supplied path should not include any scheme (such as <code>file:</code> or <code>hdfs:</code>),
+   * and should not contain any relative path "breakout" patterns, such as <code>../</code>. If the
+   * path begins with a single slash, it will be preserved while prefixing this volume. If it does
+   * not begin with a single slash, one will be inserted.
    *
-   * @param p
+   * @param pathString
    *          The suffix to use
    * @return A Path for this Volume with the provided suffix
    */
-  Path prefixChild(Path p);
+  Path prefixChild(String pathString);
 
   /**
-   * Convert the given child path into a Path that is relative to the base path for this Volume
-   *
-   * @param p
-   *          The suffix to use
-   * @return A Path for this Volume with the provided suffix
+   * Determine if the Path is contained in Volume. A Path is considered contained if refers to a
+   * location within the base path for this Volume on the same FileSystem. It can be located at the
+   * base path, or within any sub-directory. Unqualified paths (those without a file system scheme)
+   * will resolve to using the configured Hadoop default file system before comparison. Paths are
+   * not considered "contained" within this Volume if they have any relative path "breakout"
+   * patterns, such as <code>../</code>.
    */
-  Path prefixChild(String p);
-
-  /**
-   * Determine if the Path is valid on this Volume. A Path is valid if it is contained in the
-   * Volume's FileSystem and is rooted beneath the basePath
-   */
-  boolean isValidPath(Path p);
+  boolean containsPath(Path path);
 }

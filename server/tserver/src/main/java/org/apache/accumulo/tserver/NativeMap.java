@@ -44,10 +44,10 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.util.PreAllocatedArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,7 +87,10 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
     // Check LD_LIBRARY_PATH (DYLD_LIBRARY_PATH on Mac)
     if (!isLoaded()) {
-      log.error("Tried and failed to load Accumulo native library from {}", accumuloNativeLibDirs);
+      if (accumuloNativeLibDirs != null) {
+        log.error("Tried and failed to load Accumulo native library from {}",
+            accumuloNativeLibDirs);
+      }
       String ldLibraryPath = System.getProperty("java.library.path");
       try {
         System.loadLibrary("accumulo");

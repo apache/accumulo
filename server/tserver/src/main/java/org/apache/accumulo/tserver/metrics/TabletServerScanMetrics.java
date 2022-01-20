@@ -18,34 +18,52 @@
  */
 package org.apache.accumulo.tserver.metrics;
 
-import org.apache.hadoop.metrics2.lib.MetricsRegistry;
-import org.apache.hadoop.metrics2.lib.MutableStat;
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public class TabletServerScanMetrics extends TServerMetrics {
+import org.apache.accumulo.core.metrics.MetricsProducer;
 
-  private final MutableStat scans;
-  private final MutableStat resultsPerScan;
-  private final MutableStat yields;
+import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 
-  public TabletServerScanMetrics() {
-    super("Scans");
+public class TabletServerScanMetrics implements MetricsProducer {
 
-    MetricsRegistry registry = super.getRegistry();
-    scans = registry.newStat("scan", "Scans", "Ops", "Count", true);
-    resultsPerScan = registry.newStat("result", "Results per scan", "Ops", "Count", true);
-    yields = registry.newStat("yield", "Yields", "Ops", "Count", true);
-  }
+  private final AtomicInteger openFiles = new AtomicInteger(0);
+  private Timer scans;
+  private DistributionSummary resultsPerScan;
+  private DistributionSummary yields;
 
   public void addScan(long value) {
-    scans.add(value);
+    scans.record(Duration.ofMillis(value));
   }
 
   public void addResult(long value) {
-    resultsPerScan.add(value);
+    resultsPerScan.record(value);
   }
 
   public void addYield(long value) {
-    yields.add(value);
+    yields.record(value);
+  }
+
+  public void incrementOpenFiles(int delta) {
+    openFiles.addAndGet(Math.max(0, delta));
+  }
+
+  public void decrementOpenFiles(int delta) {
+    openFiles.addAndGet(delta < 0 ? delta : delta * -1);
+  }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    Gauge.builder(METRICS_SCAN_OPEN_FILES, openFiles::get)
+        .description("Number of files open for scans").register(registry);
+    scans = Timer.builder(METRICS_SCAN).description("Scans").register(registry);
+    resultsPerScan = DistributionSummary.builder(METRICS_SCAN_RESULTS)
+        .description("Results per scan").register(registry);
+    yields =
+        DistributionSummary.builder(METRICS_SCAN_YIELDS).description("yields").register(registry);
   }
 
 }

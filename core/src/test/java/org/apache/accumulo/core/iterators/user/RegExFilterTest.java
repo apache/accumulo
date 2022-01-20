@@ -34,7 +34,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -255,7 +255,7 @@ public class RegExFilterTest {
     System.arraycopy(b2, 0, ball, b1.length + 1, b2.length);
 
     Key key = new Key(ball, new byte[0], new byte[0], new byte[0], 90, false);
-    Value val = new Value(new byte[0]);
+    Value val = new Value();
     tm.put(key, val);
 
     IteratorSetting is = new IteratorSetting(5, RegExFilter.class);

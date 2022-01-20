@@ -39,13 +39,16 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class Merge {
 
@@ -96,7 +99,9 @@ public class Merge {
 
   public void start(String[] args) throws MergeException {
     Opts opts = new Opts();
-    try (TraceScope clientTrace = opts.parseArgsAndTrace(Merge.class.getName(), args)) {
+    opts.parseArgs(Merge.class.getName(), args);
+    Span span = TraceUtil.startSpan(Merge.class, "start");
+    try (Scope scope = span.makeCurrent()) {
 
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
 
@@ -106,14 +111,17 @@ public class Merge {
         }
         if (opts.goalSize == null || opts.goalSize < 1) {
           AccumuloConfiguration tableConfig =
-              new ConfigurationCopy(client.tableOperations().getProperties(opts.tableName));
+              new ConfigurationCopy(client.tableOperations().getConfiguration(opts.tableName));
           opts.goalSize = tableConfig.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
         }
 
         message("Merging tablets in table %s to %d bytes", opts.tableName, opts.goalSize);
         mergomatic(client, opts.tableName, opts.begin, opts.end, opts.goalSize, opts.force);
       } catch (Exception ex) {
+        TraceUtil.setException(span, ex, true);
         throw new MergeException(ex);
+      } finally {
+        span.end();
       }
     }
   }
@@ -216,8 +224,8 @@ public class Merge {
   protected void merge(AccumuloClient client, String table, List<Size> sizes, int numToMerge)
       throws MergeException {
     try {
-      Text start = sizes.get(0).extent.getPrevEndRow();
-      Text end = sizes.get(numToMerge - 1).extent.getEndRow();
+      Text start = sizes.get(0).extent.prevEndRow();
+      Text end = sizes.get(numToMerge - 1).extent.endRow();
       message("Merging %d tablets from (%s to %s]", numToMerge, start == null ? "-inf" : start,
           end == null ? "+inf" : end);
       client.tableOperations().merge(table, start, end);
@@ -235,9 +243,9 @@ public class Merge {
     try {
       ClientContext context = (ClientContext) client;
       tableId = Tables.getTableId(context, tablename);
-      tablets = TabletsMetadata.builder().scanMetadataTable()
-          .overRange(new KeyExtent(tableId, end, start).toMetadataRange()).fetch(FILES, PREV_ROW)
-          .build(context);
+      tablets = TabletsMetadata.builder(context).scanMetadataTable()
+          .overRange(new KeyExtent(tableId, end, start).toMetaRange()).fetch(FILES, PREV_ROW)
+          .build();
     } catch (Exception e) {
       throw new MergeException(e);
     }

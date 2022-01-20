@@ -39,7 +39,7 @@ public class AccumuloStatus {
         if (!reader.getChildren(rootPath + Constants.ZTSERVERS + "/" + child).isEmpty())
           return false;
       }
-      if (!reader.getChildren(rootPath + Constants.ZMASTER_LOCK).isEmpty())
+      if (!reader.getChildren(rootPath + Constants.ZMANAGER_LOCK).isEmpty())
         return false;
       if (!reader.getChildren(rootPath + Constants.ZMONITOR_LOCK).isEmpty())
         return false;

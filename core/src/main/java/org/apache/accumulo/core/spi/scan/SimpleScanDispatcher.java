@@ -24,13 +24,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.spi.scan.ScanDirectives.CacheUsage;
-
-import com.google.common.collect.ImmutableMap;
+import org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage;
 
 /**
  * If no options are given, then this will default to an executor named {@code default} and
@@ -61,9 +61,9 @@ public class SimpleScanDispatcher implements ScanDispatcher {
 
   private final Set<String> VALID_OPTS = Set.of("executor", "multi_executor", "single_executor");
 
-  private ScanDirectives singleDirectives;
-  private ScanDirectives multiDirectives;
-  private Map<String,Map<ScanInfo.Type,ScanDirectives>> hintDirectives;
+  private ScanDispatch singleDispatch;
+  private ScanDispatch multiDispatch;
+  private Map<String,Map<ScanInfo.Type,ScanDispatch>> hintDispatch;
 
   private static Pattern CACHE_PATTERN = Pattern.compile("cacheUsage[.](\\w+)([.](index|data))?");
 
@@ -106,60 +106,56 @@ public class SimpleScanDispatcher implements ScanDispatcher {
       }
     });
 
-    // This method pre-computes all possible scan directives objects that could ever be needed.
+    // This method pre-computes all possible scan dispatch objects that could ever be needed.
     // This is done to make the dispatch method more efficient. If the number of config permutations
     // grows, this approach may have to be abandoned. For now its tractable.
 
-    ScanDirectives baseDirectives = Optional.ofNullable(options.get("executor"))
-        .map(name -> ScanDirectives.builder().setExecutorName(name).build())
-        .orElse(DefaultScanDirectives.DEFAULT_SCAN_DIRECTIVES);
-    singleDirectives = Optional.ofNullable(options.get("single_executor"))
-        .map(name -> ScanDirectives.builder().setExecutorName(name).build()).orElse(baseDirectives);
-    multiDirectives = Optional.ofNullable(options.get("multi_executor"))
-        .map(name -> ScanDirectives.builder().setExecutorName(name).build()).orElse(baseDirectives);
+    ScanDispatch baseDispatch = Optional.ofNullable(options.get("executor"))
+        .map(name -> ScanDispatch.builder().setExecutorName(name).build())
+        .orElse(DefaultScanDispatch.DEFAULT_SCAN_DISPATCH);
+    singleDispatch = Optional.ofNullable(options.get("single_executor"))
+        .map(name -> ScanDispatch.builder().setExecutorName(name).build()).orElse(baseDispatch);
+    multiDispatch = Optional.ofNullable(options.get("multi_executor"))
+        .map(name -> ScanDispatch.builder().setExecutorName(name).build()).orElse(baseDispatch);
 
-    var stpb = ImmutableMap.<String,Map<ScanInfo.Type,ScanDirectives>>builder();
-
-    for (String hintScanType : hintScanTypes) {
-      EnumMap<ScanInfo.Type,ScanDirectives> precomupted = new EnumMap<>(ScanInfo.Type.class);
-
-      precomupted.put(ScanInfo.Type.SINGLE, ScanDirectives.builder()
-          .setExecutorName(
-              scanExecutors.getOrDefault(hintScanType, singleDirectives.getExecutorName()))
-          .setIndexCacheUsage(indexCacheUsage.getOrDefault(hintScanType, CacheUsage.TABLE))
-          .setDataCacheUsage(dataCacheUsage.getOrDefault(hintScanType, CacheUsage.TABLE)).build());
-
-      precomupted.put(ScanInfo.Type.MULTI, ScanDirectives.builder()
-          .setExecutorName(
-              scanExecutors.getOrDefault(hintScanType, multiDirectives.getExecutorName()))
-          .setIndexCacheUsage(indexCacheUsage.getOrDefault(hintScanType, CacheUsage.TABLE))
-          .setDataCacheUsage(dataCacheUsage.getOrDefault(hintScanType, CacheUsage.TABLE)).build());
-
-      stpb.put(hintScanType, precomupted);
-    }
-
-    hintDirectives = stpb.build();
+    hintDispatch = hintScanTypes.stream()
+        .collect(Collectors.toUnmodifiableMap(Function.identity(), hintScanType -> {
+          EnumMap<ScanInfo.Type,ScanDispatch> precomupted = new EnumMap<>(ScanInfo.Type.class);
+          CacheUsage iCacheUsage = indexCacheUsage.getOrDefault(hintScanType, CacheUsage.TABLE);
+          CacheUsage dCacheUsage = dataCacheUsage.getOrDefault(hintScanType, CacheUsage.TABLE);
+          precomupted.put(ScanInfo.Type.SINGLE,
+              ScanDispatch.builder()
+                  .setExecutorName(
+                      scanExecutors.getOrDefault(hintScanType, singleDispatch.getExecutorName()))
+                  .setIndexCacheUsage(iCacheUsage).setDataCacheUsage(dCacheUsage).build());
+          precomupted.put(ScanInfo.Type.MULTI,
+              ScanDispatch.builder()
+                  .setExecutorName(
+                      scanExecutors.getOrDefault(hintScanType, multiDispatch.getExecutorName()))
+                  .setIndexCacheUsage(iCacheUsage).setDataCacheUsage(dCacheUsage).build());
+          return precomupted;
+        }));
   }
 
   @Override
-  public ScanDirectives dispatch(DispatchParameters params) {
+  public ScanDispatch dispatch(DispatchParameters params) {
     ScanInfo scanInfo = params.getScanInfo();
 
-    if (!hintDirectives.isEmpty()) {
+    if (!hintDispatch.isEmpty()) {
       String hintScanType = scanInfo.getExecutionHints().get("scan_type");
       if (hintScanType != null) {
-        var precomputedDirectives = hintDirectives.get(hintScanType);
-        if (precomputedDirectives != null) {
-          return precomputedDirectives.get(scanInfo.getScanType());
+        var precomputedDispatch = hintDispatch.get(hintScanType);
+        if (precomputedDispatch != null) {
+          return precomputedDispatch.get(scanInfo.getScanType());
         }
       }
     }
 
     switch (scanInfo.getScanType()) {
       case MULTI:
-        return multiDirectives;
+        return multiDispatch;
       case SINGLE:
-        return singleDirectives;
+        return singleDispatch;
       default:
         throw new IllegalArgumentException("Unexpected scan type " + scanInfo.getScanType());
     }

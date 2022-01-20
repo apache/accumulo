@@ -19,7 +19,7 @@
 package org.apache.accumulo.server.tables;
 
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 
 public interface TableObserver {
   void initialize();

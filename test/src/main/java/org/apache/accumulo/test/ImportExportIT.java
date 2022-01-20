@@ -26,7 +26,6 @@ import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -42,7 +41,9 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -65,8 +66,6 @@ import org.slf4j.LoggerFactory;
 public class ImportExportIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ImportExportIT.class);
-
-  private SecureRandom r = new SecureRandom();
 
   @Override
   protected int defaultTimeoutSeconds() {
@@ -96,9 +95,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
       // Make a directory we can use to throw the export and import directories
       // Must exist on the filesystem the cluster is running.
       FileSystem fs = cluster.getFileSystem();
-      Path tmp = cluster.getTemporaryPath();
       log.info("Using FileSystem: " + fs);
-      Path baseDir = new Path(fs.getUri().toString() + tmp, getClass().getName());
+      Path baseDir = new Path(cluster.getTemporaryPath(), getClass().getName());
       fs.deleteOnExit(baseDir);
       if (fs.exists(baseDir)) {
         log.info("{} exists on filesystem, deleting", baseDir);
@@ -141,7 +139,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       while ((line = reader.readLine()) != null) {
         Path p = new Path(line.substring(5));
         assertTrue("File doesn't exist: " + p, fs.exists(p));
-        Path importDir = importDirAry[r.nextInt(importDirAry.length)];
+        Path importDir = importDirAry[random.nextInt(importDirAry.length)];
         Path dest = new Path(importDir, p.getName());
         assertFalse("Did not expect " + dest + " to exist", fs.exists(dest));
         FileUtil.copy(fs, p, fs, dest, false, fs.getConf());
@@ -163,22 +161,21 @@ public class ImportExportIT extends AccumuloClusterHarness {
       log.info("Imported into table with ID: {}", tableId);
 
       try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        s.setRange(MetadataSchema.TabletsSection.getRange(TableId.of(tableId)));
-        s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-        MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
+        s.setRange(TabletsSection.getRange(TableId.of(tableId)));
+        s.fetchColumnFamily(DataFileColumnFamily.NAME);
+        ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
 
         // Should find a single entry
         for (Entry<Key,Value> fileEntry : s) {
           Key k = fileEntry.getKey();
           String value = fileEntry.getValue().toString();
-          if (k.getColumnFamily().equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
+          if (k.getColumnFamily().equals(DataFileColumnFamily.NAME)) {
             // The file should be an absolute URI (file:///...), not a relative path
             // (/b-000.../I000001.rf)
             String fileUri = k.getColumnQualifier().toString();
             assertFalse("Imported files should have absolute URIs, not relative: " + fileUri,
                 looksLikeRelativePath(fileUri));
-          } else if (k.getColumnFamily()
-              .equals(MetadataSchema.TabletsSection.ServerColumnFamily.NAME)) {
+          } else if (k.getColumnFamily().equals(ServerColumnFamily.NAME)) {
             assertFalse("Server directory should have absolute URI, not relative: " + value,
                 looksLikeRelativePath(value));
           } else {

@@ -36,13 +36,13 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -60,7 +60,7 @@ public class UnusedWALIT extends ConfigurableMacBase {
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     final long logSize = 1024 * 1024 * 10;
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
-    cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, Long.toString(logSize));
+    cfg.setProperty(Property.TSERV_WAL_MAX_SIZE, Long.toString(logSize));
     cfg.setNumTservers(1);
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());

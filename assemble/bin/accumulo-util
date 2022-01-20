@@ -25,7 +25,7 @@ Usage: accumulo-util <command> (<argument> ...)
 Commands:
   build-native        Builds Accumulo native libraries
   dump-zoo            Dumps data in ZooKeeper
-  gen-monitor-cert    Generates Accumulo monitor certficate
+  gen-monitor-cert    Generates Accumulo monitor certificate
   load-jars-hdfs      Loads Accumulo jars in lib/ to HDFS for VFS classloader
   
 EOF
@@ -54,7 +54,7 @@ function build_native() {
   mkdir -p "${final_native_target}" || exit 1
 
   # Make a directory for us to unpack the native source into
-  TMP_DIR=$(mktemp -d /tmp/accumulo-native.XXXX) || exit 1
+  TMP_DIR=$(mktemp -d /tmp/accumulo-native.XXXXXX) || exit 1
 
   # Unpack the tarball to our temp directory
   if ! tar xf "${native_tarballs[0]}" -C "${TMP_DIR}"

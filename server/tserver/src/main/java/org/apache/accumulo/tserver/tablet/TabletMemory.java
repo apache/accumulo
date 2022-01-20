@@ -45,7 +45,7 @@ class TabletMemory implements Closeable {
     this.tablet = tablet;
     this.context = tablet.getContext();
     memTable =
-        new InMemoryMap(tablet.getTableConfiguration(), context, tablet.getExtent().getTableId());
+        new InMemoryMap(tablet.getTableConfiguration(), context, tablet.getExtent().tableId());
     commitSession = new CommitSession(tablet, nextSeq, memTable);
     nextSeq += 2;
   }
@@ -72,7 +72,7 @@ class TabletMemory implements Closeable {
 
     otherMemTable = memTable;
     memTable =
-        new InMemoryMap(tablet.getTableConfiguration(), context, tablet.getExtent().getTableId());
+        new InMemoryMap(tablet.getTableConfiguration(), context, tablet.getExtent().tableId());
 
     CommitSession oldCommitSession = commitSession;
     commitSession = new CommitSession(tablet, nextSeq, memTable);

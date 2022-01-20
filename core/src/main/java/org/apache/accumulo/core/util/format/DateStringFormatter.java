@@ -42,7 +42,7 @@ import org.apache.accumulo.core.data.Value;
  *
  * @deprecated since 1.8.0
  */
-@Deprecated
+@Deprecated(since = "1.8.0")
 public class DateStringFormatter implements Formatter {
 
   private DefaultFormatter defaultFormatter;

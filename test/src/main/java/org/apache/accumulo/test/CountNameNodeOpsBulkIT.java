@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
@@ -43,7 +44,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -76,7 +77,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
     String uri = getCluster().getMiniDfs().getHttpUri(0);
     URL url = new URL(uri + "/jmx");
     log.debug("Fetching web page " + url);
-    String jsonString = FunctionalTestUtils.readAll(url.openStream());
+    String jsonString = FunctionalTestUtils.readWebPage(url).body();
     Gson gson = new Gson();
     Map<?,?> jsonObject = gson.fromJson(jsonString, Map.class);
     List<?> beans = (List<?>) jsonObject.get("beans");
@@ -97,19 +98,22 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
   public void compareOldNewBulkImportTest() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       getCluster().getClusterControl().kill(ServerType.GARBAGE_COLLECTOR, "localhost");
+
       final String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
-      // turn off compactions
-      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "2000");
-      c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "2000");
+      // disable compactions
+      Map<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_MAJC_RATIO.getKey(), "2000");
+      props.put(Property.TABLE_FILE_MAX.getKey(), "2000");
       // splits to slow down bulk import
       SortedSet<Text> splits = new TreeSet<>();
       for (int i = 1; i < 0xf; i++) {
         splits.add(new Text(Integer.toHexString(i)));
       }
-      c.tableOperations().addSplits(tableName, splits);
 
-      MasterMonitorInfo stats = getCluster().getMasterMonitorInfo();
+      var ntc = new NewTableConfiguration().setProperties(props).withSplits(splits);
+      c.tableOperations().create(tableName, ntc);
+
+      ManagerMonitorInfo stats = getCluster().getManagerMonitorInfo();
       assertEquals(1, stats.tServerInfo.size());
 
       log.info("Creating lots of bulk import files");
@@ -134,7 +138,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
                 .withTableConfiguration(DefaultConfiguration.getInstance()).build();
             writer.startDefaultLocalityGroup();
             for (int j = 0x100; j < 0xfff; j += 3) {
-              writer.append(new Key(Integer.toHexString(j)), new Value(new byte[0]));
+              writer.append(new Key(Integer.toHexString(j)), new Value());
             }
             writer.close();
           }

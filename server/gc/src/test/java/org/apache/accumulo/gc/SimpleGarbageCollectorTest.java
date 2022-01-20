@@ -18,11 +18,9 @@
  */
 package org.apache.accumulo.gc;
 
-import static org.apache.accumulo.gc.SimpleGarbageCollector.CANDIDATE_MEMORY_PERCENTAGE;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.getCurrentArguments;
 import static org.easymock.EasyMock.partialMockBuilder;
 import static org.easymock.EasyMock.replay;
@@ -135,29 +133,6 @@ public class SimpleGarbageCollectorTest {
   }
 
   @Test
-  public void testAlmostOutOfMemory_Pass() {
-    testAlmostOutOfMemory(1.0f - (CANDIDATE_MEMORY_PERCENTAGE - 0.05f), false);
-  }
-
-  @Test
-  public void testAlmostOutOfMemory_Fail() {
-    testAlmostOutOfMemory(1.0f - (CANDIDATE_MEMORY_PERCENTAGE + 0.05f), true);
-  }
-
-  private void testAlmostOutOfMemory(float freeFactor, boolean expected) {
-    Runtime runtime = createMock(Runtime.class);
-    expect(runtime.totalMemory()).andReturn(1000L);
-    expectLastCall().anyTimes();
-    expect(runtime.maxMemory()).andReturn(1000L);
-    expectLastCall().anyTimes();
-    expect(runtime.freeMemory()).andReturn((long) (freeFactor * 1000.0f));
-    expectLastCall().anyTimes();
-    replay(runtime);
-
-    assertEquals(expected, SimpleGarbageCollector.almostOutOfMemory(runtime));
-  }
-
-  @Test
   public void testIsDir() {
     assertTrue(SimpleGarbageCollector.isDir("tid1/dir1"));
     assertTrue(SimpleGarbageCollector.isDir("/dir1"));
@@ -170,12 +145,12 @@ public class SimpleGarbageCollectorTest {
   @Test
   public void testMinimizeDeletes() {
     Volume vol1 = createMock(Volume.class);
-    expect(vol1.isValidPath(anyObject()))
+    expect(vol1.containsPath(anyObject()))
         .andAnswer(() -> getCurrentArguments()[0].toString().startsWith("hdfs://nn1/accumulo"))
         .anyTimes();
 
     Volume vol2 = createMock(Volume.class);
-    expect(vol2.isValidPath(anyObject()))
+    expect(vol2.containsPath(anyObject()))
         .andAnswer(() -> getCurrentArguments()[0].toString().startsWith("hdfs://nn2/accumulo"))
         .anyTimes();
 

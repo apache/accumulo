@@ -20,8 +20,11 @@ package org.apache.accumulo.fate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.Formatter;
 import java.util.HashMap;
@@ -31,7 +34,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.fate.zookeeper.FateLock;
+import org.apache.accumulo.fate.zookeeper.FateLock.FateLockPath;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -63,7 +69,6 @@ public class AdminUtil<T> {
    *          <code>System.exit(1)</code> on error if true
    */
   public AdminUtil(boolean exitOnError) {
-    super();
     this.exitOnError = exitOnError;
   }
 
@@ -78,9 +83,10 @@ public class AdminUtil<T> {
     private final List<String> hlocks;
     private final List<String> wlocks;
     private final String top;
+    private final long timeCreated;
 
     private TransactionStatus(Long tid, TStatus status, String debug, List<String> hlocks,
-        List<String> wlocks, String top) {
+        List<String> wlocks, String top, Long timeCreated) {
 
       this.txid = tid;
       this.status = status;
@@ -88,6 +94,7 @@ public class AdminUtil<T> {
       this.hlocks = Collections.unmodifiableList(hlocks);
       this.wlocks = Collections.unmodifiableList(wlocks);
       this.top = top;
+      this.timeCreated = timeCreated;
 
     }
 
@@ -129,6 +136,21 @@ public class AdminUtil<T> {
      */
     public String getTop() {
       return top;
+    }
+
+    /**
+     * @return The timestamp of when the operation was created in ISO format with UTC timezone.
+     */
+    public String getTimeCreatedFormatted() {
+      return timeCreated > 0 ? new Date(timeCreated).toInstant().atZone(ZoneOffset.UTC)
+          .format(DateTimeFormatter.ISO_DATE_TIME) : "ERROR";
+    }
+
+    /**
+     * @return The unformatted form of the timestamp.
+     */
+    public long getTimeCreated() {
+      return timeCreated;
     }
   }
 
@@ -274,16 +296,16 @@ public class AdminUtil<T> {
 
       try {
 
-        List<String> lockNodes = zk.getChildren(lockPath + "/" + id);
-        lockNodes = new ArrayList<>(lockNodes);
-        Collections.sort(lockNodes);
+        FateLockPath fLockPath = FateLock.path(lockPath + "/" + id);
+        List<String> lockNodes =
+            FateLock.validateAndSort(fLockPath, zk.getChildren(fLockPath.toString()));
 
         int pos = 0;
         boolean sawWriteLock = false;
 
         for (String node : lockNodes) {
           try {
-            byte[] data = zk.getData(lockPath + "/" + id + "/" + node, null);
+            byte[] data = zk.getData(lockPath + "/" + id + "/" + node);
             String[] lda = new String(data, UTF_8).split(":");
 
             if (lda[0].charAt(0) == 'W')
@@ -293,12 +315,10 @@ public class AdminUtil<T> {
 
             if (pos == 0) {
               locks = heldLocks;
+            } else if (lda[0].charAt(0) == 'R' && !sawWriteLock) {
+              locks = heldLocks;
             } else {
-              if (lda[0].charAt(0) == 'R' && !sawWriteLock) {
-                locks = heldLocks;
-              } else {
-                locks = waitingLocks;
-              }
+              locks = waitingLocks;
             }
 
             locks.computeIfAbsent(Long.parseLong(lda[1], 16), k -> new ArrayList<>())
@@ -373,13 +393,15 @@ public class AdminUtil<T> {
 
       TStatus status = zs.getStatus(tid);
 
+      long timeCreated = zs.timeCreated(tid);
+
       zs.unreserve(tid, 0);
 
       if ((filterTxid != null && !filterTxid.contains(tid))
           || (filterStatus != null && !filterStatus.contains(status)))
         continue;
 
-      statuses.add(new TransactionStatus(tid, status, debug, hlocks, wlocks, top));
+      statuses.add(new TransactionStatus(tid, status, debug, hlocks, wlocks, top, timeCreated));
     }
 
     return new FateStatus(statuses, heldLocks, waitingLocks);
@@ -398,9 +420,10 @@ public class AdminUtil<T> {
     FateStatus fateStatus = getStatus(zs, zk, lockPath, filterTxid, filterStatus);
 
     for (TransactionStatus txStatus : fateStatus.getTransactions()) {
-      fmt.format("txid: %s  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %s%n",
+      fmt.format(
+          "txid: %s  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %-15s created: %s%n",
           txStatus.getTxid(), txStatus.getStatus(), txStatus.getDebug(), txStatus.getHeldLocks(),
-          txStatus.getWaitingLocks(), txStatus.getTop());
+          txStatus.getWaitingLocks(), txStatus.getTop(), txStatus.getTimeCreatedFormatted());
     }
     fmt.format(" %s transactions", fateStatus.getTransactions().size());
 
@@ -415,7 +438,8 @@ public class AdminUtil<T> {
     }
   }
 
-  public boolean prepDelete(TStore<T> zs, ZooReaderWriter zk, String path, String txidStr) {
+  public boolean prepDelete(TStore<T> zs, ZooReaderWriter zk, ServiceLockPath path,
+      String txidStr) {
     if (!checkGlobalLock(zk, path)) {
       return false;
     }
@@ -450,7 +474,7 @@ public class AdminUtil<T> {
     return state;
   }
 
-  public boolean prepFail(TStore<T> zs, ZooReaderWriter zk, String path, String txidStr) {
+  public boolean prepFail(TStore<T> zs, ZooReaderWriter zk, ServiceLockPath path, String txidStr) {
     if (!checkGlobalLock(zk, path)) {
       return false;
     }
@@ -501,7 +525,7 @@ public class AdminUtil<T> {
       List<String> lockNodes = zk.getChildren(path + "/" + id);
       for (String node : lockNodes) {
         String lockPath = path + "/" + id + "/" + node;
-        byte[] data = zk.getData(path + "/" + id + "/" + node, null);
+        byte[] data = zk.getData(path + "/" + id + "/" + node);
         String[] lda = new String(data, UTF_8).split(":");
         if (lda[1].equals(txidStr))
           zk.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
@@ -512,23 +536,23 @@ public class AdminUtil<T> {
   @SuppressFBWarnings(value = "DM_EXIT",
       justification = "TODO - should probably avoid System.exit here; "
           + "this code is used by the fate admin shell command")
-  public boolean checkGlobalLock(ZooReaderWriter zk, String path) {
+  public boolean checkGlobalLock(ZooReaderWriter zk, ServiceLockPath path) {
     try {
-      if (ZooLock.getLockData(zk.getZooKeeper(), path) != null) {
-        System.err.println("ERROR: Master lock is held, not running");
+      if (ServiceLock.getLockData(zk.getZooKeeper(), path) != null) {
+        System.err.println("ERROR: Manager lock is held, not running");
         if (this.exitOnError)
           System.exit(1);
         else
           return false;
       }
     } catch (KeeperException e) {
-      System.err.println("ERROR: Could not read master lock, not running " + e.getMessage());
+      System.err.println("ERROR: Could not read manager lock, not running " + e.getMessage());
       if (this.exitOnError)
         System.exit(1);
       else
         return false;
     } catch (InterruptedException e) {
-      System.err.println("ERROR: Could not read master lock, not running" + e.getMessage());
+      System.err.println("ERROR: Could not read manager lock, not running" + e.getMessage());
       if (this.exitOnError)
         System.exit(1);
       else

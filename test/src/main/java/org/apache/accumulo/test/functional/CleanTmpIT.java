@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -90,7 +90,7 @@ public class CleanTmpIT extends ConfigurableMacBase {
       Path file;
       try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         s.setRange(Range.prefix(id));
-        s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+        s.fetchColumnFamily(DataFileColumnFamily.NAME);
         Entry<Key,Value> entry = Iterables.getOnlyElement(s);
         file = new Path(entry.getKey().getColumnQualifier().toString());
       }

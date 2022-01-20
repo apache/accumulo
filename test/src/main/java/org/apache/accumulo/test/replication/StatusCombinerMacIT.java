@@ -22,7 +22,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -39,7 +38,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
@@ -56,6 +55,7 @@ import org.junit.Test;
 import com.google.common.collect.Iterables;
 
 @Ignore("Replication ITs are not stable and not currently maintained")
+@Deprecated
 public class StatusCombinerMacIT extends SharedMiniClusterBase {
 
   @Override
@@ -86,17 +86,14 @@ public class StatusCombinerMacIT extends SharedMiniClusterBase {
       assertTrue(scopes.contains(IteratorScope.minc));
       assertTrue(scopes.contains(IteratorScope.majc));
 
-      Iterable<Entry<String,String>> propIter = tops.getProperties(MetadataTable.NAME);
-      HashMap<String,String> properties = new HashMap<>();
-      for (Entry<String,String> entry : propIter) {
-        properties.put(entry.getKey(), entry.getValue());
-      }
+      Map<String,String> config = tops.getConfiguration(MetadataTable.NAME);
+      Map<String,String> properties = Map.copyOf(config);
 
       for (IteratorScope scope : scopes) {
         String key = Property.TABLE_ITERATOR_PREFIX.getKey() + scope.name() + "."
             + ReplicationTableUtil.COMBINER_NAME + ".opt.columns";
         assertTrue("Properties did not contain key : " + key, properties.containsKey(key));
-        assertEquals(MetadataSchema.ReplicationSection.COLF.toString(), properties.get(key));
+        assertEquals(ReplicationSection.COLF.toString(), properties.get(key));
       }
     }
   }

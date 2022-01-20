@@ -22,9 +22,6 @@ import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.TableId;
 
 public class MetadataTable {
-
-  public static final String OLD_NAME = "!METADATA";
-
   public static final TableId ID = TableId.of("!0");
   public static final String NAME = Namespace.ACCUMULO.name() + ".metadata";
 }

@@ -21,6 +21,8 @@ package org.apache.accumulo.core.client;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.TableId;
 
@@ -36,7 +38,17 @@ public interface PluginEnvironment {
   /**
    * @since 2.1.0
    */
-  public interface Configuration extends Iterable<Entry<String,String>> {
+  interface Configuration extends Iterable<Entry<String,String>> {
+
+    /**
+     * Properties with a default value will always return something when calling
+     * {@link #get(String)}, even if a user never set the property. The method allows checking if a
+     * user set a property.
+     *
+     * @return true if a user set this property and false if a user did not set it.
+     * @since 2.1.0
+     */
+    boolean isSet(String key);
 
     /**
      * @return The value for a single property or null if not present. Sensitive properties are
@@ -44,6 +56,16 @@ public interface PluginEnvironment {
      *         plugin needs sensitive properties a getSensitive method could be added.
      */
     String get(String key);
+
+    /**
+     * Returns all properties with a given prefix
+     *
+     * @param prefix
+     *          prefix of properties to be returned. Include the trailing '.' in the prefix.
+     * @return all properties with a given prefix
+     * @since 2.1.0
+     */
+    Map<String,String> getWithPrefix(String prefix);
 
     /**
      * Users can set arbitrary custom properties in Accumulo using the prefix
@@ -102,6 +124,14 @@ public interface PluginEnvironment {
      */
     @Override
     Iterator<Entry<String,String>> iterator();
+
+    /**
+     * Returns a derived value from this Configuration. The returned value supplier is thread-safe
+     * and attempts to avoid re-computation of the response. The intended use for a derived value is
+     * to ensure that configuration changes that may be made in Zookeeper, for example, are always
+     * reflected in the returned value.
+     */
+    <T> Supplier<T> getDerived(Function<Configuration,T> computeDerivedValue);
   }
 
   /**

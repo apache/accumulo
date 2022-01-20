@@ -75,7 +75,7 @@ public class BlockIndexTest {
     for (int i = 0; i < num; i++) {
       Key key = new Key(RFileTest.formatString("", i), "cf1", "cq1");
       new RelativeKey(prevKey, key).write(out);
-      new Value(new byte[0]).write(out);
+      new Value().write(out);
       prevKey = key;
     }
 
@@ -133,21 +133,21 @@ public class BlockIndexTest {
     for (int i = 0; i < num; i++) {
       Key key = new Key(RFileTest.formatString("", 1), "cf1", "cq1");
       new RelativeKey(prevKey, key).write(out);
-      new Value(new byte[0]).write(out);
+      new Value().write(out);
       prevKey = key;
     }
 
     for (int i = 0; i < num; i++) {
       Key key = new Key(RFileTest.formatString("", 3), "cf1", "cq1");
       new RelativeKey(prevKey, key).write(out);
-      new Value(new byte[0]).write(out);
+      new Value().write(out);
       prevKey = key;
     }
 
     for (int i = 0; i < num; i++) {
       Key key = new Key(RFileTest.formatString("", 5), "cf1", "cq1");
       new RelativeKey(prevKey, key).write(out);
-      new Value(new byte[0]).write(out);
+      new Value().write(out);
       prevKey = key;
     }
 

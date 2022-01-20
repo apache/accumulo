@@ -65,7 +65,7 @@ public class BlockedInputStream extends InputStream {
       readPos = 0;
     else if (readPos > array.length)
       throw new RuntimeException(
-          "Unexpected state, this should only ever increase or cycle on the boundry!");
+          "Unexpected state, this should only ever increase or cycle on the boundary!");
     return toRet;
   }
 

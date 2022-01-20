@@ -18,23 +18,20 @@
  */
 package org.apache.accumulo.server.fs;
 
-import java.security.SecureRandom;
-import java.util.Random;
-import java.util.Set;
+import org.slf4j.LoggerFactory;
 
-public class RandomVolumeChooser implements VolumeChooser {
-  protected final Random random = new SecureRandom();
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-  @Override
-  public String choose(VolumeChooserEnvironment env, Set<String> options)
-      throws VolumeChooserException {
-    String[] optionsArray = options.toArray(new String[0]);
-    return optionsArray[random.nextInt(optionsArray.length)];
-  }
-
-  @Override
-  public Set<String> choosable(VolumeChooserEnvironment env, Set<String> options)
-      throws VolumeChooserException {
-    return options;
+@Deprecated(since = "2.1.0")
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
+    justification = "Same name used for compatibility during deprecation cycle")
+public class RandomVolumeChooser extends org.apache.accumulo.core.spi.fs.RandomVolumeChooser
+    implements VolumeChooser {
+  public RandomVolumeChooser() {
+    super();
+    LoggerFactory.getLogger(RandomVolumeChooser.class).warn(
+        "The class {} is deprecated.  Please configure {} instead.",
+        RandomVolumeChooser.class.getName(),
+        org.apache.accumulo.core.spi.fs.RandomVolumeChooser.class.getName());
   }
 }

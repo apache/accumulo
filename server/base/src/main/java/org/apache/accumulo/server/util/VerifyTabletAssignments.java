@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -54,15 +53,18 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.TraceScope;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class VerifyTabletAssignments {
   private static final Logger log = LoggerFactory.getLogger(VerifyTabletAssignments.class);
@@ -75,11 +77,14 @@ public class VerifyTabletAssignments {
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    try (TraceScope clientSpan =
-        opts.parseArgsAndTrace(VerifyTabletAssignments.class.getName(), args)) {
+    opts.parseArgs(VerifyTabletAssignments.class.getName(), args);
+    Span span = TraceUtil.startSpan(VerifyTabletAssignments.class, "main");
+    try (Scope scope = span.makeCurrent()) {
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
         for (String table : client.tableOperations().list())
           checkTable((ClientContext) client, opts, table, null);
+      } finally {
+        span.end();
       }
     }
   }
@@ -120,20 +125,15 @@ public class VerifyTabletAssignments {
       }
     }
 
-    ExecutorService tp = Executors.newFixedThreadPool(20);
+    ExecutorService tp = ThreadPools.createFixedThreadPool(20, "CheckTabletServer");
     for (final Entry<HostAndPort,List<KeyExtent>> entry : extentsPerServer.entrySet()) {
-      Runnable r = new Runnable() {
-
-        @Override
-        public void run() {
-          try {
-            checkTabletServer(context, entry, failures);
-          } catch (Exception e) {
-            log.error("Failure on tablet server '" + entry.getKey() + ".", e);
-            failures.addAll(entry.getValue());
-          }
+      Runnable r = () -> {
+        try {
+          checkTabletServer(context, entry, failures);
+        } catch (Exception e) {
+          log.error("Failure on tablet server '" + entry.getKey() + ".", e);
+          failures.addAll(entry.getValue());
         }
-
       };
 
       tp.execute(r);
@@ -150,7 +150,7 @@ public class VerifyTabletAssignments {
   private static void checkFailures(HostAndPort server, HashSet<KeyExtent> failures,
       MultiScanResult scanResult) {
     for (TKeyExtent tke : scanResult.failures.keySet()) {
-      KeyExtent ke = new KeyExtent(tke);
+      KeyExtent ke = KeyExtent.fromThrift(tke);
       System.out.println(" Tablet " + ke + " failed at " + server);
       failures.add(ke);
     }
@@ -164,11 +164,11 @@ public class VerifyTabletAssignments {
     Map<TKeyExtent,List<TRange>> batch = new TreeMap<>();
 
     for (KeyExtent keyExtent : entry.getValue()) {
-      Text row = keyExtent.getEndRow();
+      Text row = keyExtent.endRow();
       Text row2 = null;
 
       if (row == null) {
-        row = keyExtent.getPrevEndRow();
+        row = keyExtent.prevEndRow();
 
         if (row != null) {
           row = new Text(row);
@@ -208,6 +208,6 @@ public class VerifyTabletAssignments {
 
     client.closeMultiScan(tinfo, is.scanID);
 
-    ThriftUtil.returnClient((TServiceClient) client);
+    ThriftUtil.returnClient((TServiceClient) client, context);
   }
 }

@@ -37,9 +37,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MiniAccumuloConfigImplTest {
 
-  @SuppressWarnings("deprecation")
-  private static final Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
-
   @Rule
   public TemporaryFolder tempFolder =
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
@@ -71,10 +68,10 @@ public class MiniAccumuloConfigImplTest {
 
     // constructor site config overrides default props
     Map<String,String> siteConfig = new HashMap<>();
-    siteConfig.put(INSTANCE_DFS_URI.getKey(), "hdfs://");
+    siteConfig.put(Property.INSTANCE_VOLUMES.getKey(), "hdfs://");
     MiniAccumuloConfigImpl config = new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password")
         .setSiteConfig(siteConfig).initialize();
-    assertEquals("hdfs://", config.getSiteConfig().get(INSTANCE_DFS_URI.getKey()));
+    assertEquals("hdfs://", config.getSiteConfig().get(Property.INSTANCE_VOLUMES.getKey()));
   }
 
   @Test
@@ -83,11 +80,11 @@ public class MiniAccumuloConfigImplTest {
     MiniAccumuloConfigImpl config =
         new MiniAccumuloConfigImpl(tempFolder.getRoot(), "password").initialize();
     config.setDefaultMemory(96, MemoryUnit.MEGABYTE);
-    assertEquals(96 * 1024 * 1024L, config.getMemory(ServerType.MASTER));
+    assertEquals(96 * 1024 * 1024L, config.getMemory(ServerType.MANAGER));
     assertEquals(96 * 1024 * 1024L, config.getMemory(ServerType.TABLET_SERVER));
     assertEquals(96 * 1024 * 1024L, config.getDefaultMemory());
-    config.setMemory(ServerType.MASTER, 256, MemoryUnit.MEGABYTE);
-    assertEquals(256 * 1024 * 1024L, config.getMemory(ServerType.MASTER));
+    config.setMemory(ServerType.MANAGER, 256, MemoryUnit.MEGABYTE);
+    assertEquals(256 * 1024 * 1024L, config.getMemory(ServerType.MANAGER));
     assertEquals(96 * 1024 * 1024L, config.getDefaultMemory());
     assertEquals(96 * 1024 * 1024L, config.getMemory(ServerType.TABLET_SERVER));
   }

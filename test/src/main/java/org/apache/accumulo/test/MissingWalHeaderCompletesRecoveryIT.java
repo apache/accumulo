@@ -26,6 +26,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.util.UUID;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -35,13 +36,12 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.hadoop.conf.Configuration;
@@ -72,7 +72,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration conf) {
     cfg.setNumTservers(1);
-    cfg.setProperty(Property.MASTER_RECOVERY_DELAY, "1s");
+    cfg.setProperty(Property.MANAGER_RECOVERY_DELAY, "1s");
     // Make sure the GC doesn't delete the file before the metadata reference is added
     cfg.setProperty(Property.GC_CYCLE_START, "999999s");
     conf.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -120,7 +120,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Fake out something that looks like host:port, it's irrelevant
       String fakeServer = "127.0.0.1:12345";
 
-      File walogs = new File(cluster.getConfig().getAccumuloDir(), ServerConstants.WAL_DIR);
+      File walogs = new File(cluster.getConfig().getAccumuloDir(), Constants.WAL_DIR);
       File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
       File emptyWalog = new File(walogServerDir, UUID.randomUUID().toString());
 
@@ -138,15 +138,15 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull("Table ID was null", tableId);
 
-      LogEntry logEntry = new LogEntry(new KeyExtent(tableId, null, null), 0, "127.0.0.1:12345",
-          emptyWalog.toURI().toString());
+      LogEntry logEntry =
+          new LogEntry(new KeyExtent(tableId, null, null), 0, emptyWalog.toURI().toString());
 
       log.info("Taking {} offline", tableName);
       client.tableOperations().offline(tableName, true);
 
       log.info("{} is offline", tableName);
 
-      Text row = MetadataSchema.TabletsSection.getRow(tableId, null);
+      Text row = TabletsSection.encodeRow(tableId, null);
       Mutation m = new Mutation(row);
       m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
 
@@ -176,7 +176,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Fake out something that looks like host:port, it's irrelevant
       String fakeServer = "127.0.0.1:12345";
 
-      File walogs = new File(cluster.getConfig().getAccumuloDir(), ServerConstants.WAL_DIR);
+      File walogs = new File(cluster.getConfig().getAccumuloDir(), Constants.WAL_DIR);
       File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
       File partialHeaderWalog = new File(walogServerDir, UUID.randomUUID().toString());
 
@@ -198,15 +198,14 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull("Table ID was null", tableId);
 
-      LogEntry logEntry =
-          new LogEntry(null, 0, "127.0.0.1:12345", partialHeaderWalog.toURI().toString());
+      LogEntry logEntry = new LogEntry(null, 0, partialHeaderWalog.toURI().toString());
 
       log.info("Taking {} offline", tableName);
       client.tableOperations().offline(tableName, true);
 
       log.info("{} is offline", tableName);
 
-      Text row = MetadataSchema.TabletsSection.getRow(tableId, null);
+      Text row = TabletsSection.encodeRow(tableId, null);
       Mutation m = new Mutation(row);
       m.put(logEntry.getColumnFamily(), logEntry.getColumnQualifier(), logEntry.getValue());
 

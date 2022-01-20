@@ -31,7 +31,6 @@ import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -91,6 +90,28 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     client.close();
 
     expectClosed(c::tableOperations);
+  }
+
+  @SuppressWarnings("deprecation")
+  @Test
+  public void testGetAccumuloClientFromConnector() throws Exception {
+    try (AccumuloClient client1 = Accumulo.newClient().from(getClientProps()).build()) {
+      org.apache.accumulo.core.client.Connector c =
+          org.apache.accumulo.core.client.Connector.from(client1);
+
+      String tableName = getUniqueNames(1)[0];
+
+      c.tableOperations().create(tableName);
+
+      try (AccumuloClient client2 = org.apache.accumulo.core.client.Connector.newClient(c)) {
+        assertTrue(client2.tableOperations().list().contains(tableName));
+      }
+
+      // closing client2 should not have had an impact on the connector or client1
+
+      assertTrue(client1.tableOperations().list().contains(tableName));
+      assertTrue(c.tableOperations().list().contains(tableName));
+    }
   }
 
   @Test
@@ -207,7 +228,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     assertEquals(0, SingletonManager.getReservationCount());
 
     expectClosed(() -> c.createScanner(tableName, Authorizations.EMPTY));
-    expectClosed(() -> c.createConditionalWriter(tableName, new ConditionalWriterConfig()));
+    expectClosed(() -> c.createConditionalWriter(tableName));
     expectClosed(() -> c.createBatchWriter(tableName));
     expectClosed(c::tableOperations);
     expectClosed(c::instanceOperations);
@@ -220,6 +241,5 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     expectClosed(() -> tops.create("expectFail"));
     expectClosed(() -> tops.cancelCompaction(tableName));
     expectClosed(() -> tops.listSplits(tableName));
-
   }
 }

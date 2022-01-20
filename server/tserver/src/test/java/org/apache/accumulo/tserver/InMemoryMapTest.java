@@ -51,10 +51,10 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -111,14 +111,6 @@ public class InMemoryMapTest {
   @Rule
   public TemporaryFolder tempFolder =
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
-
-  public void mutate(InMemoryMap imm, String row, String column, long ts) {
-    Mutation m = new Mutation(new Text(row));
-    String[] sa = column.split(":");
-    m.putDelete(new Text(sa[0]), new Text(sa[1]), ts);
-
-    imm.mutate(Collections.singletonList(m), 1);
-  }
 
   public void mutate(InMemoryMap imm, String row, String column, long ts, String value) {
     Mutation m = new Mutation(new Text(row));
@@ -189,10 +181,10 @@ public class InMemoryMapTest {
     mutate(imm, "r1", "foo:cq1", 3, "bar1");
     MemoryIterator ski2 = imm.skvIterator(null);
 
-    ski1.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(), Set.of(), false);
     assertFalse(ski1.hasTop());
 
-    ski2.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski2.seek(new Range(), Set.of(), false);
     assertTrue(ski2.hasTop());
     testAndCallNext(ski2, "r1", "foo:cq1", 3, "bar1");
     assertFalse(ski2.hasTop());
@@ -213,12 +205,12 @@ public class InMemoryMapTest {
 
     MemoryIterator ski2 = imm.skvIterator(null);
 
-    ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(new Text("r1")), Set.of(), false);
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar2");
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
     assertFalse(ski1.hasTop());
 
-    ski2.seek(new Range(new Text("r3")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski2.seek(new Range(new Text("r3")), Set.of(), false);
     testAndCallNext(ski2, "r3", "foo:cq1", 3, "bara");
     testAndCallNext(ski2, "r3", "foo:cq1", 3, "bar9");
     assertFalse(ski1.hasTop());
@@ -236,20 +228,20 @@ public class InMemoryMapTest {
 
     imm.delete(0);
 
-    ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(new Text("r1")), Set.of(), false);
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar2");
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
     assertFalse(ski1.hasTop());
 
-    ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(new Text("r1")), Set.of(), false);
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar2");
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
     assertFalse(ski1.hasTop());
 
-    ski1.seek(new Range(new Text("r2")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(new Text("r2")), Set.of(), false);
     assertFalse(ski1.hasTop());
 
-    ski1.seek(new Range(newKey("r1", "foo:cq1", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(newKey("r1", "foo:cq1", 3), null), Set.of(), false);
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar2");
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
     assertFalse(ski1.hasTop());
@@ -267,9 +259,9 @@ public class InMemoryMapTest {
 
     imm.delete(0);
 
-    ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(new Text("r1")), Set.of(), false);
     assertEqualsNoNext(ski1, "r1", "foo:cq1", 3, "");
-    ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(new Text("r1")), Set.of(), false);
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "");
     assertFalse(ski1.hasTop());
 
@@ -285,7 +277,7 @@ public class InMemoryMapTest {
     mutate(imm, "r1", "foo:cq1", 3, "bar3");
 
     MemoryIterator ski1 = imm.skvIterator(null);
-    ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(new Text("r1")), Set.of(), false);
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar3");
 
     imm.delete(0);
@@ -303,7 +295,7 @@ public class InMemoryMapTest {
     mutate(imm, "r1", "foo:cq3", 3, "bar3");
 
     ski1 = imm.skvIterator(null);
-    ski1.seek(new Range(new Text("r1")), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(new Text("r1")), Set.of(), false);
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
 
     imm.delete(0);
@@ -330,10 +322,10 @@ public class InMemoryMapTest {
 
     SortedKeyValueIterator<Key,Value> dc = ski1.deepCopy(new SampleIE());
 
-    ski1.seek(new Range(newKey("r1", "foo:cq1", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(newKey("r1", "foo:cq1", 3), null), Set.of(), false);
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
 
-    dc.seek(new Range(newKey("r1", "foo:cq2", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    dc.seek(new Range(newKey("r1", "foo:cq2", 3), null), Set.of(), false);
     testAndCallNext(dc, "r1", "foo:cq2", 3, "bar2");
 
     imm.delete(0);
@@ -346,9 +338,9 @@ public class InMemoryMapTest {
     assertFalse(ski1.hasTop());
     assertFalse(dc.hasTop());
 
-    ski1.seek(new Range(newKey("r1", "foo:cq3", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ski1.seek(new Range(newKey("r1", "foo:cq3", 3), null), Set.of(), false);
 
-    dc.seek(new Range(newKey("r1", "foo:cq4", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    dc.seek(new Range(newKey("r1", "foo:cq4", 3), null), Set.of(), false);
     testAndCallNext(dc, "r1", "foo:cq4", 3, "bar4");
     assertFalse(dc.hasTop());
 
@@ -389,8 +381,8 @@ public class InMemoryMapTest {
       }
     }
 
-    dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
-    ski1.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    dc.seek(new Range(), Set.of(), false);
+    ski1.seek(new Range(), Set.of(), false);
 
     if (interleaving == 3) {
       imm.delete(0);
@@ -401,7 +393,7 @@ public class InMemoryMapTest {
 
     testAndCallNext(dc, "r1", "foo:cq1", 3, "bar1");
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
-    dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    dc.seek(new Range(), Set.of(), false);
 
     if (interleaving == 4) {
       imm.delete(0);
@@ -417,7 +409,7 @@ public class InMemoryMapTest {
     assertFalse(ski1.hasTop());
 
     if (interrupt) {
-      dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+      dc.seek(new Range(), Set.of(), false);
     }
   }
 
@@ -474,10 +466,10 @@ public class InMemoryMapTest {
 
     MemoryIterator skvi1 = imm.skvIterator(null);
 
-    skvi1.seek(new Range(newKey("r1", "foo:cq3", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    skvi1.seek(new Range(newKey("r1", "foo:cq3", 3), null), Set.of(), false);
     testAndCallNext(skvi1, "r1", "foo:cq3", 3, "bar3");
 
-    skvi1.seek(new Range(newKey("r1", "foo:cq1", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    skvi1.seek(new Range(newKey("r1", "foo:cq1", 3), null), Set.of(), false);
     testAndCallNext(skvi1, "r1", "foo:cq1", 3, "bar1");
 
   }
@@ -492,17 +484,9 @@ public class InMemoryMapTest {
     imm.mutate(Collections.singletonList(m), 2);
 
     MemoryIterator skvi1 = imm.skvIterator(null);
-    skvi1.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    skvi1.seek(new Range(), Set.of(), false);
     testAndCallNext(skvi1, "r1", "foo:cq", 3, "v2");
     testAndCallNext(skvi1, "r1", "foo:cq", 3, "v1");
-  }
-
-  static long sum(long[] counts) {
-    long result = 0;
-    for (long count : counts) {
-      result += count;
-    }
-    return result;
   }
 
   @Test
@@ -729,7 +713,7 @@ public class InMemoryMapTest {
     SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
         RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "9"));
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
-    iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    iter.seek(new Range(), Set.of(), false);
   }
 
   @Test(expected = SampleNotPresentException.class)
@@ -741,7 +725,7 @@ public class InMemoryMapTest {
     SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
         RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "9"));
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
-    iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    iter.seek(new Range(), Set.of(), false);
   }
 
   @Test
@@ -753,7 +737,7 @@ public class InMemoryMapTest {
 
     // when in mem map is empty should be able to get sample iterator with any sample config
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
-    iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    iter.seek(new Range(), Set.of(), false);
     assertFalse(iter.hasTop());
   }
 
@@ -785,24 +769,24 @@ public class InMemoryMapTest {
     }
 
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
-    iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    iter.seek(new Range(), Set.of(), false);
     assertEquals(expectedSample, readAll(iter));
 
     SortedKeyValueIterator<Key,Value> dc = iter.deepCopy(new SampleIE(sampleConfig2));
-    dc.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    dc.seek(new Range(), Set.of(), false);
     assertEquals(expectedSample, readAll(dc));
 
     iter = imm.skvIterator(null);
-    iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    iter.seek(new Range(), Set.of(), false);
     assertEquals(expectedAll, readAll(iter));
 
-    final MemoryIterator iter2 = imm.skvIterator(sampleConfig1);
+    final MemoryIterator finalIter = imm.skvIterator(sampleConfig1);
     assertThrows(SampleNotPresentException.class,
-        () -> iter2.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false));
+        () -> finalIter.seek(new Range(), Set.of(), false));
   }
 
   private TreeMap<Key,Value> readAll(SortedKeyValueIterator<Key,Value> iter) throws IOException {
-    iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    iter.seek(new Range(), Set.of(), false);
 
     TreeMap<Key,Value> actual = new TreeMap<>();
     while (iter.hasTop()) {
@@ -862,7 +846,7 @@ public class InMemoryMapTest {
     testAndCallNext(iter1, "r2", "cf2:x", 3, "5");
     assertFalse(iter1.hasTop());
 
-    iter1.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    iter1.seek(new Range(), Set.of(), false);
     assertAll(iter1);
 
     iter1.seek(new Range(), newCFSet("cf1"), false);

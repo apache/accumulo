@@ -24,7 +24,6 @@ import java.io.File;
 import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.Map;
 
@@ -57,7 +56,7 @@ public class MonitorSslIT extends ConfigurableMacBase {
   public static void initHttps() throws NoSuchAlgorithmException, KeyManagementException {
     SSLContext ctx = SSLContext.getInstance("TLSv1.2");
     TrustManager[] tm = {new TestTrustManager()};
-    ctx.init(new KeyManager[0], tm, new SecureRandom());
+    ctx.init(new KeyManager[0], tm, random);
     SSLContext.setDefault(ctx);
     HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
     HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
@@ -143,7 +142,7 @@ public class MonitorSslIT extends ConfigurableMacBase {
     }
     URL url = new URL(monitorLocation);
     log.debug("Fetching web page {}", url);
-    String result = FunctionalTestUtils.readAll(url.openStream());
+    String result = FunctionalTestUtils.readWebPage(url).body();
     assertTrue(result.length() > 100);
     assertTrue(result.indexOf("Accumulo Overview") >= 0);
   }

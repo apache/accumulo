@@ -20,10 +20,10 @@ package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.harness.AccumuloITBase.random;
 
-import java.security.SecureRandom;
 import java.util.HashMap;
-import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
@@ -37,13 +37,13 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
-import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
+import org.apache.accumulo.fate.zookeeper.ServiceLock.LockWatcher;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.metrics.Metrics;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
@@ -100,24 +100,23 @@ public class ZombieTServer {
   private static final Logger log = LoggerFactory.getLogger(ZombieTServer.class);
 
   public static void main(String[] args) throws Exception {
-    Random random = new SecureRandom();
-    random.setSeed(System.currentTimeMillis() % 1000);
     int port = random.nextInt(30000) + 2000;
     var context = new ServerContext(SiteConfiguration.auto());
     TransactionWatcher watcher = new TransactionWatcher(context);
     final ThriftClientHandler tch = new ThriftClientHandler(context, watcher);
     Processor<Iface> processor = new Processor<>(tch);
-    ServerAddress serverPort = TServerUtils.startTServer(
-        Metrics.initSystem(ZombieTServer.class.getSimpleName()), context.getConfiguration(),
-        ThriftServerType.CUSTOM_HS_HA, processor, "ZombieTServer", "walking dead", 2, 1, 1000,
-        10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", port));
+    ServerAddress serverPort =
+        TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA,
+            processor, "ZombieTServer", "walking dead", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS,
+            1000, 10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", port));
 
     String addressString = serverPort.address.toString();
-    String zPath = context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + addressString;
+    var zLockPath =
+        ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + addressString);
     ZooReaderWriter zoo = context.getZooReaderWriter();
-    zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
+    zoo.putPersistentData(zLockPath.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
 
-    ZooLock zlock = new ZooLock(zoo, zPath);
+    ServiceLock zlock = new ServiceLock(zoo.getZooKeeper(), zLockPath, UUID.randomUUID());
 
     LockWatcher lw = new LockWatcher() {
 
@@ -136,7 +135,7 @@ public class ZombieTServer {
       @SuppressFBWarnings(value = "DM_EXIT",
           justification = "System.exit() is a bad idea here, but okay for now, since it's a test")
       @Override
-      public void unableToMonitorLockNode(Throwable e) {
+      public void unableToMonitorLockNode(Exception e) {
         try {
           tch.halt(TraceUtil.traceInfo(), null, null);
         } catch (Exception ex) {

@@ -62,7 +62,7 @@ import org.slf4j.LoggerFactory;
 /**
  * This tests deprecated mapreduce code in core jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(AccumuloFileOutputFormatIT.class);
   private static final int JOB_VISIBILITY_CACHE_SIZE = 3000;

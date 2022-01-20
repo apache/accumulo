@@ -27,7 +27,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -51,12 +51,19 @@ public class ZooZap {
   }
 
   static class Opts extends Help {
-    @Parameter(names = "-master", description = "remove master locks")
+    @Deprecated(since = "2.1.0")
+    @Parameter(names = "-master",
+        description = "remove master locks (deprecated -- user -manager instead")
     boolean zapMaster = false;
+    @Parameter(names = "-manager", description = "remove manager locks")
+    boolean zapManager = false;
     @Parameter(names = "-tservers", description = "remove tablet server locks")
     boolean zapTservers = false;
-    @Parameter(names = "-tracers", description = "remove tracer locks")
-    boolean zapTracers = false;
+    @Parameter(names = "-compaction-coordinators",
+        description = "remove compaction coordinator locks")
+    boolean zapCoordinators = false;
+    @Parameter(names = "-compactors", description = "remove compactor locks")
+    boolean zapCompactors = false;
     @Parameter(names = "-verbose", description = "print out messages about progress")
     boolean verbose = false;
   }
@@ -65,29 +72,31 @@ public class ZooZap {
     Opts opts = new Opts();
     opts.parseArgs(ZooZap.class.getName(), args);
 
-    if (!opts.zapMaster && !opts.zapTservers && !opts.zapTracers) {
+    if (!opts.zapMaster && !opts.zapManager && !opts.zapTservers) {
       new JCommander(opts).usage();
       return;
     }
 
     try {
       var siteConf = SiteConfiguration.auto();
-      Configuration hadoopConf = new Configuration();
       // Login as the server on secure HDFS
       if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
         SecurityUtil.serverLogin(siteConf);
       }
 
-      String volDir = VolumeConfiguration.getVolumeUris(siteConf, hadoopConf).iterator().next();
+      String volDir = VolumeConfiguration.getVolumeUris(siteConf).iterator().next();
       Path instanceDir = new Path(volDir, "instance_id");
-      String iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, siteConf, hadoopConf);
+      String iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, new Configuration());
       ZooReaderWriter zoo = new ZooReaderWriter(siteConf);
 
       if (opts.zapMaster) {
-        String masterLockPath = Constants.ZROOT + "/" + iid + Constants.ZMASTER_LOCK;
+        log.warn("The -master option is deprecated. Please use -manager instead.");
+      }
+      if (opts.zapManager || opts.zapMaster) {
+        String managerLockPath = Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK;
 
         try {
-          zapDirectory(zoo, masterLockPath, opts);
+          zapDirectory(zoo, managerLockPath, opts);
         } catch (Exception e) {
           e.printStackTrace();
         }
@@ -100,12 +109,12 @@ public class ZooZap {
           for (String child : children) {
             message("Deleting " + tserversPath + "/" + child + " from zookeeper", opts);
 
-            if (opts.zapMaster) {
+            if (opts.zapManager || opts.zapMaster) {
               zoo.recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
             } else {
-              String path = tserversPath + "/" + child;
-              if (!zoo.getChildren(path).isEmpty()) {
-                if (!ZooLock.deleteLock(zoo, path, "tserver")) {
+              var zLockPath = ServiceLock.path(tserversPath + "/" + child);
+              if (!zoo.getChildren(zLockPath.toString()).isEmpty()) {
+                if (!ServiceLock.deleteLock(zoo, zLockPath, "tserver")) {
                   message("Did not delete " + tserversPath + "/" + child, opts);
                 }
               }
@@ -116,14 +125,38 @@ public class ZooZap {
         }
       }
 
-      if (opts.zapTracers) {
-        String path = siteConf.get(Property.TRACE_ZK_PATH);
+      // Remove the tracers, we don't use them anymore.
+      @SuppressWarnings("deprecation")
+      String path = siteConf.get(Property.TRACE_ZK_PATH);
+      try {
+        zapDirectory(zoo, path, opts);
+      } catch (Exception e) {
+        // do nothing if the /tracers node does not exist.
+      }
+
+      if (opts.zapCoordinators) {
+        final String coordinatorPath = Constants.ZROOT + "/" + iid + Constants.ZCOORDINATOR_LOCK;
         try {
-          zapDirectory(zoo, path, opts);
+          zapDirectory(zoo, coordinatorPath, opts);
         } catch (Exception e) {
-          // do nothing if the /tracers node does not exist.
+          log.error("Error deleting coordinator from zookeeper, {}", e.getMessage(), e);
         }
       }
+
+      if (opts.zapCompactors) {
+        String compactorsBasepath = Constants.ZROOT + "/" + iid + Constants.ZCOMPACTORS;
+        try {
+          List<String> queues = zoo.getChildren(compactorsBasepath);
+          for (String queue : queues) {
+            message("Deleting " + compactorsBasepath + "/" + queue + " from zookeeper", opts);
+            zoo.recursiveDelete(compactorsBasepath + "/" + queue, NodeMissingPolicy.SKIP);
+          }
+        } catch (Exception e) {
+          log.error("Error deleting compactors from zookeeper, {}", e.getMessage(), e);
+        }
+
+      }
+
     } finally {
       SingletonManager.setMode(Mode.CLOSED);
     }

@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.core.crypto;
 
-import static org.apache.accumulo.core.file.rfile.RFileTest.getAccumuloConfig;
+import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_PREFIX;
+import static org.apache.accumulo.core.crypto.CryptoUtils.getFileDecrypter;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -44,6 +45,7 @@ import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
@@ -56,18 +58,15 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.crypto.streams.NoFlushOutputStream;
-import org.apache.accumulo.core.cryptoImpl.AESCryptoService;
-import org.apache.accumulo.core.cryptoImpl.AESKeyUtils;
-import org.apache.accumulo.core.cryptoImpl.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.spi.crypto.AESCryptoService;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.CryptoService.CryptoException;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -81,37 +80,71 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CryptoTest {
 
-  public static final int MARKER_INT = 0xCADEFEDD;
-  public static final String MARKER_STRING = "1 2 3 4 5 6 7 8 a b c d e f g h ";
-  public static final String CRYPTO_ON_CONF = "ON";
-  public static final String CRYPTO_OFF_CONF = "OFF";
-  public static final String keyPath =
-      System.getProperty("user.dir") + "/target/CryptoTest-testkeyfile";
-  public static final String emptyKeyPath =
-      System.getProperty("user.dir") + "/target/CryptoTest-emptykeyfile";
+  private static final SecureRandom random = new SecureRandom();
+  private static final int MARKER_INT = 0xCADEFEDD;
+  private static final String MARKER_STRING = "1 2 3 4 5 6 7 8 a b c d e f g h ";
   private static Configuration hadoopConf = new Configuration();
 
+  public enum ConfigMode {
+    CRYPTO_OFF, CRYPTO_ON, CRYPTO_ON_DISABLED
+  }
+
   @BeforeClass
-  public static void setupKeyFiles() throws Exception {
+  public static void setupKeyFiles() throws IOException {
+    setupKeyFiles(CryptoTest.class);
+  }
+
+  public static void setupKeyFiles(Class<?> testClass) throws IOException {
     FileSystem fs = FileSystem.getLocal(hadoopConf);
-    Path aesPath = new Path(keyPath);
+    Path aesPath = new Path(keyPath(testClass));
     try (FSDataOutputStream out = fs.create(aesPath)) {
       out.writeUTF("sixteenbytekey"); // 14 + 2 from writeUTF
     }
-    try (FSDataOutputStream out = fs.create(new Path(emptyKeyPath))) {
+    try (FSDataOutputStream out = fs.create(new Path(emptyKeyPath(testClass)))) {
       // auto close after creating
       assertNotNull(out);
     }
   }
 
+  @SuppressWarnings("fallthrough")
+  public static ConfigurationCopy getAccumuloConfig(ConfigMode configMode, Class<?> testClass) {
+    ConfigurationCopy cfg = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    switch (configMode) {
+      case CRYPTO_ON_DISABLED:
+        cfg.set(INSTANCE_CRYPTO_PREFIX.getKey() + "enabled", "false");
+        // fall through to set remaining config
+      case CRYPTO_ON:
+        cfg.set(Property.INSTANCE_CRYPTO_SERVICE,
+            "org.apache.accumulo.core.spi.crypto.AESCryptoService");
+        cfg.set(INSTANCE_CRYPTO_PREFIX.getKey() + "key.uri", CryptoTest.keyPath(testClass));
+        break;
+      case CRYPTO_OFF:
+        break;
+    }
+    return cfg;
+  }
+
+  private ConfigurationCopy getAccumuloConfig(ConfigMode configMode) {
+    return getAccumuloConfig(configMode, getClass());
+  }
+
+  public static String keyPath(Class<?> testClass) {
+    return System.getProperty("user.dir") + "/target/" + testClass.getSimpleName() + "-testkeyfile";
+  }
+
+  public static String emptyKeyPath(Class<?> testClass) {
+    return System.getProperty("user.dir") + "/target/" + testClass.getSimpleName()
+        + "-emptykeyfile";
+  }
+
   @Test
   public void simpleGCMTest() throws Exception {
-    AccumuloConfiguration conf = getAccumuloConfig(CRYPTO_ON_CONF);
+    AccumuloConfiguration conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
 
-    CryptoService cryptoService = new AESCryptoService();
-    cryptoService.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
+    CryptoService cs = new AESCryptoService();
+    cs.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
     CryptoEnvironment encEnv = new CryptoEnvironmentImpl(Scope.RFILE, null);
-    FileEncrypter encrypter = cryptoService.getFileEncrypter(encEnv);
+    FileEncrypter encrypter = cs.getFileEncrypter(encEnv);
     byte[] params = encrypter.getDecryptionParameters();
     assertNotNull(params);
 
@@ -134,9 +167,7 @@ public class CryptoTest {
 
     // decrypt
     ByteArrayInputStream in = new ByteArrayInputStream(cipherText);
-    params = CryptoUtils.readParams(new DataInputStream(in));
-    CryptoEnvironment decEnv = new CryptoEnvironmentImpl(Scope.RFILE, params);
-    FileDecrypter decrypter = cryptoService.getFileDecrypter(decEnv);
+    FileDecrypter decrypter = getFileDecrypter(cs, Scope.RFILE, new DataInputStream(in));
     DataInputStream decrypted = new DataInputStream(decrypter.decryptStream(in));
     String plainText = decrypted.readUTF();
     decrypted.close();
@@ -148,33 +179,73 @@ public class CryptoTest {
   @Test
   public void testAESCryptoServiceWAL() throws Exception {
     AESCryptoService cs = new AESCryptoService();
-    byte[] resultingBytes = encrypt(cs, Scope.WAL, CRYPTO_ON_CONF);
+    byte[] resultingBytes = encrypt(cs, Scope.WAL, ConfigMode.CRYPTO_ON);
 
     String stringifiedBytes = Arrays.toString(resultingBytes);
     String stringifiedMarkerBytes = getStringifiedBytes(null, MARKER_STRING, MARKER_INT);
 
     assertNotEquals(stringifiedBytes, stringifiedMarkerBytes);
 
-    decrypt(resultingBytes, Scope.WAL, CRYPTO_ON_CONF);
+    decrypt(resultingBytes, Scope.WAL, ConfigMode.CRYPTO_ON);
+  }
+
+  /**
+   * AESCryptoService is configured but only for reading
+   */
+  @Test
+  public void testAESCryptoServiceWALDisabled() throws Exception {
+    AESCryptoService cs = new AESCryptoService();
+    // make sure we can read encrypted
+    byte[] encryptedBytes = encrypt(cs, Scope.WAL, ConfigMode.CRYPTO_ON);
+    String stringEncryptedBytes = Arrays.toString(encryptedBytes);
+    String stringifiedMarkerBytes = getStringifiedBytes(null, MARKER_STRING, MARKER_INT);
+    assertNotEquals(stringEncryptedBytes, stringifiedMarkerBytes);
+    decrypt(encryptedBytes, Scope.WAL, ConfigMode.CRYPTO_ON_DISABLED);
+
+    // make sure we don't encrypt when disabled
+    byte[] plainBytes = encrypt(cs, Scope.WAL, ConfigMode.CRYPTO_ON_DISABLED);
+    String stringPlainBytes = Arrays.toString(plainBytes);
+    assertNotEquals(stringEncryptedBytes, stringPlainBytes);
+    decrypt(plainBytes, Scope.WAL, ConfigMode.CRYPTO_ON_DISABLED);
   }
 
   @Test
   public void testAESCryptoServiceRFILE() throws Exception {
     AESCryptoService cs = new AESCryptoService();
-    byte[] resultingBytes = encrypt(cs, Scope.RFILE, CRYPTO_ON_CONF);
+    byte[] resultingBytes = encrypt(cs, Scope.RFILE, ConfigMode.CRYPTO_ON);
 
     String stringifiedBytes = Arrays.toString(resultingBytes);
     String stringifiedMarkerBytes = getStringifiedBytes(null, MARKER_STRING, MARKER_INT);
 
     assertNotEquals(stringifiedBytes, stringifiedMarkerBytes);
 
-    decrypt(resultingBytes, Scope.RFILE, CRYPTO_ON_CONF);
+    decrypt(resultingBytes, Scope.RFILE, ConfigMode.CRYPTO_ON);
+  }
+
+  /**
+   * AESCryptoService is configured but only for reading
+   */
+  @Test
+  public void testAESCryptoServiceRFILEDisabled() throws Exception {
+    AESCryptoService cs = new AESCryptoService();
+    // make sure we can read encrypted
+    byte[] encryptedBytes = encrypt(cs, Scope.RFILE, ConfigMode.CRYPTO_ON);
+    String stringEncryptedBytes = Arrays.toString(encryptedBytes);
+    String stringifiedMarkerBytes = getStringifiedBytes(null, MARKER_STRING, MARKER_INT);
+    assertNotEquals(stringEncryptedBytes, stringifiedMarkerBytes);
+    decrypt(encryptedBytes, Scope.RFILE, ConfigMode.CRYPTO_ON_DISABLED);
+
+    // make sure we don't encrypt when disabled
+    byte[] plainBytes = encrypt(cs, Scope.RFILE, ConfigMode.CRYPTO_ON_DISABLED);
+    String stringPlainBytes = Arrays.toString(plainBytes);
+    assertNotEquals(stringEncryptedBytes, stringPlainBytes);
+    decrypt(plainBytes, Scope.RFILE, ConfigMode.CRYPTO_ON_DISABLED);
   }
 
   @Test
   public void testNoEncryptionWAL() throws Exception {
     CryptoService cs = CryptoServiceFactory.newDefaultInstance();
-    byte[] encryptedBytes = encrypt(cs, Scope.WAL, CRYPTO_OFF_CONF);
+    byte[] encryptedBytes = encrypt(cs, Scope.WAL, ConfigMode.CRYPTO_OFF);
 
     String stringifiedBytes = Arrays.toString(encryptedBytes);
     String stringifiedMarkerBytes =
@@ -182,13 +253,13 @@ public class CryptoTest {
 
     assertEquals(stringifiedBytes, stringifiedMarkerBytes);
 
-    decrypt(encryptedBytes, Scope.WAL, CRYPTO_OFF_CONF);
+    decrypt(encryptedBytes, Scope.WAL, ConfigMode.CRYPTO_OFF);
   }
 
   @Test
   public void testNoEncryptionRFILE() throws Exception {
     CryptoService cs = CryptoServiceFactory.newDefaultInstance();
-    byte[] encryptedBytes = encrypt(cs, Scope.RFILE, CRYPTO_OFF_CONF);
+    byte[] encryptedBytes = encrypt(cs, Scope.RFILE, ConfigMode.CRYPTO_OFF);
 
     String stringifiedBytes = Arrays.toString(encryptedBytes);
     String stringifiedMarkerBytes =
@@ -196,12 +267,12 @@ public class CryptoTest {
 
     assertEquals(stringifiedBytes, stringifiedMarkerBytes);
 
-    decrypt(encryptedBytes, Scope.RFILE, CRYPTO_OFF_CONF);
+    decrypt(encryptedBytes, Scope.RFILE, ConfigMode.CRYPTO_OFF);
   }
 
   @Test
   public void testRFileEncrypted() throws Exception {
-    AccumuloConfiguration cryptoOnConf = getAccumuloConfig(CRYPTO_ON_CONF);
+    AccumuloConfiguration cryptoOnConf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     FileSystem fs = FileSystem.getLocal(hadoopConf);
     ArrayList<Key> keys = testData();
     SummarizerConfiguration sumConf =
@@ -211,7 +282,7 @@ public class CryptoTest {
     fs.delete(new Path(file), true);
     try (RFileWriter writer = RFile.newWriter().to(file).withFileSystem(fs)
         .withTableProperties(cryptoOnConf).withSummarizers(sumConf).build()) {
-      Value empty = new Value(new byte[] {});
+      Value empty = new Value();
       writer.startDefaultLocalityGroup();
       for (Key key : keys) {
         writer.append(key, empty);
@@ -237,8 +308,8 @@ public class CryptoTest {
   @Test
   // This test is to ensure when Crypto is configured that it can read unencrypted files
   public void testReadNoCryptoWithCryptoConfigured() throws Exception {
-    AccumuloConfiguration cryptoOffConf = getAccumuloConfig(CRYPTO_OFF_CONF);
-    AccumuloConfiguration cryptoOnConf = getAccumuloConfig(CRYPTO_ON_CONF);
+    AccumuloConfiguration cryptoOffConf = getAccumuloConfig(ConfigMode.CRYPTO_OFF);
+    AccumuloConfiguration cryptoOnConf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
     FileSystem fs = FileSystem.getLocal(hadoopConf);
     ArrayList<Key> keys = testData();
 
@@ -246,7 +317,7 @@ public class CryptoTest {
     fs.delete(new Path(file), true);
     try (RFileWriter writer =
         RFile.newWriter().to(file).withFileSystem(fs).withTableProperties(cryptoOffConf).build()) {
-      Value empty = new Value(new byte[] {});
+      Value empty = new Value();
       writer.startDefaultLocalityGroup();
       for (Key key : keys) {
         writer.append(key, empty);
@@ -268,10 +339,10 @@ public class CryptoTest {
       aconf.set(e.getKey(), e.getValue());
     }
     aconf.set(Property.INSTANCE_CRYPTO_SERVICE,
-        "org.apache.accumulo.core.cryptoImpl.AESCryptoService");
+        "org.apache.accumulo.core.spi.crypto.AESCryptoService");
     String configuredClass = aconf.get(Property.INSTANCE_CRYPTO_SERVICE.getKey());
     Class<? extends CryptoService> clazz =
-        AccumuloVFSClassLoader.loadClass(configuredClass, CryptoService.class);
+        ClassLoaderUtil.loadClass(configuredClass, CryptoService.class);
     CryptoService cs = clazz.getDeclaredConstructor().newInstance();
 
     assertEquals(AESCryptoService.class, cs.getClass());
@@ -282,14 +353,13 @@ public class CryptoTest {
   @Test
   public void testAESKeyUtilsGeneratesKey() throws NoSuchAlgorithmException,
       NoSuchProviderException, NoSuchPaddingException, InvalidKeyException {
-    SecureRandom sr = SecureRandom.getInstance("SHA1PRNG", "SUN");
     // verify valid key sizes (corresponds to 128, 192, and 256 bits)
     for (int i : new int[] {16, 24, 32}) {
-      verifyKeySizeForCBC(sr, i);
+      verifyKeySizeForCBC(random, i);
     }
     // verify invalid key sizes
     for (int i : new int[] {1, 2, 8, 11, 15, 64, 128}) {
-      assertThrows(InvalidKeyException.class, () -> verifyKeySizeForCBC(sr, i));
+      assertThrows(InvalidKeyException.class, () -> verifyKeySizeForCBC(random, i));
     }
   }
 
@@ -298,39 +368,37 @@ public class CryptoTest {
   @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is being tested")
   private void verifyKeySizeForCBC(SecureRandom sr, int sizeInBytes)
       throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException {
-    java.security.Key key = AESKeyUtils.generateKey(sr, sizeInBytes);
+    java.security.Key key = AESCryptoService.generateKey(sr, sizeInBytes);
     Cipher.getInstance("AES/CBC/NoPadding").init(Cipher.ENCRYPT_MODE, key);
   }
 
   @Test
   public void testAESKeyUtilsWrapAndUnwrap()
       throws NoSuchAlgorithmException, NoSuchProviderException {
-    SecureRandom sr = SecureRandom.getInstance("SHA1PRNG", "SUN");
-    java.security.Key kek = AESKeyUtils.generateKey(sr, 16);
-    java.security.Key fek = AESKeyUtils.generateKey(sr, 16);
-    byte[] wrapped = AESKeyUtils.wrapKey(fek, kek);
+    java.security.Key kek = AESCryptoService.generateKey(random, 16);
+    java.security.Key fek = AESCryptoService.generateKey(random, 16);
+    byte[] wrapped = AESCryptoService.wrapKey(fek, kek);
     assertFalse(Arrays.equals(fek.getEncoded(), wrapped));
-    java.security.Key unwrapped = AESKeyUtils.unwrapKey(wrapped, kek);
+    java.security.Key unwrapped = AESCryptoService.unwrapKey(wrapped, kek);
     assertEquals(unwrapped, fek);
   }
 
   @Test
   public void testAESKeyUtilsFailUnwrapWithWrongKEK()
       throws NoSuchAlgorithmException, NoSuchProviderException {
-    SecureRandom sr = SecureRandom.getInstance("SHA1PRNG", "SUN");
-    java.security.Key kek = AESKeyUtils.generateKey(sr, 16);
-    java.security.Key fek = AESKeyUtils.generateKey(sr, 16);
+    java.security.Key kek = AESCryptoService.generateKey(random, 16);
+    java.security.Key fek = AESCryptoService.generateKey(random, 16);
     byte[] wrongBytes = kek.getEncoded();
     wrongBytes[0]++;
     java.security.Key wrongKek = new SecretKeySpec(wrongBytes, "AES");
 
-    byte[] wrapped = AESKeyUtils.wrapKey(fek, kek);
-    assertThrows(CryptoException.class, () -> AESKeyUtils.unwrapKey(wrapped, wrongKek));
+    byte[] wrapped = AESCryptoService.wrapKey(fek, kek);
+    assertThrows(CryptoException.class, () -> AESCryptoService.unwrapKey(wrapped, wrongKek));
   }
 
   @Test
   public void testAESKeyUtilsLoadKekFromUri() throws IOException {
-    SecretKeySpec fileKey = AESKeyUtils.loadKekFromUri(keyPath);
+    java.security.Key fileKey = AESCryptoService.loadKekFromUri(keyPath(getClass()));
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream dos = new DataOutputStream(baos);
     dos.writeUTF("sixteenbytekey");
@@ -340,13 +408,14 @@ public class CryptoTest {
 
   @Test
   public void testAESKeyUtilsLoadKekFromUriInvalidUri() {
-    assertThrows(CryptoException.class, () -> AESKeyUtils.loadKekFromUri(
+    assertThrows(CryptoException.class, () -> AESCryptoService.loadKekFromUri(
         System.getProperty("user.dir") + "/target/CryptoTest-testkeyfile-doesnt-exist"));
   }
 
   @Test
   public void testAESKeyUtilsLoadKekFromEmptyFile() {
-    assertThrows(CryptoException.class, () -> AESKeyUtils.loadKekFromUri(emptyKeyPath));
+    assertThrows(CryptoException.class,
+        () -> AESCryptoService.loadKekFromUri(emptyKeyPath(getClass())));
   }
 
   private ArrayList<Key> testData() {
@@ -358,9 +427,9 @@ public class CryptoTest {
     return keys;
   }
 
-  private <C extends CryptoService> byte[] encrypt(C cs, Scope scope, String configFile)
+  private <C extends CryptoService> byte[] encrypt(C cs, Scope scope, ConfigMode configMode)
       throws Exception {
-    AccumuloConfiguration conf = getAccumuloConfig(configFile);
+    AccumuloConfiguration conf = getAccumuloConfig(configMode);
     cs.init(conf.getAllPropertiesWithPrefix(Property.INSTANCE_CRYPTO_PREFIX));
     CryptoEnvironmentImpl env = new CryptoEnvironmentImpl(scope, null);
     FileEncrypter encrypter = cs.getFileEncrypter(env);
@@ -383,15 +452,11 @@ public class CryptoTest {
     return out.toByteArray();
   }
 
-  private void decrypt(byte[] resultingBytes, Scope scope, String configFile) throws Exception {
+  private void decrypt(byte[] resultingBytes, Scope scope, ConfigMode configMode) throws Exception {
     try (DataInputStream dataIn = new DataInputStream(new ByteArrayInputStream(resultingBytes))) {
-      byte[] params = CryptoUtils.readParams(dataIn);
-
-      AccumuloConfiguration conf = getAccumuloConfig(configFile);
-      CryptoService cryptoService = CryptoServiceFactory.newInstance(conf, ClassloaderType.JAVA);
-      CryptoEnvironment env = new CryptoEnvironmentImpl(scope, params);
-
-      FileDecrypter decrypter = cryptoService.getFileDecrypter(env);
+      AccumuloConfiguration conf = getAccumuloConfig(configMode);
+      CryptoService cs = CryptoServiceFactory.newInstance(conf, ClassloaderType.JAVA);
+      FileDecrypter decrypter = getFileDecrypter(cs, scope, dataIn);
 
       try (DataInputStream decrypted = new DataInputStream(decrypter.decryptStream(dataIn))) {
         String markerString = decrypted.readUTF();

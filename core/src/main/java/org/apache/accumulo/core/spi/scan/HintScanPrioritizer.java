@@ -18,14 +18,14 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
+import static java.util.stream.Collectors.toUnmodifiableMap;
+
 import java.util.Comparator;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.ScannerBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.ImmutableMap;
 
 /**
  * When configured for a scan executor, this prioritizer allows scanners to set priorities as
@@ -115,16 +115,10 @@ public class HintScanPrioritizer implements ScanPrioritizer {
     int defaultPriority = Integer
         .parseInt(params.getOptions().getOrDefault("default_priority", Integer.MAX_VALUE + ""));
 
-    var tpb = ImmutableMap.<String,Integer>builder();
-
-    params.getOptions().forEach((k, v) -> {
-      if (k.startsWith(PRIO_PREFIX)) {
-        String type = k.substring(PRIO_PREFIX.length());
-        tpb.put(type, Integer.parseInt(v));
-      }
-    });
-
-    Map<String,Integer> typePriorities = tpb.build();
+    Map<String,Integer> typePriorities =
+        params.getOptions().entrySet().stream().filter(e -> e.getKey().startsWith(PRIO_PREFIX))
+            .collect(toUnmodifiableMap(e -> e.getKey().substring(PRIO_PREFIX.length()),
+                e -> Integer.parseInt(e.getValue())));
 
     HintProblemAction hpa = HintProblemAction.valueOf(params.getOptions()
         .getOrDefault("bad_hint_action", HintProblemAction.LOG.name()).toUpperCase());

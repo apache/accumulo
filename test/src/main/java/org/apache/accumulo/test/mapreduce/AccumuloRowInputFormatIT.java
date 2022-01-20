@@ -31,7 +31,6 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Key;
@@ -55,7 +54,7 @@ import org.junit.Test;
 /**
  * This tests deprecated mapreduce code in core jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
 
   private static final String ROW1 = "row1";
@@ -193,7 +192,7 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
-      try (BatchWriter writer = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+      try (BatchWriter writer = client.createBatchWriter(tableName)) {
         insertList(writer, row1);
         insertList(writer, row2);
         insertList(writer, row3);

@@ -19,28 +19,24 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static java.util.Objects.requireNonNull;
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ReplicationOperations;
-import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -52,39 +48,33 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Deprecated
 public class ReplicationOperationsImpl implements ReplicationOperations {
   private static final Logger log = LoggerFactory.getLogger(ReplicationOperationsImpl.class);
 
   private final ClientContext context;
 
   public ReplicationOperationsImpl(ClientContext context) {
-    requireNonNull(context);
-    this.context = context;
+    this.context = requireNonNull(context);
   }
 
   @Override
   public void addPeer(final String name, final String replicaType)
       throws AccumuloException, AccumuloSecurityException {
-    requireNonNull(name);
-    requireNonNull(replicaType);
-    context.instanceOperations().setProperty(Property.REPLICATION_PEERS.getKey() + name,
-        replicaType);
+    context.instanceOperations().setProperty(
+        Property.REPLICATION_PEERS.getKey() + requireNonNull(name), requireNonNull(replicaType));
   }
 
   @Override
   public void removePeer(final String name) throws AccumuloException, AccumuloSecurityException {
-    requireNonNull(name);
-    context.instanceOperations().removeProperty(Property.REPLICATION_PEERS.getKey() + name);
+    context.instanceOperations()
+        .removeProperty(Property.REPLICATION_PEERS.getKey() + requireNonNull(name));
   }
 
   @Override
   public void drain(String tableName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    requireNonNull(tableName);
-
-    Set<String> wals = referencedFiles(tableName);
-
-    drain(tableName, wals);
+    drain(tableName, referencedFiles(requireNonNull(tableName)));
   }
 
   @Override
@@ -95,11 +85,11 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     final TInfo tinfo = TraceUtil.traceInfo();
     final TCredentials rpcCreds = context.rpcCreds();
 
-    // Ask the master if the table is fully replicated given these WALs, but don't poll inside the
-    // master
+    // Ask the manager if the table is fully replicated given these WALs, but don't poll inside the
+    // manager
     boolean drained = false;
     while (!drained) {
-      drained = getMasterDrain(tinfo, rpcCreds, tableName, wals);
+      drained = getManagerDrain(tinfo, rpcCreds, tableName, wals);
 
       if (!drained) {
         try {
@@ -112,50 +102,27 @@ public class ReplicationOperationsImpl implements ReplicationOperations {
     }
   }
 
-  protected boolean getMasterDrain(final TInfo tinfo, final TCredentials rpcCreds,
+  protected boolean getManagerDrain(final TInfo tinfo, final TCredentials rpcCreds,
       final String tableName, final Set<String> wals)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    return MasterClient.execute(context,
+    return ManagerClient.execute(context,
         client -> client.drainReplicationTable(tinfo, rpcCreds, tableName, wals));
-  }
-
-  protected TableId getTableId(AccumuloClient client, String tableName)
-      throws TableNotFoundException {
-    TableOperations tops = client.tableOperations();
-
-    if (!client.tableOperations().exists(tableName)) {
-      throw new TableNotFoundException(null, tableName, null);
-    }
-
-    String tableId = null;
-    while (tableId == null) {
-      tableId = tops.tableIdMap().get(tableName);
-      if (tableId == null) {
-        sleepUninterruptibly(200, TimeUnit.MILLISECONDS);
-      }
-    }
-
-    return TableId.of(tableId);
   }
 
   @Override
   public Set<String> referencedFiles(String tableName) throws TableNotFoundException {
-    requireNonNull(tableName);
-
     log.debug("Collecting referenced files for replication of table {}", tableName);
-
-    TableId tableId = getTableId(context, tableName);
-
+    TableId tableId = context.getTableId(tableName);
     log.debug("Found id of {} for name {}", tableId, tableName);
 
     // Get the WALs currently referenced by the table
     BatchScanner metaBs = context.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 4);
-    metaBs.setRanges(Collections.singleton(MetadataSchema.TabletsSection.getRange(tableId)));
+    metaBs.setRanges(Collections.singleton(TabletsSection.getRange(tableId)));
     metaBs.fetchColumnFamily(LogColumnFamily.NAME);
     Set<String> wals = new HashSet<>();
     try {
       for (Entry<Key,Value> entry : metaBs) {
-        LogEntry logEntry = LogEntry.fromKeyValue(entry.getKey(), entry.getValue());
+        LogEntry logEntry = LogEntry.fromMetaWalEntry(entry);
         wals.add(new Path(logEntry.filename).toString());
       }
     } finally {

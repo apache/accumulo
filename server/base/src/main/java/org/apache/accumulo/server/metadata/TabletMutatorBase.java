@@ -22,19 +22,31 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SuspendingTServer;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.fate.FateTxId;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 
@@ -48,17 +60,17 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   protected AutoCloseable closeAfterMutate;
   private boolean updatesEnabled = true;
 
-  protected TabletMutatorBase(ServerContext ctx, KeyExtent extent) {
+  protected TabletMutatorBase(ServerContext context, KeyExtent extent) {
     this.extent = extent;
-    this.context = ctx;
-    mutation = new Mutation(extent.getMetadataEntry());
+    this.context = context;
+    mutation = new Mutation(extent.toMetaRow());
   }
 
   @Override
   public Ample.TabletMutator putPrevEndRow(Text per) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN.put(mutation,
-        KeyExtent.encodePrevEndRow(extent.getPrevEndRow()));
+    TabletColumnFamily.PREV_ROW_COLUMN.put(mutation,
+        TabletColumnFamily.encodePrevEndRow(extent.prevEndRow()));
     return this;
   }
 
@@ -66,7 +78,7 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   public Ample.TabletMutator putDirName(String dirName) {
     ServerColumnFamily.validateDirCol(dirName);
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.put(mutation, new Value(dirName));
+    ServerColumnFamily.DIRECTORY_COLUMN.put(mutation, new Value(dirName));
     return this;
   }
 
@@ -87,7 +99,7 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator putScan(TabletFile path) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(ScanFileColumnFamily.NAME, path.getMetaInsertText(), new Value(new byte[0]));
+    mutation.put(ScanFileColumnFamily.NAME, path.getMetaInsertText(), new Value());
     return this;
   }
 
@@ -101,56 +113,55 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator putCompactionId(long compactionId) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    TabletsSection.ServerColumnFamily.COMPACT_COLUMN.put(mutation,
-        new Value(Long.toString(compactionId)));
+    ServerColumnFamily.COMPACT_COLUMN.put(mutation, new Value(Long.toString(compactionId)));
     return this;
   }
 
   @Override
   public Ample.TabletMutator putFlushId(long flushId) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    TabletsSection.ServerColumnFamily.FLUSH_COLUMN.put(mutation, new Value(Long.toString(flushId)));
+    ServerColumnFamily.FLUSH_COLUMN.put(mutation, new Value(Long.toString(flushId)));
     return this;
   }
 
   @Override
   public Ample.TabletMutator putTime(MetadataTime time) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mutation, new Value(time.encode()));
+    ServerColumnFamily.TIME_COLUMN.put(mutation, new Value(time.encode()));
     return this;
   }
 
   private String getLocationFamily(LocationType type) {
     switch (type) {
       case CURRENT:
-        return TabletsSection.CurrentLocationColumnFamily.STR_NAME;
+        return CurrentLocationColumnFamily.STR_NAME;
       case FUTURE:
-        return TabletsSection.FutureLocationColumnFamily.STR_NAME;
+        return FutureLocationColumnFamily.STR_NAME;
       case LAST:
-        return TabletsSection.LastLocationColumnFamily.STR_NAME;
+        return LastLocationColumnFamily.STR_NAME;
       default:
         throw new IllegalArgumentException();
     }
   }
 
   @Override
-  public Ample.TabletMutator putLocation(Ample.TServer tsi, LocationType type) {
+  public Ample.TabletMutator putLocation(TServerInstance tsi, LocationType type) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(getLocationFamily(type), tsi.getSession(), tsi.getLocation().toString());
+    mutation.put(getLocationFamily(type), tsi.getSession(), tsi.getHostPort());
     return this;
   }
 
   @Override
-  public Ample.TabletMutator deleteLocation(Ample.TServer tsi, LocationType type) {
+  public Ample.TabletMutator deleteLocation(TServerInstance tsi, LocationType type) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.putDelete(getLocationFamily(type), tsi.getSession());
     return this;
   }
 
   @Override
-  public Ample.TabletMutator putZooLock(ZooLock zooLock) {
+  public Ample.TabletMutator putZooLock(ServiceLock zooLock) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    TabletsSection.ServerColumnFamily.LOCK_COLUMN.put(mutation,
+    ServerColumnFamily.LOCK_COLUMN.put(mutation,
         new Value(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/")));
     return this;
   }
@@ -172,29 +183,59 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator deleteWal(String wal) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(MetadataSchema.TabletsSection.LogColumnFamily.STR_NAME, wal);
+    mutation.putDelete(LogColumnFamily.STR_NAME, wal);
     return this;
   }
 
   @Override
   public Ample.TabletMutator putBulkFile(TabletFile bulkref, long tid) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(TabletsSection.BulkFileColumnFamily.NAME, bulkref.getMetaInsertText(),
+    mutation.put(BulkFileColumnFamily.NAME, bulkref.getMetaInsertText(),
         new Value(FateTxId.formatTid(tid)));
     return this;
   }
 
   @Override
-  public Ample.TabletMutator deleteBulkFile(Ample.FileMeta bulkref) {
+  public Ample.TabletMutator deleteBulkFile(TabletFile bulkref) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(TabletsSection.BulkFileColumnFamily.NAME, bulkref.meta());
+    mutation.putDelete(BulkFileColumnFamily.NAME, bulkref.getMetaInsertText());
     return this;
   }
 
   @Override
   public Ample.TabletMutator putChopped() {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    TabletsSection.ChoppedColumnFamily.CHOPPED_COLUMN.put(mutation, new Value("chopped"));
+    ChoppedColumnFamily.CHOPPED_COLUMN.put(mutation, new Value("chopped"));
+    return this;
+  }
+
+  @Override
+  public Ample.TabletMutator putSuspension(TServerInstance tServer, long suspensionTime) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    mutation.put(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily(),
+        SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier(),
+        SuspendingTServer.toValue(tServer, suspensionTime));
+    return this;
+  }
+
+  @Override
+  public Ample.TabletMutator deleteSuspension() {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    mutation.putDelete(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily(),
+        SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier());
+    return this;
+  }
+
+  @Override
+  public TabletMutator putExternalCompaction(ExternalCompactionId ecid,
+      ExternalCompactionMetadata ecMeta) {
+    mutation.put(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical(), ecMeta.toJson());
+    return this;
+  }
+
+  @Override
+  public TabletMutator deleteExternalCompaction(ExternalCompactionId ecid) {
+    mutation.putDelete(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical());
     return this;
   }
 

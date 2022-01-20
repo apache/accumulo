@@ -26,7 +26,6 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Random;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -54,7 +53,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class BloomFilterLayerLookupTest {
 
   private static final Logger log = LoggerFactory.getLogger(BloomFilterLayerLookupTest.class);
-  private static Random random = new SecureRandom();
+  private static final SecureRandom random = new SecureRandom();
 
   @Rule
   public TestName testName = new TestName();
@@ -139,7 +138,7 @@ public class BloomFilterLayerLookupTest {
     t2 = System.currentTimeMillis();
 
     double rate2 = 500 / ((t2 - t1) / 1000.0);
-    log.debug(String.format("existant lookup rate %6.2f%n", rate2));
+    log.debug(String.format("existing lookup rate %6.2f%n", rate2));
     log.debug("expected hits 500.  Receive hits: {}", count);
     bmfr.close();
 

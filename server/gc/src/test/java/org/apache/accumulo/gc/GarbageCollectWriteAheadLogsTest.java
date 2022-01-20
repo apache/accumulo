@@ -33,24 +33,30 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.replication.ReplicationSchema;
-import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
-import org.apache.accumulo.server.master.LiveTServerSet;
-import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.master.state.TabletLocationState;
+import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
 public class GarbageCollectWriteAheadLogsTest {
+
+  @SuppressWarnings("deprecation")
+  private static final String REPL_TABLE_NAME =
+      org.apache.accumulo.core.replication.ReplicationTable.NAME;
+
+  @SuppressWarnings("deprecation")
+  private static final Text STATUS_SECTION_NAME = ReplicationSchema.StatusSection.NAME;
 
   private final TServerInstance server1 = new TServerInstance("localhost:1234[SESSION]");
   private final TServerInstance server2 = new TServerInstance("localhost:1234[OTHERSESS]");
@@ -60,7 +66,7 @@ public class GarbageCollectWriteAheadLogsTest {
   private final Map<TServerInstance,List<UUID>> markers2 =
       Collections.singletonMap(server2, Collections.singletonList(id));
   private final Path path = new Path("hdfs://localhost:9000/accumulo/wal/localhost+1234/" + id);
-  private final KeyExtent extent = new KeyExtent(new Text("1<"), new Text(new byte[] {0}));
+  private final KeyExtent extent = KeyExtent.fromMetaRow(new Text("1<"));
   private final Collection<Collection<String>> walogs = Collections.emptyList();
   private final TabletLocationState tabletAssignedToServer1;
   private final TabletLocationState tabletAssignedToServer2;
@@ -105,6 +111,7 @@ public class GarbageCollectWriteAheadLogsTest {
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
         tserverSet, marker, tabletOnServer1List) {
       @Override
+      @Deprecated
       protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) {
         return 0;
       }
@@ -137,6 +144,7 @@ public class GarbageCollectWriteAheadLogsTest {
     GarbageCollectWriteAheadLogs gc = new GarbageCollectWriteAheadLogs(context, fs, false,
         tserverSet, marker, tabletOnServer1List) {
       @Override
+      @Deprecated
       protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) {
         return 0;
       }
@@ -168,17 +176,17 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers2).once();
     EasyMock.expect(marker.state(server2, id)).andReturn(new Pair<>(WalState.OPEN, path));
 
-    EasyMock.expect(context.createScanner(ReplicationTable.NAME, Authorizations.EMPTY))
+    EasyMock.expect(context.createScanner(REPL_TABLE_NAME, Authorizations.EMPTY))
         .andReturn(rscanner);
-    rscanner.fetchColumnFamily(ReplicationSchema.StatusSection.NAME);
+    rscanner.fetchColumnFamily(STATUS_SECTION_NAME);
     EasyMock.expectLastCall().once();
     EasyMock.expect(rscanner.iterator()).andReturn(emptyKV);
 
     EasyMock.expect(context.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
         .andReturn(mscanner);
-    mscanner.fetchColumnFamily(MetadataSchema.ReplicationSection.COLF);
+    mscanner.fetchColumnFamily(ReplicationSection.COLF);
     EasyMock.expectLastCall().once();
-    mscanner.setRange(MetadataSchema.ReplicationSection.getRange());
+    mscanner.setRange(ReplicationSection.getRange());
     EasyMock.expectLastCall().once();
     EasyMock.expect(mscanner.iterator()).andReturn(emptyKV);
     EasyMock.expect(fs.deleteRecursively(path)).andReturn(true).once();
@@ -216,17 +224,17 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers2).once();
     EasyMock.expect(marker.state(server2, id)).andReturn(new Pair<>(WalState.OPEN, path));
 
-    EasyMock.expect(context.createScanner(ReplicationTable.NAME, Authorizations.EMPTY))
+    EasyMock.expect(context.createScanner(REPL_TABLE_NAME, Authorizations.EMPTY))
         .andReturn(rscanner);
-    rscanner.fetchColumnFamily(ReplicationSchema.StatusSection.NAME);
+    rscanner.fetchColumnFamily(STATUS_SECTION_NAME);
     EasyMock.expectLastCall().once();
     EasyMock.expect(rscanner.iterator()).andReturn(emptyKV);
 
     EasyMock.expect(context.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
         .andReturn(mscanner);
-    mscanner.fetchColumnFamily(MetadataSchema.ReplicationSection.COLF);
+    mscanner.fetchColumnFamily(ReplicationSection.COLF);
     EasyMock.expectLastCall().once();
-    mscanner.setRange(MetadataSchema.ReplicationSection.getRange());
+    mscanner.setRange(ReplicationSection.getRange());
     EasyMock.expectLastCall().once();
     EasyMock.expect(mscanner.iterator()).andReturn(emptyKV);
     EasyMock.replay(context, fs, marker, tserverSet, rscanner, mscanner);
@@ -249,11 +257,11 @@ public class GarbageCollectWriteAheadLogsTest {
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
     Scanner mscanner = EasyMock.createMock(Scanner.class);
     Scanner rscanner = EasyMock.createMock(Scanner.class);
-    String row = MetadataSchema.ReplicationSection.getRowPrefix() + path;
-    String colf = MetadataSchema.ReplicationSection.COLF.toString();
+    String row = ReplicationSection.getRowPrefix() + path;
+    String colf = ReplicationSection.COLF.toString();
     String colq = "1";
     Map<Key,Value> replicationWork =
-        Collections.singletonMap(new Key(row, colf, colq), new Value(new byte[0]));
+        Collections.singletonMap(new Key(row, colf, colq), new Value());
 
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 
@@ -264,17 +272,17 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers).once();
     EasyMock.expect(marker.state(server1, id)).andReturn(new Pair<>(WalState.UNREFERENCED, path));
 
-    EasyMock.expect(context.createScanner(ReplicationTable.NAME, Authorizations.EMPTY))
+    EasyMock.expect(context.createScanner(REPL_TABLE_NAME, Authorizations.EMPTY))
         .andReturn(rscanner);
-    rscanner.fetchColumnFamily(ReplicationSchema.StatusSection.NAME);
+    rscanner.fetchColumnFamily(STATUS_SECTION_NAME);
     EasyMock.expectLastCall().once();
     EasyMock.expect(rscanner.iterator()).andReturn(emptyKV);
 
     EasyMock.expect(context.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
         .andReturn(mscanner);
-    mscanner.fetchColumnFamily(MetadataSchema.ReplicationSection.COLF);
+    mscanner.fetchColumnFamily(ReplicationSection.COLF);
     EasyMock.expectLastCall().once();
-    mscanner.setRange(MetadataSchema.ReplicationSection.getRange());
+    mscanner.setRange(ReplicationSection.getRange());
     EasyMock.expectLastCall().once();
     EasyMock.expect(mscanner.iterator()).andReturn(replicationWork.entrySet().iterator());
     EasyMock.replay(context, fs, marker, tserverSet, rscanner, mscanner);

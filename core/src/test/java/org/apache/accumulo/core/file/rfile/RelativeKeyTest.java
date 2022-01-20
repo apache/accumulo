@@ -194,6 +194,7 @@ public class RelativeKeyTest {
     RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey, expectedKeys.size() + 1);
   }
 
+  @Test
   public void testSeekAfterEverything() throws IOException {
     Key seekKey = new Key("s", "t", "u", "v", 1);
     Key prevKey = new Key();

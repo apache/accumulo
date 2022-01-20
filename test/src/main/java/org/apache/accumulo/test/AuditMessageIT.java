@@ -95,7 +95,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
   private AccumuloClient client;
 
   private static long findAuditMessage(ArrayList<String> input, String pattern) {
-    return input.stream().filter(s -> s.matches(".*" + pattern + ".*")).count();
+    return input.stream().filter(Pattern.compile(".*" + pattern + ".*").asMatchPredicate()).count();
   }
 
   /**
@@ -124,13 +124,13 @@ public class AuditMessageIT extends ConfigurableMacBase {
       // We want to grab the files called .out
       if (file.getName().contains(".out") && file.isFile() && file.canRead()) {
         try (java.util.Scanner it = new java.util.Scanner(file, UTF_8)) {
+          // strip off prefix, because log4j.properties does
+          final var pattern = Pattern.compile(".* \\["
+              + AuditedSecurityOperation.AUDITLOG.replace("org.apache.", "").replace(".", "[.]")
+              + "\\] .*");
           while (it.hasNext()) {
             String line = it.nextLine();
-            // strip off prefix, because log4j.properties does
-            String pattern = ".* \\["
-                + AuditedSecurityOperation.AUDITLOG.replace("org.apache.", "").replace(".", "[.]")
-                + "\\] .*";
-            if (line.matches(pattern)) {
+            if (pattern.matcher(line).matches()) {
               // Only include the message if startTimestamp is null. or the message occurred after
               // the startTimestamp value
               if ((lastAuditTimestamp == null)
@@ -330,9 +330,10 @@ public class AuditMessageIT extends ConfigurableMacBase {
     String filePrefix = "file:";
 
     try (java.util.Scanner it = new java.util.Scanner(distCpTxt, UTF_8)) {
+      var pattern = Pattern.compile(".*\\.rf");
       while (it.hasNext() && importFile == null) {
         String line = it.nextLine();
-        if (line.matches(".*\\.rf")) {
+        if (pattern.matcher(line).matches()) {
           importFile = new File(line.replaceFirst(filePrefix, ""));
         }
       }
@@ -358,10 +359,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE,
                 "offlineTable", OLD_TEST_TABLE_NAME)));
-    assertEquals(1,
-        findAuditMessage(auditMessages,
-            String.format(AuditedSecurityOperation.CAN_EXPORT_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME,
-                exportDir.toString())));
+    assertEquals(1, findAuditMessage(auditMessages, String.format(
+        AuditedSecurityOperation.CAN_EXPORT_AUDIT_TEMPLATE, OLD_TEST_TABLE_NAME, exportDir)));
     assertEquals(1,
         findAuditMessage(auditMessages,
             String.format(AuditedSecurityOperation.CAN_IMPORT_AUDIT_TEMPLATE, NEW_TEST_TABLE_NAME,
@@ -459,7 +458,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
       auditAccumuloClient.tableOperations().rename(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME);
     } catch (AccumuloSecurityException ex) {}
     try {
-      auditAccumuloClient.tableOperations().clone(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME, true,
+      auditAccumuloClient.tableOperations().clone(OLD_TEST_TABLE_NAME, NEW_TEST_TABLE_NAME, false,
           Collections.emptyMap(), Collections.emptySet());
     } catch (AccumuloSecurityException ex) {}
     try {
@@ -474,6 +473,10 @@ public class AuditMessageIT extends ConfigurableMacBase {
     try {
       auditAccumuloClient.tableOperations().deleteRows(OLD_TEST_TABLE_NAME, new Text("myRow"),
           new Text("myRow~"));
+    } catch (AccumuloSecurityException ex) {}
+    try {
+      auditAccumuloClient.tableOperations().flush(OLD_TEST_TABLE_NAME, new Text("myRow"),
+          new Text("myRow~"), false);
     } catch (AccumuloSecurityException ex) {}
 
     // ... that will do for now.
@@ -506,6 +509,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
             "operation: denied;.*"
                 + String.format(AuditedSecurityOperation.CAN_DELETE_RANGE_AUDIT_TEMPLATE,
                     OLD_TEST_TABLE_NAME, "myRow", "myRow~")));
+    assertEquals(1, findAuditMessage(auditMessages, "operation: denied;.*" + String
+        .format(AuditedSecurityOperation.CAN_FLUSH_TABLE_AUDIT_TEMPLATE, "1", "\\+default")));
   }
 
   @Test

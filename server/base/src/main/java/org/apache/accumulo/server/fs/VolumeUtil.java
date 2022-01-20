@@ -31,11 +31,9 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
-import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ReplicationTableUtil;
@@ -57,8 +55,9 @@ public class VolumeUtil {
   }
 
   public static Path removeTrailingSlash(Path path) {
-    if (path.toString().endsWith("/"))
-      return new Path(removeTrailingSlash(path.toString()));
+    String pathStr = path.toString();
+    if (pathStr.endsWith("/"))
+      return new Path(removeTrailingSlash(pathStr));
     return path;
   }
 
@@ -104,7 +103,7 @@ public class VolumeUtil {
       return null;
     }
 
-    LogEntry newLogEntry = new LogEntry(le.extent, le.timestamp, le.server, switchedString);
+    LogEntry newLogEntry = le.switchFile(switchedString);
 
     log.trace("Switched {} to {}", le, newLogEntry);
 
@@ -134,10 +133,9 @@ public class VolumeUtil {
    * configured in instance.volumes.replacements. Second, if a tablet dir is no longer configured
    * for use it chooses a new tablet directory.
    */
-  public static TabletFiles updateTabletVolumes(ServerContext context, ZooLock zooLock,
+  public static TabletFiles updateTabletVolumes(ServerContext context, ServiceLock zooLock,
       KeyExtent extent, TabletFiles tabletFiles, boolean replicate) {
-    List<Pair<Path,Path>> replacements =
-        ServerConstants.getVolumeReplacements(context.getConfiguration(), context.getHadoopConf());
+    List<Pair<Path,Path>> replacements = context.getVolumeReplacements();
     if (replacements.isEmpty())
       return tabletFiles;
     log.trace("Using volume replacements: {}", replacements);
@@ -181,7 +179,8 @@ public class VolumeUtil {
       MetadataTableUtil.updateTabletVolumes(extent, logsToRemove, logsToAdd, filesToRemove,
           filesToAdd, zooLock, context);
       if (replicate) {
-        Status status = StatusUtil.fileClosed();
+        @SuppressWarnings("deprecation")
+        Status status = org.apache.accumulo.server.replication.StatusUtil.fileClosed();
         log.debug("Tablet directory switched, need to record old log files {} {}", logsToRemove,
             ProtobufUtil.toString(status));
         // Before deleting these logs, we need to mark them for replication

@@ -26,7 +26,7 @@ import org.apache.commons.cli.CommandLine;
  * @deprecated since 2.0; this command shouldn't be used; users should configure debug logging with
  *             their log configuration file instead
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class DebugCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) {

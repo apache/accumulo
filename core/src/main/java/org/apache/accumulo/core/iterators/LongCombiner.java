@@ -45,8 +45,8 @@ import org.apache.hadoop.io.WritableUtils;
  * (translated to Longs) for all non-deleted versions of that Key.
  *
  * A required option for this Combiner is "type" which indicates which type of Encoder to use to
- * encode and decode Longs into Values. Supported types are VARNUM, LONG, and STRING which indicate
- * the VarNumEncoder, LongEncoder, and StringEncoder respectively.
+ * encode and decode Longs into Values. Supported types are VARLEN, FIXEDLEN, and STRING which
+ * indicate the VarLenEncoder, FixedLenEncoder, and StringEncoder respectively.
  */
 public abstract class LongCombiner extends TypedValueCombiner<Long> {
   public static final Encoder<Long> FIXED_LEN_ENCODER = new FixedLenEncoder();

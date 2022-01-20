@@ -53,11 +53,12 @@ public class DeleteCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
       ConstraintViolationException {
-    shellState.checkTableState();
 
     final Mutation m = new Mutation(new Text(cl.getArgs()[0].getBytes(Shell.CHARSET)));
     final Text colf = new Text(cl.getArgs()[1].getBytes(Shell.CHARSET));
     final Text colq = new Text(cl.getArgs()[2].getBytes(Shell.CHARSET));
+
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     if (cl.hasOption(deleteOptAuths.getOpt())) {
       final ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(deleteOptAuths.getOpt()));
@@ -71,10 +72,9 @@ public class DeleteCommand extends Command {
     } else {
       m.putDelete(colf, colq);
     }
-    final BatchWriter bw =
-        shellState.getAccumuloClient().createBatchWriter(shellState.getTableName(),
-            new BatchWriterConfig().setMaxMemory(Math.max(m.estimatedMemoryUsed(), 1024))
-                .setMaxWriteThreads(1).setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS));
+    final BatchWriter bw = shellState.getAccumuloClient().createBatchWriter(tableName,
+        new BatchWriterConfig().setMaxMemory(Math.max(m.estimatedMemoryUsed(), 1024))
+            .setMaxWriteThreads(1).setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS));
     bw.addMutation(m);
     bw.close();
     return 0;
@@ -107,6 +107,8 @@ public class DeleteCommand extends Command {
             + " given assumes seconds. Units d,h,m,s,and ms are supported. e.g. 30s" + " or 100ms");
     timeoutOption.setArgName("timeout");
     o.addOption(timeoutOption);
+
+    o.addOption(OptUtil.tableOpt("table from which data will be deleted"));
 
     return o;
   }

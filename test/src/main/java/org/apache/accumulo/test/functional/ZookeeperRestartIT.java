@@ -86,7 +86,7 @@ public class ZookeeperRestartIT extends ConfigurableMacBase {
         assertTrue(i.hasNext());
         assertEquals("row", i.next().getKey().getRow().toString());
         assertFalse(i.hasNext());
-        // use the master
+        // use the manager
         c.tableOperations().delete("test_ingest");
       }
     }

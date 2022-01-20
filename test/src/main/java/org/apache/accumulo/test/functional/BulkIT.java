@@ -31,13 +31,16 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestIngest.IngestParams;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
+import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 /**
  * Tests Old and New Bulk import
  */
+@Category(SunnyDayTests.class)
 public class BulkIT extends AccumuloClusterHarness {
 
   private static final int N = 100000;
@@ -69,7 +72,7 @@ public class BulkIT extends AccumuloClusterHarness {
   static void runTest(AccumuloClient c, ClientInfo info, FileSystem fs, Path basePath,
       String tableName, String filePrefix, String dirSuffix, boolean useOld) throws Exception {
     c.tableOperations().create(tableName);
-    Path base = new Path(fs.getUri().toString() + basePath, "testBulkFail_" + dirSuffix);
+    Path base = new Path(basePath, "testBulkFail_" + dirSuffix);
     fs.delete(base, true);
     fs.mkdirs(base);
     fs.deleteOnExit(base);
@@ -117,7 +120,25 @@ public class BulkIT extends AccumuloClusterHarness {
       c.tableOperations().importDirectory(tableName, files.toString(), bulkFailures.toString(),
           false);
     } else {
+      // not appending the 'ignoreEmptyDir' method defaults to not ignoring empty directories.
       c.tableOperations().importDirectory(files.toString()).to(tableName).load();
+      try {
+        // if run again, the expected IllegalArgrumentException is thrown
+        c.tableOperations().importDirectory(files.toString()).to(tableName).load();
+      } catch (IllegalArgumentException ex) {
+        // expected exception to be thrown
+      }
+      // re-run using the ignoreEmptyDir option and no error should be thrown since empty
+      // directories will be ignored
+      c.tableOperations().importDirectory(files.toString()).to(tableName).ignoreEmptyDir(true)
+          .load();
+      try {
+        // setting ignoreEmptyDir to false, explicitly, results in exception being thrown again.
+        c.tableOperations().importDirectory(files.toString()).to(tableName).ignoreEmptyDir(false)
+            .load();
+      } catch (IllegalArgumentException ex) {
+        // expected exception to be thrown
+      }
     }
   }
 }

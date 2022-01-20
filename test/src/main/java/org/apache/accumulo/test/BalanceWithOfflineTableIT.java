@@ -20,12 +20,13 @@ package org.apache.accumulo.test;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
@@ -37,7 +38,7 @@ public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 30;
+    return 120;
   }
 
   @Override
@@ -76,12 +77,12 @@ public class BalanceWithOfflineTableIT extends ConfigurableMacBase {
 
       log.info("Waiting for balance");
 
-      SimpleThreadPool pool = new SimpleThreadPool(1, "waitForBalance");
+      ExecutorService pool = ThreadPools.createFixedThreadPool(1, "waitForBalance");
       Future<Boolean> wait = pool.submit(() -> {
         c.instanceOperations().waitForBalance();
         return true;
       });
-      wait.get(20, TimeUnit.SECONDS);
+      wait.get((2 * defaultTimeoutSeconds()) / 3, TimeUnit.SECONDS);
       log.info("Balance succeeded with an offline table");
     }
   }

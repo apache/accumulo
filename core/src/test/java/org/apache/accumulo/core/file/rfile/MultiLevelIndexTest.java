@@ -18,18 +18,18 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType.JAVA;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.security.SecureRandom;
-import java.util.Random;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
-import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
@@ -47,6 +47,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.junit.Test;
 
 public class MultiLevelIndexTest {
+  private static final SecureRandom random = new SecureRandom();
   private Configuration hadoopConf = new Configuration();
 
   @Test
@@ -66,7 +67,7 @@ public class MultiLevelIndexTest {
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     FSDataOutputStream dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
     BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", hadoopConf,
-        CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA));
+        CryptoServiceFactory.newInstance(aconf, JAVA));
 
     BufferedWriter mliw = new BufferedWriter(new Writer(_cbw, maxBlockSize));
 
@@ -86,8 +87,8 @@ public class MultiLevelIndexTest {
     byte[] data = baos.toByteArray();
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in = new FSDataInputStream(bais);
-    CachableBuilder cb = new CachableBuilder().input(in).length(data.length).conf(hadoopConf)
-        .cryptoService(CryptoServiceFactory.newInstance(aconf, ClassloaderType.JAVA));
+    CachableBuilder cb = new CachableBuilder().input(in, "source-1").length(data.length)
+        .conf(hadoopConf).cryptoService(CryptoServiceFactory.newInstance(aconf, JAVA));
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(cb);
 
     Reader reader = new Reader(_cbr, RFile.RINDEX_VER_8);
@@ -118,18 +119,19 @@ public class MultiLevelIndexTest {
     liter = reader.lookup(new Key(String.format("%05d000", num + 1)));
     assertFalse(liter.hasNext());
 
-    Random rand = new SecureRandom();
-    for (int i = 0; i < 100; i++) {
-      int k = rand.nextInt(num * 1000);
+    random.ints(100, 0, num * 1_000).forEach(k -> {
       int expected;
       if (k % 1000 == 0)
         expected = k / 1000; // end key is inclusive
       else
         expected = k / 1000 + 1;
-      liter = reader.lookup(new Key(String.format("%08d", k)));
-      IndexEntry ie = liter.next();
-      assertEquals(expected, ie.getNumEntries());
-    }
+      try {
+        IndexEntry ie = reader.lookup(new Key(String.format("%08d", k))).next();
+        assertEquals(expected, ie.getNumEntries());
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    });
 
   }
 

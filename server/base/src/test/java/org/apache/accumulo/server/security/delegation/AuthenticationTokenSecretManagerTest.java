@@ -269,7 +269,7 @@ public class AuthenticationTokenSecretManagerTest {
   }
 
   @Test(expected = InvalidToken.class)
-  public void testRolledMasterKey() throws Exception {
+  public void testRolledManagerKey() throws Exception {
     // start of the test
     long then = System.currentTimeMillis();
 
@@ -304,7 +304,7 @@ public class AuthenticationTokenSecretManagerTest {
   }
 
   @Test(timeout = 20 * 1000)
-  public void testMasterKeyExpiration() throws Exception {
+  public void testManagerKeyExpiration() throws Exception {
     ZooAuthenticationKeyDistributor keyDistributor =
         createMock(ZooAuthenticationKeyDistributor.class);
     // start of the test

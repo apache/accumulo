@@ -34,10 +34,8 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.crypto.CryptoUtils;
-import org.apache.accumulo.core.cryptoImpl.CryptoEnvironmentImpl;
-import org.apache.accumulo.core.cryptoImpl.NoFileDecrypter;
-import org.apache.accumulo.core.cryptoImpl.NoFileEncrypter;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils.Version;
 import org.apache.accumulo.core.file.streams.BoundedRangeFileInputStream;
@@ -48,6 +46,8 @@ import org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
+import org.apache.accumulo.core.spi.crypto.NoFileDecrypter;
+import org.apache.accumulo.core.spi.crypto.NoFileEncrypter;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -610,7 +610,7 @@ public final class BCFile {
       // Do a version check - API_VERSION_2 used experimental crypto parameters, no longer supported
       if (!version.compatibleWith(BCFile.API_VERSION_3)
           && !version.compatibleWith(BCFile.API_VERSION_1)) {
-        throw new IOException("Unsupported BCFile Version found: " + version.toString() + ". "
+        throw new IOException("Unsupported BCFile Version found: " + version + ". "
             + "Only support " + API_VERSION_1 + " or " + API_VERSION_3);
       }
 

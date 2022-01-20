@@ -26,6 +26,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.summary.SummarizerConfigurationUtil;
 
@@ -182,13 +184,13 @@ public class SummarizerConfiguration {
    * @since 2.0.0
    */
   public static class Builder {
-    private String className;
-    private ImmutableMap.Builder<String,String> imBuilder;
+    private final String className;
+    private final ImmutableMap.Builder<String,String> imBuilder = ImmutableMap.builder();
     private String configId = null;
+    private static final Predicate<String> ALPHANUM = Pattern.compile("\\w+").asMatchPredicate();
 
     private Builder(String className) {
       this.className = className;
-      this.imBuilder = ImmutableMap.builder();
     }
 
     /**
@@ -202,7 +204,7 @@ public class SummarizerConfiguration {
      * @see SummarizerConfiguration#toTableProperties()
      */
     public Builder setPropertyId(String propId) {
-      Preconditions.checkArgument(propId.matches("\\w+"), "Config Id %s is not alphanum", propId);
+      Preconditions.checkArgument(ALPHANUM.test(propId), "Config Id %s is not alphanum", propId);
       this.configId = propId;
       return this;
     }
@@ -215,7 +217,7 @@ public class SummarizerConfiguration {
      * @see SummarizerConfiguration#getOptions()
      */
     public Builder addOption(String key, String value) {
-      Preconditions.checkArgument(key.matches("\\w+"), "Option Id %s is not alphanum", key);
+      Preconditions.checkArgument(ALPHANUM.test(key), "Option Id %s is not alphanum", key);
       imBuilder.put(key, value);
       return this;
     }

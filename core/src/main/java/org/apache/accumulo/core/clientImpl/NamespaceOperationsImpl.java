@@ -20,8 +20,8 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.Constants.MAX_NAMESPACE_LEN;
-import static org.apache.accumulo.core.Constants.MAX_TABLE_NAME_LEN;
+import static org.apache.accumulo.core.util.Validators.EXISTING_NAMESPACE_NAME;
+import static org.apache.accumulo.core.util.Validators.NEW_NAMESPACE_NAME;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -30,7 +30,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -49,11 +48,11 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.master.thrift.FateOperation;
+import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
@@ -96,7 +95,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
   @Override
   public boolean exists(String namespace) {
-    checkArgument(namespace != null, "namespace is null");
+    EXISTING_NAMESPACE_NAME.validate(namespace);
 
     OpTimer timer = null;
 
@@ -110,7 +109,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     if (timer != null) {
       timer.stop();
-      log.trace("tid={} Checked existance of {} in {}", Thread.currentThread().getId(), exists,
+      log.trace("tid={} Checked existence of {} in {}", Thread.currentThread().getId(), exists,
           String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
     }
 
@@ -120,9 +119,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   @Override
   public void create(String namespace)
       throws AccumuloException, AccumuloSecurityException, NamespaceExistsException {
-    checkArgument(namespace != null, "namespace is null");
-    checkArgument(namespace.length() <= MAX_NAMESPACE_LEN,
-        "Namespace is longer than " + MAX_NAMESPACE_LEN + " characters");
+    NEW_NAMESPACE_NAME.validate(namespace);
+
     try {
       doNamespaceFateOperation(FateOperation.NAMESPACE_CREATE,
           Arrays.asList(ByteBuffer.wrap(namespace.getBytes(UTF_8))), Collections.emptyMap(),
@@ -136,9 +134,9 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   @Override
   public void delete(String namespace) throws AccumuloException, AccumuloSecurityException,
       NamespaceNotFoundException, NamespaceNotEmptyException {
-    checkArgument(namespace != null, "namespace is null");
-    NamespaceId namespaceId = Namespaces.getNamespaceId(context, namespace);
+    EXISTING_NAMESPACE_NAME.validate(namespace);
 
+    NamespaceId namespaceId = Namespaces.getNamespaceId(context, namespace);
     if (namespaceId.equals(Namespace.ACCUMULO.id()) || namespaceId.equals(Namespace.DEFAULT.id())) {
       Credentials credentials = context.getCredentials();
       log.debug("{} attempted to delete the {} namespace", credentials.getPrincipal(), namespaceId);
@@ -166,8 +164,9 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   public void rename(String oldNamespaceName, String newNamespaceName)
       throws AccumuloSecurityException, NamespaceNotFoundException, AccumuloException,
       NamespaceExistsException {
-    checkArgument(newNamespaceName.length() <= MAX_TABLE_NAME_LEN,
-        "Namespace is longer than " + MAX_TABLE_NAME_LEN + " characters");
+    EXISTING_NAMESPACE_NAME.validate(oldNamespaceName);
+    NEW_NAMESPACE_NAME.validate(newNamespaceName);
+
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldNamespaceName.getBytes(UTF_8)),
         ByteBuffer.wrap(newNamespaceName.getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
@@ -177,11 +176,11 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   @Override
   public void setProperty(final String namespace, final String property, final String value)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
-    checkArgument(namespace != null, "namespace is null");
+    EXISTING_NAMESPACE_NAME.validate(namespace);
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
 
-    MasterClient.executeNamespace(context,
+    ManagerClient.executeNamespace(context,
         client -> client.setNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(), namespace,
             property, value));
     checkLocalityGroups(namespace, property);
@@ -190,22 +189,22 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   @Override
   public void removeProperty(final String namespace, final String property)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
-    checkArgument(namespace != null, "namespace is null");
+    EXISTING_NAMESPACE_NAME.validate(namespace);
     checkArgument(property != null, "property is null");
 
-    MasterClient.executeNamespace(context, client -> client
+    ManagerClient.executeNamespace(context, client -> client
         .removeNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(), namespace, property));
     checkLocalityGroups(namespace, property);
   }
 
   @Override
-  public Iterable<Entry<String,String>> getProperties(final String namespace)
+  public Map<String,String> getConfiguration(final String namespace)
       throws AccumuloException, NamespaceNotFoundException {
-    checkArgument(namespace != null, "namespace is null");
+    EXISTING_NAMESPACE_NAME.validate(namespace);
+
     try {
       return ServerClient.executeRaw(context, client -> client
-          .getNamespaceConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), namespace))
-          .entrySet();
+          .getNamespaceConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
     } catch (ThriftTableOperationException e) {
       switch (e.getType()) {
         case NAMESPACE_NOTFOUND:
@@ -219,7 +218,6 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     } catch (Exception e) {
       throw new AccumuloException(e);
     }
-
   }
 
   @Override
@@ -234,7 +232,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   public boolean testClassLoad(final String namespace, final String className,
       final String asTypeName)
       throws NamespaceNotFoundException, AccumuloException, AccumuloSecurityException {
-    checkArgument(namespace != null, "namespace is null");
+    EXISTING_NAMESPACE_NAME.validate(namespace);
     checkArgument(className != null, "className is null");
     checkArgument(asTypeName != null, "asTypeName is null");
 
@@ -262,6 +260,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   public void attachIterator(String namespace, IteratorSetting setting,
       EnumSet<IteratorScope> scopes)
       throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
+    // testClassLoad validates the namespace name
     testClassLoad(namespace, setting.getIteratorClass(), SortedKeyValueIterator.class.getName());
     super.attachIterator(namespace, setting, scopes);
   }
@@ -269,6 +268,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   @Override
   public int addConstraint(String namespace, String constraintClassName)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
+    // testClassLoad validates the namespace name
     testClassLoad(namespace, constraintClassName, Constraint.class.getName());
     return super.addConstraint(namespace, constraintClassName);
   }
@@ -276,6 +276,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   private String doNamespaceFateOperation(FateOperation op, List<ByteBuffer> args,
       Map<String,String> opts, String namespace) throws AccumuloSecurityException,
       AccumuloException, NamespaceExistsException, NamespaceNotFoundException {
+    // caller should validate the namespace name
     try {
       return tableOps.doFateOperation(op, args, opts, namespace);
     } catch (TableExistsException | TableNotFoundException e) {
@@ -286,8 +287,10 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
   private void checkLocalityGroups(String namespace, String propChanged)
       throws AccumuloException, NamespaceNotFoundException {
+    EXISTING_NAMESPACE_NAME.validate(namespace);
+
     if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
-      Iterable<Entry<String,String>> allProps = getProperties(namespace);
+      Map<String,String> allProps = getConfiguration(namespace);
       try {
         LocalityGroupUtil.checkLocalityGroups(allProps);
       } catch (LocalityGroupConfigurationError | RuntimeException e) {

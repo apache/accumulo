@@ -60,6 +60,11 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
   private static final Logger log = LoggerFactory.getLogger(SessionBlockVerifyIT.class);
 
   @Override
+  public boolean canRunTest(ClusterType type) {
+    return type == ClusterType.MINI;
+  }
+
+  @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     cfg.setNumTservers(1);

@@ -23,6 +23,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestBinaryRows;
 import org.apache.hadoop.io.Text;
@@ -48,11 +49,11 @@ public class BinaryIT extends AccumuloClusterHarness {
   public void testPreSplit() throws Exception {
     String tableName = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      c.tableOperations().create(tableName);
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("8"));
       splits.add(new Text("256"));
-      c.tableOperations().addSplits(tableName, splits);
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+      c.tableOperations().create(tableName, ntc);
       runTest(c, tableName);
     }
   }

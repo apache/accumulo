@@ -35,9 +35,9 @@ public abstract class ActiveCompaction {
      */
     MINOR,
     /**
-     * compaction to flush a tablets memory and merge it with the tablets smallest file. This type
-     * compaction is done when a tablet has too many files
+     * Accumulo no longer does merging minor compactions.
      */
+    @Deprecated(since = "2.1.0", forRemoval = true)
     MERGE,
     /**
      * compaction that merges a subset of a tablets files into one file
@@ -128,4 +128,26 @@ public abstract class ActiveCompaction {
    * @return the per compaction iterators configured
    */
   public abstract List<IteratorSetting> getIterators();
+
+  /**
+   * @since 2.1.0
+   */
+  public interface CompactionHost {
+    enum Type {
+      TSERVER, COMPACTOR
+    }
+
+    Type getType();
+
+    String getAddress();
+
+    int getPort();
+  }
+
+  /**
+   * Return the host where the compaction is running.
+   *
+   * @since 2.1.0
+   */
+  public abstract CompactionHost getHost();
 }

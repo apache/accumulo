@@ -41,7 +41,7 @@ public class DefaultIteratorEnvironment implements IteratorEnvironment {
     this.conf = DefaultConfiguration.getInstance();
   }
 
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   @Override
   public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
       throws IOException {

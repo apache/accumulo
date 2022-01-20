@@ -58,9 +58,9 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.EmptyIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
-import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleMapIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.LocalityGroup;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator.DataSource;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -129,7 +129,7 @@ public class InMemoryMap {
     return pair.getSecond();
   }
 
-  public InMemoryMap(AccumuloConfiguration config, ServerContext serverContext, TableId tableId) {
+  public InMemoryMap(AccumuloConfiguration config, ServerContext context, TableId tableId) {
 
     boolean useNativeMap = config.getBoolean(Property.TSERV_NATIVEMAP_ENABLED);
 
@@ -137,7 +137,7 @@ public class InMemoryMap {
     this.lggroups = LocalityGroupUtil.getLocalityGroupsIgnoringErrors(config, tableId);
 
     this.config = config;
-    this.context = serverContext;
+    this.context = context;
 
     SimpleMap allMap;
     SimpleMap sampleMap;
@@ -159,7 +159,7 @@ public class InMemoryMap {
     if (useNativeMap && NativeMap.isLoaded()) {
       try {
         return new NativeMapWrapper();
-      } catch (Throwable t) {
+      } catch (Exception t) {
         log.error("Failed to create native map", t);
       }
     }
@@ -399,7 +399,7 @@ public class InMemoryMap {
       if (map == null)
         throw new IllegalStateException();
 
-      return new InterruptibleMapIterator(map, null);
+      return new SortedMapIterator(map);
     }
 
     @Override
@@ -703,8 +703,6 @@ public class InMemoryMap {
 
     int mc = kvCount.get();
     MemoryDataSource mds = new MemoryDataSource(iteratorSamplerConfig);
-    // TODO seems like a bug that two MemoryDataSources are created... may need to fix in older
-    // branches
     SourceSwitchingIterator ssi = new SourceSwitchingIterator(mds);
     MemoryIterator mi = new MemoryIterator(new PartialMutationSkippingIterator(ssi, mc));
     mi.setSSI(ssi);

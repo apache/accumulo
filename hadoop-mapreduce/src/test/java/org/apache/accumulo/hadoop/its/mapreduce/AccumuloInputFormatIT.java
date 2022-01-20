@@ -37,7 +37,6 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -74,7 +73,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
 /**
- * Tests the new MR API in the hadoop-mareduce package.
+ * Tests the new MR API in the hadoop-mapreduce package.
  *
  * @since 2.0
  */
@@ -218,7 +217,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
   private void insertData(String tableName, long ts)
       throws AccumuloException, TableNotFoundException {
-    BatchWriter bw = client.createBatchWriter(tableName, null);
+    BatchWriter bw = client.createBatchWriter(tableName);
 
     for (int i = 0; i < 10000; i++) {
       String row = String.format("%09d", i);
@@ -334,7 +333,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     final String TEST_TABLE_1 = getUniqueNames(1)[0];
 
     client.tableOperations().create(TEST_TABLE_1);
-    BatchWriter bw = client.createBatchWriter(TEST_TABLE_1, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(TEST_TABLE_1);
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
       m.put("", "", String.format("%09x", i));
@@ -358,7 +357,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
 
     client.tableOperations().create(TEST_TABLE_3,
         new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
-    BatchWriter bw = client.createBatchWriter(TEST_TABLE_3, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(TEST_TABLE_3);
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
       m.put("", "", String.format("%09x", i));
@@ -389,7 +388,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     final String TEST_TABLE_2 = getUniqueNames(1)[0];
 
     client.tableOperations().create(TEST_TABLE_2);
-    BatchWriter bw = client.createBatchWriter(TEST_TABLE_2, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(TEST_TABLE_2);
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
       m.put("", "", String.format("%09x", i));
@@ -442,7 +441,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
   public void testPartialInputSplitDelegationToConfiguration() throws Exception {
     String table = getUniqueNames(1)[0];
     client.tableOperations().create(table);
-    BatchWriter bw = client.createBatchWriter(table, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(table);
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
       m.put("", "", String.format("%09x", i));

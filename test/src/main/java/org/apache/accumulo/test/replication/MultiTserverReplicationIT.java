@@ -48,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterables;
 
 @Ignore("Replication ITs are not stable and not currently maintained")
+@Deprecated
 public class MultiTserverReplicationIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(MultiTserverReplicationIT.class);
 
@@ -81,7 +82,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
         try {
           byte[] portData =
               zreader.getData(ZooUtil.getRoot(client.instanceOperations().getInstanceID())
-                  + ReplicationConstants.ZOO_TSERVERS + "/" + tserver, null);
+                  + ReplicationConstants.ZOO_TSERVERS + "/" + tserver);
           HostAndPort replAddress = HostAndPort.fromString(new String(portData, UTF_8));
           replicationServices.add(replAddress);
         } catch (Exception e) {
@@ -97,7 +98,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
   }
 
   @Test
-  public void masterReplicationServicePortsAreAdvertised() throws Exception {
+  public void managerReplicationServicePortsAreAdvertised() throws Exception {
     // Wait for the cluster to be up
     AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build();
     ClientContext context = (ClientContext) client;
@@ -110,22 +111,22 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
       ZooReader zreader =
           new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
 
-      // Should have one master instance
-      assertEquals(1, context.getMasterLocations().size());
+      // Should have one manager instance
+      assertEquals(1, context.getManagerLocations().size());
 
-      // Get the master thrift service addr
-      String masterAddr = Iterables.getOnlyElement(context.getMasterLocations());
+      // Get the manager thrift service addr
+      String managerAddr = Iterables.getOnlyElement(context.getManagerLocations());
 
-      // Get the master replication coordinator addr
+      // Get the manager replication coordinator addr
       String replCoordAddr =
           new String(zreader.getData(ZooUtil.getRoot(client.instanceOperations().getInstanceID())
-              + Constants.ZMASTER_REPLICATION_COORDINATOR_ADDR, null), UTF_8);
+              + Constants.ZMANAGER_REPLICATION_COORDINATOR_ADDR), UTF_8);
 
       // They shouldn't be the same
-      assertNotEquals(masterAddr, replCoordAddr);
+      assertNotEquals(managerAddr, replCoordAddr);
 
       // Neither should be zero as the port
-      assertNotEquals(0, HostAndPort.fromString(masterAddr).getPort());
+      assertNotEquals(0, HostAndPort.fromString(managerAddr).getPort());
       assertNotEquals(0, HostAndPort.fromString(replCoordAddr).getPort());
     }
   }

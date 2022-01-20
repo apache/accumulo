@@ -18,18 +18,18 @@
  */
 package org.apache.accumulo.monitor.rest;
 
-import javax.inject.Inject;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response.Status;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response.Status;
 
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
-import org.apache.accumulo.monitor.rest.master.MasterResource;
+import org.apache.accumulo.monitor.rest.manager.ManagerResource;
 import org.apache.accumulo.monitor.rest.tables.TablesResource;
 import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 
@@ -52,14 +52,14 @@ public class XMLResource {
    */
   public SummaryInformation getInformation() {
 
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       throw new WebApplicationException(Status.INTERNAL_SERVER_ERROR);
     }
 
     // Add Monitor information
     SummaryInformation xml = new SummaryInformation(mmi.tServerInfo.size(),
-        MasterResource.getTables(monitor), TablesResource.getTables(monitor));
+        ManagerResource.getTables(monitor), TablesResource.getTables(monitor));
 
     // Add tserver information
     for (TabletServerStatus status : mmi.tServerInfo) {

@@ -37,13 +37,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Column;
@@ -57,7 +57,6 @@ import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
-import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
@@ -68,10 +67,8 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.OpTimer;
-import org.apache.htrace.wrappers.TraceRunnable;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,6 +79,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private final ClientContext context;
   private final TableId tableId;
+  private final String tableName;
   private Authorizations authorizations = Authorizations.EMPTY;
   private final int numThreads;
   private final ExecutorService queryThreadPool;
@@ -107,12 +105,13 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     void receive(List<Entry<Key,Value>> entries);
   }
 
-  public TabletServerBatchReaderIterator(ClientContext context, TableId tableId,
+  public TabletServerBatchReaderIterator(ClientContext context, TableId tableId, String tableName,
       Authorizations authorizations, ArrayList<Range> ranges, int numThreads,
       ExecutorService queryThreadPool, ScannerOptions scannerOptions, long timeout) {
 
     this.context = context;
     this.tableId = tableId;
+    this.tableName = tableName;
     this.authorizations = authorizations;
     this.numThreads = numThreads;
     this.queryThreadPool = queryThreadPool;
@@ -245,12 +244,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         // the table was deleted the tablet locator entries for the deleted table were not
         // cleared... so
         // need to always do the check when failures occur
-        if (failures.size() >= lastFailureSize)
-          if (!Tables.exists(context, tableId))
-            throw new TableDeletedException(tableId.canonical());
-          else if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
-            throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
-
+        if (failures.size() >= lastFailureSize) {
+          context.requireNotDeleted(tableId);
+          context.requireNotOffline(tableId, tableName);
+        }
         lastFailureSize = failures.size();
 
         if (log.isTraceEnabled())
@@ -388,12 +385,15 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           fatalException = new TableDeletedException(tableId.canonical());
       } catch (SampleNotPresentException e) {
         fatalException = e;
-      } catch (Throwable t) {
+      } catch (Exception t) {
         if (queryThreadPool.isShutdown())
           log.debug("Caught exception, but queryThreadPool is shutdown", t);
         else
           log.warn("Caught exception, but queryThreadPool is not shutdown", t);
         fatalException = t;
+      } catch (Throwable t) {
+        fatalException = t;
+        throw t; // let uncaught exception handler deal with the Error
       } finally {
         semaphore.release();
         Thread.currentThread().setName(threadName);
@@ -410,7 +410,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
               e.setTableInfo(getTableInfo());
               log.debug("{}", e.getMessage(), e);
               fatalException = e;
-            } catch (Throwable t) {
+            } catch (Exception t) {
               log.debug("{}", t.getMessage(), t);
               fatalException = t;
             }
@@ -525,7 +525,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     for (QueryTask queryTask : queryTasks) {
       queryTask.setSemaphore(semaphore, queryTasks.size());
-      queryThreadPool.execute(new TraceRunnable(queryTask));
+      queryThreadPool.execute(queryTask);
     }
   }
 
@@ -533,19 +533,23 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       Map<KeyExtent,List<Range>> unscanned, MultiScanResult scanResult) {
 
     // translate returned failures, remove them from unscanned, and add them to failures
-    Map<KeyExtent,List<Range>> retFailures = Translator.translate(scanResult.failures,
-        Translators.TKET, new Translator.ListTranslator<>(Translators.TRT));
+    // @formatter:off
+    Map<KeyExtent, List<Range>> retFailures = scanResult.failures.entrySet().stream().collect(Collectors.toMap(
+                    (entry) -> KeyExtent.fromThrift(entry.getKey()),
+                    (entry) -> entry.getValue().stream().map(Range::new).collect(Collectors.toList())
+    ));
+    // @formatter:on
     unscanned.keySet().removeAll(retFailures.keySet());
     failures.putAll(retFailures);
 
     // translate full scans and remove them from unscanned
-    HashSet<KeyExtent> fullScans =
-        new HashSet<>(Translator.translate(scanResult.fullScans, Translators.TKET));
+    Set<KeyExtent> fullScans =
+        scanResult.fullScans.stream().map(KeyExtent::fromThrift).collect(Collectors.toSet());
     unscanned.keySet().removeAll(fullScans);
 
     // remove partial scan from unscanned
     if (scanResult.partScan != null) {
-      KeyExtent ke = new KeyExtent(scanResult.partScan);
+      KeyExtent ke = KeyExtent.fromThrift(scanResult.partScan);
       Key nextKey = new Key(scanResult.partNextKey);
 
       ListIterator<Range> iterator = unscanned.get(ke).listIterator();
@@ -640,11 +644,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       for (Range range : entry.getValue()) {
         ranges.add(new Range(range));
       }
-      unscanned.put(new KeyExtent(entry.getKey()), ranges);
+      unscanned.put(KeyExtent.copyOf(entry.getKey()), ranges);
     }
 
     timeoutTracker.startingScan();
-    TTransport transport = null;
     try {
       final HostAndPort parsedServer = HostAndPort.fromString(server);
       final TabletClientService.Client client;
@@ -670,14 +673,18 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         TabletType ttype = TabletType.type(requested.keySet());
         boolean waitForWrites = !ThriftScanner.serversWaitedForWrites.get(ttype).contains(server);
 
-        Map<TKeyExtent,List<TRange>> thriftTabletRanges = Translator.translate(requested,
-            Translators.KET, new Translator.ListTranslator<>(Translators.RT));
+        // @formatter:off
+        Map<TKeyExtent, List<TRange>> thriftTabletRanges = requested.entrySet().stream().collect(Collectors.toMap(
+                        (entry) -> entry.getKey().toThrift(),
+                        (entry) -> entry.getValue().stream().map(Range::toThrift).collect(Collectors.toList())
+        ));
+        // @formatter:on
 
         Map<String,String> execHints =
             options.executionHints.isEmpty() ? null : options.executionHints;
 
         InitialMultiScan imsr = client.startMultiScan(TraceUtil.traceInfo(), context.rpcCreds(),
-            thriftTabletRanges, Translator.translate(columns, Translators.CT),
+            thriftTabletRanges, columns.stream().map(Column::toThrift).collect(Collectors.toList()),
             options.serverSideIteratorList, options.serverSideIteratorOptions,
             ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites,
             SamplerConfigurationImpl.toThrift(options.getSamplerConfiguration()),
@@ -747,7 +754,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         client.closeMultiScan(TraceUtil.traceInfo(), imsr.scanID);
 
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, context);
       }
     } catch (TTransportException e) {
       log.debug("Server : {} msg : {}", server, e.getMessage());
@@ -766,7 +773,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       log.debug("Server : " + server + " msg : " + e.getMessage(), e);
       String tableInfo = "?";
       if (e.getExtent() != null) {
-        TableId tableId = new KeyExtent(e.getExtent()).getTableId();
+        TableId tableId = KeyExtent.fromThrift(e.getExtent()).tableId();
         tableInfo = Tables.getPrintableTableInfoFromId(context, tableId);
       }
       String message = "Table " + tableInfo + " does not have sampling configured or built";
@@ -775,8 +782,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       log.debug("Server : {} msg : {}", server, e.getMessage(), e);
       timeoutTracker.errorOccured();
       throw new IOException(e);
-    } finally {
-      ThriftTransportPool.getInstance().returnTransport(transport);
     }
   }
 

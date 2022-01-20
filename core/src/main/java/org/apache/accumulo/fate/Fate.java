@@ -21,16 +21,19 @@ package org.apache.accumulo.fate;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.util.ShutdownUtil;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
-import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,14 +51,15 @@ public class Fate<T> {
   private static final Logger log = LoggerFactory.getLogger(Fate.class);
   private final Logger runnerLog = LoggerFactory.getLogger(TransactionRunner.class);
 
-  private TStore<T> store;
-  private T environment;
+  private final TStore<T> store;
+  private final T environment;
+  private ScheduledThreadPoolExecutor fatePoolWatcher;
   private ExecutorService executor;
 
   private static final EnumSet<TStatus> FINISHED_STATES =
       EnumSet.of(TStatus.FAILED, TStatus.SUCCESSFUL, TStatus.UNKNOWN);
 
-  private AtomicBoolean keepRunning = new AtomicBoolean(true);
+  private final AtomicBoolean keepRunning = new AtomicBoolean(true);
 
   private class TransactionRunner implements Runnable {
 
@@ -113,7 +117,6 @@ public class Fate<T> {
             store.unreserve(tid, deferTime);
           }
         }
-
       }
     }
 
@@ -134,7 +137,7 @@ public class Fate<T> {
     /**
      * The Hadoop Filesystem registers a java shutdown hook that closes the file system. This can
      * cause threads to get spurious IOException. If this happens, instead of failing a FATE
-     * transaction just wait for process to die. When the master start elsewhere the FATE
+     * transaction just wait for process to die. When the manager start elsewhere the FATE
      * transaction can resume.
      */
     private void blockIfHadoopShutdown(long tid, Exception e) {
@@ -211,8 +214,8 @@ public class Fate<T> {
   /**
    * Creates a Fault-tolerant executor.
    * <p>
-   * Note: Users of this class should call {@link #startTransactionRunners(int)} to launch the
-   * worker threads after creating a Fate object.
+   * Note: Users of this class should call {@link #startTransactionRunners(AccumuloConfiguration)}
+   * to launch the worker threads after creating a Fate object.
    *
    * @param toLogStrFunc
    *          A function that converts Repo to Strings that are suitable for logging
@@ -225,17 +228,34 @@ public class Fate<T> {
   /**
    * Launches the specified number of worker threads.
    */
-  public void startTransactionRunners(int numThreads) {
-    final AtomicInteger runnerCount = new AtomicInteger(0);
-    executor = Executors.newFixedThreadPool(numThreads, r -> {
-      Thread t =
-          new Thread(new LoggingRunnable(log, r), "Repo runner " + runnerCount.getAndIncrement());
-      t.setDaemon(true);
-      return t;
-    });
-    for (int i = 0; i < numThreads; i++) {
-      executor.execute(new TransactionRunner());
-    }
+  public void startTransactionRunners(AccumuloConfiguration conf) {
+    final ThreadPoolExecutor pool = (ThreadPoolExecutor) ThreadPools.createExecutorService(conf,
+        Property.MANAGER_FATE_THREADPOOL_SIZE);
+    fatePoolWatcher = ThreadPools.createGeneralScheduledExecutorService(conf);
+    fatePoolWatcher.schedule(() -> {
+      // resize the pool if the property changed
+      ThreadPools.resizePool(pool, conf, Property.MANAGER_FATE_THREADPOOL_SIZE);
+      // If the pool grew, then ensure that there is a TransactionRunner for each thread
+      int needed = conf.getCount(Property.MANAGER_FATE_THREADPOOL_SIZE) - pool.getQueue().size();
+      if (needed > 0) {
+        for (int i = 0; i < needed; i++) {
+          try {
+            pool.execute(new TransactionRunner());
+          } catch (RejectedExecutionException e) {
+            // RejectedExecutionException could be shutting down
+            if (pool.isShutdown()) {
+              // The exception is expected in this case, no need to spam the logs.
+              log.trace("Error adding transaction runner to FaTE executor pool.", e);
+            } else {
+              // This is bad, FaTE may no longer work!
+              log.error("Error adding transaction runner to FaTE executor pool.", e);
+            }
+            break;
+          }
+        }
+      }
+    }, 3, TimeUnit.SECONDS);
+    executor = pool;
   }
 
   // get a transaction id back to the requester before doing any work
@@ -330,6 +350,7 @@ public class Fate<T> {
    */
   public void shutdown() {
     keepRunning.set(false);
+    fatePoolWatcher.shutdown();
     executor.shutdown();
   }
 

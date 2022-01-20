@@ -355,14 +355,14 @@ public class RFile {
 
   /**
    * This is an intermediate interface in a larger builder pattern. Supports setting the required
-   * output sink to write a RFile to.
+   * output sink to write a RFile to. The filename parameter requires the ".rf" extension.
    *
    * @since 1.8.0
    */
   public interface OutputArguments {
     /**
      * @param filename
-     *          name of file to write RFile data
+     *          name of file to write RFile data, ending with the ".rf" extension
      * @return this
      */
     WriterFSOptions to(String filename);

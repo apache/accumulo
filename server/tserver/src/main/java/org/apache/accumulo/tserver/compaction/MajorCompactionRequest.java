@@ -60,6 +60,10 @@ import com.google.common.cache.Cache;
 /**
  * Information that can be used to determine how a tablet is to be major compacted, if needed.
  */
+// Eclipse might show @SuppressWarnings("removal") as unnecessary.
+// Eclipse is wrong. See https://bugs.eclipse.org/bugs/show_bug.cgi?id=565271
+@SuppressWarnings("removal")
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class MajorCompactionRequest implements Cloneable {
   private final KeyExtent extent;
   private final MajorCompactionReason reason;
@@ -122,10 +126,10 @@ public class MajorCompactionRequest implements Cloneable {
    * summary information.
    *
    * <p>
-   * When using summaries to make compaction decisions, its important to ensure that all summary
+   * When using summaries to make compaction decisions, it's important to ensure that all summary
    * data fits in the tablet server summary cache. The size of this cache is configured by code
-   * tserver.cache.summary.size}. Also its important to use the summarySelector predicate to only
-   * retrieve the needed summary data. Otherwise uneeded summary data could be brought into the
+   * tserver.cache.summary.size}. Also it's important to use the summarySelector predicate to only
+   * retrieve the needed summary data. Otherwise unneeded summary data could be brought into the
    * cache.
    *
    * <p>

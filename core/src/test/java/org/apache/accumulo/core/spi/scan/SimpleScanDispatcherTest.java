@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
-import static org.apache.accumulo.core.spi.scan.ScanDirectives.CacheUsage.DISABLED;
-import static org.apache.accumulo.core.spi.scan.ScanDirectives.CacheUsage.ENABLED;
-import static org.apache.accumulo.core.spi.scan.ScanDirectives.CacheUsage.OPPORTUNISTIC;
-import static org.apache.accumulo.core.spi.scan.ScanDirectives.CacheUsage.TABLE;
+import static org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage.DISABLED;
+import static org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage.ENABLED;
+import static org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage.OPPORTUNISTIC;
+import static org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage.TABLE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -32,7 +32,7 @@ import java.util.Map;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-import org.apache.accumulo.core.spi.scan.ScanDirectives.CacheUsage;
+import org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParameters;
 import org.apache.accumulo.core.spi.scan.ScanInfo.Type;
 import org.junit.Test;
@@ -105,12 +105,12 @@ public class SimpleScanDispatcherTest {
     executors.put("E2", null);
     executors.put("E3", null);
 
-    ScanDirectives multiPrefs = ssd1.dispatch(new DispatchParametersImps(msi, executors));
+    ScanDispatch multiPrefs = ssd1.dispatch(new DispatchParametersImps(msi, executors));
     assertEquals(expectedMulti, multiPrefs.getExecutorName());
     assertEquals(expectedIndexCU, multiPrefs.getIndexCacheUsage());
     assertEquals(expectedDataCU, multiPrefs.getDataCacheUsage());
 
-    ScanDirectives singlePrefs = ssd1.dispatch(new DispatchParametersImps(ssi, executors));
+    ScanDispatch singlePrefs = ssd1.dispatch(new DispatchParametersImps(ssi, executors));
     assertEquals(expectedSingle, singlePrefs.getExecutorName());
     assertEquals(expectedIndexCU, singlePrefs.getIndexCacheUsage());
     assertEquals(expectedDataCU, singlePrefs.getDataCacheUsage());

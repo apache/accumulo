@@ -69,7 +69,7 @@ public class BulkImportSequentialRowsIT extends AccumuloClusterHarness {
       TableOperations to = client.tableOperations();
       to.create(tableName);
       FileSystem fs = getFileSystem();
-      Path rootPath = new Path(fs.makeQualified(getUsableDir()), getClass().getSimpleName());
+      Path rootPath = new Path(cluster.getTemporaryPath(), getClass().getSimpleName());
       log.info("Writing to {}", rootPath);
       if (fs.exists(rootPath)) {
         assertTrue(fs.delete(rootPath, true));

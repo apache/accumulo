@@ -28,11 +28,8 @@ $(document).ready(function() {
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshOverview() {
-  getMaster().then(function() {
-    refreshMasterTable();
-  });
-  getZK().then(function() {
-    refreshZKTable();
+  getManager().then(function() {
+    refreshManagerTable();
   });
   var requests = [
     getIngestRate(),
@@ -59,21 +56,21 @@ function refresh() {
 }
 
 /**
- * Refreshes the master table
+ * Refreshes the manager table
  */
-function refreshMasterTable() {
-  var data = sessionStorage.master === undefined ?
-      [] : JSON.parse(sessionStorage.master);
+function refreshManagerTable() {
+  var data = sessionStorage.manager === undefined ?
+      [] : JSON.parse(sessionStorage.manager);
 
-  $('#master tr td:first').hide();
-  $('#master tr td').hide();
+  $('#manager tr td:first').hide();
+  $('#manager tr td').hide();
 
-  // If the master is down, show the first row, otherwise refresh old values
-  if (data.length === 0 || data.master === 'No Masters running') {
-    $('#master tr td:first').show();
+  // If the manager is down, show the first row, otherwise refresh old values
+  if (data.length === 0 || data.manager === 'No Managers running') {
+    $('#manager tr td:first').show();
   } else {
-    $('#master tr td:not(:first)').show();
-    var table = $('#master td.right');
+    $('#manager tr td:not(:first)').show();
+    var table = $('#manager td.right');
 
     table.eq(0).html(bigNumberForQuantity(data.tables));
     table.eq(1).html(bigNumberForQuantity(data.totalTabletServers));
@@ -82,34 +79,6 @@ function refreshMasterTable() {
     table.eq(4).html(bigNumberForQuantity(data.numentries));
     table.eq(5).html(bigNumberForQuantity(data.lookups));
     table.eq(6).html(timeDuration(data.uptime));
-  }
-}
-
-/**
- * Refresh the zookeeper table
- */
-function refreshZKTable() {
-  var data = sessionStorage.zk === undefined ?
-      [] : JSON.parse(sessionStorage.zk);
-
-  $('#zookeeper thead tr:last').hide();
-  clearTableBody('zookeeper');
-
-  if (data.length === 0 || data.zkServers.length === 0) {
-    $('#zookeeper thead tr:last').show();
-  } else {
-    $.each(data.zkServers, function(key, val) {
-      var cells = '<td class="left">' + val.server + '</td>';
-      if (val.clients >= 0) {
-        cells += '<td class="left">' + val.mode + '</td>';
-        cells += '<td class="right">' + val.clients + '</td>';
-      } else {
-        cells += '<td class="left"><span class="error">Down</span></td>';
-        cells += '<td class="right"></td>';
-      }
-      // create a <tr> element with html containing the cell data; append it to the table
-      $('<tr/>', { html: cells }).appendTo('#zookeeper tbody');
-    });
   }
 }
 
@@ -123,30 +92,46 @@ var plotOptions = {
   grid: {
     backgroundColor: {colors: ['#fff', '#eee']}
   },
-  lines: {
-    show: true
-  },
-  points: {
-    show: false,
-    radius: 1
+  series: {
+    lines: {
+      show: true,
+      lineWidth: 1.5
+    },
+    points: {
+      show: false,
+      radius: 1.5
+    }
   },
   xaxis: {
     mode: 'time',
     minTickSize: [1, 'minute'],
     timeformat: '%H:%M',
+    timeBase: 'milliseconds',
     ticks: 3
   },
   yaxis: {
+    showMinorTicks: false,
     min: 0
   }
 };
 
+var plotWithLegendOptions = $.extend(true, {}, plotOptions, {
+  legend: {
+    show: true
+  }
+});
+
 var cachePlotOptions = $.extend(true, {}, plotOptions, {
-  lines: { show: false },
-  points: { show: true },
+  series: {
+    lines: { show: false },
+    points: { show: true }
+  },
   yaxis: {
-    max: 1.1,
-    ticks: [0, 0.25, 0.5, 0.75, 1.0]
+    autoScale: "none",
+    min: -0.05,
+    max: 1.05,
+    ticks: [0, 0.25, 0.5, 0.75, 1.0],
+    tickDecimals: 2
   }
 });
 
@@ -176,7 +161,7 @@ function makePlots() {
   $.each(data[1].second, function(key, val) {
     scanEntries[1].data.push([val.first - n, val.second]);
   });
-  $.plot('#scan_entries', scanEntries, plotOptions);
+  $.plot('#scan_entries', scanEntries, plotWithLegendOptions);
 
   // Create Ingest MB plot
   var ingestMB = [{data:[]}];

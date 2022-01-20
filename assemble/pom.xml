@@ -59,16 +59,19 @@
     <dependency>
       <groupId>com.fasterxml.jackson.jaxrs</groupId>
       <artifactId>jackson-jaxrs-base</artifactId>
+      <classifier>jakarta</classifier>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.jaxrs</groupId>
       <artifactId>jackson-jaxrs-json-provider</artifactId>
+      <classifier>jakarta</classifier>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.module</groupId>
       <artifactId>jackson-module-jaxb-annotations</artifactId>
+      <classifier>jakarta</classifier>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -102,13 +105,8 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>com.sun.xml.bind</groupId>
-      <artifactId>jaxb-core</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>commons-beanutils</groupId>
-      <artifactId>commons-beanutils</artifactId>
+      <groupId>com.sun.istack</groupId>
+      <artifactId>istack-commons-runtime</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -132,43 +130,73 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>javax.activation</groupId>
-      <artifactId>javax.activation-api</artifactId>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-core</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>javax.annotation</groupId>
-      <artifactId>javax.annotation-api</artifactId>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-api</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>javax.el</groupId>
-      <artifactId>javax.el-api</artifactId>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-context</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>javax.servlet</groupId>
-      <artifactId>javax.servlet-api</artifactId>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-semconv</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>javax.validation</groupId>
-      <artifactId>validation-api</artifactId>
+      <groupId>jakarta.activation</groupId>
+      <artifactId>jakarta.activation-api</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>javax.ws.rs</groupId>
-      <artifactId>javax.ws.rs-api</artifactId>
+      <groupId>jakarta.annotation</groupId>
+      <artifactId>jakarta.annotation-api</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>javax.xml.bind</groupId>
-      <artifactId>jaxb-api</artifactId>
+      <groupId>jakarta.el</groupId>
+      <artifactId>jakarta.el-api</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>jline</groupId>
-      <artifactId>jline</artifactId>
+      <groupId>jakarta.inject</groupId>
+      <artifactId>jakarta.inject-api</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.servlet</groupId>
+      <artifactId>jakarta.servlet-api</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.validation</groupId>
+      <artifactId>jakarta.validation-api</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.ws.rs</groupId>
+      <artifactId>jakarta.ws.rs-api</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.xml.bind</groupId>
+      <artifactId>jakarta.xml.bind-api</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-compaction-coordinator</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>accumulo-compactor</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -188,7 +216,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-master</artifactId>
+      <artifactId>accumulo-manager</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -220,11 +248,6 @@
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-start</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-tracer</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -263,8 +286,8 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>org.apache.htrace</groupId>
-      <artifactId>htrace-core</artifactId>
+      <groupId>org.apache.datasketches</groupId>
+      <artifactId>datasketches-java</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -289,6 +312,16 @@
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-jcl</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-jul</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-slf4j-impl</artifactId>
       <optional>true</optional>
     </dependency>
@@ -300,11 +333,6 @@
     <dependency>
       <groupId>org.apache.thrift</groupId>
       <artifactId>libthrift</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.jetty</groupId>
-      <artifactId>jetty-continuation</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -343,6 +371,11 @@
       <optional>true</optional>
     </dependency>
     <dependency>
+      <groupId>org.glassfish</groupId>
+      <artifactId>jakarta.el</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>org.glassfish.hk2</groupId>
       <artifactId>hk2-api</artifactId>
       <optional>true</optional>
@@ -355,21 +388,6 @@
     <dependency>
       <groupId>org.glassfish.hk2</groupId>
       <artifactId>hk2-utils</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.glassfish.hk2</groupId>
-      <artifactId>osgi-resource-locator</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.glassfish.hk2.external</groupId>
-      <artifactId>aopalliance-repackaged</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.glassfish.hk2.external</groupId>
-      <artifactId>jakarta.inject</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -448,13 +466,8 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>org.glassfish.web</groupId>
-      <artifactId>el-impl</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.glassfish.web</groupId>
-      <artifactId>javax.el</artifactId>
+      <groupId>org.hdrhistogram</groupId>
+      <artifactId>HdrHistogram</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -473,8 +486,23 @@
       <optional>true</optional>
     </dependency>
     <dependency>
+      <groupId>org.jline</groupId>
+      <artifactId>jline</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.latencyutils</groupId>
+      <artifactId>LatencyUtils</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
       <optional>true</optional>
     </dependency>
   </dependencies>
@@ -513,6 +541,16 @@
                 <argument>--generate-config</argument>
                 <argument>${project.build.directory}/accumulo-client.properties</argument>
               </arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>create-jshell</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>compile</phase>
+            <configuration>
+              <executable>src/main/scripts/create-jshell.sh</executable>
             </configuration>
           </execution>
         </executions>

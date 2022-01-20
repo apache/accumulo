@@ -26,7 +26,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URL;
-import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -73,8 +72,8 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.MonitorUtil;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -154,7 +153,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
               "Using HTTPS since monitor ssl keystore configuration was observed in accumulo configuration");
           SSLContext ctx = SSLContext.getInstance("TLSv1.2");
           TrustManager[] tm = {new TestTrustManager()};
-          ctx.init(new KeyManager[0], tm, new SecureRandom());
+          ctx.init(new KeyManager[0], tm, random);
           SSLContext.setDefault(ctx);
           HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
           HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
@@ -162,7 +161,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       }
       URL url = new URL(monitorLocation);
       log.debug("Fetching web page {}", url);
-      String result = FunctionalTestUtils.readAll(url.openStream());
+      String result = FunctionalTestUtils.readWebPage(url).body();
       assertTrue(result.length() > 100);
       log.debug("Stopping accumulo cluster");
       ClusterControl control = cluster.getClusterControl();
@@ -170,21 +169,20 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       ClientInfo info = ClientInfo.from(accumuloClient.properties());
       ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       ZooCache zcache = new ZooCache(zreader, null);
-      byte[] masterLockData;
+      var zLockPath =
+          ServiceLock.path(ZooUtil.getRoot(accumuloClient.instanceOperations().getInstanceID())
+              + Constants.ZMANAGER_LOCK);
+      byte[] managerLockData;
       do {
-        masterLockData = ZooLock.getLockData(zcache,
-            ZooUtil.getRoot(accumuloClient.instanceOperations().getInstanceID())
-                + Constants.ZMASTER_LOCK,
-            null);
-        if (masterLockData != null) {
-          log.info("Master lock is still held");
+        managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
+        if (managerLockData != null) {
+          log.info("Manager lock is still held");
           Thread.sleep(1000);
         }
-      } while (masterLockData != null);
+      } while (managerLockData != null);
 
       control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
       control.stopAllServers(ServerType.MONITOR);
-      control.stopAllServers(ServerType.TRACER);
       log.debug("success!");
       // Restarting everything
       cluster.start();

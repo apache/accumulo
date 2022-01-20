@@ -29,7 +29,6 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.crypto.CryptoUtils;
-import org.apache.accumulo.core.cryptoImpl.NoFileEncrypter;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -38,8 +37,10 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
+import org.apache.accumulo.core.spi.crypto.NoFileEncrypter;
 import org.apache.accumulo.core.summary.SummaryReader;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
@@ -106,10 +107,11 @@ public class PrintInfo implements KeywordExecutable {
     }
 
     public void print(String indent) {
-      System.out.println(indent + "Up to size      count      %-age");
+      System.out.println(indent + "Up to size      Count      %-age");
       for (int i = 1; i < countBuckets.length; i++) {
-        System.out.println(String.format("%s%11.0f : %10d %6.2f%%", indent, Math.pow(10, i),
-            countBuckets[i], sizeBuckets[i] * 100. / totalSize));
+        System.out.printf("%s%11s : %10d %6.2f%%%n", indent,
+            NumUtil.bigNumberForQuantity((long) Math.pow(10, i)), countBuckets[i],
+            sizeBuckets[i] * 100. / totalSize);
       }
     }
   }
@@ -179,10 +181,6 @@ public class PrintInfo implements KeywordExecutable {
       log.debug("Adding Hadoop configuration file {}", confFile);
       conf.addResource(new Path(confFile));
     }
-
-    FileSystem hadoopFs = FileSystem.get(conf);
-    FileSystem localFs = FileSystem.getLocal(conf);
-
     LogHistogram kvHistogram = new LogHistogram();
 
     KeyStats dataKeyStats = new KeyStats();
@@ -190,14 +188,7 @@ public class PrintInfo implements KeywordExecutable {
 
     for (String arg : opts.files) {
       Path path = new Path(arg);
-      FileSystem fs;
-      if (arg.contains(":")) {
-        fs = path.getFileSystem(conf);
-      } else {
-        log.warn(
-            "Attempting to find file across filesystems. Consider providing URI instead of path");
-        fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
-      }
+      FileSystem fs = resolveFS(log, conf, path);
       System.out
           .println("Reading file: " + path.makeQualified(fs.getUri(), fs.getWorkingDirectory()));
 
@@ -309,6 +300,20 @@ public class PrintInfo implements KeywordExecutable {
         return;
       }
     }
+  }
+
+  public static FileSystem resolveFS(Logger log, Configuration conf, Path file) throws IOException {
+    FileSystem hadoopFs = FileSystem.get(conf);
+    FileSystem localFs = FileSystem.getLocal(conf);
+    FileSystem fs;
+    if (file.toString().contains(":")) {
+      fs = file.getFileSystem(conf);
+    } else {
+      log.warn(
+          "Attempting to find file across filesystems. Consider providing URI instead of path");
+      fs = hadoopFs.exists(file) ? hadoopFs : localFs; // fall back to local
+    }
+    return fs;
   }
 
   /**

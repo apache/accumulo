@@ -34,7 +34,6 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Credentials;
@@ -59,7 +58,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * This tests deprecated mapreduce code in core jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class TokenFileIT extends AccumuloClusterHarness {
   private static AssertionError e1 = null;
 
@@ -179,7 +178,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(table1);
       c.tableOperations().create(table2);
-      BatchWriter bw = c.createBatchWriter(table1, new BatchWriterConfig());
+      BatchWriter bw = c.createBatchWriter(table1);
       for (int i = 0; i < 100; i++) {
         Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
         m.put("", "", String.format("%09x", i));

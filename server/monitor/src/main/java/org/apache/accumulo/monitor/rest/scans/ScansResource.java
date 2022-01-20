@@ -20,13 +20,13 @@ package org.apache.accumulo.monitor.rest.scans;
 
 import java.util.Map;
 
-import javax.inject.Inject;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
 
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.monitor.Monitor;
@@ -50,9 +50,9 @@ public class ScansResource {
    * @return Scan JSON object
    */
   @GET
-  public Scans getTables() {
+  public Scans getActiveScans() throws Exception {
     Scans scans = new Scans();
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null) {
       return scans;
     }
@@ -63,7 +63,7 @@ public class ScansResource {
     for (TabletServerStatus tserverInfo : mmi.getTServerInfo()) {
       ScanStats stats = entry.get(HostAndPort.fromString(tserverInfo.name));
       if (stats != null) {
-        scans.addScan(new ScanInformation(tserverInfo, stats.scanCount, stats.oldestScan));
+        scans.addScan(new ScanInformation(tserverInfo, stats));
       }
     }
     return scans;

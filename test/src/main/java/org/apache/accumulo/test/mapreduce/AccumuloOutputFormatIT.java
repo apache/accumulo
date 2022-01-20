@@ -52,7 +52,7 @@ import org.junit.Test;
 /**
  * This tests deprecated mapreduce code in core jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
   private static AssertionError e1 = null;
 

@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -55,11 +56,15 @@ import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
+import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
 import org.apache.accumulo.core.tabletserver.thrift.TDurability;
+import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tabletserver.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -68,17 +73,16 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processo
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
-import org.apache.accumulo.server.master.state.Assignment;
-import org.apache.accumulo.server.master.state.MetaDataTableScanner;
-import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.master.state.TabletLocationState;
-import org.apache.accumulo.server.master.state.TabletStateStore;
-import org.apache.accumulo.server.metrics.Metrics;
+import org.apache.accumulo.server.manager.state.Assignment;
+import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
+import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
+import org.apache.thrift.TException;
 
 import com.beust.jcommander.Parameter;
 
@@ -95,7 +99,7 @@ public class NullTserver {
     private long updateSession = 1;
 
     public ThriftClientHandler(ServerContext context, TransactionWatcher watcher) {
-      super(context, watcher, null);
+      super(context, watcher);
     }
 
     @Override
@@ -275,6 +279,29 @@ public class NullTserver {
     public TSummaries contiuneGetSummaries(TInfo tinfo, long sessionId) {
       return null;
     }
+
+    @Override
+    public List<TCompactionQueueSummary> getCompactionQueueInfo(TInfo tinfo,
+        TCredentials credentials) throws ThriftSecurityException, TException {
+      return null;
+    }
+
+    @Override
+    public TExternalCompactionJob reserveCompactionJob(TInfo tinfo, TCredentials credentials,
+        String queueName, long priority, String compactor, String externalCompactionId)
+        throws ThriftSecurityException, TException {
+      return null;
+    }
+
+    @Override
+    public void compactionJobFinished(TInfo tinfo, TCredentials credentials,
+        String externalCompactionId, TKeyExtent extent, long fileSize, long entries)
+        throws ThriftSecurityException, TException {}
+
+    @Override
+    public void compactionJobFailed(TInfo tinfo, TCredentials credentials,
+        String externalCompactionId, TKeyExtent extent) throws TException {}
+
   }
 
   static class Opts extends Help {
@@ -301,17 +328,16 @@ public class NullTserver {
     TransactionWatcher watcher = new TransactionWatcher(context);
     ThriftClientHandler tch = new ThriftClientHandler(context, watcher);
     Processor<Iface> processor = new Processor<>(tch);
-    TServerUtils.startTServer(Metrics.initSystem(NullTserver.class.getSimpleName()),
-        context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor, "NullTServer",
-        "null tserver", 2, 1, 1000, 10 * 1024 * 1024, null, null, -1,
-        HostAndPort.fromParts("0.0.0.0", opts.port));
+    TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA, processor,
+        "NullTServer", "null tserver", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000,
+        10 * 1024 * 1024, null, null, -1, HostAndPort.fromParts("0.0.0.0", opts.port));
 
     HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
 
     TableId tableId = Tables.getTableId(context, opts.tableName);
 
     // read the locations for the table
-    Range tableRange = new KeyExtent(tableId, null, null).toMetadataRange();
+    Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
     List<Assignment> assignments = new ArrayList<>();
     try (var s = new MetaDataTableScanner(context, tableRange, MetadataTable.NAME)) {
       long randomSessionID = opts.port;

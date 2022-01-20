@@ -31,7 +31,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapred instead from the
  *             accumulo-hadoop-mapreduce.jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 @SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
     justification = "Intended to share code between mapred and mapreduce")
 public class RangeInputSplit extends org.apache.accumulo.core.client.mapreduce.RangeInputSplit

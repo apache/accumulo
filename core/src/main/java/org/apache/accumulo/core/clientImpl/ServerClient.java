@@ -35,6 +35,7 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TServiceClient;
@@ -101,7 +102,7 @@ public class ServerClient {
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         if (client != null)
-          ServerClient.close(client);
+          ServerClient.close(client, context);
       }
     }
   }
@@ -125,7 +126,7 @@ public class ServerClient {
         sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
       } finally {
         if (client != null)
-          ServerClient.close(client);
+          ServerClient.close(client, context);
       }
     }
   }
@@ -143,11 +144,12 @@ public class ServerClient {
     // add tservers
     ZooCache zc = context.getZooCache();
     for (String tserver : zc.getChildren(context.getZooKeeperRoot() + Constants.ZTSERVERS)) {
-      String path = context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver;
-      byte[] data = zc.getLockData(path);
+      var zLocPath =
+          ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + tserver);
+      byte[] data = zc.getLockData(zLocPath);
       if (data != null) {
         String strData = new String(data, UTF_8);
-        if (!strData.equals("master"))
+        if (!strData.equals("manager"))
           servers.add(new ThriftTransportKey(
               new ServerServices(strData).getAddress(Service.TSERV_CLIENT), rpcTimeout, context));
       }
@@ -156,7 +158,7 @@ public class ServerClient {
     boolean opened = false;
     try {
       Pair<String,TTransport> pair =
-          ThriftTransportPool.getInstance().getAnyTransport(servers, preferCachedConnections);
+          context.getTransportPool().getAnyTransport(servers, preferCachedConnections);
       CT client = ThriftUtil.createClient(factory, pair.getSecond());
       opened = true;
       warnedAboutTServersBeingDown = false;
@@ -175,10 +177,10 @@ public class ServerClient {
     }
   }
 
-  public static void close(TServiceClient client) {
+  public static void close(TServiceClient client, ClientContext context) {
     if (client != null && client.getInputProtocol() != null
         && client.getInputProtocol().getTransport() != null) {
-      ThriftTransportPool.getInstance().returnTransport(client.getInputProtocol().getTransport());
+      context.getTransportPool().returnTransport(client.getInputProtocol().getTransport());
     } else {
       log.debug("Attempt to close null connection to a server", new Exception());
     }

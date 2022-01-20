@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.monitor.rest.logs;
 
-import javax.xml.bind.annotation.XmlAttribute;
+import jakarta.xml.bind.annotation.XmlAttribute;
 
 /**
  * Stores dead logger information

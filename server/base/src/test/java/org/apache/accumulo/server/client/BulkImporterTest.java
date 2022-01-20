@@ -31,7 +31,6 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -41,6 +40,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -59,9 +59,9 @@ public class BulkImporterTest {
     fakeMetaData.add(new KeyExtent(tableId, new Text("a"), null));
     for (String part : new String[] {"b", "bm", "c", "cm", "d", "dm", "e", "em", "f", "g", "h", "i",
         "j", "k", "l"}) {
-      fakeMetaData.add(new KeyExtent(tableId, new Text(part), fakeMetaData.last().getEndRow()));
+      fakeMetaData.add(new KeyExtent(tableId, new Text(part), fakeMetaData.last().endRow()));
     }
-    fakeMetaData.add(new KeyExtent(tableId, null, fakeMetaData.last().getEndRow()));
+    fakeMetaData.add(new KeyExtent(tableId, null, fakeMetaData.last().endRow()));
   }
 
   class MockTabletLocator extends TabletLocator {
@@ -111,11 +111,7 @@ public class BulkImporterTest {
   public void testFindOverlappingTablets() throws Exception {
     MockTabletLocator locator = new MockTabletLocator();
     FileSystem fs = FileSystem.getLocal(new Configuration());
-    ServerContext context = EasyMock.createMock(ServerContext.class);
-    EasyMock.expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance())
-        .anyTimes();
-    EasyMock.expect(context.getCryptoService()).andReturn(CryptoServiceFactory.newDefaultInstance())
-        .anyTimes();
+    ServerContext context = MockServerContext.get();
     EasyMock.replay(context);
     String file = "target/testFile.rf";
     fs.delete(new Path(file), true);
@@ -123,7 +119,7 @@ public class BulkImporterTest {
         .forFile(file, fs, fs.getConf(), CryptoServiceFactory.newDefaultInstance())
         .withTableConfiguration(context.getConfiguration()).build();
     writer.startDefaultLocalityGroup();
-    Value empty = new Value(new byte[] {});
+    Value empty = new Value();
     writer.append(new Key("a", "cf", "cq"), empty);
     writer.append(new Key("a", "cf", "cq1"), empty);
     writer.append(new Key("a", "cf", "cq2"), empty);
@@ -145,7 +141,7 @@ public class BulkImporterTest {
     writer.append(new Key("iterator", "cf", "cq5"), empty);
     writer.append(new Key("xyzzy", "cf", "cq"), empty);
     writer.close();
-    try (var vm = VolumeManagerImpl.get(context.getConfiguration(), new Configuration())) {
+    try (var vm = VolumeManagerImpl.getLocalForTesting("file:///")) {
       List<TabletLocation> overlaps =
           BulkImporter.findOverlappingTablets(context, vm, locator, new Path(file));
       assertEquals(5, overlaps.size());

@@ -45,15 +45,16 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
+import org.jline.reader.LineReader;
 
-import jline.console.ConsoleReader;
+import com.google.common.collect.ImmutableSortedMap;
 
 public class ConfigCommand extends Command {
   private Option tableOpt, deleteOpt, setOpt, filterOpt, filterWithValuesOpt, disablePaginationOpt,
       outputFileOpt, namespaceOpt;
 
   private int COL1 = 10, COL2 = 7;
-  private ConsoleReader reader;
+  private LineReader reader;
 
   @Override
   public void registerCompletion(final Token root,
@@ -173,25 +174,20 @@ public class ConfigCommand extends Command {
       if (tableName != null) {
         String n = Namespaces.getNamespaceName(shellState.getContext(), Tables.getNamespaceId(
             shellState.getContext(), Tables.getTableId(shellState.getContext(), tableName)));
-        for (Entry<String,String> e : shellState.getAccumuloClient().namespaceOperations()
-            .getProperties(n)) {
-          namespaceConfig.put(e.getKey(), e.getValue());
-        }
+        shellState.getAccumuloClient().namespaceOperations().getConfiguration(n)
+            .forEach(namespaceConfig::put);
       }
 
-      Iterable<Entry<String,String>> acuconf =
-          shellState.getAccumuloClient().instanceOperations().getSystemConfiguration().entrySet();
+      Map<String,String> acuconf =
+          shellState.getAccumuloClient().instanceOperations().getSystemConfiguration();
       if (tableName != null) {
-        acuconf = shellState.getAccumuloClient().tableOperations().getProperties(tableName);
+        acuconf = shellState.getAccumuloClient().tableOperations().getConfiguration(tableName);
       } else if (namespace != null) {
-        acuconf = shellState.getAccumuloClient().namespaceOperations().getProperties(namespace);
+        acuconf = shellState.getAccumuloClient().namespaceOperations().getConfiguration(namespace);
       }
-      final TreeMap<String,String> sortedConf = new TreeMap<>();
-      for (Entry<String,String> propEntry : acuconf) {
-        sortedConf.put(propEntry.getKey(), propEntry.getValue());
-      }
+      final Map<String,String> sortedConf = ImmutableSortedMap.copyOf(acuconf);
 
-      for (Entry<String,String> propEntry : acuconf) {
+      for (Entry<String,String> propEntry : acuconf.entrySet()) {
         final String key = propEntry.getKey();
         final String value = propEntry.getValue();
         // only show properties which names or values

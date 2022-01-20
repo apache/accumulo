@@ -37,11 +37,10 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.singletons.SingletonManager;
-import org.apache.accumulo.core.singletons.SingletonService;
-import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.thrift.TConfiguration;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -359,12 +358,12 @@ public class ThriftTransportPool {
 
   private final ConnectionPool connectionPool = new ConnectionPool();
 
-  private Map<ThriftTransportKey,Long> errorCount = new HashMap<>();
-  private Map<ThriftTransportKey,Long> errorTime = new HashMap<>();
-  private Set<ThriftTransportKey> serversWarnedAbout = new HashSet<>();
+  private final Map<ThriftTransportKey,Long> errorCount = new HashMap<>();
+  private final Map<ThriftTransportKey,Long> errorTime = new HashMap<>();
+  private final Set<ThriftTransportKey> serversWarnedAbout = new HashSet<>();
 
-  private Supplier<Daemon> checkThreadFactory = Suppliers.memoize(() -> {
-    var thread = new Daemon(new Closer(), "Thrift Connection Pool Checker");
+  private final Supplier<Thread> checkThreadFactory = Suppliers.memoize(() -> {
+    var thread = Threads.createThread("Thrift Connection Pool Checker", new Closer());
     thread.start();
     return thread;
   });
@@ -406,7 +405,7 @@ public class ThriftTransportPool {
   private class Closer implements Runnable {
 
     private void closeConnections() throws InterruptedException {
-      while (!getConnectionPool().shutdown) {
+      while (!connectionPool.shutdown) {
         closeExpiredConnections();
         Thread.sleep(500);
       }
@@ -422,10 +421,10 @@ public class ThriftTransportPool {
     }
   }
 
-  static class CachedTTransport extends TTransport {
+  private static class CachedTTransport extends TTransport {
 
-    private ThriftTransportKey cacheKey;
-    private TTransport wrappedTransport;
+    private final ThriftTransportKey cacheKey;
+    private final TTransport wrappedTransport;
     private boolean sawError = false;
 
     private volatile String ioThreadName = null;
@@ -582,7 +581,9 @@ public class ThriftTransportPool {
     public void close() {
       try {
         ioCount++;
-        wrappedTransport.close();
+        if (wrappedTransport.isOpen()) {
+          wrappedTransport.close();
+        }
       } finally {
         ioCount++;
       }
@@ -652,13 +653,36 @@ public class ThriftTransportPool {
       }
     }
 
+    @Override
+    public TConfiguration getConfiguration() {
+      return wrappedTransport.getConfiguration();
+    }
+
+    @Override
+    public void updateKnownMessageSize(long size) throws TTransportException {
+      try {
+        ioCount++;
+        wrappedTransport.updateKnownMessageSize(size);
+      } finally {
+        ioCount++;
+      }
+    }
+
+    @Override
+    public void checkReadBytesAvailable(long numBytes) throws TTransportException {
+      try {
+        ioCount++;
+        wrappedTransport.checkReadBytesAvailable(numBytes);
+      } finally {
+        ioCount++;
+      }
+    }
+
     public ThriftTransportKey getCacheKey() {
       return cacheKey;
     }
 
   }
-
-  private ThriftTransportPool() {}
 
   public TTransport getTransport(HostAndPort location, long milliseconds, ClientContext context)
       throws TTransportException {
@@ -666,8 +690,7 @@ public class ThriftTransportPool {
     // compute hash code outside of lock, this lowers the time the lock is held
     cacheKey.precomputeHashCode();
 
-    ConnectionPool pool = getConnectionPool();
-    CachedConnection connection = pool.reserveAny(cacheKey);
+    CachedConnection connection = connectionPool.reserveAny(cacheKey);
 
     if (connection != null) {
       log.trace("Using existing connection to {}", cacheKey.getServer());
@@ -686,17 +709,15 @@ public class ThriftTransportPool {
     if (preferCachedConnection) {
       HashSet<ThriftTransportKey> serversSet = new HashSet<>(servers);
 
-      ConnectionPool pool = getConnectionPool();
-
       // randomly pick a server from the connection cache
-      serversSet.retainAll(pool.getThriftTransportKeys());
+      serversSet.retainAll(connectionPool.getThriftTransportKeys());
 
       if (!serversSet.isEmpty()) {
         ArrayList<ThriftTransportKey> cachedServers = new ArrayList<>(serversSet);
         Collections.shuffle(cachedServers, random);
 
         for (ThriftTransportKey ttk : cachedServers) {
-          CachedConnection connection = pool.reserveAny(ttk);
+          CachedConnection connection = connectionPool.reserveAny(ttk);
           if (connection != null) {
             final String serverAddr = ttk.getServer().toString();
             log.trace("Using existing connection to {}", serverAddr);
@@ -707,7 +728,6 @@ public class ThriftTransportPool {
       }
     }
 
-    ConnectionPool pool = getConnectionPool();
     int retryCount = 0;
     while (!servers.isEmpty() && retryCount < 10) {
 
@@ -715,7 +735,7 @@ public class ThriftTransportPool {
       ThriftTransportKey ttk = servers.get(index);
 
       if (preferCachedConnection) {
-        CachedConnection connection = pool.reserveAnyIfPresent(ttk);
+        CachedConnection connection = connectionPool.reserveAnyIfPresent(ttk);
         if (connection != null) {
           return new Pair<>(ttk.getServer().toString(), connection.transport);
         }
@@ -745,8 +765,7 @@ public class ThriftTransportPool {
     connection.reserve();
 
     try {
-      ConnectionPool pool = getConnectionPool();
-      pool.putReserved(cacheKey, connection);
+      connectionPool.putReserved(cacheKey, connection);
     } catch (TransportPoolShutdownException e) {
       connection.transport.close();
       throw e;
@@ -762,8 +781,7 @@ public class ThriftTransportPool {
 
     CachedTTransport cachedTransport = (CachedTTransport) transport;
     ArrayList<CachedConnection> closeList = new ArrayList<>();
-    ConnectionPool pool = getConnectionPool();
-    boolean existInCache = pool.returnTransport(cachedTransport, closeList);
+    boolean existInCache = connectionPool.returnTransport(cachedTransport, closeList);
 
     // close outside of sync block
     closeList.forEach((connection) -> {
@@ -815,67 +833,14 @@ public class ThriftTransportPool {
     log.debug("Set thrift transport pool idle time to {}", time);
   }
 
-  private static ThriftTransportPool instance = null;
-
-  static {
-    SingletonManager.register(new SingletonService() {
-
-      @Override
-      public boolean isEnabled() {
-        return ThriftTransportPool.isEnabled();
-      }
-
-      @Override
-      public void enable() {
-        ThriftTransportPool.enable();
-      }
-
-      @Override
-      public void disable() {
-        ThriftTransportPool.disable();
-      }
-    });
-  }
-
-  public static synchronized ThriftTransportPool getInstance() {
-    Preconditions.checkState(instance != null,
-        "The Accumulo singleton for connection pooling is disabled.  This is likely caused by all "
-            + "AccumuloClients being closed or garbage collected.");
-    instance.startCheckerThread();
-    return instance;
-  }
-
-  private static synchronized boolean isEnabled() {
-    return instance != null;
-  }
-
-  private static synchronized void enable() {
-    if (instance == null) {
-      // this code intentionally does not start the thread that closes idle connections. That thread
-      // is created the first time something attempts to use this service.
-      instance = new ThriftTransportPool();
-    }
-  }
-
-  private static synchronized void disable() {
-    if (instance != null) {
-      try {
-        instance.shutdown();
-      } finally {
-        instance = null;
-      }
-    }
-  }
-
-  public void startCheckerThread() {
+  void startCheckerThread() {
     checkThreadFactory.get();
   }
 
-  void closeExpiredConnections() {
+  private void closeExpiredConnections() {
     List<CachedConnection> expiredConnections;
 
-    ConnectionPool pool = getConnectionPool();
-    expiredConnections = pool.removeExpiredConnections(killTime);
+    expiredConnections = connectionPool.removeExpiredConnections(killTime);
 
     synchronized (errorCount) {
       Iterator<Entry<ThriftTransportKey,Long>> iter = errorTime.entrySet().iterator();
@@ -893,16 +858,12 @@ public class ThriftTransportPool {
     expiredConnections.forEach((c) -> c.transport.close());
   }
 
-  private void shutdown() {
+  void shutdown() {
     connectionPool.shutdown();
     try {
       checkThreadFactory.get().join();
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  private ConnectionPool getConnectionPool() {
-    return connectionPool;
   }
 }

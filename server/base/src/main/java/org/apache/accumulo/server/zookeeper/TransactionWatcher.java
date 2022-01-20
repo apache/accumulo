@@ -105,12 +105,14 @@ public class TransactionWatcher {
       final Set<Long> result = new HashSet<>();
       final String parent = context.getZooKeeperRoot() + "/" + type;
       reader.sync(parent);
-      List<String> children = reader.getChildren(parent);
-      for (String child : children) {
-        if (child.endsWith("-running")) {
-          continue;
+      if (reader.exists(parent)) {
+        List<String> children = reader.getChildren(parent);
+        for (String child : children) {
+          if (child.endsWith("-running")) {
+            continue;
+          }
+          result.add(Long.parseLong(child));
         }
-        result.add(Long.parseLong(child));
       }
       return result;
     }

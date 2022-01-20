@@ -30,7 +30,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -42,7 +41,6 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -56,7 +54,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.hadoopImpl.mapreduce.InputTableConfig;
@@ -74,6 +71,8 @@ import org.slf4j.LoggerFactory;
  * @see org.apache.accumulo.hadoopImpl.mapreduce.AccumuloRecordReader
  */
 public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
+
+  private static final SecureRandom random = new SecureRandom();
   // class to serialize configuration under in the job
   private final Class<?> CLASS;
   private static final Logger log = LoggerFactory.getLogger(AccumuloRecordReader.class);
@@ -288,7 +287,6 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
   public static InputSplit[] getSplits(JobConf job, Class<?> callingClass) throws IOException {
     validateOptions(job, callingClass);
 
-    Random random = new SecureRandom();
     LinkedList<InputSplit> splits = new LinkedList<>();
     Map<String,InputTableConfig> tableConfigs =
         InputConfigurator.getInputTableConfigs(callingClass, job);
@@ -345,11 +343,8 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
             tl.invalidateCache();
 
             while (!tl.binRanges(context, ranges, binnedRanges).isEmpty()) {
-              String tableIdStr = tableId.canonical();
-              if (!Tables.exists(context, tableId))
-                throw new TableDeletedException(tableIdStr);
-              if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
-                throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
+              context.requireNotDeleted(tableId);
+              context.requireNotOffline(tableId, tableName);
               binnedRanges.clear();
               log.warn("Unable to locate bins for specified ranges. Retrying.");
               // sleep randomly between 100 and 200 ms

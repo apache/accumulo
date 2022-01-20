@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Namespaces;
@@ -50,11 +51,9 @@ public abstract class TableOperation extends Command {
     // populate the tableSet set with the tables you want to operate on
     final SortedSet<String> tableSet = new TreeSet<>();
     if (cl.hasOption(optTablePattern.getOpt())) {
-      String tablePattern = cl.getOptionValue(optTablePattern.getOpt());
-      for (String table : shellState.getAccumuloClient().tableOperations().list())
-        if (table.matches(tablePattern)) {
-          tableSet.add(table);
-        }
+      shellState.getAccumuloClient().tableOperations().list().stream()
+          .filter(Pattern.compile(cl.getOptionValue(optTablePattern.getOpt())).asMatchPredicate())
+          .forEach(tableSet::add);
       pruneTables(tableSet);
     } else if (cl.hasOption(optTableName.getOpt())) {
       tableSet.add(cl.getOptionValue(optTableName.getOpt()));
@@ -85,7 +84,7 @@ public abstract class TableOperation extends Command {
       }
       boolean operate = true;
       if (!force) {
-        shellState.getReader().flush();
+        shellState.getWriter().flush();
         String line =
             shellState.getReader().readLine(getName() + " { " + tableName + " } (yes|no)? ");
         more = line != null;

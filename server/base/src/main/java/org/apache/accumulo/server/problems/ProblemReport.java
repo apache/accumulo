@@ -192,7 +192,7 @@ public class ProblemReport {
     String resource = dis.readUTF();
 
     String zpath = context.getZooKeeperRoot() + Constants.ZPROBLEMS + "/" + node;
-    byte[] enc = context.getZooReaderWriter().getData(zpath, null);
+    byte[] enc = context.getZooReaderWriter().getData(zpath);
 
     return new ProblemReport(tableId, ProblemType.valueOf(problemType), resource, enc);
 

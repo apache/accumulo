@@ -56,7 +56,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
-import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -76,9 +76,9 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   static class OfflineIteratorEnvironment implements IteratorEnvironment {
 
     private final Authorizations authorizations;
-    private AccumuloConfiguration conf;
-    private boolean useSample;
-    private SamplerConfiguration sampleConf;
+    private final AccumuloConfiguration conf;
+    private final boolean useSample;
+    private final SamplerConfiguration sampleConf;
 
     public OfflineIteratorEnvironment(Authorizations auths, AccumuloConfiguration acuTableConf,
         boolean useSample, SamplerConfiguration samplerConf) {
@@ -88,7 +88,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       this.sampleConf = samplerConf;
     }
 
-    @Deprecated
+    @Deprecated(since = "2.0.0")
     @Override
     public AccumuloConfiguration getConfig() {
       return conf;
@@ -109,9 +109,10 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       return false;
     }
 
-    private ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<>();
+    private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators =
+        new ArrayList<>();
 
-    @Deprecated
+    @Deprecated(since = "2.0.0")
     @Override
     public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
       topLevelIterators.add(iter);
@@ -151,12 +152,11 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private SortedKeyValueIterator<Key,Value> iter;
   private Range range;
   private KeyExtent currentExtent;
-  private TableId tableId;
-  private Authorizations authorizations;
-  private ClientContext context;
-  private ScannerOptions options;
-  private ArrayList<SortedKeyValueIterator<Key,Value>> readers;
-  private AccumuloConfiguration config;
+  private final TableId tableId;
+  private final Authorizations authorizations;
+  private final ClientContext context;
+  private final ScannerOptions options;
+  private final ArrayList<SortedKeyValueIterator<Key,Value>> readers;
 
   public OfflineIterator(ScannerOptions options, ClientContext context,
       Authorizations authorizations, Text table, Range range) {
@@ -174,7 +174,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     this.readers = new ArrayList<>();
 
     try {
-      config = new ConfigurationCopy(context.instanceOperations().getSiteConfiguration());
       nextTablet();
 
       while (iter != null && !iter.hasTop())
@@ -212,7 +211,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
   private void nextTablet() throws TableNotFoundException, AccumuloException, IOException {
 
-    Range nextRange = null;
+    Range nextRange;
 
     if (currentExtent == null) {
       Text startRow;
@@ -222,20 +221,16 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       else
         startRow = new Text();
 
-      nextRange = new Range(TabletsSection.getRow(tableId, startRow), true, null, false);
+      nextRange = new Range(TabletsSection.encodeRow(tableId, startRow), true, null, false);
     } else {
 
-      if (currentExtent.getEndRow() == null) {
+      if (currentExtent.endRow() == null
+          || range.afterEndKey(new Key(currentExtent.endRow()).followingKey(PartialKey.ROW))) {
         iter = null;
         return;
       }
 
-      if (range.afterEndKey(new Key(currentExtent.getEndRow()).followingKey(PartialKey.ROW))) {
-        iter = null;
-        return;
-      }
-
-      nextRange = new Range(currentExtent.getMetadataEntry(), false, null, false);
+      nextRange = new Range(currentExtent.toMetaRow(), false, null, false);
     }
 
     TabletMetadata tablet = getTabletFiles(nextRange);
@@ -254,7 +249,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       tablet = getTabletFiles(nextRange);
     }
 
-    if (!tablet.getExtent().getTableId().equals(tableId)) {
+    if (!tablet.getExtent().tableId().equals(tableId)) {
       throw new AccumuloException(
           " did not find tablets for table " + tableId + " " + tablet.getExtent());
     }
@@ -271,8 +266,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   }
 
   private TabletMetadata getTabletFiles(Range nextRange) {
-    try (TabletsMetadata tablets = TabletsMetadata.builder().scanMetadataTable()
-        .overRange(nextRange).fetch(FILES, LOCATION, PREV_ROW).build(context)) {
+    try (TabletsMetadata tablets = TabletsMetadata.builder(context).scanMetadataTable()
+        .overRange(nextRange).fetch(FILES, LOCATION, PREV_ROW).build()) {
       return tablets.iterator().next();
     }
   }
@@ -281,12 +276,10 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       Collection<StoredTabletFile> absFiles)
       throws TableNotFoundException, AccumuloException, IOException {
 
-    // TODO share code w/ tablet - ACCUMULO-1303
-
     // possible race condition here, if table is renamed
     String tableName = Tables.getTableName(context, tableId);
     AccumuloConfiguration acuTableConf =
-        new ConfigurationCopy(context.tableOperations().getProperties(tableName));
+        new ConfigurationCopy(context.tableOperations().getConfiguration(tableName));
 
     Configuration conf = context.getHadoopConf();
 
@@ -302,16 +295,11 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     SamplerConfigurationImpl samplerConfImpl =
         SamplerConfigurationImpl.newSamplerConfig(acuTableConf);
 
-    if (scannerSamplerConfigImpl != null
-        && ((samplerConfImpl != null && !scannerSamplerConfigImpl.equals(samplerConfImpl))
-            || samplerConfImpl == null)) {
+    if (scannerSamplerConfigImpl != null && !scannerSamplerConfigImpl.equals(samplerConfImpl)) {
       throw new SampleNotPresentException();
     }
-
-    // TODO need to close files - ACCUMULO-1303
     for (TabletFile file : absFiles) {
-      FileSystem fs =
-          VolumeConfiguration.getVolume(file.getPathStr(), conf, config).getFileSystem();
+      FileSystem fs = VolumeConfiguration.fileSystemForPath(file.getPathStr(), conf);
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
           .forFile(file.getPathStr(), fs, conf, CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(acuTableConf).build();

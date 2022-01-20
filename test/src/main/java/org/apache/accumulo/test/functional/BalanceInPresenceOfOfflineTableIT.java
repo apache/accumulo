@@ -35,14 +35,15 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
-import org.apache.accumulo.core.clientImpl.MasterClient;
+import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.manager.thrift.ManagerClientService;
+import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.TestIngest;
@@ -71,7 +72,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "0");
+    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
     cfg.setSiteConfig(siteConfig);
     // ensure we have two tservers
     if (cfg.getNumTservers() < 2) {
@@ -94,7 +95,12 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
   public void setupTables() throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException {
     accumuloClient = Accumulo.newClient().from(getClientProps()).build();
-    // Need at least two tservers
+    // Need at least two tservers -- wait for them to start before failing
+    for (int retries = 0; retries < 5; ++retries) {
+      if (accumuloClient.instanceOperations().getTabletServers().size() >= 2)
+        break;
+      UtilWaitThread.sleep(TimeUnit.SECONDS.toMillis(2));
+    }
     Assume.assumeTrue("Not enough tservers to run test",
         accumuloClient.instanceOperations().getTabletServers().size() >= 2);
 
@@ -149,25 +155,25 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
       log.debug("fetch the list of tablets assigned to each tserver.");
 
-      MasterClientService.Iface client = null;
-      MasterMonitorInfo stats;
+      ManagerClientService.Iface client = null;
+      ManagerMonitorInfo stats;
       while (true) {
         try {
-          client = MasterClient.getConnectionWithRetry((ClientContext) accumuloClient);
-          stats = client.getMasterStats(TraceUtil.traceInfo(),
+          client = ManagerClient.getConnectionWithRetry((ClientContext) accumuloClient);
+          stats = client.getManagerStats(TraceUtil.traceInfo(),
               creds.toThrift(accumuloClient.instanceOperations().getInstanceID()));
           break;
         } catch (ThriftSecurityException exception) {
           throw new AccumuloSecurityException(exception);
         } catch (ThriftNotActiveServiceException e) {
           // Let it loop, fetching a new location
-          log.debug("Contacted a Master which is no longer active, retrying");
+          log.debug("Contacted a Manager which is no longer active, retrying");
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         } catch (TException exception) {
           throw new AccumuloException(exception);
         } finally {
           if (client != null) {
-            MasterClient.close(client);
+            ManagerClient.close(client, (ClientContext) accumuloClient);
           }
         }
       }

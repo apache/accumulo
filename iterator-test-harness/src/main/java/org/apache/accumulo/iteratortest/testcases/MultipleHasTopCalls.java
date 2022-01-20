@@ -20,7 +20,6 @@ package org.apache.accumulo.iteratortest.testcases;
 
 import java.io.IOException;
 import java.security.SecureRandom;
-import java.util.Random;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.Key;
@@ -29,7 +28,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 import org.apache.accumulo.iteratortest.IteratorTestUtil;
-import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
 
 /**
  * TestCase which asserts that multiple calls to {@link SortedKeyValueIterator#hasTop()} should not
@@ -41,11 +39,7 @@ import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
  */
 public class MultipleHasTopCalls extends OutputVerifyingTestCase {
 
-  private final Random random;
-
-  public MultipleHasTopCalls() {
-    this.random = new SecureRandom();
-  }
+  private static final SecureRandom random = new SecureRandom();
 
   @Override
   public IteratorTestOutput test(IteratorTestInput testInput) {
@@ -53,7 +47,7 @@ public class MultipleHasTopCalls extends OutputVerifyingTestCase {
     final SortedKeyValueIterator<Key,Value> source = IteratorTestUtil.createSource(testInput);
 
     try {
-      skvi.init(source, testInput.getIteratorOptions(), new SimpleIteratorEnvironment());
+      skvi.init(source, testInput.getIteratorOptions(), testInput.getIteratorEnvironment());
       skvi.seek(testInput.getRange(), testInput.getFamilies(), testInput.isInclusive());
       return new IteratorTestOutput(consume(skvi));
     } catch (IOException e) {

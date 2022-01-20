@@ -673,13 +673,8 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
 
   private Map<String,String> getProperties(AccumuloClient accumuloClient, String tableName)
       throws AccumuloException, TableNotFoundException {
-    Iterable<Entry<String,String>> properties =
-        accumuloClient.tableOperations().getProperties(tableName);
-    Map<String,String> propertyMap = new HashMap<>();
-    for (Entry<String,String> entry : properties) {
-      propertyMap.put(entry.getKey(), entry.getValue());
-    }
-    return propertyMap;
+    Map<String,String> properties = accumuloClient.tableOperations().getConfiguration(tableName);
+    return Map.copyOf(properties);
   }
 
 }

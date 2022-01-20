@@ -20,14 +20,14 @@ package org.apache.accumulo.monitor.rest.bulkImports;
 
 import java.util.List;
 
-import javax.inject.Inject;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
 
+import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.BulkImportStatus;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
 
@@ -52,7 +52,7 @@ public class BulkImportResource {
   @GET
   public BulkImport getTables() {
     BulkImport bulkImport = new BulkImport();
-    MasterMonitorInfo mmi = monitor.getMmi();
+    ManagerMonitorInfo mmi = monitor.getMmi();
     if (mmi == null)
       return bulkImport;
 

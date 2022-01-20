@@ -20,11 +20,6 @@ package org.apache.accumulo.core.data;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.nio.CharBuffer;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CharsetEncoder;
-import java.nio.charset.CodingErrorAction;
-
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 
@@ -326,13 +321,7 @@ public class KeyBuilder {
     }
 
     private byte[] encodeCharSequence(CharSequence chars) {
-      CharsetEncoder encoder = UTF_8.newEncoder().onMalformedInput(CodingErrorAction.REPORT)
-          .onUnmappableCharacter(CodingErrorAction.REPORT);
-      try {
-        return encoder.encode(CharBuffer.wrap(chars)).array();
-      } catch (CharacterCodingException ex) {
-        throw new RuntimeException("KeyBuilder supports only CharSequences encoded in UTF-8", ex);
-      }
+      return chars.toString().getBytes(UTF_8);
     }
 
     @Override

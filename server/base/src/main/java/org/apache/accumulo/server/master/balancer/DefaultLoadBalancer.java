@@ -33,12 +33,18 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * @deprecated since 2.1.0. Use {@link org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer}
+ *             instead, as it as the same functionality but a stable API.
+ */
+@Deprecated(since = "2.1.0")
 public class DefaultLoadBalancer extends TabletBalancer {
 
   private static final Logger log = LoggerFactory.getLogger(DefaultLoadBalancer.class);
@@ -48,10 +54,14 @@ public class DefaultLoadBalancer extends TabletBalancer {
   TableId tableToBalance = null;
 
   public DefaultLoadBalancer() {
-
+    log.warn(
+        "{} has been deprecated and will be removed in a future release. Please update your "
+            + "configuration to use the equivalent {} instead.",
+        getClass().getName(), SimpleLoadBalancer.class.getName());
   }
 
   public DefaultLoadBalancer(TableId table) {
+    this(); // emit warning
     tableToBalance = table;
   }
 
@@ -69,11 +79,11 @@ public class DefaultLoadBalancer extends TabletBalancer {
     if (last != null) {
       // Maintain locality
       String fakeSessionID = " ";
-      TServerInstance simple = new TServerInstance(last.getLocation(), fakeSessionID);
+      TServerInstance simple = new TServerInstance(last.getHostAndPort(), fakeSessionID);
       Iterator<TServerInstance> find = locations.tailMap(simple).keySet().iterator();
       if (find.hasNext()) {
         TServerInstance current = find.next();
-        if (current.host().equals(last.host()))
+        if (current.getHost().equals(last.getHost()))
           return current;
       }
     }
@@ -251,7 +261,7 @@ public class DefaultLoadBalancer extends TabletBalancer {
             return result;
           }
           for (TabletStats stat : stats)
-            onlineTabletsForTable.put(new KeyExtent(stat.extent), stat);
+            onlineTabletsForTable.put(KeyExtent.fromThrift(stat.extent), stat);
           donerTabletStats.put(table, onlineTabletsForTable);
         }
       } catch (Exception ex) {

@@ -193,7 +193,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
           sawDeleteLog.error(
               "Combiner of type {} saw a delete during a"
                   + " partial compaction. This could cause undesired results. See"
-                  + " ACCUMULO-2232. Will not log subsequent occurences for at least" + " 1 hour.",
+                  + " ACCUMULO-2232. Will not log subsequent occurrences for at least" + " 1 hour.",
               Combiner.this.getClass().getSimpleName());
           // the value is not used and does not matter
           return Boolean.TRUE;
@@ -277,18 +277,18 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     combineAllColumns = false;
     if (options.containsKey(ALL_OPTION)) {
       combineAllColumns = Boolean.parseBoolean(options.get(ALL_OPTION));
-      if (combineAllColumns)
-        return;
     }
 
-    if (!options.containsKey(COLUMNS_OPTION))
-      throw new IllegalArgumentException("Must specify " + COLUMNS_OPTION + " option");
+    if (!combineAllColumns) {
+      if (!options.containsKey(COLUMNS_OPTION))
+        throw new IllegalArgumentException("Must specify " + COLUMNS_OPTION + " option");
 
-    String encodedColumns = options.get(COLUMNS_OPTION);
-    if (encodedColumns.isEmpty())
-      throw new IllegalArgumentException("The " + COLUMNS_OPTION + " must not be empty");
+      String encodedColumns = options.get(COLUMNS_OPTION);
+      if (encodedColumns.isEmpty())
+        throw new IllegalArgumentException("The " + COLUMNS_OPTION + " must not be empty");
 
-    combiners = new ColumnSet(Lists.newArrayList(Splitter.on(",").split(encodedColumns)));
+      combiners = new ColumnSet(Lists.newArrayList(Splitter.on(",").split(encodedColumns)));
+    }
 
     isMajorCompaction = env.getIteratorScope() == IteratorScope.majc;
 

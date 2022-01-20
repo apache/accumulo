@@ -20,19 +20,20 @@ package org.apache.accumulo.core.metadata.schema;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.stream.Stream;
 
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
-import org.apache.hadoop.fs.Path;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -110,14 +111,56 @@ public interface Ample {
   }
 
   /**
-   * Read a single tablets metadata. No checking is done for prev row, so it could differ.
+   * Controls how Accumulo metadata is read. Currently this only impacts reading the root tablet
+   * stored in Zookeeper. Reading data stored in the Accumulo metadata table is always immediate
+   * consistency.
+   */
+  public enum ReadConsistency {
+    /**
+     * Read data in a way that is slower, but should always yield the latest data. In addition to
+     * being slower, it's possible this read consistency can place higher load on shared resource
+     * which can negatively impact an entire cluster.
+     */
+    IMMEDIATE,
+    /**
+     * Read data in a way that may be faster but may yield out of date data.
+     */
+    EVENTUAL
+  }
+
+  /**
+   * Read a single tablets metadata. No checking is done for prev row, so it could differ. The
+   * method will read the data using {@link ReadConsistency#IMMEDIATE}.
    *
    * @param extent
    *          Reads tablet metadata using the table id and end row from this extent.
    * @param colsToFetch
    *          What tablets columns to fetch. If empty, then everything is fetched.
    */
-  TabletMetadata readTablet(KeyExtent extent, ColumnType... colsToFetch);
+  default TabletMetadata readTablet(KeyExtent extent, ColumnType... colsToFetch) {
+    return readTablet(extent, ReadConsistency.IMMEDIATE, colsToFetch);
+  }
+
+  /**
+   * Read a single tablets metadata. No checking is done for prev row, so it could differ.
+   *
+   * @param extent
+   *          Reads tablet metadata using the table id and end row from this extent.
+   * @param readConsistency
+   *          Controls how the data is read.
+   * @param colsToFetch
+   *          What tablets columns to fetch. If empty, then everything is fetched.
+   */
+  TabletMetadata readTablet(KeyExtent extent, ReadConsistency readConsistency,
+      ColumnType... colsToFetch);
+
+  /**
+   * Entry point for reading multiple tablets' metadata. Generates a TabletsMetadata builder object
+   * and assigns the AmpleImpl client to that builder object. This allows readTablets() to be called
+   * from a ClientContext. Associated methods of the TabletsMetadata Builder class are used to
+   * generate the metadata.
+   */
+  TabletsMetadata.TableOptions readTablets();
 
   /**
    * Initiates mutating a single tablets persistent metadata. No data is persisted until the
@@ -144,11 +187,46 @@ public interface Ample {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Unlike {@link #putGcCandidates(TableId, Collection)} this takes file and dir GC candidates.
+   */
+  default void putGcFileAndDirCandidates(TableId tableId, Collection<String> candidates) {
+    throw new UnsupportedOperationException();
+  }
+
   default void deleteGcCandidates(DataLevel level, Collection<String> paths) {
     throw new UnsupportedOperationException();
   }
 
-  default Iterator<String> getGcCandidates(DataLevel level, String continuePoint) {
+  default Iterator<String> getGcCandidates(DataLevel level) {
+    throw new UnsupportedOperationException();
+  }
+
+  default void
+      putExternalCompactionFinalStates(Collection<ExternalCompactionFinalState> finalStates) {
+    throw new UnsupportedOperationException();
+  }
+
+  default Stream<ExternalCompactionFinalState> getExternalCompactionFinalStates() {
+    throw new UnsupportedOperationException();
+  }
+
+  default void
+      deleteExternalCompactionFinalStates(Collection<ExternalCompactionId> statusesToDelete) {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Return an encoded delete marker Mutation to delete the specified TabletFile path. A String is
+   * used for the parameter because the Garbage Collector is optimized to store a directory for
+   * Tablet File. Otherwise a {@link TabletFile} object could be used. The tabletFilePathToRemove is
+   * validated and normalized before creating the mutation.
+   *
+   * @param tabletFilePathToRemove
+   *          String full path of the TabletFile
+   * @return Mutation with encoded delete marker
+   */
+  default Mutation createDeleteMutation(String tabletFilePathToRemove) {
     throw new UnsupportedOperationException();
   }
 
@@ -164,63 +242,53 @@ public interface Ample {
   }
 
   /**
-   * Temporary interface, place holder for some server side types like TServerInstance. Need to
-   * simplify and possibly combine these type.
-   */
-  interface TServer {
-    HostAndPort getLocation();
-
-    String getSession();
-  }
-
-  /**
-   * Temporary interface, place holder for the server side type FileRef. Need to simplify this type.
-   */
-  interface FileMeta {
-    public Text meta();
-
-    public Path path();
-  }
-
-  /**
    * Interface for changing a tablets persistent data.
    */
   interface TabletMutator {
-    public TabletMutator putPrevEndRow(Text per);
+    TabletMutator putPrevEndRow(Text per);
 
-    public TabletMutator putFile(TabletFile path, DataFileValue dfv);
+    TabletMutator putFile(TabletFile path, DataFileValue dfv);
 
-    public TabletMutator deleteFile(StoredTabletFile path);
+    TabletMutator deleteFile(StoredTabletFile path);
 
-    public TabletMutator putScan(TabletFile path);
+    TabletMutator putScan(TabletFile path);
 
-    public TabletMutator deleteScan(StoredTabletFile path);
+    TabletMutator deleteScan(StoredTabletFile path);
 
-    public TabletMutator putCompactionId(long compactionId);
+    TabletMutator putCompactionId(long compactionId);
 
-    public TabletMutator putFlushId(long flushId);
+    TabletMutator putFlushId(long flushId);
 
-    public TabletMutator putLocation(TServer tserver, LocationType type);
+    TabletMutator putLocation(TServerInstance tserver, LocationType type);
 
-    public TabletMutator deleteLocation(TServer tserver, LocationType type);
+    TabletMutator deleteLocation(TServerInstance tserver, LocationType type);
 
-    public TabletMutator putZooLock(ZooLock zooLock);
+    TabletMutator putZooLock(ServiceLock zooLock);
 
-    public TabletMutator putDirName(String dirName);
+    TabletMutator putDirName(String dirName);
 
-    public TabletMutator putWal(LogEntry logEntry);
+    TabletMutator putWal(LogEntry logEntry);
 
-    public TabletMutator deleteWal(String wal);
+    TabletMutator deleteWal(String wal);
 
-    public TabletMutator deleteWal(LogEntry logEntry);
+    TabletMutator deleteWal(LogEntry logEntry);
 
-    public TabletMutator putTime(MetadataTime time);
+    TabletMutator putTime(MetadataTime time);
 
-    public TabletMutator putBulkFile(TabletFile bulkref, long tid);
+    TabletMutator putBulkFile(TabletFile bulkref, long tid);
 
-    public TabletMutator deleteBulkFile(Ample.FileMeta bulkref);
+    TabletMutator deleteBulkFile(TabletFile bulkref);
 
-    public TabletMutator putChopped();
+    TabletMutator putChopped();
+
+    TabletMutator putSuspension(TServerInstance tserver, long suspensionTime);
+
+    TabletMutator deleteSuspension();
+
+    TabletMutator putExternalCompaction(ExternalCompactionId ecid,
+        ExternalCompactionMetadata ecMeta);
+
+    TabletMutator deleteExternalCompaction(ExternalCompactionId ecid);
 
     /**
      * This method persist (or queues for persisting) previous put and deletes against this object.
@@ -234,6 +302,6 @@ public interface Ample {
      * <p>
      * After this method is called, calling any method on this object will result in an exception.
      */
-    public void mutate();
+    void mutate();
   }
 }

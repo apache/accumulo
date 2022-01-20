@@ -18,13 +18,15 @@
  */
 package org.apache.accumulo.test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
-import java.net.URI;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,7 +36,9 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -45,6 +49,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -58,11 +63,9 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -70,8 +73,6 @@ import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
-import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -94,7 +95,6 @@ public class VolumeIT extends ConfigurableMacBase {
     return 10 * 60;
   }
 
-  @SuppressWarnings("deprecation")
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     File baseDir = cfg.getDir();
@@ -112,9 +112,6 @@ public class VolumeIT extends ConfigurableMacBase {
     }
 
     // Run MAC on two locations in the local file system
-    URI v1Uri = v1.toUri();
-    cfg.setProperty(Property.INSTANCE_DFS_DIR, v1Uri.getPath());
-    cfg.setProperty(Property.INSTANCE_DFS_URI, v1Uri.getScheme() + v1Uri.getHost());
     cfg.setProperty(Property.INSTANCE_VOLUMES, v1 + "," + v2);
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey(), "15s");
@@ -130,12 +127,13 @@ public class VolumeIT extends ConfigurableMacBase {
     // create a table
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
-      client.tableOperations().create(tableName);
+      // create set of splits
       SortedSet<Text> partitions = new TreeSet<>();
-      // with some splits
       for (String s : "d,m,t".split(","))
         partitions.add(new Text(s));
-      client.tableOperations().addSplits(tableName, partitions);
+      // create table with splits
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(partitions);
+      client.tableOperations().create(tableName, ntc);
       // scribble over the splits
       VolumeChooserIT.writeDataToTable(client, tableName, VolumeChooserIT.alpha_rows);
       // write the data to disk, read it back
@@ -193,12 +191,8 @@ public class VolumeIT extends ConfigurableMacBase {
 
       String uuid = verifyAndShutdownCluster(client, tableNames[0]);
 
-      FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
-          new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class).configure(
-              new Parameters().properties().setFileName(cluster.getAccumuloPropertiesPath()));
-      propsBuilder.getConfiguration().setProperty(Property.INSTANCE_VOLUMES.getKey(),
-          v1 + "," + v2 + "," + v3);
-      propsBuilder.save();
+      updateConfig(config -> config.setProperty(Property.INSTANCE_VOLUMES.getKey(),
+          v1 + "," + v2 + "," + v3));
 
       // initialize volume
       assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
@@ -233,12 +227,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
       String uuid = verifyAndShutdownCluster(client, tableNames[0]);
 
-      FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
-          new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class).configure(
-              new Parameters().properties().setFileName(cluster.getAccumuloPropertiesPath()));
-      propsBuilder.getConfiguration().setProperty(Property.INSTANCE_VOLUMES.getKey(),
-          v2 + "," + v3);
-      propsBuilder.save();
+      updateConfig(config -> config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2 + "," + v3));
 
       // initialize volume
       assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
@@ -260,7 +249,7 @@ public class VolumeIT extends ConfigurableMacBase {
   private void checkVolumesInitialized(List<Path> volumes, String uuid) throws Exception {
     for (Path volumePath : volumes) {
       FileSystem fs = volumePath.getFileSystem(cluster.getServerContext().getHadoopConf());
-      Path vp = new Path(volumePath, ServerConstants.INSTANCE_ID_DIR);
+      Path vp = new Path(volumePath, Constants.INSTANCE_ID_DIR);
       FileStatus[] iids = fs.listStatus(vp);
       assertEquals(1, iids.length);
       assertEquals(uuid, iids[0].getPath().getName());
@@ -269,13 +258,14 @@ public class VolumeIT extends ConfigurableMacBase {
 
   private void writeData(String tableName, AccumuloClient client) throws AccumuloException,
       AccumuloSecurityException, TableExistsException, TableNotFoundException {
+
     TreeSet<Text> splits = new TreeSet<>();
     for (int i = 1; i < 100; i++) {
       splits.add(new Text(String.format("%06d", i * 100)));
     }
 
-    client.tableOperations().create(tableName);
-    client.tableOperations().addSplits(tableName, splits);
+    NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+    client.tableOperations().create(tableName, ntc);
 
     try (BatchWriter bw = client.createBatchWriter(tableName)) {
       for (int i = 0; i < 100; i++) {
@@ -304,8 +294,8 @@ public class VolumeIT extends ConfigurableMacBase {
 
     TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
     try (Scanner metaScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-      metaScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
+      metaScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+      metaScanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
       int[] counts = new int[paths.length];
 
@@ -371,12 +361,7 @@ public class VolumeIT extends ConfigurableMacBase {
       assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
       cluster.stop();
 
-      FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
-          new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class).configure(
-              new Parameters().properties().setFileName(cluster.getAccumuloPropertiesPath()));
-      propsBuilder.getConfiguration().setProperty(Property.INSTANCE_VOLUMES.getKey(),
-          v2.toString());
-      propsBuilder.save();
+      updateConfig(config -> config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2.toString()));
 
       // start cluster and verify that volume was decommissioned
       cluster.start();
@@ -408,7 +393,6 @@ public class VolumeIT extends ConfigurableMacBase {
     }
   }
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths provided by test")
   private void testReplaceVolume(AccumuloClient client, boolean cleanShutdown) throws Exception {
     String[] tableNames = getUniqueNames(3);
 
@@ -435,14 +419,11 @@ public class VolumeIT extends ConfigurableMacBase {
     assertTrue("Failed to rename " + v2f + " to " + v9f, v2f.renameTo(v9f));
     Path v9 = new Path(v9f.toURI());
 
-    FileBasedConfigurationBuilder<PropertiesConfiguration> propsBuilder =
-        new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class).configure(
-            new Parameters().properties().setFileName(cluster.getAccumuloPropertiesPath()));
-    PropertiesConfiguration conf = propsBuilder.getConfiguration();
-    conf.setProperty(Property.INSTANCE_VOLUMES.getKey(), v8 + "," + v9);
-    conf.setProperty(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey(),
-        v1 + " " + v8 + "," + v2 + " " + v9);
-    propsBuilder.save();
+    updateConfig(config -> {
+      config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v8 + "," + v9);
+      config.setProperty(Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey(),
+          v1 + " " + v8 + "," + v2 + " " + v9);
+    });
 
     // start cluster and verify that volumes were replaced
     cluster.start();
@@ -492,6 +473,19 @@ public class VolumeIT extends ConfigurableMacBase {
   public void testDirtyReplaceVolumes() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       testReplaceVolume(client, false);
+    }
+  }
+
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths provided by test")
+  private void updateConfig(Consumer<PropertiesConfiguration> updater) throws Exception {
+    var file = new File(cluster.getAccumuloPropertiesPath());
+    var config = new PropertiesConfiguration();
+    try (FileReader out = new FileReader(file, UTF_8)) {
+      config.read(out);
+    }
+    updater.accept(config);
+    try (FileWriter out = new FileWriter(file, UTF_8)) {
+      config.write(out);
     }
   }
 }

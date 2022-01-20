@@ -22,16 +22,16 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.security.SecureRandom;
 import java.util.Base64;
-import java.util.Random;
 
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellCommandException;
 import org.apache.accumulo.shell.ShellCommandException.ErrorCode;
 import org.apache.commons.cli.CommandLine;
+import org.jline.utils.InfoCmp;
 
 public class HiddenCommand extends Command {
-  private static Random rand = new SecureRandom();
+  private static final SecureRandom random = new SecureRandom();
 
   @Override
   public String description() {
@@ -41,10 +41,10 @@ public class HiddenCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
-    if (rand.nextInt(10) == 0) {
-      shellState.getReader().beep();
-      shellState.getReader().println();
-      shellState.getReader()
+    if (random.nextInt(10) == 0) {
+      shellState.getTerminal().puts(InfoCmp.Capability.bell);
+      shellState.getWriter().println();
+      shellState.getWriter()
           .println(new String(Base64.getDecoder()
               .decode("ICAgICAgIC4tLS4KICAgICAgLyAvXCBcCiAgICAgKCAvLS1cICkKICAgICAuPl8g"
                   + "IF88LgogICAgLyB8ICd8ICcgXAogICAvICB8Xy58Xy4gIFwKICAvIC98ICAgIC"

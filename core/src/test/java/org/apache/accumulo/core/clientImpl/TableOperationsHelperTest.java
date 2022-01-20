@@ -29,7 +29,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -143,11 +142,11 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    public Iterable<Entry<String,String>> getProperties(String tableName) {
+    public Map<String,String> getConfiguration(String tableName) {
       Map<String,String> empty = Collections.emptyMap();
       if (!settings.containsKey(tableName))
-        return empty.entrySet();
-      return settings.get(tableName).entrySet();
+        return empty;
+      return settings.get(tableName);
     }
 
     @Override
@@ -164,12 +163,17 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    @Deprecated
+    @Deprecated(since = "2.0.0")
     public void importDirectory(String tableName, String dir, String failureDir, boolean setTime) {}
 
     @Override
     public void offline(String tableName) {
 
+    }
+
+    @Override
+    public boolean isOnline(String tableName) {
+      return true;
     }
 
     @Override
@@ -263,10 +267,7 @@ public class TableOperationsHelperTest {
       String[] parts = value.split("=", 2);
       expected.put(parts[0], parts[1]);
     }
-    Map<String,String> actual = new TreeMap<>();
-    for (Entry<String,String> entry : t.getProperties(tablename)) {
-      actual.put(entry.getKey(), entry.getValue());
-    }
+    Map<String,String> actual = Map.copyOf(t.getConfiguration(tablename));
     assertEquals(expected, actual);
   }
 

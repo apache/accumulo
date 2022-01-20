@@ -21,6 +21,7 @@ package org.apache.accumulo.server.metadata;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -63,8 +64,8 @@ public class RootGcCandidates {
     this.candidates = candidates;
   }
 
-  public void add(Collection<StoredTabletFile> refs) {
-    refs.forEach(ref -> {
+  public void add(Iterator<StoredTabletFile> refs) {
+    refs.forEachRemaining(ref -> {
       String parent = ref.getPath().getParent().toString();
       candidates.computeIfAbsent(parent, k -> new TreeSet<>()).add(ref.getFileName());
     });

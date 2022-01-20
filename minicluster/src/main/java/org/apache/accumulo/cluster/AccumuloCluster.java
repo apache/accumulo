@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.cluster;
 
-import java.io.IOException;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -63,7 +62,7 @@ public interface AccumuloCluster {
    *
    * @deprecated since 2.0.0, replaced by {@link #getClientProperties()}}
    */
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   org.apache.accumulo.core.client.ClientConfiguration getClientConfig();
 
   /**
@@ -108,7 +107,7 @@ public interface AccumuloCluster {
   /**
    * @return the {@link FileSystem} in use by this cluster
    */
-  FileSystem getFileSystem() throws IOException;
+  FileSystem getFileSystem();
 
   /**
    * @return A path on {@link FileSystem} this cluster is running on that can be used for temporary

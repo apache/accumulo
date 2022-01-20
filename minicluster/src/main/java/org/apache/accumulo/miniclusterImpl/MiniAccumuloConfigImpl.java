@@ -76,7 +76,7 @@ public class MiniAccumuloConfigImpl {
   private long zooKeeperStartupTime = 20 * 1000;
   private String existingZooKeepers;
 
-  private long defaultMemorySize = 128 * 1024 * 1024;
+  private long defaultMemorySize = 256 * 1024 * 1024;
 
   private boolean initialized = false;
 
@@ -136,10 +136,8 @@ public class MiniAccumuloConfigImpl {
       // Never want to override these if an existing instance, which may be using the defaults
       if (existingInstance == null || !existingInstance) {
         existingInstance = false;
-        // TODO ACCUMULO-XXXX replace usage of instance.dfs.{dir,uri} with instance.volumes
-        setInstanceLocation();
+        mergeProp(Property.INSTANCE_VOLUMES.getKey(), "file://" + accumuloDir.getAbsolutePath());
         mergeProp(Property.INSTANCE_SECRET.getKey(), DEFAULT_INSTANCE_SECRET);
-        mergeProp(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey() + "password", getRootPassword());
       }
 
       mergeProp(Property.TSERV_PORTSEARCH.getKey(), "true");
@@ -147,7 +145,7 @@ public class MiniAccumuloConfigImpl {
       mergeProp(Property.TSERV_INDEXCACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_SUMMARYCACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_MAXMEM.getKey(), "40M");
-      mergeProp(Property.TSERV_WALOG_MAX_SIZE.getKey(), "100M");
+      mergeProp(Property.TSERV_WAL_MAX_SIZE.getKey(), "100M");
       mergeProp(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
       // since there is a small amount of memory, check more frequently for majc... setting may not
       // be needed in 1.5
@@ -160,13 +158,16 @@ public class MiniAccumuloConfigImpl {
       mergeProp(generalDynamicClasspaths.getKey(), libExtDir.getAbsolutePath() + "/[^.].*[.]jar");
       mergeProp(Property.GC_CYCLE_DELAY.getKey(), "4s");
       mergeProp(Property.GC_CYCLE_START.getKey(), "0s");
-      mergePropWithRandomPort(Property.MASTER_CLIENTPORT.getKey());
-      mergePropWithRandomPort(Property.TRACE_PORT.getKey());
+      mergePropWithRandomPort(Property.MANAGER_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       mergePropWithRandomPort(Property.GC_PORT.getKey());
-      mergePropWithRandomPort(Property.REPLICATION_RECEIPT_SERVICE_PORT.getKey());
-      mergePropWithRandomPort(Property.MASTER_REPLICATION_COORDINATOR_PORT.getKey());
+      @SuppressWarnings("deprecation")
+      Property p = Property.REPLICATION_RECEIPT_SERVICE_PORT;
+      mergePropWithRandomPort(p.getKey());
+      @SuppressWarnings("deprecation")
+      Property p2 = Property.MANAGER_REPLICATION_COORDINATOR_PORT;
+      mergePropWithRandomPort(p2.getKey());
 
       if (isUseCredentialProvider()) {
         updateConfigForCredentialProvider();
@@ -228,12 +229,6 @@ public class MiniAccumuloConfigImpl {
       // Only remove it from the siteCfg if we succeeded in adding it to the CredentialProvider
       entries.remove();
     }
-  }
-
-  @SuppressWarnings("deprecation")
-  private void setInstanceLocation() {
-    mergeProp(Property.INSTANCE_DFS_URI.getKey(), "file:///");
-    mergeProp(Property.INSTANCE_DFS_DIR.getKey(), accumuloDir.getAbsolutePath());
   }
 
   /**
@@ -370,8 +365,8 @@ public class MiniAccumuloConfigImpl {
   }
 
   /**
-   * Sets the amount of memory to use in the master process. Calling this method is optional.
-   * Default memory is 128M
+   * Sets the amount of memory to use in the specified process. Calling this method is optional.
+   * Default memory is 256M
    *
    * @param serverType
    *          the type of server to apply the memory settings
@@ -391,7 +386,7 @@ public class MiniAccumuloConfigImpl {
 
   /**
    * Sets the default memory size to use. This value is also used when a ServerType has not been
-   * configured explicitly. Calling this method is optional. Default memory is 128M
+   * configured explicitly. Calling this method is optional. Default memory is 256M
    *
    * @param memory
    *          amount of memory to set

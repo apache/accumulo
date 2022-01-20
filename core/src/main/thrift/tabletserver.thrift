@@ -22,6 +22,7 @@ namespace cpp org.apache.accumulo.core.tabletserver.thrift
 include "data.thrift"
 include "security.thrift"
 include "client.thrift"
+include "manager.thrift"
 include "master.thrift"
 include "trace.thrift"
 
@@ -64,7 +65,7 @@ struct TabletStats {
   5:i64 numEntries
   6:double ingestRate
   7:double queryRate
-  // zero if loaded by the master, currentTimeMillis when the split was created
+  // zero if loaded by the manager, currentTimeMillis when the split was created
   8:i64 splitCreationTime
 }
 
@@ -98,14 +99,14 @@ struct ActiveScan {
   15:string classLoaderContext
 }
 
-enum CompactionType {
+enum TCompactionType {
   MINOR
   MERGE
   MAJOR
   FULL
 }
 
-enum CompactionReason {
+enum TCompactionReason {
   USER
   SYSTEM
   CHOP
@@ -126,8 +127,8 @@ struct ActiveCompaction {
   2:i64 age
   3:list<string> inputFiles
   4:string outputFile
-  5:CompactionType type
-  6:CompactionReason reason
+  5:TCompactionType type
+  6:TCompactionReason reason
   7:string localityGroup
   8:i64 entriesRead
   9:i64 entriesWritten
@@ -156,6 +157,43 @@ enum TUnloadTabletGoal {
   UNASSIGNED
   SUSPENDED
   DELETED
+}
+
+struct InputFile {
+  1:string metadataFileEntry
+  2:i64 size
+  3:i64 entries
+  4:i64 timestamp
+}
+
+struct TExternalCompactionJob {
+  1:string externalCompactionId
+  2:data.TKeyExtent extent
+  3:list<InputFile> files
+  4:IteratorConfig iteratorSettings
+  5:string outputFile
+  6:bool propagateDeletes
+  7:TCompactionKind kind
+  8:i64 userCompactionId
+  9:map<string, string> overrides
+}
+
+enum TCompactionKind {
+  CHOP
+  SELECTOR
+  SYSTEM
+  USER
+}
+
+struct TCompactionQueueSummary {
+  1:string queue
+  2:i16 priority
+}
+
+struct TCompactionStats{
+  1:i64 entriesRead;
+  2:i64 entriesWritten;
+  3:i64 fileSize;
 }
 
 service TabletClientService extends client.ClientService {
@@ -475,7 +513,41 @@ service TabletClientService extends client.ClientService {
   ) throws (
     1:NoSuchScanIDException nssi
   )
+  
+  list<TCompactionQueueSummary> getCompactionQueueInfo(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+  ) throws (
+    1:client.ThriftSecurityException sec
+  )
+  
+  TExternalCompactionJob reserveCompactionJob(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string queueName
+    4:i64 priority
+    5:string compactor
+    6:string externalCompactionId
+  ) throws (
+    1:client.ThriftSecurityException sec
+  )
+  
+  oneway void compactionJobFinished(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string externalCompactionId
+    4:data.TKeyExtent extent
+    5:i64 fileSize
+    6:i64 entries
+  )
 
+  oneway void compactionJobFailed(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string externalCompactionId
+    4:data.TKeyExtent extent
+  )
+  
 }
 
 typedef i32 TabletID

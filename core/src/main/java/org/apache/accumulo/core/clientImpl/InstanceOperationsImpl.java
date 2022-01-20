@@ -20,6 +20,7 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createClient;
 import static org.apache.accumulo.core.rpc.ThriftUtil.createTransport;
 import static org.apache.accumulo.core.rpc.ThriftUtil.getTServerClient;
@@ -30,22 +31,29 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
+import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
@@ -67,7 +75,13 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
-    MasterClient.executeVoid(context, client -> client.setSystemProperty(TraceUtil.traceInfo(),
+    DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {
+      // force a warning on the client side, but send the name the user used to the server-side
+      // to trigger a warning in the server logs, and to handle it there
+      log.warn("{} was deprecated and will be removed in a future release;"
+          + " setting its replacement {} instead", property, replacement);
+    });
+    ManagerClient.executeVoid(context, client -> client.setSystemProperty(TraceUtil.traceInfo(),
         context.rpcCreds(), property, value));
     checkLocalityGroups(property);
   }
@@ -76,15 +90,22 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public void removeProperty(final String property)
       throws AccumuloException, AccumuloSecurityException {
     checkArgument(property != null, "property is null");
-    MasterClient.executeVoid(context,
+    DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {
+      // force a warning on the client side, but send the name the user used to the server-side
+      // to trigger a warning in the server logs, and to handle it there
+      log.warn("{} was deprecated and will be removed in a future release; assuming user meant"
+          + " its replacement {} and will remove that instead", property, replacement);
+    });
+    ManagerClient.executeVoid(context,
         client -> client.removeSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property));
     checkLocalityGroups(property);
   }
 
-  void checkLocalityGroups(String propChanged) throws AccumuloSecurityException, AccumuloException {
+  private void checkLocalityGroups(String propChanged)
+      throws AccumuloSecurityException, AccumuloException {
     if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
       try {
-        LocalityGroupUtil.checkLocalityGroups(getSystemConfiguration().entrySet());
+        LocalityGroupUtil.checkLocalityGroups(getSystemConfiguration());
       } catch (LocalityGroupConfigurationError | RuntimeException e) {
         LoggerFactory.getLogger(this.getClass()).warn("Changing '" + propChanged
             + "' resulted in bad locality group config. This may be a transient situation since "
@@ -110,6 +131,11 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
+  public List<String> getManagerLocations() {
+    return context.getManagerLocations();
+  }
+
+  @Override
   public List<String> getTabletServers() {
     ZooCache cache = context.getZooCache();
     String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
@@ -120,7 +146,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
         var copy = new ArrayList<>(children);
         Collections.sort(copy);
         var data = cache.get(path + "/" + candidate + "/" + copy.get(0));
-        if (data != null && !"master".equals(new String(data, UTF_8))) {
+        if (data != null && !"manager".equals(new String(data, UTF_8))) {
           results.add(candidate);
         }
       }
@@ -151,7 +177,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throw new AccumuloException(e);
     } finally {
       if (client != null)
-        returnClient(client);
+        returnClient(client, context);
     }
   }
 
@@ -172,7 +198,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
       List<ActiveCompaction> as = new ArrayList<>();
       for (var tac : client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds())) {
-        as.add(new ActiveCompactionImpl(context, tac));
+        as.add(new ActiveCompactionImpl(context, tac, parsedTserver, CompactionHost.Type.TSERVER));
       }
       return as;
     } catch (ThriftSecurityException e) {
@@ -181,7 +207,55 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throw new AccumuloException(e);
     } finally {
       if (client != null)
-        returnClient(client);
+        returnClient(client, context);
+    }
+  }
+
+  @Override
+  public List<ActiveCompaction> getActiveCompactions()
+      throws AccumuloException, AccumuloSecurityException {
+
+    Map<String,List<HostAndPort>> compactors = ExternalCompactionUtil.getCompactorAddrs(context);
+    List<String> tservers = getTabletServers();
+
+    int numThreads = Math.max(4, Math.min((tservers.size() + compactors.size()) / 10, 256));
+    var executorService = ThreadPools.createFixedThreadPool(numThreads, "getactivecompactions");
+    try {
+      List<Future<List<ActiveCompaction>>> futures = new ArrayList<>();
+
+      for (String tserver : tservers) {
+        futures.add(executorService.submit(() -> getActiveCompactions(tserver)));
+      }
+
+      compactors.values().forEach(compactorList -> {
+        for (HostAndPort compactorAddr : compactorList) {
+          Callable<List<ActiveCompaction>> task =
+              () -> ExternalCompactionUtil.getActiveCompaction(compactorAddr, context).stream()
+                  .map(tac -> new ActiveCompactionImpl(context, tac, compactorAddr,
+                      CompactionHost.Type.COMPACTOR))
+                  .collect(toList());
+
+          futures.add(executorService.submit(task));
+        }
+      });
+
+      List<ActiveCompaction> ret = new ArrayList<>();
+      for (Future<List<ActiveCompaction>> future : futures) {
+        try {
+          ret.addAll(future.get());
+        } catch (InterruptedException | ExecutionException e) {
+          if (e.getCause() instanceof ThriftSecurityException) {
+            ThriftSecurityException tse = (ThriftSecurityException) e.getCause();
+            throw new AccumuloSecurityException(tse.user, tse.code, e);
+          }
+          throw new AccumuloException(e);
+        }
+      }
+
+      return ret;
+
+    } finally {
+      executorService.shutdown();
     }
   }
 
@@ -199,7 +273,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public void waitForBalance() throws AccumuloException {
     try {
-      MasterClient.executeVoid(context, client -> client.waitForBalance(TraceUtil.traceInfo()));
+      ManagerClient.executeVoid(context, client -> client.waitForBalance(TraceUtil.traceInfo()));
     } catch (AccumuloSecurityException ex) {
       // should never happen
       throw new RuntimeException("Unexpected exception thrown", ex);

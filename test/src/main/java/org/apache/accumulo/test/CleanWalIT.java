@@ -36,15 +36,14 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,30 +65,6 @@ public class CleanWalIT extends AccumuloClusterHarness {
     cfg.setNumTservers(1);
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-  }
-
-  @Before
-  public void offlineTraceTable() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String traceTable =
-          client.instanceOperations().getSystemConfiguration().get(Property.TRACE_TABLE.getKey());
-      if (client.tableOperations().exists(traceTable)) {
-        client.tableOperations().offline(traceTable, true);
-      }
-    }
-  }
-
-  @After
-  public void onlineTraceTable() throws Exception {
-    if (cluster != null) {
-      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-        String traceTable =
-            client.instanceOperations().getSystemConfiguration().get(Property.TRACE_TABLE.getKey());
-        if (client.tableOperations().exists(traceTable)) {
-          client.tableOperations().online(traceTable, true);
-        }
-      }
-    }
   }
 
   // test for ACCUMULO-1830
@@ -139,8 +114,8 @@ public class CleanWalIT extends AccumuloClusterHarness {
   private int countLogs(AccumuloClient client) throws TableNotFoundException {
     int count = 0;
     try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.LogColumnFamily.NAME);
-      scanner.setRange(MetadataSchema.TabletsSection.getRange());
+      scanner.fetchColumnFamily(LogColumnFamily.NAME);
+      scanner.setRange(TabletsSection.getRange());
       for (Entry<Key,Value> entry : scanner) {
         log.debug("Saw {}={}", entry.getKey(), entry.getValue());
         count++;

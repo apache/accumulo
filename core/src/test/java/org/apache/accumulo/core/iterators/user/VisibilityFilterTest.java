@@ -34,7 +34,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -49,7 +49,7 @@ public class VisibilityFilterTest {
   private static final Text GOOD_VIS = new Text("abc|def");
   private static final Text HIDDEN_VIS = new Text("abc&def&ghi");
   private static final Text BAD_VIS = new Text("&");
-  private static final Value EMPTY_VALUE = new Value(new byte[0]);
+  private static final Value EMPTY_VALUE = new Value();
 
   private TreeMap<Key,Value> createUnprotectedSource(int numPublic, int numHidden) {
     TreeMap<Key,Value> source = new TreeMap<>();

@@ -28,7 +28,6 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -66,7 +65,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
     final String tableName = getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(tableName);
-      final BatchWriter writer = client.createBatchWriter(tableName, new BatchWriterConfig());
+      final BatchWriter writer = client.createBatchWriter(tableName);
       for (int i = 0; i < 10; i++) {
         byte[] row = {(byte) (START_ROW + i)};
         Mutation m = new Mutation(new Text(row));
@@ -89,8 +88,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
         int yieldSeekCount = 0;
         while (it.hasNext()) {
           Map.Entry<Key,Value> next = it.next();
-          log.info(Integer.toString(keyCount) + ": Got key " + next.getKey() + " with value "
-              + next.getValue());
+          log.info(keyCount + ": Got key " + next.getKey() + " with value " + next.getValue());
 
           // verify we got the expected key
           char expected = (char) (START_ROW + keyCount);
@@ -121,7 +119,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
     final String tableName = getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(tableName);
-      final BatchWriter writer = client.createBatchWriter(tableName, new BatchWriterConfig());
+      final BatchWriter writer = client.createBatchWriter(tableName);
       for (int i = 0; i < 10; i++) {
         byte[] row = {(byte) (START_ROW + i)};
         Mutation m = new Mutation(new Text(row));
@@ -145,8 +143,7 @@ public class YieldScannersIT extends AccumuloClusterHarness {
         int yieldSeekCount = 0;
         while (it.hasNext()) {
           Map.Entry<Key,Value> next = it.next();
-          log.info(Integer.toString(keyCount) + ": Got key " + next.getKey() + " with value "
-              + next.getValue());
+          log.info(keyCount + ": Got key " + next.getKey() + " with value " + next.getValue());
 
           // verify we got the expected key
           char expected = (char) (START_ROW + keyCount);

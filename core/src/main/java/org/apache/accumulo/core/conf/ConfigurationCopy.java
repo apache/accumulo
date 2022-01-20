@@ -111,4 +111,9 @@ public class ConfigurationCopy extends AccumuloConfiguration {
       return updateCount;
     }
   }
+
+  @Override
+  public boolean isPropertySet(Property prop, boolean cacheAndWatch) {
+    return copy.containsKey(prop.getKey());
+  }
 }

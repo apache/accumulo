@@ -141,7 +141,7 @@
             <thead>
               <tr>
                 <th>Table&nbsp;</th>
-                <th>Tablet&nbsp;</th>
+                <th title="Run 'getsplits -v' in the Accumulo Shell to associate the encoded tablets with their actual splits.">Tablet&nbsp;<span class="glyphicon glyphicon-info-sign"></span></th>
                 <th class="big-num">Entries&nbsp;</th>
                 <th class="big-num">Ingest&nbsp;</th>
                 <th class="big-num">Query&nbsp;</th>

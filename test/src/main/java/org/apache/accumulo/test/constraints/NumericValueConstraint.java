@@ -23,9 +23,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.constraints.Constraint;
 
 /**
  * This class is an accumulo constraint that ensures values are numeric strings.

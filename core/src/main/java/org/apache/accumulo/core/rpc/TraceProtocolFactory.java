@@ -18,13 +18,15 @@
  */
 package org.apache.accumulo.core.rpc;
 
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TMessage;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TTransport;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 /**
  * {@link org.apache.thrift.protocol.TCompactProtocol.Factory} implementation which uses a protocol
@@ -36,18 +38,21 @@ public class TraceProtocolFactory extends TCompactProtocol.Factory {
   @Override
   public TProtocol getProtocol(TTransport trans) {
     return new TCompactProtocol(trans) {
-      private TraceScope span = null;
+      private Span span = null;
+      private Scope scope = null;
 
       @Override
       public void writeMessageBegin(TMessage message) throws TException {
-        span = Trace.startSpan("client:" + message.name);
+        span = TraceUtil.startClientRpcSpan(this.getClass(), message.name);
+        scope = span.makeCurrent();
         super.writeMessageBegin(message);
       }
 
       @Override
       public void writeMessageEnd() throws TException {
         super.writeMessageEnd();
-        span.close();
+        scope.close();
+        span.end();
       }
     };
   }

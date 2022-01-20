@@ -37,7 +37,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.MasterClient;
+import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -46,7 +46,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.protobuf.ProtobufUtil;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -76,6 +78,7 @@ import org.slf4j.LoggerFactory;
  * if a WAL will never be used in the future.
  */
 @Ignore("Replication ITs are not stable and not currently maintained")
+@Deprecated
 public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacBase {
   private static final Logger log =
       LoggerFactory.getLogger(GarbageCollectorCommunicatesWithTServersIT.class);
@@ -95,14 +98,14 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
     cfg.setProperty(Property.GC_CYCLE_DELAY, GC_PERIOD_SECONDS + "s");
     // Wait longer to try to let the replication table come online before a cycle runs
     cfg.setProperty(Property.GC_CYCLE_START, "10s");
-    cfg.setProperty(Property.REPLICATION_NAME, "master");
-    // Set really long delays for the master to do stuff for replication. We don't need
+    cfg.setProperty(Property.REPLICATION_NAME, "manager");
+    // Set really long delays for the manager to do stuff for replication. We don't need
     // it to be doing anything, so just let it sleep
     cfg.setProperty(Property.REPLICATION_WORK_PROCESSOR_DELAY, "240s");
-    cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "240s");
+    cfg.setProperty(Property.MANAGER_REPLICATION_SCAN_INTERVAL, "240s");
     cfg.setProperty(Property.REPLICATION_DRIVER_DELAY, "240s");
     // Pull down the maximum size of the wal so we can test close()'ing it.
-    cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1M");
+    cfg.setProperty(Property.TSERV_WAL_MAX_SIZE, "1M");
     coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
@@ -136,9 +139,9 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     Set<String> rfiles = new HashSet<>();
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      Range r = MetadataSchema.TabletsSection.getRange(tableId);
+      Range r = TabletsSection.getRange(tableId);
       s.setRange(r);
-      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      s.fetchColumnFamily(DataFileColumnFamily.NAME);
 
       for (Entry<Key,Value> entry : s) {
         log.debug("Reading RFiles: {}={}", entry.getKey().toStringNoTruncate(), entry.getValue());
@@ -164,13 +167,13 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     Map<String,Status> fileToStatus = new HashMap<>();
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      Range r = MetadataSchema.ReplicationSection.getRange();
+      Range r = ReplicationSection.getRange();
       s.setRange(r);
-      s.fetchColumn(MetadataSchema.ReplicationSection.COLF, new Text(tableId));
+      s.fetchColumn(ReplicationSection.COLF, new Text(tableId));
 
       for (Entry<Key,Value> entry : s) {
         Text file = new Text();
-        MetadataSchema.ReplicationSection.getFile(entry.getKey(), file);
+        ReplicationSection.getFile(entry.getKey(), file);
         Status status = Status.parseFrom(entry.getValue().get());
         log.info("Got status for {}: {}", file, ProtobufUtil.toString(status));
         fileToStatus.put(file.toString(), status);
@@ -194,17 +197,14 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     log.info("Writing a few mutations to the table");
 
-    BatchWriter bw = client.createBatchWriter(table);
-
-    byte[] empty = new byte[0];
-    for (int i = 0; i < 5; i++) {
-      Mutation m = new Mutation(Integer.toString(i));
-      m.put(empty, empty, empty);
-      bw.addMutation(m);
+    try (BatchWriter bw = client.createBatchWriter(table)) {
+      byte[] empty = new byte[0];
+      for (int i = 0; i < 5; i++) {
+        Mutation m = new Mutation(Integer.toString(i));
+        m.put(empty, empty, empty);
+        bw.addMutation(m);
+      }
     }
-
-    log.info("Flushing mutations to the server");
-    bw.flush();
 
     log.info(
         "Checking that metadata only has two WALs recorded for this table (inUse, and opened)");
@@ -382,9 +382,9 @@ public class GarbageCollectorCommunicatesWithTServersIT extends ConfigurableMacB
 
     client.tableOperations().flush(otherTable, null, null, true);
 
-    // Get the tservers which the master deems as active
+    // Get the tservers which the manager deems as active
     final ClientContext context = (ClientContext) client;
-    List<String> tservers = MasterClient.execute(context,
+    List<String> tservers = ManagerClient.execute(context,
         cli -> cli.getActiveTservers(TraceUtil.traceInfo(), context.rpcCreds()));
 
     assertEquals("Expected only one active tservers", 1, tservers.size());

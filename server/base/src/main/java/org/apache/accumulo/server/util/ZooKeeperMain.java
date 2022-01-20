@@ -20,11 +20,8 @@ package org.apache.accumulo.server.util;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
@@ -67,10 +64,6 @@ public class ZooKeeperMain implements KeywordExecutable {
     Opts opts = new Opts();
     opts.parseArgs(ZooKeeperMain.class.getName(), args);
     try (var context = new ServerContext(SiteConfiguration.auto())) {
-      FileSystem fs = context.getVolumeManager().getDefaultVolume().getFileSystem();
-      String baseDir = ServerConstants.getBaseUris(context).iterator().next();
-      System.out.println("Using " + fs.makeQualified(new Path(baseDir + "/instance_id"))
-          + " to lookup accumulo instance");
       if (opts.servers == null) {
         opts.servers = context.getZooKeepers();
       }

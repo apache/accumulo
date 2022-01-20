@@ -105,7 +105,7 @@ public interface TableOperations {
    *           if the table already exists
    * @deprecated since 1.7.0; use {@link #create(String, NewTableConfiguration)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.7.0")
   default void create(String tableName, boolean limitVersion)
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     if (limitVersion)
@@ -130,7 +130,7 @@ public interface TableOperations {
    *           if the table already exists
    * @deprecated since 1.7.0; use {@link #create(String, NewTableConfiguration)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.7.0")
   default void create(String tableName, boolean versioningIter, TimeType timeType)
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     NewTableConfiguration ntc = new NewTableConfiguration().setTimeType(timeType);
@@ -204,7 +204,7 @@ public interface TableOperations {
    * To avoid losing access to a table it can be cloned and the clone taken offline for export.
    *
    * <p>
-   * See https://github.com/apache/accumulo-examples/blob/master/docs/export.md
+   * See https://github.com/apache/accumulo-examples/blob/main/docs/export.md
    *
    * @param tableName
    *          Name of the table to export.
@@ -257,7 +257,7 @@ public interface TableOperations {
    *           if the table does not exist
    * @deprecated since 1.5.0; use {@link #listSplits(String)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.5.0")
   default Collection<Text> getSplits(String tableName) throws TableNotFoundException {
     try {
       return listSplits(tableName);
@@ -290,7 +290,7 @@ public interface TableOperations {
    *         fewer splits so as not to exceed maxSplits
    * @deprecated since 1.5.0; use {@link #listSplits(String, int)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.5.0")
   default Collection<Text> getSplits(String tableName, int maxSplits)
       throws TableNotFoundException {
     try {
@@ -609,7 +609,8 @@ public interface TableOperations {
    * Gets properties of a table. This operation is asynchronous and eventually consistent. It is not
    * guaranteed that all tablets in a table will return the same values. Within a few seconds
    * without another change, all tablets in a table should be consistent. The clone table feature
-   * can be used if consistency is required.
+   * can be used if consistency is required. Method calls {@link #getConfiguration(String)} and then
+   * calls .entrySet() on the map.
    *
    * @param tableName
    *          the name of the table
@@ -617,8 +618,28 @@ public interface TableOperations {
    *         recently changed properties may not be visible immediately.
    * @throws TableNotFoundException
    *           if the table does not exist
+   * @since 1.6.0
    */
-  Iterable<Entry<String,String>> getProperties(String tableName)
+  default Iterable<Entry<String,String>> getProperties(String tableName)
+      throws AccumuloException, TableNotFoundException {
+    return getConfiguration(tableName).entrySet();
+  }
+
+  /**
+   * Gets properties of a table. This operation is asynchronous and eventually consistent. It is not
+   * guaranteed that all tablets in a table will return the same values. Within a few seconds
+   * without another change, all tablets in a table should be consistent. The clone table feature
+   * can be used if consistency is required. This new method returns a Map instead of an Iterable.
+   *
+   * @param tableName
+   *          the name of the table
+   * @return all properties visible by this table (system and per-table properties). Note that
+   *         recently changed properties may not be visible immediately.
+   * @throws TableNotFoundException
+   *           if the table does not exist
+   * @since 2.1.0
+   */
+  Map<String,String> getConfiguration(String tableName)
       throws AccumuloException, TableNotFoundException;
 
   /**
@@ -674,7 +695,7 @@ public interface TableOperations {
 
   /**
    * Bulk import all the files in a directory into a table. Files can be created using
-   * {@code AccumuloFileOutputFormat} and {@link RFile#newWriter()}
+   * {@link RFile#newWriter()}
    *
    * @param tableName
    *          the name of the table
@@ -696,7 +717,7 @@ public interface TableOperations {
    *
    * @deprecated since 2.0.0 use {@link #importDirectory(String)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   void importDirectory(String tableName, String dir, String failureDir, boolean setTime)
       throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException;
 
@@ -717,6 +738,13 @@ public interface TableOperations {
     ImportMappingOptions tableTime(boolean value);
 
     /**
+     * Ignores empty bulk import source directory, rather than throwing an IllegalArgumentException.
+     *
+     * @since 2.1.0
+     */
+    ImportMappingOptions ignoreEmptyDir(boolean ignore);
+
+    /**
      * Loads the files into the table.
      */
     void load()
@@ -734,7 +762,7 @@ public interface TableOperations {
      * This is the default number of threads used to determine where to load files. A suffix of
      * {@code C} means to multiply by the number of cores.
      */
-    public static final String BULK_LOAD_THREADS_DEFAULT = "8C";
+    String BULK_LOAD_THREADS_DEFAULT = "8C";
 
     /**
      * Load files in the directory to the row ranges specified in the plan. The plan should contain
@@ -784,7 +812,7 @@ public interface TableOperations {
 
   /**
    * Bulk import the files in a directory into a table. Files can be created using
-   * {@code AccumuloFileOutputFormat} and {@link RFile#newWriter()}.
+   * {@link RFile#newWriter()}.
    * <p>
    * This new method of bulk import examines files in the current process outside of holding a table
    * lock. The old bulk import method ({@link #importDirectory(String, String, String, boolean)})
@@ -860,6 +888,22 @@ public interface TableOperations {
    */
   void online(String tableName, boolean wait)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+
+  /**
+   * Check if a table is online through its current goal state only. Could run into issues if the
+   * current state of the table is in between states. If you require a specific state, call
+   * <code>online(tableName, true)</code> or <code>offline(tableName, true)</code>, this will wait
+   * until the table reaches the desired state before proceeding.
+   *
+   * @param tableName
+   *          the table to check if online
+   * @throws AccumuloException
+   *           when there is a general accumulo error
+   * @return true if table's goal state is online
+   *
+   * @since 2.1.0
+   */
+  boolean isOnline(String tableName) throws AccumuloException, TableNotFoundException;
 
   /**
    * Clears the tablet locator cache for a specified table

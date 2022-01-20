@@ -25,6 +25,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -53,12 +54,12 @@ public class ScanRangeIT extends AccumuloClusterHarness {
       String table1 = tableNames[0];
       c.tableOperations().create(table1);
       String table2 = tableNames[1];
-      c.tableOperations().create(table2);
       TreeSet<Text> splitRows = new TreeSet<>();
       int splits = 3;
       for (int i = (ROW_LIMIT / splits); i < ROW_LIMIT; i += (ROW_LIMIT / splits))
         splitRows.add(createRow(i));
-      c.tableOperations().addSplits(table2, splitRows);
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitRows);
+      c.tableOperations().create(table2, ntc);
 
       insertData(c, table1);
       scanTable(c, table1);

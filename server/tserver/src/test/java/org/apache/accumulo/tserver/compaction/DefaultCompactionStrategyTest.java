@@ -59,6 +59,7 @@ import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
+@SuppressWarnings("removal")
 public class DefaultCompactionStrategyTest {
 
   private static Pair<Key,Key> keys(String firstString, String secondString) {

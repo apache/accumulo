@@ -44,6 +44,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +62,7 @@ public class ZooStore<T> implements TStore<T> {
   private String lastReserved = "";
   private Set<Long> reserved;
   private Map<Long,Long> defered;
-  private SecureRandom idgenerator;
+  private static final SecureRandom random = new SecureRandom();
   private long statusChangeEvents = 0;
   private int reservationsWaiting = 0;
 
@@ -106,7 +107,6 @@ public class ZooStore<T> implements TStore<T> {
     this.zk = zk;
     this.reserved = new HashSet<>();
     this.defered = new HashMap<>();
-    this.idgenerator = new SecureRandom();
 
     zk.putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
   }
@@ -116,7 +116,7 @@ public class ZooStore<T> implements TStore<T> {
     while (true) {
       try {
         // looking at the code for SecureRandom, it appears to be thread safe
-        long tid = idgenerator.nextLong() & 0x7fffffffffffffffL;
+        long tid = random.nextLong() & 0x7fffffffffffffffL;
         zk.putPersistentData(getTXPath(tid), TStatus.NEW.name().getBytes(UTF_8),
             NodeExistsPolicy.FAIL);
         return tid;
@@ -173,8 +173,7 @@ public class ZooStore<T> implements TStore<T> {
           // have reserved id, status should not change
 
           try {
-            TStatus status =
-                TStatus.valueOf(new String(zk.getData(path + "/" + txdir, null), UTF_8));
+            TStatus status = TStatus.valueOf(new String(zk.getData(path + "/" + txdir), UTF_8));
             if (status == TStatus.IN_PROGRESS || status == TStatus.FAILED_IN_PROGRESS) {
               return tid;
             } else {
@@ -288,7 +287,7 @@ public class ZooStore<T> implements TStore<T> {
           throw new RuntimeException(ex);
         }
 
-        byte[] ser = zk.getData(txpath + "/" + top, null);
+        byte[] ser = zk.getData(txpath + "/" + top);
         return (Repo<T>) deserialize(ser);
       } catch (KeeperException.NoNodeException ex) {
         log.debug("zookeeper error reading " + txpath + ": " + ex, ex);
@@ -354,7 +353,7 @@ public class ZooStore<T> implements TStore<T> {
 
   private TStatus _getStatus(long tid) {
     try {
-      return TStatus.valueOf(new String(zk.getData(getTXPath(tid), null), UTF_8));
+      return TStatus.valueOf(new String(zk.getData(getTXPath(tid)), UTF_8));
     } catch (NoNodeException nne) {
       return TStatus.UNKNOWN;
     } catch (Exception e) {
@@ -447,7 +446,7 @@ public class ZooStore<T> implements TStore<T> {
     verifyReserved(tid);
 
     try {
-      byte[] data = zk.getData(getTXPath(tid) + "/prop_" + prop, null);
+      byte[] data = zk.getData(getTXPath(tid) + "/prop_" + prop);
 
       if (data[0] == 'O') {
         byte[] sera = new byte[data.length - 2];
@@ -480,6 +479,18 @@ public class ZooStore<T> implements TStore<T> {
   }
 
   @Override
+  public long timeCreated(long tid) {
+    verifyReserved(tid);
+
+    try {
+      Stat stat = zk.getZooKeeper().exists(getTXPath(tid), false);
+      return stat.getCtime();
+    } catch (Exception e) {
+      return 0;
+    }
+  }
+
+  @Override
   public List<ReadOnlyRepo<T>> getStack(long tid) {
     String txpath = getTXPath(tid);
 
@@ -502,7 +513,7 @@ public class ZooStore<T> implements TStore<T> {
         if (child.startsWith("repo_")) {
           byte[] ser;
           try {
-            ser = zk.getData(txpath + "/" + child, null);
+            ser = zk.getData(txpath + "/" + child);
             @SuppressWarnings("unchecked")
             ReadOnlyRepo<T> repo = (ReadOnlyRepo<T>) deserialize(ser);
             dops.add(repo);

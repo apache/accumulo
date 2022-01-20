@@ -45,7 +45,7 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.master.replication.RemoveCompleteReplicationRecords;
+import org.apache.accumulo.manager.replication.RemoveCompleteReplicationRecords;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -57,6 +57,7 @@ import org.junit.Test;
 import com.google.common.collect.Iterables;
 
 @Ignore("Replication ITs are not stable and not currently maintained")
+@Deprecated
 public class RemoveCompleteReplicationRecordsIT extends ConfigurableMacBase {
 
   private MockRemoveCompleteReplicationRecords rcrr;

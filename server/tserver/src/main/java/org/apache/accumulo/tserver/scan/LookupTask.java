@@ -26,10 +26,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
-import org.apache.accumulo.core.clientImpl.Translator;
-import org.apache.accumulo.core.clientImpl.Translators;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -39,7 +38,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TKey;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
-import org.apache.accumulo.core.iterators.IterationInterruptedException;
+import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.session.MultiScanSession;
@@ -154,9 +153,14 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       for (KVEntry entry : results)
         retResults
             .add(new TKeyValue(entry.getKey().toThrift(), ByteBuffer.wrap(entry.getValue().get())));
-      Map<TKeyExtent,List<TRange>> retFailures = Translator.translate(failures, Translators.KET,
-          new Translator.ListTranslator<>(Translators.RT));
-      List<TKeyExtent> retFullScans = Translator.translate(fullScans, Translators.KET);
+      // @formatter:off
+      Map<TKeyExtent,List<TRange>> retFailures = failures.entrySet().stream().collect(Collectors.toMap(
+                      entry -> entry.getKey().toThrift(),
+                      entry -> entry.getValue().stream().map(Range::toThrift).collect(Collectors.toList())
+      ));
+      // @formatter:on
+      List<TKeyExtent> retFullScans =
+          fullScans.stream().map(KeyExtent::toThrift).collect(Collectors.toList());
       TKeyExtent retPartScan = null;
       TKey retPartNextKey = null;
       if (partScan != null) {
@@ -173,7 +177,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       }
     } catch (SampleNotPresentException e) {
       addResult(e);
-    } catch (Throwable e) {
+    } catch (Exception e) {
       log.warn("exception while doing multi-scan ", e);
       addResult(e);
     } finally {

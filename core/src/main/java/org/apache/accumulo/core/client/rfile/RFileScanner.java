@@ -347,9 +347,9 @@ class RFileScanner extends ScannerOptions implements Scanner {
       for (int i = 0; i < sources.length; i++) {
         // TODO may have been a bug with multiple files and caching in older version...
         FSDataInputStream inputStream = (FSDataInputStream) sources[i].getInputStream();
-        CachableBuilder cb = new CachableBuilder().cacheId("source-" + i).input(inputStream)
-            .length(sources[i].getLength()).conf(opts.in.getConf()).cacheProvider(cacheProvider)
-            .cryptoService(cryptoService);
+        CachableBuilder cb =
+            new CachableBuilder().input(inputStream, "source-" + i).length(sources[i].getLength())
+                .conf(opts.in.getConf()).cacheProvider(cacheProvider).cryptoService(cryptoService);
         readers.add(new RFile.Reader(cb));
       }
 

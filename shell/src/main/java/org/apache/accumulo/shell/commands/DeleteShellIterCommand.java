@@ -53,7 +53,7 @@ public class DeleteShellIterCommand extends Command {
           }
         }
         if (found) {
-          Shell.log.info("Removed iterator {} from profile {} ( left)", name, profile,
+          Shell.log.info("Removed iterator {} from profile {} ({} left)", name, profile,
               iterSettings.size());
         } else {
           Shell.log.info("No iterator named {} found", name);

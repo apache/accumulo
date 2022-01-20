@@ -37,7 +37,7 @@ import org.apache.accumulo.core.data.TableId;
  *
  * @deprecated since 2.0.0
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class BatchInputSplit extends org.apache.accumulo.core.client.mapreduce.RangeInputSplit {
   private Collection<Range> ranges;
   private float[] rangeProgress = null;

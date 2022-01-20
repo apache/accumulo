@@ -62,11 +62,11 @@ import org.apache.accumulo.core.file.rfile.RelativeKey.SkippR;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Writer.BlockAppender;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
-import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.HeapIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.LocalityGroup;
 import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.LocalityGroupContext;
@@ -655,7 +655,7 @@ public class RFile {
     public void append(Key key, Value value) throws IOException {
 
       if (dataClosed) {
-        throw new IllegalStateException("Cannont append, data closed");
+        throw new IllegalStateException("Cannot append, data closed");
       }
 
       lgWriter.append(key, value);

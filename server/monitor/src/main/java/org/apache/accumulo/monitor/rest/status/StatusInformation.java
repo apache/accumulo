@@ -19,14 +19,14 @@
 package org.apache.accumulo.monitor.rest.status;
 
 /**
- * Generates status of master, gc, and tservers, as well as log and problem report
+ * Generates status of manager, gc, and tservers, as well as log and problem report
  *
  * @since 2.0.0
  */
 public class StatusInformation {
 
   // Variable names become JSON keys
-  public String masterStatus = null;
+  public String managerStatus = null;
   public String gcStatus = null;
   public String tServerStatus = null;
 
@@ -39,8 +39,8 @@ public class StatusInformation {
   /**
    * Generate the status report for the services
    *
-   * @param masterStatus
-   *          Status for the master
+   * @param managerStatus
+   *          Status for the manager
    * @param gcStatus
    *          Status for the GC
    * @param tServerStatus
@@ -52,9 +52,9 @@ public class StatusInformation {
    * @param problemNumber
    *          Number of problems per table
    */
-  public StatusInformation(String masterStatus, String gcStatus, String tServerStatus,
+  public StatusInformation(String managerStatus, String gcStatus, String tServerStatus,
       Integer logNumber, boolean logsHaveError, Integer problemNumber) {
-    this.masterStatus = masterStatus;
+    this.managerStatus = managerStatus;
     this.gcStatus = gcStatus;
     this.tServerStatus = tServerStatus;
     this.logNumber = logNumber;

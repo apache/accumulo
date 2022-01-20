@@ -106,6 +106,7 @@ public class PropertyTest {
     Collector<Entry<String,String>,?,TreeMap<String,String>> treeMapCollector =
         Collectors.toMap(Entry::getKey, Entry::getValue, (a, b) -> a, TreeMap::new);
 
+    @SuppressWarnings("deprecation")
     Predicate<Entry<String,String>> sensitiveNames =
         e -> e.getKey().equals(Property.INSTANCE_SECRET.getKey())
             || e.getKey().toLowerCase().contains("password")
@@ -134,11 +135,6 @@ public class PropertyTest {
     }
   }
 
-  @SuppressWarnings("deprecation")
-  private Property getDeprecatedProperty() {
-    return Property.INSTANCE_DFS_DIR;
-  }
-
   @Test
   public void testAnnotations() {
     assertTrue(Property.GENERAL_VOLUME_CHOOSER.isExperimental());
@@ -147,9 +143,10 @@ public class PropertyTest {
     assertTrue(Property.INSTANCE_SECRET.isSensitive());
     assertFalse(Property.INSTANCE_VOLUMES.isSensitive());
 
-    assertTrue(getDeprecatedProperty().isDeprecated());
+    @SuppressWarnings("deprecation")
+    Property deprecatedProp = Property.GENERAL_CLASSPATHS;
+    assertTrue(deprecatedProp.isDeprecated());
     assertFalse(Property.INSTANCE_VOLUMES_REPLACEMENTS.isDeprecated());
-
   }
 
   @Test
@@ -175,7 +172,7 @@ public class PropertyTest {
   public void testIsValidTablePropertyKey() {
     for (Property prop : Property.values()) {
       if (prop.getKey().startsWith("table.") && !prop.getKey().equals("table.")) {
-        assertTrue(Property.isValidTablePropertyKey(prop.getKey()));
+        assertTrue(prop.getKey(), Property.isValidTablePropertyKey(prop.getKey()));
 
         if (prop.getType().equals(PropertyType.PREFIX)) {
           assertTrue(Property.isValidTablePropertyKey(prop.getKey() + "foo9"));

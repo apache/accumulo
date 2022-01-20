@@ -20,37 +20,50 @@ package org.apache.accumulo.core.file.streams;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.OutputStream;
 import java.security.SecureRandom;
-import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.easymock.EasyMock;
 import org.junit.Test;
 
-import com.google.common.io.ByteStreams;
 import com.google.common.io.CountingOutputStream;
 
 public class RateLimitedOutputStreamTest {
 
+  private static final SecureRandom random = new SecureRandom();
+
   @Test
   public void permitsAreProperlyAcquired() throws Exception {
-    Random randGen = new SecureRandom();
-    MockRateLimiter rateLimiter = new MockRateLimiter();
+    // Create variables for tracking behaviors of mock object
+    AtomicLong rateLimiterPermitsAcquired = new AtomicLong();
+    // Construct mock object
+    RateLimiter rateLimiter = EasyMock.niceMock(RateLimiter.class);
+    // Stub Mock Method
+    rateLimiter.acquire(EasyMock.anyLong());
+    EasyMock.expectLastCall()
+        .andAnswer(() -> rateLimiterPermitsAcquired.addAndGet(EasyMock.getCurrentArgument(0)))
+        .anyTimes();
+    EasyMock.replay(rateLimiter);
+
     long bytesWritten = 0;
     try (RateLimitedOutputStream os =
         new RateLimitedOutputStream(new NullOutputStream(), rateLimiter)) {
       for (int i = 0; i < 100; ++i) {
-        byte[] bytes = new byte[Math.abs(randGen.nextInt() % 65536)];
+        byte[] bytes = new byte[Math.abs(random.nextInt() % 65536)];
         os.write(bytes);
         bytesWritten += bytes.length;
       }
       assertEquals(bytesWritten, os.position());
     }
-    assertEquals(bytesWritten, rateLimiter.getPermitsAcquired());
+    assertEquals(bytesWritten, rateLimiterPermitsAcquired.get());
   }
 
   public static class NullOutputStream extends FSDataOutputStream {
     public NullOutputStream() {
-      super(new CountingOutputStream(ByteStreams.nullOutputStream()), null);
+      super(new CountingOutputStream(OutputStream.nullOutputStream()), null);
     }
   }
 

@@ -50,13 +50,19 @@ public class RevokeCommand extends TableOperation {
         : shellState.getAccumuloClient().whoami();
 
     permission = cl.getArgs()[0].split("\\.", 2);
-    if (cl.hasOption(systemOpt.getOpt()) && permission[0].equalsIgnoreCase("System")) {
-      try {
-        shellState.getAccumuloClient().securityOperations().revokeSystemPermission(user,
-            SystemPermission.valueOf(permission[1]));
-        Shell.log.debug("Revoked from {} the {} permission", user, permission[1]);
-      } catch (IllegalArgumentException e) {
-        throw new BadArgumentException("No such system permission", fullCommand,
+    if (permission[0].equalsIgnoreCase("System")) {
+      if (cl.hasOption(systemOpt.getOpt())) {
+        try {
+          shellState.getAccumuloClient().securityOperations().revokeSystemPermission(user,
+              SystemPermission.valueOf(permission[1]));
+          Shell.log.debug("Revoked from {} the {} permission", user, permission[1]);
+        } catch (IllegalArgumentException e) {
+          throw new BadArgumentException("No such system permission", fullCommand,
+              fullCommand.indexOf(cl.getArgs()[0]));
+        }
+      } else {
+        throw new BadArgumentException(
+            "Missing required option for granting System Permission: -s ", fullCommand,
             fullCommand.indexOf(cl.getArgs()[0]));
       }
     } else if (permission[0].equalsIgnoreCase("Table")) {

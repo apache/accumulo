@@ -24,11 +24,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -39,13 +37,10 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.tserver.compaction.CompactionPlan;
-import org.apache.accumulo.tserver.compaction.CompactionStrategy;
-import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -67,7 +62,9 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     cfg.setSiteConfig(singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "1s"));
   }
 
-  public static class SimpleCompactionStrategy extends CompactionStrategy {
+  @SuppressWarnings("removal")
+  public static class SimpleCompactionStrategy
+      extends org.apache.accumulo.tserver.compaction.CompactionStrategy {
 
     @Override
     public void init(Map<String,String> options) {
@@ -79,20 +76,23 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     int count = 3;
 
     @Override
-    public boolean shouldCompact(MajorCompactionRequest request) {
+    public boolean
+        shouldCompact(org.apache.accumulo.tserver.compaction.MajorCompactionRequest request) {
       return request.getFiles().size() == count;
 
     }
 
     @Override
-    public CompactionPlan getCompactionPlan(MajorCompactionRequest request) {
-      CompactionPlan result = new CompactionPlan();
+    public org.apache.accumulo.tserver.compaction.CompactionPlan
+        getCompactionPlan(org.apache.accumulo.tserver.compaction.MajorCompactionRequest request) {
+      var result = new org.apache.accumulo.tserver.compaction.CompactionPlan();
       result.inputFiles.addAll(request.getFiles().keySet());
       return result;
     }
 
   }
 
+  @SuppressWarnings("removal")
   @Test
   public void test() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
@@ -108,6 +108,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     }
   }
 
+  @SuppressWarnings("removal")
   @Test
   public void testPerTableClasspath() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
@@ -118,7 +119,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
           Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "context1", destFile.toString());
       Map<String,String> props = new HashMap<>();
       props.put(Property.TABLE_MAJC_RATIO.getKey(), "10");
-      props.put(Property.TABLE_CLASSPATH.getKey(), "context1");
+      props.put(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "context1");
       // EfgCompactionStrat will only compact a tablet w/ end row of 'efg'. No other tablets are
       // compacted.
       props.put(Property.TABLE_COMPACTION_STRATEGY.getKey(),
@@ -152,13 +153,11 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
     client.tableOperations().flush(tablename, null, null, true);
   }
 
-  static final Random r = new SecureRandom();
-
   private void makeFile(AccumuloClient client, String tablename) throws Exception {
     try (BatchWriter bw = client.createBatchWriter(tablename)) {
       byte[] empty = {};
       byte[] row = new byte[10];
-      r.nextBytes(row);
+      random.nextBytes(row);
       Mutation m = new Mutation(row, 0, 10);
       m.put(empty, empty, empty);
       bw.addMutation(m);
@@ -184,7 +183,7 @@ public class ConfigurableCompactionIT extends ConfigurableMacBase {
 
   private int countFiles(AccumuloClient c) throws Exception {
     try (Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      s.fetchColumnFamily(DataFileColumnFamily.NAME);
       return Iterators.size(s.iterator());
     }
   }

@@ -45,17 +45,22 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.htrace.TraceScope;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Joiner;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class TableDiskUsage {
 
@@ -176,7 +181,7 @@ public class TableDiskUsage {
         throw new RuntimeException(e);
       }
       mdScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-      mdScanner.setRange(new KeyExtent(tableId, null, null).toMetadataRange());
+      mdScanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
       if (!mdScanner.iterator().hasNext()) {
         emptyTableIds.add(tableId);
@@ -209,13 +214,12 @@ public class TableDiskUsage {
     for (TableId tableId : tablesReferenced) {
       for (String tableDir : nameSpacesReferenced) {
         // Find each file and add its size
-        FileStatus[] files = fs.globStatus(new Path(tableDir + "/" + tableId + "/*/*"));
-        if (files != null) {
-          for (FileStatus fileStatus : files) {
-            // Assumes that all filenames are unique
-            String name = fileStatus.getPath().getName();
-            tdu.addFileSize(name, fileStatus.getLen());
-          }
+        Path path = new Path(tableDir + "/" + tableId);
+        RemoteIterator<LocatedFileStatus> ri = fs.listFiles(path, true);
+        while (ri.hasNext()) {
+          FileStatus status = ri.next();
+          String name = status.getPath().getName();
+          tdu.addFileSize(name, status.getLen());
         }
       }
     }
@@ -300,11 +304,15 @@ public class TableDiskUsage {
 
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    try (TraceScope clientSpan = opts.parseArgsAndTrace(TableDiskUsage.class.getName(), args)) {
+    opts.parseArgs(TableDiskUsage.class.getName(), args);
+    Span span = TraceUtil.startSpan(TableDiskUsage.class, "main");
+    try (Scope scope = span.makeCurrent()) {
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
         VolumeManager fs = opts.getServerContext().getVolumeManager();
         org.apache.accumulo.server.util.TableDiskUsage.printDiskUsage(opts.tables, fs, client,
             false);
+      } finally {
+        span.end();
       }
     }
   }

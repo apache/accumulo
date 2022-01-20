@@ -59,7 +59,7 @@ import org.apache.hadoop.mapred.Reporter;
  * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapred instead from the
  *             accumulo-hadoop-mapreduce.jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
 
   /**
@@ -384,7 +384,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
   protected abstract static class RecordReaderBase<K,V> extends AbstractRecordReader<K,V> {
 
     @Override
-    @Deprecated
+    @Deprecated(since = "2.0.0")
     protected List<IteratorSetting> jobIterators(JobConf job, String tableName) {
       return getIterators(job);
     }
@@ -398,7 +398,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      *          the scanner to configure
      * @deprecated since 1.7.0; Use {@link #jobIterators} instead.
      */
-    @Deprecated
+    @Deprecated(since = "1.7.0")
     protected void setupIterators(List<IteratorSetting> iterators, Scanner scanner) {
       for (IteratorSetting iterator : iterators) {
         scanner.addScanIterator(iterator);
@@ -413,7 +413,7 @@ public abstract class InputFormatBase<K,V> extends AbstractInputFormat<K,V> {
      * @param scanner
      *          the scanner to configure
      */
-    @Deprecated
+    @Deprecated(since = "1.7.0")
     protected void setupIterators(JobConf job, Scanner scanner) {
       setupIterators(getIterators(job), scanner);
     }

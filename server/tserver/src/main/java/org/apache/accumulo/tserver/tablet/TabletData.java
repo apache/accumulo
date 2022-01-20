@@ -27,12 +27,14 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.server.master.state.TServerInstance;
 
 /*
  * Basic information needed to create a tablet.
@@ -48,6 +50,7 @@ public class TabletData {
   private Map<Long,List<TabletFile>> bulkImported = new HashMap<>();
   private long splitTime = 0;
   private String directoryName = null;
+  private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
 
   // Read tablet data from metadata tables
   public TabletData(TabletMetadata meta) {
@@ -60,13 +63,15 @@ public class TabletData {
     scanFiles.addAll(meta.getScans());
 
     if (meta.getLast() != null)
-      this.lastLocation = new TServerInstance(meta.getLast());
+      this.lastLocation = meta.getLast();
 
     dataFiles.putAll(meta.getFilesMap());
 
     meta.getLoaded().forEach((path, txid) -> {
       bulkImported.computeIfAbsent(txid, k -> new ArrayList<>()).add(path);
     });
+
+    this.extCompactions = meta.getExternalCompactions();
   }
 
   // Data pulled from an existing tablet to make a split
@@ -81,6 +86,7 @@ public class TabletData {
     this.lastLocation = lastLocation;
     this.bulkImported = bulkIngestedFiles;
     this.splitTime = System.currentTimeMillis();
+    this.extCompactions = Map.of();
   }
 
   public MetadataTime getTime() {
@@ -121,5 +127,9 @@ public class TabletData {
 
   public long getSplitTime() {
     return splitTime;
+  }
+
+  public Map<ExternalCompactionId,ExternalCompactionMetadata> getExternalCompactions() {
+    return extCompactions;
   }
 }

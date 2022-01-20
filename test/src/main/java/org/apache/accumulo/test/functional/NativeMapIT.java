@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.harness.AccumuloITBase.random;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -28,14 +29,12 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
-import java.util.Random;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
@@ -457,11 +456,11 @@ public class NativeMapIT {
   }
 
   // random length random field
-  private static byte[] getRandomBytes(Random r, int maxLen) {
-    int len = r.nextInt(maxLen);
+  private static byte[] getRandomBytes(int maxLen) {
+    int len = random.nextInt(maxLen);
 
     byte[] f = new byte[len];
-    r.nextBytes(f);
+    random.nextBytes(f);
 
     return f;
   }
@@ -473,15 +472,13 @@ public class NativeMapIT {
     // insert things with varying field sizes and value sizes
 
     // generate random data
-    Random r = new SecureRandom();
-
     ArrayList<Pair<Key,Value>> testData = new ArrayList<>();
 
     for (int i = 0; i < 100000; i++) {
 
-      Key k = new Key(getRandomBytes(r, 97), getRandomBytes(r, 13), getRandomBytes(r, 31),
-          getRandomBytes(r, 11), (r.nextLong() & 0x7fffffffffffffffL), false, false);
-      Value v = new Value(getRandomBytes(r, 511));
+      Key k = new Key(getRandomBytes(97), getRandomBytes(13), getRandomBytes(31),
+          getRandomBytes(11), (random.nextLong() & 0x7fffffffffffffffL), false, false);
+      Value v = new Value(getRandomBytes(511));
 
       testData.add(new Pair<>(k, v));
     }
@@ -520,10 +517,10 @@ public class NativeMapIT {
       System.out.println("test 11 nm mem " + nm.getMemoryUsed());
 
       // insert data again w/ different value
-      Collections.shuffle(testData, r);
+      Collections.shuffle(testData, random);
       // insert unsorted data
       for (Pair<Key,Value> pair : testData) {
-        pair.getSecond().set(getRandomBytes(r, 511));
+        pair.getSecond().set(getRandomBytes(511));
         nm.put(pair.getFirst(), pair.getSecond());
       }
     }

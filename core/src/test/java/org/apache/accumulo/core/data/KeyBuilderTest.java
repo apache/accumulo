@@ -305,4 +305,14 @@ public class KeyBuilderTest {
     keyExpected.setDeleted(false);
     assertEquals(keyExpected, keyBuilt);
   }
+
+  /**
+   * Tests bug where a String of 10 chars or longer was being encoded incorrectly.
+   */
+  @Test
+  public void test10CharactersBug() {
+    Key keyBuilt1 = Key.builder().row(rowText).family("1234567890").build();
+    Key keyBuilt2 = Key.builder().row(rowText).family(new Text("1234567890")).build();
+    assertEquals(keyBuilt1, keyBuilt2);
+  }
 }

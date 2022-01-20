@@ -22,10 +22,12 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.admin.compaction.CompressionConfigurer;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.DefaultCompactionStrategy;
 import org.apache.accumulo.tserver.compaction.MajorCompactionRequest;
@@ -61,7 +63,15 @@ import org.slf4j.LoggerFactory;
  *
  * <p>
  * The options that take sizes are in bytes and the suffixes K,M,and G can be used.
+ *
+ * @deprecated since 2.1.0 see {@link CompressionConfigurer}. Also compaction planners introduced in
+ *             2.1.0 have the ability to avoid compacting files over a certain size. See
+ *             {@link DefaultCompactionPlanner}
  */
+// Eclipse might show @SuppressWarnings("removal") as unnecessary.
+// Eclipse is wrong. See https://bugs.eclipse.org/bugs/show_bug.cgi?id=565271
+@SuppressWarnings("removal")
+@Deprecated(since = "2.1.0", forRemoval = true)
 public class BasicCompactionStrategy extends DefaultCompactionStrategy {
 
   private static final Logger log = LoggerFactory.getLogger(BasicCompactionStrategy.class);
@@ -75,8 +85,8 @@ public class BasicCompactionStrategy extends DefaultCompactionStrategy {
   public static final String LARGE_FILE_COMPRESSION_THRESHOLD = "large.compress.threshold";
 
   /**
-   * Type of compression to use if large threshold is surpassed. One of "gz","lzo","snappy", or
-   * "none"
+   * Type of compression to use if large threshold is surpassed. One of "none", "gz", "bzip2",
+   * "lzo", "lz4", "snappy", or "zstd"
    */
   public static final String LARGE_FILE_COMPRESSION_TYPE = "large.compress.type";
 

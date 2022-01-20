@@ -29,7 +29,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -45,9 +44,9 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -72,7 +71,7 @@ import com.google.common.collect.Multimap;
  * Periodically (default 5m) this balancer will check to see if a tablet server is hosting tablets
  * that it should not be according to the regex configuration. If this occurs then the offending
  * tablets will be reassigned. This would cover the case where the configuration is changed and the
- * master is restarted while the tablet servers are up. To change the out of bounds check time
+ * manager is restarted while the tablet servers are up. To change the out of bounds check time
  * period, set the following property:<br>
  * <b>table.custom.balancer.host.regex.oob.period=5m</b><br>
  * Regex matching can be based on either the host name (default) or host ip address. To set this
@@ -86,9 +85,13 @@ import com.google.common.collect.Multimap;
  * in which this balancer will continue balancing, set the following property (default 0):<br>
  * <b>table.custom.balancer.host.regex.max.outstanding.migrations</b>
  *
+ * @deprecated since 2.1.0. Use
+ *             {@link org.apache.accumulo.core.spi.balancer.HostRegexTableLoadBalancer} instead
  */
+@Deprecated(since = "2.1.0")
 public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
+  private static final SecureRandom random = new SecureRandom();
   private static final String PROP_PREFIX = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
 
   private static final Logger LOG = LoggerFactory.getLogger(HostRegexTableLoadBalancer.class);
@@ -198,7 +201,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     LOG.debug("Performing pool recheck - regrouping tablet servers based on regular expressions");
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> newPools = new HashMap<>();
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
-      List<String> poolNames = getPoolNamesForHost(e.getKey().host());
+      List<String> poolNames = getPoolNamesForHost(e.getKey().getHost());
       for (String pool : poolNames) {
         SortedMap<TServerInstance,TabletServerStatus> np = newPools.get(pool);
         if (np == null) {
@@ -350,10 +353,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = splitCurrentByRegex(current);
     // group the unassigned into tables
     Map<TableId,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<>();
-    unassigned.forEach((keyExtent, tServerInstance) -> {
-      groupedUnassigned.computeIfAbsent(keyExtent.getTableId(), p -> new HashMap<>()).put(keyExtent,
-          tServerInstance);
-    });
+    unassigned.forEach((ke, lastTserver) -> groupedUnassigned
+        .computeIfAbsent(ke.tableId(), k -> new HashMap<>()).put(ke, lastTserver));
 
     Map<TableId,String> tableIdToTableName = createdTableNameMap(getTableOperations().tableIdMap());
 
@@ -409,7 +410,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
           for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
             // pool names are the same as table names, except in the DEFAULT case.
             // If this table is assigned to a pool for this host, then move on.
-            List<String> hostPools = getPoolNamesForHost(e.getKey().host());
+            List<String> hostPools = getPoolNamesForHost(e.getKey().getHost());
             if (hostPools.contains(tablePoolName)) {
               continue;
             }
@@ -425,9 +426,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
               if (outOfBoundsTablets == null) {
                 continue;
               }
-              Random random = new SecureRandom();
               for (TabletStats ts : outOfBoundsTablets) {
-                KeyExtent ke = new KeyExtent(ts.getExtent());
+                KeyExtent ke = KeyExtent.fromThrift(ts.getExtent());
                 if (migrations.contains(ke)) {
                   LOG.debug("Migration for out of bounds tablet {} has already been requested", ke);
                   continue;
@@ -455,7 +455,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
               }
             } catch (TException e1) {
               LOG.error("Error in OOB check getting tablets for table {} from server {} {}", tid,
-                  e.getKey().host(), e);
+                  e.getKey().getHost(), e);
             }
           }
         }
@@ -489,12 +489,12 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       Multimap<TServerInstance,String> serverTableIdCopied = HashMultimap.create();
       for (TabletMigration migration : migrationsFromLastPass.values()) {
         TableInfo fromInfo = getTableInfo(currentCopy, serverTableIdCopied,
-            migration.tablet.getTableId().toString(), migration.oldServer);
+            migration.tablet.tableId().toString(), migration.oldServer);
         if (fromInfo != null) {
           fromInfo.setOnlineTablets(fromInfo.getOnlineTablets() - 1);
         }
         TableInfo toInfo = getTableInfo(currentCopy, serverTableIdCopied,
-            migration.tablet.getTableId().toString(), migration.newServer);
+            migration.tablet.tableId().toString(), migration.newServer);
         if (toInfo != null) {
           toInfo.setOnlineTablets(toInfo.getOnlineTablets() + 1);
         }

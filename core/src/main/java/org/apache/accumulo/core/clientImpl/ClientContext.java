@@ -22,7 +22,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
@@ -45,11 +47,11 @@ import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
-import org.apache.accumulo.core.client.admin.ReplicationOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -57,9 +59,10 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -70,6 +73,7 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
@@ -92,21 +96,23 @@ public class ClientContext implements AccumuloClient {
 
   private static final Logger log = LoggerFactory.getLogger(ClientContext.class);
 
-  private ClientInfo info;
+  private final ClientInfo info;
   private String instanceId;
   private final ZooCache zooCache;
 
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
-  private AccumuloConfiguration serverConf;
-  private Configuration hadoopConf;
+  private ConditionalWriterConfig conditionalWriterConfig;
+  private final AccumuloConfiguration serverConf;
+  private final Configuration hadoopConf;
 
   // These fields are very frequently accessed (each time a connection is created) and expensive to
   // compute, so cache them.
-  private Supplier<Long> timeoutSupplier;
-  private Supplier<SaslConnectionParams> saslSupplier;
-  private Supplier<SslConnectionParams> sslSupplier;
+  private final Supplier<Long> timeoutSupplier;
+  private final Supplier<SaslConnectionParams> saslSupplier;
+  private final Supplier<SslConnectionParams> sslSupplier;
   private TCredentials rpcCreds;
+  private ThriftTransportPool thriftTransportPool;
 
   private volatile boolean closed = false;
 
@@ -114,8 +120,9 @@ public class ClientContext implements AccumuloClient {
   private TableOperationsImpl tableops = null;
   private NamespaceOperations namespaceops = null;
   private InstanceOperations instanceops = null;
-  private ReplicationOperations replicationops = null;
-  private SingletonReservation singletonReservation;
+  @SuppressWarnings("deprecation")
+  private org.apache.accumulo.core.client.admin.ReplicationOperations replicationops = null;
+  private final SingletonReservation singletonReservation;
 
   private void ensureOpen() {
     if (closed) {
@@ -156,7 +163,7 @@ public class ClientContext implements AccumuloClient {
    *
    * @deprecated since 2.0.0
    */
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   public org.apache.accumulo.core.client.Instance getDeprecatedInstance() {
     final ClientContext context = this;
     return new org.apache.accumulo.core.client.Instance() {
@@ -167,7 +174,7 @@ public class ClientContext implements AccumuloClient {
 
       @Override
       public List<String> getMasterLocations() {
-        return context.getMasterLocations();
+        return context.getManagerLocations();
       }
 
       @Override
@@ -234,8 +241,8 @@ public class ClientContext implements AccumuloClient {
    * other auth token
    */
   public synchronized void setCredentials(Credentials newCredentials) {
-    checkArgument(newCredentials != null, "newCredentials is null");
     ensureOpen();
+    checkArgument(newCredentials != null, "newCredentials is null");
     creds = newCredentials;
     rpcCreds = null;
   }
@@ -280,29 +287,64 @@ public class ClientContext implements AccumuloClient {
     return saslSupplier.get();
   }
 
-  public BatchWriterConfig getBatchWriterConfig() {
-    ensureOpen();
-    if (batchWriterConfig == null) {
-      Properties props = info.getProperties();
-      batchWriterConfig = new BatchWriterConfig();
-      Long maxMemory = ClientProperty.BATCH_WRITER_MEMORY_MAX.getBytes(props);
-      if (maxMemory != null) {
-        batchWriterConfig.setMaxMemory(maxMemory);
-      }
-      Long maxLatency = ClientProperty.BATCH_WRITER_LATENCY_MAX.getTimeInMillis(props);
-      if (maxLatency != null) {
-        batchWriterConfig.setMaxLatency(maxLatency, TimeUnit.SECONDS);
-      }
-      Long timeout = ClientProperty.BATCH_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
-      if (timeout != null) {
-        batchWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
-      }
-      String durability = ClientProperty.BATCH_WRITER_DURABILITY.getValue(props);
-      if (!durability.isEmpty()) {
-        batchWriterConfig.setDurability(Durability.valueOf(durability.toUpperCase()));
-      }
+  static BatchWriterConfig getBatchWriterConfig(Properties props) {
+    BatchWriterConfig batchWriterConfig = new BatchWriterConfig();
+
+    Long maxMemory = ClientProperty.BATCH_WRITER_MEMORY_MAX.getBytes(props);
+    if (maxMemory != null) {
+      batchWriterConfig.setMaxMemory(maxMemory);
+    }
+    Long maxLatency = ClientProperty.BATCH_WRITER_LATENCY_MAX.getTimeInMillis(props);
+    if (maxLatency != null) {
+      batchWriterConfig.setMaxLatency(maxLatency, TimeUnit.SECONDS);
+    }
+    Long timeout = ClientProperty.BATCH_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
+    if (timeout != null) {
+      batchWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
+    }
+    Integer maxThreads = ClientProperty.BATCH_WRITER_THREADS_MAX.getInteger(props);
+    if (maxThreads != null) {
+      batchWriterConfig.setMaxWriteThreads(maxThreads);
+    }
+    String durability = ClientProperty.BATCH_WRITER_DURABILITY.getValue(props);
+    if (!durability.isEmpty()) {
+      batchWriterConfig.setDurability(Durability.valueOf(durability.toUpperCase()));
     }
     return batchWriterConfig;
+  }
+
+  public synchronized BatchWriterConfig getBatchWriterConfig() {
+    ensureOpen();
+    if (batchWriterConfig == null) {
+      batchWriterConfig = getBatchWriterConfig(info.getProperties());
+    }
+    return batchWriterConfig;
+  }
+
+  static ConditionalWriterConfig getConditionalWriterConfig(Properties props) {
+    ConditionalWriterConfig conditionalWriterConfig = new ConditionalWriterConfig();
+
+    Long timeout = ClientProperty.CONDITIONAL_WRITER_TIMEOUT_MAX.getTimeInMillis(props);
+    if (timeout != null) {
+      conditionalWriterConfig.setTimeout(timeout, TimeUnit.SECONDS);
+    }
+    String durability = ClientProperty.CONDITIONAL_WRITER_DURABILITY.getValue(props);
+    if (!durability.isEmpty()) {
+      conditionalWriterConfig.setDurability(Durability.valueOf(durability.toUpperCase()));
+    }
+    Integer maxThreads = ClientProperty.CONDITIONAL_WRITER_THREADS_MAX.getInteger(props);
+    if (maxThreads != null) {
+      conditionalWriterConfig.setMaxWriteThreads(maxThreads);
+    }
+    return conditionalWriterConfig;
+  }
+
+  public synchronized ConditionalWriterConfig getConditionalWriterConfig() {
+    ensureOpen();
+    if (conditionalWriterConfig == null) {
+      conditionalWriterConfig = getConditionalWriterConfig(info.getProperties());
+    }
+    return conditionalWriterConfig;
   }
 
   /**
@@ -337,7 +379,8 @@ public class ClientContext implements AccumuloClient {
       timer = new OpTimer().start();
     }
 
-    Location loc = getAmple().readTablet(RootTable.EXTENT, LOCATION).getLocation();
+    Location loc =
+        getAmple().readTablet(RootTable.EXTENT, ReadConsistency.EVENTUAL, LOCATION).getLocation();
 
     if (timer != null) {
       timer.stop();
@@ -349,35 +392,35 @@ public class ClientContext implements AccumuloClient {
       return null;
     }
 
-    return loc.getHostAndPort().toString();
+    return loc.getHostPort();
   }
 
   /**
-   * Returns the location(s) of the accumulo master and any redundant servers.
+   * Returns the location(s) of the accumulo manager and any redundant servers.
    *
    * @return a list of locations in "hostname:port" form
    */
-  public List<String> getMasterLocations() {
+  public List<String> getManagerLocations() {
     ensureOpen();
-    return getMasterLocations(zooCache, getInstanceID());
+    return getManagerLocations(zooCache, getInstanceID());
   }
 
   // available only for sharing code with old ZooKeeperInstance
-  public static List<String> getMasterLocations(ZooCache zooCache, String instanceId) {
-    String masterLocPath = ZooUtil.getRoot(instanceId) + Constants.ZMASTER_LOCK;
+  public static List<String> getManagerLocations(ZooCache zooCache, String instanceId) {
+    var zLockManagerPath = ServiceLock.path(ZooUtil.getRoot(instanceId) + Constants.ZMANAGER_LOCK);
 
     OpTimer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Looking up master location in zookeeper.", Thread.currentThread().getId());
+      log.trace("tid={} Looking up manager location in zookeeper.", Thread.currentThread().getId());
       timer = new OpTimer().start();
     }
 
-    byte[] loc = zooCache.getLockData(masterLocPath);
+    byte[] loc = zooCache.getLockData(zLockManagerPath);
 
     if (timer != null) {
       timer.stop();
-      log.trace("tid={} Found master at {} in {}", Thread.currentThread().getId(),
+      log.trace("tid={} Found manager at {} in {}", Thread.currentThread().getId(),
           (loc == null ? "null" : new String(loc, UTF_8)),
           String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
     }
@@ -468,30 +511,48 @@ public class ClientContext implements AccumuloClient {
     return zooCache;
   }
 
+  // this validates the table name for all callers
   TableId getTableId(String tableName) throws TableNotFoundException {
-    TableId tableId = Tables.getTableId(this, tableName);
+    return Tables.getTableId(this, EXISTING_TABLE_NAME.validate(tableName));
+  }
+
+  // use cases overlap with requireNotDeleted, but this throws a checked exception
+  public TableId requireTableExists(TableId tableId, String tableName)
+      throws TableNotFoundException {
+    if (!Tables.exists(this, tableId))
+      throw new TableNotFoundException(tableId.canonical(), tableName, "Table no longer exists");
+    return tableId;
+  }
+
+  // use cases overlap with requireTableExists, but this throws a runtime exception
+  public TableId requireNotDeleted(TableId tableId) {
+    if (!Tables.exists(this, tableId))
+      throw new TableDeletedException(tableId.canonical());
+    return tableId;
+  }
+
+  public TableId requireNotOffline(TableId tableId, String tableName) {
     if (Tables.getTableState(this, tableId) == TableState.OFFLINE)
-      throw new TableOfflineException(Tables.getTableOfflineMsg(this, tableId));
+      throw new TableOfflineException(tableId, tableName);
     return tableId;
   }
 
   @Override
   public BatchScanner createBatchScanner(String tableName, Authorizations authorizations,
       int numQueryThreads) throws TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(authorizations != null, "authorizations is null");
     ensureOpen();
-    return new TabletServerBatchReader(this, getTableId(tableName), authorizations,
-        numQueryThreads);
+    checkArgument(authorizations != null, "authorizations is null");
+    return new TabletServerBatchReader(this, requireNotOffline(getTableId(tableName), tableName),
+        tableName, authorizations, numQueryThreads);
   }
 
   @Override
   public BatchScanner createBatchScanner(String tableName, Authorizations authorizations)
       throws TableNotFoundException {
+    ensureOpen();
     Integer numQueryThreads =
         ClientProperty.BATCH_SCANNER_NUM_QUERY_THREADS.getInteger(getProperties());
     Objects.requireNonNull(numQueryThreads);
-    ensureOpen();
     return createBatchScanner(tableName, authorizations, numQueryThreads);
   }
 
@@ -505,11 +566,10 @@ public class ClientContext implements AccumuloClient {
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations,
       int numQueryThreads, BatchWriterConfig config) throws TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(authorizations != null, "authorizations is null");
     ensureOpen();
-    return new TabletServerBatchDeleter(this, getTableId(tableName), authorizations,
-        numQueryThreads, config.merge(getBatchWriterConfig()));
+    checkArgument(authorizations != null, "authorizations is null");
+    return new TabletServerBatchDeleter(this, requireNotOffline(getTableId(tableName), tableName),
+        tableName, authorizations, numQueryThreads, config.merge(getBatchWriterConfig()));
   }
 
   @Override
@@ -522,13 +582,13 @@ public class ClientContext implements AccumuloClient {
   @Override
   public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config)
       throws TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
     ensureOpen();
     // we used to allow null inputs for bw config
     if (config == null) {
       config = new BatchWriterConfig();
     }
-    return new BatchWriterImpl(this, getTableId(tableName), config.merge(getBatchWriterConfig()));
+    return new BatchWriterImpl(this, requireNotOffline(getTableId(tableName), tableName),
+        config.merge(getBatchWriterConfig()));
   }
 
   @Override
@@ -551,16 +611,27 @@ public class ClientContext implements AccumuloClient {
   public ConditionalWriter createConditionalWriter(String tableName, ConditionalWriterConfig config)
       throws TableNotFoundException {
     ensureOpen();
-    return new ConditionalWriterImpl(this, getTableId(tableName), config);
+    if (config == null) {
+      config = new ConditionalWriterConfig();
+    }
+    return new ConditionalWriterImpl(this, requireNotOffline(getTableId(tableName), tableName),
+        tableName, config.merge(getConditionalWriterConfig()));
+  }
+
+  @Override
+  public ConditionalWriter createConditionalWriter(String tableName) throws TableNotFoundException {
+    ensureOpen();
+    return new ConditionalWriterImpl(this, requireNotOffline(getTableId(tableName), tableName),
+        tableName, new ConditionalWriterConfig());
   }
 
   @Override
   public Scanner createScanner(String tableName, Authorizations authorizations)
       throws TableNotFoundException {
-    checkArgument(tableName != null, "tableName is null");
-    checkArgument(authorizations != null, "authorizations is null");
     ensureOpen();
-    Scanner scanner = new ScannerImpl(this, getTableId(tableName), authorizations);
+    checkArgument(authorizations != null, "authorizations is null");
+    Scanner scanner =
+        new ScannerImpl(this, requireNotOffline(getTableId(tableName), tableName), authorizations);
     Integer batchSize = ClientProperty.SCANNER_BATCH_SIZE.getInteger(getProperties());
     if (batchSize != null) {
       scanner.setBatchSize(batchSize);
@@ -612,7 +683,9 @@ public class ClientContext implements AccumuloClient {
   }
 
   @Override
-  public synchronized ReplicationOperations replicationOperations() {
+  @Deprecated
+  public synchronized org.apache.accumulo.core.client.admin.ReplicationOperations
+      replicationOperations() {
     ensureOpen();
     if (replicationops == null) {
       replicationops = new ReplicationOperationsImpl(this);
@@ -641,6 +714,9 @@ public class ClientContext implements AccumuloClient {
   @Override
   public void close() {
     closed = true;
+    if (thriftTransportPool != null) {
+      thriftTransportPool.shutdown();
+    }
     singletonReservation.close();
   }
 
@@ -650,7 +726,7 @@ public class ClientContext implements AccumuloClient {
 
     private Properties properties = new Properties();
     private AuthenticationToken token = null;
-    private Function<ClientBuilderImpl<T>,T> builderFunction;
+    private final Function<ClientBuilderImpl<T>,T> builderFunction;
 
     public ClientBuilderImpl(Function<ClientBuilderImpl<T>,T> builderFunction) {
       this.builderFunction = builderFunction;
@@ -795,8 +871,16 @@ public class ClientContext implements AccumuloClient {
     }
 
     @Override
+    public FromOptions<T> from(URL propertiesURL) {
+      return from(ClientInfoImpl.toProperties(propertiesURL));
+    }
+
+    @Override
     public FromOptions<T> from(Properties properties) {
-      this.properties = properties;
+      // Make a copy, so that this builder's subsequent methods don't mutate the
+      // properties object provided by the caller
+      this.properties = new Properties();
+      this.properties.putAll(properties);
       return this;
     }
 
@@ -836,5 +920,14 @@ public class ClientContext implements AccumuloClient {
     public void setProperty(ClientProperty property, Integer value) {
       setProperty(property, Integer.toString(value));
     }
+  }
+
+  public synchronized ThriftTransportPool getTransportPool() {
+    ensureOpen();
+    if (thriftTransportPool == null) {
+      thriftTransportPool = new ThriftTransportPool();
+      thriftTransportPool.startCheckerThread();
+    }
+    return thriftTransportPool;
   }
 }

@@ -23,17 +23,18 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.hadoop.io.Text;
-
-import com.google.common.collect.ImmutableMap;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -68,14 +69,10 @@ public class ShellUtil {
 
   public static Map<String,String> parseMapOpt(CommandLine cl, Option opt) {
     if (cl.hasOption(opt.getLongOpt())) {
-      var builder = ImmutableMap.<String,String>builder();
-      String[] keyVals = cl.getOptionValue(opt.getLongOpt()).split(",");
-      for (String keyVal : keyVals) {
-        String[] sa = keyVal.split("=");
-        builder.put(sa[0], sa[1]);
-      }
-
-      return builder.build();
+      return Arrays.stream(cl.getOptionValue(opt.getLongOpt()).split(",")).map(kv -> {
+        String[] sa = kv.split("=");
+        return new Pair<>(sa[0], sa[1]);
+      }).collect(Collectors.toUnmodifiableMap(Pair::getFirst, Pair::getSecond));
     } else {
       return Collections.emptyMap();
     }

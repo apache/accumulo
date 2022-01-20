@@ -21,12 +21,9 @@ package org.apache.accumulo.server.tablets;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.security.SecureRandom;
-import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.util.FastFormat;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 
 /**
@@ -41,29 +38,23 @@ public class UniqueNameAllocator {
   private long next = 0;
   private long maxAllocated = 0;
   private String nextNamePath;
-  private Random rand;
+  private static final SecureRandom random = new SecureRandom();
 
   public UniqueNameAllocator(ServerContext context) {
     this.context = context;
     nextNamePath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZNEXT_FILE;
-    rand = new SecureRandom();
   }
 
   public synchronized String getNextName() {
 
     while (next >= maxAllocated) {
-      final int allocate = 100 + rand.nextInt(100);
+      final int allocate = 100 + random.nextInt(100);
 
       try {
-        byte[] max = context.getZooReaderWriter().mutate(nextNamePath, null, ZooUtil.PRIVATE,
-            new ZooReaderWriter.Mutator() {
-              @Override
-              public byte[] mutate(byte[] currentValue) {
-                long l = Long.parseLong(new String(currentValue, UTF_8), Character.MAX_RADIX);
-                l += allocate;
-                return Long.toString(l, Character.MAX_RADIX).getBytes(UTF_8);
-              }
-            });
+        byte[] max = context.getZooReaderWriter().mutateExisting(nextNamePath, currentValue -> {
+          long l = Long.parseLong(new String(currentValue, UTF_8), Character.MAX_RADIX);
+          return Long.toString(l + allocate, Character.MAX_RADIX).getBytes(UTF_8);
+        });
 
         maxAllocated = Long.parseLong(new String(max, UTF_8), Character.MAX_RADIX);
         next = maxAllocated - allocate;

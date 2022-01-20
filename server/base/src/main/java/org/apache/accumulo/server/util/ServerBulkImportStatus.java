@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.master.thrift.BulkImportStatus;
 
-// A little class to hold bulk import status information in the Master
+// A little class to hold bulk import status information in the Manager
 // and two places in the tablet server.
 public class ServerBulkImportStatus {
   private final ConcurrentMap<String,BulkImportStatus> status = new ConcurrentHashMap<>();
@@ -37,12 +37,13 @@ public class ServerBulkImportStatus {
 
   public void updateBulkImportStatus(List<String> files, BulkImportState state) {
     for (String file : files) {
-      BulkImportStatus initial = new BulkImportStatus(System.currentTimeMillis(), file, state);
-      status.putIfAbsent(file, initial);
-      initial = status.get(file);
-      if (initial != null) {
-        initial.state = state;
-      }
+      status.compute(file, (key, currentStatus) -> {
+        if (currentStatus == null) {
+          return new BulkImportStatus(System.currentTimeMillis(), file, state);
+        }
+        currentStatus.state = state;
+        return currentStatus;
+      });
     }
   }
 

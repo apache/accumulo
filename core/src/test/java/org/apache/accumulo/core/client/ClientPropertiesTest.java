@@ -19,7 +19,7 @@
 package org.apache.accumulo.core.client;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import java.nio.file.Paths;
 import java.util.Properties;
@@ -39,20 +39,27 @@ public class ClientPropertiesTest {
     assertEquals("password", ClientProperty.AUTH_TYPE.getValue(props1));
     assertEquals("pass1", ClientProperty.AUTH_TOKEN.getValue(props1));
 
+    ClientProperty.validate(props1);
+
     Properties props2 =
         Accumulo.newClientProperties().from(props1).as("user2", Paths.get("/path2")).build();
+
+    // verify props1 is unchanged
     assertEquals("inst1", ClientProperty.INSTANCE_NAME.getValue(props1));
     assertEquals("zoo1", ClientProperty.INSTANCE_ZOOKEEPERS.getValue(props1));
-    assertEquals("user2", ClientProperty.AUTH_PRINCIPAL.getValue(props1));
-    assertEquals("kerberos", ClientProperty.AUTH_TYPE.getValue(props1));
-    assertEquals("/path2", ClientProperty.AUTH_TOKEN.getValue(props1));
+    assertEquals("user1", ClientProperty.AUTH_PRINCIPAL.getValue(props1));
+    assertEquals("password", ClientProperty.AUTH_TYPE.getValue(props1));
+    assertEquals("pass1", ClientProperty.AUTH_TOKEN.getValue(props1));
+
+    // verify props2 has new values for overridden fields
+    assertEquals("inst1", ClientProperty.INSTANCE_NAME.getValue(props2));
+    assertEquals("zoo1", ClientProperty.INSTANCE_ZOOKEEPERS.getValue(props2));
+    assertEquals("user2", ClientProperty.AUTH_PRINCIPAL.getValue(props2));
+    assertEquals("kerberos", ClientProperty.AUTH_TYPE.getValue(props2));
+    assertEquals("/path2", ClientProperty.AUTH_TOKEN.getValue(props2));
 
     props2.remove(ClientProperty.AUTH_PRINCIPAL.getKey());
-    try {
-      ClientProperty.validate(props2);
-      fail();
-    } catch (IllegalArgumentException e) {
-      // expected
-    }
+    var e = assertThrows(IllegalArgumentException.class, () -> ClientProperty.validate(props2));
+    assertEquals("auth.principal is not set", e.getMessage());
   }
 }

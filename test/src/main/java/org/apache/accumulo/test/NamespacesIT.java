@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.core.Constants.MAX_NAMESPACE_LEN;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -100,6 +99,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
 
   private AccumuloClient c;
   private String namespace;
+  private static final int MAX_NAMESPACE_LEN = 1024;
 
   @BeforeClass
   public static void setup() throws Exception {
@@ -964,6 +964,32 @@ public class NamespacesIT extends SharedMiniClusterBase {
   }
 
   @Test
+  public void validatePermissions() throws Exception {
+    // Create namespace.
+    c.namespaceOperations().create(namespace);
+
+    assertTrue(c.securityOperations().hasNamespacePermission(c.whoami(), namespace,
+        NamespacePermission.READ));
+    c.securityOperations().revokeNamespacePermission(c.whoami(), namespace,
+        NamespacePermission.READ);
+    assertFalse(c.securityOperations().hasNamespacePermission(c.whoami(), namespace,
+        NamespacePermission.READ));
+    c.securityOperations().grantNamespacePermission(c.whoami(), namespace,
+        NamespacePermission.READ);
+    assertTrue(c.securityOperations().hasNamespacePermission(c.whoami(), namespace,
+        NamespacePermission.READ));
+
+    c.namespaceOperations().delete(namespace);
+
+    assertSecurityException(SecurityErrorCode.NAMESPACE_DOESNT_EXIST, () -> c.securityOperations()
+        .hasNamespacePermission(c.whoami(), namespace, NamespacePermission.READ));
+    assertSecurityException(SecurityErrorCode.NAMESPACE_DOESNT_EXIST, () -> c.securityOperations()
+        .grantNamespacePermission(c.whoami(), namespace, NamespacePermission.READ));
+    assertSecurityException(SecurityErrorCode.NAMESPACE_DOESNT_EXIST, () -> c.securityOperations()
+        .revokeNamespacePermission(c.whoami(), namespace, NamespacePermission.READ));
+  }
+
+  @Test
   public void verifyTableOperationsExceptions() throws Exception {
     String tableName = namespace + ".1";
     IteratorSetting setting = new IteratorSetting(200, VersioningIterator.class);
@@ -1014,7 +1040,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
     assertNoTableNoNamespace(() -> ops.getLocalityGroups(tableName));
     assertNoTableNoNamespace(
         () -> ops.getMaxRow(tableName, Authorizations.EMPTY, a, true, z, true));
-    assertNoTableNoNamespace(() -> ops.getProperties(tableName));
+    assertNoTableNoNamespace(() -> ops.getConfiguration(tableName));
     assertNoTableNoNamespace(() -> ops.importDirectory("").to(tableName).load());
     assertNoTableNoNamespace(() -> ops.testClassLoad(tableName, VersioningIterator.class.getName(),
         SortedKeyValueIterator.class.getName()));
@@ -1045,7 +1071,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
         () -> ops.checkIteratorConflicts(namespace, setting, EnumSet.of(IteratorScope.scan)));
     assertNoNamespace(() -> ops.delete(namespace));
     assertNoNamespace(() -> ops.getIteratorSetting(namespace, "thing", IteratorScope.scan));
-    assertNoNamespace(() -> ops.getProperties(namespace));
+    assertNoNamespace(() -> ops.getConfiguration(namespace));
     assertNoNamespace(() -> ops.listConstraints(namespace));
     assertNoNamespace(() -> ops.listIterators(namespace));
     assertNoNamespace(() -> ops.removeConstraint(namespace, 1));
@@ -1080,9 +1106,9 @@ public class NamespacesIT extends SharedMiniClusterBase {
 
   private boolean checkHasProperty(String name, String propKey, String propVal, boolean nameIsTable)
       throws Exception {
-    Iterable<Entry<String,String>> iterable = nameIsTable ? c.tableOperations().getProperties(name)
-        : c.namespaceOperations().getProperties(name);
-    for (Entry<String,String> e : iterable)
+    Map<String,String> props = nameIsTable ? c.tableOperations().getConfiguration(name)
+        : c.namespaceOperations().getConfiguration(name);
+    for (Entry<String,String> e : props.entrySet())
       if (propKey.equals(e.getKey()))
         return propVal.equals(e.getValue());
     return false;

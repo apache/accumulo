@@ -20,21 +20,20 @@ package org.apache.accumulo.tserver.tablet;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Collections;
+import java.util.Map;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.tserver.compaction.CompactionPlan;
 import org.apache.accumulo.tserver.compaction.WriteParameters;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
+@SuppressWarnings("removal")
 public class TabletTest {
 
   @Test
   public void correctValuesSetForProperties() {
-    TableConfiguration tableConf = EasyMock.createMock(TableConfiguration.class);
+
     CompactionPlan plan = EasyMock.createMock(CompactionPlan.class);
     WriteParameters writeParams = EasyMock.createMock(WriteParameters.class);
     plan.writeParameters = writeParams;
@@ -43,24 +42,25 @@ public class TabletTest {
     int replication = 5;
     String compressType = "snappy";
 
-    EasyMock.expect(tableConf.iterator()).andReturn(Collections.emptyIterator());
     EasyMock.expect(writeParams.getHdfsBlockSize()).andReturn(hdfsBlockSize).times(2);
     EasyMock.expect(writeParams.getBlockSize()).andReturn(blockSize).times(2);
     EasyMock.expect(writeParams.getIndexBlockSize()).andReturn(indexBlockSize).times(2);
     EasyMock.expect(writeParams.getCompressType()).andReturn(compressType).times(2);
     EasyMock.expect(writeParams.getReplication()).andReturn(replication).times(2);
 
-    EasyMock.replay(tableConf, plan, writeParams);
+    EasyMock.replay(plan, writeParams);
 
-    AccumuloConfiguration aConf = Tablet.createCompactionConfiguration(tableConf, plan);
+    Map<String,String> aConf = CompactableUtils.computeOverrides(writeParams);
 
-    EasyMock.verify(tableConf, plan, writeParams);
+    EasyMock.verify(plan, writeParams);
 
-    assertEquals(hdfsBlockSize, Long.parseLong(aConf.get(Property.TABLE_FILE_BLOCK_SIZE)));
-    assertEquals(blockSize, Long.parseLong(aConf.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE)));
+    assertEquals(hdfsBlockSize, Long.parseLong(aConf.get(Property.TABLE_FILE_BLOCK_SIZE.getKey())));
+    assertEquals(blockSize,
+        Long.parseLong(aConf.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey())));
     assertEquals(indexBlockSize,
-        Long.parseLong(aConf.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX)));
-    assertEquals(compressType, aConf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
-    assertEquals(replication, Integer.parseInt(aConf.get(Property.TABLE_FILE_REPLICATION)));
+        Long.parseLong(aConf.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey())));
+    assertEquals(compressType, aConf.get(Property.TABLE_FILE_COMPRESSION_TYPE.getKey()));
+    assertEquals(replication,
+        Integer.parseInt(aConf.get(Property.TABLE_FILE_REPLICATION.getKey())));
   }
 }

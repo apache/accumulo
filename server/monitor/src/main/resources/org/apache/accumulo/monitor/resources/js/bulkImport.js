@@ -42,11 +42,11 @@ function refresh() {
 }
 
 /**
- * Generates the master bulk import status table
+ * Generates the manager bulk import status table
  */
 function refreshBulkImportTable() {
 
-  clearTableBody('masterBulkImportStatus');
+  clearTableBody('managerBulkImportStatus');
 
   /*
    * Get the bulk import value obtained earlier, if it doesn't exists,
@@ -61,7 +61,7 @@ function refreshBulkImportTable() {
   if (data.length === 0 || data.bulkImport.length === 0) {
     $('<tr/>', {
       html: createEmptyRow(3, 'Empty')
-    }).appendTo('#masterBulkImportStatus tbody');
+    }).appendTo('#managerBulkImportStatus tbody');
   } else {
     $.each(data.bulkImport, function(key, val) {
       var items = [];
@@ -70,7 +70,7 @@ function refreshBulkImportTable() {
       items.push(createRightCell(val.state, val.state));
       $('<tr/>', {
         html: items.join('')
-      }).appendTo('#masterBulkImportStatus tbody');
+      }).appendTo('#managerBulkImportStatus tbody');
     });
   }
 

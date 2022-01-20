@@ -20,12 +20,10 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertTrue;
 
-import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -34,6 +32,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -54,15 +53,15 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ManyWriteAheadLogsIT.class);
 
-  private String majcDelay, walogSize;
+  private String majcDelay, walSize;
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    // configure a smaller walog size so the walogs will roll frequently in the test
-    cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "1M");
+    // configure a smaller wal size so the wals will roll frequently in the test
+    cfg.setProperty(Property.TSERV_WAL_MAX_SIZE, "1M");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
     cfg.setProperty(Property.GC_CYCLE_START, "1");
-    cfg.setProperty(Property.MASTER_RECOVERY_DELAY, "1s");
+    cfg.setProperty(Property.MANAGER_RECOVERY_DELAY, "1s");
     cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     // idle compactions may addess the problem this test is creating, however they will not prevent
@@ -87,10 +86,9 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
       InstanceOperations iops = client.instanceOperations();
       Map<String,String> conf = iops.getSystemConfiguration();
       majcDelay = conf.get(Property.TSERV_MAJC_DELAY.getKey());
-      walogSize = conf.get(Property.TSERV_WALOG_MAX_SIZE.getKey());
-
+      walSize = conf.get(Property.TSERV_WAL_MAX_SIZE.getKey());
       iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1");
-      iops.setProperty(Property.TSERV_WALOG_MAX_SIZE.getKey(), "1M");
+      iops.setProperty(Property.TSERV_WAL_MAX_SIZE.getKey(), "1M");
 
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       getClusterControl().startAllServers(ServerType.TABLET_SERVER);
@@ -103,7 +101,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
         InstanceOperations iops = client.instanceOperations();
         iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
-        iops.setProperty(Property.TSERV_WALOG_MAX_SIZE.getKey(), walogSize);
+        iops.setProperty(Property.TSERV_WAL_MAX_SIZE.getKey(), walSize);
       }
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       getClusterControl().startAllServers(ServerType.TABLET_SERVER);
@@ -122,23 +120,22 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
       splits.add(new Text(String.format("%05x", i * 100)));
     }
 
-    ServerContext ctx = getServerContext();
+    ServerContext context = getServerContext();
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String[] tableNames = getUniqueNames(2);
 
       String manyWALsTable = tableNames[0];
       String rollWALsTable = tableNames[1];
-      c.tableOperations().create(manyWALsTable);
-      c.tableOperations().addSplits(manyWALsTable, splits);
+
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+      c.tableOperations().create(manyWALsTable, ntc);
 
       c.tableOperations().create(rollWALsTable);
 
-      Random rand = new SecureRandom();
-
       Set<String> allWalsSeen = new HashSet<>();
 
-      addOpenWals(ctx, allWalsSeen);
+      addOpenWals(context, allWalsSeen);
 
       // This test creates the table manyWALsTable with a lot of tablets and writes a little bit to
       // each tablet. In between writing a little bit to each tablet a lot of data is written to
@@ -159,7 +156,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
           for (int j = 0; j < 10; j++) {
             int row = startRow + j;
             Mutation m = new Mutation(String.format("%05x", row));
-            rand.nextBytes(val);
+            random.nextBytes(val);
             m.put("f", "q", "v");
 
             manyWALsWriter.addMutation(m);
@@ -169,7 +166,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
           // write a lot of data to second table to forces the logs to roll
           for (int j = 0; j < 1000; j++) {
             Mutation m = new Mutation(String.format("%03d", j));
-            rand.nextBytes(val);
+            random.nextBytes(val);
 
             m.put("f", "q", Base64.getEncoder().encodeToString(val));
 
@@ -180,7 +177,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
 
           // keep track of the open WALs as the test runs. Should see a lot of open WALs over the
           // lifetime of the test, but never a lot at any one time.
-          addOpenWals(ctx, allWalsSeen);
+          addOpenWals(context, allWalsSeen);
         }
       }
 
@@ -188,11 +185,11 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
           allWalsSeen.size() >= 50);
 
       // the total number of closed write ahead logs should get small
-      int closedLogs = countClosedWals(ctx);
+      int closedLogs = countClosedWals(context);
       while (closedLogs > 3) {
         log.debug("Waiting for wals to shrink " + closedLogs);
         Thread.sleep(250);
-        closedLogs = countClosedWals(ctx);
+        closedLogs = countClosedWals(context);
       }
     }
   }

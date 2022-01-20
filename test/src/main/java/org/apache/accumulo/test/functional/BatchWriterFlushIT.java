@@ -23,7 +23,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -31,9 +30,9 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -47,7 +46,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.SimpleThreadPool;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -109,7 +108,6 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
   private void runFlushTest(AccumuloClient client, String tableName) throws Exception {
     BatchWriter bw = client.createBatchWriter(tableName);
     try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-      Random r = new SecureRandom();
 
       for (int i = 0; i < 4; i++) {
         for (int j = 0; j < NUM_TO_FLUSH; j++) {
@@ -125,7 +123,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         // do a few random lookups into the data just flushed
 
         for (int k = 0; k < 10; k++) {
-          int rowToLookup = r.nextInt(NUM_TO_FLUSH) + i * NUM_TO_FLUSH;
+          int rowToLookup = random.nextInt(NUM_TO_FLUSH) + i * NUM_TO_FLUSH;
 
           scanner.setRange(new Range(new Text(String.format("r_%10d", rowToLookup))));
 
@@ -151,7 +149,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
           int row = i * NUM_TO_FLUSH + j;
 
           if (!iter.hasNext())
-            throw new Exception("Scan stopped permaturely at " + row);
+            throw new Exception("Scan stopped prematurely at " + row);
 
           Entry<Key,Value> entry = iter.next();
 
@@ -209,7 +207,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         allMuts.add(muts);
       }
 
-      SimpleThreadPool threads = new SimpleThreadPool(NUM_THREADS, "ClientThreads");
+      ThreadPoolExecutor threads = ThreadPools.createFixedThreadPool(NUM_THREADS, "ClientThreads");
       threads.allowCoreThreadTimeOut(false);
       threads.prestartAllCoreThreads();
 

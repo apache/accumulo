@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static org.apache.accumulo.core.util.Validators.NEW_TABLE_NAME;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -36,10 +38,9 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.IterConfigUtil;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.constraints.VisibilityConstraint;
+import org.apache.accumulo.core.data.constraints.VisibilityConstraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -71,16 +72,11 @@ public class CreateTableCommand extends Command {
       throws AccumuloException, AccumuloSecurityException, TableExistsException,
       TableNotFoundException, IOException {
 
-    final String testTableName = cl.getArgs()[0];
+    final String tableName = cl.getArgs()[0];
     NewTableConfiguration ntc = new NewTableConfiguration();
 
-    if (!testTableName.matches(Tables.VALID_NAME_REGEX)) {
-      shellState.getReader()
-          .println("Only letters, numbers and underscores are allowed for use in table names.");
-      throw new IllegalArgumentException();
-    }
+    NEW_TABLE_NAME.validate(tableName);
 
-    final String tableName = cl.getArgs()[0];
     if (shellState.getAccumuloClient().tableOperations().exists(tableName)) {
       throw new TableExistsException(null, tableName, null);
     }
@@ -146,9 +142,9 @@ public class CreateTableCommand extends Command {
     // Copy options if flag was set
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
       if (shellState.getAccumuloClient().tableOperations().exists(tableName)) {
-        final Iterable<Entry<String,String>> configuration = shellState.getAccumuloClient()
-            .tableOperations().getProperties(cl.getOptionValue(createTableOptCopyConfig.getOpt()));
-        for (Entry<String,String> entry : configuration) {
+        final Map<String,String> configuration = shellState.getAccumuloClient().tableOperations()
+            .getConfiguration(cl.getOptionValue(createTableOptCopyConfig.getOpt()));
+        for (Entry<String,String> entry : configuration.entrySet()) {
           if (Property.isValidTablePropertyKey(entry.getKey())) {
             shellState.getAccumuloClient().tableOperations().setProperty(tableName, entry.getKey(),
                 entry.getValue());

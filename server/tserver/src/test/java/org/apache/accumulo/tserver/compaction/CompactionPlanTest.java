@@ -25,6 +25,7 @@ import java.util.Set;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.junit.Test;
 
+@SuppressWarnings("removal")
 public class CompactionPlanTest {
 
   @Test

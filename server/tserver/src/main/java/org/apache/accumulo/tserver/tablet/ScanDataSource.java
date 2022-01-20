@@ -31,11 +31,11 @@ import org.apache.accumulo.core.conf.IterLoad;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
-import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator.DataSource;
 import org.apache.accumulo.core.iteratorsImpl.system.StatsIterator;
@@ -45,9 +45,9 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.conf.TableConfiguration.ParsedIteratorConfig;
-import org.apache.accumulo.tserver.FileManager.ScanFileManager;
+import org.apache.accumulo.server.fs.FileManager.ScanFileManager;
+import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
-import org.apache.accumulo.tserver.TabletIteratorEnvironment;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.slf4j.Logger;
@@ -99,8 +99,10 @@ class ScanDataSource implements DataSource {
         fileReservationId = -1;
       }
 
-      if (fileManager != null)
+      if (fileManager != null) {
+        tablet.getTabletServer().getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
         fileManager.releaseOpenFiles(false);
+      }
 
       expectedDeletionCount = tablet.getDataSourceDeletions();
       iter = null;
@@ -141,8 +143,8 @@ class ScanDataSource implements DataSource {
 
       // only acquire the file manager when we know the tablet is open
       if (fileManager == null) {
-        fileManager =
-            tablet.getTabletResources().newScanFileManager(scanParams.getScanDirectives());
+        fileManager = tablet.getTabletResources().newScanFileManager(scanParams.getScanDispatch());
+        tablet.getTabletServer().getScanMetrics().incrementOpenFiles(fileManager.getNumOpenFiles());
         tablet.addActiveScans(this);
       }
 
@@ -176,7 +178,7 @@ class ScanDataSource implements DataSource {
 
     TabletIteratorEnvironment iterEnv =
         new TabletIteratorEnvironment(tablet.getTabletServer().getContext(), IteratorScope.scan,
-            tablet.getTableConfiguration(), tablet.getExtent().getTableId(), fileManager, files,
+            tablet.getTableConfiguration(), tablet.getExtent().tableId(), fileManager, files,
             scanParams.getAuthorizations(), samplerConfig, new ArrayList<>());
 
     statsIterator =
@@ -244,6 +246,7 @@ class ScanDataSource implements DataSource {
     }
 
     if (fileManager != null) {
+      tablet.getTabletServer().getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
       fileManager.releaseOpenFiles(sawErrors);
       fileManager = null;
     }

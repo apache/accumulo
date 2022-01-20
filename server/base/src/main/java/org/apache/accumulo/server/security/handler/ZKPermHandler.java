@@ -79,13 +79,13 @@ public class ZKPermHandler implements PermissionHandler {
     try {
       String path = ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table;
       zoo.sync(path);
-      serializedPerms = zoo.getData(path, null);
+      serializedPerms = zoo.getData(path);
     } catch (KeeperException e) {
       if (e.code() == Code.NONODE) {
         // maybe the table was just deleted?
         try {
           // check for existence:
-          zoo.getData(ZKTablePath + "/" + table, null);
+          zoo.getData(ZKTablePath + "/" + table);
           // it's there, you don't have permission
           return false;
         } catch (InterruptedException ex) {
@@ -128,13 +128,13 @@ public class ZKPermHandler implements PermissionHandler {
     try {
       String path = ZKUserPath + "/" + user + ZKUserNamespacePerms + "/" + namespace;
       zoo.sync(path);
-      serializedPerms = zoo.getData(path, null);
+      serializedPerms = zoo.getData(path);
     } catch (KeeperException e) {
       if (e.code() == Code.NONODE) {
         // maybe the namespace was just deleted?
         try {
           // check for existence:
-          zoo.getData(ZKNamespacePath + "/" + namespace, null);
+          zoo.getData(ZKNamespacePath + "/" + namespace);
           // it's there, you don't have permission
           return false;
         } catch (InterruptedException ex) {
@@ -489,7 +489,7 @@ public class ZKPermHandler implements PermissionHandler {
     try {
       String path = ZKUserPath + "/" + user + ZKUserSysPerms;
       zoo.sync(path);
-      perms = zoo.getData(path, null);
+      perms = zoo.getData(path);
     } catch (KeeperException e) {
       if (e.code() == Code.NONODE) {
         return false;

@@ -46,15 +46,16 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 
+@Deprecated(since = "2.1.0")
 public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
 
   protected static class TestTable {
@@ -245,8 +246,8 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
   }
 
   protected boolean tabletInBounds(KeyExtent ke, TServerInstance tsi) {
-    String tid = ke.getTableId().canonical();
-    String host = tsi.host();
+    String tid = ke.tableId().canonical();
+    String host = tsi.getHost();
     if (tid.equals("1")
         && (host.equals("192.168.0.1") || host.equals("192.168.0.2") || host.equals("192.168.0.3")
             || host.equals("192.168.0.4") || host.equals("192.168.0.5"))) {

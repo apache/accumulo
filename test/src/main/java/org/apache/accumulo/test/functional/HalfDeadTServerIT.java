@@ -38,7 +38,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.start.Main;
@@ -108,7 +107,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
   }
 
   // a simple class to capture a launched process' output (and repeat it back)
-  private static class DumpOutput extends Daemon {
+  private static class DumpOutput extends Thread {
 
     private final Scanner lineScanner;
     private final StringBuilder capturedOutput;
@@ -120,6 +119,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
       capturedOutput = new StringBuilder();
       printer = out;
       printerName = name;
+      this.setDaemon(true);
     }
 
     @Override

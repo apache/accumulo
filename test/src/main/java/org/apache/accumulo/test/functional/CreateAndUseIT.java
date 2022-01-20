@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -50,15 +51,17 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
     return 4 * 60;
   }
 
-  private static SortedSet<Text> splits;
+  private static NewTableConfiguration ntc;
 
   @BeforeClass
   public static void createData() {
-    splits = new TreeSet<>();
+    SortedSet<Text> splits = new TreeSet<>();
 
     for (int i = 1; i < 256; i++) {
       splits.add(new Text(String.format("%08x", i << 8)));
     }
+
+    ntc = new NewTableConfiguration().withSplits(splits);
   }
 
   @Test
@@ -70,8 +73,8 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
       Text cq = new Text("cq1");
 
       String tableName = getUniqueNames(1)[0];
-      client.tableOperations().create(tableName);
-      client.tableOperations().addSplits(tableName, splits);
+      client.tableOperations().create(tableName, ntc);
+
       try (BatchWriter bw = client.createBatchWriter(tableName)) {
         for (int i = 1; i < 257; i++) {
           Mutation m = new Mutation(new Text(String.format("%08x", (i << 8) - 16)));
@@ -98,9 +101,10 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
   @Test
   public void createTableAndScan() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
       String table2 = getUniqueNames(1)[0];
-      client.tableOperations().create(table2);
-      client.tableOperations().addSplits(table2, splits);
+      client.tableOperations().create(table2, ntc);
+
       try (Scanner scanner2 = client.createScanner(table2, Authorizations.EMPTY)) {
         int count = 0;
         for (Entry<Key,Value> entry : scanner2) {
@@ -124,8 +128,8 @@ public class CreateAndUseIT extends AccumuloClusterHarness {
       }
 
       String table3 = getUniqueNames(1)[0];
-      client.tableOperations().create(table3);
-      client.tableOperations().addSplits(table3, splits);
+      client.tableOperations().create(table3, ntc);
+
       try (BatchScanner bs = client.createBatchScanner(table3)) {
         bs.setRanges(ranges);
         Iterator<Entry<Key,Value>> iter = bs.iterator();

@@ -24,16 +24,16 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.util.time.SimpleTimer;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.WatchedEvent;
@@ -50,6 +50,7 @@ import org.slf4j.LoggerFactory;
  */
 public class DistributedWorkQueue {
 
+  private static final SecureRandom random = new SecureRandom();
   private static final String LOCKS_NODE = "locks";
 
   private static final Logger log = LoggerFactory.getLogger(DistributedWorkQueue.class);
@@ -58,6 +59,7 @@ public class DistributedWorkQueue {
   private ZooReaderWriter zoo;
   private String path;
   private AccumuloConfiguration config;
+  private ServerContext context;
   private long timerInitialDelay, timerPeriod;
 
   private AtomicInteger numTask = new AtomicInteger(0);
@@ -69,7 +71,6 @@ public class DistributedWorkQueue {
     if (numTask.get() >= threadPool.getCorePoolSize())
       return;
 
-    Random random = new SecureRandom();
     Collections.shuffle(children, random);
     try {
       for (final String child : children) {
@@ -110,7 +111,7 @@ public class DistributedWorkQueue {
           public void run() {
             try {
               try {
-                processor.newProcessor().process(child, zoo.getData(childPath, null));
+                processor.newProcessor().process(child, zoo.getData(childPath));
 
                 // if the task fails, then its entry in the Q is not deleted... so it will be
                 // retried
@@ -151,7 +152,7 @@ public class DistributedWorkQueue {
         threadPool.execute(task);
 
       }
-    } catch (Throwable t) {
+    } catch (Exception t) {
       log.error("Unexpected error", t);
     }
   }
@@ -162,18 +163,23 @@ public class DistributedWorkQueue {
     void process(String workID, byte[] data);
   }
 
-  public DistributedWorkQueue(String path, AccumuloConfiguration config) {
+  public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context) {
     // Preserve the old delay and period
-    this(path, config, new SecureRandom().nextInt(60 * 1000), 60 * 1000);
+    this(path, config, context, random.nextInt(60_000), 60_000);
   }
 
-  public DistributedWorkQueue(String path, AccumuloConfiguration config, long timerInitialDelay,
-      long timerPeriod) {
+  public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context,
+      long timerInitialDelay, long timerPeriod) {
     this.path = path;
     this.config = config;
+    this.context = context;
     this.timerInitialDelay = timerInitialDelay;
     this.timerPeriod = timerPeriod;
-    zoo = new ZooReaderWriter(config);
+    zoo = new ZooReaderWriter(this.config);
+  }
+
+  public ServerContext getContext() {
+    return context;
   }
 
   public ZooReaderWriter getZooReaderWriter() {
@@ -219,7 +225,7 @@ public class DistributedWorkQueue {
     lookForWork(processor, children);
 
     // Add a little jitter to avoid all the tservers slamming zookeeper at once
-    SimpleTimer.getInstance(config).schedule(new Runnable() {
+    context.getScheduledExecutor().scheduleWithFixedDelay(new Runnable() {
       @Override
       public void run() {
         log.debug("Looking for work in {}", path);
@@ -231,7 +237,7 @@ public class DistributedWorkQueue {
           log.info("Interrupted looking for work", e);
         }
       }
-    }, timerInitialDelay, timerPeriod);
+    }, timerInitialDelay, timerPeriod, TimeUnit.MILLISECONDS);
   }
 
   /**

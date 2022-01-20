@@ -18,9 +18,12 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -35,8 +38,6 @@ import org.apache.commons.configuration2.AbstractConfiguration;
 import org.apache.commons.configuration2.CompositeConfiguration;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
-import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,8 +141,6 @@ public class SiteConfiguration extends AccumuloConfiguration {
       return this;
     }
 
-    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
-        justification = "location of props is specified by an admin")
     @Override
     public SiteConfiguration build() {
       // load properties from configuration file
@@ -168,8 +167,17 @@ public class SiteConfiguration extends AccumuloConfiguration {
       config.addConfiguration(overrideConfig);
       config.addConfiguration(propsFileConfig);
 
+      // Make sure any deprecated property names aren't using both the old and new name.
+      DeprecatedPropertyUtil.sanityCheckManagerProperties(config);
+
       var result = new HashMap<String,String>();
-      config.getKeys().forEachRemaining(k -> result.put(k, config.getString(k)));
+      config.getKeys().forEachRemaining(orig -> {
+        String resolved = DeprecatedPropertyUtil.getReplacementName(orig, (log, replacement) -> {
+          log.warn("{} has been deprecated and will be removed in a future release;"
+              + " loading its replacement {} instead.", orig, replacement);
+        });
+        result.put(resolved, config.getString(orig));
+      });
       return new SiteConfiguration(Collections.unmodifiableMap(result));
     }
   }
@@ -198,22 +206,23 @@ public class SiteConfiguration extends AccumuloConfiguration {
   private final Map<String,String> config;
 
   private SiteConfiguration(Map<String,String> config) {
-    ConfigSanityCheck.validate(config.entrySet());
+    ConfigCheckUtil.validate(config.entrySet());
     this.config = config;
   }
 
   // load properties from config file
+  @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD",
+      justification = "url is specified by an admin, not unchecked user input")
   private static AbstractConfiguration getPropsFileConfig(URL accumuloPropsLocation) {
+    var config = new PropertiesConfiguration();
     if (accumuloPropsLocation != null) {
-      var propsBuilder = new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class)
-          .configure(new Parameters().properties().setURL(accumuloPropsLocation));
-      try {
-        return propsBuilder.getConfiguration();
-      } catch (ConfigurationException e) {
+      try (var reader = new InputStreamReader(accumuloPropsLocation.openStream(), UTF_8)) {
+        config.read(reader);
+      } catch (ConfigurationException | IOException e) {
         throw new IllegalArgumentException(e);
       }
     }
-    return new PropertiesConfiguration();
+    return config;
   }
 
   // load sensitive properties from Hadoop credential provider

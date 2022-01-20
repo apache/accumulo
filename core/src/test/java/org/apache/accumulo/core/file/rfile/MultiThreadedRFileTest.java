@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.io.UncheckedIOException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,7 +34,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.util.OptionalInt;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -57,7 +58,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
-import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -74,6 +75,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MultiThreadedRFileTest {
 
+  private static final SecureRandom random = new SecureRandom();
   private static final Logger LOG = LoggerFactory.getLogger(MultiThreadedRFileTest.class);
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
@@ -174,10 +176,6 @@ public class MultiThreadedRFileTest {
       }
     }
 
-    public void openWriter() throws IOException {
-      openWriter(true);
-    }
-
     public void closeWriter() throws IOException {
       if (deepCopy) {
         throw new IOException("Cannot open writer on a deepcopy");
@@ -204,10 +202,6 @@ public class MultiThreadedRFileTest {
 
     public void closeReader() throws IOException {
       reader.close();
-    }
-
-    public void seek(Key nk) throws IOException {
-      iter.seek(new Range(nk, null), EMPTY_COL_FAMS, false);
     }
   }
 
@@ -246,9 +240,8 @@ public class MultiThreadedRFileTest {
       // now start up multiple RFile deepcopies
       int maxThreads = 10;
       String name = "MultiThreadedRFileTestThread";
-      ThreadPoolExecutor pool = new ThreadPoolExecutor(maxThreads + 1, maxThreads + 1, 5 * 60,
-          TimeUnit.SECONDS, new LinkedBlockingQueue<>(), new NamingThreadFactory(name));
-      pool.allowCoreThreadTimeOut(true);
+      ThreadPoolExecutor pool = ThreadPools.createThreadPool(maxThreads + 1, maxThreads + 1, 5 * 60,
+          TimeUnit.SECONDS, name, new LinkedBlockingQueue<>(), OptionalInt.empty());
       try {
         Runnable runnable = () -> {
           try {
@@ -300,41 +293,42 @@ public class MultiThreadedRFileTest {
   }
 
   private void validate(TestRFile trf) throws IOException {
-    Random random = new SecureRandom();
-    for (int iteration = 0; iteration < 10; iteration++) {
-      int part = random.nextInt(4);
+    random.ints(10, 0, 4).forEach(part -> {
+      try {
+        Range range = new Range(getKey(part, 0, 0), true, getKey(part, 4, 2048), true);
+        trf.iter.seek(range, EMPTY_COL_FAMS, false);
 
-      Range range = new Range(getKey(part, 0, 0), true, getKey(part, 4, 2048), true);
-      trf.iter.seek(range, EMPTY_COL_FAMS, false);
-
-      Key last = null;
-      for (int locality = 0; locality < 4; locality++) {
-        for (int i = 0; i < 2048; i++) {
-          Key key = getKey(part, locality, i);
-          Value value = getValue(i);
-          assertTrue("No record found for row " + part + " locality " + locality + " index " + i,
-              trf.iter.hasTop());
-          assertEquals(
-              "Invalid key found for row " + part + " locality " + locality + " index " + i, key,
-              trf.iter.getTopKey());
-          assertEquals(
-              "Invalie value found for row " + part + " locality " + locality + " index " + i,
-              value, trf.iter.getTopValue());
-          last = trf.iter.getTopKey();
-          trf.iter.next();
+        Key last = null;
+        for (int locality = 0; locality < 4; locality++) {
+          for (int i = 0; i < 2048; i++) {
+            Key key = getKey(part, locality, i);
+            Value value = getValue(i);
+            assertTrue("No record found for row " + part + " locality " + locality + " index " + i,
+                trf.iter.hasTop());
+            assertEquals(
+                "Invalid key found for row " + part + " locality " + locality + " index " + i, key,
+                trf.iter.getTopKey());
+            assertEquals(
+                "Invalid value found for row " + part + " locality " + locality + " index " + i,
+                value, trf.iter.getTopValue());
+            last = trf.iter.getTopKey();
+            trf.iter.next();
+          }
         }
-      }
-      if (trf.iter.hasTop()) {
-        assertFalse("Found " + trf.iter.getTopKey() + " after " + last + " in " + range,
-            trf.iter.hasTop());
-      }
+        if (trf.iter.hasTop()) {
+          assertFalse("Found " + trf.iter.getTopKey() + " after " + last + " in " + range,
+              trf.iter.hasTop());
+        }
 
-      range = new Range(getKey(4, 4, 0), true, null, true);
-      trf.iter.seek(range, EMPTY_COL_FAMS, false);
-      if (trf.iter.hasTop()) {
-        assertFalse("Found " + trf.iter.getTopKey() + " in " + range, trf.iter.hasTop());
+        range = new Range(getKey(4, 4, 0), true, null, true);
+        trf.iter.seek(range, EMPTY_COL_FAMS, false);
+        if (trf.iter.hasTop()) {
+          assertFalse("Found " + trf.iter.getTopKey() + " in " + range, trf.iter.hasTop());
+        }
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
       }
-    }
+    });
 
     Range range = new Range((Key) null, null);
     trf.iter.seek(range, EMPTY_COL_FAMS, false);
@@ -351,7 +345,7 @@ public class MultiThreadedRFileTest {
               "Invalid key found for row " + part + " locality " + locality + " index " + i, key,
               trf.iter.getTopKey());
           assertEquals(
-              "Invalie value found for row " + part + " locality " + locality + " index " + i,
+              "Invalid value found for row " + part + " locality " + locality + " index " + i,
               value, trf.iter.getTopValue());
           last = trf.iter.getTopKey();
           trf.iter.next();

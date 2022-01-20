@@ -23,6 +23,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.Key;
@@ -57,12 +58,34 @@ public abstract class AbstractHashSampler implements Sampler {
   private int modulus;
 
   private static final Set<String> VALID_OPTIONS = Set.of("hasher", "modulus");
+  private static final Set<String> VALID_VALUES_HASHER = Set.of("murmur3_32", "md5", "sha1");
+
+  /**
+   * Subclasses with options should override this method to validate subclass options while also
+   * calling {@code super.validateOptions(config)} to validate base class options.
+   */
+  @Override
+  public void validateOptions(Map<String,String> config) {
+    for (Map.Entry<String,String> entry : config.entrySet()) {
+      checkArgument(VALID_OPTIONS.contains(entry.getKey()), "Unknown option: %s", entry.getKey());
+
+      if (entry.getKey().equals("hasher"))
+        checkArgument(VALID_VALUES_HASHER.contains(entry.getValue()),
+            "Unknown value for hasher: %s", entry.getValue());
+
+      if (entry.getKey().equals("modulus"))
+        checkArgument(Integer.parseInt(entry.getValue()) > 0,
+            "Improper Integer value for modulus: %s", entry.getValue());
+    }
+  }
 
   /**
    * Subclasses with options should override this method and return true if the option is valid for
    * the subclass or if {@code super.isValidOption(opt)} returns true.
+   *
+   * @deprecated since 2.1.0, replaced by {@link #validateOptions(Map)}
    */
-
+  @Deprecated(since = "2.1.0")
   protected boolean isValidOption(String option) {
     return VALID_OPTIONS.contains(option);
   }
@@ -79,10 +102,6 @@ public abstract class AbstractHashSampler implements Sampler {
 
     requireNonNull(hasherOpt, "Hasher not specified");
     requireNonNull(modulusOpt, "Modulus not specified");
-
-    for (String option : config.getOptions().keySet()) {
-      checkArgument(isValidOption(option), "Unknown option : %s", option);
-    }
 
     switch (hasherOpt) {
       case "murmur3_32":

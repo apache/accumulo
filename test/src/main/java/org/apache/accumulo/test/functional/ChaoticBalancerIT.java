@@ -29,7 +29,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.master.balancer.ChaoticLoadBalancer;
+import org.apache.accumulo.test.ChaoticLoadBalancer;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
@@ -42,7 +42,7 @@ public class ChaoticBalancerIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "0");
+    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
     // ChaoticLoadBalancer balances across all tables
     siteConfig.put(Property.TABLE_LOAD_BALANCER.getKey(), ChaoticLoadBalancer.class.getName());
     cfg.setSiteConfig(siteConfig);

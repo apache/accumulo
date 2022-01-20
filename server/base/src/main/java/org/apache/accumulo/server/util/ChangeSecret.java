@@ -27,28 +27,30 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.htrace.TraceScope;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
 import com.beust.jcommander.Parameter;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public class ChangeSecret {
 
@@ -63,28 +65,35 @@ public class ChangeSecret {
 
   public static void main(String[] args) throws Exception {
     var siteConfig = SiteConfiguration.auto();
-    try (var fs = VolumeManagerImpl.get(siteConfig, new Configuration())) {
-      verifyHdfsWritePermission(fs);
+    var hadoopConf = new Configuration();
 
-      Opts opts = new Opts();
+    Opts opts = new Opts();
+    ServerContext context = opts.getServerContext();
+    try (var fs = context.getVolumeManager()) {
+      ServerDirs serverDirs = new ServerDirs(siteConfig, hadoopConf);
+      verifyHdfsWritePermission(serverDirs, fs);
+
       List<String> argsList = new ArrayList<>(args.length + 2);
       argsList.add("--old");
       argsList.add("--new");
       argsList.addAll(Arrays.asList(args));
-      try (TraceScope clientSpan =
-          opts.parseArgsAndTrace(ChangeSecret.class.getName(), argsList.toArray(new String[0]))) {
 
-        ServerContext context = opts.getServerContext();
+      opts.parseArgs(ChangeSecret.class.getName(), args);
+      Span span = TraceUtil.startSpan(ChangeSecret.class, "main");
+      try (Scope scope = span.makeCurrent()) {
+
         verifyAccumuloIsDown(context, opts.oldPass);
 
         final String newInstanceId = UUID.randomUUID().toString();
-        updateHdfs(fs, newInstanceId);
+        updateHdfs(serverDirs, fs, newInstanceId);
         rewriteZooKeeperInstance(context, newInstanceId, opts.oldPass, opts.newPass);
         if (opts.oldPass != null) {
           deleteInstance(context, opts.oldPass);
         }
         System.out.println("New instance id is " + newInstanceId);
         System.out.println("Be sure to put your new secret in accumulo.properties");
+      } finally {
+        span.end();
       }
     }
   }
@@ -135,7 +144,7 @@ public class ChangeSecret {
     String root = context.getZooKeeperRoot();
     recurse(orig, root, (zoo, path) -> {
       String newPath = path.replace(context.getInstanceID(), newInstanceId);
-      byte[] data = zoo.getData(path, null);
+      byte[] data = zoo.getData(path);
       List<ACL> acls = orig.getZooKeeper().getACL(path, new Stat());
       if (acls.containsAll(Ids.READ_ACL_UNSAFE)) {
         new_.putPersistentData(newPath, data, NodeExistsPolicy.FAIL);
@@ -160,10 +169,11 @@ public class ChangeSecret {
     new_.putPersistentData(path, newInstanceId.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
   }
 
-  private static void updateHdfs(VolumeManager fs, String newInstanceId) throws IOException {
+  private static void updateHdfs(ServerDirs serverDirs, VolumeManager fs, String newInstanceId)
+      throws IOException {
     // Need to recreate the instanceId on all of them to keep consistency
     for (Volume v : fs.getVolumes()) {
-      final Path instanceId = ServerConstants.getInstanceIdLocation(v);
+      final Path instanceId = serverDirs.getInstanceIdLocation(v);
       if (!v.getFileSystem().delete(instanceId, true)) {
         throw new IOException("Could not recursively delete " + instanceId);
       }
@@ -176,9 +186,10 @@ public class ChangeSecret {
     }
   }
 
-  private static void verifyHdfsWritePermission(VolumeManager fs) throws Exception {
+  private static void verifyHdfsWritePermission(ServerDirs serverDirs, VolumeManager fs)
+      throws Exception {
     for (Volume v : fs.getVolumes()) {
-      final Path instanceId = ServerConstants.getInstanceIdLocation(v);
+      final Path instanceId = serverDirs.getInstanceIdLocation(v);
       FileStatus fileStatus = v.getFileSystem().getFileStatus(instanceId);
       checkHdfsAccessPermissions(fileStatus, FsAction.WRITE);
     }

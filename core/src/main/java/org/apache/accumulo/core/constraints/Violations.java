@@ -34,8 +34,8 @@ import org.apache.accumulo.core.data.ConstraintViolationSummary;
 public class Violations {
 
   private static class CVSKey {
-    private String className;
-    private short vcode;
+    final private String className;
+    final private short vcode;
 
     CVSKey(ConstraintViolationSummary cvs) {
       this.className = cvs.constrainClass;

@@ -46,7 +46,7 @@ import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.MiniClusterHarness;
 import org.apache.accumulo.harness.TestingKdc;
-import org.apache.accumulo.master.replication.SequentialWorkAssigner;
+import org.apache.accumulo.manager.replication.SequentialWorkAssigner;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -77,6 +77,7 @@ import com.google.common.collect.Iterators;
  */
 @Ignore("Replication ITs are not stable and not currently maintained")
 @Category(MiniClusterOnlyTests.class)
+@Deprecated
 public class KerberosReplicationIT extends AccumuloITBase {
   private static final Logger log = LoggerFactory.getLogger(KerberosIT.class);
 
@@ -120,11 +121,11 @@ public class KerberosReplicationIT extends AccumuloITBase {
         cfg.setNumTservers(1);
         cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
         cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
-        cfg.setProperty(Property.TSERV_WALOG_MAX_SIZE, "2M");
+        cfg.setProperty(Property.TSERV_WAL_MAX_SIZE, "2M");
         cfg.setProperty(Property.GC_CYCLE_START, "1s");
         cfg.setProperty(Property.GC_CYCLE_DELAY, "5s");
         cfg.setProperty(Property.REPLICATION_WORK_ASSIGNMENT_SLEEP, "1s");
-        cfg.setProperty(Property.MASTER_REPLICATION_SCAN_INTERVAL, "1s");
+        cfg.setProperty(Property.MANAGER_REPLICATION_SCAN_INTERVAL, "1s");
         cfg.setProperty(Property.REPLICATION_NAME, name);
         cfg.setProperty(Property.REPLICATION_MAX_UNIT_SIZE, "8M");
         cfg.setProperty(Property.REPLICATION_WORK_ASSIGNER, SequentialWorkAssigner.class.getName());
@@ -211,22 +212,22 @@ public class KerberosReplicationIT extends AccumuloITBase {
 
         primaryclient.tableOperations().create(primaryTable1,
             new NewTableConfiguration().setProperties(props));
-        String masterTableId1 = primaryclient.tableOperations().tableIdMap().get(primaryTable1);
-        assertNotNull(masterTableId1);
+        String managerTableId1 = primaryclient.tableOperations().tableIdMap().get(primaryTable1);
+        assertNotNull(managerTableId1);
 
         // Grant write permission
         peerclient.securityOperations().grantTablePermission(replicationUser.getPrincipal(),
             peerTable1, TablePermission.WRITE);
 
         // Write some data to table1
-        long masterTable1Records = 0L;
+        long managerTable1Records = 0L;
         try (BatchWriter bw = primaryclient.createBatchWriter(primaryTable1)) {
           for (int rows = 0; rows < 2500; rows++) {
             Mutation m = new Mutation(primaryTable1 + rows);
             for (int cols = 0; cols < 100; cols++) {
               String value = Integer.toString(cols);
               m.put(value, "", value);
-              masterTable1Records++;
+              managerTable1Records++;
             }
             bw.addMutation(m);
           }
@@ -253,14 +254,18 @@ public class KerberosReplicationIT extends AccumuloITBase {
         primaryclient.replicationOperations().drain(primaryTable1, filesFor1);
 
         long countTable = 0L;
-        for (Entry<Key,Value> entry : peerclient.createScanner(peerTable1, Authorizations.EMPTY)) {
-          countTable++;
-          assertTrue("Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
-              + entry.getValue(), entry.getKey().getRow().toString().startsWith(primaryTable1));
+        try (var scanner = peerclient.createScanner(peerTable1, Authorizations.EMPTY)) {
+          for (Entry<Key,Value> entry : scanner) {
+            countTable++;
+            assertTrue(
+                "Found unexpected key-value" + entry.getKey().toStringNoTruncate() + " "
+                    + entry.getValue(),
+                entry.getKey().getRow().toString().startsWith(primaryTable1));
+          }
         }
 
         log.info("Found {} records in {}", countTable, peerTable1);
-        assertEquals(masterTable1Records, countTable);
+        assertEquals(managerTable1Records, countTable);
 
         return null;
       }

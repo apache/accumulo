@@ -53,14 +53,13 @@ import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
-import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.master.thrift.MasterGoalState;
+import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -74,11 +73,12 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
-import org.apache.accumulo.core.replication.ReplicationConstants;
-import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
-import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
-import org.apache.accumulo.core.replication.ReplicationTable;
+import org.apache.accumulo.core.singletons.SingletonManager;
+import org.apache.accumulo.core.singletons.SingletonManager.Mode;
+import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
+import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
@@ -86,20 +86,16 @@ import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServerUtil;
+import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
-import org.apache.accumulo.server.replication.ReplicationUtil;
-import org.apache.accumulo.server.replication.StatusCombiner;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.tables.TableManager;
@@ -125,7 +121,6 @@ import com.google.auto.service.AutoService;
 import com.google.common.base.Joiner;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import jline.console.ConsoleReader;
 
 /**
  * This class is used to setup the directory structure and the root tablet to get an instance
@@ -134,19 +129,15 @@ import jline.console.ConsoleReader;
 @SuppressFBWarnings(value = "DM_EXIT", justification = "CLI utility can exit")
 @AutoService(KeywordExecutable.class)
 public class Initialize implements KeywordExecutable {
+
   private static final Logger log = LoggerFactory.getLogger(Initialize.class);
   private static final String DEFAULT_ROOT_USER = "root";
   private static final String TABLE_TABLETS_TABLET_DIR = "table_info";
+  @SuppressWarnings("deprecation")
+  private static final TableId REPLICATION_TABLE =
+      org.apache.accumulo.core.replication.ReplicationTable.ID;
 
-  private static ConsoleReader reader = null;
   private static ZooReaderWriter zoo = null;
-
-  private static ConsoleReader getConsoleReader() throws IOException {
-    if (reader == null) {
-      reader = new ConsoleReader();
-    }
-    return reader;
-  }
 
   /**
    * Sets this class's ZooKeeper reader/writer.
@@ -167,65 +158,86 @@ public class Initialize implements KeywordExecutable {
     return zoo;
   }
 
-  private static HashMap<String,String> initialMetadataConf = new HashMap<>();
-  private static HashMap<String,String> initialMetadataCombinerConf = new HashMap<>();
+  // config only for root table
+  private static HashMap<String,String> initialRootConf = new HashMap<>();
+  // config for root and metadata table
+  private static HashMap<String,String> initialRootMetaConf = new HashMap<>();
+  // config for only metadata table
+  private static HashMap<String,String> initialMetaConf = new HashMap<>();
   private static HashMap<String,String> initialReplicationTableConf = new HashMap<>();
 
   static {
-    initialMetadataConf.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "32K");
-    initialMetadataConf.put(Property.TABLE_FILE_REPLICATION.getKey(), "5");
-    initialMetadataConf.put(Property.TABLE_DURABILITY.getKey(), "sync");
-    initialMetadataConf.put(Property.TABLE_MAJC_RATIO.getKey(), "1");
-    initialMetadataConf.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "64M");
-    initialMetadataConf.put(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "1",
+    initialRootConf.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
+        SimpleCompactionDispatcher.class.getName());
+    initialRootConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "root");
+
+    initialRootMetaConf.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "32K");
+    initialRootMetaConf.put(Property.TABLE_FILE_REPLICATION.getKey(), "5");
+    initialRootMetaConf.put(Property.TABLE_DURABILITY.getKey(), "sync");
+    initialRootMetaConf.put(Property.TABLE_MAJC_RATIO.getKey(), "1");
+    initialRootMetaConf.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "64M");
+    initialRootMetaConf.put(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "1",
         MetadataConstraints.class.getName());
-    initialMetadataConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers",
+    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers",
         "10," + VersioningIterator.class.getName());
-    initialMetadataConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers.opt.maxVersions",
+    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers.opt.maxVersions",
         "1");
-    initialMetadataConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers",
+    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers",
         "10," + VersioningIterator.class.getName());
-    initialMetadataConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers.opt.maxVersions",
+    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers.opt.maxVersions",
         "1");
-    initialMetadataConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers",
+    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers",
         "10," + VersioningIterator.class.getName());
-    initialMetadataConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions",
+    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions",
         "1");
-    initialMetadataConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter",
+    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter",
         "20," + MetadataBulkLoadFilter.class.getName());
-    initialMetadataConf.put(Property.TABLE_FAILURES_IGNORE.getKey(), "false");
-    initialMetadataConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "tablet",
+    initialRootMetaConf.put(Property.TABLE_FAILURES_IGNORE.getKey(), "false");
+    initialRootMetaConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "tablet",
         String.format("%s,%s", TabletColumnFamily.NAME, CurrentLocationColumnFamily.NAME));
-    initialMetadataConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "server",
+    initialRootMetaConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "server",
         String.format("%s,%s,%s,%s", DataFileColumnFamily.NAME, LogColumnFamily.NAME,
             ServerColumnFamily.NAME, FutureLocationColumnFamily.NAME));
-    initialMetadataConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "tablet,server");
-    initialMetadataConf.put(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "");
-    initialMetadataConf.put(Property.TABLE_INDEXCACHE_ENABLED.getKey(), "true");
-    initialMetadataConf.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
+    initialRootMetaConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "tablet,server");
+    initialRootMetaConf.put(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "");
+    initialRootMetaConf.put(Property.TABLE_INDEXCACHE_ENABLED.getKey(), "true");
+    initialRootMetaConf.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
+
+    initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
+        SimpleCompactionDispatcher.class.getName());
+    initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta");
 
     // ACCUMULO-3077 Set the combiner on accumulo.metadata during init to reduce the likelihood of a
-    // race
-    // condition where a tserver compacts away Status updates because it didn't see the Combiner
+    // race condition where a tserver compacts away Status updates because it didn't see the
+    // Combiner
     // configured
+    @SuppressWarnings("deprecation")
+    var statusCombinerClass = org.apache.accumulo.server.replication.StatusCombiner.class;
     IteratorSetting setting =
-        new IteratorSetting(9, ReplicationTableUtil.COMBINER_NAME, StatusCombiner.class);
+        new IteratorSetting(9, ReplicationTableUtil.COMBINER_NAME, statusCombinerClass);
     Combiner.setColumns(setting, Collections.singletonList(new Column(ReplicationSection.COLF)));
     for (IteratorScope scope : IteratorScope.values()) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), setting.getName());
       for (Entry<String,String> prop : setting.getOptions().entrySet()) {
-        initialMetadataCombinerConf.put(root + ".opt." + prop.getKey(), prop.getValue());
+        initialMetaConf.put(root + ".opt." + prop.getKey(), prop.getValue());
       }
-      initialMetadataCombinerConf.put(root,
-          setting.getPriority() + "," + setting.getIteratorClass());
+      initialMetaConf.put(root, setting.getPriority() + "," + setting.getIteratorClass());
     }
 
     // add combiners to replication table
-    setting = new IteratorSetting(30, ReplicationTable.COMBINER_NAME, StatusCombiner.class);
+    @SuppressWarnings("deprecation")
+    String replicationCombinerName =
+        org.apache.accumulo.core.replication.ReplicationTable.COMBINER_NAME;
+    setting = new IteratorSetting(30, replicationCombinerName, statusCombinerClass);
     setting.setPriority(30);
+    @SuppressWarnings("deprecation")
+    Text statusSectionName =
+        org.apache.accumulo.core.replication.ReplicationSchema.StatusSection.NAME;
+    @SuppressWarnings("deprecation")
+    Text workSectionName = org.apache.accumulo.core.replication.ReplicationSchema.WorkSection.NAME;
     Combiner.setColumns(setting,
-        Arrays.asList(new Column(StatusSection.NAME), new Column(WorkSection.NAME)));
+        Arrays.asList(new Column(statusSectionName), new Column(workSectionName)));
     for (IteratorScope scope : EnumSet.allOf(IteratorScope.class)) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
           scope.name().toLowerCase(), setting.getName());
@@ -236,27 +248,27 @@ public class Initialize implements KeywordExecutable {
           setting.getPriority() + "," + setting.getIteratorClass());
     }
     // add locality groups to replication table
-    for (Entry<String,Set<Text>> g : ReplicationTable.LOCALITY_GROUPS.entrySet()) {
+    @SuppressWarnings("deprecation")
+    Map<String,Set<Text>> replicationLocalityGroups =
+        org.apache.accumulo.core.replication.ReplicationTable.LOCALITY_GROUPS;
+    for (Entry<String,Set<Text>> g : replicationLocalityGroups.entrySet()) {
       initialReplicationTableConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX + g.getKey(),
           LocalityGroupUtil.encodeColumnFamilies(g.getValue()));
     }
     initialReplicationTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(),
-        Joiner.on(",").join(ReplicationTable.LOCALITY_GROUPS.keySet()));
+        Joiner.on(",").join(replicationLocalityGroups.keySet()));
     // add formatter to replication table
+    @SuppressWarnings("deprecation")
+    String replicationFormatterClassName =
+        org.apache.accumulo.server.replication.ReplicationUtil.STATUS_FORMATTER_CLASS_NAME;
     initialReplicationTableConf.put(Property.TABLE_FORMATTER_CLASS.getKey(),
-        ReplicationUtil.STATUS_FORMATTER_CLASS_NAME);
+        replicationFormatterClassName);
   }
 
   static boolean checkInit(VolumeManager fs, SiteConfiguration sconf, Configuration hadoopConf)
       throws IOException {
-    @SuppressWarnings("deprecation")
-    String fsUri = sconf.get(Property.INSTANCE_DFS_URI);
-    if (fsUri.equals("")) {
-      fsUri = FileSystem.getDefaultUri(hadoopConf).toString();
-    }
-    log.info("Hadoop Filesystem is {}", fsUri);
-    log.info("Accumulo data dirs are {}",
-        Arrays.asList(VolumeConfiguration.getVolumeUris(sconf, hadoopConf)));
+    log.info("Hadoop Filesystem is {}", FileSystem.getDefaultUri(hadoopConf));
+    log.info("Accumulo data dirs are {}", Arrays.asList(VolumeConfiguration.getVolumeUris(sconf)));
     log.info("Zookeeper server is {}", sconf.get(Property.INSTANCE_ZK_HOST));
     log.info("Checking if Zookeeper is available. If this hangs, then you need"
         + " to make sure zookeeper is running");
@@ -266,23 +278,23 @@ public class Initialize implements KeywordExecutable {
       return false;
     }
     if (sconf.get(Property.INSTANCE_SECRET).equals(Property.INSTANCE_SECRET.getDefaultValue())) {
-      ConsoleReader c = getConsoleReader();
-      c.beep();
-      c.println();
-      c.println();
-      c.println("Warning!!! Your instance secret is still set to the default,"
+
+      System.out.println();
+      System.out.println();
+      System.out.println("Warning!!! Your instance secret is still set to the default,"
           + " this is not secure. We highly recommend you change it.");
-      c.println();
-      c.println();
-      c.println("You can change the instance secret in accumulo by using:");
-      c.println("   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName());
-      c.println("You will also need to edit your secret in your configuration"
+      System.out.println();
+      System.out.println();
+      System.out.println("You can change the instance secret in accumulo by using:");
+      System.out.println(
+          "   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName());
+      System.out.println("You will also need to edit your secret in your configuration"
           + " file by adding the property instance.secret to your"
           + " accumulo.properties. Without this accumulo will not operate" + " correctly");
     }
     try {
-      if (isInitialized(fs, sconf, hadoopConf)) {
-        printInitializeFailureMessages(sconf, hadoopConf);
+      if (isInitialized(fs, sconf)) {
+        printInitializeFailureMessages(sconf);
         return false;
       }
     } catch (IOException e) {
@@ -292,39 +304,18 @@ public class Initialize implements KeywordExecutable {
     return true;
   }
 
-  static void printInitializeFailureMessages(SiteConfiguration sconf, Configuration hadoopConf) {
-    @SuppressWarnings("deprecation")
-    Property INSTANCE_DFS_DIR = Property.INSTANCE_DFS_DIR;
-    @SuppressWarnings("deprecation")
-    Property INSTANCE_DFS_URI = Property.INSTANCE_DFS_URI;
-    String instanceDfsDir = sconf.get(INSTANCE_DFS_DIR);
-    // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
-    log.error("FATAL It appears the directories {}",
-        Arrays.asList(VolumeConfiguration.getVolumeUris(sconf, hadoopConf))
-            + " were previously initialized.");
-    String instanceVolumes = sconf.get(Property.INSTANCE_VOLUMES);
-    String instanceDfsUri = sconf.get(INSTANCE_DFS_URI);
-
-    // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
-
-    if (!instanceVolumes.isEmpty()) {
-      log.error("FATAL: Change the property {} to use different filesystems,",
-          Property.INSTANCE_VOLUMES);
-    } else if (!instanceDfsDir.isEmpty()) {
-      log.error("FATAL: Change the property {} to use a different filesystem,", INSTANCE_DFS_URI);
-    } else {
-      log.error("FATAL: You are using the default URI for the filesystem. Set"
-          + " the property {} to use a different filesystem,", Property.INSTANCE_VOLUMES);
-    }
-    log.error("FATAL: or change the property {} to use a different directory.", INSTANCE_DFS_DIR);
-    log.error("FATAL: The current value of {} is |{}|", INSTANCE_DFS_URI, instanceDfsUri);
-    log.error("FATAL: The current value of {} is |{}|", INSTANCE_DFS_DIR, instanceDfsDir);
-    log.error("FATAL: The current value of {} is |{}|", Property.INSTANCE_VOLUMES, instanceVolumes);
+  static void printInitializeFailureMessages(SiteConfiguration sconf) {
+    log.error("It appears the directories {}",
+        VolumeConfiguration.getVolumeUris(sconf) + " were previously initialized.");
+    log.error("Change the property {} to use different volumes.",
+        Property.INSTANCE_VOLUMES.getKey());
+    log.error("The current value of {} is |{}|", Property.INSTANCE_VOLUMES.getKey(),
+        sconf.get(Property.INSTANCE_VOLUMES));
   }
 
-  public boolean doInit(SiteConfiguration siteConfig, Opts opts, Configuration conf,
+  public boolean doInit(SiteConfiguration siteConfig, Opts opts, Configuration hadoopConf,
       VolumeManager fs) throws IOException {
-    if (!checkInit(fs, siteConfig, conf)) {
+    if (!checkInit(fs, siteConfig, hadoopConf)) {
       return false;
     }
 
@@ -353,26 +344,20 @@ public class Initialize implements KeywordExecutable {
       opts.rootpass = getRootPassword(siteConfig, opts, rootUser);
     }
 
-    return initialize(siteConfig, conf, opts, instanceNamePath, fs, rootUser);
-  }
-
-  private boolean initialize(SiteConfiguration siteConfig, Configuration hadoopConf, Opts opts,
-      String instanceNamePath, VolumeManager fs, String rootUser) {
-
     UUID uuid = UUID.randomUUID();
     // the actual disk locations of the root table and tablets
-    Set<String> configuredVolumes = VolumeConfiguration.getVolumeUris(siteConfig, hadoopConf);
+    Set<String> configuredVolumes = VolumeConfiguration.getVolumeUris(siteConfig);
     String instanceName = instanceNamePath.substring(getInstanceNamePrefix().length());
 
     try (ServerContext context =
         ServerContext.initialize(siteConfig, instanceName, uuid.toString())) {
       VolumeChooserEnvironment chooserEnv =
-          new VolumeChooserEnvironmentImpl(ChooserScope.INIT, RootTable.ID, null, context);
+          new VolumeChooserEnvironmentImpl(Scope.INIT, RootTable.ID, null, context);
       String rootTabletDirName = RootTable.ROOT_TABLET_DIR_NAME;
       String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
       String rootTabletFileUri = new Path(fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR
-          + ServerConstants.TABLE_DIR + Path.SEPARATOR + RootTable.ID + Path.SEPARATOR
-          + rootTabletDirName + Path.SEPARATOR + "00000_00000." + ext).toString();
+          + Constants.TABLE_DIR + Path.SEPARATOR + RootTable.ID + Path.SEPARATOR + rootTabletDirName
+          + Path.SEPARATOR + "00000_00000." + ext).toString();
 
       try {
         initZooKeeper(opts, uuid.toString(), instanceNamePath, rootTabletDirName,
@@ -384,30 +369,11 @@ public class Initialize implements KeywordExecutable {
 
       try {
         initFileSystem(siteConfig, hadoopConf, fs, uuid,
-            new Path(fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR
-                + ServerConstants.TABLE_DIR + Path.SEPARATOR + RootTable.ID + rootTabletDirName)
-                    .toString(),
+            new Path(fs.choose(chooserEnv, configuredVolumes) + Path.SEPARATOR + Constants.TABLE_DIR
+                + Path.SEPARATOR + RootTable.ID + rootTabletDirName).toString(),
             rootTabletFileUri, context);
       } catch (Exception e) {
         log.error("FATAL Failed to initialize filesystem", e);
-
-        if (siteConfig.get(Property.INSTANCE_VOLUMES).trim().equals("")) {
-
-          final String defaultFsUri = "file:///";
-          String fsDefaultName = hadoopConf.get("fs.default.name", defaultFsUri),
-              fsDefaultFS = hadoopConf.get("fs.defaultFS", defaultFsUri);
-
-          // Try to determine when we couldn't find an appropriate core-site.xml on the classpath
-          if (defaultFsUri.equals(fsDefaultName) && defaultFsUri.equals(fsDefaultFS)) {
-            log.error(
-                "FATAL: Default filesystem value ('fs.defaultFS' or"
-                    + " 'fs.default.name') of '{}' was found in the Hadoop configuration",
-                defaultFsUri);
-            log.error("FATAL: Please ensure that the Hadoop core-site.xml is on"
-                + " the classpath using 'general.classpaths' in accumulo.properties");
-          }
-        }
-
         return false;
       }
 
@@ -486,11 +452,11 @@ public class Initialize implements KeywordExecutable {
   private static void initDirs(VolumeManager fs, UUID uuid, Set<String> baseDirs, boolean print)
       throws IOException {
     for (String baseDir : baseDirs) {
-      fs.mkdirs(new Path(new Path(baseDir, ServerConstants.VERSION_DIR),
-          "" + ServerConstants.DATA_VERSION), new FsPermission("700"));
+      fs.mkdirs(new Path(new Path(baseDir, Constants.VERSION_DIR), "" + AccumuloDataVersion.get()),
+          new FsPermission("700"));
 
       // create an instance id
-      Path iidLocation = new Path(baseDir, ServerConstants.INSTANCE_ID_DIR);
+      Path iidLocation = new Path(baseDir, Constants.INSTANCE_ID_DIR);
       fs.mkdirs(iidLocation);
       fs.createNewFile(new Path(iidLocation, uuid.toString()));
       if (print) {
@@ -501,35 +467,30 @@ public class Initialize implements KeywordExecutable {
 
   private void initFileSystem(SiteConfiguration siteConfig, Configuration hadoopConf,
       VolumeManager fs, UUID uuid, String rootTabletDirUri, String rootTabletFileUri,
-      ServerContext serverContext) throws IOException {
-    initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(siteConfig, hadoopConf), false);
+      ServerContext context) throws IOException {
+    initDirs(fs, uuid, VolumeConfiguration.getVolumeUris(siteConfig), false);
 
     // initialize initial system tables config in zookeeper
     initSystemTablesConfig(zoo, Constants.ZROOT + "/" + uuid, hadoopConf);
 
     Text splitPoint = TabletsSection.getRange().getEndKey().getRow();
 
-    VolumeChooserEnvironment chooserEnv = new VolumeChooserEnvironmentImpl(ChooserScope.INIT,
-        MetadataTable.ID, splitPoint, serverContext);
+    VolumeChooserEnvironment chooserEnv =
+        new VolumeChooserEnvironmentImpl(Scope.INIT, MetadataTable.ID, splitPoint, context);
     String tableMetadataTabletDirName = TABLE_TABLETS_TABLET_DIR;
     String tableMetadataTabletDirUri =
-        fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig, hadoopConf))
-            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID + Path.SEPARATOR
-            + tableMetadataTabletDirName;
-    chooserEnv = new VolumeChooserEnvironmentImpl(ChooserScope.INIT, ReplicationTable.ID, null,
-        serverContext);
+        fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+            + MetadataTable.ID + Path.SEPARATOR + tableMetadataTabletDirName;
+    chooserEnv = new VolumeChooserEnvironmentImpl(Scope.INIT, REPLICATION_TABLE, null, context);
     String replicationTableDefaultTabletDirName = ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
     String replicationTableDefaultTabletDirUri =
-        fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig, hadoopConf))
-            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + ReplicationTable.ID + Path.SEPARATOR
-            + replicationTableDefaultTabletDirName;
-    chooserEnv =
-        new VolumeChooserEnvironmentImpl(ChooserScope.INIT, MetadataTable.ID, null, serverContext);
+        fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+            + REPLICATION_TABLE + Path.SEPARATOR + replicationTableDefaultTabletDirName;
+    chooserEnv = new VolumeChooserEnvironmentImpl(Scope.INIT, MetadataTable.ID, null, context);
     String defaultMetadataTabletDirName = ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
     String defaultMetadataTabletDirUri =
-        fs.choose(chooserEnv, ServerConstants.getBaseUris(siteConfig, hadoopConf))
-            + Constants.HDFS_TABLES_DIR + Path.SEPARATOR + MetadataTable.ID + Path.SEPARATOR
-            + defaultMetadataTabletDirName;
+        fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+            + MetadataTable.ID + Path.SEPARATOR + defaultMetadataTabletDirName;
 
     // create table and default tablets directories
     createDirectories(fs, rootTabletDirUri, tableMetadataTabletDirUri, defaultMetadataTabletDirUri,
@@ -541,7 +502,7 @@ public class Initialize implements KeywordExecutable {
     // tablet
     String metadataFileName = tableMetadataTabletDirUri + Path.SEPARATOR + "0_1." + ext;
     Tablet replicationTablet =
-        new Tablet(ReplicationTable.ID, replicationTableDefaultTabletDirName, null, null);
+        new Tablet(REPLICATION_TABLE, replicationTableDefaultTabletDirName, null, null);
     createMetadataFile(fs, metadataFileName, siteConfig, replicationTablet);
 
     // populate the root tablet with info about the metadata table's two initial tablets
@@ -591,10 +552,10 @@ public class Initialize implements KeywordExecutable {
 
   private static void createEntriesForTablet(TreeMap<Key,Value> map, Tablet tablet) {
     Value EMPTY_SIZE = new DataFileValue(0, 0).encodeAsValue();
-    Text extent = new Text(TabletsSection.getRow(tablet.tableId, tablet.endRow));
+    Text extent = new Text(TabletsSection.encodeRow(tablet.tableId, tablet.endRow));
     addEntry(map, extent, DIRECTORY_COLUMN, new Value(tablet.dirName));
     addEntry(map, extent, TIME_COLUMN, new Value(new MetadataTime(0, TimeType.LOGICAL).encode()));
-    addEntry(map, extent, PREV_ROW_COLUMN, KeyExtent.encodePrevEndRow(tablet.prevEndRow));
+    addEntry(map, extent, PREV_ROW_COLUMN, TabletColumnFamily.encodePrevEndRow(tablet.prevEndRow));
     for (String file : tablet.files) {
       addEntry(map, extent, new ColumnFQ(DataFileColumnFamily.NAME, new Text(file)), EMPTY_SIZE);
     }
@@ -655,8 +616,10 @@ public class Initialize implements KeywordExecutable {
         RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
     TableManager.prepareNewTableState(zoo, uuid, MetadataTable.ID, Namespace.ACCUMULO.id(),
         MetadataTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
-    TableManager.prepareNewTableState(zoo, uuid, ReplicationTable.ID, Namespace.ACCUMULO.id(),
-        ReplicationTable.NAME, TableState.OFFLINE, NodeExistsPolicy.FAIL);
+    @SuppressWarnings("deprecation")
+    String replicationTableName = org.apache.accumulo.core.replication.ReplicationTable.NAME;
+    TableManager.prepareNewTableState(zoo, uuid, REPLICATION_TABLE, Namespace.ACCUMULO.id(),
+        replicationTableName, TableState.OFFLINE, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZPROBLEMS, EMPTY_BYTE_ARRAY,
@@ -666,12 +629,12 @@ public class Initialize implements KeywordExecutable {
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET_GC_CANDIDATES,
         new RootGcCandidates().toJson().getBytes(UTF_8), NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTERS, EMPTY_BYTE_ARRAY,
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZMANAGERS, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTER_LOCK, EMPTY_BYTE_ARRAY,
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZMANAGER_LOCK, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTER_GOAL_STATE,
-        MasterGoalState.NORMAL.toString().getBytes(UTF_8), NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZMANAGER_GOAL_STATE,
+        ManagerGoalState.NORMAL.toString().getBytes(UTF_8), NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZGC, EMPTY_BYTE_ARRAY, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZGC_LOCK, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
@@ -689,26 +652,37 @@ public class Initialize implements KeywordExecutable {
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMONITOR_LOCK, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + ReplicationConstants.ZOO_BASE, EMPTY_BYTE_ARRAY,
+    @SuppressWarnings("deprecation")
+    String replicationZBase = org.apache.accumulo.core.replication.ReplicationConstants.ZOO_BASE;
+    zoo.putPersistentData(zkInstanceRoot + replicationZBase, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + ReplicationConstants.ZOO_TSERVERS, EMPTY_BYTE_ARRAY,
+    @SuppressWarnings("deprecation")
+    String replicationZServers =
+        org.apache.accumulo.core.replication.ReplicationConstants.ZOO_TSERVERS;
+    zoo.putPersistentData(zkInstanceRoot + replicationZServers, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + WalStateManager.ZWALS, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZCOORDINATOR, EMPTY_BYTE_ARRAY,
+        NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZCOORDINATOR_LOCK, EMPTY_BYTE_ARRAY,
+        NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZCOMPACTORS, EMPTY_BYTE_ARRAY,
+        NodeExistsPolicy.FAIL);
+
   }
 
   private String getInstanceNamePrefix() {
     return Constants.ZROOT + Constants.ZINSTANCES + "/";
   }
 
-  private String getInstanceNamePath(Opts opts)
-      throws IOException, KeeperException, InterruptedException {
+  private String getInstanceNamePath(Opts opts) throws KeeperException, InterruptedException {
     // setup the instance name
     String instanceName, instanceNamePath = null;
     boolean exists = true;
     do {
       if (opts.cliInstanceName == null) {
-        instanceName = getConsoleReader().readLine("Instance name : ");
+        instanceName = System.console().readLine("Instance name : ");
       } else {
         instanceName = opts.cliInstanceName;
       }
@@ -726,7 +700,7 @@ public class Initialize implements KeywordExecutable {
         // ACCUMULO-4401 setting exists=false is just as important as setting it to true
         exists = zoo.exists(instanceNamePath);
         if (exists) {
-          String decision = getConsoleReader().readLine("Instance name \"" + instanceName
+          String decision = System.console().readLine("Instance name \"" + instanceName
               + "\" exists. Delete existing entry from zookeeper? [Y/N] : ");
           if (decision == null) {
             System.exit(0);
@@ -741,22 +715,22 @@ public class Initialize implements KeywordExecutable {
     return instanceNamePath;
   }
 
-  private String getRootUserName(SiteConfiguration siteConfig, Opts opts) throws IOException {
+  private String getRootUserName(SiteConfiguration siteConfig, Opts opts) {
     final String keytab = siteConfig.get(Property.GENERAL_KERBEROS_KEYTAB);
     if (keytab.equals(Property.GENERAL_KERBEROS_KEYTAB.getDefaultValue())
         || !siteConfig.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       return DEFAULT_ROOT_USER;
     }
 
-    ConsoleReader c = getConsoleReader();
-    c.println("Running against secured HDFS");
+    System.out.println("Running against secured HDFS");
 
     if (opts.rootUser != null) {
       return opts.rootUser;
     }
 
     do {
-      String user = c.readLine("Principal (user) to grant administrative privileges to : ");
+      String user =
+          System.console().readLine("Principal (user) to grant administrative privileges to : ");
       if (user == null) {
         // should not happen
         System.exit(1);
@@ -767,29 +741,30 @@ public class Initialize implements KeywordExecutable {
     } while (true);
   }
 
-  private byte[] getRootPassword(SiteConfiguration siteConfig, Opts opts, String rootUser)
-      throws IOException {
+  private byte[] getRootPassword(SiteConfiguration siteConfig, Opts opts, String rootUser) {
     if (opts.cliPassword != null) {
       return opts.cliPassword.getBytes(UTF_8);
     }
-    String rootpass;
-    String confirmpass;
+    String strrootpass;
+    String strconfirmpass;
     do {
-      rootpass = getConsoleReader().readLine(
-          "Enter initial password for " + rootUser + getInitialPasswordWarning(siteConfig), '*');
+      var rootpass = System.console().readPassword(
+          "Enter initial password for " + rootUser + getInitialPasswordWarning(siteConfig));
       if (rootpass == null) {
         System.exit(0);
       }
-      confirmpass =
-          getConsoleReader().readLine("Confirm initial password for " + rootUser + ": ", '*');
+      var confirmpass =
+          System.console().readPassword("Confirm initial password for " + rootUser + ":");
       if (confirmpass == null) {
         System.exit(0);
       }
-      if (!rootpass.equals(confirmpass)) {
+      strrootpass = new String(rootpass);
+      strconfirmpass = new String(confirmpass);
+      if (!strrootpass.equals(strconfirmpass)) {
         log.error("Passwords do not match");
       }
-    } while (!rootpass.equals(confirmpass));
-    return rootpass.getBytes(UTF_8);
+    } while (!strrootpass.equals(strconfirmpass));
+    return strrootpass.getBytes(UTF_8);
   }
 
   /**
@@ -832,7 +807,15 @@ public class Initialize implements KeywordExecutable {
       if (min > 5) {
         setMetadataReplication(min, "min");
       }
-      for (Entry<String,String> entry : initialMetadataConf.entrySet()) {
+
+      for (Entry<String,String> entry : initialRootConf.entrySet()) {
+        if (!TablePropUtil.setTableProperty(zoo, zooKeeperRoot, RootTable.ID, entry.getKey(),
+            entry.getValue())) {
+          throw new IOException("Cannot create per-table property " + entry.getKey());
+        }
+      }
+
+      for (Entry<String,String> entry : initialRootMetaConf.entrySet()) {
         if (!TablePropUtil.setTableProperty(zoo, zooKeeperRoot, RootTable.ID, entry.getKey(),
             entry.getValue())) {
           throw new IOException("Cannot create per-table property " + entry.getKey());
@@ -842,8 +825,8 @@ public class Initialize implements KeywordExecutable {
           throw new IOException("Cannot create per-table property " + entry.getKey());
         }
       }
-      // Only add combiner config to accumulo.metadata table (ACCUMULO-3077)
-      for (Entry<String,String> entry : initialMetadataCombinerConf.entrySet()) {
+
+      for (Entry<String,String> entry : initialMetaConf.entrySet()) {
         if (!TablePropUtil.setTableProperty(zoo, zooKeeperRoot, MetadataTable.ID, entry.getKey(),
             entry.getValue())) {
           throw new IOException("Cannot create per-table property " + entry.getKey());
@@ -852,7 +835,7 @@ public class Initialize implements KeywordExecutable {
 
       // add configuration to the replication table
       for (Entry<String,String> entry : initialReplicationTableConf.entrySet()) {
-        if (!TablePropUtil.setTableProperty(zoo, zooKeeperRoot, ReplicationTable.ID, entry.getKey(),
+        if (!TablePropUtil.setTableProperty(zoo, zooKeeperRoot, REPLICATION_TABLE, entry.getKey(),
             entry.getValue())) {
           throw new IOException("Cannot create per-table property " + entry.getKey());
         }
@@ -863,8 +846,8 @@ public class Initialize implements KeywordExecutable {
     }
   }
 
-  private static void setMetadataReplication(int replication, String reason) throws IOException {
-    String rep = getConsoleReader()
+  private static void setMetadataReplication(int replication, String reason) {
+    String rep = System.console()
         .readLine("Your HDFS replication " + reason + " is not compatible with our default "
             + MetadataTable.NAME + " replication of 5. What do you want to set your "
             + MetadataTable.NAME + " replication to? (" + replication + ") ");
@@ -874,14 +857,14 @@ public class Initialize implements KeywordExecutable {
       // Lets make sure it's a number
       Integer.parseInt(rep);
     }
-    initialMetadataConf.put(Property.TABLE_FILE_REPLICATION.getKey(), rep);
+    initialRootMetaConf.put(Property.TABLE_FILE_REPLICATION.getKey(), rep);
   }
 
-  public static boolean isInitialized(VolumeManager fs, SiteConfiguration siteConfig,
-      Configuration hadoopConf) throws IOException {
-    for (String baseDir : VolumeConfiguration.getVolumeUris(siteConfig, hadoopConf)) {
-      if (fs.exists(new Path(baseDir, ServerConstants.INSTANCE_ID_DIR))
-          || fs.exists(new Path(baseDir, ServerConstants.VERSION_DIR))) {
+  public static boolean isInitialized(VolumeManager fs, SiteConfiguration siteConfig)
+      throws IOException {
+    for (String baseDir : VolumeConfiguration.getVolumeUris(siteConfig)) {
+      if (fs.exists(new Path(baseDir, Constants.INSTANCE_ID_DIR))
+          || fs.exists(new Path(baseDir, Constants.VERSION_DIR))) {
         return true;
       }
     }
@@ -890,25 +873,22 @@ public class Initialize implements KeywordExecutable {
   }
 
   private static void addVolumes(VolumeManager fs, SiteConfiguration siteConfig,
-      Configuration hadoopConf) throws IOException {
+      Configuration hadoopConf, ServerDirs serverDirs) throws IOException {
 
-    Set<String> volumeURIs = VolumeConfiguration.getVolumeUris(siteConfig, hadoopConf);
+    Set<String> volumeURIs = VolumeConfiguration.getVolumeUris(siteConfig);
 
-    Set<String> initializedDirs =
-        ServerConstants.checkBaseUris(siteConfig, hadoopConf, volumeURIs, true);
+    Set<String> initializedDirs = serverDirs.checkBaseUris(hadoopConf, volumeURIs, true);
 
     HashSet<String> uinitializedDirs = new HashSet<>();
     uinitializedDirs.addAll(volumeURIs);
     uinitializedDirs.removeAll(initializedDirs);
 
     Path aBasePath = new Path(initializedDirs.iterator().next());
-    Path iidPath = new Path(aBasePath, ServerConstants.INSTANCE_ID_DIR);
-    Path versionPath = new Path(aBasePath, ServerConstants.VERSION_DIR);
+    Path iidPath = new Path(aBasePath, Constants.INSTANCE_ID_DIR);
+    Path versionPath = new Path(aBasePath, Constants.VERSION_DIR);
 
-    UUID uuid =
-        UUID.fromString(VolumeManager.getInstanceIDFromHdfs(iidPath, siteConfig, hadoopConf));
-    for (Pair<Path,Path> replacementVolume : ServerConstants.getVolumeReplacements(siteConfig,
-        hadoopConf)) {
+    UUID uuid = UUID.fromString(VolumeManager.getInstanceIDFromHdfs(iidPath, hadoopConf));
+    for (Pair<Path,Path> replacementVolume : serverDirs.getVolumeReplacements()) {
       if (aBasePath.equals(replacementVolume.getFirst())) {
         log.error(
             "{} is set to be replaced in {} and should not appear in {}."
@@ -918,10 +898,11 @@ public class Initialize implements KeywordExecutable {
       }
     }
 
-    if (ServerUtil.getAccumuloPersistentVersion(versionPath.getFileSystem(hadoopConf), versionPath)
-        != ServerConstants.DATA_VERSION) {
-      throw new IOException("Accumulo " + Constants.VERSION + " cannot initialize data version "
-          + ServerUtil.getAccumuloPersistentVersion(fs));
+    int persistentVersion =
+        serverDirs.getAccumuloPersistentVersion(versionPath.getFileSystem(hadoopConf), versionPath);
+    if (persistentVersion != AccumuloDataVersion.get()) {
+      throw new IOException(
+          "Accumulo " + Constants.VERSION + " cannot initialize data version " + persistentVersion);
     }
 
     initDirs(fs, uuid, uinitializedDirs, true);
@@ -980,18 +961,19 @@ public class Initialize implements KeywordExecutable {
       setZooReaderWriter(new ZooReaderWriter(siteConfig));
       SecurityUtil.serverLogin(siteConfig);
       Configuration hadoopConfig = new Configuration();
+      ServerDirs serverDirs = new ServerDirs(siteConfig, hadoopConfig);
 
       try (var fs = VolumeManagerImpl.get(siteConfig, hadoopConfig)) {
 
         if (opts.resetSecurity) {
           log.info("Resetting security on accumulo.");
           try (ServerContext context = new ServerContext(siteConfig)) {
-            if (isInitialized(fs, siteConfig, hadoopConfig)) {
+            if (isInitialized(fs, siteConfig)) {
               if (!opts.forceResetSecurity) {
-                ConsoleReader c = getConsoleReader();
-                String userEnteredName = c.readLine("WARNING: This will remove all"
-                    + " users from Accumulo! If you wish to proceed enter the instance"
-                    + " name: ");
+                String userEnteredName = System.console()
+                    .readLine("WARNING: This will remove all"
+                        + " users from Accumulo! If you wish to proceed enter the instance"
+                        + " name: ");
                 if (userEnteredName != null && !context.getInstanceName().equals(userEnteredName)) {
                   log.error(
                       "Aborted reset security: Instance name did not match current instance.");
@@ -1009,7 +991,7 @@ public class Initialize implements KeywordExecutable {
         }
 
         if (opts.addVolumes) {
-          addVolumes(fs, siteConfig, hadoopConfig);
+          addVolumes(fs, siteConfig, hadoopConfig, serverDirs);
         }
 
         if (!opts.resetSecurity && !opts.addVolumes) {
@@ -1021,6 +1003,8 @@ public class Initialize implements KeywordExecutable {
     } catch (Exception e) {
       log.error("Fatal exception", e);
       throw new RuntimeException(e);
+    } finally {
+      SingletonManager.setMode(Mode.CLOSED);
     }
   }
 

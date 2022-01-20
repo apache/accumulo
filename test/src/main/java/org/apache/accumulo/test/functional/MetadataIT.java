@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -35,19 +39,27 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 public class MetadataIT extends AccumuloClusterHarness {
@@ -71,8 +83,8 @@ public class MetadataIT extends AccumuloClusterHarness {
       c.tableOperations().create(tableNames[0]);
 
       try (Scanner rootScanner = c.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
-        rootScanner.setRange(MetadataSchema.TabletsSection.getRange());
-        rootScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+        rootScanner.setRange(TabletsSection.getRange());
+        rootScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
 
         Set<String> files1 = new HashSet<>();
         for (Entry<Key,Value> entry : rootScanner)
@@ -115,7 +127,7 @@ public class MetadataIT extends AccumuloClusterHarness {
       }
       c.tableOperations().merge(MetadataTable.NAME, null, null);
       try (Scanner s = c.createScanner(RootTable.NAME, Authorizations.EMPTY)) {
-        s.setRange(MetadataSchema.DeletesSection.getRange());
+        s.setRange(DeletesSection.getRange());
         while (Iterators.size(s.iterator()) == 0) {
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         }
@@ -152,6 +164,67 @@ public class MetadataIT extends AccumuloClusterHarness {
         }
         assertTrue(count > 0);
       }
+    }
+  }
+
+  @Test
+  public void testAmpleReadTablets() throws Exception {
+
+    try (ClientContext cc = (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
+      cc.securityOperations().grantTablePermission(cc.whoami(), MetadataTable.NAME,
+          TablePermission.WRITE);
+
+      SortedSet<Text> partitionKeys = new TreeSet<>();
+      partitionKeys.add(new Text("a"));
+      partitionKeys.add(new Text("e"));
+      partitionKeys.add(new Text("j"));
+
+      cc.tableOperations().create("t");
+      cc.tableOperations().addSplits("t", partitionKeys);
+
+      Text startRow = new Text("a");
+      Text endRow = new Text("z");
+
+      // Call up Ample from the client context using table "t" and build
+      TabletsMetadata tablets = cc.getAmple().readTablets().forTable(TableId.of("1"))
+          .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build();
+
+      TabletMetadata tabletMetadata0 = Iterables.get(tablets, 0);
+      TabletMetadata tabletMetadata1 = Iterables.get(tablets, 1);
+
+      String infoTabletId0 = tabletMetadata0.getTableId().toString();
+      String infoExtent0 = tabletMetadata0.getExtent().toString();
+      String infoPrevEndRow0 = tabletMetadata0.getPrevEndRow().toString();
+      String infoEndRow0 = tabletMetadata0.getEndRow().toString();
+
+      String infoTabletId1 = tabletMetadata1.getTableId().toString();
+      String infoExtent1 = tabletMetadata1.getExtent().toString();
+      String infoPrevEndRow1 = tabletMetadata1.getPrevEndRow().toString();
+      String infoEndRow1 = tabletMetadata1.getEndRow().toString();
+
+      String testInfoTableId = "1";
+
+      String testInfoKeyExtent0 = "1;e;a";
+      String testInfoKeyExtent1 = "1;j;e";
+
+      String testInfoPrevEndRow0 = "a";
+      String testInfoPrevEndRow1 = "e";
+
+      String testInfoEndRow0 = "e";
+      String testInfoEndRow1 = "j";
+
+      assertEquals(infoTabletId0, testInfoTableId);
+      assertEquals(infoTabletId1, testInfoTableId);
+
+      assertEquals(infoExtent0, testInfoKeyExtent0);
+      assertEquals(infoExtent1, testInfoKeyExtent1);
+
+      assertEquals(infoPrevEndRow0, testInfoPrevEndRow0);
+      assertEquals(infoPrevEndRow1, testInfoPrevEndRow1);
+
+      assertEquals(infoEndRow0, testInfoEndRow0);
+      assertEquals(infoEndRow1, testInfoEndRow1);
+
     }
   }
 }

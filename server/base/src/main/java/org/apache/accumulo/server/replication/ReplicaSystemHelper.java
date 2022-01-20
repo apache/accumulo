@@ -22,7 +22,6 @@ import static java.util.Objects.requireNonNull;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Mutation;
@@ -35,6 +34,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Deprecated
 public class ReplicaSystemHelper {
   private static final Logger log = LoggerFactory.getLogger(ReplicaSystemHelper.class);
 
@@ -57,8 +57,7 @@ public class ReplicaSystemHelper {
    */
   public void recordNewStatus(Path filePath, Status status, ReplicationTarget target)
       throws AccumuloException, TableNotFoundException {
-    try (BatchWriter bw =
-        context.createBatchWriter(ReplicationTable.NAME, new BatchWriterConfig())) {
+    try (BatchWriter bw = context.createBatchWriter(ReplicationTable.NAME)) {
       log.debug("Recording new status for {}, {}", filePath, ProtobufUtil.toString(status));
       Mutation m = new Mutation(filePath.toString());
       WorkSection.add(m, target.toText(), ProtobufUtil.toValue(status));

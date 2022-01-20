@@ -21,8 +21,6 @@ package org.apache.accumulo.test;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertTrue;
 
-import java.security.SecureRandom;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -35,7 +33,6 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -48,7 +45,6 @@ public class TotalQueuedIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
-    cfg.setDefaultMemory(cfg.getDefaultMemory() * 2, MemoryUnit.BYTE);
     cfg.useMiniDFS();
   }
 
@@ -63,7 +59,6 @@ public class TotalQueuedIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    Random random = new SecureRandom();
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(),
           "" + SMALL_QUEUE_SIZE);
@@ -94,9 +89,8 @@ public class TotalQueuedIT extends ConfigurableMacBase {
       double secs = diff / 1000.;
       double syncs = bytesSent / SMALL_QUEUE_SIZE;
       double syncsPerSec = syncs / secs;
-      System.out.println(
-          String.format("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)",
-              bytesSent, secs, ((long) syncs), syncsPerSec));
+      System.out.printf("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)%n",
+          bytesSent, secs, ((long) syncs), syncsPerSec);
       long update = getSyncs(c);
       System.out.println("Syncs " + (update - realSyncs));
       realSyncs = update;
@@ -121,9 +115,8 @@ public class TotalQueuedIT extends ConfigurableMacBase {
       secs = diff / 1000.;
       syncs = bytesSent / LARGE_QUEUE_SIZE;
       syncsPerSec = syncs / secs;
-      System.out.println(
-          String.format("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)",
-              bytesSent, secs, ((long) syncs), syncsPerSec));
+      System.out.printf("Sent %d bytes in %f secs approximately %d syncs (%f syncs per sec)%n",
+          bytesSent, secs, ((long) syncs), syncsPerSec);
       update = getSyncs(c);
       System.out.println("Syncs " + (update - realSyncs));
       assertTrue(update - realSyncs < realSyncs);

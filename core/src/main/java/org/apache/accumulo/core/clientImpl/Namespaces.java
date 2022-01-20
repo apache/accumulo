@@ -32,53 +32,12 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.util.Validator;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Namespaces {
   private static final Logger log = LoggerFactory.getLogger(Namespaces.class);
-
-  public static final String VALID_NAME_REGEX = "^\\w*$";
-  public static final Validator<String> VALID_NAME = new Validator<>() {
-    @Override
-    public boolean test(String namespace) {
-      return namespace != null && namespace.matches(VALID_NAME_REGEX);
-    }
-
-    @Override
-    public String invalidMessage(String namespace) {
-      if (namespace == null)
-        return "Namespace cannot be null";
-      return "Namespaces must only contain word characters (letters, digits, and underscores): "
-          + namespace;
-    }
-  };
-
-  public static final Validator<String> NOT_DEFAULT = new Validator<>() {
-    @Override
-    public boolean test(String namespace) {
-      return !Namespace.DEFAULT.name().equals(namespace);
-    }
-
-    @Override
-    public String invalidMessage(String namespace) {
-      return "Namespace cannot be the reserved empty namespace";
-    }
-  };
-
-  public static final Validator<String> NOT_ACCUMULO = new Validator<>() {
-    @Override
-    public boolean test(String namespace) {
-      return !Namespace.ACCUMULO.name().equals(namespace);
-    }
-
-    @Override
-    public String invalidMessage(String namespace) {
-      return "Namespace cannot be the reserved namespace, " + Namespace.ACCUMULO.name();
-    }
-  };
 
   public static boolean exists(ClientContext context, NamespaceId namespaceId) {
     ZooCache zc = context.getZooCache();

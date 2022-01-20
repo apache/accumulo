@@ -63,7 +63,8 @@ public class InsertCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
       ConstraintViolationException {
-    shellState.checkTableState();
+
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     final Mutation m = new Mutation(new Text(cl.getArgs()[0].getBytes(Shell.CHARSET)));
     final Text colf = new Text(cl.getArgs()[1].getBytes(Shell.CHARSET));
@@ -105,8 +106,7 @@ public class InsertCommand extends Command {
           throw new IllegalArgumentException("Unknown durability: " + userDurability);
       }
     }
-    final BatchWriter bw =
-        shellState.getAccumuloClient().createBatchWriter(shellState.getTableName(), cfg);
+    final BatchWriter bw = shellState.getAccumuloClient().createBatchWriter(tableName, cfg);
     bw.addMutation(m);
     try {
       bw.close();
@@ -170,6 +170,8 @@ public class InsertCommand extends Command {
     durabilityOption = new Option("d", "durability", true,
         "durability to use for insert, should be one of \"none\" \"log\" \"flush\" or \"sync\"");
     o.addOption(durabilityOption);
+
+    o.addOption(OptUtil.tableOpt("table into which data will be inserted"));
 
     return o;
   }

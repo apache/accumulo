@@ -18,13 +18,12 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.TestIngest;
@@ -46,9 +45,8 @@ public class FateStarvationIT extends AccumuloClusterHarness {
   public void run() throws Exception {
     String tableName = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      c.tableOperations().create(tableName);
-
-      c.tableOperations().addSplits(tableName, TestIngest.getSplitPoints(0, 100000, 50));
+      var ntc = new NewTableConfiguration().withSplits(TestIngest.getSplitPoints(0, 100000, 50));
+      c.tableOperations().create(tableName, ntc);
 
       IngestParams params = new IngestParams(getClientProps(), tableName, 100_000);
       params.random = 89;
@@ -60,11 +58,10 @@ public class FateStarvationIT extends AccumuloClusterHarness {
       c.tableOperations().flush(tableName, null, null, true);
 
       List<Text> splits = new ArrayList<>(TestIngest.getSplitPoints(0, 100000, 67));
-      Random rand = new SecureRandom();
 
       for (int i = 0; i < 100; i++) {
-        int idx1 = rand.nextInt(splits.size() - 1);
-        int idx2 = rand.nextInt(splits.size() - (idx1 + 1)) + idx1 + 1;
+        int idx1 = random.nextInt(splits.size() - 1);
+        int idx2 = random.nextInt(splits.size() - (idx1 + 1)) + idx1 + 1;
 
         c.tableOperations().compact(tableName, splits.get(idx1), splits.get(idx2), false, false);
       }

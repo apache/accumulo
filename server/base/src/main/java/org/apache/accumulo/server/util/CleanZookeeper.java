@@ -64,7 +64,7 @@ public class CleanZookeeper {
         if (Constants.ZINSTANCES.equals("/" + child)) {
           for (String instanceName : zk.getChildren(root + Constants.ZINSTANCES)) {
             String instanceNamePath = root + Constants.ZINSTANCES + "/" + instanceName;
-            byte[] id = zk.getData(instanceNamePath, null);
+            byte[] id = zk.getData(instanceNamePath);
             if (id != null && !new String(id, UTF_8).equals(context.getInstanceID())) {
               try {
                 zk.recursiveDelete(instanceNamePath, NodeMissingPolicy.SKIP);

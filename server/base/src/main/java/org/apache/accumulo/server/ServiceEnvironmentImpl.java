@@ -19,99 +19,26 @@
 package org.apache.accumulo.server;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.stream.StreamSupport;
+import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Tables;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-
-import com.google.common.collect.ImmutableMap;
+import org.apache.accumulo.core.util.ConfigurationImpl;
 
 public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
-  private final ServerContext srvCtx;
+  private final ServerContext context;
   private final Configuration conf;
+  private final Map<TableId,Configuration> tableConfigs = new ConcurrentHashMap<>();
 
-  public ServiceEnvironmentImpl(ServerContext ctx) {
-    this.srvCtx = ctx;
-    this.conf = new ConfigurationImpl(srvCtx.getConfiguration());
-  }
-
-  private static class ConfigurationImpl implements Configuration {
-
-    private final AccumuloConfiguration acfg;
-    private Map<String,String> customProps;
-    private Map<String,String> tableCustomProps;
-
-    ConfigurationImpl(AccumuloConfiguration acfg) {
-      this.acfg = acfg;
-    }
-
-    @Override
-    public String get(String key) {
-      // Get prop to check if sensitive, also looking up by prop may be more efficient.
-      Property prop = Property.getPropertyByKey(key);
-      if (prop != null) {
-        if (prop.isSensitive()) {
-          return null;
-        }
-        return acfg.get(prop);
-      } else {
-        return acfg.get(key);
-      }
-    }
-
-    @Override
-    public Map<String,String> getCustom() {
-      if (customProps == null) {
-        customProps = buildCustom(Property.GENERAL_ARBITRARY_PROP_PREFIX);
-      }
-
-      return customProps;
-    }
-
-    @Override
-    public String getCustom(String keySuffix) {
-      return getCustom().get(keySuffix);
-    }
-
-    @Override
-    public Map<String,String> getTableCustom() {
-      if (tableCustomProps == null) {
-        tableCustomProps = buildCustom(Property.TABLE_ARBITRARY_PROP_PREFIX);
-      }
-
-      return tableCustomProps;
-    }
-
-    @Override
-    public String getTableCustom(String keySuffix) {
-      return getTableCustom().get(keySuffix);
-    }
-
-    private Map<String,String> buildCustom(Property customPrefix) {
-      // This could be optimized as described in #947
-      Map<String,String> props = acfg.getAllPropertiesWithPrefix(customPrefix);
-      var builder = ImmutableMap.<String,String>builder();
-      props.forEach((k, v) -> {
-        builder.put(k.substring(customPrefix.getKey().length()), v);
-      });
-
-      return builder.build();
-    }
-
-    @Override
-    public Iterator<Entry<String,String>> iterator() {
-      return StreamSupport.stream(acfg.spliterator(), false)
-          .filter(e -> !Property.isSensitive(e.getKey())).iterator();
-    }
+  public ServiceEnvironmentImpl(ServerContext context) {
+    this.context = context;
+    this.conf = new ConfigurationImpl(this.context.getConfiguration());
   }
 
   @Override
@@ -121,12 +48,13 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
   @Override
   public Configuration getConfiguration(TableId tableId) {
-    return new ConfigurationImpl(srvCtx.getTableConfiguration(tableId));
+    return tableConfigs.computeIfAbsent(tableId,
+        tid -> new ConfigurationImpl(context.getTableConfiguration(tid)));
   }
 
   @Override
   public String getTableName(TableId tableId) throws TableNotFoundException {
-    return Tables.getTableName(srvCtx, tableId);
+    return Tables.getTableName(context, tableId);
   }
 
   @Override
@@ -138,7 +66,11 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
   @Override
   public <T> T instantiate(TableId tableId, String className, Class<T> base)
       throws ReflectiveOperationException, IOException {
-    String ctx = srvCtx.getTableConfiguration(tableId).get(Property.TABLE_CLASSPATH);
+    String ctx = ClassLoaderUtil.tableContext(context.getTableConfiguration(tableId));
     return ConfigurationTypeHelper.getClassInstance(ctx, className, base);
+  }
+
+  public ServerContext getContext() {
+    return context;
   }
 }

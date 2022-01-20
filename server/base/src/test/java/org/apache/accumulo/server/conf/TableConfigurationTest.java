@@ -28,7 +28,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.UUID;
 import java.util.function.Predicate;
 
@@ -38,6 +37,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,13 +57,7 @@ public class TableConfigurationTest {
   @Before
   public void setUp() {
     iid = UUID.randomUUID().toString();
-    context = createMock(ServerContext.class);
-
-    expect(context.getProperties()).andReturn(new Properties()).anyTimes();
-    expect(context.getInstanceID()).andReturn(iid).anyTimes();
-    expect(context.getZooKeeperRoot()).andReturn("/accumulo/" + iid).anyTimes();
-    expect(context.getZooKeepers()).andReturn(ZOOKEEPERS).anyTimes();
-    expect(context.getZooKeepersSessionTimeOut()).andReturn(ZK_SESSION_TIMEOUT).anyTimes();
+    context = MockServerContext.getWithZK(iid, ZOOKEEPERS, ZK_SESSION_TIMEOUT);
     replay(context);
 
     parent = createMock(NamespaceConfiguration.class);

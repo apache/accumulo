@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.shell;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -26,8 +27,10 @@ import java.util.Set;
 
 import org.apache.accumulo.shell.Shell.Command.CompletionSet;
 import org.apache.accumulo.shell.commands.QuotedStringTokenizer;
-
-import jline.console.completer.Completer;
+import org.jline.reader.Candidate;
+import org.jline.reader.Completer;
+import org.jline.reader.LineReader;
+import org.jline.reader.ParsedLine;
 
 public class ShellCompletor implements Completer {
 
@@ -44,14 +47,16 @@ public class ShellCompletor implements Completer {
   }
 
   @Override
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  public int complete(String buffer, int cursor, List candidates) {
+  public void complete(LineReader reader, ParsedLine line, List<Candidate> candidates) {
     try {
-      return _complete(buffer, cursor, candidates);
+      List<String> strings = new ArrayList<>();
+      _complete(line.line(), line.cursor(), strings);
+      for (String str : strings) {
+        candidates.add(new Candidate(str));
+      }
     } catch (Exception e) {
-      candidates.add("");
-      candidates.add(e.getMessage());
-      return cursor;
+      candidates.add(new Candidate(""));
+      candidates.add(new Candidate(e.getMessage()));
     }
   }
 

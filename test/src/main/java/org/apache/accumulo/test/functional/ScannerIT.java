@@ -22,7 +22,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -37,8 +36,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.Test;
-
-import com.google.common.base.Stopwatch;
 
 public class ScannerIT extends AccumuloClusterHarness {
 
@@ -62,8 +59,8 @@ public class ScannerIT extends AccumuloClusterHarness {
       }
 
       IteratorSetting cfg;
-      Stopwatch sw;
       Iterator<Entry<Key,Value>> iterator;
+      long nanosWithWait = 0;
       try (Scanner s = c.createScanner(table, new Authorizations())) {
 
         cfg = new IteratorSetting(100, SlowIterator.class);
@@ -76,52 +73,44 @@ public class ScannerIT extends AccumuloClusterHarness {
         s.setBatchSize(1);
         s.setRange(new Range());
 
-        sw = Stopwatch.createUnstarted();
         iterator = s.iterator();
-
-        sw.start();
+        long startTime = System.nanoTime();
         while (iterator.hasNext()) {
-          sw.stop();
+          nanosWithWait += System.nanoTime() - startTime;
 
           // While we "do work" in the client, we should be fetching the next result
           UtilWaitThread.sleep(100L);
           iterator.next();
-          sw.start();
+          startTime = System.nanoTime();
         }
-        sw.stop();
+        nanosWithWait += System.nanoTime() - startTime;
       }
 
-      long millisWithWait = sw.elapsed(TimeUnit.MILLISECONDS);
-
+      long nanosWithNoWait = 0;
       try (Scanner s = c.createScanner(table, new Authorizations())) {
         s.addScanIterator(cfg);
         s.setRange(new Range());
         s.setBatchSize(1);
         s.setReadaheadThreshold(0L);
 
-        sw = Stopwatch.createUnstarted();
         iterator = s.iterator();
-
-        sw.start();
+        long startTime = System.nanoTime();
         while (iterator.hasNext()) {
-          sw.stop();
+          nanosWithNoWait += System.nanoTime() - startTime;
 
           // While we "do work" in the client, we should be fetching the next result
           UtilWaitThread.sleep(100L);
           iterator.next();
-          sw.start();
+          startTime = System.nanoTime();
         }
-        sw.stop();
-
-        long millisWithNoWait = sw.elapsed(TimeUnit.MILLISECONDS);
+        nanosWithNoWait += System.nanoTime() - startTime;
 
         // The "no-wait" time should be much less than the "wait-time"
         assertTrue(
-            "Expected less time to be taken with immediate readahead (" + millisWithNoWait
-                + ") than without immediate readahead (" + millisWithWait + ")",
-            millisWithNoWait < millisWithWait);
+            "Expected less time to be taken with immediate readahead (" + nanosWithNoWait
+                + ") than without immediate readahead (" + nanosWithWait + ")",
+            nanosWithNoWait < nanosWithWait);
       }
     }
   }
-
 }

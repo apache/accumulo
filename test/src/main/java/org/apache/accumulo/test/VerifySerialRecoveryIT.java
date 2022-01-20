@@ -22,14 +22,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.security.SecureRandom;
-import java.util.Random;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
@@ -51,7 +51,6 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
 
   private static final byte[] HEXCHARS = {0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38,
       0x39, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66};
-  private static final Random random = new SecureRandom();
 
   public static byte[] randomHex(int n) {
     byte[] binary = new byte[n];
@@ -83,12 +82,17 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
     // make a table with many splits
     String tableName = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      c.tableOperations().create(tableName);
+
+      // create splits
       SortedSet<Text> splits = new TreeSet<>();
       for (int i = 0; i < 200; i++) {
         splits.add(new Text(randomHex(8)));
       }
-      c.tableOperations().addSplits(tableName, splits);
+
+      // create table with config
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+      c.tableOperations().create(tableName, ntc);
+
       // load data to give the recovery something to do
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (int i = 0; i < 50000; i++) {
@@ -114,6 +118,8 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
       // time
       boolean started = false;
       int recoveries = 0;
+      var pattern =
+          Pattern.compile(".*recovered \\d+ mutations creating \\d+ entries from \\d+ walogs.*");
       for (String line : result.split("\n")) {
         // ignore metadata tables
         if (line.contains("!0") || line.contains("+r"))
@@ -123,7 +129,7 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
           started = true;
           recoveries++;
         }
-        if (line.matches(".*recovered \\d+ mutations creating \\d+ entries from \\d+ walogs.*")) {
+        if (pattern.matcher(line).matches()) {
           assertTrue(started);
           started = false;
         }

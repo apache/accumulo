@@ -29,7 +29,6 @@ import org.apache.accumulo.core.iterators.YieldCallback;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 import org.apache.accumulo.iteratortest.IteratorTestUtil;
-import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
 
 /**
  * Test case that verifies that an iterator works correctly with the yielding api. Note that most
@@ -46,7 +45,7 @@ public class YieldingTestCase extends OutputVerifyingTestCase {
     final SortedKeyValueIterator<Key,Value> source = IteratorTestUtil.createSource(testInput);
 
     try {
-      skvi.init(source, testInput.getIteratorOptions(), new SimpleIteratorEnvironment());
+      skvi.init(source, testInput.getIteratorOptions(), testInput.getIteratorEnvironment());
 
       YieldCallback<Key> yield = new YieldCallback<>();
       skvi.enableYielding(yield);
@@ -61,7 +60,6 @@ public class YieldingTestCase extends OutputVerifyingTestCase {
   TreeMap<Key,Value> consume(IteratorTestInput testInput, SortedKeyValueIterator<Key,Value> skvi,
       YieldCallback<Key> yield) throws IOException {
     TreeMap<Key,Value> data = new TreeMap<>();
-    Key lastKey = null;
     while (yield.hasYielded() || skvi.hasTop()) {
       if (yield.hasYielded()) {
         Range r = testInput.getRange();
@@ -73,10 +71,6 @@ public class YieldingTestCase extends OutputVerifyingTestCase {
         if (skvi.hasTop()) {
           throw new IOException(
               "Underlying iterator reports having a top, but has yielded: " + yieldPosition);
-        }
-        if (lastKey != null && yieldPosition.compareTo(lastKey) <= 0) {
-          throw new IOException(
-              "Underlying iterator yielded at a position that is not past the last key returned");
         }
         skvi.seek(new Range(yieldPosition, false, r.getEndKey(), r.isEndKeyInclusive()),
             testInput.getFamilies(), testInput.isInclusive());

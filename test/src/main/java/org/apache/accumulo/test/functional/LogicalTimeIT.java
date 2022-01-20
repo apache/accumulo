@@ -94,14 +94,12 @@ public class LogicalTimeIT extends AccumuloClusterHarness {
   private void runMergeTest(AccumuloClient client, String table, String[] splits, String[] inserts,
       String start, String end, String last, long expected) throws Exception {
     log.info("table {}", table);
-    client.tableOperations().create(table,
-        new NewTableConfiguration().setTimeType(TimeType.LOGICAL));
     TreeSet<Text> splitSet = new TreeSet<>();
     for (String split : splits) {
       splitSet.add(new Text(split));
     }
-    client.tableOperations().addSplits(table, splitSet);
-
+    client.tableOperations().create(table,
+        new NewTableConfiguration().setTimeType(TimeType.LOGICAL).withSplits(splitSet));
     BatchWriter bw = client.createBatchWriter(table);
     for (String row : inserts) {
       Mutation m = new Mutation(row);

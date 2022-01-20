@@ -23,11 +23,13 @@ function print_usage {
 Usage: accumulo-service <service> <command>
 
 Services:
-  gc          Accumulo garbage collector
-  monitor     Accumulo monitor
-  master      Accumulo master
-  tserver     Accumulo tserver
-  tracer      Accumulo tracter
+  gc                     Accumulo garbage collector
+  monitor                Accumulo monitor
+  manager                Accumulo manager
+  master                 Accumulo master (Deprecated)
+  tserver                Accumulo tserver
+  compaction-coordinator Accumulo compaction coordinator (experimental)
+  compactor              Accumulo compactor (experimental)
 
 Commands:
   start       Starts service
@@ -67,8 +69,8 @@ function start_service() {
   fi
   echo "Starting $service on $host"
 
-  if [[ $service == "master" ]]; then
-    "${bin}/accumulo" org.apache.accumulo.master.state.SetGoalState NORMAL
+  if [[ $service == "manager" ]]; then
+    "${bin}/accumulo" org.apache.accumulo.manager.state.SetGoalState NORMAL
   fi
 
   outfile="${ACCUMULO_LOG_DIR}/${service}${ACCUMULO_SERVICE_INSTANCE}_${host}.out"
@@ -76,7 +78,7 @@ function start_service() {
   rotate_log "$outfile"
   rotate_log "$errfile"
 
-  nohup "${bin}/accumulo" "$service" >"$outfile" 2>"$errfile" < /dev/null &
+  nohup "${bin}/accumulo" "$service" "$@" >"$outfile" 2>"$errfile" < /dev/null &
   echo "$!" > "${pid_file}"
 
   # Check the max open files limit and selectively warn
@@ -137,15 +139,21 @@ function main() {
     host=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
   fi 
   service="$1"
+
+  if [[ $service == "master" ]]; then
+    echo "WARN : Use of 'master' service name is deprecated; use 'manager' instead."
+    service="manager"
+  fi
+
   pid_file="${ACCUMULO_PID_DIR}/accumulo-${service}${ACCUMULO_SERVICE_INSTANCE}.pid"
   case "$service" in
-    gc|master|monitor|tserver|tracer)
+    gc|manager|monitor|tserver|compaction-coordinator|compactor)
       if [[ -z $2 ]]; then
         invalid_args "<command> cannot be empty"
       fi
       case "$2" in 
         start)
-          start_service
+          start_service "${@:3}"
           ;;
         stop)
           stop_service

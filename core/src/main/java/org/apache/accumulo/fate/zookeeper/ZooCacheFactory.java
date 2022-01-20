@@ -93,7 +93,7 @@ public class ZooCacheFactory {
     String key = zooKeepers + ":" + sessionTimeout;
     synchronized (instances) {
       if (!isEnabled()) {
-        throw new IllegalStateException("\"The Accumulo singleton for zookeeper caching is "
+        throw new IllegalStateException("The Accumulo singleton for zookeeper caching is "
             + "disabled. This is likely caused by all AccumuloClients being closed");
       }
       ZooCache zc = instances.get(key);

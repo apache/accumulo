@@ -21,8 +21,8 @@ package org.apache.accumulo.server.util;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.Compacting;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 
@@ -69,7 +69,7 @@ public class TableInfoUtil {
     return summary;
   }
 
-  public static Map<String,Double> summarizeTableStats(MasterMonitorInfo mmi) {
+  public static Map<String,Double> summarizeTableStats(ManagerMonitorInfo mmi) {
     Map<String,Double> compactingByTable = new HashMap<>();
     if (mmi != null && mmi.tServerInfo != null) {
       for (TabletServerStatus status : mmi.tServerInfo) {

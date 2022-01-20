@@ -23,10 +23,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.thrift.TConfiguration;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransport;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Mocket - a Mock Socket
@@ -76,7 +75,7 @@ public class Mocket {
 
     public void write(byte[] buf, int off, int len) {
       Objects.requireNonNull(buf);
-      Preconditions.checkPositionIndexes(off, off + len, buf.length);
+      Objects.checkFromToIndex(off, off + len, buf.length);
       if (len == 0) {
         return;
       }
@@ -108,7 +107,7 @@ public class Mocket {
 
     public int read(byte[] buf, int off, int len) {
       Objects.requireNonNull(buf);
-      Preconditions.checkPositionIndexes(off, off + len, buf.length);
+      Objects.checkFromToIndex(off, off + len, buf.length);
       if (len == 0) {
         return 0;
       }
@@ -143,13 +142,13 @@ public class Mocket {
     public void listen() {}
 
     @Override
-    public void close() {
-      acceptImpl().close();
+    public TTransport accept() {
+      return servTrans;
     }
 
     @Override
-    protected TTransport acceptImpl() {
-      return servTrans;
+    public void close() {
+      servTrans.close();
     }
 
     @Override
@@ -172,6 +171,21 @@ public class Mocket {
     @Override
     public void write(byte[] buf, int off, int len) {
       output.write(buf, off, len);
+    }
+
+    @Override
+    public TConfiguration getConfiguration() {
+      return null;
+    }
+
+    @Override
+    public void updateKnownMessageSize(long size) {
+
+    }
+
+    @Override
+    public void checkReadBytesAvailable(long numBytes) {
+
     }
 
     @Override

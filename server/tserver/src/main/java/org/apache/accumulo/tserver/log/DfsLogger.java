@@ -43,27 +43,25 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.crypto.streams.NoFlushOutputStream;
-import org.apache.accumulo.core.cryptoImpl.CryptoEnvironmentImpl;
-import org.apache.accumulo.core.cryptoImpl.NoCryptoService;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
-import org.apache.accumulo.core.util.Daemon;
+import org.apache.accumulo.core.spi.crypto.NoCryptoService;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.util.LoggingRunnable;
-import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment.ChooserScope;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.tserver.TabletMutations;
@@ -112,38 +110,18 @@ public class DfsLogger implements Comparable<DfsLogger> {
    * log. This exception is thrown when the header cannot be read from a WAL which should only
    * happen when the tserver dies as described.
    */
-  public static class LogHeaderIncompleteException extends IOException {
+  public static class LogHeaderIncompleteException extends Exception {
     private static final long serialVersionUID = 1L;
 
-    public LogHeaderIncompleteException(Throwable cause) {
+    public LogHeaderIncompleteException(EOFException cause) {
       super(cause);
-    }
-  }
-
-  public static class DFSLoggerInputStreams {
-
-    private FSDataInputStream originalInput;
-    private DataInputStream decryptingInputStream;
-
-    public DFSLoggerInputStreams(FSDataInputStream originalInput,
-        DataInputStream decryptingInputStream) {
-      this.originalInput = originalInput;
-      this.decryptingInputStream = decryptingInputStream;
-    }
-
-    public FSDataInputStream getOriginalInput() {
-      return originalInput;
-    }
-
-    public DataInputStream getDecryptingInputStream() {
-      return decryptingInputStream;
     }
   }
 
   public interface ServerResources {
     AccumuloConfiguration getConfiguration();
 
-    VolumeManager getFileSystem();
+    VolumeManager getVolumeManager();
   }
 
   private final LinkedBlockingQueue<DfsLogger.LogWork> workQueue = new LinkedBlockingQueue<>();
@@ -245,7 +223,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     }
 
     private void fail(ArrayList<DfsLogger.LogWork> work, Exception ex, String why) {
-      log.warn("Exception " + why + " " + ex);
+      log.warn("Exception {} {}", why, ex, ex);
       for (DfsLogger.LogWork logWork : work) {
         logWork.exception = ex;
       }
@@ -323,7 +301,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
   private FSDataOutputStream logFile;
   private DataOutputStream encryptingLogFile = null;
   private String logPath;
-  private Daemon syncThread;
+  private Thread syncThread;
 
   /* Track what's actually in +r/!0 for this logger ref */
   private String metaReference;
@@ -358,8 +336,15 @@ public class DfsLogger implements Comparable<DfsLogger> {
     metaReference = meta;
   }
 
-  public static DFSLoggerInputStreams readHeaderAndReturnStream(FSDataInputStream input,
-      AccumuloConfiguration conf) throws IOException {
+  /**
+   * Reads the WAL file header, and returns a decrypting stream which wraps the original stream. If
+   * the file is not encrypted, the original stream is returned.
+   *
+   * @throws LogHeaderIncompleteException
+   *           if the header cannot be fully read (can happen if the tserver died before finishing)
+   */
+  public static DataInputStream getDecryptingStream(FSDataInputStream input,
+      AccumuloConfiguration conf) throws LogHeaderIncompleteException, IOException {
     DataInputStream decryptingInput;
 
     byte[] magic4 = DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8);
@@ -373,12 +358,9 @@ public class DfsLogger implements Comparable<DfsLogger> {
     try {
       input.readFully(magicBuffer);
       if (Arrays.equals(magicBuffer, magic4)) {
-        byte[] params = CryptoUtils.readParams(input);
         CryptoService cryptoService =
             CryptoServiceFactory.newInstance(conf, ClassloaderType.ACCUMULO);
-        CryptoEnvironment env = new CryptoEnvironmentImpl(Scope.WAL, params);
-
-        FileDecrypter decrypter = cryptoService.getFileDecrypter(env);
+        FileDecrypter decrypter = CryptoUtils.getFileDecrypter(cryptoService, Scope.WAL, input);
         log.debug("Using {} for decrypting WAL", cryptoService.getClass().getSimpleName());
         decryptingInput = cryptoService instanceof NoCryptoService ? input
             : new DataInputStream(decrypter.decryptStream(input));
@@ -398,12 +380,11 @@ public class DfsLogger implements Comparable<DfsLogger> {
       }
     } catch (EOFException e) {
       // Explicitly catch any exceptions that should be converted to LogHeaderIncompleteException
-
       // A TabletServer might have died before the (complete) header was written
       throw new LogHeaderIncompleteException(e);
     }
 
-    return new DFSLoggerInputStreams(input, decryptingInput);
+    return decryptingInput;
   }
 
   /**
@@ -421,11 +402,12 @@ public class DfsLogger implements Comparable<DfsLogger> {
     String logger = Joiner.on("+").join(address.split(":"));
 
     log.debug("DfsLogger.open() begin");
-    VolumeManager fs = conf.getFileSystem();
+    VolumeManager fs = conf.getVolumeManager();
 
-    var chooserEnv = new VolumeChooserEnvironmentImpl(ChooserScope.LOGGER, context);
-    logPath = fs.choose(chooserEnv, ServerConstants.getBaseUris(context)) + Path.SEPARATOR
-        + ServerConstants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
+    var chooserEnv = new VolumeChooserEnvironmentImpl(
+        org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope.LOGGER, context);
+    logPath = fs.choose(chooserEnv, context.getBaseUris()) + Path.SEPARATOR + Constants.WAL_DIR
+        + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
 
     metaReference = toString();
     LoggerOperation op = null;
@@ -481,17 +463,18 @@ public class DfsLogger implements Comparable<DfsLogger> {
       throw new IOException(ex);
     }
 
-    syncThread = new Daemon(new LoggingRunnable(log, new LogSyncingTask()));
-    syncThread.setName("Accumulo WALog thread " + this);
+    syncThread = Threads.createThread("Accumulo WALog thread " + this, new LogSyncingTask());
     syncThread.start();
     op.await();
     log.debug("Got new write-ahead log: {}", this);
   }
 
+  @SuppressWarnings("deprecation")
   static long getWalBlockSize(AccumuloConfiguration conf) {
     long blockSize = conf.getAsBytes(Property.TSERV_WAL_BLOCKSIZE);
     if (blockSize == 0)
-      blockSize = (long) (conf.getAsBytes(Property.TSERV_WALOG_MAX_SIZE) * 1.1);
+      blockSize = (long) (conf.getAsBytes(
+          conf.resolve(Property.TSERV_WAL_MAX_SIZE, Property.TSERV_WALOG_MAX_SIZE)) * 1.1);
     return blockSize;
   }
 
@@ -671,7 +654,7 @@ public class DfsLogger implements Comparable<DfsLogger> {
     return logKeyData(key, durability);
   }
 
-  public String getLogger() {
+  private String getLogger() {
     String[] parts = logPath.split("/");
     return Joiner.on(":").join(parts[parts.length - 2].split("[+]"));
   }

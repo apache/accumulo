@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
@@ -28,47 +29,59 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.SortedMap;
-import java.util.function.Function;
 
-import org.apache.accumulo.core.client.RowIterator;
-import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SuspendingTServer;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.ServerServices;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Iterators;
 
 public class TabletMetadata {
+  private static final Logger log = LoggerFactory.getLogger(TabletMetadata.class);
 
   private TableId tableId;
   private Text prevEndRow;
@@ -83,6 +96,7 @@ public class TabletMetadata {
   private EnumSet<ColumnType> fetchedCols;
   private KeyExtent extent;
   private Location last;
+  private SuspendingTServer suspend;
   private String dirName;
   private MetadataTime time;
   private String cloned;
@@ -91,6 +105,7 @@ public class TabletMetadata {
   private List<LogEntry> logs;
   private OptionalLong compact = OptionalLong.empty();
   private Double splitRatio = null;
+  private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
@@ -110,42 +125,21 @@ public class TabletMetadata {
     FLUSH_ID,
     LOGS,
     COMPACT_ID,
-    SPLIT_RATIO
+    SPLIT_RATIO,
+    SUSPEND,
+    ECOMP
   }
 
-  public static class Location {
-    private final String server;
-    private final String session;
+  public static class Location extends TServerInstance {
     private final LocationType lt;
 
-    Location(String server, String session, LocationType lt) {
-      this.server = server;
-      this.session = session;
+    public Location(String server, String session, LocationType lt) {
+      super(HostAndPort.fromString(server), session);
       this.lt = lt;
-    }
-
-    public HostAndPort getHostAndPort() {
-      return HostAndPort.fromString(server);
-    }
-
-    public String getSession() {
-      return session;
     }
 
     public LocationType getType() {
       return lt;
-    }
-
-    @Override
-    public String toString() {
-      return server + ":" + session + ":" + lt;
-    }
-
-    /**
-     * @return an ID composed of host, port, and session id.
-     */
-    public String getId() {
-      return server + "[" + session + "]";
     }
   }
 
@@ -216,6 +210,11 @@ public class TabletMetadata {
     return last;
   }
 
+  public SuspendingTServer getSuspend() {
+    ensureFetched(ColumnType.SUSPEND);
+    return suspend;
+  }
+
   public Collection<StoredTabletFile> getFiles() {
     ensureFetched(ColumnType.FILES);
     return files.keySet();
@@ -271,29 +270,54 @@ public class TabletMetadata {
     return keyValues;
   }
 
+  public TabletState getTabletState(Set<TServerInstance> liveTServers) {
+    ensureFetched(ColumnType.LOCATION);
+    ensureFetched(ColumnType.LAST);
+    ensureFetched(ColumnType.SUSPEND);
+    try {
+      TServerInstance current = null;
+      TServerInstance future = null;
+      if (hasCurrent()) {
+        current = location;
+      } else {
+        future = location;
+      }
+      // only care about the state so don't need walogs and chopped params
+      var tls = new TabletLocationState(extent, future, current, last, suspend, null, false);
+      return tls.getState(liveTServers);
+    } catch (TabletLocationState.BadLocationStateException blse) {
+      throw new IllegalArgumentException("Error creating TabletLocationState", blse);
+    }
+  }
+
+  public Map<ExternalCompactionId,ExternalCompactionMetadata> getExternalCompactions() {
+    ensureFetched(ColumnType.ECOMP);
+    return extCompactions;
+  }
+
   @VisibleForTesting
   public static TabletMetadata convertRow(Iterator<Entry<Key,Value>> rowIter,
       EnumSet<ColumnType> fetchedColumns, boolean buildKeyValueMap) {
     Objects.requireNonNull(rowIter);
 
     TabletMetadata te = new TabletMetadata();
-    ImmutableSortedMap.Builder<Key,Value> kvBuilder = null;
-    if (buildKeyValueMap) {
-      kvBuilder = ImmutableSortedMap.naturalOrder();
-    }
+    final ImmutableSortedMap.Builder<Key,Value> kvBuilder =
+        buildKeyValueMap ? ImmutableSortedMap.naturalOrder() : null;
 
-    var filesBuilder = ImmutableMap.<StoredTabletFile,DataFileValue>builder();
-    var scansBuilder = ImmutableList.<StoredTabletFile>builder();
-    var logsBuilder = ImmutableList.<LogEntry>builder();
+    final var filesBuilder = ImmutableMap.<StoredTabletFile,DataFileValue>builder();
+    final var scansBuilder = ImmutableList.<StoredTabletFile>builder();
+    final var logsBuilder = ImmutableList.<LogEntry>builder();
+    final var extCompBuilder =
+        ImmutableMap.<ExternalCompactionId,ExternalCompactionMetadata>builder();
     final var loadedFilesBuilder = ImmutableMap.<TabletFile,Long>builder();
     ByteSequence row = null;
 
     while (rowIter.hasNext()) {
-      Entry<Key,Value> kv = rowIter.next();
-      Key key = kv.getKey();
-      String val = kv.getValue().toString();
-      String fam = key.getColumnFamilyData().toString();
-      String qual = key.getColumnQualifierData().toString();
+      final Entry<Key,Value> kv = rowIter.next();
+      final Key key = kv.getKey();
+      final String val = kv.getValue().toString();
+      final String fam = key.getColumnFamilyData().toString();
+      final String qual = key.getColumnQualifierData().toString();
 
       if (buildKeyValueMap) {
         kvBuilder.put(key, kv.getValue());
@@ -301,9 +325,9 @@ public class TabletMetadata {
 
       if (row == null) {
         row = key.getRowData();
-        KeyExtent ke = new KeyExtent(key.getRow(), (Text) null);
-        te.endRow = ke.getEndRow();
-        te.tableId = ke.getTableId();
+        KeyExtent ke = KeyExtent.fromMetaRow(key.getRow());
+        te.endRow = ke.endRow();
+        te.tableId = ke.tableId();
       } else if (!row.equals(key.getRowData())) {
         throw new IllegalArgumentException(
             "Input contains more than one row : " + row + " " + key.getRowData());
@@ -313,11 +337,11 @@ public class TabletMetadata {
         case TabletColumnFamily.STR_NAME:
           switch (qual) {
             case PREV_ROW_QUAL:
-              te.prevEndRow = KeyExtent.decodePrevEndRow(kv.getValue());
+              te.prevEndRow = TabletColumnFamily.decodePrevEndRow(kv.getValue());
               te.sawPrevEndRow = true;
               break;
             case OLD_PREV_ROW_QUAL:
-              te.oldPrevEndRow = KeyExtent.decodePrevEndRow(kv.getValue());
+              te.oldPrevEndRow = TabletColumnFamily.decodePrevEndRow(kv.getValue());
               te.sawOldPrevEndRow = true;
               break;
             case SPLIT_RATIO_QUAL:
@@ -359,6 +383,9 @@ public class TabletMetadata {
         case LastLocationColumnFamily.STR_NAME:
           te.last = new Location(val, qual, LocationType.LAST);
           break;
+        case SuspendLocationColumn.STR_NAME:
+          te.suspend = SuspendingTServer.fromValue(kv.getValue());
+          break;
         case ScanFileColumnFamily.STR_NAME:
           scansBuilder.add(new StoredTabletFile(qual));
           break;
@@ -366,7 +393,11 @@ public class TabletMetadata {
           te.cloned = val;
           break;
         case LogColumnFamily.STR_NAME:
-          logsBuilder.add(LogEntry.fromKeyValue(key, val));
+          logsBuilder.add(LogEntry.fromMetaWalEntry(kv));
+          break;
+        case ExternalCompactionColumnFamily.STR_NAME:
+          extCompBuilder.put(ExternalCompactionId.of(qual),
+              ExternalCompactionMetadata.fromJson(val));
           break;
         default:
           throw new IllegalStateException("Unexpected family " + fam);
@@ -378,6 +409,7 @@ public class TabletMetadata {
     te.fetchedCols = fetchedColumns;
     te.scans = scansBuilder.build();
     te.logs = logsBuilder.build();
+    te.extCompactions = extCompBuilder.build();
     if (buildKeyValueMap) {
       te.keyValues = kvBuilder.build();
     }
@@ -392,26 +424,6 @@ public class TabletMetadata {
     location = new Location(val, qual, lt);
   }
 
-  static Iterable<TabletMetadata> convert(Scanner input, EnumSet<ColumnType> fetchedColumns,
-      boolean checkConsistency, boolean buildKeyValueMap) {
-
-    Range range = input.getRange();
-
-    Function<Range,Iterator<TabletMetadata>> iterFactory = r -> {
-      synchronized (input) {
-        input.setRange(r);
-        RowIterator rowIter = new RowIterator(input);
-        return Iterators.transform(rowIter, ri -> convertRow(ri, fetchedColumns, buildKeyValueMap));
-      }
-    };
-
-    if (checkConsistency) {
-      return () -> new LinkingIterator(iterFactory, range);
-    } else {
-      return () -> iterFactory.apply(range);
-    }
-  }
-
   @VisibleForTesting
   static TabletMetadata create(String id, String prevEndRow, String endRow) {
     TabletMetadata te = new TabletMetadata();
@@ -421,5 +433,42 @@ public class TabletMetadata {
     te.endRow = endRow == null ? null : new Text(endRow);
     te.fetchedCols = EnumSet.of(ColumnType.PREV_ROW);
     return te;
+  }
+
+  /**
+   * Get the tservers that are live from ZK. Live servers will have a valid ZooLock. This method was
+   * pulled from org.apache.accumulo.server.manager.LiveTServerSet
+   */
+  public static synchronized Set<TServerInstance> getLiveTServers(ClientContext context) {
+    final Set<TServerInstance> liveServers = new HashSet<>();
+
+    final String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
+
+    for (String child : context.getZooCache().getChildren(path)) {
+      checkServer(context, path, child).ifPresent(liveServers::add);
+    }
+    log.trace("Found {} live tservers at ZK path: {}", liveServers.size(), path);
+
+    return liveServers;
+  }
+
+  /**
+   * Check for tserver ZooLock at the ZK location. Return Optional containing TServerInstance if a
+   * valid Zoolock exists.
+   */
+  private static Optional<TServerInstance> checkServer(ClientContext context, String path,
+      String zPath) {
+    Optional<TServerInstance> server = Optional.empty();
+    final var lockPath = ServiceLock.path(path + "/" + zPath);
+    ZooCache.ZcStat stat = new ZooCache.ZcStat();
+    byte[] lockData = ServiceLock.getLockData(context.getZooCache(), lockPath, stat);
+
+    log.trace("Checking server at ZK path = " + lockPath);
+    if (lockData != null) {
+      ServerServices services = new ServerServices(new String(lockData, UTF_8));
+      HostAndPort client = services.getAddress(ServerServices.Service.TSERV_CLIENT);
+      server = Optional.of(new TServerInstance(client, stat.getEphemeralOwner()));
+    }
+    return server;
   }
 }

@@ -53,11 +53,13 @@ public class MutationTest {
    * Test constructing a Mutation using a byte buffer. The byte array returned as the row is
    * converted to a hexadecimal string for easy comparision.
    */
+  @Test
   public void testByteConstructor() {
     Mutation m = new Mutation("0123456789".getBytes());
     assertEquals("30313233343536373839", toHexString(m.getRow()));
   }
 
+  @Test
   public void testLimitedByteConstructor() {
     Mutation m = new Mutation("0123456789".getBytes(), 2, 5);
     assertEquals("3233343536", toHexString(m.getRow()));
@@ -500,6 +502,7 @@ public class MutationTest {
     verifyColumnUpdate(updates.get(7), "cf8", "cq8", "cv8", 8L, true, true, "");
   }
 
+  @Test
   public void testByteArrays() {
     Mutation m = new Mutation("r1".getBytes());
 
@@ -916,5 +919,25 @@ public class MutationTest {
     m.put("cf", "cq1", "v");
     m.estRowAndLargeValSize += (Long.MAX_VALUE / 2);
     m.put("cf", "cq2", "v");
+  }
+
+  @Test
+  public void testPrettyPrint() {
+    String row = "row";
+    String fam1 = "fam1";
+    String fam2 = "fam2";
+    String qual1 = "qual1";
+    String qual2 = "qual2";
+    String value1 = "value1";
+
+    Mutation m = new Mutation("row");
+    m.put(fam1, qual1, value1);
+    m.putDelete(fam2, qual2);
+    m.getUpdates(); // serialize
+
+    String expected = "mutation: " + row + "\n update: " + fam1 + ":" + qual1 + " value " + value1
+        + "\n update: " + fam2 + ":" + qual2 + " value [delete]\n";
+
+    assertEquals(expected, m.prettyPrint());
   }
 }

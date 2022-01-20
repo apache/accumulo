@@ -51,8 +51,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ServerClient;
-import org.apache.accumulo.core.clientImpl.Translator;
-import org.apache.accumulo.core.clientImpl.Translators;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -171,8 +169,8 @@ public class Gatherer {
   private Map<String,Map<TabletFile,List<TRowRange>>>
       getFilesGroupedByLocation(Predicate<TabletFile> fileSelector) {
 
-    Iterable<TabletMetadata> tmi = TabletsMetadata.builder().forTable(tableId)
-        .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build(ctx);
+    Iterable<TabletMetadata> tmi = TabletsMetadata.builder(ctx).forTable(tableId)
+        .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build();
 
     // get a subset of files
     Map<TabletFile,List<TabletMetadata>> files = new HashMap<>();
@@ -198,12 +196,12 @@ public class Gatherer {
                                                                                          // tablets
                                                                                          // w/o a
                                                                                          // location
-          .map(tm -> tm.getLocation().getHostAndPort().toString()) // convert to host:port strings
+          .map(tm -> tm.getLocation().getHostPort()) // convert to host:port strings
           .min(String::compareTo) // find minimum host:port
           .orElse(entry.getValue().stream().filter(tm -> tm.getLast() != null) // if no locations,
                                                                                // then look at last
                                                                                // locations
-              .map(tm -> tm.getLast().getHostAndPort().toString()) // convert to host:port strings
+              .map(tm -> tm.getLast().getHostPort()) // convert to host:port strings
               .min(String::compareTo).orElse(null)); // find minimum last location or return null
 
       if (location == null) {
@@ -320,7 +318,8 @@ public class Gatherer {
 
           try {
             TSummaries tSums = client.startGetSummariesFromFiles(tinfo, ctx.rpcCreds(),
-                getRequest(), Translator.translate(files, Translators.TFT));
+                getRequest(), files.entrySet().stream().collect(
+                    Collectors.toMap(entry -> entry.getKey().getPathStr(), Entry::getValue)));
             while (!tSums.finished && !cancelFlag.get()) {
               tSums = client.contiuneGetSummaries(tinfo, tSums.sessionId);
             }
@@ -339,7 +338,7 @@ public class Gatherer {
       } catch (TTransportException e1) {
         pfiles.failedFiles.addAll(allFiles.keySet());
       } finally {
-        ThriftUtil.returnClient(client);
+        ThriftUtil.returnClient(client, ctx);
       }
 
       if (cancelFlag.get()) {
@@ -535,8 +534,8 @@ public class Gatherer {
 
   private int countFiles() {
     // TODO use a batch scanner + iterator to parallelize counting files
-    return TabletsMetadata.builder().forTable(tableId).overlapping(startRow, endRow)
-        .fetch(FILES, PREV_ROW).build(ctx).stream().mapToInt(tm -> tm.getFiles().size()).sum();
+    return TabletsMetadata.builder(ctx).forTable(tableId).overlapping(startRow, endRow)
+        .fetch(FILES, PREV_ROW).build().stream().mapToInt(tm -> tm.getFiles().size()).sum();
   }
 
   private class GatherRequest implements Supplier<SummaryCollection> {
@@ -632,8 +631,8 @@ public class Gatherer {
     private Text endRow;
 
     public RowRange(KeyExtent ke) {
-      this.startRow = ke.getPrevEndRow();
-      this.endRow = ke.getEndRow();
+      this.startRow = ke.prevEndRow();
+      this.endRow = ke.endRow();
     }
 
     public RowRange(TRowRange trr) {

@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.client.Accumulo;
@@ -43,6 +44,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.DiskUsage;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
@@ -51,10 +53,11 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
@@ -94,10 +97,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
       checkMetadata(table2, c);
 
-      HashMap<String,String> tableProps = new HashMap<>();
-      for (Entry<String,String> prop : c.tableOperations().getProperties(table2)) {
-        tableProps.put(prop.getKey(), prop.getValue());
-      }
+      Map<String,String> tableProps = Map.copyOf(c.tableOperations().getConfiguration(table2));
 
       assertEquals("500K", tableProps.get(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey()));
       assertEquals(Property.TABLE_FILE_MAX.getDefaultValue(),
@@ -137,8 +137,8 @@ public class CloneTestIT extends AccumuloClusterHarness {
   private void checkMetadata(String table, AccumuloClient client) throws Exception {
     try (Scanner s = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
 
-      s.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-      MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
+      s.fetchColumnFamily(DataFileColumnFamily.NAME);
+      ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
       String tableId = client.tableOperations().tableIdMap().get(table);
 
       assertNotNull("Could not get table id for " + table, tableId);
@@ -148,26 +148,24 @@ public class CloneTestIT extends AccumuloClusterHarness {
       Key k;
       Text cf = new Text(), cq = new Text();
       int itemsInspected = 0;
+      var pattern = Pattern.compile("[tc]-[0-9a-z]+");
       for (Entry<Key,Value> entry : s) {
         itemsInspected++;
         k = entry.getKey();
         k.getColumnFamily(cf);
         k.getColumnQualifier(cq);
 
-        if (cf.equals(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME)) {
+        if (cf.equals(DataFileColumnFamily.NAME)) {
           Path p = new Path(cq.toString());
           FileSystem fs = cluster.getFileSystem();
           assertTrue("File does not exist: " + p, fs.exists(p));
-        } else if (cf.equals(
-            MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily())) {
+        } else if (cf.equals(ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily())) {
           assertEquals("Saw unexpected cq",
-              MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN
-                  .getColumnQualifier(),
-              cq);
+              ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), cq);
 
           String dirName = entry.getValue().toString();
 
-          assertTrue("Bad dir name " + dirName, dirName.matches("[tc]-[0-9a-z]+"));
+          assertTrue("Bad dir name " + dirName, pattern.matcher(dirName).matches());
         } else {
           fail("Got unexpected key-value: " + entry);
           throw new RuntimeException();
@@ -312,9 +310,8 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
       String[] tables = getUniqueNames(2);
 
-      client.tableOperations().create(tables[0]);
-
-      client.tableOperations().addSplits(tables[0], splits);
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+      client.tableOperations().create(tables[0], ntc);
 
       try (BatchWriter bw = client.createBatchWriter(tables[0])) {
         bw.addMutations(mutations);
@@ -326,8 +323,10 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
       List<String> rows = Arrays.asList("0", "1", "2", "3", "4", "9");
       List<String> actualRows = new ArrayList<>();
-      for (Entry<Key,Value> entry : client.createScanner(tables[1], Authorizations.EMPTY)) {
-        actualRows.add(entry.getKey().getRow().toString());
+      try (var scanner = client.createScanner(tables[1], Authorizations.EMPTY)) {
+        for (Entry<Key,Value> entry : scanner) {
+          actualRows.add(entry.getKey().getRow().toString());
+        }
       }
 
       assertEquals(rows, actualRows);

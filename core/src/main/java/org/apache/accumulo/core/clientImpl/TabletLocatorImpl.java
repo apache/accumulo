@@ -293,14 +293,14 @@ public class TabletLocatorImpl extends TabletLocator {
 
       tabletLocations.add(tl);
 
-      while (tl.tablet_extent.getEndRow() != null && !range
-          .afterEndKey(new Key(tl.tablet_extent.getEndRow()).followingKey(PartialKey.ROW))) {
+      while (tl.tablet_extent.endRow() != null
+          && !range.afterEndKey(new Key(tl.tablet_extent.endRow()).followingKey(PartialKey.ROW))) {
         if (useCache) {
-          Text row = new Text(tl.tablet_extent.getEndRow());
+          Text row = new Text(tl.tablet_extent.endRow());
           row.append(new byte[] {0}, 0, 1);
           tl = lcSession.checkLock(locateTabletInCache(row));
         } else {
-          tl = _locateTablet(context, tl.tablet_extent.getEndRow(), true, false, false, lcSession);
+          tl = _locateTablet(context, tl.tablet_extent.endRow(), true, false, false, lcSession);
         }
 
         if (tl == null) {
@@ -490,7 +490,7 @@ public class TabletLocatorImpl extends TabletLocator {
       while (locations != null && locations.getLocations().isEmpty()
           && locations.getLocationless().isEmpty()) {
         // try the next tablet, the current tablet does not have any tablets that overlap the row
-        Text er = ptl.tablet_extent.getEndRow();
+        Text er = ptl.tablet_extent.endRow();
         if (er != null && er.compareTo(lastTabletRow) < 0) {
           // System.out.println("er "+er+" ltr "+lastTabletRow);
           ptl = parent.locateTablet(context, er, true, retry);
@@ -517,17 +517,16 @@ public class TabletLocatorImpl extends TabletLocator {
         TabletLocation locToCache;
 
         // create new location if current prevEndRow == endRow
-        if ((lastEndRow != null) && (ke.getPrevEndRow() != null)
-            && ke.getPrevEndRow().equals(lastEndRow)) {
-          locToCache =
-              new TabletLocation(new KeyExtent(ke.getTableId(), ke.getEndRow(), lastEndRow),
-                  tabletLocation.tablet_location, tabletLocation.tablet_session);
+        if ((lastEndRow != null) && (ke.prevEndRow() != null)
+            && ke.prevEndRow().equals(lastEndRow)) {
+          locToCache = new TabletLocation(new KeyExtent(ke.tableId(), ke.endRow(), lastEndRow),
+              tabletLocation.tablet_location, tabletLocation.tablet_session);
         } else {
           locToCache = tabletLocation;
         }
 
         // save endRow for next iteration
-        lastEndRow = locToCache.tablet_extent.getEndRow();
+        lastEndRow = locToCache.tablet_extent.endRow();
 
         updateCache(locToCache, lcSession);
       }
@@ -536,7 +535,7 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   private void updateCache(TabletLocation tabletLocation, LockCheckerSession lcSession) {
-    if (!tabletLocation.tablet_extent.getTableId().equals(tableId)) {
+    if (!tabletLocation.tablet_extent.tableId().equals(tableId)) {
       // sanity check
       throw new IllegalStateException(
           "Unexpected extent returned " + tableId + "  " + tabletLocation.tablet_extent);
@@ -556,7 +555,7 @@ public class TabletLocatorImpl extends TabletLocator {
       return;
 
     // add it to cache
-    Text er = tabletLocation.tablet_extent.getEndRow();
+    Text er = tabletLocation.tablet_extent.endRow();
     if (er == null)
       er = MAX_TEXT;
     metaCache.put(er, tabletLocation);
@@ -568,7 +567,7 @@ public class TabletLocatorImpl extends TabletLocator {
   static void removeOverlapping(TreeMap<Text,TabletLocation> metaCache, KeyExtent nke) {
     Iterator<Entry<Text,TabletLocation>> iter = null;
 
-    if (nke.getPrevEndRow() == null) {
+    if (nke.prevEndRow() == null) {
       iter = metaCache.entrySet().iterator();
     } else {
       Text row = rowAfterPrevRow(nke);
@@ -590,12 +589,12 @@ public class TabletLocatorImpl extends TabletLocator {
   }
 
   private static boolean stopRemoving(KeyExtent nke, KeyExtent ke) {
-    return ke.getPrevEndRow() != null && nke.getEndRow() != null
-        && ke.getPrevEndRow().compareTo(nke.getEndRow()) >= 0;
+    return ke.prevEndRow() != null && nke.endRow() != null
+        && ke.prevEndRow().compareTo(nke.endRow()) >= 0;
   }
 
   private static Text rowAfterPrevRow(KeyExtent nke) {
-    Text row = new Text(nke.getPrevEndRow());
+    Text row = new Text(nke.prevEndRow());
     row.append(new byte[] {0}, 0, 1);
     return row;
   }
@@ -612,7 +611,7 @@ public class TabletLocatorImpl extends TabletLocator {
 
     if (entry != null) {
       KeyExtent ke = entry.getValue().tablet_extent;
-      if (ke.getPrevEndRow() == null || ke.getPrevEndRow().compareTo(row) < 0) {
+      if (ke.prevEndRow() == null || ke.prevEndRow().compareTo(row) < 0) {
         return entry.getValue();
       }
     }
@@ -692,7 +691,7 @@ public class TabletLocatorImpl extends TabletLocator {
       List<Range> lookups = new ArrayList<>(badExtents.size());
 
       for (KeyExtent be : badExtents) {
-        lookups.add(be.toMetadataRange());
+        lookups.add(be.toMetaRange());
         removeOverlapping(metaCache, be);
       }
 

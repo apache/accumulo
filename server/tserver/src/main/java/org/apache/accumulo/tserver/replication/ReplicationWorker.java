@@ -25,7 +25,6 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -34,18 +33,15 @@ import org.slf4j.LoggerFactory;
 /**
  * Launches the {@link ReplicationProcessor}
  */
+@Deprecated
 public class ReplicationWorker implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(ReplicationWorker.class);
 
-  private ServerContext context;
-  private AccumuloConfiguration conf;
-  private VolumeManager fs;
+  private final ServerContext context;
   private ThreadPoolExecutor executor;
 
-  public ReplicationWorker(ServerContext context, VolumeManager fs) {
+  public ReplicationWorker(ServerContext context) {
     this.context = context;
-    this.fs = fs;
-    this.conf = context.getConfiguration();
   }
 
   public void setExecutor(ThreadPoolExecutor executor) {
@@ -57,6 +53,7 @@ public class ReplicationWorker implements Runnable {
     DefaultConfiguration defaultConf = DefaultConfiguration.getInstance();
     long defaultDelay = defaultConf.getTimeInMillis(Property.REPLICATION_WORK_PROCESSOR_DELAY);
     long defaultPeriod = defaultConf.getTimeInMillis(Property.REPLICATION_WORK_PROCESSOR_PERIOD);
+    AccumuloConfiguration conf = context.getConfiguration();
     long delay = conf.getTimeInMillis(Property.REPLICATION_WORK_PROCESSOR_DELAY);
     long period = conf.getTimeInMillis(Property.REPLICATION_WORK_PROCESSOR_PERIOD);
     try {
@@ -65,14 +62,15 @@ public class ReplicationWorker implements Runnable {
         log.debug("Configuration DistributedWorkQueue with delay and period of {} and {}", delay,
             period);
         workQueue = new DistributedWorkQueue(
-            context.getZooKeeperRoot() + ReplicationConstants.ZOO_WORK_QUEUE, conf, delay, period);
+            context.getZooKeeperRoot() + ReplicationConstants.ZOO_WORK_QUEUE, conf, context, delay,
+            period);
       } else {
         log.debug("Configuring DistributedWorkQueue with default delay and period");
         workQueue = new DistributedWorkQueue(
-            context.getZooKeeperRoot() + ReplicationConstants.ZOO_WORK_QUEUE, conf);
+            context.getZooKeeperRoot() + ReplicationConstants.ZOO_WORK_QUEUE, conf, context);
       }
 
-      workQueue.startProcessing(new ReplicationProcessor(context, conf, fs), executor);
+      workQueue.startProcessing(new ReplicationProcessor(context), executor);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }

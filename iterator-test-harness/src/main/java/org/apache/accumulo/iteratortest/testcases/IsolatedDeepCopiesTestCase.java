@@ -23,18 +23,17 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Random;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 import org.apache.accumulo.iteratortest.IteratorTestUtil;
-import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +43,7 @@ import org.slf4j.LoggerFactory;
 public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
   private static final Logger log = LoggerFactory.getLogger(IsolatedDeepCopiesTestCase.class);
 
-  private final Random random = new SecureRandom();
+  private static final SecureRandom random = new SecureRandom();
 
   @Override
   public IteratorTestOutput test(IteratorTestInput testInput) {
@@ -52,10 +51,11 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
     final SortedKeyValueIterator<Key,Value> source = IteratorTestUtil.createSource(testInput);
 
     try {
-      skvi.init(source, testInput.getIteratorOptions(), new SimpleIteratorEnvironment());
+      var iteratorEnvironment = testInput.getIteratorEnvironment();
+      skvi.init(source, testInput.getIteratorOptions(), iteratorEnvironment);
 
-      SortedKeyValueIterator<Key,Value> copy1 = skvi.deepCopy(new SimpleIteratorEnvironment());
-      SortedKeyValueIterator<Key,Value> copy2 = copy1.deepCopy(new SimpleIteratorEnvironment());
+      SortedKeyValueIterator<Key,Value> copy1 = skvi.deepCopy(iteratorEnvironment);
+      SortedKeyValueIterator<Key,Value> copy2 = copy1.deepCopy(iteratorEnvironment);
 
       Range seekRange = testInput.getRange();
       Collection<ByteSequence> seekColumnFamilies = testInput.getFamilies();
@@ -66,7 +66,7 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
       copy2.seek(testInput.getRange(), seekColumnFamilies, seekInclusive);
 
       TreeMap<Key,Value> output = consumeMany(new ArrayList<>(Arrays.asList(skvi, copy1, copy2)),
-          seekRange, seekColumnFamilies, seekInclusive);
+          seekRange, seekColumnFamilies, seekInclusive, iteratorEnvironment);
 
       return new IteratorTestOutput(output);
     } catch (IOException e) {
@@ -75,16 +75,15 @@ public class IsolatedDeepCopiesTestCase extends OutputVerifyingTestCase {
   }
 
   TreeMap<Key,Value> consumeMany(Collection<SortedKeyValueIterator<Key,Value>> iterators,
-      Range range, Collection<ByteSequence> seekColumnFamilies, boolean seekInclusive)
-      throws IOException {
+      Range range, Collection<ByteSequence> seekColumnFamilies, boolean seekInclusive,
+      IteratorEnvironment iterEnv) throws IOException {
     TreeMap<Key,Value> data = new TreeMap<>();
     // All of the copies should have consistent results from concurrent use
     while (allHasTop(iterators)) {
       // occasionally deep copy one of the existing iterators
       if (random.nextInt(3) == 0) {
         log.debug("Deep-copying and re-seeking an iterator");
-        SortedKeyValueIterator<Key,Value> newcopy =
-            getRandomElement(iterators).deepCopy(new SimpleIteratorEnvironment());
+        SortedKeyValueIterator<Key,Value> newcopy = getRandomElement(iterators).deepCopy(iterEnv);
         newcopy.seek(
             new Range(getTopKey(iterators), true, range.getEndKey(), range.isEndKeyInclusive()),
             seekColumnFamilies, seekInclusive);

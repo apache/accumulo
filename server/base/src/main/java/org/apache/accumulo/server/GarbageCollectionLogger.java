@@ -25,7 +25,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.server.util.Halt;
+import org.apache.accumulo.core.util.Halt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

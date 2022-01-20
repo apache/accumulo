@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import java.util.NoSuchElementException;
+
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
@@ -33,13 +35,24 @@ public class AmpleImpl implements Ample {
   }
 
   @Override
-  public TabletMetadata readTablet(KeyExtent extent, ColumnType... colsToFetch) {
-    Options builder = TabletsMetadata.builder().forTablet(extent);
+  public TabletMetadata readTablet(KeyExtent extent, ReadConsistency readConsistency,
+      ColumnType... colsToFetch) {
+    Options builder = TabletsMetadata.builder(client).forTablet(extent);
     if (colsToFetch.length > 0)
       builder.fetch(colsToFetch);
 
-    try (TabletsMetadata tablets = builder.build(client)) {
+    builder.readConsistency(readConsistency);
+
+    try (TabletsMetadata tablets = builder.build()) {
       return Iterables.getOnlyElement(tablets);
+    } catch (NoSuchElementException e) {
+      return null;
     }
   }
+
+  @Override
+  public TabletsMetadata.TableOptions readTablets() {
+    return TabletsMetadata.builder(this.client);
+  }
+
 }

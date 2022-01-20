@@ -76,7 +76,7 @@ import org.apache.log4j.Logger;
  * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapred instead from the
  *             accumulo-hadoop-mapreduce.jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
 
   private static final Class<?> CLASS = AccumuloOutputFormat.class;
@@ -185,7 +185,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @since 1.5.0
    * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobConf)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.6.0")
   protected static String getTokenClass(JobConf job) {
     return getAuthenticationToken(job).getClass().getName();
   }
@@ -196,7 +196,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    * @since 1.5.0
    * @deprecated since 1.6.0; Use {@link #getAuthenticationToken(JobConf)} instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.6.0")
   protected static byte[] getToken(JobConf job) {
     return AuthenticationTokenSerializer.serialize(getAuthenticationToken(job));
   }
@@ -231,7 +231,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
    *             {@link #setZooKeeperInstance(JobConf, org.apache.accumulo.core.client.ClientConfiguration)}
    *             instead.
    */
-  @Deprecated
+  @Deprecated(since = "1.6.0")
   public static void setZooKeeperInstance(JobConf job, String instanceName, String zooKeepers) {
     setZooKeeperInstance(job, org.apache.accumulo.core.client.ClientConfiguration.create()
         .withInstance(instanceName).withZkHosts(zooKeepers));
@@ -521,7 +521,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
           log.trace(String.format("Table %s column: %s:%s", table, hexDump(cu.getColumnFamily()),
               hexDump(cu.getColumnQualifier())));
           log.trace(String.format("Table %s security: %s", table,
-              new ColumnVisibility(cu.getColumnVisibility()).toString()));
+              new ColumnVisibility(cu.getColumnVisibility())));
           log.trace(String.format("Table %s value: %s", table, hexDump(cu.getValue())));
         }
       }
@@ -551,7 +551,7 @@ public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
         if (!e.getSecurityErrorCodes().isEmpty()) {
           var tables = new HashMap<String,Set<SecurityErrorCode>>();
           e.getSecurityErrorCodes().forEach((tabletId, secSet) -> {
-            var tableId = tabletId.getTableId().toString();
+            var tableId = tabletId.getTable().canonical();
             tables.computeIfAbsent(tableId, p -> new HashSet<>()).addAll(secSet);
           });
           log.error("Not authorized to write to tables : " + tables);

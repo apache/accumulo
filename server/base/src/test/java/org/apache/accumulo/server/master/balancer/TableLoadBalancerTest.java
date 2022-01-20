@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -40,16 +39,18 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
+@Deprecated(since = "2.1.0")
 public class TableLoadBalancerTest {
 
   private static Map<String,String> TABLE_ID_MAP = Map.of("t1", "a1", "t2", "b12", "t3", "c4");
@@ -84,8 +85,9 @@ public class TableLoadBalancerTest {
     // generate some fake tablets
     for (int i = 0; i < tableInfo.tableMap.get(tableId.canonical()).onlineTablets; i++) {
       TabletStats stats = new TabletStats();
-      stats.extent = new KeyExtent(tableId, new Text(tserver.host() + String.format("%03d", i + 1)),
-          new Text(tserver.host() + String.format("%03d", i))).toThrift();
+      stats.extent =
+          new KeyExtent(tableId, new Text(tserver.getHost() + String.format("%03d", i + 1)),
+              new Text(tserver.getHost() + String.format("%03d", i))).toThrift();
       result.add(stats);
     }
     return result;
@@ -107,7 +109,7 @@ public class TableLoadBalancerTest {
     }
   }
 
-  // ugh... so wish I had provided mock objects to the LoadBalancer in the master
+  // ugh... so wish I had provided mock objects to the LoadBalancer in the manager
   class TableLoadBalancer extends org.apache.accumulo.server.master.balancer.TableLoadBalancer {
 
     // use our new classname to test class loading
@@ -132,22 +134,22 @@ public class TableLoadBalancerTest {
   }
 
   private ServerContext createMockContext() {
-    ServerContext context = createMock(ServerContext.class);
     final String instanceId =
         UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}).toString();
-    expect(context.getProperties()).andReturn(new Properties()).anyTimes();
-    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
-    expect(context.getZooKeepers()).andReturn("10.0.0.1:1234").anyTimes();
-    expect(context.getZooKeepersSessionTimeOut()).andReturn(30_000).anyTimes();
-    expect(context.getZooKeeperRoot()).andReturn("/root/").anyTimes();
-    return context;
+    return MockServerContext.getWithZK(instanceId, "10.0.0.1:1234", 30_000);
   }
 
   @Test
   public void test() {
     final ServerContext context = createMockContext();
     TableConfiguration conf = createMock(TableConfiguration.class);
-    expect(conf.get(Property.TABLE_CLASSPATH)).andReturn("").anyTimes();
+    // Eclipse might show @SuppressWarnings("removal") as unnecessary.
+    // Eclipse is wrong. See https://bugs.eclipse.org/bugs/show_bug.cgi?id=565271
+    @SuppressWarnings("removal")
+    Property TABLE_CLASSPATH = Property.TABLE_CLASSPATH;
+    expect(conf.resolve(Property.TABLE_CLASSLOADER_CONTEXT, TABLE_CLASSPATH))
+        .andReturn(Property.TABLE_CLASSLOADER_CONTEXT).anyTimes();
+    expect(conf.get(Property.TABLE_CLASSLOADER_CONTEXT)).andReturn("").anyTimes();
     expect(context.getTableConfiguration(EasyMock.anyObject())).andReturn(conf).anyTimes();
     replay(context, conf);
 
@@ -177,7 +179,7 @@ public class TableLoadBalancerTest {
       if (migration.oldServer.equals(svr)) {
         count++;
       }
-      TableId key = migration.tablet.getTableId();
+      TableId key = migration.tablet.tableId();
       movedByTable.put(key, movedByTable.get(key) + 1);
     }
     assertEquals(15, count);

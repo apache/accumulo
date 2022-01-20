@@ -42,7 +42,7 @@ import com.google.common.base.Preconditions;
  *
  * @since 1.5.0
  */
-public class MiniAccumuloCluster {
+public class MiniAccumuloCluster implements AutoCloseable {
 
   private MiniAccumuloClusterImpl impl;
 
@@ -110,6 +110,19 @@ public class MiniAccumuloCluster {
   }
 
   /**
+   * @since 2.0.1
+   */
+  @Override
+  public void close() throws IOException {
+    try {
+      this.stop();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
    * @since 1.6.0
    */
   public MiniAccumuloConfig getConfig() {
@@ -122,7 +135,7 @@ public class MiniAccumuloCluster {
    * @since 1.6.0
    * @deprecated since 2.0.0, replaced by {@link #createAccumuloClient(String, AuthenticationToken)}
    */
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   public org.apache.accumulo.core.client.Connector getConnector(String user, String passwd)
       throws AccumuloException, AccumuloSecurityException {
     return org.apache.accumulo.core.client.Connector
@@ -143,7 +156,7 @@ public class MiniAccumuloCluster {
    * @since 1.6.0
    * @deprecated since 2.0.0, replaced by {@link #getClientProperties()}
    */
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   public org.apache.accumulo.core.client.ClientConfiguration getClientConfig() {
     return impl.getClientConfig();
   }

@@ -27,7 +27,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
@@ -35,7 +34,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.security.Authorizations;
@@ -43,6 +42,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Deprecated
 public class ReplicationTable {
   private static final Logger log = LoggerFactory.getLogger(ReplicationTable.class);
 
@@ -71,7 +71,7 @@ public class ReplicationTable {
   public static BatchWriter getBatchWriter(AccumuloClient client)
       throws ReplicationTableOfflineException {
     try {
-      return client.createBatchWriter(NAME, new BatchWriterConfig());
+      return client.createBatchWriter(NAME);
     } catch (TableNotFoundException e) {
       throw new AssertionError(NAME + " should exist, but doesn't.");
     } catch (TableOfflineException e) {

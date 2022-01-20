@@ -27,7 +27,6 @@ import static org.junit.Assert.assertSame;
 import java.io.File;
 import java.util.HashSet;
 
-import org.apache.accumulo.start.classloader.vfs.ContextManager.ContextConfig;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
@@ -40,6 +39,7 @@ import org.junit.rules.TemporaryFolder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@Deprecated
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class ContextManagerTest {
 
@@ -97,9 +97,9 @@ public class ContextManagerTest {
 
     cm.setContextConfig(context -> {
       if (context.equals("CX1")) {
-        return new ContextConfig(uri1, true);
+        return new ContextManager.ContextConfig("CX1", uri1, true);
       } else if (context.equals("CX2")) {
-        return new ContextConfig(uri2, true);
+        return new ContextManager.ContextConfig("CX2", uri2, true);
       }
       return null;
     });
@@ -139,9 +139,9 @@ public class ContextManagerTest {
 
     cm.setContextConfig(context -> {
       if (context.equals("CX1")) {
-        return new ContextConfig(uri2.toString(), true);
+        return new ContextManager.ContextConfig("CX1", uri1.toString(), true);
       } else if (context.equals("CX2")) {
-        return new ContextConfig(uri2.toString(), false);
+        return new ContextManager.ContextConfig("CX2", uri2.toString(), false);
       }
       return null;
     });

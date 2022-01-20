@@ -28,7 +28,7 @@ import org.apache.accumulo.core.security.ColumnVisibility;
  * @deprecated since 1.8.0; Use {@link DefaultFormatter} providing showLength and printTimestamps
  *             via {@link FormatterConfig}.
  */
-@Deprecated
+@Deprecated(since = "1.8.0")
 public class BinaryFormatter extends DefaultFormatter {
   // this class can probably be replaced by DefaultFormatter since DefaultFormatter has the max
   // length stuff

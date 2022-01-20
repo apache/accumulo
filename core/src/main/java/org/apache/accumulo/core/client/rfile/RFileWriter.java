@@ -48,6 +48,7 @@ import com.google.common.base.Preconditions;
  * <li>Keys must be appended in sorted order within a locality group.</li>
  * <li>Locality groups must have a mutually exclusive set of column families.</li>
  * <li>The default locality group must be started last.</li>
+ * <li>If using RFile.newWriter().to("filename.rf"), the ".rf" extension is required.</li>
  * </ul>
  *
  * <p>
@@ -59,7 +60,7 @@ import com.google.common.base.Preconditions;
  *     Iterable&lt;Entry&lt;Key, Value&gt;&gt; localityGroup2Data = ...
  *     Iterable&lt;Entry&lt;Key, Value&gt;&gt; defaultGroupData = ...
  *
- *     try(RFileWriter writer = RFile.newWriter().to(file).build()) {
+ *     try(RFileWriter writer = RFile.newWriter().to("filename.rf").build()) {
  *
  *       // Start a locality group before appending data.
  *       writer.startNewLocalityGroup("groupA", "columnFam1", "columnFam2");
@@ -102,7 +103,7 @@ public class RFileWriter implements AutoCloseable {
   private void _startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies)
       throws IOException {
     Preconditions.checkState(!startedDefaultLG,
-        "Cannont start a locality group after starting the default locality group");
+        "Cannot start a locality group after starting the default locality group");
     writer.startNewLocalityGroup(name, columnFamilies);
     startedLG = true;
   }

@@ -32,9 +32,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -44,11 +42,16 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFileUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.ExternalCompactionSection;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,9 +63,9 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
   private ServerContext context;
 
-  public ServerAmpleImpl(ServerContext ctx) {
-    super(ctx);
-    this.context = ctx;
+  public ServerAmpleImpl(ServerContext context) {
+    super(context);
+    this.context = context;
   }
 
   @Override
@@ -81,26 +84,19 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   private void mutateRootGcCandidates(Consumer<RootGcCandidates> mutator) {
     String zpath = context.getZooKeeperRoot() + ZROOT_TABLET_GC_CANDIDATES;
     try {
-      context.getZooReaderWriter().mutate(zpath, new byte[0], ZooUtil.PUBLIC, currVal -> {
+      context.getZooReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
-
         RootGcCandidates rgcc = RootGcCandidates.fromJson(currJson);
-
         log.debug("Root GC candidates before change : {}", currJson);
-
         mutator.accept(rgcc);
-
         String newJson = rgcc.toJson();
-
         log.debug("Root GC candidates after change  : {}", newJson);
-
         if (newJson.length() > 262_144) {
           log.warn(
               "Root tablet deletion candidates stored in ZK at {} are getting large ({} bytes), is"
                   + " Accumulo GC process running?  Large nodes may cause problems for Zookeeper!",
               zpath, newJson.length());
         }
-
         return newJson.getBytes(UTF_8);
       });
     } catch (Exception e) {
@@ -112,13 +108,33 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   public void putGcCandidates(TableId tableId, Collection<StoredTabletFile> candidates) {
 
     if (RootTable.ID.equals(tableId)) {
-      mutateRootGcCandidates(rgcc -> rgcc.add(candidates));
+      mutateRootGcCandidates(rgcc -> rgcc.add(candidates.iterator()));
       return;
     }
 
     try (BatchWriter writer = createWriter(tableId)) {
       for (StoredTabletFile file : candidates) {
         writer.addMutation(createDeleteMutation(file));
+      }
+    } catch (MutationsRejectedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override
+  public void putGcFileAndDirCandidates(TableId tableId, Collection<String> candidates) {
+
+    if (RootTable.ID.equals(tableId)) {
+
+      // Directories are unexpected for the root tablet, so convert to stored tablet file
+      mutateRootGcCandidates(
+          rgcc -> rgcc.add(candidates.stream().map(StoredTabletFile::new).iterator()));
+      return;
+    }
+
+    try (BatchWriter writer = createWriter(tableId)) {
+      for (String fileOrDir : candidates) {
+        writer.addMutation(createDeleteMutation(fileOrDir));
       }
     } catch (MutationsRejectedException e) {
       throw new RuntimeException(e);
@@ -144,24 +160,20 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     }
   }
 
-  public Iterator<String> getGcCandidates(DataLevel level, String continuePoint) {
+  @Override
+  public Iterator<String> getGcCandidates(DataLevel level) {
     if (level == DataLevel.ROOT) {
-      byte[] json = context.getZooCache()
-          .get(context.getZooKeeperRoot() + RootTable.ZROOT_TABLET_GC_CANDIDATES);
-      Stream<String> candidates = RootGcCandidates.fromJson(json).stream().sorted();
-
-      if (continuePoint != null && !continuePoint.isEmpty()) {
-        candidates = candidates.dropWhile(candidate -> candidate.compareTo(continuePoint) <= 0);
+      var zooReader = new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
+      byte[] json;
+      try {
+        json = zooReader.getData(context.getZooKeeperRoot() + RootTable.ZROOT_TABLET_GC_CANDIDATES);
+      } catch (KeeperException | InterruptedException e) {
+        throw new RuntimeException(e);
       }
-
+      Stream<String> candidates = RootGcCandidates.fromJson(json).stream().sorted();
       return candidates.iterator();
     } else if (level == DataLevel.METADATA || level == DataLevel.USER) {
       Range range = DeletesSection.getRange();
-      if (continuePoint != null && !continuePoint.isEmpty()) {
-        String continueRow = DeletesSection.encodeRow(continuePoint);
-        range = new Range(new Key(continueRow).followingKey(PartialKey.ROW), true,
-            range.getEndKey(), range.isEndKeyInclusive());
-      }
 
       Scanner scanner;
       try {
@@ -171,7 +183,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       }
       scanner.setRange(range);
       return StreamSupport.stream(scanner.spliterator(), false)
-          .filter(entry -> entry.getValue().equals(DeletesSection.SkewedKeyValue.NAME))
+          .filter(entry -> entry.getValue().equals(SkewedKeyValue.NAME))
           .map(entry -> DeletesSection.decodeRow(entry.getKey().getRow().toString())).iterator();
     } else {
       throw new IllegalArgumentException();
@@ -193,18 +205,68 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     }
   }
 
-  public static Mutation createDeleteMutation(String pathToRemove) {
-    String path = TabletFileUtil.validate(pathToRemove);
+  @Override
+  public Mutation createDeleteMutation(String tabletFilePathToRemove) {
+    String path = TabletFileUtil.validate(tabletFilePathToRemove);
     return createDelMutation(path);
   }
 
-  public static Mutation createDeleteMutation(StoredTabletFile pathToRemove) {
+  public Mutation createDeleteMutation(StoredTabletFile pathToRemove) {
     return createDelMutation(pathToRemove.getMetaUpdateDelete());
   }
 
-  private static Mutation createDelMutation(String path) {
+  private Mutation createDelMutation(String path) {
     Mutation delFlag = new Mutation(new Text(DeletesSection.encodeRow(path)));
     delFlag.put(EMPTY_TEXT, EMPTY_TEXT, DeletesSection.SkewedKeyValue.NAME);
     return delFlag;
+  }
+
+  @Override
+  public void
+      putExternalCompactionFinalStates(Collection<ExternalCompactionFinalState> finalStates) {
+    try (BatchWriter writer = context.createBatchWriter(DataLevel.USER.metaTable())) {
+      String prefix = ExternalCompactionSection.getRowPrefix();
+      for (ExternalCompactionFinalState finalState : finalStates) {
+        Mutation m = new Mutation(prefix + finalState.getExternalCompactionId().canonical());
+        m.put("", "", finalState.toJson());
+        writer.addMutation(m);
+      }
+    } catch (MutationsRejectedException | TableNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Override
+  public Stream<ExternalCompactionFinalState> getExternalCompactionFinalStates() {
+    Scanner scanner;
+    try {
+      scanner = context.createScanner(DataLevel.USER.metaTable(), Authorizations.EMPTY);
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException(e);
+    }
+
+    scanner.setRange(ExternalCompactionSection.getRange());
+    int pLen = ExternalCompactionSection.getRowPrefix().length();
+    return StreamSupport.stream(scanner.spliterator(), false)
+        .map(e -> ExternalCompactionFinalState.fromJson(
+            ExternalCompactionId.of(e.getKey().getRowData().toString().substring(pLen)),
+            e.getValue().toString()));
+  }
+
+  @Override
+  public void
+      deleteExternalCompactionFinalStates(Collection<ExternalCompactionId> statusesToDelete) {
+    try (BatchWriter writer = context.createBatchWriter(DataLevel.USER.metaTable())) {
+      String prefix = ExternalCompactionSection.getRowPrefix();
+      for (ExternalCompactionId ecid : statusesToDelete) {
+        Mutation m = new Mutation(prefix + ecid.canonical());
+        m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
+        writer.addMutation(m);
+      }
+      log.debug("Deleted external compaction final state entries for external compactions: {}",
+          statusesToDelete);
+    } catch (MutationsRejectedException | TableNotFoundException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

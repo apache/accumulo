@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+syntax = "proto2";
 option java_package = "org.apache.accumulo.server.replication.proto";
 option optimize_for = SPEED;
 

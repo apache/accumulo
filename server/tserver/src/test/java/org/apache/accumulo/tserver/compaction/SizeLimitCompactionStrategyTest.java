@@ -36,6 +36,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.junit.Test;
 
+@SuppressWarnings("removal")
 public class SizeLimitCompactionStrategyTest {
 
   private static Map<StoredTabletFile,DataFileValue> nfl(String... sa) {

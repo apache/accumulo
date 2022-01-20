@@ -34,6 +34,7 @@ import org.junit.Test;
 
 public class TabletMutationPrepAttemptTest {
 
+  @Test
   public void ensureTabletClosed() {
     PreparedMutations prepared = new PreparedMutations();
     assertTrue(prepared.tabletClosed());
@@ -63,6 +64,7 @@ public class TabletMutationPrepAttemptTest {
     prepared.getViolations();
   }
 
+  @Test
   public void testTabletOpen() {
     CommitSession cs = mock(CommitSession.class);
     List<Mutation> nonViolators = new ArrayList<>();
@@ -75,6 +77,6 @@ public class TabletMutationPrepAttemptTest {
     assertSame(cs, prepared.getCommitSession());
     assertSame(nonViolators, prepared.getNonViolators());
     assertSame(violations, prepared.getViolations());
-    assertSame(violators, prepared.getNonViolators());
+    assertSame(violators, prepared.getViolators());
   }
 }

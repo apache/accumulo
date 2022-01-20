@@ -21,9 +21,7 @@ package org.apache.accumulo.test.functional;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -152,23 +150,15 @@ public class DurabilityIT extends ConfigurableMacBase {
     }
   }
 
-  private static Map<String,String> map(Iterable<Entry<String,String>> entries) {
-    Map<String,String> result = new HashMap<>();
-    for (Entry<String,String> entry : entries) {
-      result.put(entry.getKey(), entry.getValue());
-    }
-    return result;
-  }
-
   @Test
   public void testMetaDurability() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
       c.instanceOperations().setProperty(Property.TABLE_DURABILITY.getKey(), "none");
-      Map<String,String> props = map(c.tableOperations().getProperties(MetadataTable.NAME));
+      Map<String,String> props = c.tableOperations().getConfiguration(MetadataTable.NAME);
       assertEquals("sync", props.get(Property.TABLE_DURABILITY.getKey()));
       c.tableOperations().create(tableName);
-      props = map(c.tableOperations().getProperties(tableName));
+      props = c.tableOperations().getConfiguration(tableName);
       assertEquals("none", props.get(Property.TABLE_DURABILITY.getKey()));
       restartTServer();
       assertTrue(c.tableOperations().exists(tableName));

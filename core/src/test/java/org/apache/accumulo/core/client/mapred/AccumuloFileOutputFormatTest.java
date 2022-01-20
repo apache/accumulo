@@ -28,10 +28,7 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.hadoop.mapred.JobConf;
 import org.junit.Test;
 
-/**
- * @deprecated since 2.0.0
- */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class AccumuloFileOutputFormatTest {
 
   @Test

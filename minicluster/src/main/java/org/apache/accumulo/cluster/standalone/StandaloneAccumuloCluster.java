@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -37,14 +38,12 @@ import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.master.thrift.MasterGoalState;
+import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -52,12 +51,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * AccumuloCluster implementation to connect to an existing deployment of Accumulo
  */
 public class StandaloneAccumuloCluster implements AccumuloCluster {
-  @SuppressWarnings("unused")
-  private static final Logger log = LoggerFactory.getLogger(StandaloneAccumuloCluster.class);
 
   static final List<ServerType> ALL_SERVER_TYPES =
-      Collections.unmodifiableList(Arrays.asList(ServerType.MASTER, ServerType.TABLET_SERVER,
-          ServerType.TRACER, ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR));
+      Collections.unmodifiableList(Arrays.asList(ServerType.MANAGER, ServerType.TABLET_SERVER,
+          ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR));
 
   private ClientInfo info;
   private String accumuloHome, clientAccumuloConfDir, serverAccumuloConfDir, hadoopConfDir;
@@ -147,7 +144,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   @Override
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   public org.apache.accumulo.core.client.ClientConfiguration getClientConfig() {
     return ClientConfConverter.toClientConf(info.getProperties());
   }
@@ -170,7 +167,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     // TODO We can check the hosts files, but that requires us to be on a host with the
     // installation. Limitation at the moment.
 
-    control.setGoalState(MasterGoalState.NORMAL.toString());
+    control.setGoalState(ManagerGoalState.NORMAL.toString());
 
     for (ServerType type : ALL_SERVER_TYPES) {
       control.startAllServers(type);
@@ -200,14 +197,18 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   @Override
-  public FileSystem getFileSystem() throws IOException {
+  public FileSystem getFileSystem() {
     Configuration conf = getHadoopConfiguration();
-    return FileSystem.get(conf);
+    try {
+      return FileSystem.get(conf);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
   @Override
   public Path getTemporaryPath() {
-    return tmp;
+    return getFileSystem().makeQualified(tmp);
   }
 
   public ClusterUser getUser(int offset) {

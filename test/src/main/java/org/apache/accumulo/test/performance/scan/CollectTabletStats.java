@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.test.performance.scan;
 
+import static org.apache.accumulo.harness.AccumuloITBase.random;
+
 import java.io.IOException;
 import java.net.InetAddress;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,7 +30,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
@@ -58,12 +58,12 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnQualifierFilter;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator.Behavior;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.VisibilityFilter;
 import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.metadata.TabletFile;
@@ -88,6 +88,7 @@ import com.beust.jcommander.Parameter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CollectTabletStats {
+
   private static final Logger log = LoggerFactory.getLogger(CollectTabletStats.class);
 
   static class CollectOptions extends ServerUtilOpts {
@@ -223,8 +224,8 @@ public class CollectTabletStats {
           Test test = new Test(ke) {
             @Override
             public int runTest() throws Exception {
-              return scanTablet(client, opts.tableName, opts.auths, ke.getPrevEndRow(),
-                  ke.getEndRow(), columns);
+              return scanTablet(client, opts.tableName, opts.auths, ke.prevEndRow(), ke.endRow(),
+                  columns);
             }
           };
           tests.add(test);
@@ -378,9 +379,8 @@ public class CollectTabletStats {
   private static List<KeyExtent> selectRandomTablets(int numThreads, List<KeyExtent> candidates) {
     List<KeyExtent> tabletsToTest = new ArrayList<>();
 
-    Random rand = new SecureRandom();
     for (int i = 0; i < numThreads; i++) {
-      int rindex = rand.nextInt(candidates.size());
+      int rindex = random.nextInt(candidates.size());
       tabletsToTest.add(candidates.get(rindex));
       Collections.swap(candidates, rindex, candidates.size() - 1);
       candidates = candidates.subList(0, candidates.size() - 1);
@@ -464,7 +464,7 @@ public class CollectTabletStats {
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
           .forFile(file.getPathStr(), ns, ns.getConf(), CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(aconf).build();
-      Range range = new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true);
+      Range range = new Range(ke.prevEndRow(), false, ke.endRow(), true);
       reader.seek(range, columnSet, !columnSet.isEmpty());
       while (reader.hasTop() && !range.afterEndKey(reader.getTopKey())) {
         count++;
@@ -501,13 +501,13 @@ public class CollectTabletStats {
 
     List<IterInfo> emptyIterinfo = Collections.emptyList();
     Map<String,Map<String,String>> emptySsio = Collections.emptyMap();
-    TableConfiguration tconf = context.getTableConfiguration(ke.getTableId());
+    TableConfiguration tconf = context.getTableConfiguration(ke.tableId());
     reader = createScanIterator(ke, readers, auths, new byte[] {}, new HashSet<>(), emptyIterinfo,
         emptySsio, useTableIterators, tconf);
 
     HashSet<ByteSequence> columnSet = createColumnBSS(columns);
 
-    reader.seek(new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true), columnSet,
+    reader.seek(new Range(ke.prevEndRow(), false, ke.endRow(), true), columnSet,
         !columnSet.isEmpty());
 
     int count = 0;
@@ -547,7 +547,7 @@ public class CollectTabletStats {
     // long t1 = System.currentTimeMillis();
 
     try (Scanner scanner = client.createScanner(table, auths)) {
-      scanner.setRange(new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true));
+      scanner.setRange(new Range(ke.prevEndRow(), false, ke.endRow(), true));
 
       for (String c : columns) {
         scanner.fetchColumnFamily(new Text(c));

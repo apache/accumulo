@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.tserver.session;
 
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,21 +27,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.clientImpl.Translator;
-import org.apache.accumulo.core.clientImpl.Translators;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.ScanState;
 import org.apache.accumulo.core.tabletserver.thrift.ScanType;
 import org.apache.accumulo.core.util.MapCounter;
-import org.apache.accumulo.server.util.time.SimpleTimer;
+import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.tserver.scan.ScanRunState;
 import org.apache.accumulo.tserver.scan.ScanTask;
 import org.apache.accumulo.tserver.session.Session.State;
@@ -57,7 +57,7 @@ import com.google.common.collect.Maps;
 public class SessionManager {
   private static final Logger log = LoggerFactory.getLogger(SessionManager.class);
 
-  private final SecureRandom random;
+  private static final SecureRandom random = new SecureRandom();
   private final ConcurrentMap<Long,Session> sessions = new ConcurrentHashMap<>();
   private final long maxIdle;
   private final long maxUpdateIdle;
@@ -65,29 +65,15 @@ public class SessionManager {
   private final Long expiredSessionMarker = (long) -1;
   private final AccumuloConfiguration aconf;
 
-  public SessionManager(AccumuloConfiguration conf) {
-    aconf = conf;
-    maxUpdateIdle = conf.getTimeInMillis(Property.TSERV_UPDATE_SESSION_MAXIDLE);
-    maxIdle = conf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
+  public SessionManager(ServerContext context) {
+    this.aconf = context.getConfiguration();
+    maxUpdateIdle = aconf.getTimeInMillis(Property.TSERV_UPDATE_SESSION_MAXIDLE);
+    maxIdle = aconf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
 
-    SecureRandom sr;
-    try {
-      // This is faster than the default secure random which uses /dev/urandom
-      sr = SecureRandom.getInstance("SHA1PRNG");
-    } catch (NoSuchAlgorithmException e) {
-      log.debug("Unable to create SHA1PRNG secure random, using default");
-      sr = new SecureRandom();
-    }
-    random = sr;
+    Runnable r = () -> sweep(maxIdle, maxUpdateIdle);
 
-    Runnable r = new Runnable() {
-      @Override
-      public void run() {
-        sweep(maxIdle, maxUpdateIdle);
-      }
-    };
-
-    SimpleTimer.getInstance(conf).schedule(r, 0, Math.max(maxIdle / 2, 1000));
+    context.getScheduledExecutor().scheduleWithFixedDelay(r, 0, Math.max(maxIdle / 2, 1000),
+        TimeUnit.MILLISECONDS);
   }
 
   public long createSession(Session session, boolean reserve) {
@@ -269,7 +255,7 @@ public class SessionManager {
         tmp = session.lastAccessTime;
       }
       final long removeTime = tmp;
-      TimerTask r = new TimerTask() {
+      Runnable r = new Runnable() {
         @Override
         public void run() {
           Session session2 = sessions.get(sessionId);
@@ -292,7 +278,8 @@ public class SessionManager {
         }
       };
 
-      SimpleTimer.getInstance(aconf).schedule(r, delay);
+      ThreadPools.createGeneralScheduledExecutorService(aconf).schedule(r, delay,
+          TimeUnit.MILLISECONDS);
     }
   }
 
@@ -320,11 +307,11 @@ public class SessionManager {
       if (session instanceof SingleScanSession) {
         SingleScanSession ss = (SingleScanSession) session;
         nbt = ss.nextBatchTask;
-        tableID = ss.extent.getTableId();
+        tableID = ss.extent.tableId();
       } else if (session instanceof MultiScanSession) {
         MultiScanSession mss = (MultiScanSession) session;
         nbt = mss.lookupTask;
-        tableID = mss.threadPoolExtent.getTableId();
+        tableID = mss.threadPoolExtent.tableId();
       }
 
       if (nbt == null)
@@ -388,12 +375,12 @@ public class SessionManager {
         }
 
         var params = ss.scanParams;
-        ActiveScan activeScan =
-            new ActiveScan(ss.client, ss.getUser(), ss.extent.getTableId().canonical(),
-                ct - ss.startTime, ct - ss.lastAccessTime, ScanType.SINGLE, state,
-                ss.extent.toThrift(), Translator.translate(params.getColumnSet(), Translators.CT),
-                params.getSsiList(), params.getSsio(),
-                params.getAuthorizations().getAuthorizationsBB(), params.getClassLoaderContext());
+        ActiveScan activeScan = new ActiveScan(ss.client, ss.getUser(),
+            ss.extent.tableId().canonical(), ct - ss.startTime, ct - ss.lastAccessTime,
+            ScanType.SINGLE, state, ss.extent.toThrift(),
+            params.getColumnSet().stream().map(Column::toThrift).collect(Collectors.toList()),
+            params.getSsiList(), params.getSsio(), params.getAuthorizations().getAuthorizationsBB(),
+            params.getClassLoaderContext());
 
         // scanId added by ACCUMULO-2641 is an optional thrift argument and not available in
         // ActiveScan constructor
@@ -425,10 +412,10 @@ public class SessionManager {
 
         var params = mss.scanParams;
         activeScans.add(new ActiveScan(mss.client, mss.getUser(),
-            mss.threadPoolExtent.getTableId().canonical(), ct - mss.startTime,
-            ct - mss.lastAccessTime, ScanType.BATCH, state, mss.threadPoolExtent.toThrift(),
-            Translator.translate(params.getColumnSet(), Translators.CT), params.getSsiList(),
-            params.getSsio(), params.getAuthorizations().getAuthorizationsBB(),
+            mss.threadPoolExtent.tableId().canonical(), ct - mss.startTime, ct - mss.lastAccessTime,
+            ScanType.BATCH, state, mss.threadPoolExtent.toThrift(),
+            params.getColumnSet().stream().map(Column::toThrift).collect(Collectors.toList()),
+            params.getSsiList(), params.getSsio(), params.getAuthorizations().getAuthorizationsBB(),
             params.getClassLoaderContext()));
       }
     }

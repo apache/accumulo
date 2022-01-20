@@ -38,7 +38,7 @@ import org.apache.accumulo.core.replication.ReplicationSchema.WorkSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.ReplicationTarget;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.master.replication.FinishedWorkUpdater;
+import org.apache.accumulo.manager.replication.FinishedWorkUpdater;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.junit.Before;
@@ -48,6 +48,7 @@ import org.junit.Test;
 import com.google.common.collect.Iterables;
 
 @Ignore("Replication ITs are not stable and not currently maintained")
+@Deprecated
 public class FinishedWorkUpdaterIT extends ConfigurableMacBase {
 
   private AccumuloClient client;

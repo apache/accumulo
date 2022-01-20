@@ -124,7 +124,7 @@ public class Range implements WritableComparable<Range> {
    * @param endRow
    *          ending row; set to null for positive infinity
    * @param endRowInclusive
-   *          true to include start row, false to skip
+   *          true to include end row, false to skip
    * @throws IllegalArgumentException
    *           if end row is before start row
    */

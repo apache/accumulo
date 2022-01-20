@@ -20,7 +20,7 @@
 
 ## Before accumulo-env.sh is loaded, these environment variables are set and can be used in this file:
 
-# cmd - Command that is being called such as tserver, master, etc.
+# cmd - Command that is being called such as tserver, manager, etc.
 # basedir - Root of Accumulo installation
 # bin - Directory containing Accumulo scripts
 # conf - Directory containing Accumulo configuration
@@ -31,13 +31,13 @@
 ############################
 
 ## Accumulo logs directory. Referenced by logger config.
-export ACCUMULO_LOG_DIR="${ACCUMULO_LOG_DIR:-${basedir}/logs}"
+ACCUMULO_LOG_DIR="${ACCUMULO_LOG_DIR:-${basedir}/logs}"
 ## Hadoop installation
-export HADOOP_HOME="${HADOOP_HOME:-/path/to/hadoop}"
+HADOOP_HOME="${HADOOP_HOME:-/path/to/hadoop}"
 ## Hadoop configuration
-export HADOOP_CONF_DIR="${HADOOP_CONF_DIR:-${HADOOP_HOME}/etc/hadoop}"
+HADOOP_CONF_DIR="${HADOOP_CONF_DIR:-${HADOOP_HOME}/etc/hadoop}"
 ## Zookeeper installation
-export ZOOKEEPER_HOME="${ZOOKEEPER_HOME:-/path/to/zookeeper}"
+ZOOKEEPER_HOME="${ZOOKEEPER_HOME:-/path/to/zookeeper}"
 
 ##########################
 # Build CLASSPATH variable
@@ -59,7 +59,8 @@ if [[ -n "$CLASSPATH" ]]; then
 else
   CLASSPATH="${conf}"
 fi
-CLASSPATH="${CLASSPATH}:${lib}/*:${HADOOP_CONF_DIR}:${ZOOKEEPER_HOME}/*:${ZOOKEEPER_HOME}/lib/*:${HADOOP_HOME}/share/hadoop/client/*"
+ZK_JARS=$(find "$ZOOKEEPER_HOME/lib/" -maxdepth 1 -name '*.jar' -not -name '*slf4j*' -not -name '*log4j*' | paste -sd:)
+CLASSPATH="${CLASSPATH}:${lib}/*:${HADOOP_CONF_DIR}:${ZOOKEEPER_HOME}/*:${ZK_JARS}:${HADOOP_HOME}/share/hadoop/client/*"
 export CLASSPATH
 
 ##################################################################
@@ -67,7 +68,7 @@ export CLASSPATH
 ##################################################################
 
 ## JVM options set for all processes. Extra options can be passed in by setting ACCUMULO_JAVA_OPTS to an array of options.
-JAVA_OPTS=("${ACCUMULO_JAVA_OPTS[@]}"
+JAVA_OPTS=($ACCUMULO_JAVA_OPTS
   '-XX:OnOutOfMemoryError=kill -9 %p'
   '-XX:-OmitStackTraceInFastThrow'
   '-Djava.net.preferIPv4Stack=true'
@@ -78,10 +79,12 @@ JAVA_OPTS=("${ACCUMULO_JAVA_OPTS[@]}"
 
 ## JVM options set for individual applications
 case "$cmd" in
-  master)  JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx512m' '-Xms512m') ;;
+  manager|master)  JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx512m' '-Xms512m') ;;
   monitor) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms256m') ;;
   gc)      JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms256m') ;;
   tserver) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx768m' '-Xms768m') ;;
+  compaction-coordinator) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx512m' '-Xms512m') ;;
+  compactor) JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms256m') ;;
   *)       JAVA_OPTS=("${JAVA_OPTS[@]}" '-Xmx256m' '-Xms64m') ;;
 esac
 
@@ -91,10 +94,19 @@ JAVA_OPTS=("${JAVA_OPTS[@]}"
   "-Daccumulo.application=${cmd}${ACCUMULO_SERVICE_INSTANCE}_$(hostname)"
   "-Daccumulo.metrics.service.instance=${ACCUMULO_SERVICE_INSTANCE}"
   "-Dlog4j2.contextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
+  "-Dotel.service.name=${cmd}${ACCUMULO_SERVICE_INSTANCE}"
 )
 
+## Optionally setup OpenTelemetry SDK AutoConfigure
+## See https://github.com/open-telemetry/opentelemetry-java/tree/main/sdk-extensions/autoconfigure
+#JAVA_OPTS=("${JAVA_OPTS[@]}"  "-Dotel.traces.exporter=jaeger")
+
+## Optionally setup OpenTelemetry Java Agent
+## See https://github.com/open-telemetry/opentelemetry-java-instrumentation for more options
+#JAVA_OPTS=("${JAVA_OPTS[@]}"  "-javaagent:path/to/opentelemetry-javaagent-all.jar")
+
 case "$cmd" in
-  monitor|gc|master|tserver|tracer)
+  monitor|gc|manager|master|tserver|compaction-coordinator|compactor)
     JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configurationFile=log4j2-service.properties")
     ;;
   *)
@@ -102,8 +114,6 @@ case "$cmd" in
     true
     ;;
 esac
-
-export JAVA_OPTS
 
 ############################
 # Variables set to a default

@@ -130,6 +130,12 @@ div.legend > table {
   min-width: 0%;
 }
 
+.legendLayer .background {
+    fill: rgba(255, 255, 255, 0.85);
+    stroke: rgba(0, 0, 0, 0.85);
+    stroke-width: 1;
+}
+
 table.sortable {
   border-left: 0;
   border-right: 0;

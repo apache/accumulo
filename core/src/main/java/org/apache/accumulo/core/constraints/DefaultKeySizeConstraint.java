@@ -24,10 +24,19 @@ import java.util.List;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A constraints that limits the size of keys to 1mb.
+ *
+ * @deprecated since 2.1.0 Use
+ *             {@link org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint}
  */
-public class DefaultKeySizeConstraint implements Constraint {
+@Deprecated(since = "2.1.0")
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_SUPERCLASS",
+    justification = "Same name used for compatibility during deprecation cycle")
+public class DefaultKeySizeConstraint extends
+    org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint implements Constraint {
 
   protected static final short MAX__KEY_SIZE_EXCEEDED_VIOLATION = 1;
   protected static final long maxSize = 1048576; // 1MB default size
@@ -46,7 +55,7 @@ public class DefaultKeySizeConstraint implements Constraint {
   static final List<Short> NO_VIOLATIONS = new ArrayList<>();
 
   @Override
-  public List<Short> check(Environment env, Mutation mutation) {
+  public List<Short> check(Constraint.Environment env, Mutation mutation) {
 
     // fast size check
     if (mutation.numBytes() < maxSize)

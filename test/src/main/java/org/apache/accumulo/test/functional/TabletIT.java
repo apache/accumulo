@@ -36,7 +36,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -50,7 +49,6 @@ public class TabletIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "128M");
-    cfg.setDefaultMemory(256, MemoryUnit.MEGABYTE);
     cfg.setSiteConfig(siteConfig);
   }
 
@@ -87,8 +85,7 @@ public class TabletIT extends AccumuloClusterHarness {
         // populate
         for (int i = 0; i < N; i++) {
           Mutation m = new Mutation(new Text(String.format("%05d", i)));
-          m.put(new Text("col" + Integer.toString((i % 3) + 1)), new Text("qual"),
-              new Value("junk"));
+          m.put("col" + ((i % 3) + 1), "qual", "junk");
           b.addMutation(m);
         }
       }

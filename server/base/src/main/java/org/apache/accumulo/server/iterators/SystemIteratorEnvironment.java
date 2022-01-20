@@ -18,11 +18,16 @@
  */
 package org.apache.accumulo.server.iterators;
 
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.server.ServerContext;
 
 public interface SystemIteratorEnvironment extends IteratorEnvironment {
 
   ServerContext getServerContext();
+
+  SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter);
 
 }

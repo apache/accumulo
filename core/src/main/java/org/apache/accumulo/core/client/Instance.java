@@ -31,7 +31,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
  * @deprecated since 2.0.0, use {@link Accumulo#newClient()} and {@link java.util.Properties}
  *             instead
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public interface Instance {
   /**
    * Returns the location of the tablet server that is serving the root tablet.
@@ -41,7 +41,7 @@ public interface Instance {
   String getRootTabletLocation();
 
   /**
-   * Returns the location(s) of the accumulo master and any redundant servers.
+   * Returns the location(s) of the accumulo manager and any redundant servers.
    *
    * @return a list of locations in "hostname:port" form
    */
@@ -90,7 +90,7 @@ public interface Instance {
    * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with
    *             {@link PasswordToken}
    */
-  @Deprecated
+  @Deprecated(since = "1.5.0")
   default Connector getConnector(String user, byte[] pass)
       throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, new PasswordToken(pass));
@@ -111,7 +111,7 @@ public interface Instance {
    * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with
    *             {@link PasswordToken}
    */
-  @Deprecated
+  @Deprecated(since = "1.5.0")
   default Connector getConnector(String user, ByteBuffer pass)
       throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, new PasswordToken(pass));
@@ -132,7 +132,7 @@ public interface Instance {
    * @deprecated since 1.5, use {@link #getConnector(String, AuthenticationToken)} with
    *             {@link PasswordToken}
    */
-  @Deprecated
+  @Deprecated(since = "1.5.0")
   default Connector getConnector(String user, CharSequence pass)
       throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, new PasswordToken(pass));

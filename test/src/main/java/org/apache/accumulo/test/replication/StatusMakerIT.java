@@ -36,7 +36,6 @@ import java.util.UUID;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -49,7 +48,7 @@ import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.master.replication.StatusMaker;
+import org.apache.accumulo.manager.replication.StatusMaker;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.replication.StatusUtil;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
@@ -67,6 +66,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 @Ignore("Replication ITs are not stable and not currently maintained")
+@Deprecated
 public class StatusMakerIT extends ConfigurableMacBase {
 
   private AccumuloClient client;
@@ -89,7 +89,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
     client.tableOperations().create(sourceTable);
     ReplicationTableUtil.configureMetadataTable(client, sourceTable);
 
-    BatchWriter bw = client.createBatchWriter(sourceTable, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(sourceTable);
     String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";
     Set<String> files =
         Sets.newHashSet(walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
@@ -139,7 +139,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
     client.tableOperations().create(sourceTable);
     ReplicationTableUtil.configureMetadataTable(client, sourceTable);
 
-    BatchWriter bw = client.createBatchWriter(sourceTable, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(sourceTable);
     String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";
     Set<String> files =
         Sets.newHashSet(walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
@@ -178,7 +178,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
     client.tableOperations().create(sourceTable);
     ReplicationTableUtil.configureMetadataTable(client, sourceTable);
 
-    BatchWriter bw = client.createBatchWriter(sourceTable, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(sourceTable);
     String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";
     Set<String> files =
         Sets.newHashSet(walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
@@ -225,7 +225,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
     client.tableOperations().create(sourceTable);
     ReplicationTableUtil.configureMetadataTable(client, sourceTable);
 
-    BatchWriter bw = client.createBatchWriter(sourceTable, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(sourceTable);
     String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";
     List<String> files = Arrays.asList(walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
         walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID());
@@ -287,7 +287,7 @@ public class StatusMakerIT extends ConfigurableMacBase {
     client.tableOperations().create(sourceTable);
     ReplicationTableUtil.configureMetadataTable(client, sourceTable);
 
-    BatchWriter bw = client.createBatchWriter(sourceTable, new BatchWriterConfig());
+    BatchWriter bw = client.createBatchWriter(sourceTable);
     String walPrefix = "hdfs://localhost:8020/accumulo/wals/tserver+port/";
     List<String> files = Arrays.asList(walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID(),
         walPrefix + UUID.randomUUID(), walPrefix + UUID.randomUUID());

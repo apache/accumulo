@@ -19,15 +19,16 @@
 package org.apache.accumulo.test.functional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -42,12 +43,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /**
  * A functional test that exercises hitting the max open file limit on a tablet server. This test
  * assumes there are one or two tablet servers.
  */
+@SuppressWarnings("removal")
 public class MaxOpenIT extends AccumuloClusterHarness {
 
   @Override
@@ -100,10 +100,11 @@ public class MaxOpenIT extends AccumuloClusterHarness {
   public void run() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
-      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "10");
-      c.tableOperations().addSplits(tableName,
-          TestIngest.getSplitPoints(0, NUM_TO_INGEST, NUM_TABLETS));
+      HashMap<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_MAJC_RATIO.getKey(), "10");
+      NewTableConfiguration ntc = new NewTableConfiguration().setProperties(props)
+          .withSplits(TestIngest.getSplitPoints(0, NUM_TO_INGEST, NUM_TABLETS));
+      c.tableOperations().create(tableName, ntc);
 
       // the following loop should create three tablets in each map file
       for (int i = 0; i < 3; i++) {
@@ -135,8 +136,6 @@ public class MaxOpenIT extends AccumuloClusterHarness {
     }
   }
 
-  @SuppressFBWarnings(value = "PREDICTABLE_RANDOM",
-      justification = "predictable random is okay for testing")
   private long batchScan(AccumuloClient c, String tableName, List<Range> ranges, int threads)
       throws Exception {
     try (BatchScanner bs = c.createBatchScanner(tableName, TestIngest.AUTHS, threads)) {
@@ -148,7 +147,6 @@ public class MaxOpenIT extends AccumuloClusterHarness {
       long t1 = System.currentTimeMillis();
 
       byte[] rval = new byte[50];
-      Random random = new Random();
 
       for (Entry<Key,Value> entry : bs) {
         count++;
@@ -156,13 +154,13 @@ public class MaxOpenIT extends AccumuloClusterHarness {
         int col = VerifyIngest.getCol(entry.getKey());
 
         if (row < 0 || row >= NUM_TO_INGEST) {
-          throw new Exception("unexcepted row " + row);
+          throw new Exception("unexpected row " + row);
         }
 
-        rval = TestIngest.genRandomValue(random, rval, 2, row, col);
+        rval = TestIngest.genRandomValue(rval, 2, row, col);
 
         if (entry.getValue().compareTo(rval) != 0) {
-          throw new Exception("unexcepted value row=" + row + " col=" + col);
+          throw new Exception("unexpected value row=" + row + " col=" + col);
         }
       }
 

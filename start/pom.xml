@@ -55,12 +55,6 @@
       <artifactId>slf4j-api</artifactId>
     </dependency>
     <dependency>
-      <!-- runtime for commons-configuration2 -->
-      <groupId>commons-beanutils</groupId>
-      <artifactId>commons-beanutils</artifactId>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-client-runtime</artifactId>
       <scope>runtime</scope>

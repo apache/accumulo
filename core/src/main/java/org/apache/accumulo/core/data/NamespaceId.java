@@ -32,6 +32,9 @@ import com.google.common.cache.CacheBuilder;
  */
 public class NamespaceId extends AbstractId<NamespaceId> {
   private static final long serialVersionUID = 1L;
+  // cache is for canonicalization/deduplication of created objects,
+  // to limit the number of NamespaceId objects in the JVM at any given moment
+  // WeakReferences are used because we don't need them to stick around any longer than they need to
   static final Cache<String,NamespaceId> cache = CacheBuilder.newBuilder().weakValues().build();
 
   private NamespaceId(String canonical) {

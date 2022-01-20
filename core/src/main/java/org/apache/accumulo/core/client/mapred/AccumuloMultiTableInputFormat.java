@@ -51,7 +51,7 @@ import org.apache.hadoop.mapred.Reporter;
  * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapred instead from the
  *             accumulo-hadoop-mapreduce.jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class AccumuloMultiTableInputFormat extends AbstractInputFormat<Key,Value> {
 
   /**

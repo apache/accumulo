@@ -46,8 +46,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
-import org.apache.accumulo.core.client.TableDeletedException;
-import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -63,7 +61,6 @@ import org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation;
 import org.apache.accumulo.core.dataImpl.thrift.TConditionalSession;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
-import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -76,35 +73,22 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.NamingThreadFactory;
-import org.apache.accumulo.fate.util.LoggingRunnable;
-import org.apache.accumulo.fate.zookeeper.ZooLock;
+import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.LockID;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Trace;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class ConditionalWriterImpl implements ConditionalWriter {
 
-  private static ThreadPoolExecutor cleanupThreadPool =
-      new ThreadPoolExecutor(1, 1, 3, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), r -> {
-        Thread t = new Thread(r, "Conditional Writer Cleanup Thread");
-        t.setDaemon(true);
-        return t;
-      });
-
-  static {
-    cleanupThreadPool.allowCoreThreadTimeOut(true);
-  }
-
-  private static final Logger log = LoggerFactory.getLogger(ConditionalWriterImpl.class);
+  private static ThreadPoolExecutor cleanupThreadPool = ThreadPools.createFixedThreadPool(1, 3,
+      TimeUnit.SECONDS, "Conditional Writer Cleanup Thread");
 
   private static final int MAX_SLEEP = 30000;
 
@@ -114,6 +98,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
   private final ClientContext context;
   private TabletLocator locator;
   private final TableId tableId;
+  private final String tableName;
   private long timeout;
   private final Durability durability;
   private final String classLoaderContext;
@@ -249,7 +234,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
           client = getClient(sid.location);
           client.closeConditionalUpdate(tinfo, sid.sessionID);
         } catch (Exception e) {} finally {
-          ThriftUtil.returnClient((TServiceClient) client);
+          ThriftUtil.returnClient((TServiceClient) client, context);
         }
 
       }
@@ -295,11 +280,10 @@ class ConditionalWriterImpl implements ConditionalWriter {
     try {
       locator.binMutations(context, mutations, binnedMutations, failures);
 
-      if (failures.size() == mutations.size())
-        if (!Tables.exists(context, tableId))
-          throw new TableDeletedException(tableId.canonical());
-        else if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
-          throw new TableOfflineException(Tables.getTableOfflineMsg(context, tableId));
+      if (failures.size() == mutations.size()) {
+        context.requireNotDeleted(tableId);
+        context.requireNotOffline(tableId, tableName);
+      }
 
     } catch (Exception e) {
       mutations.forEach(qcm -> qcm.queueResult(new Result(e, qcm, null)));
@@ -323,7 +307,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       serverQueue.queue.add(mutations);
       // never execute more than one task per server
       if (!serverQueue.taskQueued) {
-        threadPool.execute(new LoggingRunnable(log, Trace.wrap(new SendTask(location))));
+        threadPool.execute(new SendTask(location));
         serverQueue.taskQueued = true;
       }
     }
@@ -343,7 +327,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       if (serverQueue.queue.isEmpty())
         serverQueue.taskQueued = false;
       else
-        threadPool.execute(new LoggingRunnable(log, Trace.wrap(task)));
+        threadPool.execute(task);
     }
 
   }
@@ -372,15 +356,17 @@ class ConditionalWriterImpl implements ConditionalWriter {
     }
   }
 
-  ConditionalWriterImpl(ClientContext context, TableId tableId, ConditionalWriterConfig config) {
+  ConditionalWriterImpl(ClientContext context, TableId tableId, String tableName,
+      ConditionalWriterConfig config) {
     this.context = context;
     this.auths = config.getAuthorizations();
     this.ve = new VisibilityEvaluator(config.getAuthorizations());
-    this.threadPool = new ScheduledThreadPoolExecutor(config.getMaxWriteThreads(),
-        new NamingThreadFactory(this.getClass().getSimpleName()));
+    this.threadPool = ThreadPools.createScheduledExecutorService(config.getMaxWriteThreads(),
+        this.getClass().getSimpleName());
     this.locator = new SyncingTabletLocator(context, tableId);
     this.serverQueues = new HashMap<>();
     this.tableId = tableId;
+    this.tableName = tableName;
     this.timeout = config.getTimeout(TimeUnit.MILLISECONDS);
     this.durability = config.getDurability();
     this.classLoaderContext = config.getClassLoaderContext();
@@ -391,8 +377,6 @@ class ConditionalWriterImpl implements ConditionalWriter {
       if (!mutations.isEmpty())
         queue(mutations);
     };
-
-    failureHandler = new LoggingRunnable(log, failureHandler);
 
     threadPool.scheduleAtFixedRate(failureHandler, 250, 250, TimeUnit.MILLISECONDS);
   }
@@ -619,7 +603,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     } finally {
       if (sessionId != null)
         unreserveSessionID(location);
-      ThriftUtil.returnClient((TServiceClient) client);
+      ThriftUtil.returnClient((TServiceClient) client, context);
     }
   }
 
@@ -669,7 +653,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
     LockID lid = new LockID(context.getZooKeeperRoot() + Constants.ZTSERVERS, sessionId.lockId);
 
     while (true) {
-      if (!ZooLock.isLockHeld(context.getZooCache(), lid)) {
+      if (!ServiceLock.isLockHeld(context.getZooCache(), lid)) {
         // ACCUMULO-1152 added a tserver lock check to the tablet location cache, so this
         // invalidation prevents future attempts to contact the
         // tserver even its gone zombie and is still running w/o a lock
@@ -708,7 +692,7 @@ class ConditionalWriterImpl implements ConditionalWriter {
       client = getClient(location);
       client.invalidateConditionalUpdate(tinfo, sessionId);
     } finally {
-      ThriftUtil.returnClient((TServiceClient) client);
+      ThriftUtil.returnClient((TServiceClient) client, context);
     }
   }
 
@@ -812,7 +796,8 @@ class ConditionalWriterImpl implements ConditionalWriter {
   @Override
   public void close() {
     threadPool.shutdownNow();
-    cleanupThreadPool.execute(new CleanupTask(getActiveSessions()));
+    cleanupThreadPool.execute(Threads.createNamedRunnable("ConditionalWriterCleanupTask",
+        new CleanupTask(getActiveSessions())));
   }
 
 }

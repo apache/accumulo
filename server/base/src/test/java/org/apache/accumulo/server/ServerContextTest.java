@@ -118,4 +118,10 @@ public class ServerContextTest {
     });
   }
 
+  @Test(expected = IllegalStateException.class)
+  public void testCanRun() {
+    // ensure this fails with older versions
+    ServerContext.ensureDataVersionCompatible(7);
+  }
+
 }

@@ -26,9 +26,11 @@
   <Match>
     <!-- ignore thrift-generated files -->
     <Or>
+      <Package name="org.apache.accumulo.core.compaction.thrift" />
       <Package name="org.apache.accumulo.core.clientImpl.thrift" />
       <Package name="org.apache.accumulo.core.dataImpl.thrift" />
       <Package name="org.apache.accumulo.core.gc.thrift" />
+      <Package name="org.apache.accumulo.core.manager.thrift" />
       <Package name="org.apache.accumulo.core.master.thrift" />
       <Package name="org.apache.accumulo.core.replication.thrift" />
       <Package name="org.apache.accumulo.core.securityImpl.thrift" />
@@ -40,5 +42,9 @@
     <!-- Must ignore these everywhere, because of a javac byte code generation bug -->
     <!-- https://github.com/spotbugs/spotbugs/issues/756 -->
     <Bug pattern="RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE" />
+  </Match>
+  <Match>
+    <!-- More convenient to ignore these everywhere, because it's very common and unimportant -->
+    <Bug pattern="JUA_DONT_ASSERT_INSTANCEOF_IN_TESTS" />
   </Match>
 </FindBugsFilter>

@@ -19,6 +19,7 @@
 package org.apache.accumulo.cluster.standalone;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.io.BufferedReader;
@@ -33,8 +34,8 @@ import java.util.Map.Entry;
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.RemoteShell;
 import org.apache.accumulo.cluster.RemoteShellOptions;
-import org.apache.accumulo.core.master.thrift.MasterGoalState;
-import org.apache.accumulo.master.state.SetGoalState;
+import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
+import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.hadoop.util.Shell.ExitCodeException;
@@ -53,9 +54,8 @@ public class StandaloneClusterControl implements ClusterControl {
 
   private static final String ACCUMULO_SERVICE_SCRIPT = "accumulo-service",
       ACCUMULO_SCRIPT = "accumulo";
-  private static final String MASTER_HOSTS_FILE = "masters", GC_HOSTS_FILE = "gc",
-      TSERVER_HOSTS_FILE = "tservers", TRACER_HOSTS_FILE = "tracers",
-      MONITOR_HOSTS_FILE = "monitor";
+  private static final String MANAGER_HOSTS_FILE = "managers", GC_HOSTS_FILE = "gc",
+      TSERVER_HOSTS_FILE = "tservers", MONITOR_HOSTS_FILE = "monitor";
 
   String accumuloHome;
   String clientAccumuloConfDir;
@@ -106,7 +106,7 @@ public class StandaloneClusterControl implements ClusterControl {
 
   @Override
   public Entry<Integer,String> execWithStdout(Class<?> clz, String[] args) throws IOException {
-    String master = getHosts(MASTER_HOSTS_FILE).get(0);
+    String manager = getHosts(MANAGER_HOSTS_FILE).get(0);
     List<String> cmd = new ArrayList<>();
     cmd.add(clientCmdPrefix);
     cmd.add(accumuloPath);
@@ -115,8 +115,8 @@ public class StandaloneClusterControl implements ClusterControl {
     for (String arg : args) {
       cmd.add("'" + arg + "'");
     }
-    log.info("Running: '{}' on {}", sanitize(String.join(" ", cmd)), sanitize(master));
-    return exec(master, cmd.toArray(new String[cmd.size()]));
+    log.info("Running: '{}' on {}", sanitize(String.join(" ", cmd)), sanitize(manager));
+    return exec(manager, cmd.toArray(new String[cmd.size()]));
   }
 
   /**
@@ -129,10 +129,10 @@ public class StandaloneClusterControl implements ClusterControl {
 
   @Override
   public void adminStopAll() throws IOException {
-    String master = getHosts(MASTER_HOSTS_FILE).get(0);
+    String manager = getHosts(MANAGER_HOSTS_FILE).get(0);
     String[] cmd = {serverCmdPrefix, accumuloPath, Admin.class.getName(), "stopAll"};
     // Directly invoke the RemoteShell
-    Entry<Integer,String> pair = exec(master, cmd);
+    Entry<Integer,String> pair = exec(manager, cmd);
     if (pair.getKey() != 0) {
       throw new IOException("stopAll did not finish successfully, retcode=" + pair.getKey()
           + ", stdout=" + pair.getValue());
@@ -149,10 +149,10 @@ public class StandaloneClusterControl implements ClusterControl {
    */
   public void setGoalState(String goalState) throws IOException {
     requireNonNull(goalState, "Goal state must not be null");
-    checkArgument(MasterGoalState.valueOf(goalState) != null, "Unknown goal state: " + goalState);
-    String master = getHosts(MASTER_HOSTS_FILE).get(0);
+    checkArgument(ManagerGoalState.valueOf(goalState) != null, "Unknown goal state: " + goalState);
+    String manager = getHosts(MANAGER_HOSTS_FILE).get(0);
     String[] cmd = {serverCmdPrefix, accumuloPath, SetGoalState.class.getName(), goalState};
-    Entry<Integer,String> pair = exec(master, cmd);
+    Entry<Integer,String> pair = exec(manager, cmd);
     if (pair.getKey() != 0) {
       throw new IOException("SetGoalState did not finish successfully, retcode=" + pair.getKey()
           + ", stdout=" + pair.getValue());
@@ -160,6 +160,7 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   @Override
+  @SuppressWarnings("removal")
   public void startAllServers(ServerType server) throws IOException {
     switch (server) {
       case TABLET_SERVER:
@@ -168,14 +169,15 @@ public class StandaloneClusterControl implements ClusterControl {
         }
         break;
       case MASTER:
-        for (String master : getHosts(MASTER_HOSTS_FILE)) {
-          start(server, master);
+      case MANAGER:
+        for (String manager : getHosts(MANAGER_HOSTS_FILE)) {
+          start(server, manager);
         }
         break;
       case GARBAGE_COLLECTOR:
         List<String> hosts = getHosts(GC_HOSTS_FILE);
         if (hosts.isEmpty()) {
-          hosts = getHosts(MASTER_HOSTS_FILE);
+          hosts = getHosts(MANAGER_HOSTS_FILE);
           if (hosts.isEmpty()) {
             throw new IOException("Found hosts to run garbage collector on");
           }
@@ -183,11 +185,6 @@ public class StandaloneClusterControl implements ClusterControl {
         }
         for (String gc : hosts) {
           start(server, gc);
-        }
-        break;
-      case TRACER:
-        for (String tracer : getHosts(TRACER_HOSTS_FILE)) {
-          start(server, tracer);
         }
         break;
       case MONITOR:
@@ -212,6 +209,7 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   @Override
+  @SuppressWarnings("removal")
   public void stopAllServers(ServerType server) throws IOException {
     switch (server) {
       case TABLET_SERVER:
@@ -220,18 +218,14 @@ public class StandaloneClusterControl implements ClusterControl {
         }
         break;
       case MASTER:
-        for (String master : getHosts(MASTER_HOSTS_FILE)) {
-          stop(server, master);
+      case MANAGER:
+        for (String manager : getHosts(MANAGER_HOSTS_FILE)) {
+          stop(server, manager);
         }
         break;
       case GARBAGE_COLLECTOR:
         for (String gc : getHosts(GC_HOSTS_FILE)) {
           stop(server, gc);
-        }
-        break;
-      case TRACER:
-        for (String tracer : getHosts(TRACER_HOSTS_FILE)) {
-          stop(server, tracer);
         }
         break;
       case MONITOR:
@@ -247,7 +241,7 @@ public class StandaloneClusterControl implements ClusterControl {
 
   @Override
   public void stop(ServerType server, String hostname) throws IOException {
-    // TODO Use `accumulo admin stop` for tservers, instrument clean stop for GC, monitor, tracer
+    // TODO Use `accumulo admin stop` for tservers, instrument clean stop for GC, monitor
     // instead kill
 
     kill(server, hostname);
@@ -317,6 +311,7 @@ public class StandaloneClusterControl implements ClusterControl {
         "'{print \\$2}'", "|", "head", "-1", "|", "tr", "-d", "'\\n'"};
   }
 
+  @SuppressWarnings("removal")
   protected String getProcessString(ServerType server) {
     switch (server) {
       case TABLET_SERVER:
@@ -324,9 +319,8 @@ public class StandaloneClusterControl implements ClusterControl {
       case GARBAGE_COLLECTOR:
         return "gc";
       case MASTER:
-        return "master";
-      case TRACER:
-        return "tracer";
+      case MANAGER:
+        return "manager";
       case MONITOR:
         return "monitor";
       default:
@@ -367,7 +361,7 @@ public class StandaloneClusterControl implements ClusterControl {
    * Read the provided file and return all lines which don't start with a '#' character
    */
   protected List<String> getHosts(File f) throws IOException {
-    try (BufferedReader reader = new BufferedReader(new FileReader(f))) {
+    try (BufferedReader reader = new BufferedReader(new FileReader(f, UTF_8))) {
       List<String> hosts = new ArrayList<>();
       String line;
       while ((line = reader.readLine()) != null) {

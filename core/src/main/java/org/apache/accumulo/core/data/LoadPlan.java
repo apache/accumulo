@@ -160,7 +160,8 @@ public class LoadPlan {
    */
   public interface Builder {
     /**
-     * Specify the row range where a file should be loaded.
+     * Specify the row range where a file should be loaded. Note that whether the startRow parameter
+     * is inclusive or exclusive is determined by the {@link RangeType} parameter.
      *
      * @param fileName
      *          this should not be a path. Only a file name because loads are expected to happen
@@ -169,7 +170,8 @@ public class LoadPlan {
     Builder loadFileTo(String fileName, RangeType rangeType, Text startRow, Text endRow);
 
     /**
-     * Specify the row range where a file should be loaded.
+     * Specify the row range where a file should be loaded. Note that whether the startRow parameter
+     * is inclusive or exclusive is determined by the {@link RangeType} parameter.
      *
      * @param fileName
      *          this should not be a path. Only a file name because loads are expected to happen
@@ -178,7 +180,8 @@ public class LoadPlan {
     Builder loadFileTo(String fileName, RangeType rangeType, byte[] startRow, byte[] endRow);
 
     /**
-     * Specify the row range where a file should be loaded.
+     * Specify the row range where a file should be loaded. Note that whether the startRow parameter
+     * is inclusive or exclusive is determined by the {@link RangeType} parameter.
      *
      * @param fileName
      *          this should not be a path. Only a file name because loads are expected to happen
@@ -194,7 +197,7 @@ public class LoadPlan {
 
   public static Builder builder() {
     return new Builder() {
-      ImmutableList.Builder<Destination> fmb = ImmutableList.builder();
+      final ImmutableList.Builder<Destination> fmb = ImmutableList.builder();
 
       @Override
       public Builder loadFileTo(String fileName, RangeType rangeType, Text startRow, Text endRow) {

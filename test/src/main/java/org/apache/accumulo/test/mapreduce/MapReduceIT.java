@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -51,7 +50,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * This tests deprecated mapreduce code in core jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class MapReduceIT extends ConfigurableMacBase {
 
   @Override
@@ -82,7 +81,7 @@ public class MapReduceIT extends ConfigurableMacBase {
       TableNotFoundException, MutationsRejectedException, IOException, InterruptedException,
       NoSuchAlgorithmException {
     c.tableOperations().create(tablename);
-    BatchWriter bw = c.createBatchWriter(tablename, new BatchWriterConfig());
+    BatchWriter bw = c.createBatchWriter(tablename);
     for (int i = 0; i < 10; i++) {
       Mutation m = new Mutation("" + i);
       m.put(input_cf, input_cq, "row" + i);

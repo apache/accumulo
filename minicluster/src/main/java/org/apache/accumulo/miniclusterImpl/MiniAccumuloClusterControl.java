@@ -32,12 +32,11 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
-import org.apache.accumulo.master.Master;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
-import org.apache.accumulo.tracer.TraceServer;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.slf4j.Logger;
@@ -53,10 +52,9 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   protected MiniAccumuloClusterImpl cluster;
 
   Process zooKeeperProcess = null;
-  Process masterProcess = null;
+  Process managerProcess = null;
   Process gcProcess = null;
   Process monitor = null;
-  Process tracer = null;
   final List<Process> tabletServerProcesses = new ArrayList<>();
 
   public MiniAccumuloClusterControl(MiniAccumuloClusterImpl cluster) {
@@ -123,6 +121,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     start(server, Collections.emptyMap(), Integer.MAX_VALUE);
   }
 
+  @SuppressWarnings("removal")
   public synchronized void start(ServerType server, Map<String,String> configOverrides, int limit)
       throws IOException {
     if (limit <= 0) {
@@ -141,8 +140,9 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         }
         break;
       case MASTER:
-        if (masterProcess == null) {
-          masterProcess = cluster._exec(Master.class, server, configOverrides).getProcess();
+      case MANAGER:
+        if (managerProcess == null) {
+          managerProcess = cluster._exec(Manager.class, server, configOverrides).getProcess();
         }
         break;
       case ZOOKEEPER:
@@ -162,11 +162,6 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           monitor = cluster._exec(Monitor.class, server, configOverrides).getProcess();
         }
         break;
-      case TRACER:
-        if (tracer == null) {
-          tracer = cluster._exec(TraceServer.class, server, configOverrides).getProcess();
-        }
-        break;
       default:
         throw new UnsupportedOperationException("Cannot start process for " + server);
     }
@@ -182,18 +177,20 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   }
 
   @Override
+  @SuppressWarnings("removal")
   public synchronized void stop(ServerType server, String hostname) throws IOException {
     switch (server) {
       case MASTER:
-        if (masterProcess != null) {
+      case MANAGER:
+        if (managerProcess != null) {
           try {
-            cluster.stopProcessWithTimeout(masterProcess, 30, TimeUnit.SECONDS);
+            cluster.stopProcessWithTimeout(managerProcess, 30, TimeUnit.SECONDS);
           } catch (ExecutionException | TimeoutException e) {
-            log.warn("Master did not fully stop after 30 seconds", e);
+            log.warn("Manager did not fully stop after 30 seconds", e);
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
           } finally {
-            masterProcess = null;
+            managerProcess = null;
           }
         }
         break;
@@ -253,19 +250,6 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           }
         }
         break;
-      case TRACER:
-        if (tracer != null) {
-          try {
-            cluster.stopProcessWithTimeout(tracer, 30, TimeUnit.SECONDS);
-          } catch (ExecutionException | TimeoutException e) {
-            log.warn("Tracer did not fully stop after 30 seconds", e);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-          } finally {
-            tracer = null;
-          }
-        }
-        break;
       default:
         throw new UnsupportedOperationException("ServerType is not yet supported " + server);
     }
@@ -287,18 +271,20 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     throw new UnsupportedOperationException();
   }
 
+  @SuppressWarnings("removal")
   public void killProcess(ServerType type, ProcessReference procRef)
       throws ProcessNotFoundException, InterruptedException {
     boolean found = false;
     switch (type) {
       case MASTER:
-        if (procRef.getProcess().equals(masterProcess)) {
+      case MANAGER:
+        if (procRef.getProcess().equals(managerProcess)) {
           try {
-            cluster.stopProcessWithTimeout(masterProcess, 30, TimeUnit.SECONDS);
+            cluster.stopProcessWithTimeout(managerProcess, 30, TimeUnit.SECONDS);
           } catch (ExecutionException | TimeoutException e) {
-            log.warn("Master did not fully stop after 30 seconds", e);
+            log.warn("Manager did not fully stop after 30 seconds", e);
           }
-          masterProcess = null;
+          managerProcess = null;
           found = true;
         }
         break;

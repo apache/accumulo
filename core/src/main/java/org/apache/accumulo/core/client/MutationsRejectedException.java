@@ -30,7 +30,6 @@ import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 
 /**
@@ -59,7 +58,7 @@ public class MutationsRejectedException extends AccumuloException {
    * @deprecated since 2.0.0, replaced by
    *             {@link #MutationsRejectedException(AccumuloClient, List, Map, Collection, int, Throwable)}
    */
-  @Deprecated
+  @Deprecated(since = "2.0.0")
   public MutationsRejectedException(Instance instance, List<ConstraintViolationSummary> cvsList,
       Map<TabletId,Set<SecurityErrorCode>> hashMap, Collection<String> serverSideErrors,
       int unknownErrors, Throwable cause) {
@@ -107,8 +106,7 @@ public class MutationsRejectedException extends AccumuloException {
 
     for (Entry<TabletId,Set<SecurityErrorCode>> entry : hashMap.entrySet()) {
       TabletId tabletId = entry.getKey();
-      String tableInfo =
-          Tables.getPrintableTableInfoFromId(context, TableId.of(tabletId.getTableId().toString()));
+      String tableInfo = Tables.getPrintableTableInfoFromId(context, tabletId.getTable());
 
       if (!result.containsKey(tableInfo)) {
         result.put(tableInfo, new HashSet<>());

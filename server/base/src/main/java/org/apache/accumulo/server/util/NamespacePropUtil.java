@@ -32,7 +32,7 @@ import org.apache.zookeeper.KeeperException;
 public class NamespacePropUtil {
   public static boolean setNamespaceProperty(ServerContext context, NamespaceId namespaceId,
       String property, String value) throws KeeperException, InterruptedException {
-    if (!isPropertyValid(property, value))
+    if (!Property.isTablePropertyValid(property, value))
       return false;
 
     ZooReaderWriter zoo = context.getZooReaderWriter();
@@ -47,12 +47,6 @@ public class NamespacePropUtil {
     zoo.putPersistentData(zPath, value.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
 
     return true;
-  }
-
-  public static boolean isPropertyValid(String property, String value) {
-    Property p = Property.getPropertyByKey(property);
-    return (p == null || p.getType().isValidFormat(value))
-        && Property.isValidTablePropertyKey(property);
   }
 
   public static void removeNamespaceProperty(ServerContext context, NamespaceId namespaceId,

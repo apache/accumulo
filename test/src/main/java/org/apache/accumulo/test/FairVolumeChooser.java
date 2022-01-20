@@ -21,8 +21,8 @@ package org.apache.accumulo.test;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.accumulo.server.fs.VolumeChooser;
-import org.apache.accumulo.server.fs.VolumeChooserEnvironment;
+import org.apache.accumulo.core.spi.fs.VolumeChooser;
+import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 
 /**
  * Try to assign some fairness to choosing Volumes. Intended for tests, not for production

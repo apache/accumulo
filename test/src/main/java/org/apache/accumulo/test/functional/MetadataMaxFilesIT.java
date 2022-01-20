@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.assertEquals;
 
 import java.util.Map.Entry;
 import java.util.SortedSet;
@@ -28,19 +27,19 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.MasterClient;
+import org.apache.accumulo.core.clientImpl.ManagerClient;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.master.thrift.MasterClientService.Client;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.manager.thrift.ManagerClientService.Client;
+import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.util.Admin;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
@@ -72,37 +71,31 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
           "10000");
       // propagation time
       sleepUninterruptibly(5, TimeUnit.SECONDS);
-      for (int i = 0; i < 5; i++) {
+      for (int i = 0; i < 2; i++) {
         String tableName = "table" + i;
-        log.info("Creating {}", tableName);
-        c.tableOperations().create(tableName);
-        log.info("adding splits");
-        c.tableOperations().addSplits(tableName, splits);
+        log.info("Creating {} with splits", tableName);
+        NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+        c.tableOperations().create(tableName, ntc);
         log.info("flushing");
         c.tableOperations().flush(MetadataTable.NAME, null, null, true);
         c.tableOperations().flush(RootTable.NAME, null, null, true);
       }
-      log.info("shutting down");
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
-      cluster.stop();
-      log.info("starting up");
-      cluster.start();
 
       while (true) {
-        MasterMonitorInfo stats;
+        ManagerMonitorInfo stats;
         Client client = null;
         try {
           ClientContext context = (ClientContext) c;
-          client = MasterClient.getConnectionWithRetry(context);
+          client = ManagerClient.getConnectionWithRetry(context);
           log.info("Fetching stats");
-          stats = client.getMasterStats(TraceUtil.traceInfo(), context.rpcCreds());
+          stats = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
         } catch (ThriftNotActiveServiceException e) {
           // Let it loop, fetching a new location
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
           continue;
         } finally {
           if (client != null)
-            MasterClient.close(client);
+            ManagerClient.close(client, (ClientContext) c);
         }
         int tablets = 0;
         for (TabletServerStatus tserver : stats.tServerInfo) {
@@ -113,7 +106,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
           }
         }
         log.info("Online tablets " + tablets);
-        if (tablets == 5005)
+        if (tablets == 2002)
           break;
         sleepUninterruptibly(1, TimeUnit.SECONDS);
       }

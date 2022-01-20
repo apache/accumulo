@@ -23,11 +23,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.lexicoder.Encoder;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 /**
  * A Combiner that decodes each Value to type V before reducing, then encodes the result of
@@ -128,8 +128,8 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   protected void setEncoder(String encoderClass) {
     try {
       @SuppressWarnings("unchecked")
-      Class<? extends Encoder<V>> clazz = (Class<? extends Encoder<V>>) AccumuloVFSClassLoader
-          .loadClass(encoderClass, Encoder.class);
+      Class<? extends Encoder<V>> clazz =
+          (Class<? extends Encoder<V>>) ClassLoaderUtil.loadClass(encoderClass, Encoder.class);
       encoder = clazz.getDeclaredConstructor().newInstance();
     } catch (ReflectiveOperationException e) {
       throw new IllegalArgumentException(e);

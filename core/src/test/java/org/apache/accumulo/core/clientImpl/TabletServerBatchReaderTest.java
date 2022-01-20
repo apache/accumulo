@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.data.TableId;
@@ -39,14 +40,15 @@ public class TabletServerBatchReaderTest {
   @Test
   public void testGetAuthorizations() {
     Authorizations expected = new Authorizations("a,b");
-    try (BatchScanner s = new TabletServerBatchReader(context, TableId.of("foo"), expected, 1)) {
+    try (BatchScanner s =
+        new TabletServerBatchReader(context, TableId.of("foo"), "fooName", expected, 1)) {
       assertEquals(expected, s.getAuthorizations());
     }
   }
 
-  @SuppressWarnings("resource")
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testNullAuthorizationsFails() {
-    new TabletServerBatchReader(context, TableId.of("foo"), null, 1);
+    assertThrows(IllegalArgumentException.class,
+        () -> new TabletServerBatchReader(context, TableId.of("foo"), "fooName", null, 1));
   }
 }

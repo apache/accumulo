@@ -36,4 +36,8 @@
     <!-- paths in test code are provided by user input -->
     <Bug pattern="PATH_TRAVERSAL_IN" />
   </Match>
+  <Match>
+    <!-- More convenient to ignore these everywhere, because it's very common and unimportant -->
+    <Bug pattern="JUA_DONT_ASSERT_INSTANCEOF_IN_TESTS" />
+  </Match>
 </FindBugsFilter>

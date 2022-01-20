@@ -20,12 +20,10 @@ package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -50,7 +48,7 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "0");
+    cfg.setProperty(Property.TSERV_MAJC_DELAY, "50ms");
   }
 
   @Override
@@ -86,7 +84,6 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
 
       System.out.println("splits : " + splits);
 
-      Random random = new SecureRandom();
       HashMap<Text,Value> expected = new HashMap<>();
       ArrayList<Range> ranges = new ArrayList<>();
       for (int i = 0; i < 100; i++) {

@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -32,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
@@ -40,7 +42,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
-import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
+import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -65,17 +67,22 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
   public void test() throws Exception {
     getCluster().getClusterControl().start(ServerType.MONITOR);
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
+
+      // creating table name
       final String tableName = getUniqueNames(1)[0];
-      c.tableOperations().create(tableName);
-      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1");
-      // splits to slow down bulk import
+      // creating splits
       SortedSet<Text> splits = new TreeSet<>();
       for (int i = 1; i < 0xf; i++) {
         splits.add(new Text(Integer.toHexString(i)));
       }
-      c.tableOperations().addSplits(tableName, splits);
+      // creating properties
+      HashMap<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_MAJC_RATIO.getKey(), "1");
+      // creating table with configuration
+      var ntc = new NewTableConfiguration().setProperties(props).withSplits(splits);
+      c.tableOperations().create(tableName, ntc);
 
-      MasterMonitorInfo stats = getCluster().getMasterMonitorInfo();
+      ManagerMonitorInfo stats = getCluster().getManagerMonitorInfo();
       assertEquals(1, stats.tServerInfo.size());
       assertEquals(0, stats.bulkImports.size());
       assertEquals(0, stats.tServerInfo.get(0).bulkImports.size());
@@ -104,7 +111,7 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
                 .withTableConfiguration(DefaultConfiguration.getInstance()).build();
             writer.startDefaultLocalityGroup();
             for (int j = 0x100; j < 0xfff; j += 3) {
-              writer.append(new Key(Integer.toHexString(j)), new Value(new byte[0]));
+              writer.append(new Key(Integer.toHexString(j)), new Value());
             }
             writer.close();
           }
@@ -130,7 +137,7 @@ public class BulkImportMonitoringIT extends ConfigurableMacBase {
       while (!es.isTerminated()
           && stats.bulkImports.size() + stats.tServerInfo.get(0).bulkImports.size() == 0) {
         es.awaitTermination(10, TimeUnit.MILLISECONDS);
-        stats = getCluster().getMasterMonitorInfo();
+        stats = getCluster().getManagerMonitorInfo();
       }
       log.info(stats.bulkImports.toString());
       assertTrue(!stats.bulkImports.isEmpty());

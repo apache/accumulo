@@ -19,6 +19,7 @@
 package org.apache.accumulo.tserver.metrics;
 
 import org.apache.accumulo.tserver.TabletServer;
+import org.apache.accumulo.tserver.TabletServerResourceManager.AssignmentWatcher;
 import org.apache.accumulo.tserver.tablet.Tablet;
 
 /**
@@ -32,6 +33,10 @@ public class TabletServerMetricsUtil {
 
   public TabletServerMetricsUtil(TabletServer tserver) {
     this.tserver = tserver;
+  }
+
+  public long getLongTabletAssignments() {
+    return AssignmentWatcher.getLongAssignments();
   }
 
   public long getEntries() {
@@ -50,62 +55,46 @@ public class TabletServerMetricsUtil {
     return result;
   }
 
-  public double getIngest() {
+  public double getIngestCount() {
     double result = 0;
     for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.ingestRate();
+      result += tablet.totalIngest();
     }
     return result;
   }
 
-  public double getIngestByteRate() {
+  public double getIngestByteCount() {
     double result = 0;
     for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.ingestByteRate();
+      result += tablet.totalIngestBytes();
     }
     return result;
   }
 
-  public double getQueryRate() {
+  public double getQueryByteCount() {
     double result = 0;
     for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.queryRate();
+      result += tablet.totalQueryResultsBytes();
     }
     return result;
   }
 
-  public double getQueryByteRate() {
+  public double getScannedCount() {
     double result = 0;
     for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.queryByteRate();
-    }
-    return result;
-  }
-
-  public double getScannedRate() {
-    double result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.scanRate();
+      result += tablet.totalScannedCount();
     }
     return result;
   }
 
   public int getMajorCompactions() {
-    int result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      if (tablet.isMajorCompactionRunning())
-        result++;
-    }
-    return result;
+    var mgr = tserver.getCompactionManager();
+    return mgr == null ? 0 : mgr.getCompactionsRunning();
   }
 
   public int getMajorCompactionsQueued() {
-    int result = 0;
-    for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      if (tablet.isMajorCompactionQueued())
-        result++;
-    }
-    return result;
+    var mgr = tserver.getCompactionManager();
+    return mgr == null ? 0 : mgr.getCompactionsQueued();
   }
 
   public int getMinorCompactions() {
@@ -127,17 +116,25 @@ public class TabletServerMetricsUtil {
   }
 
   public int getOnlineCount() {
-    return tserver.getOnlineTablets().values().size();
+    return tserver.getOnlineTablets().size();
   }
 
   public int getOpeningCount() {
     return tserver.getOpeningCount();
   }
 
-  public long getQueries() {
+  public long getLookupCount() {
     long result = 0;
     for (Tablet tablet : tserver.getOnlineTablets().values()) {
-      result += tablet.totalQueries();
+      result += tablet.totalLookupCount();
+    }
+    return result;
+  }
+
+  public long getQueryResultCount() {
+    long result = 0;
+    for (Tablet tablet : tserver.getOnlineTablets().values()) {
+      result += tablet.totalQueriesResults();
     }
     return result;
   }

@@ -54,8 +54,7 @@ public class LinkingIteratorTest {
     @Override
     public Iterator<TabletMetadata> apply(Range range) {
       Stream<TabletMetadata> stream = count++ == 0 ? initial.stream() : subsequent.stream();
-      return stream.filter(tm -> range.contains(new Key(tm.getExtent().getMetadataEntry())))
-          .iterator();
+      return stream.filter(tm -> range.contains(new Key(tm.getExtent().toMetaRow()))).iterator();
     }
   }
 
@@ -132,13 +131,13 @@ public class LinkingIteratorTest {
 
     check(tablets2, new IterFactory(tablets1, tablets2), TableId.of("4"));
     check(tablets2, new IterFactory(tablets1, tablets2),
-        new KeyExtent(TableId.of("4"), null, new Text("e")).toMetadataRange());
+        new KeyExtent(TableId.of("4"), null, new Text("e")).toMetaRange());
 
     // following should not care about missing tablet
     check(tablets1, new IterFactory(tablets1, tablets2),
-        new KeyExtent(TableId.of("4"), null, new Text("g")).toMetadataRange());
+        new KeyExtent(TableId.of("4"), null, new Text("g")).toMetaRange());
     check(tablets1, new IterFactory(tablets1, tablets2),
-        new KeyExtent(TableId.of("4"), null, new Text("f")).toMetadataRange());
+        new KeyExtent(TableId.of("4"), null, new Text("f")).toMetaRange());
   }
 
   @Test(expected = IllegalStateException.class)
@@ -161,6 +160,6 @@ public class LinkingIteratorTest {
     // tablets at end of table.
     List<TabletMetadata> tablets1 = Arrays.asList(create("4", null, "f"), create("4", "f", "m"));
     check(tablets1, new IterFactory(tablets1, tablets1),
-        new KeyExtent(TableId.of("4"), new Text("r"), new Text("e")).toMetadataRange());
+        new KeyExtent(TableId.of("4"), new Text("r"), new Text("e")).toMetaRange());
   }
 }

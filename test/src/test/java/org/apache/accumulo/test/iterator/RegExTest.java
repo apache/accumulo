@@ -18,9 +18,13 @@
  */
 package org.apache.accumulo.test.iterator;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -28,8 +32,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -62,18 +66,8 @@ public class RegExTest {
     }
   }
 
-  private void check(String regex, String val) throws Exception {
-    if (regex != null && !val.matches(regex)) {
-      throw new Exception(" " + val + " does not match " + regex);
-    }
-  }
-
-  private void check(String regex, Text val) throws Exception {
-    check(regex, val.toString());
-  }
-
-  private void check(String regex, Value val) throws Exception {
-    check(regex, val.toString());
+  private void assertMatches(Pattern regex, Object val) throws Exception {
+    assertTrue(" " + val + " does not match " + regex, regex.matcher(val.toString()).matches());
   }
 
   @Test
@@ -121,30 +115,27 @@ public class RegExTest {
     RegExFilter iter = new RegExFilter();
     iter.init(source, is.getOptions(), null);
     iter.seek(range, es, false);
-    runTest(iter, rowRegEx, cfRegEx, cqRegEx, valRegEx, expected);
-  }
-
-  private void runTest(RegExFilter scanner, String rowRegEx, String cfRegEx, String cqRegEx,
-      String valRegEx, int expected) throws Exception {
 
     int counter = 0;
 
-    while (scanner.hasTop()) {
-      Key k = scanner.getTopKey();
+    var rowPattern = Pattern.compile(rowRegEx == null ? ".*" : rowRegEx);
+    var cfPattern = Pattern.compile(cfRegEx == null ? ".*" : cfRegEx);
+    var cqPattern = Pattern.compile(cqRegEx == null ? ".*" : cqRegEx);
+    var valPattern = Pattern.compile(valRegEx == null ? ".*" : valRegEx);
 
-      check(rowRegEx, k.getRow());
-      check(cfRegEx, k.getColumnFamily());
-      check(cqRegEx, k.getColumnQualifier());
-      check(valRegEx, scanner.getTopValue());
+    while (iter.hasTop()) {
+      Key k = iter.getTopKey();
 
-      scanner.next();
+      assertMatches(rowPattern, k.getRow());
+      assertMatches(cfPattern, k.getColumnFamily());
+      assertMatches(cqPattern, k.getColumnQualifier());
+      assertMatches(valPattern, iter.getTopValue());
+
+      iter.next();
 
       counter++;
     }
 
-    if (counter != expected) {
-      throw new Exception(
-          "scan did not return the expected number of entries " + counter + " " + expected);
-    }
+    assertEquals("scan did not return the expected number of entries", expected, counter);
   }
 }

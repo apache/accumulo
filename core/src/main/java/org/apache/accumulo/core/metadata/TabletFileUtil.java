@@ -28,7 +28,8 @@ public class TabletFileUtil {
   /**
    * Validate if string is a valid path. Return normalized string or throw exception if not valid.
    * This was added to facilitate more use of TabletFile over String but this puts the validation in
-   * one location in the case where TabletFile can't be used.
+   * one location in the case where TabletFile can't be used. The Garbage Collector is optimized to
+   * store a directory for Tablet File so a String is used.
    */
   public static String validate(String path) {
     Path p = new Path(path);

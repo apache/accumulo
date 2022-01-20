@@ -22,23 +22,24 @@ import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
 
 import java.util.Arrays;
 import java.util.Set;
-import java.util.TimerTask;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.master.thrift.TabletLoadState;
+import org.apache.accumulo.core.manager.thrift.TabletLoadState;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.util.Daemon;
-import org.apache.accumulo.fate.util.LoggingRunnable;
-import org.apache.accumulo.server.master.state.Assignment;
-import org.apache.accumulo.server.master.state.TabletStateStore;
+import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.server.manager.state.Assignment;
+import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.util.MasterMetadataUtil;
-import org.apache.accumulo.server.util.time.SimpleTimer;
+import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
-import org.apache.accumulo.tserver.mastermessage.TabletStatusMessage;
+import org.apache.accumulo.tserver.managermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletData;
 import org.apache.hadoop.io.Text;
@@ -47,6 +48,7 @@ import org.slf4j.LoggerFactory;
 
 class AssignmentHandler implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(AssignmentHandler.class);
+  private static final String METADATA_ISSUE = "Saw metadata issue when loading tablet : ";
   private final KeyExtent extent;
   private final int retryAttempt;
   private final TabletServer server;
@@ -104,11 +106,11 @@ class AssignmentHandler implements Runnable {
     try {
       tabletMetadata = server.getContext().getAmple().readTablet(extent);
 
-      canLoad = TabletServer.checkTabletMetadata(extent, server.getTabletSession(), tabletMetadata);
+      canLoad = checkTabletMetadata(extent, server.getTabletSession(), tabletMetadata);
 
       if (canLoad && tabletMetadata.sawOldPrevEndRow()) {
         KeyExtent fixedExtent =
-            MasterMetadataUtil.fixSplit(server.getContext(), tabletMetadata, server.getLock());
+            ManagerMetadataUtil.fixSplit(server.getContext(), tabletMetadata, server.getLock());
 
         synchronized (server.openingTablets) {
           server.openingTablets.remove(extent);
@@ -133,7 +135,7 @@ class AssignmentHandler implements Runnable {
         server.openingTablets.notifyAll();
       }
       log.warn("Failed to verify tablet " + extent, e);
-      server.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
+      server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
       throw new RuntimeException(e);
     }
 
@@ -144,7 +146,7 @@ class AssignmentHandler implements Runnable {
         server.openingTablets.remove(extent);
         server.openingTablets.notifyAll();
       }
-      server.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
+      server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
       return;
     }
 
@@ -189,14 +191,14 @@ class AssignmentHandler implements Runnable {
       }
       tablet = null; // release this reference
       successful = true;
-    } catch (Throwable e) {
+    } catch (Exception e) {
       log.warn("exception trying to assign tablet {} {}", extent, locationToOpen, e);
 
       if (e.getMessage() != null) {
         log.warn("{}", e.getMessage());
       }
 
-      TableId tableId = extent.getTableId();
+      TableId tableId = extent.tableId();
       ProblemReports.getInstance(server.getContext()).report(new ProblemReport(tableId, TABLET_LOAD,
           extent.getUUID().toString(), server.getClientAddressString(), e));
     } finally {
@@ -204,7 +206,7 @@ class AssignmentHandler implements Runnable {
     }
 
     if (successful) {
-      server.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOADED, extent));
+      server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOADED, extent));
     } else {
       synchronized (server.unopenedTablets) {
         synchronized (server.openingTablets) {
@@ -213,18 +215,18 @@ class AssignmentHandler implements Runnable {
           server.openingTablets.notifyAll();
         }
       }
-      log.warn("failed to open tablet {} reporting failure to master", extent);
-      server.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
+      log.warn("failed to open tablet {} reporting failure to manager", extent);
+      server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
       long reschedule = Math.min((1L << Math.min(32, retryAttempt)) * 1000, 10 * 60 * 1000L);
       log.warn(String.format("rescheduling tablet load in %.2f seconds", reschedule / 1000.));
-      SimpleTimer.getInstance(server.getConfiguration()).schedule(new TimerTask() {
+      this.server.getContext().getScheduledExecutor().schedule(new Runnable() {
         @Override
         public void run() {
           log.info("adding tablet {} back to the assignment pool (retry {})", extent, retryAttempt);
           AssignmentHandler handler = new AssignmentHandler(server, extent, retryAttempt + 1);
           if (extent.isMeta()) {
             if (extent.isRootTablet()) {
-              new Daemon(new LoggingRunnable(log, handler), "Root tablet assignment retry").start();
+              Threads.createThread("Root tablet assignment retry", handler).start();
             } else {
               server.resourceManager.addMetaDataAssignment(extent, log, handler);
             }
@@ -232,7 +234,46 @@ class AssignmentHandler implements Runnable {
             server.resourceManager.addAssignment(extent, log, handler);
           }
         }
-      }, reschedule);
+      }, reschedule, TimeUnit.MILLISECONDS);
     }
+  }
+
+  public static boolean checkTabletMetadata(KeyExtent extent, TServerInstance instance,
+      TabletMetadata meta) throws AccumuloException {
+
+    if (meta == null) {
+      log.info(METADATA_ISSUE + "{}, its metadata was not found.", extent);
+      return false;
+    }
+
+    if (!meta.sawPrevEndRow()) {
+      throw new AccumuloException(METADATA_ISSUE + "metadata entry does not have prev row ("
+          + meta.getTableId() + " " + meta.getEndRow() + ")");
+    }
+
+    if (!extent.equals(meta.getExtent())) {
+      log.info(METADATA_ISSUE + "tablet extent mismatch {} {}", extent, meta.getExtent());
+      return false;
+    }
+
+    if (meta.getDirName() == null) {
+      throw new AccumuloException(
+          METADATA_ISSUE + "metadata entry does not have directory (" + meta.getExtent() + ")");
+    }
+
+    if (meta.getTime() == null && !extent.equals(RootTable.EXTENT)) {
+      throw new AccumuloException(
+          METADATA_ISSUE + "metadata entry does not have time (" + meta.getExtent() + ")");
+    }
+
+    TabletMetadata.Location loc = meta.getLocation();
+
+    if (loc == null || loc.getType() != TabletMetadata.LocationType.FUTURE
+        || !instance.equals(loc)) {
+      log.info(METADATA_ISSUE + "Unexpected location {} {}", extent, loc);
+      return false;
+    }
+
+    return true;
   }
 }

@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.harness.conf;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
@@ -60,7 +60,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
       // Check for properties provided in a file
       File f = new File(propertyFile);
       Properties fileProperties = new Properties();
-      try (FileReader reader = new FileReader(f)) {
+      try (FileReader reader = new FileReader(f, UTF_8)) {
         fileProperties.load(reader);
         clusterTypeValue = fileProperties.getProperty(ACCUMULO_CLUSTER_TYPE_KEY);
         clientConf = fileProperties.getProperty(ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
@@ -137,8 +137,8 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
         Properties fileProperties = new Properties();
         FileReader reader = null;
         try {
-          reader = new FileReader(f);
-        } catch (FileNotFoundException e) {
+          reader = new FileReader(f, UTF_8);
+        } catch (IOException e) {
           log.warn("Could not read properties from specified file: {}", propertyFile, e);
         }
 

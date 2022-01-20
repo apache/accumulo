@@ -36,8 +36,7 @@ public class InstantiationTestCase implements IteratorTestCase {
 
     try {
       // We should be able to instantiate the Iterator given the Class
-      @SuppressWarnings("unused")
-      SortedKeyValueIterator<Key,Value> iter = clz.getDeclaredConstructor().newInstance();
+      clz.getDeclaredConstructor().newInstance();
     } catch (Exception e) {
       return new IteratorTestOutput(e);
     }

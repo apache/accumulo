@@ -31,18 +31,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.inject.Inject;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
+import jakarta.inject.Inject;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.ws.rs.DefaultValue;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -105,6 +105,7 @@ public class WebViews {
     model.put("version", Constants.VERSION);
     model.put("instance_name", monitor.getContext().getInstanceName());
     model.put("instance_id", monitor.getContext().getInstanceID());
+    model.put("zk_hosts", monitor.getContext().getZooKeepers());
     addExternalResources(model);
     return model;
   }
@@ -127,19 +128,19 @@ public class WebViews {
   }
 
   /**
-   * Returns the master template
+   * Returns the manager template
    *
-   * @return Master model
+   * @return Manager model
    */
   @GET
-  @Path("{parameter: master|monitor}")
+  @Path("{parameter: manager|monitor}")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getMaster() {
+  public Map<String,Object> getManager() {
 
     Map<String,Object> model = getModel();
-    model.put("title", "Master Server");
-    model.put("template", "master.ftl");
-    model.put("js", "master.js");
+    model.put("title", "Manager Server");
+    model.put("template", "manager.ftl");
+    model.put("js", "manager.js");
 
     model.put("tablesTitle", "Table Status");
     model.put("tablesTemplate", "tables.ftl");
@@ -183,9 +184,52 @@ public class WebViews {
   public Map<String,Object> getScans() {
 
     Map<String,Object> model = getModel();
-    model.put("title", "Scans");
+    model.put("title", "Active scans");
     model.put("template", "scans.ftl");
     model.put("js", "scans.js");
+
+    return model;
+  }
+
+  /**
+   * Returns the compactions template
+   *
+   * @return Scans model
+   */
+  @GET
+  @Path("compactions")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getCompactions() {
+
+    Map<String,Object> model = getModel();
+    model.put("title", "Active Compactions");
+    model.put("template", "compactions.ftl");
+    model.put("js", "compactions.js");
+
+    return model;
+  }
+
+  /**
+   * Returns the compactions template
+   *
+   * @return Scans model
+   */
+  @GET
+  @Path("ec")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getExternalCompactions() {
+    var ccHost = monitor.getCoordinatorHost();
+
+    Map<String,Object> model = getModel();
+    model.put("title", "External Compactions");
+    model.put("template", "ec.ftl");
+
+    if (ccHost.isPresent()) {
+      model.put("coordinatorRunning", true);
+      model.put("js", "ec.js");
+    } else {
+      model.put("coordinatorRunning", false);
+    }
 
     return model;
   }
@@ -284,7 +328,7 @@ public class WebViews {
   public Map<String,Object> getTracesSummary(
       @QueryParam("minutes") @DefaultValue("10") @Min(0) @Max(2592000) int minutes) {
     Map<String,Object> model = getModel();
-    model.put("title", "Traces for the last&nbsp;" + String.valueOf(minutes) + "&nbsp;minute(s)");
+    model.put("title", "Traces for the last&nbsp;" + minutes + "&nbsp;minute(s)");
 
     model.put("template", "summary.ftl");
     model.put("js", "summary.js");
@@ -309,8 +353,7 @@ public class WebViews {
       @QueryParam("type") @NotNull @Pattern(regexp = RESOURCE_REGEX) String type,
       @QueryParam("minutes") @DefaultValue("10") @Min(0) @Max(2592000) int minutes) {
     Map<String,Object> model = getModel();
-    model.put("title",
-        "Traces for " + type + " for the last " + String.valueOf(minutes) + " minute(s)");
+    model.put("title", "Traces for " + type + " for the last " + minutes + " minute(s)");
 
     model.put("template", "listType.ftl");
     model.put("js", "listType.js");

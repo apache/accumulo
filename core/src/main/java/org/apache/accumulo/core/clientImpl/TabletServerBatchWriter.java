@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+
 import java.io.IOException;
 import java.lang.management.CompilationMXBean;
 import java.lang.management.GarbageCollectorMXBean;
@@ -31,10 +35,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.TreeSet;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -62,7 +64,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
-import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
@@ -70,9 +71,8 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.SimpleThreadPool;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
+import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -81,6 +81,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 /*
  * Differences from previous TabletServerBatchWriter
@@ -92,7 +95,7 @@ import com.google.common.base.Joiner;
  *   + Flush holds adding of new mutations so it does not wait indefinitely
  *
  * Considerations
- *   + All background threads must catch and note Throwable
+ *   + All background threads must catch and note Exception
  *   + mutations for a single tablet server are only processed by one thread
  *     concurrently (if new mutations come in for a tablet server while one
  *     thread is processing mutations for it, no other thread should
@@ -122,7 +125,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
   private final MutationWriter writer;
 
   // latency timers
-  private final Timer jtimer = new Timer("BatchWriterLatencyTimer", true);
+  private final ScheduledThreadPoolExecutor executor;
   private final Map<String,TimeoutTracker> timeoutTrackers =
       Collections.synchronizedMap(new HashMap<>());
 
@@ -152,10 +155,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
   private final Violations violations = new Violations();
   private final Map<KeyExtent,Set<SecurityErrorCode>> authorizationFailures = new HashMap<>();
   private final HashSet<String> serverSideErrors = new HashSet<>();
-  private final FailedMutations failedMutations = new FailedMutations();
+  private final FailedMutations failedMutations;
   private int unknownErrors = 0;
   private boolean somethingFailed = false;
-  private Throwable lastUnknownError = null;
+  private Exception lastUnknownError = null;
 
   private static class TimeoutTracker {
 
@@ -197,6 +200,9 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   public TabletServerBatchWriter(ClientContext context, BatchWriterConfig config) {
     this.context = context;
+    this.executor =
+        ThreadPools.createGeneralScheduledExecutorService(this.context.getConfiguration());
+    this.failedMutations = new FailedMutations();
     this.maxMem = config.getMaxMemory();
     this.maxLatency = config.getMaxLatency(TimeUnit.MILLISECONDS) <= 0 ? Long.MAX_VALUE
         : config.getMaxLatency(TimeUnit.MILLISECONDS);
@@ -208,20 +214,17 @@ public class TabletServerBatchWriter implements AutoCloseable {
     this.writer = new MutationWriter(config.getMaxWriteThreads());
 
     if (this.maxLatency != Long.MAX_VALUE) {
-      jtimer.schedule(new TimerTask() {
-        @Override
-        public void run() {
-          try {
-            synchronized (TabletServerBatchWriter.this) {
-              if ((System.currentTimeMillis() - lastProcessingStartTime)
-                  > TabletServerBatchWriter.this.maxLatency)
-                startProcessing();
-            }
-          } catch (Throwable t) {
-            updateUnknownErrors("Max latency task failed " + t.getMessage(), t);
+      executor.scheduleWithFixedDelay(Threads.createNamedRunnable("BatchWriterLatencyTimer", () -> {
+        try {
+          synchronized (TabletServerBatchWriter.this) {
+            if ((System.currentTimeMillis() - lastProcessingStartTime)
+                > TabletServerBatchWriter.this.maxLatency)
+              startProcessing();
           }
+        } catch (Exception e) {
+          updateUnknownErrors("Max latency task failed " + e.getMessage(), e);
         }
-      }, 0, this.maxLatency / 4);
+      }), 0, this.maxLatency / 4, TimeUnit.MILLISECONDS);
     }
   }
 
@@ -300,7 +303,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
     if (closed)
       throw new IllegalStateException("Closed");
 
-    try (TraceScope span = Trace.startSpan("flush")) {
+    Span span = TraceUtil.startSpan(this.getClass(), "flush");
+    try (Scope scope = span.makeCurrent()) {
       checkForFailures();
 
       if (flushing) {
@@ -323,6 +327,11 @@ public class TabletServerBatchWriter implements AutoCloseable {
       this.notifyAll();
 
       checkForFailures();
+    } catch (Exception e) {
+      TraceUtil.setException(span, e, true);
+      throw e;
+    } finally {
+      span.end();
     }
   }
 
@@ -332,7 +341,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
     if (closed)
       return;
 
-    try (TraceScope span = Trace.startSpan("close")) {
+    Span span = TraceUtil.startSpan(this.getClass(), "close");
+    try (Scope scope = span.makeCurrent()) {
       closed = true;
 
       startProcessing();
@@ -342,11 +352,15 @@ public class TabletServerBatchWriter implements AutoCloseable {
       logStats();
 
       checkForFailures();
+    } catch (Exception e) {
+      TraceUtil.setException(span, e, true);
+      throw e;
     } finally {
+      span.end();
       // make a best effort to release these resources
       writer.binningThreadPool.shutdownNow();
       writer.sendThreadPool.shutdownNow();
-      jtimer.cancel();
+      executor.shutdownNow();
     }
   }
 
@@ -486,40 +500,22 @@ public class TabletServerBatchWriter implements AutoCloseable {
     }
   }
 
-  private void updateAuthorizationFailures(Set<KeyExtent> keySet, SecurityErrorCode code) {
-    HashMap<KeyExtent,SecurityErrorCode> map = new HashMap<>();
-    for (KeyExtent ke : keySet)
-      map.put(ke, code);
-
-    updateAuthorizationFailures(map);
-  }
-
   private void updateAuthorizationFailures(Map<KeyExtent,SecurityErrorCode> authorizationFailures) {
     if (!authorizationFailures.isEmpty()) {
 
       // was a table deleted?
-      HashSet<TableId> tableIds = new HashSet<>();
-      for (KeyExtent ke : authorizationFailures.keySet())
-        tableIds.add(ke.getTableId());
-
       Tables.clearCache(context);
-      for (TableId tableId : tableIds)
-        if (!Tables.exists(context, tableId))
-          throw new TableDeletedException(tableId.canonical());
+      authorizationFailures.keySet().stream().map(KeyExtent::tableId)
+          .forEach(context::requireNotDeleted);
 
       synchronized (this) {
         somethingFailed = true;
-        mergeAuthorizationFailures(this.authorizationFailures, authorizationFailures);
+        // add these authorizationFailures to those collected by this batch writer
+        authorizationFailures.forEach((ke, code) -> this.authorizationFailures
+            .computeIfAbsent(ke, k -> new HashSet<>()).add(code));
         this.notifyAll();
       }
     }
-  }
-
-  private void mergeAuthorizationFailures(Map<KeyExtent,Set<SecurityErrorCode>> source,
-      Map<KeyExtent,SecurityErrorCode> addition) {
-    addition.forEach((ke, sec) -> {
-      source.computeIfAbsent(ke, p -> new HashSet<>()).add(sec);
-    });
   }
 
   private synchronized void updateServerErrors(String server, Exception e) {
@@ -529,7 +525,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     log.error("Server side error on {}", server, e);
   }
 
-  private synchronized void updateUnknownErrors(String msg, Throwable t) {
+  private synchronized void updateUnknownErrors(String msg, Exception t) {
     somethingFailed = true;
     unknownErrors++;
     this.lastUnknownError = t;
@@ -575,13 +571,16 @@ public class TabletServerBatchWriter implements AutoCloseable {
     }
   }
 
-  private class FailedMutations extends TimerTask {
+  private class FailedMutations {
 
     private MutationSet recentFailures = null;
     private long initTime;
+    private final Runnable task;
 
     FailedMutations() {
-      jtimer.schedule(this, 0, 500);
+      task =
+          Threads.createNamedRunnable("failed mutationBatchWriterLatencyTimers handler", this::run);
+      executor.scheduleWithFixedDelay(task, 0, 500, TimeUnit.MILLISECONDS);
     }
 
     private MutationSet init() {
@@ -602,10 +601,9 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
     synchronized void add(TabletServerMutations<Mutation> tsm) {
       init();
-      tsm.getMutations().forEach((ke, muts) -> recentFailures.addAll(ke.getTableId(), muts));
+      tsm.getMutations().forEach((ke, muts) -> recentFailures.addAll(ke.tableId(), muts));
     }
 
-    @Override
     public void run() {
       try {
         MutationSet rf = null;
@@ -623,10 +621,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
                 rf.size());
           addFailedMutations(rf);
         }
-      } catch (Throwable t) {
+      } catch (Exception t) {
         updateUnknownErrors("tid=" + Thread.currentThread().getId()
             + "  Failed to requeue failed mutations " + t.getMessage(), t);
-        cancel();
+        executor.remove(task);
       }
     }
   }
@@ -638,8 +636,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
   private class MutationWriter {
 
     private static final int MUTATION_BATCH_SIZE = 1 << 17;
-    private final ExecutorService sendThreadPool;
-    private final SimpleThreadPool binningThreadPool;
+    private final ThreadPoolExecutor sendThreadPool;
+    private final ThreadPoolExecutor binningThreadPool;
     private final Map<String,TabletServerMutations<Mutation>> serversMutations;
     private final Set<String> queued;
     private final Map<TableId,TabletLocator> locators;
@@ -647,9 +645,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<>();
       queued = new HashSet<>();
-      sendThreadPool = new SimpleThreadPool(numSendThreads, this.getClass().getName());
+      sendThreadPool = ThreadPools.createFixedThreadPool(numSendThreads, this.getClass().getName());
       locators = new HashMap<>();
-      binningThreadPool = new SimpleThreadPool(1, "BinMutations", new SynchronousQueue<>());
+      binningThreadPool =
+          ThreadPools.createFixedThreadPool(1, "BinMutations", new SynchronousQueue<>());
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
@@ -680,12 +679,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
             if (!tableFailures.isEmpty()) {
               failedMutations.add(tableId, tableFailures);
 
-              if (tableFailures.size() == tableMutations.size())
-                if (!Tables.exists(context, entry.getKey()))
-                  throw new TableDeletedException(entry.getKey().canonical());
-                else if (Tables.getTableState(context, tableId) == TableState.OFFLINE)
-                  throw new TableOfflineException(
-                      Tables.getTableOfflineMsg(context, entry.getKey()));
+              if (tableFailures.size() == tableMutations.size()) {
+                context.requireNotDeleted(tableId);
+                context.requireNotOffline(tableId, null);
+              }
             }
           }
 
@@ -711,26 +708,30 @@ public class TabletServerBatchWriter implements AutoCloseable {
     void queueMutations(final MutationSet mutationsToSend) {
       if (mutationsToSend == null)
         return;
-      binningThreadPool.execute(Trace.wrap(() -> {
-        if (mutationsToSend != null) {
-          try {
-            log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
-                mutationsToSend.size());
-            addMutations(mutationsToSend);
-          } catch (Exception e) {
-            updateUnknownErrors("Error processing mutation set", e);
-          }
+      binningThreadPool.execute(() -> {
+        try {
+          log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
+              mutationsToSend.size());
+          addMutations(mutationsToSend);
+        } catch (Exception e) {
+          updateUnknownErrors("Error processing mutation set", e);
         }
-      }));
+      });
     }
 
     private void addMutations(MutationSet mutationsToSend) {
       Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
-      try (TraceScope span = Trace.startSpan("binMutations")) {
+      Span span = TraceUtil.startSpan(this.getClass(), "binMutations");
+      try (Scope scope = span.makeCurrent()) {
         long t1 = System.currentTimeMillis();
         binMutations(mutationsToSend, binnedMutations);
         long t2 = System.currentTimeMillis();
         updateBinningStats(mutationsToSend.size(), (t2 - t1), binnedMutations);
+      } catch (Exception e) {
+        TraceUtil.setException(span, e, true);
+        throw e;
+      } finally {
+        span.end();
       }
       addMutations(binnedMutations);
     }
@@ -773,7 +774,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       for (String server : servers)
         if (!queued.contains(server)) {
-          sendThreadPool.submit(Trace.wrap(new SendTask(server)));
+          sendThreadPool.submit(new SendTask(server));
           queued.add(server);
         }
     }
@@ -805,7 +806,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
           }
 
           return;
-        } catch (Throwable t) {
+        } catch (Exception t) {
           updateUnknownErrors(
               "Failed to send tablet server " + location + " its batch : " + t.getMessage(), t);
         }
@@ -826,7 +827,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
           Set<TableId> tableIds = new TreeSet<>();
           for (Map.Entry<KeyExtent,List<Mutation>> entry : mutationBatch.entrySet()) {
             count += entry.getValue().size();
-            tableIds.add(entry.getKey().getTableId());
+            tableIds.add(entry.getKey().tableId());
           }
 
           String msg = "sending " + String.format("%,d", count) + " mutations to "
@@ -834,7 +835,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
               + Joiner.on(',').join(tableIds) + ']';
           Thread.currentThread().setName(msg);
 
-          try (TraceScope span = Trace.startSpan("sendMutations")) {
+          Span span = TraceUtil.startSpan(this.getClass(), "sendMutations");
+          try (Scope scope = span.makeCurrent()) {
 
             TimeoutTracker timeoutTracker = timeoutTrackers.get(location);
             if (timeoutTracker == null) {
@@ -865,6 +867,11 @@ public class TabletServerBatchWriter implements AutoCloseable {
             updateSendStats(count, st2 - st1);
             decrementMemUsed(successBytes);
 
+          } catch (Exception e) {
+            TraceUtil.setException(span, e, true);
+            throw e;
+          } finally {
+            span.end();
           }
         } catch (IOException e) {
           if (log.isTraceEnabled())
@@ -872,7 +879,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
           HashSet<TableId> tables = new HashSet<>();
           for (KeyExtent ke : mutationBatch.keySet())
-            tables.add(ke.getTableId());
+            tables.add(ke.tableId());
 
           for (TableId table : tables)
             getLocator(table).invalidateCache(context, location);
@@ -913,11 +920,11 @@ public class TabletServerBatchWriter implements AutoCloseable {
               client.update(tinfo, context.rpcCreds(), entry.getKey().toThrift(),
                   entry.getValue().get(0).toThrift(), DurabilityImpl.toThrift(durability));
             } catch (NotServingTabletException e) {
-              allFailures.addAll(entry.getKey().getTableId(), entry.getValue());
-              getLocator(entry.getKey().getTableId()).invalidateCache(entry.getKey());
+              allFailures.addAll(entry.getKey().tableId(), entry.getValue());
+              getLocator(entry.getKey().tableId()).invalidateCache(entry.getKey());
             } catch (ConstraintViolationException e) {
-              updatedConstraintViolations(
-                  Translator.translate(e.violationSummaries, Translators.TCVST));
+              updatedConstraintViolations(e.violationSummaries.stream()
+                  .map(ConstraintViolationSummary::new).collect(toList()));
             }
             timeoutTracker.madeProgress();
           } else {
@@ -944,13 +951,20 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
             UpdateErrors updateErrors = client.closeUpdate(tinfo, usid);
 
-            Map<KeyExtent,Long> failures =
-                Translator.translate(updateErrors.failedExtents, Translators.TKET);
-            updatedConstraintViolations(
-                Translator.translate(updateErrors.violationSummaries, Translators.TCVST));
-            updateAuthorizationFailures(
-                Translator.translate(updateErrors.authorizationFailures, Translators.TKET));
-
+            // @formatter:off
+            Map<KeyExtent,Long> failures = updateErrors.failedExtents.entrySet().stream().collect(toMap(
+                            entry -> KeyExtent.fromThrift(entry.getKey()),
+                            Entry::getValue
+            ));
+            // @formatter:on
+            updatedConstraintViolations(updateErrors.violationSummaries.stream()
+                .map(ConstraintViolationSummary::new).collect(toList()));
+            // @formatter:off
+            updateAuthorizationFailures(updateErrors.authorizationFailures.entrySet().stream().collect(toMap(
+                            entry -> KeyExtent.fromThrift(entry.getKey()),
+                            Entry::getValue
+            )));
+            // @formatter:on
             long totalCommitted = 0;
 
             for (Entry<KeyExtent,Long> entry : failures.entrySet()) {
@@ -958,7 +972,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
               int numCommitted = (int) (long) entry.getValue();
               totalCommitted += numCommitted;
 
-              TableId tableId = failedExtent.getTableId();
+              TableId tableId = failedExtent.tableId();
 
               getLocator(tableId).invalidateCache(failedExtent);
 
@@ -976,7 +990,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
           }
           return allFailures;
         } finally {
-          ThriftUtil.returnClient((TServiceClient) client);
+          ThriftUtil.returnClient((TServiceClient) client, context);
         }
       } catch (TTransportException e) {
         timeoutTracker.errorOccured();
@@ -985,7 +999,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
         updateServerErrors(location, tae);
         throw new AccumuloServerException(location, tae);
       } catch (ThriftSecurityException e) {
-        updateAuthorizationFailures(tabMuts.keySet(), e.code);
+        updateAuthorizationFailures(
+            tabMuts.keySet().stream().collect(toMap(identity(), ke -> e.code)));
         throw new AccumuloSecurityException(e.user, e.code, e);
       } catch (TException e) {
         throw new IOException(e);

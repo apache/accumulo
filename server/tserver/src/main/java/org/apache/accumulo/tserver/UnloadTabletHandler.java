@@ -23,14 +23,14 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.master.thrift.TabletLoadState;
+import org.apache.accumulo.core.manager.thrift.TabletLoadState;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
-import org.apache.accumulo.server.master.state.DistributedStoreException;
-import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.master.state.TabletLocationState;
-import org.apache.accumulo.server.master.state.TabletLocationState.BadLocationStateException;
-import org.apache.accumulo.server.master.state.TabletStateStore;
-import org.apache.accumulo.tserver.mastermessage.TabletStatusMessage;
+import org.apache.accumulo.server.manager.state.DistributedStoreException;
+import org.apache.accumulo.server.manager.state.TabletStateStore;
+import org.apache.accumulo.tserver.managermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -59,13 +59,14 @@ class UnloadTabletHandler implements Runnable {
     synchronized (server.unopenedTablets) {
       if (server.unopenedTablets.contains(extent)) {
         server.unopenedTablets.remove(extent);
-        // enqueueMasterMessage(new TabletUnloadedMessage(extent));
+        // enqueueManagerMessage(new TabletUnloadedMessage(extent));
         return;
       }
     }
     synchronized (server.openingTablets) {
       while (server.openingTablets.contains(extent)) {
         try {
+          log.info("Waiting for tablet {} to finish opening before unloading.", extent);
           server.openingTablets.wait();
         } catch (InterruptedException e) {}
       }
@@ -77,11 +78,11 @@ class UnloadTabletHandler implements Runnable {
     }
 
     if (t == null) {
-      // Tablet has probably been recently unloaded: repeated master
+      // Tablet has probably been recently unloaded: repeated manager
       // unload request is crossing the successful unloaded message
       if (!server.recentlyUnloadedCache.containsKey(extent)) {
         log.info("told to unload tablet that was not being served {}", extent);
-        server.enqueueMasterMessage(
+        server.enqueueManagerMessage(
             new TabletStatusMessage(TabletLoadState.UNLOAD_FAILURE_NOT_SERVING, extent));
       }
       return;
@@ -89,14 +90,14 @@ class UnloadTabletHandler implements Runnable {
 
     try {
       t.close(!goalState.equals(TUnloadTabletGoal.DELETED));
-    } catch (Throwable e) {
+    } catch (Exception e) {
 
       if ((t.isClosing() || t.isClosed()) && e instanceof IllegalStateException) {
         log.debug("Failed to unload tablet {}... it was already closing or closed : {}", extent,
             e.getMessage());
       } else {
         log.error("Failed to close tablet {}... Aborting migration", extent, e);
-        server.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.UNLOAD_ERROR, extent));
+        server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.UNLOAD_ERROR, extent));
       }
       return;
     }
@@ -117,7 +118,7 @@ class UnloadTabletHandler implements Runnable {
       }
       if (!goalState.equals(TUnloadTabletGoal.SUSPENDED) || extent.isRootTablet()
           || (extent.isMeta()
-              && !server.getConfiguration().getBoolean(Property.MASTER_METADATA_SUSPENDABLE))) {
+              && !server.getConfiguration().getBoolean(Property.MANAGER_METADATA_SUSPENDABLE))) {
         TabletStateStore.unassign(server.getContext(), tls, null);
       } else {
         TabletStateStore.suspend(server.getContext(), tls, null,
@@ -131,8 +132,8 @@ class UnloadTabletHandler implements Runnable {
       log.warn("Interrupted while getting our zookeeper session information", e);
     }
 
-    // tell the master how it went
-    server.enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.UNLOADED, extent));
+    // tell the manager how it went
+    server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.UNLOADED, extent));
 
     // roll tablet stats over into tablet server's statsKeeper object as
     // historical data

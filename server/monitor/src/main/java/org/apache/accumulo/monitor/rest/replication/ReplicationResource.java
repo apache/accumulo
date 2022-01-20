@@ -27,11 +27,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import javax.inject.Inject;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -66,6 +66,7 @@ import org.slf4j.LoggerFactory;
  */
 @Path("/replication")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+@Deprecated
 public class ReplicationResource {
   private static final Logger log = LoggerFactory.getLogger(ReplicationResource.class);
 
@@ -131,23 +132,22 @@ public class ReplicationResource {
         continue;
       }
 
-      Iterable<Entry<String,String>> propertiesForTable;
+      Map<String,String> propertiesForTable;
       try {
-        propertiesForTable = tops.getProperties(table);
+        propertiesForTable = tops.getConfiguration(table);
       } catch (TableNotFoundException e) {
         log.warn("Could not fetch properties for {}", table, e);
         continue;
       }
-
-      for (Entry<String,String> prop : propertiesForTable) {
-        if (prop.getKey().startsWith(targetPrefix)) {
-          String peerName = prop.getKey().substring(targetPrefix.length());
-          String remoteIdentifier = prop.getValue();
+      propertiesForTable.forEach((key, value) -> {
+        if (key.startsWith(targetPrefix)) {
+          String peerName = key.substring(targetPrefix.length());
+          String remoteIdentifier = value;
           ReplicationTarget target = new ReplicationTarget(peerName, remoteIdentifier, localId);
 
           allConfiguredTargets.add(target);
         }
-      }
+      });
     }
 
     // Read over the queued work

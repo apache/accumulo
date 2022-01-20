@@ -19,12 +19,13 @@
 package org.apache.accumulo.core.dataImpl;
 
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.hadoop.io.Text;
 
 public class TabletIdImpl implements TabletId {
 
-  private KeyExtent ke;
+  private final KeyExtent ke;
 
   public TabletIdImpl(KeyExtent ke) {
     this.ke = ke;
@@ -36,18 +37,24 @@ public class TabletIdImpl implements TabletId {
   }
 
   @Override
+  public TableId getTable() {
+    return ke.tableId();
+  }
+
+  @Override
+  @Deprecated(since = "2.1.0")
   public Text getTableId() {
-    return new Text(ke.getTableId().canonical());
+    return new Text(ke.tableId().canonical());
   }
 
   @Override
   public Text getEndRow() {
-    return ke.getEndRow();
+    return ke.endRow();
   }
 
   @Override
   public Text getPrevEndRow() {
-    return ke.getPrevEndRow();
+    return ke.prevEndRow();
   }
 
   @Override
@@ -73,4 +80,9 @@ public class TabletIdImpl implements TabletId {
   public Range toRange() {
     return ke.toDataRange();
   }
+
+  public KeyExtent toKeyExtent() {
+    return ke;
+  }
+
 }

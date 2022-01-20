@@ -221,7 +221,7 @@ public class Bulk {
   }
 
   public static Tablet toTablet(KeyExtent keyExtent) {
-    return new Tablet(keyExtent.getEndRow(), keyExtent.getPrevEndRow());
+    return new Tablet(keyExtent.endRow(), keyExtent.prevEndRow());
   }
 
   public static KeyExtent toKeyExtent(TableId tableId, Tablet tablet) {

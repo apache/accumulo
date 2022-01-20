@@ -54,7 +54,7 @@ import org.apache.log4j.Logger;
  * @deprecated since 2.0.0; Use org.apache.accumulo.hadoop.mapred instead from the
  *             accumulo-hadoop-mapreduce.jar
  */
-@Deprecated
+@Deprecated(since = "2.0.0")
 public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
 
   private static final Class<?> CLASS = AccumuloFileOutputFormat.class;
@@ -67,7 +67,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * @param job
    *          the Hadoop job instance to be configured
    * @param compressionType
-   *          one of "none", "gz", "lzo", or "snappy"
+   *          one of "none", "gz", "bzip2", "lzo", "lz4", "snappy", or "zstd"
    * @since 1.5.0
    */
   public static void setCompressionType(JobConf job, String compressionType) {

@@ -26,9 +26,9 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.lang3.Range;
 import org.apache.hadoop.fs.Path;
 
@@ -107,6 +107,7 @@ public enum PropertyType {
           + "config file using '${env:ACCUMULO_HOME}' or similar."),
 
   // VFS_CLASSLOADER_CACHE_DIR's default value is a special case, for documentation purposes
+  @SuppressWarnings("removal")
   ABSOLUTEPATH("absolute path",
       x -> x == null || x.trim().isEmpty() || new Path(x.trim()).isAbsolute()
           || x.equals(Property.VFS_CLASSLOADER_CACHE_DIR.getDefaultValue()),
@@ -309,7 +310,7 @@ public enum PropertyType {
 
   public static class PortRange extends Matches {
 
-    private static final Range<Integer> VALID_RANGE = Range.between(1024, 65535);
+    public static final Range<Integer> VALID_RANGE = Range.between(1024, 65535);
 
     public PortRange(final String pattern) {
       super(pattern);
@@ -329,7 +330,7 @@ public enum PropertyType {
       }
     }
 
-    public static Pair<Integer,Integer> parse(String portRange) {
+    public static IntStream parse(String portRange) {
       int idx = portRange.indexOf('-');
       if (idx != -1) {
         int low = Integer.parseInt(portRange.substring(0, idx));
@@ -338,7 +339,7 @@ public enum PropertyType {
           throw new IllegalArgumentException(
               "Invalid port range specified, only 1024 to 65535 supported.");
         }
-        return new Pair<>(low, high);
+        return IntStream.rangeClosed(low, high);
       }
       throw new IllegalArgumentException(
           "Invalid port range specification, must use M-N notation.");

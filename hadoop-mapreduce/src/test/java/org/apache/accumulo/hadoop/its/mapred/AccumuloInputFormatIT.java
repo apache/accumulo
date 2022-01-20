@@ -29,7 +29,6 @@ import java.util.Collections;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.sample.RowSampler;
@@ -158,7 +157,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     String table = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(table);
-      BatchWriter bw = c.createBatchWriter(table, new BatchWriterConfig());
+      BatchWriter bw = c.createBatchWriter(table);
       for (int i = 0; i < 100; i++) {
         Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
         m.put("", "", String.format("%09x", i));
@@ -186,7 +185,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(TEST_TABLE_3,
           new NewTableConfiguration().enableSampling(SAMPLER_CONFIG));
-      BatchWriter bw = c.createBatchWriter(TEST_TABLE_3, new BatchWriterConfig());
+      BatchWriter bw = c.createBatchWriter(TEST_TABLE_3);
       for (int i = 0; i < 100; i++) {
         Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
         m.put("", "", String.format("%09x", i));

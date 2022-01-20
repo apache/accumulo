@@ -22,8 +22,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.DataInputStream;
 import java.io.EOFException;
-import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -36,22 +36,26 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.tserver.log.DfsLogger;
-import org.apache.accumulo.tserver.log.DfsLogger.DFSLoggerInputStreams;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
-import org.apache.accumulo.tserver.log.RecoveryLogReader;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.accumulo.tserver.log.RecoveryLogsIterator;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
-public class LogReader {
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@AutoService(KeywordExecutable.class)
+public class LogReader implements KeywordExecutable {
+
   private static final Logger log = LoggerFactory.getLogger(LogReader.class);
 
   static class Opts extends Help {
@@ -69,24 +73,43 @@ public class LogReader {
   }
 
   /**
-   * Dump a Log File (Map or Sequence) to stdout. Will read from HDFS or local file system.
+   * Dump a Log File to stdout. Will read from HDFS or local file system.
    *
    * @param args
    *          - first argument is the file to print
    */
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws Exception {
+    new LogReader().execute(args);
+  }
+
+  @Override
+  public String keyword() {
+    return "wal-info";
+  }
+
+  @Override
+  public String description() {
+    return "Prints WAL Info";
+  }
+
+  @SuppressFBWarnings(value = "DM_EXIT",
+      justification = "System.exit is fine here because it's a utility class executed by a main()")
+  @Override
+  public void execute(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(LogReader.class.getName(), args);
+    opts.parseArgs("accumulo wal-info", args);
+    if (opts.files.isEmpty()) {
+      System.err.println("No WAL files were given");
+      System.exit(1);
+    }
+
     var siteConfig = SiteConfiguration.auto();
-    try (var fs = VolumeManagerImpl.get(siteConfig, new Configuration())) {
+    ServerContext context = new ServerContext(siteConfig);
+    try (VolumeManager fs = context.getVolumeManager()) {
 
       Matcher rowMatcher = null;
       KeyExtent ke = null;
       Text row = null;
-      if (opts.files.isEmpty()) {
-        new JCommander(opts).usage();
-        return;
-      }
       if (opts.row != null) {
         row = new Text(opts.row);
       }
@@ -102,39 +125,40 @@ public class LogReader {
       Set<Integer> tabletIds = new HashSet<>();
 
       for (String file : opts.files) {
-
         Path path = new Path(file);
         LogFileKey key = new LogFileKey();
         LogFileValue value = new LogFileValue();
 
+        // ensure it's a regular non-sorted WAL file, and not a single sorted WAL in RFile format
         if (fs.getFileStatus(path).isFile()) {
-          try (final FSDataInputStream fsinput = fs.open(path)) {
-            // read log entries from a simple hdfs file
-            DFSLoggerInputStreams streams;
-            try {
-              streams = DfsLogger.readHeaderAndReturnStream(fsinput, siteConfig);
-            } catch (LogHeaderIncompleteException e) {
-              log.warn("Could not read header for {} . Ignoring...", path);
-              continue;
-            }
+          if (file.endsWith(".rf")) {
+            log.error("Unable to read from a single RFile. A non-sorted WAL file was expected. "
+                + "To read sorted WALs, please pass in a directory containing the sorted recovery logs.");
+            continue;
+          }
 
-            try (DataInputStream input = streams.getDecryptingInputStream()) {
-              while (true) {
-                try {
-                  key.readFields(input);
-                  value.readFields(input);
-                } catch (EOFException ex) {
-                  break;
-                }
-                printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
+          try (final FSDataInputStream fsinput = fs.open(path);
+              DataInputStream input = DfsLogger.getDecryptingStream(fsinput, siteConfig)) {
+            while (true) {
+              try {
+                key.readFields(input);
+                value.readFields(input);
+              } catch (EOFException ex) {
+                break;
               }
+              printLogEvent(key, value, row, rowMatcher, ke, tabletIds, opts.maxMutations);
             }
+          } catch (LogHeaderIncompleteException e) {
+            log.warn("Could not read header for {} . Ignoring...", path);
+            continue;
           }
         } else {
-          // read the log entries sorted in a map file
-          try (RecoveryLogReader input = new RecoveryLogReader(fs, path)) {
-            while (input.hasNext()) {
-              Entry<LogFileKey,LogFileValue> entry = input.next();
+          // read the log entries in a sorted RFile. This has to be a directory that contains the
+          // finished file.
+          try (var rli = new RecoveryLogsIterator(context, Collections.singletonList(path), null,
+              null, false)) {
+            while (rli.hasNext()) {
+              Entry<LogFileKey,LogFileValue> entry = rli.next();
               printLogEvent(entry.getKey(), entry.getValue(), row, rowMatcher, ke, tabletIds,
                   opts.maxMutations);
             }
@@ -185,9 +209,7 @@ public class LogReader {
       }
 
     }
-
     System.out.println(key);
     System.out.println(LogFileValue.format(value, maxMutations));
   }
-
 }

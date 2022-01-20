@@ -21,11 +21,11 @@ package org.apache.accumulo.monitor.rest.statistics;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.inject.Inject;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.util.Pair;
@@ -160,7 +160,7 @@ public class StatisticsResource {
    */
   @GET
   @Path("time/scanRate")
-  public List<Pair<Long,Integer>> getScanRate() {
+  public List<Pair<Long,Long>> getScanRate() {
     return monitor.getScanRateOverTime();
   }
 
@@ -171,7 +171,7 @@ public class StatisticsResource {
    */
   @GET
   @Path("time/queryRate")
-  public List<Pair<Long,Integer>> getQueryRate() {
+  public List<Pair<Long,Long>> getQueryRate() {
     return monitor.getQueryRateOverTime();
   }
 
@@ -182,12 +182,12 @@ public class StatisticsResource {
    */
   @GET
   @Path("time/scanEntries")
-  public List<Pair<String,List<Pair<Long,Integer>>>> getScanEntries() {
+  public List<Pair<String,List<Pair<Long,Long>>>> getScanEntries() {
 
-    List<Pair<String,List<Pair<Long,Integer>>>> scanEntries = new ArrayList<>();
+    List<Pair<String,List<Pair<Long,Long>>>> scanEntries = new ArrayList<>();
 
-    Pair<String,List<Pair<Long,Integer>>> read = new Pair<>("Read", monitor.getScanRateOverTime());
-    Pair<String,List<Pair<Long,Integer>>> returned =
+    Pair<String,List<Pair<Long,Long>>> read = new Pair<>("Read", monitor.getScanRateOverTime());
+    Pair<String,List<Pair<Long,Long>>> returned =
         new Pair<>("Returned", monitor.getQueryRateOverTime());
 
     scanEntries.add(read);

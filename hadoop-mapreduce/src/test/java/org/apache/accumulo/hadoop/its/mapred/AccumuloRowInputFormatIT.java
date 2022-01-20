@@ -31,7 +31,6 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
@@ -57,7 +56,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * Tests the new MR API in the hadoop-mareduce package.
+ * Tests the new MR API in the hadoop-mapreduce package.
  *
  * @since 2.0
  */
@@ -194,7 +193,7 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
-      try (BatchWriter writer = client.createBatchWriter(tableName, new BatchWriterConfig())) {
+      try (BatchWriter writer = client.createBatchWriter(tableName)) {
         insertList(writer, row1);
         insertList(writer, row2);
         insertList(writer, row3);

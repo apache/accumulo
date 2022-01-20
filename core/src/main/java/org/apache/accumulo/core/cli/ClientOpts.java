@@ -35,10 +35,6 @@ import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.htrace.NullScope;
-import org.apache.htrace.Sampler;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
@@ -152,7 +148,7 @@ public class ClientOpts extends Help {
   public String principal = null;
 
   @Parameter(names = "--password", converter = PasswordConverter.class,
-      description = "conection password (can be specified as '<password>', 'pass:<password>',"
+      description = "connection password (can be specified as '<password>', 'pass:<password>',"
           + " 'file:<local file containing the password>' or 'env:<variable containing"
           + " the pass>')",
       password = true)
@@ -181,11 +177,6 @@ public class ClientOpts extends Help {
     return ConfigOpts.getOverrides(overrides);
   }
 
-  public TraceScope parseArgsAndTrace(String programName, String[] args, Object... others) {
-    parseArgs(programName, args, others);
-    return trace ? Trace.startSpan(programName, Sampler.ALWAYS) : NullScope.INSTANCE;
-  }
-
   @Override
   public void parseArgs(String programName, String[] args, Object... others) {
     super.parseArgs(programName, args, others);
@@ -196,7 +187,7 @@ public class ClientOpts extends Help {
         if (legacyClientOpts.contains(arg))
           badOptions.append(arg).append(" ");
       }
-      throw new IllegalArgumentException("The Client options: " + badOptions.toString()
+      throw new IllegalArgumentException("The Client options: " + badOptions
           + "have been dropped. Use accumulo-client.properties for any connection or token "
           + "options. See '-c, --config-file' option.");
     }

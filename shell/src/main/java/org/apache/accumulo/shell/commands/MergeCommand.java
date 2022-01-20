@@ -18,9 +18,6 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.util.Merge;
 import org.apache.accumulo.shell.Shell;
@@ -56,7 +53,7 @@ public class MergeCommand extends Command {
       size = ConfigurationTypeHelper.getFixedMemoryAsBytes(cl.getOptionValue(sizeOpt.getOpt()));
     }
     if (startRow == null && endRow == null && size < 0 && !all) {
-      shellState.getReader().flush();
+      shellState.getWriter().flush();
       String line = shellState.getReader()
           .readLine("Merge the entire table { " + tableName + " } into one tablet (yes|no)? ");
       if (line == null)
@@ -72,11 +69,7 @@ public class MergeCommand extends Command {
         @Override
         protected void message(String fmt, Object... args) {
           if (finalVerbose) {
-            try {
-              shellState.getReader().println(String.format(fmt, args));
-            } catch (IOException ex) {
-              throw new UncheckedIOException(ex);
-            }
+            shellState.getWriter().println(String.format(fmt, args));
           }
         }
       };

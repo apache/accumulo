@@ -53,9 +53,9 @@ public class UnsynchronizedBufferTest {
 
     buf = new byte[6];
     // the byte buffer has the extra byte, but should not be able to read it...
-    final UnsynchronizedBuffer.Reader ub2 = ub;
-    final byte[] buf2 = buf;
-    assertThrows(ArrayIndexOutOfBoundsException.class, () -> ub2.readBytes(buf2));
+    final UnsynchronizedBuffer.Reader finalUb = ub;
+    final byte[] finalBuf = buf;
+    assertThrows(ArrayIndexOutOfBoundsException.class, () -> finalUb.readBytes(finalBuf));
   }
 
   @Test

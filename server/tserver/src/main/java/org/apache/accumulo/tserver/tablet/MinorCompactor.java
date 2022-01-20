@@ -24,20 +24,17 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.TabletFile;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
+import org.apache.accumulo.server.compaction.CompactionStats;
+import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
@@ -49,57 +46,28 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MinorCompactor extends Compactor {
+public class MinorCompactor extends FileCompactor {
 
+  private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(MinorCompactor.class);
 
-  private static final Map<StoredTabletFile,DataFileValue> EMPTY_MAP = Collections.emptyMap();
-
-  private static Map<StoredTabletFile,DataFileValue> toFileMap(StoredTabletFile mergeFile,
-      DataFileValue dfv) {
-    if (mergeFile == null)
-      return EMPTY_MAP;
-
-    return Collections.singletonMap(mergeFile, dfv);
-  }
-
   private final TabletServer tabletServer;
+  private final MinorCompactionReason mincReason;
 
   public MinorCompactor(TabletServer tabletServer, Tablet tablet, InMemoryMap imm,
-      StoredTabletFile mergeFile, DataFileValue dfv, TabletFile outputFile,
-      MinorCompactionReason mincReason, TableConfiguration tableConfig) {
-    super(tabletServer.getContext(), tablet, toFileMap(mergeFile, dfv), imm, outputFile, true,
-        new CompactionEnv() {
-
-          @Override
-          public boolean isCompactionEnabled() {
-            return true;
-          }
-
-          @Override
-          public IteratorScope getIteratorScope() {
-            return IteratorScope.minc;
-          }
-
-          @Override
-          public RateLimiter getReadLimiter() {
-            return null;
-          }
-
-          @Override
-          public RateLimiter getWriteLimiter() {
-            return null;
-          }
-        }, Collections.emptyList(), mincReason.ordinal(), tableConfig);
+      TabletFile outputFile, MinorCompactionReason mincReason, TableConfiguration tableConfig) {
+    super(tabletServer.getContext(), tablet.getExtent(), Collections.emptyMap(), outputFile, true,
+        new MinCEnv(mincReason, imm.compactionIterator()), Collections.emptyList(), tableConfig);
     this.tabletServer = tabletServer;
+    this.mincReason = mincReason;
   }
 
   private boolean isTableDeleting() {
     try {
-      return Tables.getTableState(tabletServer.getContext(), extent.getTableId())
+      return Tables.getTableState(tabletServer.getContext(), extent.tableId())
           == TableState.DELETING;
     } catch (Exception e) {
-      log.warn("Failed to determine if table " + extent.getTableId() + " was deleting ", e);
+      log.warn("Failed to determine if table " + extent.tableId() + " was deleting ", e);
       return false; // can not get positive confirmation that its deleting.
     }
   }
@@ -107,7 +75,7 @@ public class MinorCompactor extends Compactor {
   @Override
   protected Map<String,Set<ByteSequence>> getLocalityGroups(AccumuloConfiguration acuTableConf)
       throws IOException {
-    return LocalityGroupUtil.getLocalityGroupsIgnoringErrors(acuTableConf, extent.getTableId());
+    return LocalityGroupUtil.getLocalityGroupsIgnoringErrors(acuTableConf, extent.tableId());
   }
 
   @Override
@@ -120,6 +88,7 @@ public class MinorCompactor extends Compactor {
     double growthFactor = 4;
     int maxSleepTime = 1000 * 60 * 3; // 3 minutes
     boolean reportedProblem = false;
+    int retryCounter = 0;
 
     runningCompactions.add(this);
     try {
@@ -132,29 +101,36 @@ public class MinorCompactor extends Compactor {
           // (int)(map.size()/((t2 - t1)/1000.0)), (t2 - t1)/1000.0, estimatedSizeInBytes()));
 
           if (reportedProblem) {
-            ProblemReports.getInstance(tabletServer.getContext()).deleteProblemReport(
-                getExtent().getTableId(), ProblemType.FILE_WRITE, outputFileName);
+            ProblemReports.getInstance(tabletServer.getContext())
+                .deleteProblemReport(getExtent().tableId(), ProblemType.FILE_WRITE, outputFileName);
           }
 
           return ret;
         } catch (IOException | UnsatisfiedLinkError e) {
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName);
-          ProblemReports.getInstance(tabletServer.getContext()).report(new ProblemReport(
-              getExtent().getTableId(), ProblemType.FILE_WRITE, outputFileName, e));
+          ProblemReports.getInstance(tabletServer.getContext()).report(
+              new ProblemReport(getExtent().tableId(), ProblemType.FILE_WRITE, outputFileName, e));
           reportedProblem = true;
-        } catch (RuntimeException e) {
+        } catch (RuntimeException | NoClassDefFoundError e) {
           // if this is coming from a user iterator, it is possible that the user could change the
-          // iterator config and that the
-          // minor compaction would succeed
+          // iterator config and that the minor compaction would succeed
+          // If the minor compaction stalls for too long during recovery, it can interfere with
+          // other tables loading
+          // Throw exception if this happens so assignments can be rescheduled.
+          ProblemReports.getInstance(tabletServer.getContext()).report(
+              new ProblemReport(getExtent().tableId(), ProblemType.FILE_WRITE, outputFileName, e));
+          if (retryCounter >= 4 && mincReason.equals(MinorCompactionReason.RECOVERY)) {
+            log.warn(
+                "MinC ({}) is stuck for too long during recovery, throwing error to reschedule.",
+                getExtent(), e);
+            throw new RuntimeException(e);
+          }
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName, e);
-          ProblemReports.getInstance(tabletServer.getContext()).report(new ProblemReport(
-              getExtent().getTableId(), ProblemType.FILE_WRITE, outputFileName, e));
           reportedProblem = true;
+          retryCounter++;
         } catch (CompactionCanceledException e) {
           throw new IllegalStateException(e);
         }
-
-        Random random = new SecureRandom();
 
         int sleep = sleepTime + random.nextInt(sleepTime);
         log.debug("MinC failed sleeping {} ms before retrying", sleep);
@@ -163,8 +139,8 @@ public class MinorCompactor extends Compactor {
 
         // clean up
         try {
-          if (getFileSystem().exists(new Path(outputFileName))) {
-            getFileSystem().deleteRecursively(new Path(outputFileName));
+          if (getVolumeManager().exists(new Path(outputFileName))) {
+            getVolumeManager().deleteRecursively(new Path(outputFileName));
           }
         } catch (IOException e) {
           log.warn("Failed to delete failed MinC file {} {}", outputFileName, e.getMessage());

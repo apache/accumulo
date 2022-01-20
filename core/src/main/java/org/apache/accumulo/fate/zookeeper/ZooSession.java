@@ -63,7 +63,7 @@ public class ZooSession {
 
   private static Map<String,ZooSessionInfo> sessions = new HashMap<>();
 
-  private static final SecureRandom secureRandom = new SecureRandom();
+  private static final SecureRandom random = new SecureRandom();
 
   static {
     SingletonManager.register(new SingletonService() {
@@ -113,8 +113,7 @@ public class ZooSession {
    * @param watcher
    *          ZK notifications, may be null
    */
-  public static ZooKeeper connect(String host, int timeout, String scheme, byte[] auth,
-      Watcher watcher) {
+  static ZooKeeper connect(String host, int timeout, String scheme, byte[] auth, Watcher watcher) {
     final int TIME_BETWEEN_CONNECT_CHECKS_MS = 100;
     int connectTimeWait = Math.min(10 * 1000, timeout);
     boolean tryAgain = true;
@@ -173,7 +172,7 @@ public class ZooSession {
         }
         UtilWaitThread.sleep(sleepTime);
         if (sleepTime < 10000)
-          sleepTime = sleepTime + (long) (sleepTime * secureRandom.nextDouble());
+          sleepTime = sleepTime + (long) (sleepTime * random.nextDouble());
       }
     }
 

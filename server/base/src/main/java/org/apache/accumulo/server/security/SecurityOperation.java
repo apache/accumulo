@@ -41,10 +41,9 @@ import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
-import org.apache.accumulo.core.master.thrift.FateOperation;
+import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -128,7 +127,7 @@ public class SecurityOperation {
         || !authenticator.validSecurityHandlers()
         || !permHandle.validSecurityHandlers(authent, author))
       throw new RuntimeException(authorizor + ", " + authenticator + ", and " + pm
-          + " do not play nice with eachother. Please choose authentication and"
+          + " do not play nice with each other. Please choose authentication and"
           + " authorization mechanisms that are compatible with one another.");
 
     isKerberos = KerberosAuthenticator.class.isAssignableFrom(authenticator.getClass());
@@ -227,19 +226,18 @@ public class SecurityOperation {
     }
   }
 
-  public boolean canAskAboutUser(TCredentials credentials, String user)
-      throws ThriftSecurityException {
-    // Authentication done in canPerformSystemActions
-    if (!(canPerformSystemActions(credentials) || credentials.getPrincipal().equals(user)))
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    return true;
-  }
-
   public boolean authenticateUser(TCredentials credentials, TCredentials toAuth)
       throws ThriftSecurityException {
-    canAskAboutUser(credentials, toAuth.getPrincipal());
-    // User is already authenticated from canAskAboutUser
+    authenticate(credentials); // authenticate the current user first
+
+    // if the user to authenticate is not the current user, and the current user lacks
+    // the SYSTEM permission, then deny the request
+    if (!credentials.getPrincipal().equals(toAuth.getPrincipal())
+        && !hasSystemPermission(credentials, SystemPermission.SYSTEM, false))
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+
+    // the user is already authenticated above if the credentials to authenticate are the same
     if (credentials.equals(toAuth))
       return true;
     try {
@@ -368,8 +366,11 @@ public class SecurityOperation {
       boolean useCached) throws ThriftSecurityException {
     targetUserExists(user);
 
+    @SuppressWarnings("deprecation")
+    TableId replicationTableId = org.apache.accumulo.core.replication.ReplicationTable.ID;
+
     if ((table.equals(MetadataTable.ID) || table.equals(RootTable.ID)
-        || table.equals(ReplicationTable.ID)) && permission.equals(TablePermission.READ))
+        || table.equals(replicationTableId)) && permission.equals(TablePermission.READ))
       return true;
 
     try {
@@ -931,5 +932,12 @@ public class SecurityOperation {
     authenticate(credentials);
     return hasTablePermission(credentials, tableId, namespaceId, TablePermission.GET_SUMMARIES,
         false);
+  }
+
+  public boolean validateStoredUserCreditentials() {
+    if (authenticator instanceof ZKAuthenticator) {
+      return !((ZKAuthenticator) authenticator).hasOutdatedHashes();
+    }
+    return true;
   }
 }
