@@ -33,7 +33,9 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -134,6 +136,10 @@ public interface VolumeManager extends AutoCloseable {
 
   // return the item in options that is in the same file system as source
   Path matchingFileSystem(Path source, Set<String> options);
+
+  // forward to appropriate FileSystem object. Does not support globbing.
+  RemoteIterator<LocatedFileStatus> listFiles(final Path path, final boolean recursive)
+      throws IOException;
 
   // forward to the appropriate FileSystem object
   FileStatus[] listStatus(Path path) throws IOException;
