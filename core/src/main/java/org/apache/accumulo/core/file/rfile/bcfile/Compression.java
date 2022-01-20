@@ -26,11 +26,14 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.accumulo.core.file.rfile.bcfile.codec.CompressorFactory;
+import org.apache.accumulo.core.file.rfile.bcfile.codec.DefaultCompressorFactory;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.compress.CodecPool;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionInputStream;
 import org.apache.hadoop.io.compress.CompressionOutputStream;
@@ -115,6 +118,21 @@ public final class Compression {
    */
   public static final String COMPRESSION_NONE = "none";
 
+  // data input buffer size to absorb small reads from application.
+  private static final int DATA_IBUF_SIZE_DEFAULT = 1 * 1024;
+  // data output buffer size to absorb small writes from application.
+  private static final int DATA_OBUF_SIZE_DEFAULT = 4 * 1024;
+
+  /**
+   * Data input buffer size variable. Defaults is defined, statically, above.
+   */
+  private static volatile int dataInputBufferSize = DATA_IBUF_SIZE_DEFAULT;
+
+  /**
+   * Data output buffer size variable. Defaults is defined, statically, above.
+   */
+  private static volatile int dataOutputBufferSize = DATA_OBUF_SIZE_DEFAULT;
+
   /**
    * Compression algorithms. There is a static initializer, below the values defined in the
    * enumeration, that calls the initializer of all defined codecs within {@link Algorithm}. This
@@ -157,7 +175,7 @@ public final class Compression {
    * Snappy will use the default Snappy codec with the default buffer size of 64k for the
    * compression stream, but will use a cached codec if the buffer size differs from the default.
    */
-  public enum Algorithm {
+  public static enum Algorithm {
 
     BZIP2(COMPRESSION_BZIP2) {
 
@@ -200,7 +218,7 @@ public final class Compression {
       }
 
       @Override
-      CompressionCodec getCodec() {
+      public CompressionCodec getCodec() {
         return codec;
       }
 
@@ -269,7 +287,7 @@ public final class Compression {
       }
 
       @Override
-      CompressionCodec getCodec() {
+      public CompressionCodec getCodec() {
         return codec;
       }
 
@@ -282,7 +300,9 @@ public final class Compression {
         }
         InputStream bis = bufferStream(downStream, downStreamBufferSize);
         CompressionInputStream cis = codec.createInputStream(bis, decompressor);
-        return new BufferedInputStream(cis, DATA_IBUF_SIZE);
+        BufferedInputStream bufferdStream = new BufferedInputStream(cis,
+            dataInputBufferSize == 0 ? downStreamBufferSize : dataInputBufferSize);
+        return bufferdStream;
       }
 
       @Override
@@ -338,7 +358,7 @@ public final class Compression {
       }
 
       @Override
-      CompressionCodec getCodec() {
+      public CompressionCodec getCodec() {
         return codec;
       }
 
@@ -381,7 +401,7 @@ public final class Compression {
       private static final int DEFAULT_BUFFER_SIZE = 32 * 1024;
 
       @Override
-      CompressionCodec getCodec() {
+      public CompressionCodec getCodec() {
         return codec;
       }
 
@@ -403,16 +423,19 @@ public final class Compression {
       }
 
       @Override
+
       public InputStream createDecompressionStream(InputStream downStream,
           Decompressor decompressor, int downStreamBufferSize) throws IOException {
-        return createDecompressionStream(downStream, decompressor, downStreamBufferSize,
+        return createDecompressionStream(downStream, decompressor,
+            dataOutputBufferSize == 0 ? downStreamBufferSize : dataOutputBufferSize,
             DEFAULT_BUFFER_SIZE, GZ, codec);
       }
 
       @Override
       public OutputStream createCompressionStream(OutputStream downStream, Compressor compressor,
           int downStreamBufferSize) throws IOException {
-        return createFinishedOnFlushCompressionStream(downStream, compressor, downStreamBufferSize);
+        return createFinishedOnFlushCompressionStream(downStream, compressor,
+            dataOutputBufferSize == 0 ? downStreamBufferSize : dataOutputBufferSize);
       }
 
       @Override
@@ -423,7 +446,7 @@ public final class Compression {
 
     NONE(COMPRESSION_NONE) {
       @Override
-      CompressionCodec getCodec() {
+      public CompressionCodec getCodec() {
         return null;
       }
 
@@ -476,16 +499,16 @@ public final class Compression {
        */
       private final AtomicBoolean checked = new AtomicBoolean(false);
 
-      private transient CompressionCodec codec = null;
+      private transient CompressionCodec snappyCodec = null;
 
       @Override
       public CompressionCodec getCodec() {
-        return codec;
+        return snappyCodec;
       }
 
       @Override
       public void initializeDefaultCodec() {
-        codec = initCodec(checked, DEFAULT_BUFFER_SIZE, codec);
+        snappyCodec = initCodec(checked, DEFAULT_BUFFER_SIZE, snappyCodec);
       }
 
       /**
@@ -514,12 +537,12 @@ public final class Compression {
               + CONF_SNAPPY_CLASS + "?");
         }
         return createDecompressionStream(downStream, decompressor, downStreamBufferSize,
-            DEFAULT_BUFFER_SIZE, SNAPPY, codec);
+            DEFAULT_BUFFER_SIZE, SNAPPY, snappyCodec);
       }
 
       @Override
       public boolean isSupported() {
-        return codec != null;
+        return snappyCodec != null;
       }
     },
 
@@ -645,19 +668,11 @@ public final class Compression {
     // The name of the compression algorithm.
     private final String name;
 
-    Algorithm(String name) {
-      this.name = name;
+    Algorithm(String compressorName) {
+      this.name = compressorName;
     }
 
-    public abstract InputStream createDecompressionStream(InputStream downStream,
-        Decompressor decompressor, int downStreamBufferSize) throws IOException;
-
-    public abstract OutputStream createCompressionStream(OutputStream downStream,
-        Compressor compressor, int downStreamBufferSize) throws IOException;
-
-    public abstract boolean isSupported();
-
-    abstract CompressionCodec getCodec();
+    public abstract CompressionCodec getCodec();
 
     /**
      * Create the default codec object.
@@ -670,63 +685,28 @@ public final class Compression {
      */
     abstract CompressionCodec createNewCodec(int bufferSize);
 
-    public Compressor getCompressor() {
-      CompressionCodec codec = getCodec();
-      if (codec != null) {
-        Compressor compressor = CodecPool.getCompressor(codec);
-        if (compressor != null) {
-          if (compressor.finished()) {
-            // Somebody returns the compressor to CodecPool but is still using it.
-            log.warn("Compressor obtained from CodecPool already finished()");
-          } else {
-            log.trace("Got a compressor: {}", compressor.hashCode());
-          }
-          // The following statement is necessary to get around bugs in 0.18 where a compressor is
-          // referenced after it's
-          // returned back to the codec pool.
-          compressor.reset();
-        }
-        return compressor;
-      }
-      return null;
+    public abstract InputStream createDecompressionStream(InputStream downStream,
+        Decompressor decompressor, int downStreamBufferSize) throws IOException;
+
+    public abstract OutputStream createCompressionStream(OutputStream downStream,
+        Compressor compressor, int downStreamBufferSize) throws IOException;
+
+    public abstract boolean isSupported();
+
+    public Compressor getCompressor() throws IOException {
+      return compressorFactory.get().getCompressor(this);
     }
 
-    public void returnCompressor(final Compressor compressor) {
-      if (compressor != null) {
-        log.trace("Return a compressor: {}", compressor.hashCode());
-        CodecPool.returnCompressor(compressor);
-      }
+    public void returnCompressor(Compressor compressor) {
+      compressorFactory.get().releaseCompressor(this, compressor);
     }
 
-    public Decompressor getDecompressor() {
-      CompressionCodec codec = getCodec();
-      if (codec != null) {
-        Decompressor decompressor = CodecPool.getDecompressor(codec);
-        if (decompressor != null) {
-          if (decompressor.finished()) {
-            // Somebody returns the decompressor to CodecPool but is still using it.
-            log.warn("Decompressor obtained from CodecPool already finished()");
-          } else {
-            log.trace("Got a decompressor: {}", decompressor.hashCode());
-          }
-          // The following statement is necessary to get around bugs in 0.18 where a decompressor is
-          // referenced after
-          // it's returned back to the codec pool.
-          decompressor.reset();
-        }
-        return decompressor;
-      }
-      return null;
+    public Decompressor getDecompressor() throws IOException {
+      return compressorFactory.get().getDecompressor(this);
     }
 
-    /**
-     * Returns the specified {@link Decompressor} to the codec cache if it is not null.
-     */
-    public void returnDecompressor(final Decompressor decompressor) {
-      if (decompressor != null) {
-        log.trace("Returned a decompressor: {}", decompressor.hashCode());
-        CodecPool.returnDecompressor(decompressor);
-      }
+    public void returnDecompressor(Decompressor decompressor) {
+      compressorFactory.get().releaseDecompressor(this, decompressor);
     }
 
     /**
@@ -808,7 +788,8 @@ public final class Compression {
      */
     OutputStream bufferStream(final OutputStream stream, final int bufferSize) {
       if (bufferSize > 0) {
-        return new BufferedOutputStream(stream, bufferSize);
+        return new BufferedOutputStream(stream,
+            dataInputBufferSize == 0 ? bufferSize : dataInputBufferSize);
       }
       return stream;
     }
@@ -819,9 +800,21 @@ public final class Compression {
      */
     InputStream bufferStream(final InputStream stream, final int bufferSize) {
       if (bufferSize > 0) {
-        return new BufferedInputStream(stream, bufferSize);
+        return new BufferedInputStream(stream,
+            dataInputBufferSize == 0 ? bufferSize : dataInputBufferSize);
       }
       return stream;
+    }
+
+    static Algorithm getCompressionAlgorithmByName(final String compressorName) {
+      Algorithm[] algorithms = Algorithm.class.getEnumConstants();
+      for (Algorithm algorithm : algorithms) {
+        if (algorithm.getName().equals(compressorName)) {
+          return algorithm;
+        }
+      }
+      throw new IllegalArgumentException(
+          "Unsupported compression algorithm name: " + compressorName);
     }
 
     /**
@@ -836,6 +829,48 @@ public final class Compression {
         config.setInt(bufferSizeOpt, bufferSize);
       }
     }
+  }
+
+  /**
+   * Default implementation will create new compressors.
+   */
+  private static AtomicReference<CompressorFactory> compressorFactory =
+      new AtomicReference<CompressorFactory>(new DefaultCompressorFactory(null));
+
+  /**
+   * Allow the compressor factory to be set within this Instance.
+   *
+   * @param compFactory
+   *          incoming compressor factory to be used by all Algorithms
+   */
+  public static void setCompressionFactory(final CompressorFactory compFactory) {
+    Objects.requireNonNull(compFactory, "Compressor Factory cannot be null");
+    if (null != compressorFactory.get()) {
+      compressorFactory.get().close();
+    }
+
+    compressorFactory.set(compFactory);
+  }
+
+  /**
+   * Adjusts the input buffer size
+   *
+   * @param inputBufferSize
+   *          configured input buffer size
+   */
+  public static synchronized void setDataInputBufferSize(final int inputBufferSize) {
+    dataInputBufferSize = inputBufferSize;
+
+  }
+
+  /**
+   * Adjusts the output buffer size
+   *
+   * @param dataOutputBufferSizeOpt
+   *          configured output buffer size
+   */
+  public static synchronized void setDataOutputBufferSize(final int dataOutputBufferSizeOpt) {
+    dataOutputBufferSize = dataOutputBufferSizeOpt;
   }
 
   public static String[] getSupportedAlgorithms() {

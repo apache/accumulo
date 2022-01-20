@@ -33,6 +33,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.SecureRandom;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -45,6 +47,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.Sampler;
@@ -64,6 +67,7 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
 import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
@@ -72,6 +76,8 @@ import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
+import org.apache.accumulo.core.file.rfile.bcfile.Compression;
+import org.apache.accumulo.core.file.rfile.bcfile.codec.CompressorPool;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
@@ -280,6 +286,10 @@ public class RFileTest {
       if (baos != null) {
         baos.close();
       }
+    }
+
+    public SortedKeyValueIterator<Key,Value> deepCopy(final IteratorEnvironment env) {
+      return reader.deepCopy(env);
     }
 
     public void openReader() throws IOException {
@@ -713,7 +723,8 @@ public class RFileTest {
         EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
 
-    // test seeking to another range after the previously seeked range, that is between the same two
+    // test seeking to another range after the previously seeked range, that is
+    // between the same two
     // keys in the file
     // as the previously seeked range.... this test an optimization on RFile
     trf.iter.seek(
@@ -728,7 +739,8 @@ public class RFileTest {
         EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
 
-    // now ensure we can seek somewhere, that triggering the optimization does not cause any
+    // now ensure we can seek somewhere, that triggering the optimization does not
+    // cause any
     // problems
     trf.iter.seek(new Range(newKey(formatString("r_", 5), "cf1", "cq1", "L1", 55), true,
         newKey(formatString("r_", 6), "cf1", "cq1", "L1", 55), false), EMPTY_COL_FAMS, false);
@@ -1680,7 +1692,8 @@ public class RFileTest {
       assertEquals(newKey(formatString("r_", start + numToScan), "cf1", "cq1", "L1", 42),
           trf.reader.getTopKey());
 
-      // seek a little forward from the last range and read a few keys within the unconsumed portion
+      // seek a little forward from the last range and read a few keys within the
+      // unconsumed portion
       // of the last range
 
       int start2 = start + numToScan + random.nextInt(3);
@@ -2306,6 +2319,17 @@ public class RFileTest {
     // This tests that the normal set of operations used to populate a root tablet
     conf = getAccumuloConfig(ConfigMode.CRYPTO_ON);
 
+    // populate the root tablet with info about the default tablet
+    // the root tablet contains the key extent and locations of all the
+    // metadata tablets
+    // String initRootTabFile = ServerConstants.getMetadataTableDir() +
+    // "/root_tablet/00000_00000."
+    // +
+    // FileOperations.getNewFileExtension(AccumuloConfiguration.getDefaultConfiguration());
+    // FileSKVWriter mfw = FileOperations.getInstance().openWriter(initRootTabFile,
+    // fs, conf,
+    // AccumuloConfiguration.getDefaultConfiguration());
+
     TestRFile testRfile = new TestRFile(conf);
     testRfile.openWriter();
 
@@ -2373,5 +2397,91 @@ public class RFileTest {
     testRfile.closeReader();
 
     conf = null;
+  }
+
+  /**
+   * This intent of this test is to show that compressors will increase but can be controlled by the
+   * configuration.
+   *
+   * with a max idle of two and a idle sweep of 50 ms, we will ensure that our active compressors is
+   * zero after a 200 ms wait.
+   *
+   * CodecPool is not meant to decrease as is not monitored, whereas compressor pool will decrease
+   * after a sudden surge of sources. This will help control memory if used properly.
+   */
+  @Test
+  public void testCreateManySources() throws IOException, InterruptedException, URISyntaxException {
+
+    // test an empty file
+
+    File tempfile = tempFolder.newFolder("testSources.rf");
+    String file = tempfile.getAbsolutePath() + File.separator + "testSources.rf";
+    Configuration conf = new Configuration();
+    AccumuloConfiguration accconf = DefaultConfiguration.getInstance();
+
+    FileSKVWriter writer =
+        RFileOperations
+            .getInstance().newWriterBuilder().forFile(file, FileSystem.get(new URI(file), conf),
+                conf, CryptoServiceFactory.newDefaultInstance())
+            .withTableConfiguration(accconf).build();
+
+    writer.startDefaultLocalityGroup();
+    writer.append(newKey("r1", "cf1", "cq1", "L1", 55), newValue("foo"));
+    writer.close();
+
+    CompressorPool pool = new CompressorPool(accconf);
+    pool.setMaxIdle(2);
+    pool.setIdleSweepTime(50);
+    Compression.setCompressionFactory(pool);
+
+    // open up a reader with 20k sources
+
+    final FileSKVIterator reader = RFileOperations.getInstance().newScanReaderBuilder()
+        .forFile(file, FileSystem.get(new URI(file), conf), conf,
+            CryptoServiceFactory.newDefaultInstance())
+        .withTableConfiguration(accconf).overRange(new Range(), Collections.emptySet(), false)
+        .build();
+
+    SampleIE iteratorEnv = new SampleIE(null);
+    IntStream.range(1, 20000).forEach(x -> {
+      SortedKeyValueIterator<Key,Value> itr = reader.deepCopy(iteratorEnv);
+      try {
+        itr.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
+      } catch (IOException e) {
+        // not necessary
+      }
+
+    });
+    int active = pool.getActiveDecompressors(Compression.Algorithm.GZ);
+    reader.close();
+
+    assertEquals(20000, active);
+    Thread.sleep(200); // wait for a sweep
+    active = pool.getActiveDecompressors(Compression.Algorithm.GZ);
+    // now open a reader with only 5k sources and validate
+    assertEquals(0, active);
+    final FileSKVIterator otherReader = RFileOperations.getInstance().newScanReaderBuilder()
+        .forFile(file, FileSystem.get(new URI(file), conf), conf,
+            CryptoServiceFactory.newDefaultInstance())
+        .withTableConfiguration(accconf).overRange(new Range(), Collections.emptySet(), false)
+        .build();
+
+    IntStream.range(1, 5000).forEach(x -> {
+      SortedKeyValueIterator<Key,Value> itr = otherReader.deepCopy(iteratorEnv);
+      try {
+        itr.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
+      } catch (IOException e) {
+        // not necessary
+      }
+
+    });
+    active = pool.getActiveDecompressors(Compression.Algorithm.GZ);
+
+    otherReader.close();
+
+    assertEquals(5000, active);
+    Thread.sleep(200); // wait for a sweep
+    active = pool.getActiveDecompressors(Compression.Algorithm.GZ);
+    assertEquals(0, active);
   }
 }
