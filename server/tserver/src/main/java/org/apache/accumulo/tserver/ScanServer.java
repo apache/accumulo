@@ -31,6 +31,8 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.clientImpl.ScanServerDiscovery;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.TDiskUsage;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -104,8 +106,6 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
 
   private static final Logger LOG = LoggerFactory.getLogger(ScanServer.class);
 
-  private final String unreservedZNodePath;
-  private final String reservedZNodePath;
   private final ThriftClientHandler handler;
   private KeyExtent currentKE;
   private Tablet currentTablet;
@@ -113,8 +113,6 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   protected ScanServer(ServerOpts opts, String[] args) {
     super(opts, args, true);
     handler = new ThriftClientHandler(this);
-    unreservedZNodePath = getContext().getZooKeeperRoot() + Constants.ZSSERVERS + "/unreserved/";
-    reservedZNodePath = getContext().getZooKeeperRoot() + Constants.ZSSERVERS + "/reserved/";
   }
 
   /**
@@ -146,20 +144,10 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
 
   /**
    * Set up nodes and locks in ZooKeeper for this Compactor
-   *
-   * @param clientAddress
-   *          address of this Compactor
-   * @throws KeeperException
-   *           zookeeper error
-   * @throws InterruptedException
-   *           thread interrupted
    */
   private ServiceLock announceExistence() {
     ZooReaderWriter zoo = getContext().getZooReaderWriter();
     try {
-
-      zoo.mkdirs(unreservedZNodePath);
-      zoo.mkdirs(reservedZNodePath);
 
       var zLockPath = ServiceLock.path(
           getContext().getZooKeeperRoot() + Constants.ZSSERVERS + "/" + getClientAddressString());
@@ -215,12 +203,6 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     }
   }
 
-  private void setInitialUnreservedState(String unreservedServerPath)
-      throws KeeperException, InterruptedException {
-    ZooReaderWriter zoo = getContext().getZooReaderWriter();
-    zoo.putEphemeralData(unreservedServerPath, new byte[0]);
-  }
-
   @Override
   public void run() {
     SecurityUtil.serverLogin(getConfiguration());
@@ -246,7 +228,8 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
 
     try {
       try {
-        setInitialUnreservedState(unreservedZNodePath + getClientAddressString());
+        ScanServerDiscovery.unreserve(this.getContext().getZooKeeperRoot(),
+            getContext().getZooReaderWriter(), getClientAddressString());
       } catch (Exception e2) {
         throw new RuntimeException("Error setting initial unreserved state in ZooKeeper", e2);
       }
@@ -281,6 +264,45 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     }
   }
 
+  private void checkInUse() {
+    if (currentKE != null || currentTablet != null) {
+      throw new RuntimeException("Scan server in use for another query");
+    }
+  }
+
+  private boolean loadTablet(TKeyExtent textent)
+      throws IllegalArgumentException, IOException, AccumuloException {
+    currentKE = KeyExtent.fromThrift(textent);
+    TabletMetadata tabletMetadata = getContext().getAmple().readTablet(currentKE);
+    boolean canLoad =
+        AssignmentHandler.checkTabletMetadata(currentKE, getTabletSession(), tabletMetadata);
+    if (canLoad) {
+      TabletResourceManager trm =
+          resourceManager.createTabletResourceManager(currentKE, getTableConfiguration(currentKE));
+      TabletData data = new TabletData(tabletMetadata);
+      currentTablet = new Tablet(this, currentKE, trm, data);
+      onlineTablets.put(currentKE, currentTablet);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  private void unloadTablet() {
+    if (currentTablet != null) {
+      try {
+        currentTablet.close(false);
+      } catch (IOException e1) {
+        throw new RuntimeException("Error closing tablet", e1);
+      }
+    }
+    if (currentKE != null) {
+      onlineTablets.remove(currentKE);
+    }
+    currentKE = null;
+    currentTablet = null;
+  }
+
   @Override
   public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent textent,
       TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
@@ -290,21 +312,9 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       throws ThriftSecurityException, NotServingTabletException, TooManyFilesException,
       TSampleNotPresentException, TException {
 
-    if (currentKE != null || currentTablet != null) {
-      throw new RuntimeException("Scan server in use for another query");
-    }
-
+    checkInUse();
     try {
-      currentKE = KeyExtent.fromThrift(textent);
-      TabletMetadata tabletMetadata = getContext().getAmple().readTablet(currentKE);
-      boolean canLoad =
-          AssignmentHandler.checkTabletMetadata(currentKE, getTabletSession(), tabletMetadata);
-      if (canLoad) {
-        TabletResourceManager trm = resourceManager.createTabletResourceManager(currentKE,
-            getTableConfiguration(currentKE));
-        TabletData data = new TabletData(tabletMetadata);
-        currentTablet = new Tablet(this, currentKE, trm, data);
-        onlineTablets.put(currentKE, currentTablet);
+      if (loadTablet(textent)) {
         return handler.startScan(tinfo, credentials, textent, range, columns, batchSize, ssiList,
             ssio, authorizations, waitForWrites, isolated, readaheadThreshold, samplerConfig,
             batchTimeOut, classLoaderContext, executionHints);
@@ -312,21 +322,9 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
         throw new RuntimeException("Unable to load tablet for scan");
       }
     } catch (Exception e) {
-      if (currentTablet != null) {
-        try {
-          currentTablet.close(false);
-        } catch (IOException e1) {
-          throw new RuntimeException("Error closing tablet", e1);
-        }
-      }
-      if (currentKE != null) {
-        onlineTablets.remove(currentKE);
-      }
-      currentKE = null;
-      currentTablet = null;
+      unloadTablet();
       throw new RuntimeException("Error creating tablet for scan", e);
-    } finally {}
-
+    }
   }
 
   @Override
@@ -340,20 +338,62 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     try {
       handler.closeScan(tinfo, scanID);
     } finally {
-      if (currentTablet != null) {
-        try {
-          currentTablet.close(false);
-        } catch (IOException e1) {
-          throw new RuntimeException("Error closing tablet", e1);
-        }
+      unloadTablet();
+      try {
+        ScanServerDiscovery.unreserve(this.getContext().getZooKeeperRoot(),
+            getContext().getZooReaderWriter(), getClientAddressString());
+      } catch (Exception e2) {
+        throw new RuntimeException("Error setting initial unreserved state in ZooKeeper", e2);
       }
-      if (currentKE != null) {
-        onlineTablets.remove(currentKE);
-      }
-      currentKE = null;
-      currentTablet = null;
+    }
+  }
+
+  @Override
+  public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials,
+      Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns, List<IterInfo> ssiList,
+      Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
+      TSamplerConfiguration tSamplerConfig, long batchTimeOut, String contextArg,
+      Map<String,String> executionHints)
+      throws ThriftSecurityException, TSampleNotPresentException, TException {
+
+    checkInUse();
+    if (tbatch.size() > 1) {
+      throw new RuntimeException("Scan Server expects scans for one tablet only");
     }
 
+    try {
+      if (loadTablet(tbatch.keySet().iterator().next())) {
+        return handler.startMultiScan(tinfo, credentials, tbatch, tcolumns, ssiList, ssio,
+            authorizations, waitForWrites, tSamplerConfig, batchTimeOut, contextArg,
+            executionHints);
+      } else {
+        throw new RuntimeException("Unable to load tablet for scan");
+      }
+    } catch (Exception e) {
+      unloadTablet();
+      throw new RuntimeException("Error creating tablet for scan", e);
+    }
+  }
+
+  @Override
+  public MultiScanResult continueMultiScan(TInfo tinfo, long scanID)
+      throws NoSuchScanIDException, TSampleNotPresentException, TException {
+    return handler.continueMultiScan(tinfo, scanID);
+  }
+
+  @Override
+  public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException, TException {
+    try {
+      handler.closeMultiScan(tinfo, scanID);
+    } finally {
+      unloadTablet();
+      try {
+        ScanServerDiscovery.unreserve(this.getContext().getZooKeeperRoot(),
+            getContext().getZooReaderWriter(), getClientAddressString());
+      } catch (Exception e2) {
+        throw new RuntimeException("Error setting initial unreserved state in ZooKeeper", e2);
+      }
+    }
   }
 
   public static void main(String[] args) throws Exception {
@@ -523,25 +563,6 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       throws ThriftSecurityException, ThriftTableOperationException, TException {
     return false;
   }
-
-  @Override
-  public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials,
-      Map<TKeyExtent,List<TRange>> batch, List<TColumn> columns, List<IterInfo> ssiList,
-      Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
-      TSamplerConfiguration samplerConfig, long batchTimeOut, String classLoaderContext,
-      Map<String,String> executionHints)
-      throws ThriftSecurityException, TSampleNotPresentException, TException {
-    return null;
-  }
-
-  @Override
-  public MultiScanResult continueMultiScan(TInfo tinfo, long scanID)
-      throws NoSuchScanIDException, TSampleNotPresentException, TException {
-    return null;
-  }
-
-  @Override
-  public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException, TException {}
 
   @Override
   public long startUpdate(TInfo tinfo, TCredentials credentials, TDurability durability)

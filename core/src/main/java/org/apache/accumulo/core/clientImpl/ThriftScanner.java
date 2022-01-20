@@ -49,6 +49,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.ScanResult;
@@ -69,7 +70,6 @@ import org.apache.accumulo.core.util.OpTimer;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -479,14 +479,13 @@ public class ThriftScanner {
     HostAndPort parsedLocation = null;
     if (scanState.runOnScanServer) {
       try {
-        String sserver = context.getScanServerLocator().reserveScanServer(loc.tablet_extent);
+        String sserver =
+            context.getScanServerLocator().reserveScanServer(new TabletIdImpl(loc.tablet_extent));
         parsedLocation = HostAndPort.fromString(sserver);
-      } catch (NoAvailableScanServerException e) {
-        throw new RuntimeException(e);
-      } catch (KeeperException e) {
-        throw new RuntimeException(e);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
       }
     } else {
       parsedLocation = HostAndPort.fromString(loc.tablet_location);

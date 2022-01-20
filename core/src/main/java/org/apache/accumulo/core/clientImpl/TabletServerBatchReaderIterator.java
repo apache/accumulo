@@ -52,6 +52,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
@@ -61,7 +62,6 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.scan.ScanServerLocator;
-import org.apache.accumulo.core.spi.scan.ScanServerLocator.NoAvailableScanServerException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -72,7 +72,6 @@ import org.apache.accumulo.core.util.OpTimer;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -505,16 +504,14 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         ScanServerLocator ssl = context.getScanServerLocator();
         tabletsRanges.forEach((k, v) -> {
           try {
-            String location = ssl.reserveScanServer(k);
+            String location = ssl.reserveScanServer(new TabletIdImpl(k));
             QueryTask queryTask = new QueryTask(location, Collections.singletonMap(k, v), failures,
                 receiver, columns);
             queryTasks.add(queryTask);
-          } catch (NoAvailableScanServerException e) {
-            throw new RuntimeException(e);
-          } catch (KeeperException e) {
-            throw new RuntimeException(e);
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+          } catch (Exception e) {
+            throw new RuntimeException(e);
           }
         });
       } else {

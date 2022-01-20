@@ -18,71 +18,43 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
-import java.util.Arrays;
-import java.util.UUID;
-
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.scan.ScanServerLocator;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.Code;
 
 public class DefaultScanServerLocator implements ScanServerLocator {
 
-  private final byte[] id = UUID.randomUUID().toString().getBytes(UTF_8);
   private ClientContext context = null;
   private ZooReaderWriter zrw = null;
-  private String root = null;
-  private String unreservedRoot = null;
-  private String reservedRoot = null;
 
   @Override
-  public void setClientContext(ClientContext ctx) {
-    this.context = ctx;
+  public void setClient(AccumuloClient ctx) {
+    this.context = (ClientContext) ctx;
     this.zrw = new ZooReaderWriter(this.context.getConfiguration());
-    this.root = this.context.getZooKeeperRoot() + Constants.ZSSERVERS;
-    this.unreservedRoot = this.root + "/unreserved/";
-    this.reservedRoot = this.root + "/reserved/";
   }
 
   @Override
-  public String reserveScanServer(KeyExtent extent)
-      throws NoAvailableScanServerException, KeeperException, InterruptedException {
-    for (String child : zrw.getChildren(unreservedRoot, null)) {
-      try {
-        zrw.putEphemeralData(this.reservedRoot + child, id);
-      } catch (KeeperException e) {
-        if (e.code().equals(Code.NODEEXISTS)) {
-          continue;
-        } else {
-          throw e;
-        }
-      }
-      zrw.delete(this.unreservedRoot + child); // TODO: in the first instance this is deleting an
-      // ephemeral node created by the ScanServer. will that work?
-      return child;
-    }
-    throw new NoAvailableScanServerException();
-  }
-
-  @Override
-  public void unreserveScanServer(String hostPort) throws KeeperException, InterruptedException {
+  public String reserveScanServer(TabletId extent)
+      throws NoAvailableScanServerException, ScanServerLocatorException, InterruptedException {
+    String server;
     try {
-      byte[] data = zrw.getData(this.reservedRoot + hostPort);
-      if (Arrays.equals(id, data)) {
-        zrw.delete(this.reservedRoot + hostPort);
-        zrw.putEphemeralData(this.unreservedRoot + hostPort, new byte[0]);
-      } else {
-        throw new RuntimeException("Attempting to unreserve a node that we didn't create.");
-      }
-    } catch (KeeperException e) {
-      if (e.code().equals(Code.NONODE)) {
-        throw new RuntimeException("Attempting to unreserve a node that does not exist");
-      }
+      server = ScanServerDiscovery.reserve(this.context.getZooKeeperRoot(), this.zrw);
+    } catch (KeeperException | InterruptedException e) {
+      throw new ScanServerLocatorException("Error reserving scan server", e);
     }
+    if (server == null) {
+      throw new NoAvailableScanServerException();
+    }
+    return server;
+  }
+
+  @Override
+  public void unreserveScanServer(String hostPort)
+      throws ScanServerLocatorException, InterruptedException {
+    // The scan server calls ScanServerDiscovery.unreserve() on closeScan and closeMultiScan,
+    // so this implementation does not do anything for this method.
   }
 
 }

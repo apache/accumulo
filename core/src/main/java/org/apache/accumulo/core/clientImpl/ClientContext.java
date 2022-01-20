@@ -331,7 +331,7 @@ public class ClientContext implements AccumuloClient {
         Class<? extends ScanServerLocator> impl =
             Class.forName(clazz).asSubclass(ScanServerLocator.class);
         scanServerLocator = impl.getDeclaredConstructor().newInstance();
-        scanServerLocator.setClientContext(this);
+        scanServerLocator.setClient(this);
       } catch (Exception e) {
         throw new RuntimeException("Error creating ScanServerLocator implemenation: " + clazz, e);
       }

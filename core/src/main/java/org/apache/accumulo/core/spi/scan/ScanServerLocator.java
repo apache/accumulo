@@ -18,26 +18,35 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.zookeeper.KeeperException;
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.data.TabletId;
 
 public interface ScanServerLocator {
 
-  class NoAvailableScanServerException extends Exception {
-
+  class ScanServerLocatorException extends Exception {
     private static final long serialVersionUID = 1L;
 
+    public ScanServerLocatorException() {
+      super();
+    }
+
+    public ScanServerLocatorException(String message, Throwable cause) {
+      super(message, cause);
+    }
+  }
+
+  class NoAvailableScanServerException extends Exception {
+    private static final long serialVersionUID = 1L;
   }
 
   /**
    * Provide the ScanServerLocator implementation with a reference to the ClientContext in the case
    * that it needs it.
    *
-   * @param ctx
-   *          client context
+   * @param client
+   *          accumulo client object
    */
-  void setClientContext(ClientContext ctx);
+  void setClient(AccumuloClient client);
 
   /**
    * Called by the client to reserve an available Scan Server for running a scan on extent.
@@ -47,17 +56,24 @@ public interface ScanServerLocator {
    * @return address of scan server, in "host:port" format
    * @throws NoAvailableScanServerException
    *           when no scan server can be found
+   * @throws ScanServerLocatorException
+   *           an error has occurred
+   * @throws InterruptedException
+   *           if any thread has interrupted the current thread.
    */
-  String reserveScanServer(KeyExtent extent)
-      throws NoAvailableScanServerException, KeeperException, InterruptedException;
+  String reserveScanServer(TabletId extent)
+      throws NoAvailableScanServerException, ScanServerLocatorException, InterruptedException;
 
   /**
    * Called by the client to unreserve a Scan Server
    *
    * @param hostPort
    *          host and port of reserved scan server
+   * @throws ScanServerLocatorException
+   *           an error has occurred
+   * @throws InterruptedException
+   *           if any thread has interrupted the current thread.
    */
-  void unreserveScanServer(String hostPort)
-      throws NoAvailableScanServerException, KeeperException, InterruptedException;
+  void unreserveScanServer(String hostPort) throws ScanServerLocatorException, InterruptedException;
 
 }
