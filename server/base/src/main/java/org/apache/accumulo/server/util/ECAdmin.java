@@ -21,6 +21,7 @@ package org.apache.accumulo.server.util;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
@@ -130,7 +131,7 @@ public class ECAdmin implements KeywordExecutable {
 
   private void cancelCompaction(ServerContext context, String ecid) {
     CompactionCoordinatorService.Client coordinatorClient = null;
-    ecid = ExternalCompactionUtil.prefixECID(ecid);
+    ecid = ExternalCompactionId.from(ecid).canonical();
     try {
       coordinatorClient = getCoordinatorClient(context);
       coordinatorClient.cancel(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
