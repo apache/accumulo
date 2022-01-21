@@ -331,7 +331,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     this.config = config.initialize();
 
-    if (Boolean.valueOf(this.config.getSiteConfig().get(Property.TSERV_NATIVEMAP_ENABLED.name()))) {
+    if (Boolean.valueOf(config.getSiteConfig().get(Property.TSERV_NATIVEMAP_ENABLED.getKey()))) {
       if (!NativeMap.isLoaded())
         throw new RuntimeException(
             "MAC configured to use native maps, but unable to load the library.");
