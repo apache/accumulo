@@ -330,6 +330,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     this.config = config.initialize();
 
+    if (Boolean.valueOf(config.getSiteConfig().get(Property.TSERV_NATIVEMAP_ENABLED.getKey()))
+        && config.getNativeLibPaths().length == 0
+        && !config.getSystemProperties().containsKey("accumulo.native.lib.path")) {
+      throw new RuntimeException(
+          "MAC configured to use native maps, but native library path was not provided.");
+    }
+
     mkdirs(config.getConfDir());
     mkdirs(config.getLogDir());
     mkdirs(config.getLibDir());
