@@ -642,7 +642,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       for (int i = 0; i < numTries; i++) {
         if (zk.getState().equals(States.CONNECTED)) {
-          zk.addAuthInfo("digest", ("accumulo" + ":" + secret).getBytes(UTF_8));
+          ZooUtil.digestAuth(zk, secret);
           break;
         } else
           UtilWaitThread.sleep(1000);
