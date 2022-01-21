@@ -161,6 +161,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterators;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class TabletServer extends AbstractServer {
 
   private static final SecureRandom random = new SecureRandom();
@@ -234,6 +236,8 @@ public class TabletServer extends AbstractServer {
     }
   }
 
+  @SuppressFBWarnings(value = "SC_START_IN_CTOR",
+      justification = "bad practice to start threads in constructor; probably needs rewrite")
   protected TabletServer(ServerOpts opts, String[] args, boolean scanOnly) {
     super("tserver", opts, args);
     context = super.getContext();
