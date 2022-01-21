@@ -307,4 +307,17 @@ public class ExternalCompactionUtil {
 
     return count;
   }
+
+  public static void cancelCompaction(ClientContext context, HostAndPort compactorAddr,
+      String ecid) {
+    CompactorService.Client client = null;
+    try {
+      client = ThriftUtil.getClient(new CompactorService.Client.Factory(), compactorAddr, context);
+      client.cancel(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
+    } catch (TException e) {
+      LOG.debug("Failed to cancel compactor {} for {}", compactorAddr, ecid, e);
+    } finally {
+      ThriftUtil.returnClient(client, context);
+    }
+  }
 }
