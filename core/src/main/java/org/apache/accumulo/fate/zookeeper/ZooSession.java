@@ -129,7 +129,7 @@ public class ZooSession {
         for (int i = 0; i < connectTimeWait / TIME_BETWEEN_CONNECT_CHECKS_MS && tryAgain; i++) {
           if (zooKeeper.getState().equals(States.CONNECTED)) {
             if (auth != null)
-              zooKeeper.addAuthInfo(scheme, auth);
+              ZooUtil.auth(zooKeeper, scheme, auth);
             tryAgain = false;
           } else
             UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
