@@ -111,6 +111,31 @@ import com.google.common.base.Preconditions;
  * {@link #dropSortedMapWALFiles(ServerContext)}. For more information see the following issues:
  * <a href="https://github.com/apache/accumulo/issues/2117">#2117</a> and
  * <a href="https://github.com/apache/accumulo/issues/2179">#2179</a>
+ *
+ * The following methods were created for External compactions:
+ * {@link #createExternalCompactionNodes(ServerContext)}, {@link #setMetaTableProps(ServerContext)}
+ *
+ * Improvements to the metadata and root tables were made in this version. See pull request
+ * <a href="https://github.com/apache/accumulo/pull/1174">#1174</a> for more details. The
+ * {@link #upgradeRootTabletMetadata(ServerContext)} method was added for this change. This change
+ * allowed other changes to how volumes were stored in the metadata and have Accumulo always call
+ * the volume chooser for new tablet files. This change was facilitated with the
+ * {@link #upgradeDirColumns(ServerContext, Ample.DataLevel)} method and done in
+ * <a href="https://github.com/apache/accumulo/pull/1389">#1389</a>
+ *
+ * The method {@link #upgradeRelativePaths(ServerContext, Ample.DataLevel)} was added for resolving
+ * and replacing all relative tablet file paths found in metadata tables with absolute paths during
+ * upgrade. Absolute paths are resolved by prefixing relative paths with a volume configured by the
+ * user in a the instance.volumes.upgrade.relative property, which is only used during an upgrade.
+ * If any relative paths are found and this property is not configured, or if any resolved absolute
+ * path does not correspond to a file that actually exists, the upgrade step fails and aborts
+ * without making changes. See the property {@link Property#INSTANCE_VOLUMES_UPGRADE_RELATIVE} and
+ * the pull request <a href="https://github.com/apache/accumulo/pull/1461">#1461</a>.
+ *
+ * Delete markers were improved and the upgrade method to do this was
+ * {@link #upgradeFileDeletes(ServerContext, Ample.DataLevel)}. For more information see:
+ * <a href="https://github.com/apache/accumulo/issues/1043">#1043</a>
+ * <a href="https://github.com/apache/accumulo/pull/1366">#1366</a>
  */
 public class Upgrader9to10 implements Upgrader {
 
