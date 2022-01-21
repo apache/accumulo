@@ -104,20 +104,24 @@ import org.slf4j.LoggerFactory;
 
 public class ScanServer extends TabletServer implements TabletClientService.Iface {
 
-  private static class CurrentScan {
-    private KeyExtent extent;
-    private Tablet tablet;
-    private Long scanId;
+  protected static class CurrentScan {
+    protected KeyExtent extent;
+    protected Tablet tablet;
+    protected Long scanId;
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(ScanServer.class);
 
-  private final ThriftClientHandler handler;
-  private final CurrentScan currentScan = new CurrentScan();
+  protected ThriftClientHandler handler;
+  protected CurrentScan currentScan = new CurrentScan();
 
   protected ScanServer(ServerOpts opts, String[] args) {
     super(opts, args, true);
-    handler = new ThriftClientHandler(this);
+    handler = getHandler();
+  }
+
+  protected ThriftClientHandler getHandler() {
+    return new ThriftClientHandler(this);
   }
 
   private void cleanupTimedOutSession() {
@@ -288,7 +292,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     }
   }
 
-  private synchronized boolean loadTablet(TKeyExtent textent)
+  protected synchronized boolean loadTablet(TKeyExtent textent)
       throws IllegalArgumentException, IOException, AccumuloException {
     synchronized (currentScan) {
       KeyExtent extent = KeyExtent.fromThrift(textent);
@@ -309,7 +313,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     }
   }
 
-  private synchronized void endScan() {
+  protected synchronized void endScan() {
     synchronized (currentScan) {
       try {
         if (currentScan.tablet != null) {
@@ -393,7 +397,8 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       throws ThriftSecurityException, TSampleNotPresentException, TException {
 
     checkInUse();
-    if (tbatch.size() > 1) {
+
+    if (tbatch.size() != 1) {
       throw new RuntimeException("Scan Server expects scans for one tablet only");
     }
 
