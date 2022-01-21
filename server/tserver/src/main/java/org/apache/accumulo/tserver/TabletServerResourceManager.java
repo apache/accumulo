@@ -384,12 +384,18 @@ public class TabletServerResourceManager {
    * ensure that the time the assignment(s) have been running don't exceed a threshold. If the time
    * is exceeded a warning is printed and a stack trace is logged for the running assignment.
    */
-  protected static class AssignmentWatcher implements Runnable {
+  public static class AssignmentWatcher implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(AssignmentWatcher.class);
+
+    private static long longAssignments = 0;
 
     private final Map<KeyExtent,RunnableStartedAt> activeAssignments;
     private final AccumuloConfiguration conf;
     private final ServerContext context;
+
+    public static long getLongAssignments() {
+      return longAssignments;
+    }
 
     public AssignmentWatcher(AccumuloConfiguration conf, ServerContext context,
         Map<KeyExtent,RunnableStartedAt> activeAssignments) {
@@ -406,6 +412,7 @@ public class TabletServerResourceManager {
         long now = System.currentTimeMillis();
         KeyExtent extent;
         RunnableStartedAt runnable;
+        long warnings = 0;
         for (Entry<KeyExtent,RunnableStartedAt> entry : activeAssignments.entrySet()) {
           extent = entry.getKey();
           runnable = entry.getValue();
@@ -413,12 +420,14 @@ public class TabletServerResourceManager {
 
           // Print a warning if an assignment has been running for over the configured time length
           if (duration > millisBeforeWarning) {
+            warnings++;
             log.warn("Assignment for {} has been running for at least {}ms", extent, duration,
                 runnable.getTask().getException());
           } else if (log.isTraceEnabled()) {
             log.trace("Assignment for {} only running for {}ms", extent, duration);
           }
         }
+        longAssignments = warnings;
       } catch (Exception e) {
         log.warn("Caught exception checking active assignments", e);
       } finally {

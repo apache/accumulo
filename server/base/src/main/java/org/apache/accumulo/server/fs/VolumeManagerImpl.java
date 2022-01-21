@@ -53,7 +53,9 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.hadoop.fs.Trash;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
@@ -259,6 +261,12 @@ public class VolumeManagerImpl implements VolumeManager {
       log.debug("Could not determine volume for Path: {}", path);
       return desiredFs;
     }
+  }
+
+  @Override
+  public RemoteIterator<LocatedFileStatus> listFiles(final Path path, final boolean recursive)
+      throws IOException {
+    return getFileSystemByPath(path).listFiles(path, recursive);
   }
 
   @Override
