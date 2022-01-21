@@ -472,6 +472,7 @@ package org.apache.accumulo.server.replication.proto;
       return true;
     }
 
+    @SuppressWarnings("unchecked")
     @java.lang.Override
     public int hashCode() {
       if (memoizedHashCode != 0) {
