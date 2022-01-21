@@ -370,4 +370,9 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
       keyValueConsumer.accept(entry.getKey(), entry.getValue());
     }
   }
+
+  public boolean isUseScanServer();
+
+  public void setUseScanServer(boolean useScanServer);
+
 }

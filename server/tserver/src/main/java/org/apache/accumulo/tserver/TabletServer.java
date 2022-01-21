@@ -213,7 +213,7 @@ public class TabletServer extends AbstractServer {
   protected volatile boolean serverStopRequested = false;
   private volatile boolean shutdownComplete = false;
 
-  private ServiceLock tabletServerLock;
+  protected ServiceLock tabletServerLock;
 
   private TServer server;
   private volatile TServer replServer;
@@ -400,7 +400,7 @@ public class TabletServer extends AbstractServer {
   private final ReentrantLock recoveryLock = new ReentrantLock(true);
   private ThriftClientHandler clientHandler;
   private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
-  private CompactionManager compactionManager;
+  protected CompactionManager compactionManager;
 
   String getLockID() {
     return lockID;

@@ -31,6 +31,7 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
+import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
@@ -141,6 +142,14 @@ public class ZooReaderWriter extends ZooReader {
   public void putEphemeralData(String zPath, byte[] data)
       throws KeeperException, InterruptedException {
     retryLoop(zk -> zk.create(zPath, data, ZooUtil.PUBLIC, CreateMode.EPHEMERAL));
+  }
+
+  /**
+   * Create an ephemeral node with the default ACL
+   */
+  public void putUnsafeEphemeralData(String zPath, byte[] data)
+      throws KeeperException, InterruptedException {
+    retryLoop(zk -> zk.create(zPath, data, Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL));
   }
 
   /**

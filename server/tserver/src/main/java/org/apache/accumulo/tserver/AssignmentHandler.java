@@ -240,6 +240,11 @@ class AssignmentHandler implements Runnable {
 
   public static boolean checkTabletMetadata(KeyExtent extent, TServerInstance instance,
       TabletMetadata meta) throws AccumuloException {
+    return checkTabletMetadata(extent, instance, meta, false);
+  }
+
+  public static boolean checkTabletMetadata(KeyExtent extent, TServerInstance instance,
+      TabletMetadata meta, boolean ignoreLocationCheck) throws AccumuloException {
 
     if (meta == null) {
       log.info(METADATA_ISSUE + "{}, its metadata was not found.", extent);
@@ -268,8 +273,8 @@ class AssignmentHandler implements Runnable {
 
     TabletMetadata.Location loc = meta.getLocation();
 
-    if (loc == null || loc.getType() != TabletMetadata.LocationType.FUTURE
-        || !instance.equals(loc)) {
+    if (!ignoreLocationCheck && (loc == null || loc.getType() != TabletMetadata.LocationType.FUTURE
+        || !instance.equals(loc))) {
       log.info(METADATA_ISSUE + "Unexpected location {} {}", extent, loc);
       return false;
     }

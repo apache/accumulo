@@ -37,6 +37,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.tserver.ScanServer;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.slf4j.Logger;
@@ -56,6 +57,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   Process gcProcess = null;
   Process monitor = null;
   final List<Process> tabletServerProcesses = new ArrayList<>();
+  final List<Process> scanServerProcesses = new ArrayList<>();
 
   public MiniAccumuloClusterControl(MiniAccumuloClusterImpl cluster) {
     requireNonNull(cluster);
@@ -162,6 +164,16 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           monitor = cluster._exec(Monitor.class, server, configOverrides).getProcess();
         }
         break;
+      case SCAN_SERVER:
+        synchronized (scanServerProcesses) {
+          int count = 0;
+          for (int i = scanServerProcesses.size();
+              count < limit && i < cluster.getConfig().getNumTservers(); i++, ++count) {
+            scanServerProcesses
+                .add(cluster._exec(ScanServer.class, server, configOverrides).getProcess());
+          }
+        }
+        break;
       default:
         throw new UnsupportedOperationException("Cannot start process for " + server);
     }
@@ -250,6 +262,23 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           }
         }
         break;
+      case SCAN_SERVER:
+        synchronized (scanServerProcesses) {
+          try {
+            for (Process sserver : scanServerProcesses) {
+              try {
+                cluster.stopProcessWithTimeout(sserver, 30, TimeUnit.SECONDS);
+              } catch (ExecutionException | TimeoutException e) {
+                log.warn("ScanServer did not fully stop after 30 seconds", e);
+              } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+              }
+            }
+          } finally {
+            scanServerProcesses.clear();
+          }
+        }
+        break;
       default:
         throw new UnsupportedOperationException("ServerType is not yet supported " + server);
     }
@@ -324,6 +353,22 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           }
           gcProcess = null;
           found = true;
+        }
+        break;
+      case SCAN_SERVER:
+        synchronized (scanServerProcesses) {
+          for (Process sserver : scanServerProcesses) {
+            if (procRef.getProcess().equals(sserver)) {
+              scanServerProcesses.remove(sserver);
+              try {
+                cluster.stopProcessWithTimeout(sserver, 30, TimeUnit.SECONDS);
+              } catch (ExecutionException | TimeoutException e) {
+                log.warn("TabletServer did not fully stop after 30 seconds", e);
+              }
+              found = true;
+              break;
+            }
+          }
         }
         break;
       default:
