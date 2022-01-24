@@ -56,6 +56,7 @@ public class MiniAccumuloConfigImpl {
   private Map<String,String> configuredSiteConig = new HashMap<>();
   private Map<String,String> clientProps = new HashMap<>();
   private int numTservers = 2;
+  private int numScanServers = 2;
   private Map<ServerType,Long> memoryConfig = new HashMap<>();
   private boolean jdwpEnabled = false;
   private Map<String,String> systemProperties = new HashMap<>();
@@ -263,6 +264,20 @@ public class MiniAccumuloConfigImpl {
       throw new IllegalArgumentException("Must have at least one tablet server");
     }
     this.numTservers = numTservers;
+    return this;
+  }
+
+  /**
+   * Calling this method is optional. If not set, it defaults to two.
+   *
+   * @param numScanServers
+   *          the number of tablet servers that mini accumulo cluster should start
+   */
+  public MiniAccumuloConfigImpl setNumScanServers(int numScanServers) {
+    if (numScanServers < 1) {
+      throw new IllegalArgumentException("Must have at least one tablet server");
+    }
+    this.numScanServers = numScanServers;
     return this;
   }
 
@@ -528,6 +543,13 @@ public class MiniAccumuloConfigImpl {
    */
   public int getNumTservers() {
     return numTservers;
+  }
+
+  /**
+   * @return the number of scan servers configured for this cluster
+   */
+  public int getNumScanServers() {
+    return numScanServers;
   }
 
   /**

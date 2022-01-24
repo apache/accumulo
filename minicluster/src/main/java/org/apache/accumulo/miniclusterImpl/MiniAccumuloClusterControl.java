@@ -168,7 +168,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         synchronized (scanServerProcesses) {
           int count = 0;
           for (int i = scanServerProcesses.size();
-              count < limit && i < cluster.getConfig().getNumTservers(); i++, ++count) {
+              count < limit && i < cluster.getConfig().getNumScanServers(); i++, ++count) {
             scanServerProcesses
                 .add(cluster._exec(ScanServer.class, server, configOverrides).getProcess());
           }
