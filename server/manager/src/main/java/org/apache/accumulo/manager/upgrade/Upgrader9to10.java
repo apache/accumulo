@@ -105,37 +105,6 @@ import com.google.common.base.Preconditions;
  * <a href="https://github.com/apache/accumulo/issues/1642">#1642</a>, and
  * <a href="https://github.com/apache/accumulo/issues/1643">#1643</a> as well.</li>
  * </ul>
- *
- * Sorted recovery was updated to use RFiles instead of map files. So to prevent issues during
- * tablet recovery, remove the old temporary map files and resort using RFiles. This is done in
- * {@link #dropSortedMapWALFiles(ServerContext)}. For more information see the following issues:
- * <a href="https://github.com/apache/accumulo/issues/2117">#2117</a> and
- * <a href="https://github.com/apache/accumulo/issues/2179">#2179</a>
- *
- * The following methods were created for External compactions:
- * {@link #createExternalCompactionNodes(ServerContext)}, {@link #setMetaTableProps(ServerContext)}
- *
- * Improvements to the metadata and root tables were made in this version. See pull request
- * <a href="https://github.com/apache/accumulo/pull/1174">#1174</a> for more details. The
- * {@link #upgradeRootTabletMetadata(ServerContext)} method was added for this change. This change
- * allowed other changes to how volumes were stored in the metadata and have Accumulo always call
- * the volume chooser for new tablet files. This change was facilitated with the
- * {@link #upgradeDirColumns(ServerContext, Ample.DataLevel)} method and done in
- * <a href="https://github.com/apache/accumulo/pull/1389">#1389</a>
- *
- * The method {@link #upgradeRelativePaths(ServerContext, Ample.DataLevel)} was added for resolving
- * and replacing all relative tablet file paths found in metadata tables with absolute paths during
- * upgrade. Absolute paths are resolved by prefixing relative paths with a volume configured by the
- * user in the instance.volumes.upgrade.relative property, which is only used during an upgrade. If
- * any relative paths are found and this property is not configured, or if any resolved absolute
- * path does not correspond to a file that actually exists, the upgrade step fails and aborts
- * without making changes. See the property {@link Property#INSTANCE_VOLUMES_UPGRADE_RELATIVE} and
- * the pull request <a href="https://github.com/apache/accumulo/pull/1461">#1461</a>.
- *
- * Delete markers were improved and the upgrade method to do this was
- * {@link #upgradeFileDeletes(ServerContext, Ample.DataLevel)}. For more information see:
- * <a href="https://github.com/apache/accumulo/issues/1043">#1043</a>
- * <a href="https://github.com/apache/accumulo/pull/1366">#1366</a>
  */
 public class Upgrader9to10 implements Upgrader {
 
@@ -177,6 +146,9 @@ public class Upgrader9to10 implements Upgrader {
     upgradeFileDeletes(context, Ample.DataLevel.USER);
   }
 
+  /**
+   * Setup properties for External compactions.
+   */
   private void setMetaTableProps(ServerContext context) {
     try {
       TablePropUtil.setTableProperty(context, RootTable.ID,
@@ -213,6 +185,10 @@ public class Upgrader9to10 implements Upgrader {
     }
   }
 
+  /**
+   * Improvements to the metadata and root tables were made in this version. See pull request
+   * <a href="https://github.com/apache/accumulo/pull/1174">#1174</a> for more details.
+   */
   private void upgradeRootTabletMetadata(ServerContext context) {
     String rootMetaSer = getFromZK(context, ZROOT_TABLET);
 
@@ -500,6 +476,11 @@ public class Upgrader9to10 implements Upgrader {
     }
   }
 
+  /**
+   * Improve how Delete markers are stored. For more information see:
+   * <a href="https://github.com/apache/accumulo/issues/1043">#1043</a>
+   * <a href="https://github.com/apache/accumulo/pull/1366">#1366</a>
+   */
   public void upgradeFileDeletes(ServerContext context, Ample.DataLevel level) {
 
     String tableName = level.metaTable();
@@ -596,6 +577,11 @@ public class Upgrader9to10 implements Upgrader {
     return m;
   }
 
+  /**
+   * Changes to how volumes were stored in the metadata and have Accumulo always call the volume
+   * chooser for new tablet files. These changes were done in
+   * <a href="https://github.com/apache/accumulo/pull/1389">#1389</a>
+   */
   public void upgradeDirColumns(ServerContext context, Ample.DataLevel level) {
     String tableName = level.metaTable();
     AccumuloClient c = context;
@@ -620,6 +606,12 @@ public class Upgrader9to10 implements Upgrader {
 
   /**
    * Remove all file entries containing relative paths and replace them with absolute URI paths.
+   * Absolute paths are resolved by prefixing relative paths with a volume configured by the user in
+   * the instance.volumes.upgrade.relative property, which is only used during an upgrade. If any
+   * relative paths are found and this property is not configured, or if any resolved absolute path
+   * does not correspond to a file that actually exists, the upgrade step fails and aborts without
+   * making changes. See the property {@link Property#INSTANCE_VOLUMES_UPGRADE_RELATIVE} and the
+   * pull request <a href="https://github.com/apache/accumulo/pull/1461">#1461</a>.
    */
   public static void upgradeRelativePaths(ServerContext context, Ample.DataLevel level) {
     String tableName = level.metaTable();
@@ -765,7 +757,11 @@ public class Upgrader9to10 implements Upgrader {
   }
 
   /**
-   * Remove old temporary map files to prevent problems during recovery.
+   * Remove old temporary map files to prevent problems during recovery. Sorted recovery was updated
+   * to use RFiles instead of map files. So to prevent issues during tablet recovery, remove the old
+   * temporary map files and resort using RFiles. For more information see the following issues:
+   * <a href="https://github.com/apache/accumulo/issues/2117">#2117</a> and
+   * <a href="https://github.com/apache/accumulo/issues/2179">#2179</a>
    */
   static void dropSortedMapWALFiles(ServerContext context) {
     VolumeManager vm = context.getVolumeManager();
