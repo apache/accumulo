@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.clientImpl.ScanServerDiscovery;
 import org.apache.accumulo.core.conf.Property;
@@ -116,7 +117,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
-        scanner.setUseScanServer(true);
+        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         int count = 0;
         for (Entry<Key,Value> entry : scanner) {
           count++;
@@ -148,7 +149,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
 
       try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRanges(Collections.singletonList(new Range()));
-        scanner.setUseScanServer(true);
+        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         int count = 0;
         for (Entry<Key,Value> entry : scanner) {
           count++;
@@ -181,7 +182,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
-        scanner.setUseScanServer(true);
+        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         int count = 0;
         for (Entry<Key,Value> entry : scanner) {
           count++;
@@ -213,14 +214,14 @@ public class ScanServerIT extends SharedMiniClusterBase {
 
       Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY);
       scanner.setRange(new Range());
-      scanner.setUseScanServer(true);
+      scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
       iter.next();
       iter.next();
 
       Scanner scanner2 = client2.createScanner(tableName, Authorizations.EMPTY);
       scanner2.setRange(new Range());
-      scanner2.setUseScanServer(true);
+      scanner2.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
       Iterator<Entry<Key,Value>> iter2 = scanner2.iterator();
       try {
         iter2.next();
@@ -252,7 +253,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
 
       Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY);
       scanner.setRange(new Range());
-      scanner.setUseScanServer(true);
+      scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
       // We only inserted 100 rows, default batch size is 1000. If we don't set the
       // batch size lower, then the ThriftScanner code will automatically close the
       // scanner. We want to keep it open, so lower the batch size.
@@ -286,7 +287,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
 
       Scanner scanner2 = client.createScanner(tableName, Authorizations.EMPTY);
       scanner2.setRange(new Range());
-      scanner2.setUseScanServer(true);
+      scanner2.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
       Iterator<Entry<Key,Value>> iter2 = scanner2.iterator();
       assertNotNull(iter2.next());
       assertNotNull(iter2.next());

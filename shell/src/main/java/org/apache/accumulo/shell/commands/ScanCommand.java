@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
@@ -125,7 +126,13 @@ public class ScanCommand extends Command {
       scanner.setExecutionHints(ShellUtil.parseMapOpt(cl, executionHintsOpt));
 
       if (cl.hasOption(scanServerOpt.getOpt())) {
-        scanner.setUseScanServer(true);
+        String arg = cl.getOptionValue(scanServerOpt.getOpt());
+        try {
+          ConsistencyLevel cLevel = ConsistencyLevel.valueOf(arg.toUpperCase());
+          scanner.setConsistencyLevel(cLevel);
+        } catch (IllegalArgumentException e) {
+          Shell.log.error("Consistency Level argument must be immediate or eventual", e);
+        }
       }
 
       // output the records
@@ -410,7 +417,8 @@ public class ScanCommand extends Command {
     sampleOpt = new Option(null, "sample", false, "Show sample");
     contextOpt = new Option("cc", "context", true, "name of the classloader context");
     executionHintsOpt = new Option(null, "execution-hints", true, "Execution hints map");
-    scanServerOpt = new Option("ss", "scan-server", false, "use scan server (experimental)");
+    scanServerOpt =
+        new Option("cl", "consistency-level", true, "set consistency level (experimental)");
 
     scanOptAuths.setArgName("comma-separated-authorizations");
     scanOptRow.setArgName("row");
@@ -425,7 +433,7 @@ public class ScanCommand extends Command {
     outputFileOpt.setArgName("file");
     contextOpt.setArgName("context");
     executionHintsOpt.setArgName("<key>=<value>{,<key>=<value>}");
-    scanServerOpt.setArgName("scan-server");
+    scanServerOpt.setArgName("immediate|eventual");
 
     profileOpt = new Option("pn", "profile", true, "iterator profile name");
     profileOpt.setArgName("profile");

@@ -64,7 +64,7 @@ public class ScannerOptions implements ScannerBase {
 
   protected Map<String,String> executionHints = Collections.emptyMap();
 
-  private boolean useScanServer = false;
+  private ConsistencyLevel consistencyLevel = ConsistencyLevel.IMMEDIATE;
 
   protected ScannerOptions() {}
 
@@ -184,7 +184,7 @@ public class ScannerOptions implements ScannerBase {
         // its an immutable map, so can avoid copy here
         dst.executionHints = src.executionHints;
 
-        dst.useScanServer = src.useScanServer;
+        dst.consistencyLevel = src.consistencyLevel;
       }
     }
   }
@@ -276,12 +276,12 @@ public class ScannerOptions implements ScannerBase {
     this.executionHints = Map.copyOf(Objects.requireNonNull(hints));
   }
 
-  public boolean isUseScanServer() {
-    return useScanServer;
+  public ConsistencyLevel getConsistencyLevel() {
+    return consistencyLevel;
   }
 
-  public void setUseScanServer(boolean useScanServer) {
-    this.useScanServer = useScanServer;
+  public void setConsistencyLevel(ConsistencyLevel level) {
+    this.consistencyLevel = level;
   }
 
 }

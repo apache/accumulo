@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TimedOutException;
@@ -499,7 +500,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     for (final String tsLocation : locations) {
 
       final Map<KeyExtent,List<Range>> tabletsRanges = binnedRanges.get(tsLocation);
-      if (options.isUseScanServer()) {
+      if (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL)) {
         // Ignore the tablets location and find a scan server to use
         ScanServerLocator ssl = context.getScanServerLocator();
         tabletsRanges.forEach((k, v) -> {

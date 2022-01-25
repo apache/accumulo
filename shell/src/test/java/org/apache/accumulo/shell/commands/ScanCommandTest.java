@@ -44,10 +44,10 @@ public class ScanCommandTest {
 
   @Test
   public void scanServerHelp() {
-    assertTrue("Scan Server", new ScanCommand().getOptions().getOption("ss").getDescription()
-        .contains("scan server (experimental)"));
-    assertTrue("Scan Server", new ScanCommand().getOptions().getOption("scan-server")
-        .getDescription().contains("scan server (experimental)"));
+    assertTrue("Consistency Level", new ScanCommand().getOptions().getOption("cl").getDescription()
+        .contains("consistency level (experimental)"));
+    assertTrue("Consistency Level", new ScanCommand().getOptions().getOption("consistency-level")
+        .getDescription().contains("consistency level (experimental)"));
   }
 
 }

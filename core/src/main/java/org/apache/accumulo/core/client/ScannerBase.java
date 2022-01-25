@@ -43,6 +43,17 @@ import org.apache.hadoop.io.Text;
 public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
 
   /**
+   * Consistency level for the scanner. The default level is IMMEDIATE, which means that this
+   * scanner will see keys and values that have been successfully written to a TabletServer. This
+   * includes data in RFiles and in the in-memory maps. EVENTUAL means that the user is fine with
+   * scanning over data that has been written to files only.
+   *
+   */
+  enum ConsistencyLevel {
+    IMMEDIATE, EVENTUAL
+  }
+
+  /**
    * Add a server-side scan iterator.
    *
    * @param cfg
@@ -371,8 +382,19 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>>, AutoCloseable {
     }
   }
 
-  public boolean isUseScanServer();
+  /**
+   * Get the configured consistency level
+   *
+   * @return consistency level
+   */
+  public ConsistencyLevel getConsistencyLevel();
 
-  public void setUseScanServer(boolean useScanServer);
+  /**
+   * Set the desired consistency level for this scanner.
+   *
+   * @param level
+   *          consistency level
+   */
+  public void setConsistencyLevel(ConsistencyLevel level);
 
 }
