@@ -42,4 +42,12 @@ public class ScanCommandTest {
         new ScanCommand().getOptions().getOption("cq").getDescription().contains("qualifier"));
   }
 
+  @Test
+  public void scanServerHelp() {
+    assertTrue("Scan Server", new ScanCommand().getOptions().getOption("ss").getDescription()
+        .contains("scan server (experimental)"));
+    assertTrue("Scan Server", new ScanCommand().getOptions().getOption("scan-server")
+        .getDescription().contains("scan server (experimental)"));
+  }
+
 }

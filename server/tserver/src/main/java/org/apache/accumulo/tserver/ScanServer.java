@@ -116,6 +116,9 @@ import org.slf4j.LoggerFactory;
 
 public class ScanServer extends TabletServer implements TabletClientService.Iface {
 
+  /**
+   * A compaction manager that does nothing
+   */
   private static class ScanServerCompactionManager extends CompactionManager {
 
     public ScanServerCompactionManager(ServerContext context,
@@ -328,10 +331,12 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     ceMetrics = new CompactionExecutorsMetrics();
     this.compactionManager = new ScanServerCompactionManager(getContext(), ceMetrics);
 
-    // SessionManager times out sessions on this interval
+    // SessionManager times out sessions when sessions have been idle longer than
+    // TSERV_SESSION_MAXIDLE. Create a background thread that looks for sessions that
+    // have timed out and end the scan.
     long maxIdle =
         this.getContext().getConfiguration().getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
-    LOG.info("Looking for timed out scan sessions every {}ms", Math.max(maxIdle / 2, 1000));
+    LOG.debug("Looking for timed out scan sessions every {}ms", Math.max(maxIdle / 2, 1000));
     this.getContext().getScheduledExecutor().scheduleWithFixedDelay(() -> cleanupTimedOutSession(),
         Math.max(maxIdle / 2, 1000), Math.max(maxIdle / 2, 1000), TimeUnit.MILLISECONDS);
 
@@ -404,7 +409,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
 
   protected synchronized void endScan() {
     synchronized (currentScan) {
-      LOG.debug("ending scan: {}", currentScan.scanId);
+      LOG.trace("ending scan: {}", currentScan.scanId);
       try {
         if (currentScan.tablet != null) {
           try {
@@ -446,13 +451,13 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     checkInUse();
     try {
       if (loadTablet(textent)) {
-        LOG.debug("loaded tablet: {}", currentScan.extent);
+        LOG.trace("loaded tablet: {}", currentScan.extent);
         synchronized (currentScan) {
           InitialScan is = handler.startScan(tinfo, credentials, textent, range, columns, batchSize,
               ssiList, ssio, authorizations, waitForWrites, isolated, readaheadThreshold,
               samplerConfig, batchTimeOut, classLoaderContext, executionHints);
           currentScan.scanId = is.getScanID();
-          LOG.debug("starting scan: {}", currentScan.scanId);
+          LOG.trace("starting scan: {}", currentScan.scanId);
           return is;
         }
       } else {
@@ -467,7 +472,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   @Override
   public ScanResult continueScan(TInfo tinfo, long scanID) throws NoSuchScanIDException,
       NotServingTabletException, TooManyFilesException, TSampleNotPresentException, TException {
-    LOG.debug("continue scan: {}", scanID);
+    LOG.trace("continue scan: {}", scanID);
     try {
       return handler.continueScan(tinfo, scanID);
     } catch (Exception e) {
@@ -478,7 +483,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
 
   @Override
   public void closeScan(TInfo tinfo, long scanID) throws TException {
-    LOG.debug("close scan: {}", scanID);
+    LOG.trace("close scan: {}", scanID);
     try {
       handler.closeScan(tinfo, scanID);
     } finally {
@@ -502,13 +507,13 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
 
     try {
       if (loadTablet(tbatch.keySet().iterator().next())) {
-        LOG.debug("loaded tablet: {}", currentScan.extent);
+        LOG.trace("loaded tablet: {}", currentScan.extent);
         synchronized (currentScan) {
           InitialMultiScan ims = handler.startMultiScan(tinfo, credentials, tbatch, tcolumns,
               ssiList, ssio, authorizations, waitForWrites, tSamplerConfig, batchTimeOut,
               contextArg, executionHints);
           currentScan.scanId = ims.getScanID();
-          LOG.debug("starting scan: {}", currentScan.scanId);
+          LOG.trace("starting scan: {}", currentScan.scanId);
           return ims;
         }
       } else {
@@ -523,7 +528,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   @Override
   public MultiScanResult continueMultiScan(TInfo tinfo, long scanID)
       throws NoSuchScanIDException, TSampleNotPresentException, TException {
-    LOG.debug("continue multi scan: {}", scanID);
+    LOG.trace("continue multi scan: {}", scanID);
     try {
       return handler.continueMultiScan(tinfo, scanID);
     } catch (Exception e) {
@@ -534,7 +539,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
 
   @Override
   public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException, TException {
-    LOG.debug("close multi scan: {}", scanID);
+    LOG.trace("close multi scan: {}", scanID);
     try {
       handler.closeMultiScan(tinfo, scanID);
     } finally {
@@ -814,12 +819,14 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       throws ThriftSecurityException, TException {}
 
   @Override
-  public void fastHalt(TInfo tinfo, TCredentials credentials, String lock) throws TException {}
+  public void fastHalt(TInfo tinfo, TCredentials credentials, String lock) throws TException {
+    handler.fastHalt(tinfo, credentials, lock);
+  }
 
   @Override
   public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
-    return null;
+    return handler.getActiveScans(tinfo, credentials);
   }
 
   @Override

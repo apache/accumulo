@@ -87,6 +87,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.apache.zookeeper.ZooDefs.Ids;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -136,6 +137,7 @@ public class Upgrader9to10 implements Upgrader {
     createExternalCompactionNodes(context);
     // special case where old files need to be deleted
     dropSortedMapWALFiles(context);
+    createScanServerNodes(context);
   }
 
   @Override
@@ -167,6 +169,20 @@ public class Upgrader9to10 implements Upgrader {
           Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta");
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Unable to set system table properties", e);
+    }
+  }
+
+  private void createScanServerNodes(ServerContext context) {
+    final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+    try {
+      context.getZooReaderWriter().putPersistentData(
+          context.getZooKeeperRoot() + Constants.ZSSERVERS, EMPTY_BYTE_ARRAY,
+          NodeExistsPolicy.SKIP);
+      context.getZooReaderWriter().putPersistentData(
+          context.getZooKeeperRoot() + Constants.ZSSERVERS_DISCOVERY, EMPTY_BYTE_ARRAY,
+          NodeExistsPolicy.SKIP, Ids.OPEN_ACL_UNSAFE);
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException("Unable to create scan server paths", e);
     }
   }
 

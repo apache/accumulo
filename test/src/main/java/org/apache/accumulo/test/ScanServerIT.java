@@ -24,6 +24,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -31,7 +32,9 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.clientImpl.ScanServerDiscovery;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -110,6 +113,71 @@ public class ScanServerIT extends SharedMiniClusterBase {
       ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
 
       client.tableOperations().flush(tableName, null, null, true);
+
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRange(new Range());
+        scanner.setUseScanServer(true);
+        int count = 0;
+        for (Entry<Key,Value> entry : scanner) {
+          count++;
+        }
+        assertEquals(100, count);
+      } // when the scanner is closed, all open sessions should be closed
+
+      List<String> tservers = client.instanceOperations().getTabletServers();
+      int activeScans = 0;
+      for (String tserver : tservers) {
+        activeScans += client.instanceOperations().getActiveScans(tserver).size();
+      }
+      assertTrue(activeScans == 0);
+    }
+
+  }
+
+  @Test
+  public void testBatchScan() throws Exception {
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+
+      client.tableOperations().create(tableName);
+
+      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+
+      client.tableOperations().flush(tableName, null, null, true);
+
+      try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setRanges(Collections.singletonList(new Range()));
+        scanner.setUseScanServer(true);
+        int count = 0;
+        for (Entry<Key,Value> entry : scanner) {
+          count++;
+        }
+        assertEquals(100, count);
+      } // when the scanner is closed, all open sessions should be closed
+
+      List<String> tservers = client.instanceOperations().getTabletServers();
+      int activeScans = 0;
+      for (String tserver : tservers) {
+        activeScans += client.instanceOperations().getActiveScans(tserver).size();
+      }
+      assertTrue(activeScans == 0);
+    }
+
+  }
+
+  // TODO: This test currently fails, but we could change the client code to make it work.
+  @Test(expected = TableOfflineException.class)
+  public void testScanOfflineTable() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+
+      client.tableOperations().create(tableName);
+
+      ReadWriteIT.ingest(client, getClientInfo(), 10, 10, 50, 0, tableName);
+
+      client.tableOperations().flush(tableName, null, null, true);
+      client.tableOperations().offline(tableName, true);
 
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
