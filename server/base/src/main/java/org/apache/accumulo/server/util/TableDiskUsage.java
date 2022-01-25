@@ -215,6 +215,11 @@ public class TableDiskUsage {
       for (String tableDir : nameSpacesReferenced) {
         // Find each file and add its size
         Path path = new Path(tableDir + "/" + tableId);
+        if (!fs.exists(path)) {
+          log.debug("Table ID directory {} does not exist.", path);
+          continue;
+        }
+        log.info("Get all files recursively in {}", path);
         RemoteIterator<LocatedFileStatus> ri = fs.listFiles(path, true);
         while (ri.hasNext()) {
           FileStatus status = ri.next();
