@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.summary;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,7 +30,7 @@ import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.client.summary.Summary.FileStatistics;
 import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
 import org.apache.accumulo.core.summary.SummaryCollection.FileSummary;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SummaryCollectionTest {
   @Test

@@ -18,17 +18,17 @@
  */
 package org.apache.accumulo.core.data;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,9 +41,6 @@ public class TableIdTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(TableIdTest.class);
 
-  @Rule
-  public TestName name = new TestName();
-
   private static long cacheCount() {
     // guava cache size() is approximate, and can include garbage-collected entries
     // so we iterate to get the actual cache size
@@ -51,7 +48,7 @@ public class TableIdTest {
   }
 
   @Test
-  public void testCacheNoDuplicates() {
+  public void testCacheNoDuplicates(TestInfo testInfo) {
 
     @SuppressWarnings("deprecation")
     TableId REPL_TABLE_ID = org.apache.accumulo.core.replication.ReplicationTable.ID;
@@ -61,7 +58,7 @@ public class TableIdTest {
     assertNotSame(RootTable.ID, MetadataTable.ID);
     assertNotSame(RootTable.ID, REPL_TABLE_ID);
 
-    String tableString = "table-" + name.getMethodName();
+    String tableString = "table-" + testInfo.getDisplayName();
     long initialSize = cacheCount();
     TableId table1 = TableId.of(tableString);
     assertEquals(initialSize + 1, cacheCount());
@@ -83,15 +80,16 @@ public class TableIdTest {
     assertSame(table1, table2);
   }
 
-  @Test(timeout = 30_000)
-  public void testCacheIncreasesAndDecreasesAfterGC() {
+  @Test
+  @Timeout(30_000)
+  public void testCacheIncreasesAndDecreasesAfterGC(TestInfo testInfo) {
     long initialSize = cacheCount();
     assertTrue(initialSize < 20); // verify initial amount is reasonably low
     LOG.info("Initial cache size: {}", initialSize);
     LOG.info(TableId.cache.asMap().toString());
 
     // add one and check increase
-    String tableString = "table-" + name.getMethodName();
+    String tableString = "table-" + testInfo.getDisplayName();
     TableId table1 = TableId.of(tableString);
     assertEquals(initialSize + 1, cacheCount());
     assertEquals(tableString, table1.canonical());

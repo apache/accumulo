@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SortSkewTest {
   private static final String shortpath = "1";

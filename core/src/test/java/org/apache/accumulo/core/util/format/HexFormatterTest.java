@@ -18,8 +18,9 @@
  */
 package org.apache.accumulo.core.util.format;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -27,15 +28,15 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class HexFormatterTest {
   HexFormatter formatter;
 
   Map<Key,Value> data;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     data = new TreeMap<>();
     formatter = new HexFormatter();
@@ -68,14 +69,14 @@ public class HexFormatterTest {
     assertEquals(bytes, formatter.interpretRow(new Text(row)));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testInterpretBadRow0() {
-    formatter.interpretRow(new Text("!"));
+    assertThrows(IllegalArgumentException.class, () -> formatter.interpretRow(new Text("!")));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testInterpretBadRow1() {
-    formatter.interpretRow(new Text("z"));
+    assertThrows(IllegalArgumentException.class, () -> formatter.interpretRow(new Text("z")));
   }
 
   @Test

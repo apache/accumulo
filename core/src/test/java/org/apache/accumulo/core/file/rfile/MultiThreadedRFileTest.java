@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -64,9 +64,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,10 +76,6 @@ public class MultiThreadedRFileTest {
   private static final SecureRandom random = new SecureRandom();
   private static final Logger LOG = LoggerFactory.getLogger(MultiThreadedRFileTest.class);
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
-
-  @Rule
-  public TemporaryFolder tempFolder =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   private static void checkIndex(Reader reader) throws IOException {
     FileSKVIterator indexIter = reader.getIndex();
@@ -303,27 +297,25 @@ public class MultiThreadedRFileTest {
           for (int i = 0; i < 2048; i++) {
             Key key = getKey(part, locality, i);
             Value value = getValue(i);
-            assertTrue("No record found for row " + part + " locality " + locality + " index " + i,
-                trf.iter.hasTop());
-            assertEquals(
-                "Invalid key found for row " + part + " locality " + locality + " index " + i, key,
-                trf.iter.getTopKey());
-            assertEquals(
-                "Invalid value found for row " + part + " locality " + locality + " index " + i,
-                value, trf.iter.getTopValue());
+            assertTrue(trf.iter.hasTop(),
+                "No record found for row " + part + " locality " + locality + " index " + i);
+            assertEquals(key, trf.iter.getTopKey(),
+                "Invalid key found for row " + part + " locality " + locality + " index " + i);
+            assertEquals(value, trf.iter.getTopValue(),
+                "Invalid value found for row " + part + " locality " + locality + " index " + i);
             last = trf.iter.getTopKey();
             trf.iter.next();
           }
         }
         if (trf.iter.hasTop()) {
-          assertFalse("Found " + trf.iter.getTopKey() + " after " + last + " in " + range,
-              trf.iter.hasTop());
+          assertFalse(trf.iter.hasTop(),
+              "Found " + trf.iter.getTopKey() + " after " + last + " in " + range);
         }
 
         range = new Range(getKey(4, 4, 0), true, null, true);
         trf.iter.seek(range, EMPTY_COL_FAMS, false);
         if (trf.iter.hasTop()) {
-          assertFalse("Found " + trf.iter.getTopKey() + " in " + range, trf.iter.hasTop());
+          assertFalse(trf.iter.hasTop(), "Found " + trf.iter.getTopKey() + " in " + range);
         }
       } catch (IOException e) {
         throw new UncheckedIOException(e);
@@ -339,14 +331,12 @@ public class MultiThreadedRFileTest {
         for (int i = 0; i < 2048; i++) {
           Key key = getKey(part, locality, i);
           Value value = getValue(i);
-          assertTrue("No record found for row " + part + " locality " + locality + " index " + i,
-              trf.iter.hasTop());
-          assertEquals(
-              "Invalid key found for row " + part + " locality " + locality + " index " + i, key,
-              trf.iter.getTopKey());
-          assertEquals(
-              "Invalid value found for row " + part + " locality " + locality + " index " + i,
-              value, trf.iter.getTopValue());
+          assertTrue(trf.iter.hasTop(),
+              "No record found for row " + part + " locality " + locality + " " + "index " + i);
+          assertEquals(key, trf.iter.getTopKey(),
+              "Invalid key found for row " + part + " locality " + locality + " index " + i);
+          assertEquals(value, trf.iter.getTopValue(),
+              "Invalid value found for row " + part + " locality " + locality + " index " + i);
           last = trf.iter.getTopKey();
           trf.iter.next();
         }
@@ -354,8 +344,8 @@ public class MultiThreadedRFileTest {
     }
 
     if (trf.iter.hasTop()) {
-      assertFalse("Found " + trf.iter.getTopKey() + " after " + last + " in " + range,
-          trf.iter.hasTop());
+      assertFalse(trf.iter.hasTop(),
+          "Found " + trf.iter.getTopKey() + " after " + last + " in " + range);
     }
   }
 

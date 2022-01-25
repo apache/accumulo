@@ -19,8 +19,8 @@
 package org.apache.accumulo.core.file.rfile;
 
 import static org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType.JAVA;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -44,7 +44,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MultiLevelIndexTest {
   private static final SecureRandom random = new SecureRandom();

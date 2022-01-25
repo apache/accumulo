@@ -19,8 +19,8 @@
 package org.apache.accumulo.core.iterators.user;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.security.SecureRandom;
 import java.util.Collections;
@@ -39,9 +39,9 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.ValueFormatException;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public abstract class TestCfCqSlice {
 
@@ -60,12 +60,12 @@ public abstract class TestCfCqSlice {
 
   private static TreeMap<Key,Value> data;
 
-  @BeforeClass
+  @BeforeAll
   public static void setupData() {
     data = createMap(LR_DIM, LR_DIM, LR_DIM);
   }
 
-  @AfterClass
+  @AfterAll
   public static void clearData() {
     data = null;
   }
@@ -77,8 +77,8 @@ public abstract class TestCfCqSlice {
     for (int i = 0; i < LR_DIM; i++) {
       for (int j = 0; j < LR_DIM; j++) {
         for (int k = 0; k < LR_DIM; k++) {
-          assertTrue("(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan",
-              foundKvs[i][j][k]);
+          assertTrue(foundKvs[i][j][k],
+              "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan");
         }
       }
     }
@@ -93,12 +93,11 @@ public abstract class TestCfCqSlice {
       for (int j = 0; j < LR_DIM; j++) {
         for (int k = 0; k < LR_DIM; k++) {
           if (rowId == i) {
-            assertTrue("(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan",
-                foundKvs[i][j][k]);
+            assertTrue(foundKvs[i][j][k],
+                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan");
           } else {
-            assertFalse(
-                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan",
-                foundKvs[i][j][k]);
+            assertFalse(foundKvs[i][j][k],
+                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan");
           }
         }
       }
@@ -112,10 +111,10 @@ public abstract class TestCfCqSlice {
     long sliceMinCq = 30;
     long sliceMaxCf = 25;
     long sliceMaxCq = 35;
-    assertTrue("slice param must be less than LR_DIM", sliceMinCf < LR_DIM);
-    assertTrue("slice param must be less than LR_DIM", sliceMinCq < LR_DIM);
-    assertTrue("slice param must be less than LR_DIM", sliceMaxCf < LR_DIM);
-    assertTrue("slice param must be less than LR_DIM", sliceMaxCq < LR_DIM);
+    assertTrue(sliceMinCf < LR_DIM, "slice param must be less than LR_DIM");
+    assertTrue(sliceMinCq < LR_DIM, "slice param must be less than LR_DIM");
+    assertTrue(sliceMaxCf < LR_DIM, "slice param must be less than LR_DIM");
+    assertTrue(sliceMaxCq < LR_DIM, "slice param must be less than LR_DIM");
     Map<String,String> opts = new HashMap<>();
     opts.put(CfCqSliceOpts.OPT_MIN_CF, new String(LONG_LEX.encode(sliceMinCf), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MIN_CQ, new String(LONG_LEX.encode(sliceMinCq), UTF_8));
@@ -126,12 +125,11 @@ public abstract class TestCfCqSlice {
       for (int j = 0; j < LR_DIM; j++) {
         for (int k = 0; k < LR_DIM; k++) {
           if (j >= sliceMinCf && j <= sliceMaxCf && k >= sliceMinCq && k <= sliceMaxCq) {
-            assertTrue("(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan",
-                foundKvs[i][j][k]);
+            assertTrue(foundKvs[i][j][k],
+                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan");
           } else {
-            assertFalse(
-                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan",
-                foundKvs[i][j][k]);
+            assertFalse(foundKvs[i][j][k],
+                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan");
           }
         }
       }
@@ -155,12 +153,11 @@ public abstract class TestCfCqSlice {
       for (int j = 0; j < LR_DIM; j++) {
         for (int k = 0; k < LR_DIM; k++) {
           if (j == sliceMinCf && k == sliceMinCq) {
-            assertTrue("(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan",
-                foundKvs[i][j][k]);
+            assertTrue(foundKvs[i][j][k],
+                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan");
           } else {
-            assertFalse(
-                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan",
-                foundKvs[i][j][k]);
+            assertFalse(foundKvs[i][j][k],
+                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan");
           }
         }
       }
@@ -186,12 +183,11 @@ public abstract class TestCfCqSlice {
       for (int j = 0; j < LR_DIM; j++) {
         for (int k = 0; k < LR_DIM; k++) {
           if (j == 21 && k == 21) {
-            assertTrue("(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan",
-                foundKvs[i][j][k]);
+            assertTrue(foundKvs[i][j][k],
+                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan");
           } else {
-            assertFalse(
-                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan",
-                foundKvs[i][j][k]);
+            assertFalse(foundKvs[i][j][k],
+                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan");
           }
         }
       }
@@ -211,12 +207,11 @@ public abstract class TestCfCqSlice {
       for (int j = 0; j < LR_DIM; j++) {
         for (int k = 0; k < LR_DIM; k++) {
           if (k >= sliceMinCq && k <= sliceMaxCq) {
-            assertTrue("(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan",
-                foundKvs[i][j][k]);
+            assertTrue(foundKvs[i][j][k],
+                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan");
           } else {
-            assertFalse(
-                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan",
-                foundKvs[i][j][k]);
+            assertFalse(foundKvs[i][j][k],
+                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan");
           }
         }
       }
@@ -236,12 +231,11 @@ public abstract class TestCfCqSlice {
       for (int j = 0; j < LR_DIM; j++) {
         for (int k = 0; k < LR_DIM; k++) {
           if (j >= sliceMinCf && j <= sliceMaxCf) {
-            assertTrue("(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan",
-                foundKvs[i][j][k]);
+            assertTrue(foundKvs[i][j][k],
+                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan");
           } else {
-            assertFalse(
-                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan",
-                foundKvs[i][j][k]);
+            assertFalse(foundKvs[i][j][k],
+                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan");
           }
         }
       }
@@ -266,8 +260,8 @@ public abstract class TestCfCqSlice {
     for (int i = 0; i < LR_DIM; i++) {
       for (int j = 0; j < LR_DIM; j++) {
         for (int k = 0; k < LR_DIM; k++) {
-          assertFalse("(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan",
-              foundKvs[i][j][k]);
+          assertFalse(foundKvs[i][j][k],
+              "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan");
         }
       }
     }
@@ -282,10 +276,10 @@ public abstract class TestCfCqSlice {
     long sliceMaxCf = 25;
     long sliceMinCq = 30;
     long sliceMaxCq = 35;
-    assertTrue("slice param must be less than LR_DIM", sliceMinCf < LR_DIM);
-    assertTrue("slice param must be less than LR_DIM", sliceMinCq < LR_DIM);
-    assertTrue("slice param must be less than LR_DIM", sliceMaxCf < LR_DIM);
-    assertTrue("slice param must be less than LR_DIM", sliceMaxCq < LR_DIM);
+    assertTrue(sliceMinCf < LR_DIM, "slice param must be less than LR_DIM");
+    assertTrue(sliceMinCq < LR_DIM, "slice param must be less than LR_DIM");
+    assertTrue(sliceMaxCf < LR_DIM, "slice param must be less than LR_DIM");
+    assertTrue(sliceMaxCq < LR_DIM, "slice param must be less than LR_DIM");
     firstOpts.put(CfCqSliceOpts.OPT_MIN_CF, new String(LONG_LEX.encode(sliceMinCf), UTF_8));
     firstOpts.put(CfCqSliceOpts.OPT_MAX_CF, new String(LONG_LEX.encode(sliceMaxCf), UTF_8));
     secondOpts.put(CfCqSliceOpts.OPT_MIN_CQ, new String(LONG_LEX.encode(sliceMinCq), UTF_8));
@@ -298,12 +292,11 @@ public abstract class TestCfCqSlice {
       for (int j = 0; j < LR_DIM; j++) {
         for (int k = 0; k < LR_DIM; k++) {
           if (j >= sliceMinCf && j <= sliceMaxCf && k >= sliceMinCq && k <= sliceMaxCq) {
-            assertTrue("(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan",
-                foundKvs[i][j][k]);
+            assertTrue(foundKvs[i][j][k],
+                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan");
           } else {
-            assertFalse(
-                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan",
-                foundKvs[i][j][k]);
+            assertFalse(foundKvs[i][j][k],
+                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan");
           }
         }
       }
@@ -317,10 +310,10 @@ public abstract class TestCfCqSlice {
     long sliceMinCq = 30;
     long sliceMaxCf = 25;
     long sliceMaxCq = 35;
-    assertTrue("slice param must be less than LR_DIM", sliceMinCf < LR_DIM);
-    assertTrue("slice param must be less than LR_DIM", sliceMinCq < LR_DIM);
-    assertTrue("slice param must be less than LR_DIM", sliceMaxCf < LR_DIM);
-    assertTrue("slice param must be less than LR_DIM", sliceMaxCq < LR_DIM);
+    assertTrue(sliceMinCf < LR_DIM, "slice param must be less than LR_DIM");
+    assertTrue(sliceMinCq < LR_DIM, "slice param must be less than LR_DIM");
+    assertTrue(sliceMaxCf < LR_DIM, "slice param must be less than LR_DIM");
+    assertTrue(sliceMaxCq < LR_DIM, "slice param must be less than LR_DIM");
     Map<String,String> opts = new HashMap<>();
     opts.put(CfCqSliceOpts.OPT_MIN_CF, new String(LONG_LEX.encode(sliceMinCf), UTF_8));
     opts.put(CfCqSliceOpts.OPT_MIN_INCLUSIVE, "false");
@@ -334,12 +327,11 @@ public abstract class TestCfCqSlice {
       for (int j = 0; j < LR_DIM; j++) {
         for (int k = 0; k < LR_DIM; k++) {
           if (j > sliceMinCf && j <= sliceMaxCf && k > sliceMinCq && k <= sliceMaxCq) {
-            assertTrue("(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan",
-                foundKvs[i][j][k]);
+            assertTrue(foundKvs[i][j][k],
+                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan");
           } else {
-            assertFalse(
-                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan",
-                foundKvs[i][j][k]);
+            assertFalse(foundKvs[i][j][k],
+                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan");
           }
         }
       }
@@ -357,12 +349,11 @@ public abstract class TestCfCqSlice {
       for (int j = 0; j < LR_DIM; j++) {
         for (int k = 0; k < LR_DIM; k++) {
           if (j > sliceMinCf && j <= sliceMaxCf && k > sliceMinCq && k <= sliceMaxCq) {
-            assertTrue("(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan",
-                foundKvs[i][j][k]);
+            assertTrue(foundKvs[i][j][k],
+                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must be found in scan");
           } else {
-            assertFalse(
-                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan",
-                foundKvs[i][j][k]);
+            assertFalse(foundKvs[i][j][k],
+                "(r, cf, cq) == (" + i + ", " + j + ", " + k + ") must not be found in scan");
           }
         }
       }
@@ -387,7 +378,7 @@ public abstract class TestCfCqSlice {
         int cf = LONG_LEX.decode(k.getColumnFamily().copyBytes()).intValue();
         int cq = LONG_LEX.decode(k.getColumnQualifier().copyBytes()).intValue();
 
-        assertFalse("Duplicate " + row + " " + cf + " " + cq, foundKvs[row][cf][cq]);
+        assertFalse(foundKvs[row][cf][cq], "Duplicate " + row + " " + cf + " " + cq);
         foundKvs[row][cf][cq] = true;
 
         if (random.nextInt(100) == 0) {

@@ -18,52 +18,54 @@
  */
 package org.apache.accumulo.core.data;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.nio.ByteBuffer;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ArrayByteSequenceTest {
 
   ArrayByteSequence abs;
   byte[] data;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     data = new byte[] {'s', 'm', 'i', 'l', 'e', 's'};
     abs = new ArrayByteSequence(data);
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testInvalidByteBufferBounds0() {
-    abs = new ArrayByteSequence(data, -1, 0);
+    assertThrows(IllegalArgumentException.class, () -> abs = new ArrayByteSequence(data, -1, 0));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testInvalidByteBufferBounds1() {
-    abs = new ArrayByteSequence(data, data.length + 1, 0);
+    assertThrows(IllegalArgumentException.class,
+        () -> abs = new ArrayByteSequence(data, data.length + 1, 0));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testInvalidByteBufferBounds2() {
-    abs = new ArrayByteSequence(data, 0, -1);
+    assertThrows(IllegalArgumentException.class, () -> abs = new ArrayByteSequence(data, 0, -1));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testInvalidByteBufferBounds3() {
-    abs = new ArrayByteSequence(data, 6, 2);
+    assertThrows(IllegalArgumentException.class, () -> abs = new ArrayByteSequence(data, 6, 2));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testInvalidByteAt0() {
-    abs.byteAt(-1);
+    assertThrows(IllegalArgumentException.class, () -> abs.byteAt(-1));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testInvalidByteAt1() {
-    abs.byteAt(data.length);
+    assertThrows(IllegalArgumentException.class, () -> abs.byteAt(data.length));
   }
 
   @Test
@@ -72,19 +74,19 @@ public class ArrayByteSequenceTest {
     assertEquals("mile", abs.subSequence(1, 5).toString());
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testInvalidSubsequence0() {
-    abs.subSequence(5, 1);
+    assertThrows(IllegalArgumentException.class, () -> abs.subSequence(5, 1));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testInvalidSubsequence1() {
-    abs.subSequence(-1, 1);
+    assertThrows(IllegalArgumentException.class, () -> abs.subSequence(-1, 1));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testInvalidSubsequence3() {
-    abs.subSequence(0, 10);
+    assertThrows(IllegalArgumentException.class, () -> abs.subSequence(0, 10));
   }
 
   @Test
@@ -102,8 +104,8 @@ public class ArrayByteSequenceTest {
 
   @Test
   public void testToString() {
-    assertEquals("String conversion should round trip correctly", "",
-        new ArrayByteSequence("").toString());
+    assertEquals("", new ArrayByteSequence("").toString(),
+        "String conversion should round trip correctly");
   }
 
 }

@@ -23,10 +23,10 @@ import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.concurrent.TimeUnit;
 
@@ -37,8 +37,8 @@ import org.apache.accumulo.fate.util.Retry.NeedsRetryDelay;
 import org.apache.accumulo.fate.util.Retry.NeedsTimeIncrement;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
 import org.easymock.EasyMock;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
 public class RetryTest {
@@ -52,7 +52,7 @@ public class RetryTest {
   private Retry unlimitedRetry;
   private static final TimeUnit MS = MILLISECONDS;
 
-  @Before
+  @BeforeEach
   public void setup() {
     retry = Retry.builder().maxRetries(MAX_RETRIES).retryAfter(INITIAL_WAIT, MS)
         .incrementBy(WAIT_INC, MS).maxWait(MAX_RETRIES * WAIT_INC, MS).backOffFactor(BACKOFF_FACTOR)
@@ -96,8 +96,8 @@ public class RetryTest {
       retry.useRetry();
     }
     assertFalse(retry.canRetry());
-    assertThrows("Calling useRetry when canRetry returns false throws an exception",
-        IllegalStateException.class, () -> retry.useRetry());
+    assertThrows(IllegalStateException.class, () -> retry.useRetry(),
+        "Calling useRetry when canRetry " + "returns false throws an exception");
   }
 
   @Test
@@ -237,8 +237,8 @@ public class RetryTest {
     NeedsRetries builder = Retry.builder();
     builder.maxRetries(10);
     builder.maxRetries(0);
-    assertThrows("Should not allow negative retries", IllegalArgumentException.class,
-        () -> builder.maxRetries(-1));
+    assertThrows(IllegalArgumentException.class, () -> builder.maxRetries(-1),
+        "Should not allow negative retries");
   }
 
   @Test
@@ -251,8 +251,8 @@ public class RetryTest {
     builder.retryAfter(0, MILLISECONDS);
     builder.retryAfter(0, DAYS);
 
-    assertThrows("Should not allow negative wait times", IllegalArgumentException.class,
-        () -> builder.retryAfter(-1, NANOSECONDS));
+    assertThrows(IllegalArgumentException.class, () -> builder.retryAfter(-1, NANOSECONDS),
+        "Should not allow negative wait times");
   }
 
   @Test
@@ -265,8 +265,8 @@ public class RetryTest {
     builder.incrementBy(0, HOURS);
     builder.incrementBy(0, NANOSECONDS);
 
-    assertThrows("Should not allow negative increments", IllegalArgumentException.class,
-        () -> builder.incrementBy(-1, NANOSECONDS));
+    assertThrows(IllegalArgumentException.class, () -> builder.incrementBy(-1, NANOSECONDS),
+        "Should not allow negative increments");
   }
 
   @Test
@@ -276,8 +276,8 @@ public class RetryTest {
     builder.maxWait(15, MILLISECONDS);
     builder.maxWait(16, MILLISECONDS);
 
-    assertThrows("Max wait time should be greater than or equal to initial wait time",
-        IllegalArgumentException.class, () -> builder.maxWait(14, MILLISECONDS));
+    assertThrows(IllegalArgumentException.class, () -> builder.maxWait(14, MILLISECONDS),
+        "Max wait time " + "should be greater than or equal to initial wait time");
   }
 
   @Test
@@ -291,8 +291,8 @@ public class RetryTest {
     builder.logInterval(0, HOURS);
     builder.logInterval(0, NANOSECONDS);
 
-    assertThrows("Log interval must not be negative", IllegalArgumentException.class,
-        () -> builder.logInterval(-1, NANOSECONDS));
+    assertThrows(IllegalArgumentException.class, () -> builder.logInterval(-1, NANOSECONDS),
+        "Log interval must not be negative");
   }
 
   @Test

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.client.mapred;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -30,20 +30,15 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.hadoop.mapred.JobConf;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 @Deprecated(since = "2.0.0")
 public class AccumuloInputFormatTest {
 
   private JobConf job;
 
-  @Rule
-  public TestName test = new TestName();
-
-  @Before
+  @BeforeEach
   public void createJob() {
     job = new JobConf();
   }

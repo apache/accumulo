@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.core.spi.fs;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.util.Set;
@@ -27,9 +28,9 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.easymock.EasyMock;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
@@ -53,7 +54,7 @@ public class SpaceAwareVolumeChooserTest {
   int vol1Count = 0;
   int vol2Count = 0;
 
-  @Before
+  @BeforeEach
   public void beforeTest() {
     serviceEnv = EasyMock.createMock(ServiceEnvironment.class);
     sysConfig = EasyMock.createMock(Configuration.class);
@@ -87,7 +88,7 @@ public class SpaceAwareVolumeChooserTest {
     EasyMock.replay(serviceEnv, sysConfig, chooserEnv);
   }
 
-  @After
+  @AfterEach
   public void afterTest() {
 
     EasyMock.verify(serviceEnv, sysConfig, chooserEnv);
@@ -121,12 +122,12 @@ public class SpaceAwareVolumeChooserTest {
 
   }
 
-  @Test(expected = UncheckedExecutionException.class)
-  public void testNoFreeSpace() throws IOException {
-
-    testSpecificSetup(0L, 0L, null, 1, false);
-
-    makeChoices();
+  @Test
+  public void testNoFreeSpace() {
+    assertThrows(UncheckedExecutionException.class, () -> {
+      testSpecificSetup(0L, 0L, null, 1, false);
+      makeChoices();
+    });
   }
 
   @Test

@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.data;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -30,13 +30,13 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 import org.apache.accumulo.core.dataImpl.thrift.TColumn;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class ColumnTest {
   static Column[] col;
 
-  @BeforeClass
+  @BeforeAll
   public static void setup() {
     col = new Column[5];
     col[0] = new Column("colfam".getBytes(), "colq".getBytes(), "colv".getBytes());

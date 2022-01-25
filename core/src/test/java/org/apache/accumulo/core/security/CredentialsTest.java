@@ -19,12 +19,12 @@
 package org.apache.accumulo.core.security;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import javax.security.auth.DestroyFailedException;
 
@@ -35,16 +35,11 @@ import org.apache.accumulo.core.client.security.tokens.NullToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Test;
 
 public class CredentialsTest {
 
-  @Rule
-  public TestName test = new TestName();
-
-  private String instanceID = test.getMethodName();
+  private final String instanceID = CredentialsTest.class.getName();
 
   @Test
   public void testToThrift() throws DestroyFailedException {
@@ -74,7 +69,7 @@ public class CredentialsTest {
     Credentials creds = new Credentials("test", new PasswordToken("testing"));
     TCredentials tCreds = creds.toThrift(instanceID);
     Credentials roundtrip = Credentials.fromThrift(tCreds);
-    assertEquals("Roundtrip through thirft changed credentials equality", creds, roundtrip);
+    assertEquals(creds, roundtrip, "Roundtrip through thirft changed credentials equality");
   }
 
   @Test

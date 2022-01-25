@@ -19,8 +19,9 @@
 package org.apache.accumulo.core.client;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -31,7 +32,7 @@ import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class BatchWriterConfigTest {
 
@@ -79,16 +80,16 @@ public class BatchWriterConfigTest {
     assertEquals(0, bwConfig.getMaxMemory());
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testNegativeMaxMemory() {
     BatchWriterConfig bwConfig = new BatchWriterConfig();
-    bwConfig.setMaxMemory(-1);
+    assertThrows(IllegalArgumentException.class, () -> bwConfig.setMaxMemory(-1));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testNegativeMaxLatency() {
     BatchWriterConfig bwConfig = new BatchWriterConfig();
-    bwConfig.setMaxLatency(-1, TimeUnit.DAYS);
+    assertThrows(IllegalArgumentException.class, () -> bwConfig.setMaxLatency(-1, TimeUnit.DAYS));
   }
 
   @Test
@@ -112,22 +113,22 @@ public class BatchWriterConfigTest {
 
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testNegativeTimeout() {
     BatchWriterConfig bwConfig = new BatchWriterConfig();
-    bwConfig.setTimeout(-1, TimeUnit.DAYS);
+    assertThrows(IllegalArgumentException.class, () -> bwConfig.setTimeout(-1, TimeUnit.DAYS));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testZeroMaxWriteThreads() {
     BatchWriterConfig bwConfig = new BatchWriterConfig();
-    bwConfig.setMaxWriteThreads(0);
+    assertThrows(IllegalArgumentException.class, () -> bwConfig.setMaxWriteThreads(0));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testNegativeMaxWriteThreads() {
     BatchWriterConfig bwConfig = new BatchWriterConfig();
-    bwConfig.setMaxWriteThreads(-1);
+    assertThrows(IllegalArgumentException.class, () -> bwConfig.setMaxWriteThreads(-1));
   }
 
   @Test

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.util;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.util.LocalityGroupUtil.Partitioner;
 import org.apache.commons.lang3.mutable.MutableLong;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class PartitionerTest {
   @Test

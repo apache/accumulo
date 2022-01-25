@@ -22,8 +22,8 @@ import static org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage.DISABLED
 import static org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage.ENABLED;
 import static org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage.OPPORTUNISTIC;
 import static org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage.TABLE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,7 +35,7 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanDispatch.CacheUsage;
 import org.apache.accumulo.core.spi.scan.ScanDispatcher.DispatchParameters;
 import org.apache.accumulo.core.spi.scan.ScanInfo.Type;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SimpleScanDispatcherTest {
   @Test

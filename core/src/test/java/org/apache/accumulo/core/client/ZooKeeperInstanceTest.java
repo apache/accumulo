@@ -22,7 +22,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,8 +32,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.easymock.EasyMock;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 @Deprecated(since = "2.0.0")
 public class ZooKeeperInstanceTest {
@@ -65,7 +66,7 @@ public class ZooKeeperInstanceTest {
     expect(config.get(INSTANCE_ZK_TIMEOUT)).andReturn("30");
   }
 
-  @Before
+  @BeforeEach
   public void setUp() {
     ClientConfiguration config = createMock(ClientConfiguration.class);
     mockNameConstruction(config);
@@ -81,16 +82,16 @@ public class ZooKeeperInstanceTest {
     EasyMock.resetToDefault(zc);
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testInvalidConstruction() {
     ClientConfiguration config = createMock(ClientConfiguration.class);
     expect(config.get(INSTANCE_ID)).andReturn(IID_STRING);
     mockNameConstruction(config);
     replay(config);
-    new ZooKeeperInstance(config);
+    assertThrows(IllegalArgumentException.class, () -> new ZooKeeperInstance(config));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testInvalidConstruction2() {
     ClientConfiguration config = createMock(ClientConfiguration.class);
     expect(config.get(INSTANCE_ID)).andReturn(null);
@@ -98,7 +99,7 @@ public class ZooKeeperInstanceTest {
     expect(config.get(INSTANCE_ZK_HOST)).andReturn("zk1");
     expect(config.get(INSTANCE_ZK_TIMEOUT)).andReturn("30");
     replay(config);
-    new ZooKeeperInstance(config);
+    assertThrows(IllegalArgumentException.class, () -> new ZooKeeperInstance(config));
   }
 
   @Test
@@ -128,25 +129,25 @@ public class ZooKeeperInstanceTest {
     assertEquals(IID_STRING, zki.getInstanceID());
   }
 
-  @Test(expected = RuntimeException.class)
+  @Test
   public void testGetInstanceID_NoMapping() {
     ClientConfiguration config = createMock(ClientConfiguration.class);
     expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/instance")).andReturn(null);
     replay(zc);
     EasyMock.reset(config, zcf);
-    new ZooKeeperInstance(config, zcf);
+    assertThrows(RuntimeException.class, () -> new ZooKeeperInstance(config, zcf));
   }
 
-  @Test(expected = RuntimeException.class)
+  @Test
   public void testGetInstanceID_IDMissingForName() {
     expect(zc.get(Constants.ZROOT + Constants.ZINSTANCES + "/instance"))
         .andReturn(IID_STRING.getBytes(UTF_8));
     expect(zc.get(Constants.ZROOT + "/" + IID_STRING)).andReturn(null);
     replay(zc);
-    zki.getInstanceID();
+    assertThrows(RuntimeException.class, () -> zki.getInstanceID());
   }
 
-  @Test(expected = RuntimeException.class)
+  @Test
   public void testGetInstanceID_IDMissingForID() {
     ClientConfiguration config = createMock(ClientConfiguration.class);
     mockIdConstruction(config);
@@ -154,7 +155,7 @@ public class ZooKeeperInstanceTest {
     zki = new ZooKeeperInstance(config, zcf);
     expect(zc.get(Constants.ZROOT + "/" + IID_STRING)).andReturn(null);
     replay(zc);
-    zki.getInstanceID();
+    assertThrows(RuntimeException.class, () -> zki.getInstanceID());
   }
 
   @Test

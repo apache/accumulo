@@ -27,10 +27,11 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
@@ -62,7 +63,7 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TabletMetadataTest {
 
@@ -160,17 +161,20 @@ public class TabletMetadataTest {
     assertFalse(tm.hasCurrent());
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void testFutureAndCurrent() {
-    KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
+    assertThrows(IllegalStateException.class, () -> {
+      KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
-    Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
-    mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
-    mutation.at().family(FutureLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
+      Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
+      mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
+      mutation.at().family(FutureLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
 
-    SortedMap<Key,Value> rowMap = toRowMap(mutation);
+      SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
-    TabletMetadata.convertRow(rowMap.entrySet().iterator(), EnumSet.allOf(ColumnType.class), false);
+      TabletMetadata.convertRow(rowMap.entrySet().iterator(), EnumSet.allOf(ColumnType.class),
+          false);
+    });
   }
 
   @Test

@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.core.client.admin;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -33,15 +33,15 @@ import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class NewTableConfigurationTest {
 
   private SortedSet<Text> splits;
   private Map<String,String> options;
 
-  @Before
+  @BeforeEach
   public void setup() {
     populateSplits();
     populateOptions();

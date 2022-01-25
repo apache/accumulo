@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.core.data;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -36,7 +36,7 @@ import java.util.List;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class RangeTest {
   private Range newRange(String k1, String k2) {
@@ -59,7 +59,7 @@ public class RangeTest {
     HashSet<Range> s1 = new HashSet<>(rl);
     HashSet<Range> s2 = new HashSet<>(expected);
 
-    assertEquals("got : " + rl + " expected : " + expected, s1, s2);
+    assertEquals(s1, s2, "got : " + rl + " expected : " + expected);
   }
 
   @Test

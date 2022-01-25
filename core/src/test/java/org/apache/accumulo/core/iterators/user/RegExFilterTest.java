@@ -19,9 +19,9 @@
 package org.apache.accumulo.core.iterators.user;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,7 +36,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class RegExFilterTest {
 
@@ -265,6 +265,6 @@ public class RegExFilterTest {
     filter.init(new SortedMapIterator(tm), is.getOptions(), null);
     filter.seek(new Range(), EMPTY_COL_FAMS, false);
 
-    assertTrue("iterator couldn't find a match when it should have", filter.hasTop());
+    assertTrue(filter.hasTop(), "iterator couldn't find a match when it should have");
   }
 }

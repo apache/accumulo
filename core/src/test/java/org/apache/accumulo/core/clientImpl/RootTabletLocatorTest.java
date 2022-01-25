@@ -26,8 +26,8 @@ import static org.easymock.EasyMock.verify;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletServerLockChecker;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class RootTabletLocatorTest {
   private ClientContext context;
@@ -35,7 +35,7 @@ public class RootTabletLocatorTest {
   private ZooCache zc;
   private RootTabletLocator rtl;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     context = createMock(ClientContext.class);
     expect(context.getZooKeeperRoot()).andReturn("/accumulo/iid").anyTimes();

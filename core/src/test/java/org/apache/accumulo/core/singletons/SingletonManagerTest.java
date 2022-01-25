@@ -18,21 +18,21 @@
  */
 package org.apache.accumulo.core.singletons;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class SingletonManagerTest {
 
   TestService service1;
   TestService service2;
 
-  @Before
+  @BeforeEach
   public void setup() {
     SingletonManager.reset();
     assertEquals(0, SingletonManager.getReservationCount());

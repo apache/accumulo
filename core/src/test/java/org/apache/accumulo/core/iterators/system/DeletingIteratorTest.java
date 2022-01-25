@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.iterators.system;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,7 +38,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator.Behavior;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class DeletingIteratorTest {
 
@@ -70,7 +70,7 @@ public class DeletingIteratorTest {
         tm.put(k, dvNew);
       }
     }
-    assertEquals("Initial size was " + tm.size(), 21, tm.size());
+    assertEquals(21, tm.size(), "Initial size was " + tm.size());
 
     Text checkRow = new Text("000");
     try {
@@ -83,7 +83,7 @@ public class DeletingIteratorTest {
         tmOut.put(it.getTopKey(), it.getTopValue());
         it.next();
       }
-      assertEquals("size after no propagation was " + tmOut.size(), 15, tmOut.size());
+      assertEquals(15, tmOut.size(), "size after no propagation was " + tmOut.size());
       for (Entry<Key,Value> e : tmOut.entrySet()) {
         if (e.getKey().getRow().equals(checkRow)) {
           byte[] b = e.getValue().get();
@@ -105,7 +105,7 @@ public class DeletingIteratorTest {
         tmOut.put(it.getTopKey(), it.getTopValue());
         it.next();
       }
-      assertEquals("size after propagation was " + tmOut.size(), 16, tmOut.size());
+      assertEquals(16, tmOut.size(), "size after propagation was " + tmOut.size());
       for (Entry<Key,Value> e : tmOut.entrySet()) {
         if (e.getKey().getRow().equals(checkRow)) {
           byte[] b = e.getValue().get();
