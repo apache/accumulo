@@ -58,8 +58,8 @@ public class ZooStore<T> implements TStore<T> {
   private String path;
   private ZooReaderWriter zk;
   private String lastReserved = "";
-  private Map<Long,Thread> reserved;
-  private Map<Long,Long> defered;
+  private final Map<Long,Thread> reserved;
+  private final Map<Long,Long> deferred;
   private static final SecureRandom random = new SecureRandom();
   private long statusChangeEvents = 0;
   private int reservationsWaiting = 0;
@@ -104,7 +104,7 @@ public class ZooStore<T> implements TStore<T> {
     this.path = path;
     this.zk = zk;
     this.reserved = new HashMap<>();
-    this.defered = new HashMap<>();
+    this.deferred = new HashMap<>();
 
     zk.putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
   }
@@ -154,9 +154,9 @@ public class ZooStore<T> implements TStore<T> {
             if (txdir.compareTo(lastReserved) <= 0)
               continue;
 
-            if (defered.containsKey(tid)) {
-              if (defered.get(tid) < System.currentTimeMillis())
-                defered.remove(tid);
+            if (deferred.containsKey(tid)) {
+              if (deferred.get(tid) < System.currentTimeMillis())
+                deferred.remove(tid);
               else
                 continue;
             }
@@ -189,10 +189,10 @@ public class ZooStore<T> implements TStore<T> {
         synchronized (this) {
           // suppress lgtm alert - synchronized variable is not always true
           if (events == statusChangeEvents) { // lgtm [java/constant-comparison]
-            if (defered.isEmpty())
+            if (deferred.isEmpty())
               this.wait(5000);
             else {
-              Long minTime = Collections.min(defered.values());
+              Long minTime = Collections.min(deferred.values());
               long waitTime = minTime - System.currentTimeMillis();
               if (waitTime > 0)
                 this.wait(Math.min(waitTime, 5000));
@@ -250,7 +250,7 @@ public class ZooStore<T> implements TStore<T> {
             "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
 
       if (deferTime > 0)
-        defered.put(tid, System.currentTimeMillis() + deferTime);
+        deferred.put(tid, System.currentTimeMillis() + deferTime);
 
       this.notifyAll();
     }
