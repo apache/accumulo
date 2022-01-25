@@ -49,6 +49,8 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Tables;
@@ -82,6 +84,7 @@ import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
@@ -115,6 +118,7 @@ import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
@@ -1203,7 +1207,8 @@ public class Manager extends AbstractServer
           log.info("{} was set, starting repl services.", p.getKey());
           replServer.set(setupReplication());
         }
-      } catch (UnknownHostException | KeeperException | InterruptedException e) {
+      } catch (AccumuloException | KeeperException | InterruptedException | IOException
+          | AccumuloSecurityException | TableNotFoundException e) {
         log.error("Error occurred starting replication services. ", e);
       }
     }, 0, 5000, TimeUnit.MILLISECONDS);
@@ -1353,9 +1358,12 @@ public class Manager extends AbstractServer
   }
 
   @Deprecated
-  private TServer setupReplication()
-      throws UnknownHostException, KeeperException, InterruptedException {
+  private TServer setupReplication() throws IOException, KeeperException, InterruptedException,
+      AccumuloException, AccumuloSecurityException, TableNotFoundException {
     ServerContext context = getContext();
+    if (!context.tableOperations().exists(ReplicationTable.NAME)) {
+      Initialize.createReplicationTable(context);
+    }
     // Start the replication coordinator which assigns tservers to service replication requests
     var impl = new org.apache.accumulo.manager.replication.ManagerReplicationCoordinator(this);
     ReplicationCoordinator.Iface haReplicationProxy =

@@ -39,9 +39,11 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -53,9 +55,11 @@ import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.iterators.Combiner;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -63,6 +67,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -73,6 +78,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
+import org.apache.accumulo.core.replication.ReplicationTable;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
@@ -84,6 +90,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.AccumuloDataVersion;
@@ -133,9 +140,7 @@ public class Initialize implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(Initialize.class);
   private static final String DEFAULT_ROOT_USER = "root";
   private static final String TABLE_TABLETS_TABLET_DIR = "table_info";
-  @SuppressWarnings("deprecation")
-  private static final TableId REPLICATION_TABLE =
-      org.apache.accumulo.core.replication.ReplicationTable.ID;
+  private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
   private static ZooReaderWriter zoo = null;
 
@@ -159,12 +164,11 @@ public class Initialize implements KeywordExecutable {
   }
 
   // config only for root table
-  private static HashMap<String,String> initialRootConf = new HashMap<>();
+  private static final HashMap<String,String> initialRootConf = new HashMap<>();
   // config for root and metadata table
-  private static HashMap<String,String> initialRootMetaConf = new HashMap<>();
+  private static final HashMap<String,String> initialRootMetaConf = new HashMap<>();
   // config for only metadata table
-  private static HashMap<String,String> initialMetaConf = new HashMap<>();
-  private static HashMap<String,String> initialReplicationTableConf = new HashMap<>();
+  private static final HashMap<String,String> initialMetaConf = new HashMap<>();
 
   static {
     initialRootConf.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
@@ -206,63 +210,6 @@ public class Initialize implements KeywordExecutable {
     initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
         SimpleCompactionDispatcher.class.getName());
     initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta");
-
-    // ACCUMULO-3077 Set the combiner on accumulo.metadata during init to reduce the likelihood of a
-    // race condition where a tserver compacts away Status updates because it didn't see the
-    // Combiner
-    // configured
-    @SuppressWarnings("deprecation")
-    var statusCombinerClass = org.apache.accumulo.server.replication.StatusCombiner.class;
-    IteratorSetting setting =
-        new IteratorSetting(9, ReplicationTableUtil.COMBINER_NAME, statusCombinerClass);
-    Combiner.setColumns(setting, Collections.singletonList(new Column(ReplicationSection.COLF)));
-    for (IteratorScope scope : IteratorScope.values()) {
-      String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
-          scope.name().toLowerCase(), setting.getName());
-      for (Entry<String,String> prop : setting.getOptions().entrySet()) {
-        initialMetaConf.put(root + ".opt." + prop.getKey(), prop.getValue());
-      }
-      initialMetaConf.put(root, setting.getPriority() + "," + setting.getIteratorClass());
-    }
-
-    // add combiners to replication table
-    @SuppressWarnings("deprecation")
-    String replicationCombinerName =
-        org.apache.accumulo.core.replication.ReplicationTable.COMBINER_NAME;
-    setting = new IteratorSetting(30, replicationCombinerName, statusCombinerClass);
-    setting.setPriority(30);
-    @SuppressWarnings("deprecation")
-    Text statusSectionName =
-        org.apache.accumulo.core.replication.ReplicationSchema.StatusSection.NAME;
-    @SuppressWarnings("deprecation")
-    Text workSectionName = org.apache.accumulo.core.replication.ReplicationSchema.WorkSection.NAME;
-    Combiner.setColumns(setting,
-        Arrays.asList(new Column(statusSectionName), new Column(workSectionName)));
-    for (IteratorScope scope : EnumSet.allOf(IteratorScope.class)) {
-      String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
-          scope.name().toLowerCase(), setting.getName());
-      for (Entry<String,String> prop : setting.getOptions().entrySet()) {
-        initialReplicationTableConf.put(root + ".opt." + prop.getKey(), prop.getValue());
-      }
-      initialReplicationTableConf.put(root,
-          setting.getPriority() + "," + setting.getIteratorClass());
-    }
-    // add locality groups to replication table
-    @SuppressWarnings("deprecation")
-    Map<String,Set<Text>> replicationLocalityGroups =
-        org.apache.accumulo.core.replication.ReplicationTable.LOCALITY_GROUPS;
-    for (Entry<String,Set<Text>> g : replicationLocalityGroups.entrySet()) {
-      initialReplicationTableConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX + g.getKey(),
-          LocalityGroupUtil.encodeColumnFamilies(g.getValue()));
-    }
-    initialReplicationTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(),
-        Joiner.on(",").join(replicationLocalityGroups.keySet()));
-    // add formatter to replication table
-    @SuppressWarnings("deprecation")
-    String replicationFormatterClassName =
-        org.apache.accumulo.server.replication.ReplicationUtil.STATUS_FORMATTER_CLASS_NAME;
-    initialReplicationTableConf.put(Property.TABLE_FORMATTER_CLASS.getKey(),
-        replicationFormatterClassName);
   }
 
   static boolean checkInit(VolumeManager fs, SiteConfiguration sconf, Configuration hadoopConf)
@@ -481,11 +428,7 @@ public class Initialize implements KeywordExecutable {
     String tableMetadataTabletDirUri =
         fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
             + MetadataTable.ID + Path.SEPARATOR + tableMetadataTabletDirName;
-    chooserEnv = new VolumeChooserEnvironmentImpl(Scope.INIT, REPLICATION_TABLE, null, context);
-    String replicationTableDefaultTabletDirName = ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
-    String replicationTableDefaultTabletDirUri =
-        fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-            + REPLICATION_TABLE + Path.SEPARATOR + replicationTableDefaultTabletDirName;
+
     chooserEnv = new VolumeChooserEnvironmentImpl(Scope.INIT, MetadataTable.ID, null, context);
     String defaultMetadataTabletDirName = ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
     String defaultMetadataTabletDirUri =
@@ -493,17 +436,11 @@ public class Initialize implements KeywordExecutable {
             + MetadataTable.ID + Path.SEPARATOR + defaultMetadataTabletDirName;
 
     // create table and default tablets directories
-    createDirectories(fs, rootTabletDirUri, tableMetadataTabletDirUri, defaultMetadataTabletDirUri,
-        replicationTableDefaultTabletDirUri);
+    createDirectories(fs, rootTabletDirUri, tableMetadataTabletDirUri, defaultMetadataTabletDirUri);
 
     String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
-
-    // populate the metadata tables tablet with info about the replication table's one initial
-    // tablet
     String metadataFileName = tableMetadataTabletDirUri + Path.SEPARATOR + "0_1." + ext;
-    Tablet replicationTablet =
-        new Tablet(REPLICATION_TABLE, replicationTableDefaultTabletDirName, null, null);
-    createMetadataFile(fs, metadataFileName, siteConfig, replicationTablet);
+    createMetadataFile(fs, metadataFileName, siteConfig);
 
     // populate the root tablet with info about the metadata table's two initial tablets
     Tablet tablesTablet = new Tablet(MetadataTable.ID, tableMetadataTabletDirName, null, splitPoint,
@@ -530,6 +467,7 @@ public class Initialize implements KeywordExecutable {
 
   private static void createMetadataFile(VolumeManager volmanager, String fileName,
       AccumuloConfiguration conf, Tablet... tablets) throws IOException {
+    log.info("Creating metadata file {}", fileName);
     // sort file contents in memory, then play back to the file
     TreeMap<Key,Value> sorted = new TreeMap<>();
     for (Tablet tablet : tablets) {
@@ -598,7 +536,6 @@ public class Initialize implements KeywordExecutable {
     }
     zoo.putPersistentData(instanceNamePath, uuid.getBytes(UTF_8), NodeExistsPolicy.FAIL);
 
-    final byte[] EMPTY_BYTE_ARRAY = new byte[0];
     final byte[] ZERO_CHAR_ARRAY = {'0'};
 
     // setup the instance
@@ -616,10 +553,6 @@ public class Initialize implements KeywordExecutable {
         RootTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
     TableManager.prepareNewTableState(zoo, uuid, MetadataTable.ID, Namespace.ACCUMULO.id(),
         MetadataTable.NAME, TableState.ONLINE, NodeExistsPolicy.FAIL);
-    @SuppressWarnings("deprecation")
-    String replicationTableName = org.apache.accumulo.core.replication.ReplicationTable.NAME;
-    TableManager.prepareNewTableState(zoo, uuid, REPLICATION_TABLE, Namespace.ACCUMULO.id(),
-        replicationTableName, TableState.OFFLINE, NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZPROBLEMS, EMPTY_BYTE_ARRAY,
@@ -651,15 +584,6 @@ public class Initialize implements KeywordExecutable {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMONITOR, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMONITOR_LOCK, EMPTY_BYTE_ARRAY,
-        NodeExistsPolicy.FAIL);
-    @SuppressWarnings("deprecation")
-    String replicationZBase = org.apache.accumulo.core.replication.ReplicationConstants.ZOO_BASE;
-    zoo.putPersistentData(zkInstanceRoot + replicationZBase, EMPTY_BYTE_ARRAY,
-        NodeExistsPolicy.FAIL);
-    @SuppressWarnings("deprecation")
-    String replicationZServers =
-        org.apache.accumulo.core.replication.ReplicationConstants.ZOO_TSERVERS;
-    zoo.putPersistentData(zkInstanceRoot + replicationZServers, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + WalStateManager.ZWALS, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
@@ -832,14 +756,6 @@ public class Initialize implements KeywordExecutable {
           throw new IOException("Cannot create per-table property " + entry.getKey());
         }
       }
-
-      // add configuration to the replication table
-      for (Entry<String,String> entry : initialReplicationTableConf.entrySet()) {
-        if (!TablePropUtil.setTableProperty(zoo, zooKeeperRoot, REPLICATION_TABLE, entry.getKey(),
-            entry.getValue())) {
-          throw new IOException("Cannot create per-table property " + entry.getKey());
-        }
-      }
     } catch (Exception e) {
       log.error("FATAL: Error talking to ZooKeeper", e);
       throw new IOException(e);
@@ -1006,6 +922,108 @@ public class Initialize implements KeywordExecutable {
     } finally {
       SingletonManager.setMode(Mode.CLOSED);
     }
+  }
+
+  @SuppressWarnings("deprecation")
+  public static void createReplicationTable(ServerContext context)
+      throws IOException, AccumuloException, AccumuloSecurityException, InterruptedException,
+      KeeperException, TableNotFoundException {
+    final TableId REPLICATION_TABLE_ID = org.apache.accumulo.core.replication.ReplicationTable.ID;
+    HashMap<String,String> initialReplicationTableConf = new HashMap<>();
+    VolumeManager fs = context.getVolumeManager();
+    // ACCUMULO-3077 Set the combiner on accumulo.metadata during init to reduce the likelihood of a
+    // race condition where a tserver compacts away Status updates because it didn't see the
+    // Combiner configured
+    @SuppressWarnings("deprecation")
+    var statusCombinerClass = org.apache.accumulo.server.replication.StatusCombiner.class;
+    IteratorSetting setting =
+        new IteratorSetting(9, ReplicationTableUtil.COMBINER_NAME, statusCombinerClass);
+    Combiner.setColumns(setting, Collections
+        .singletonList(new IteratorSetting.Column(MetadataSchema.ReplicationSection.COLF)));
+    for (IteratorUtil.IteratorScope scope : IteratorUtil.IteratorScope.values()) {
+      String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
+          scope.name().toLowerCase(), setting.getName());
+      for (Map.Entry<String,String> prop : setting.getOptions().entrySet()) {
+        context.tableOperations().setProperty(MetadataTable.NAME, root + ".opt." + prop.getKey(),
+            prop.getValue());
+      }
+      context.tableOperations().setProperty(MetadataTable.NAME, root,
+          setting.getPriority() + "," + setting.getIteratorClass());
+    }
+
+    // add combiners to replication table
+    setting = new IteratorSetting(30, ReplicationTable.COMBINER_NAME, statusCombinerClass);
+    setting.setPriority(30);
+    Text statusSectionName =
+        org.apache.accumulo.core.replication.ReplicationSchema.StatusSection.NAME;
+    Text workSectionName = org.apache.accumulo.core.replication.ReplicationSchema.WorkSection.NAME;
+    Combiner.setColumns(setting, Arrays.asList(new IteratorSetting.Column(statusSectionName),
+        new IteratorSetting.Column(workSectionName)));
+    for (IteratorUtil.IteratorScope scope : EnumSet.allOf(IteratorUtil.IteratorScope.class)) {
+      String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX,
+          scope.name().toLowerCase(), setting.getName());
+      for (Map.Entry<String,String> prop : setting.getOptions().entrySet()) {
+        initialReplicationTableConf.put(root + ".opt." + prop.getKey(), prop.getValue());
+      }
+      initialReplicationTableConf.put(root,
+          setting.getPriority() + "," + setting.getIteratorClass());
+    }
+    // add locality groups to replication table
+    Map<String,Set<Text>> replicationLocalityGroups =
+        org.apache.accumulo.core.replication.ReplicationTable.LOCALITY_GROUPS;
+    for (Map.Entry<String,Set<Text>> g : replicationLocalityGroups.entrySet()) {
+      initialReplicationTableConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX + g.getKey(),
+          LocalityGroupUtil.encodeColumnFamilies(g.getValue()));
+    }
+    initialReplicationTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(),
+        Joiner.on(",").join(replicationLocalityGroups.keySet()));
+    // add formatter to replication table
+    String replicationFormatterClassName = "org.apache.accumulo.server.replication.StatusFormatter";
+    initialReplicationTableConf.put(Property.TABLE_FORMATTER_CLASS.getKey(),
+        replicationFormatterClassName);
+
+    // pulled from initZooKeeper()
+    String replicationTableName = org.apache.accumulo.core.replication.ReplicationTable.NAME;
+    TableManager.prepareNewTableState(zoo, context.getInstanceID(), REPLICATION_TABLE_ID,
+        Namespace.ACCUMULO.id(), replicationTableName, TableState.OFFLINE,
+        ZooUtil.NodeExistsPolicy.FAIL);
+    String replicationZBase = org.apache.accumulo.core.replication.ReplicationConstants.ZOO_BASE;
+    zoo.putPersistentData(context.getZooKeeperRoot() + replicationZBase, EMPTY_BYTE_ARRAY,
+        NodeExistsPolicy.FAIL);
+    String replicationZServers =
+        org.apache.accumulo.core.replication.ReplicationConstants.ZOO_TSERVERS;
+    zoo.putPersistentData(context.getZooKeeperRoot() + replicationZServers, EMPTY_BYTE_ARRAY,
+        NodeExistsPolicy.FAIL);
+
+    // pulled from initSystemTablesConfig() - add configuration to the replication table
+    for (Entry<String,String> entry : initialReplicationTableConf.entrySet()) {
+      if (!TablePropUtil.setTableProperty(zoo, context.getZooKeeperRoot(), REPLICATION_TABLE_ID,
+          entry.getKey(), entry.getValue())) {
+        throw new IOException("Cannot create per-table property " + entry.getKey());
+      }
+    }
+
+    // pulled from initFileSystem()
+    var chooserEnv = new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.INIT,
+        REPLICATION_TABLE_ID, null, context);
+    String replicationTableDefaultTabletDirName =
+        MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME;
+    String replicationTableDefaultTabletDirUri =
+        fs.choose(chooserEnv, context.getBaseUris()) + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+            + REPLICATION_TABLE_ID + Path.SEPARATOR + replicationTableDefaultTabletDirName;
+    createDirectories(fs, replicationTableDefaultTabletDirUri);
+
+    // populate the metadata table with info about the replication table's one initial tablet
+    Tablet replicationTablet =
+        new Tablet(REPLICATION_TABLE_ID, replicationTableDefaultTabletDirName, null, null);
+    TreeMap<Key,Value> sorted = new TreeMap<>();
+    createEntriesForTablet(sorted, replicationTablet);
+    KeyExtent replKeyExtent = new KeyExtent(REPLICATION_TABLE_ID, null, null);
+    context.getAmple().mutateTablet(replKeyExtent).putDirName(replicationTableDefaultTabletDirName)
+        .putPrevEndRow(new Text()).putTime(new MetadataTime(0, TimeType.LOGICAL)).mutate();
+
+    // bring the table online
+    context.tableOperations().online(replicationTableName, true);
   }
 
   public static void main(String[] args) {
