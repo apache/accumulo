@@ -51,8 +51,8 @@ public class GenerateSplitsTest {
   private static final Logger log = LoggerFactory.getLogger(GenerateSplitsTest.class);
 
   @TempDir
-  public static final File tempFolder = new File(System.getProperty("user.dir") + "/target",
-      GenerateSplitsTest.class.getSimpleName());
+  public static File tempFolder = new File(System.getProperty("user.dir") + "/target",
+      GenerateSplitsTest.class.getSimpleName() + "/");
 
   private static final RFileTest.TestRFile trf = new RFileTest.TestRFile(null);
   private static String rfilePath;
@@ -115,7 +115,7 @@ public class GenerateSplitsTest {
   }
 
   @Test
-  public void testErrors() throws Exception {
+  public void testErrors() {
     List<String> args = List.of("missingFile.rf", "-n", "2");
     log.info("Invoking GenerateSplits with {}", args);
     assertThrows(FileNotFoundException.class, () -> main(args.toArray(new String[0])));
@@ -130,9 +130,9 @@ public class GenerateSplitsTest {
     e = assertThrows(IllegalArgumentException.class, () -> main(args3.toArray(new String[0])));
     assertTrue(e.getMessage().contains("Requested number of splits and"), e.getMessage());
 
-    File dir1 = new File(tempFolder, "dir1");
-    File dir2 = new File(tempFolder, "dir1");
-    assertTrue(dir1.mkdir() && dir2.mkdir(), "Couldn't make subdirectories");
+    File dir1 = new File(tempFolder, "dir1/");
+    File dir2 = new File(tempFolder, "dir2/");
+    assertTrue(dir1.mkdir() && dir2.mkdir(), "Failed to make new sub-directories");
 
     List<String> args4 = List.of(dir1.getAbsolutePath(), dir2.getAbsolutePath(), "-n", "2");
     log.info("Invoking GenerateSplits with {}", args4);

@@ -39,10 +39,8 @@ public class ContextClassLoaderFactoryTest {
 
   @TempDir
   File tempFolder = new File(System.getProperty("user.dir") + "/target",
-      ContextClassLoaderFactoryTest.class.getSimpleName());
+      ContextClassLoaderFactoryTest.class.getSimpleName() + "/");
 
-  private File folder1;
-  private File folder2;
   private String uri1;
   private String uri2;
 
@@ -50,14 +48,14 @@ public class ContextClassLoaderFactoryTest {
   public void setup() throws Exception {
 
     File folder1 = new File(tempFolder, "folder1/");
-    assertTrue(folder1.mkdir(), "Failed to make a new sub-directory");
+    assertTrue(folder1.isDirectory() || folder1.mkdir(), "Failed to make a new sub-directory");
     FileUtils.copyURLToFile(
         Objects.requireNonNull(this.getClass().getResource("/accumulo.properties")),
         new File(folder1, "accumulo.properties"));
     uri1 = new File(folder1, "accumulo.properties").toURI().toString();
 
     File folder2 = new File(tempFolder, "folder2/");
-    assertTrue(folder2.mkdir(), "Failed to make a new sub-directory");
+    assertTrue(folder2.isDirectory() || folder2.mkdir(), "Failed to make a new sub-directory");
     FileUtils.copyURLToFile(
         Objects.requireNonNull(this.getClass().getResource("/accumulo2.properties")),
         new File(folder2, "accumulo2.properties"));

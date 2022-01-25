@@ -130,7 +130,8 @@ public class RFileTest {
   private static final Configuration hadoopConf = new Configuration();
 
   @TempDir
-  public File tempFolder = new File(System.getProperty("user.dir") + "/target");
+  public File tempFolder =
+      new File(System.getProperty("user.dir") + "/target", RFileTest.class.getSimpleName() + "/");
 
   @BeforeAll
   public static void setupCryptoKeyFile() throws Exception {

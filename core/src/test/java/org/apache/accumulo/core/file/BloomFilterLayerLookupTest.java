@@ -56,7 +56,7 @@ public class BloomFilterLayerLookupTest {
 
   @TempDir
   public File tempDir = new File(System.getProperty("user.dir") + "/target",
-      BloomFilterLayerLookupTest.class.getSimpleName());
+      BloomFilterLayerLookupTest.class.getSimpleName() + "/");
 
   @Test
   public void test(TestInfo testInfo) throws IOException {
