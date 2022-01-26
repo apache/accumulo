@@ -104,81 +104,86 @@ public class ThreadPools {
    */
   @SuppressWarnings("deprecation")
   public static ExecutorService createExecutorService(final AccumuloConfiguration conf,
-      final Property p) {
+      final Property p, boolean emitThreadPoolMetrics) {
 
     switch (p) {
       case GENERAL_SIMPLETIMER_THREADPOOL_SIZE:
-        return createScheduledExecutorService(conf.getCount(p), "SimpleTimer");
+        return createScheduledExecutorService(conf.getCount(p), "SimpleTimer",
+            emitThreadPoolMetrics);
       case MANAGER_BULK_THREADPOOL_SIZE:
         return createFixedThreadPool(conf.getCount(p),
             conf.getTimeInMillis(Property.MANAGER_BULK_THREADPOOL_TIMEOUT), TimeUnit.MILLISECONDS,
-            "bulk import");
+            "bulk import", emitThreadPoolMetrics);
       case MANAGER_RENAME_THREADS:
-        return createFixedThreadPool(conf.getCount(p), "bulk move");
+        return createFixedThreadPool(conf.getCount(p), "bulk move", emitThreadPoolMetrics);
       case MANAGER_FATE_THREADPOOL_SIZE:
-        return createFixedThreadPool(conf.getCount(p), "Repo Runner");
+        return createFixedThreadPool(conf.getCount(p), "Repo Runner", emitThreadPoolMetrics);
       case MANAGER_STATUS_THREAD_POOL_SIZE:
         int threads = conf.getCount(p);
         if (threads == 0) {
           return createThreadPool(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
-              "GatherTableInformation", new SynchronousQueue<Runnable>(), OptionalInt.empty());
+              "GatherTableInformation", new SynchronousQueue<Runnable>(), OptionalInt.empty(),
+              emitThreadPoolMetrics);
         } else {
-          return createFixedThreadPool(threads, "GatherTableInformation");
+          return createFixedThreadPool(threads, "GatherTableInformation", emitThreadPoolMetrics);
         }
       case TSERV_WORKQ_THREADS:
-        return createFixedThreadPool(conf.getCount(p), "distributed work queue");
+        return createFixedThreadPool(conf.getCount(p), "distributed work queue",
+            emitThreadPoolMetrics);
       case TSERV_MINC_MAXCONCURRENT:
-        return createFixedThreadPool(conf.getCount(p), 0L, TimeUnit.MILLISECONDS,
-            "minor compactor");
+        return createFixedThreadPool(conf.getCount(p), 0L, TimeUnit.MILLISECONDS, "minor compactor",
+            emitThreadPoolMetrics);
       case TSERV_MIGRATE_MAXCONCURRENT:
         return createFixedThreadPool(conf.getCount(p), 0L, TimeUnit.MILLISECONDS,
-            "tablet migration");
+            "tablet migration", emitThreadPoolMetrics);
       case TSERV_ASSIGNMENT_MAXCONCURRENT:
         return createFixedThreadPool(conf.getCount(p), 0L, TimeUnit.MILLISECONDS,
-            "tablet assignment");
+            "tablet assignment", emitThreadPoolMetrics);
       case TSERV_SUMMARY_RETRIEVAL_THREADS:
         return createThreadPool(conf.getCount(p), conf.getCount(p), 60, TimeUnit.SECONDS,
-            "summary file retriever");
+            "summary file retriever", emitThreadPoolMetrics);
       case TSERV_SUMMARY_REMOTE_THREADS:
         return createThreadPool(conf.getCount(p), conf.getCount(p), 60, TimeUnit.SECONDS,
-            "summary remote");
+            "summary remote", emitThreadPoolMetrics);
       case TSERV_SUMMARY_PARTITION_THREADS:
         return createThreadPool(conf.getCount(p), conf.getCount(p), 60, TimeUnit.SECONDS,
-            "summary partition");
+            "summary partition", emitThreadPoolMetrics);
       case GC_DELETE_THREADS:
-        return createFixedThreadPool(conf.getCount(p), "deleting");
+        return createFixedThreadPool(conf.getCount(p), "deleting", emitThreadPoolMetrics);
       case REPLICATION_WORKER_THREADS:
-        return createFixedThreadPool(conf.getCount(p), "replication task");
+        return createFixedThreadPool(conf.getCount(p), "replication task", emitThreadPoolMetrics);
       default:
         throw new RuntimeException("Unhandled thread pool property: " + p);
     }
   }
 
-  public static ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name) {
-    return createFixedThreadPool(numThreads, DEFAULT_TIMEOUT_MILLISECS, TimeUnit.MILLISECONDS,
-        name);
+  public static ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
+      boolean emitThreadPoolMetrics) {
+    return createFixedThreadPool(numThreads, DEFAULT_TIMEOUT_MILLISECS, TimeUnit.MILLISECONDS, name,
+        emitThreadPoolMetrics);
   }
 
   public static ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
-      BlockingQueue<Runnable> queue) {
+      BlockingQueue<Runnable> queue, boolean emitThreadPoolMetrics) {
     return createThreadPool(numThreads, numThreads, DEFAULT_TIMEOUT_MILLISECS,
-        TimeUnit.MILLISECONDS, name, queue, OptionalInt.empty());
+        TimeUnit.MILLISECONDS, name, queue, OptionalInt.empty(), emitThreadPoolMetrics);
   }
 
   public static ThreadPoolExecutor createFixedThreadPool(int numThreads, long timeOut,
-      TimeUnit units, final String name) {
+      TimeUnit units, final String name, boolean emitThreadPoolMetrics) {
     return createThreadPool(numThreads, numThreads, timeOut, units, name,
-        new LinkedBlockingQueue<Runnable>(), OptionalInt.empty());
+        new LinkedBlockingQueue<Runnable>(), OptionalInt.empty(), emitThreadPoolMetrics);
   }
 
   public static ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
-      TimeUnit units, final String name) {
+      TimeUnit units, final String name, boolean emitThreadPoolMetrics) {
     return createThreadPool(coreThreads, maxThreads, timeOut, units, name,
-        new LinkedBlockingQueue<Runnable>(), OptionalInt.empty());
+        new LinkedBlockingQueue<Runnable>(), OptionalInt.empty(), emitThreadPoolMetrics);
   }
 
   public static ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
-      TimeUnit units, final String name, BlockingQueue<Runnable> queue, OptionalInt priority) {
+      TimeUnit units, final String name, BlockingQueue<Runnable> queue, OptionalInt priority,
+      boolean emitThreadPoolMetrics) {
     ThreadPoolExecutor result = new ThreadPoolExecutor(coreThreads, maxThreads, timeOut, units,
         queue, new NamedThreadFactory(name, priority)) {
 
@@ -210,7 +215,9 @@ public class ThreadPools {
     if (timeOut > 0) {
       result.allowCoreThreadTimeOut(true);
     }
-    MetricsUtil.addExecutorServiceMetrics(result, name);
+    if (emitThreadPoolMetrics) {
+      MetricsUtil.addExecutorServiceMetrics(result, name);
+    }
     return result;
   }
 
@@ -221,16 +228,17 @@ public class ThreadPools {
   public static ScheduledThreadPoolExecutor
       createGeneralScheduledExecutorService(AccumuloConfiguration conf) {
     return (ScheduledThreadPoolExecutor) createExecutorService(conf,
-        Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE);
+        Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE, true);
   }
 
   public static ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
-      final String name) {
-    return createScheduledExecutorService(numThreads, name, OptionalInt.empty());
+      final String name, boolean emitThreadPoolMetrics) {
+    return createScheduledExecutorService(numThreads, name, OptionalInt.empty(),
+        emitThreadPoolMetrics);
   }
 
-  public static ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
-      final String name, OptionalInt priority) {
+  private static ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
+      final String name, OptionalInt priority, boolean emitThreadPoolMetrics) {
     ScheduledThreadPoolExecutor result =
         new ScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory(name, priority)) {
 
@@ -284,7 +292,9 @@ public class ThreadPools {
           }
 
         };
-    MetricsUtil.addExecutorServiceMetrics(result, name);
+    if (emitThreadPoolMetrics) {
+      MetricsUtil.addExecutorServiceMetrics(result, name);
+    }
     return result;
   }
 
