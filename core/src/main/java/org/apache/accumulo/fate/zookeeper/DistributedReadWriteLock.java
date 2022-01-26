@@ -199,20 +199,20 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
   static class WriteLock extends ReadLock {
 
     private final ZooStore<?> store;
-    private final boolean preemptBlockingTransactions;
+    private final boolean cancelWriteLockBlockers;
 
-    WriteLock(ZooStore<?> store, boolean preemptBlockingTransactions, QueueLock qlock,
+    WriteLock(ZooStore<?> store, boolean cancelWriteLockBlockers, QueueLock qlock,
         byte[] userData) {
       super(qlock, userData);
       this.store = store;
-      this.preemptBlockingTransactions = preemptBlockingTransactions;
+      this.cancelWriteLockBlockers = cancelWriteLockBlockers;
     }
 
-    WriteLock(ZooStore<?> store, boolean preemptBlockingTransactions, QueueLock qlock,
-        byte[] userData, long entry) {
+    WriteLock(ZooStore<?> store, boolean cancelWriteLockBlockers, QueueLock qlock, byte[] userData,
+        long entry) {
       super(qlock, userData, entry);
       this.store = store;
-      this.preemptBlockingTransactions = preemptBlockingTransactions;
+      this.cancelWriteLockBlockers = cancelWriteLockBlockers;
     }
 
     @Override
@@ -236,8 +236,8 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
       if (iterator.next().getKey().equals(entry)) {
         return true;
       }
-      if (preemptBlockingTransactions) {
-        log.info("Preempting transactions that are blocking this transaction");
+      if (cancelWriteLockBlockers) {
+        log.info("Cancelling transactions that are blocking this transaction");
         // Loop through all of the prior transactions that are waiting to
         // acquire this write lock. If the transaction has not succeeded or failed,
         // then fail it and return false from this method so that Utils.reserveX()
@@ -249,11 +249,11 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
           ParsedLock priorLock = new ParsedLock(e.getValue());
           long priorTxid = Long.valueOf(new String(priorLock.getUserData(), UTF_8), 16);
           if (!priorEntry.equals(entry)) {
-            log.info("Attempting to preempt blocking tx: {}", Long.toHexString(priorTxid));
             if (store.isReserved(priorTxid)) {
               // If the prior tx id is reserved, then it's running. We can't reserve it and set its
               // status, we have to interrupt the thread.
               if (store.getStatus(priorTxid).equals(TStatus.IN_PROGRESS)) {
+                log.info("Attempting to cancel blocking tx: {}", Long.toHexString(priorTxid));
                 store.cancel(priorTxid);
               }
             } else if (store.tryReserve(priorTxid)) {
@@ -277,19 +277,19 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
   }
 
   private final ZooStore<?> store;
-  private final boolean preemptBlockingTransactions;
+  private final boolean cancelWriteLockBlockers;
   private final QueueLock qlock;
   private final byte[] data;
 
-  public DistributedReadWriteLock(ZooStore<?> store, boolean preemptBlockingTransactions,
+  public DistributedReadWriteLock(ZooStore<?> store, boolean cancelWriteLockBlockers,
       QueueLock qlock, byte[] data) {
     this.store = store;
-    this.preemptBlockingTransactions = preemptBlockingTransactions;
+    this.cancelWriteLockBlockers = cancelWriteLockBlockers;
     this.qlock = qlock;
     this.data = Arrays.copyOf(data, data.length);
   }
 
-  public static Lock recoverLock(ZooStore<?> store, boolean preemptBlockingTransactions,
+  public static Lock recoverLock(ZooStore<?> store, boolean cancelWriteLockBlockers,
       QueueLock qlock, byte[] data) {
     SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(Long.MAX_VALUE);
     for (Entry<Long,byte[]> entry : entries.entrySet()) {
@@ -299,7 +299,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
           case READ:
             return new ReadLock(qlock, parsed.getUserData(), entry.getKey());
           case WRITE:
-            return new WriteLock(store, preemptBlockingTransactions, qlock, parsed.getUserData(),
+            return new WriteLock(store, cancelWriteLockBlockers, qlock, parsed.getUserData(),
                 entry.getKey());
         }
       }
@@ -314,6 +314,6 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
   @Override
   public Lock writeLock() {
-    return new WriteLock(store, preemptBlockingTransactions, qlock, data);
+    return new WriteLock(store, cancelWriteLockBlockers, qlock, data);
   }
 }
