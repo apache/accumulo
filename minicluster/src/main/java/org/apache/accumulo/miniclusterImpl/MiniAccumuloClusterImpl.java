@@ -20,6 +20,7 @@ package org.apache.accumulo.miniclusterImpl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.File;
@@ -74,7 +75,6 @@ import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.manager.state.SetGoalState;
@@ -616,27 +616,36 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   }
 
+  // wait up to 10 seconds for the process to start
+  private static void waitForProcessStart(Process p, String name) throws InterruptedException {
+    long start = System.nanoTime();
+    while (p.info().startInstant().isEmpty()) {
+      if (NANOSECONDS.toSeconds(System.nanoTime() - start) > 10) {
+        throw new IllegalStateException(
+            "Error starting " + name + " - instance not started within 10 seconds");
+      }
+      Thread.sleep(50);
+    }
+  }
+
   private void verifyUp() throws InterruptedException, IOException {
 
     int numTries = 10;
 
     requireNonNull(getClusterControl().managerProcess, "Error starting Manager - no process");
-    requireNonNull(getClusterControl().managerProcess.info().startInstant().get(),
-        "Error starting Manager - instance not started");
+    waitForProcessStart(getClusterControl().managerProcess, "Manager");
 
     requireNonNull(getClusterControl().gcProcess, "Error starting GC - no process");
-    requireNonNull(getClusterControl().gcProcess.info().startInstant().get(),
-        "Error starting GC - instance not started");
+    waitForProcessStart(getClusterControl().gcProcess, "GC");
 
     int tsExpectedCount = 0;
     for (Process tsp : getClusterControl().tabletServerProcesses) {
       tsExpectedCount++;
       requireNonNull(tsp, "Error starting TabletServer " + tsExpectedCount + " - no process");
-      requireNonNull(tsp.info().startInstant().get(),
-          "Error starting TabletServer " + tsExpectedCount + "- instance not started");
+      waitForProcessStart(tsp, "TabletServer" + tsExpectedCount);
     }
 
-    try (ZooKeeper zk = new ZooKeeper(getZooKeepers(), 60000, null)) {
+    try (ZooKeeper zk = new ZooKeeper(getZooKeepers(), 60000, event -> log.info("{}", event))) {
 
       String secret = getSiteConfiguration().get(Property.INSTANCE_SECRET);
 
@@ -644,8 +653,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         if (zk.getState().equals(States.CONNECTED)) {
           ZooUtil.digestAuth(zk, secret);
           break;
-        } else
-          UtilWaitThread.sleep(1000);
+        } else {
+          Thread.sleep(1000);
+        }
       }
 
       String instanceId = null;
