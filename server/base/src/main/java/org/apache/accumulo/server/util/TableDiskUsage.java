@@ -50,7 +50,9 @@ import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -212,13 +214,17 @@ public class TableDiskUsage {
     for (TableId tableId : tablesReferenced) {
       for (String tableDir : nameSpacesReferenced) {
         // Find each file and add its size
-        FileStatus[] files = fs.globStatus(new Path(tableDir + "/" + tableId + "/*/*"));
-        if (files != null) {
-          for (FileStatus fileStatus : files) {
-            // Assumes that all filenames are unique
-            String name = fileStatus.getPath().getName();
-            tdu.addFileSize(name, fileStatus.getLen());
-          }
+        Path path = new Path(tableDir + "/" + tableId);
+        if (!fs.exists(path)) {
+          log.debug("Table ID directory {} does not exist.", path);
+          continue;
+        }
+        log.info("Get all files recursively in {}", path);
+        RemoteIterator<LocatedFileStatus> ri = fs.listFiles(path, true);
+        while (ri.hasNext()) {
+          FileStatus status = ri.next();
+          String name = status.getPath().getName();
+          tdu.addFileSize(name, status.getLen());
         }
       }
     }

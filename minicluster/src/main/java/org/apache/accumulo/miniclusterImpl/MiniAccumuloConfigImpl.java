@@ -110,6 +110,8 @@ public class MiniAccumuloConfigImpl {
 
   /**
    * Set directories and fully populate site config
+   *
+   * @return this
    */
   MiniAccumuloConfigImpl initialize() {
 

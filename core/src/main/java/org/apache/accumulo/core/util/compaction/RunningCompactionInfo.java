@@ -86,7 +86,7 @@ public class RunningCompactionInfo {
       updateMillis = lastEntry.getKey();
     } else {
       log.debug("No updates found for {}", ecid);
-      lastUpdate = nowMillis;
+      lastUpdate = 1;
       progress = percent;
       status = "na";
       return;

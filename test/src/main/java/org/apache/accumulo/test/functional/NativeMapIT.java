@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.TreeMap;
@@ -44,6 +45,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.tserver.NativeMap;
+import org.apache.accumulo.tserver.memory.NativeMapLoader;
 import org.apache.hadoop.io.Text;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -77,8 +79,7 @@ public class NativeMapIT {
 
   @BeforeClass
   public static void setUp() {
-    System.setProperty("accumulo.native.lib.path", nativeMapLocation().getAbsolutePath());
-    assertTrue(NativeMap.isLoaded());
+    NativeMapLoader.loadForTest(List.of(nativeMapLocation()), () -> fail("Can't load native maps"));
   }
 
   private void verifyIterator(int start, int end, int valueOffset,

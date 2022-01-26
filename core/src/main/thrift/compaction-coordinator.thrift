@@ -122,6 +122,12 @@ service CompactionCoordinatorService {
     2:security.TCredentials credentials
   )
 
+  void cancel(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string externalCompactionId
+  )
+
 }
 
 service CompactorService {
@@ -145,5 +151,11 @@ service CompactorService {
     1:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
+  )
+
+  void cancel(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string externalCompactionId
   )
 }

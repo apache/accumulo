@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -119,6 +121,14 @@ public class ZooUtil {
       }
       throw e;
     }
+  }
+
+  public static void digestAuth(ZooKeeper zoo, String secret) {
+    auth(zoo, "digest", ("accumulo:" + secret).getBytes(UTF_8));
+  }
+
+  public static void auth(ZooKeeper zoo, String scheme, byte[] auth) {
+    zoo.addAuthInfo(scheme, auth);
   }
 
 }
