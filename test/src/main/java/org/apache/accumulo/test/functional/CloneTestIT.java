@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -333,17 +334,19 @@ public class CloneTestIT extends AccumuloClusterHarness {
     }
   }
 
-  @Test(expected = AccumuloException.class)
-  public void testCloneRootTable() throws Exception {
+  @Test
+  public void testCloneRootTable() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      client.tableOperations().clone(RootTable.NAME, "rc1", true, null, null);
+      assertThrows(AccumuloException.class,
+          () -> client.tableOperations().clone(RootTable.NAME, "rc1", true, null, null));
     }
   }
 
-  @Test(expected = AccumuloException.class)
-  public void testCloneMetadataTable() throws Exception {
+  @Test
+  public void testCloneMetadataTable() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      client.tableOperations().clone(MetadataTable.NAME, "mc1", true, null, null);
+      assertThrows(AccumuloException.class,
+          () -> client.tableOperations().clone(MetadataTable.NAME, "mc1", true, null, null));
     }
   }
 }

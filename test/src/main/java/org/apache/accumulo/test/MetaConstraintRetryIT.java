@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertThrows;
+
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.Writer;
@@ -40,7 +42,7 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
   }
 
   // a test for ACCUMULO-3096
-  @Test(expected = ConstraintViolationException.class)
+  @Test
   public void test() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.securityOperations().grantTablePermission(getAdminPrincipal(), MetadataTable.NAME,
@@ -53,14 +55,15 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
       Mutation m = new Mutation(extent.toMetaRow());
       // unknown columns should cause constraint violation
       m.put("badcolfam", "badcolqual", "3");
-
-      try {
-        MetadataTableUtil.update(context, w, null, m, extent);
-      } catch (RuntimeException e) {
-        if (e.getCause().getClass().equals(ConstraintViolationException.class)) {
-          throw (ConstraintViolationException) e.getCause();
+      assertThrows(ConstraintViolationException.class, () -> {
+        try {
+          MetadataTableUtil.update(context, w, null, m, extent);
+        } catch (RuntimeException e) {
+          if (e.getCause().getClass().equals(ConstraintViolationException.class)) {
+            throw (ConstraintViolationException) e.getCause();
+          }
         }
-      }
+      });
     }
   }
 }

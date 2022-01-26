@@ -22,6 +22,7 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.io.FileNotFoundException;
 
@@ -89,12 +90,14 @@ public class AccumuloTest {
     assertEquals(-1, serverDirs.getAccumuloPersistentVersion(fs, path));
   }
 
-  @Test(expected = RuntimeException.class)
+  @Test
   public void testGetAccumuloPersistentVersion_Fail() throws Exception {
-    expect(fs.listStatus(path)).andThrow(new FileNotFoundException());
-    replay(fs);
+    assertThrows(RuntimeException.class, () -> {
+      expect(fs.listStatus(path)).andThrow(new FileNotFoundException());
+      replay(fs);
 
-    assertEquals(-1, serverDirs.getAccumuloPersistentVersion(fs, path));
+      assertEquals(-1, serverDirs.getAccumuloPersistentVersion(fs, path));
+    });
   }
 
   @Test

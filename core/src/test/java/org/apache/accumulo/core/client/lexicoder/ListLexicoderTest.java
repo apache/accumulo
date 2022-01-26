@@ -20,6 +20,7 @@ package org.apache.accumulo.core.client.lexicoder;
 
 import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -96,8 +97,9 @@ public class ListLexicoderTest extends AbstractLexicoderTest {
     assertDecodes(new ListLexicoder<>(new LongLexicoder()), data5);
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testRejectsEmptyLists() {
-    new ListLexicoder<>(new LongLexicoder()).encode(emptyList());
+    assertThrows(IllegalArgumentException.class,
+        () -> new ListLexicoder<>(new LongLexicoder()).encode(emptyList()));
   }
 }

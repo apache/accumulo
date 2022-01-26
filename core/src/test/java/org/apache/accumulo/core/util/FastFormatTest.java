@@ -20,6 +20,7 @@ package org.apache.accumulo.core.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.util.Arrays;
 
@@ -97,20 +98,23 @@ public class FastFormatTest {
         new String(FastFormat.toZeroPaddedString(1296, 7, 36, new byte[] {'P', 'A'}), UTF_8));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testNegative1() {
-    FastFormat.toZeroPaddedString(-5, 1, 36, new byte[] {});
+    assertThrows(IllegalArgumentException.class,
+        () -> FastFormat.toZeroPaddedString(-5, 1, 36, new byte[] {}));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testNegative2() {
     byte[] str = new byte[8];
-    FastFormat.toZeroPaddedString(str, 0, -5, 1, 36, new byte[] {});
+    assertThrows(IllegalArgumentException.class,
+        () -> FastFormat.toZeroPaddedString(str, 0, -5, 1, 36, new byte[] {}));
   }
 
-  @Test(expected = ArrayIndexOutOfBoundsException.class)
+  @Test
   public void testArrayOutOfBounds() {
     byte[] str = new byte[8];
-    FastFormat.toZeroPaddedString(str, 4, 64L, 4, 16, new byte[] {'P'});
+    assertThrows(ArrayIndexOutOfBoundsException.class,
+        () -> FastFormat.toZeroPaddedString(str, 4, 64L, 4, 16, new byte[] {'P'}));
   }
 }

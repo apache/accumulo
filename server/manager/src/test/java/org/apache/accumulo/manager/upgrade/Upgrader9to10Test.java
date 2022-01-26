@@ -26,6 +26,7 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -91,14 +92,16 @@ public class Upgrader9to10Test {
         Upgrader9to10.switchToAllVolumes(resolved));
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void testBadRelativeDeleteTooShort() {
-    Upgrader9to10.resolveRelativeDelete("/5a", VOL_PROP);
+    assertThrows(IllegalStateException.class,
+        () -> Upgrader9to10.resolveRelativeDelete("/5a", VOL_PROP));
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void testBadRelativeDeleteTooLong() throws Exception {
-    Upgrader9to10.resolveRelativeDelete("/5a/5a/t-0005/F0009.rf", VOL_PROP);
+    assertThrows(IllegalStateException.class,
+        () -> Upgrader9to10.resolveRelativeDelete("/5a/5a/t-0005/F0009.rf", VOL_PROP));
   }
 
   @Test

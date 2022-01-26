@@ -25,6 +25,7 @@ import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -2656,7 +2657,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
    *
    * The splits file will be empty.
    */
-  @Test(expected = org.apache.accumulo.core.client.TableNotFoundException.class)
+  @Test
   public void testCreateTableWithEmptySplitFile()
       throws IOException, AccumuloSecurityException, TableNotFoundException, AccumuloException {
     String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
@@ -2665,8 +2666,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
       SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
       final String tableName = getUniqueNames(1)[0];
       ts.exec("createtable " + tableName + " -sf " + splitsFile, false);
-      Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
-      assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+      assertThrows(TableNotFoundException.class, () -> {
+        Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
+        assertEquals(expectedSplits, new TreeSet<>(createdSplits));
+      });
     } finally {
       Files.delete(Paths.get(splitsFile));
     }
