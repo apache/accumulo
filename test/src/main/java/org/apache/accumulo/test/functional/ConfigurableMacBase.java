@@ -26,6 +26,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -40,6 +41,7 @@ import org.apache.accumulo.miniclusterImpl.ZooKeeperBindException;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.util.CertUtils;
+import org.apache.accumulo.tserver.memory.NativeMapLoader;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -150,13 +152,18 @@ public class ConfigurableMacBase extends AccumuloITBase {
     // createTestDir will give us a empty directory, we don't need to clean it up ourselves
     File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName());
     MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(baseDir, ROOT_PASSWORD);
-    String nativePathInDevTree = NativeMapIT.nativeMapLocation().getAbsolutePath();
-    String nativePathInMapReduce = new File(System.getProperty("user.dir")).toString();
-    cfg.setNativeLibPaths(nativePathInDevTree, nativePathInMapReduce);
+    File nativePathInDevTree = NativeMapIT.nativeMapLocation();
+    File nativePathInMapReduce = new File(System.getProperty("user.dir"));
+    cfg.setNativeLibPaths(nativePathInDevTree.getAbsolutePath(), nativePathInMapReduce.toString());
     Configuration coreSite = new Configuration(false);
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
     configure(cfg, coreSite);
     configureForEnvironment(cfg, getSslDir(baseDir));
+    if (Boolean.parseBoolean(cfg.getSiteConfig().get(Property.TSERV_NATIVEMAP_ENABLED.getKey()))) {
+      NativeMapLoader.loadForTest(List.of(nativePathInDevTree, nativePathInMapReduce), () -> {
+        throw new IllegalStateException("Native maps were configured, but not available");
+      });
+    }
     cluster = new MiniAccumuloClusterImpl(cfg);
     if (coreSite.size() > 0) {
       File csFile = new File(cluster.getConfig().getConfDir(), "core-site.xml");

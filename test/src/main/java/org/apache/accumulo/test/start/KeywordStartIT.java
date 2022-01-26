@@ -55,6 +55,7 @@ import org.apache.accumulo.server.conf.CheckServerConfig;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.ConvertConfig;
+import org.apache.accumulo.server.util.ECAdmin;
 import org.apache.accumulo.server.util.Info;
 import org.apache.accumulo.server.util.LoginProperties;
 import org.apache.accumulo.server.util.ZooKeeperMain;
@@ -114,6 +115,7 @@ public class KeywordStartIT {
     expectSet.put("compactor", CompactorExecutable.class);
     expectSet.put("convert-config", ConvertConfig.class);
     expectSet.put("create-token", CreateToken.class);
+    expectSet.put("ec-admin", ECAdmin.class);
     expectSet.put("gc", GCExecutable.class);
     expectSet.put("generate-splits", GenerateSplits.class);
     expectSet.put("help", Help.class);

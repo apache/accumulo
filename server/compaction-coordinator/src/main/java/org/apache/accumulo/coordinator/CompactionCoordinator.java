@@ -35,8 +35,13 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.coordinator.QueueSummaries.PrioTserver;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.Iface;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
@@ -45,6 +50,7 @@ import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -655,6 +661,26 @@ public class CompactionCoordinator extends AbstractServer
       result.putToCompactions(ecid.canonical(), trc);
     });
     return result;
+  }
+
+  @Override
+  public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
+      throws TException {
+    var runningCompaction = RUNNING.get(ExternalCompactionId.of(externalCompactionId));
+    var extent = KeyExtent.fromThrift(runningCompaction.getJob().getExtent());
+    try {
+      NamespaceId nsId = Tables.getNamespaceId(getContext(), extent.tableId());
+      if (!security.canCompact(credentials, extent.tableId(), nsId)) {
+        throw new AccumuloSecurityException(credentials.getPrincipal(),
+            SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+      }
+    } catch (TableNotFoundException e) {
+      throw new ThriftTableOperationException(extent.tableId().canonical(), null,
+          TableOperation.COMPACT_CANCEL, TableOperationExceptionType.NOTFOUND, e.getMessage());
+    }
+
+    HostAndPort address = HostAndPort.fromString(runningCompaction.getCompactorAddress());
+    ExternalCompactionUtil.cancelCompaction(getContext(), address, externalCompactionId);
   }
 
   private void deleteEmpty(ZooReaderWriter zoorw, String path)

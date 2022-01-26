@@ -20,6 +20,8 @@ package org.apache.accumulo.compactor;
 
 import java.util.Objects;
 
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 
@@ -41,6 +43,11 @@ public class CompactionJobHolder {
 
   public synchronized TExternalCompactionJob getJob() {
     return job;
+  }
+
+  public TableId getTableId() {
+    var tKeyExtent = getJob().getExtent();
+    return KeyExtent.fromThrift(tKeyExtent).tableId();
   }
 
   public TCompactionStats getStats() {

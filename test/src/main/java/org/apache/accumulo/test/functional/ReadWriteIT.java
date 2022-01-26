@@ -180,7 +180,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           Thread.sleep(1000);
         }
       } while (managerLockData != null);
-
+      control.stopAllServers(ServerType.MANAGER);
+      control.stopAllServers(ServerType.TABLET_SERVER);
       control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
       control.stopAllServers(ServerType.MONITOR);
       log.debug("success!");

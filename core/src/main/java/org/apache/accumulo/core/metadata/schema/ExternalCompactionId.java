@@ -56,4 +56,14 @@ public class ExternalCompactionId extends AbstractId<ExternalCompactionId> {
     return new ExternalCompactionId(id);
   }
 
+  /**
+   * Sanitize user input for the ECID string with proper "ECID:" prefix.
+   */
+  public static ExternalCompactionId from(String ecid) {
+    ecid = ecid.replace(PREFIX.toLowerCase(), PREFIX);
+    if (!ecid.startsWith(PREFIX))
+      ecid = PREFIX + ecid;
+    return of(ecid);
+  }
+
 }
