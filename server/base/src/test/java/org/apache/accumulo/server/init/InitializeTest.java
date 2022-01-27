@@ -23,7 +23,6 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -46,27 +45,25 @@ public class InitializeTest {
   private Configuration conf;
   private VolumeManager fs;
   private SiteConfiguration sconf;
-  private ZooReaderWriter zooOrig;
   private ZooReaderWriter zoo;
+  private InitialConfiguration initConfig;
 
   @Before
   public void setUp() {
     conf = new Configuration(false);
     fs = createMock(VolumeManager.class);
     sconf = createMock(SiteConfiguration.class);
+    initConfig = new InitialConfiguration(conf, sconf);
     expect(sconf.get(Property.INSTANCE_VOLUMES))
         .andReturn("hdfs://foo/accumulo,hdfs://bar/accumulo").anyTimes();
     expect(sconf.get(Property.INSTANCE_SECRET))
         .andReturn(Property.INSTANCE_SECRET.getDefaultValue()).anyTimes();
     expect(sconf.get(Property.INSTANCE_ZK_HOST)).andReturn("zk1").anyTimes();
     zoo = createMock(ZooReaderWriter.class);
-    zooOrig = Initialize.getZooReaderWriter();
-    Initialize.setZooReaderWriter(zoo);
   }
 
   @After
   public void tearDown() {
-    Initialize.setZooReaderWriter(zooOrig);
     verify(sconf, zoo, fs);
   }
 
@@ -74,7 +71,7 @@ public class InitializeTest {
   public void testIsInitialized_HasInstanceId() throws Exception {
     expect(fs.exists(anyObject(Path.class))).andReturn(true);
     replay(sconf, zoo, fs);
-    assertTrue(Initialize.isInitialized(fs, sconf));
+    assertTrue(Initialize.isInitialized(fs, initConfig));
   }
 
   @Test
@@ -82,14 +79,14 @@ public class InitializeTest {
     expect(fs.exists(anyObject(Path.class))).andReturn(false);
     expect(fs.exists(anyObject(Path.class))).andReturn(true);
     replay(sconf, zoo, fs);
-    assertTrue(Initialize.isInitialized(fs, sconf));
+    assertTrue(Initialize.isInitialized(fs, initConfig));
   }
 
   @Test
   public void testCheckInit_NoZK() throws Exception {
     expect(zoo.exists("/")).andReturn(false);
     replay(sconf, zoo, fs);
-    assertFalse(Initialize.checkInit(fs, sconf, conf));
+    assertThrows(IllegalStateException.class, () -> Initialize.checkInit(zoo, fs, initConfig));
   }
 
   @Test
@@ -97,7 +94,7 @@ public class InitializeTest {
     expect(zoo.exists("/")).andReturn(true);
     expect(fs.exists(anyObject(Path.class))).andReturn(true);
     replay(sconf, zoo, fs);
-    assertFalse(Initialize.checkInit(fs, sconf, conf));
+    assertThrows(IOException.class, () -> Initialize.checkInit(zoo, fs, initConfig));
   }
 
   @Test
@@ -105,7 +102,7 @@ public class InitializeTest {
     expect(zoo.exists("/")).andReturn(true);
     expect(fs.exists(anyObject(Path.class))).andThrow(new IOException());
     replay(sconf, zoo, fs);
-    assertThrows(IOException.class, () -> Initialize.checkInit(fs, sconf, conf));
+    assertThrows(IOException.class, () -> Initialize.checkInit(zoo, fs, initConfig));
   }
 
   @Test
@@ -115,6 +112,6 @@ public class InitializeTest {
     // once for instance_id, and once for version
     expect(fs.exists(anyObject(Path.class))).andReturn(false).times(4);
     replay(sconf, zoo, fs);
-    assertTrue(Initialize.checkInit(fs, sconf, conf));
+    Initialize.checkInit(zoo, fs, initConfig);
   }
 }
