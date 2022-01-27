@@ -18,9 +18,18 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
-import org.apache.accumulo.core.client.AccumuloClient;
+import com.google.common.base.Preconditions;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
+import java.util.List;
+import java.util.Map;
+
+/**
+ * @since 2.1.0
+ */
+// TODO maybe name ScanServerAssigner ... it assigns a tablet to scan server
 public interface ScanServerLocator {
 
   class ScanServerLocatorException extends Exception {
@@ -39,41 +48,72 @@ public interface ScanServerLocator {
     private static final long serialVersionUID = 1L;
   }
 
-  /**
-   * Provide the ScanServerLocator implementation with a reference to the ClientContext in the case
-   * that it needs it.
-   *
-   * @param client
-   *          accumulo client object
-   */
-  void setClient(AccumuloClient client);
+  public interface InitParameters {
+    Map<String,String> getOptions();
+
+    ServiceEnvironment getServiceEnv();
+  }
+
+
 
   /**
-   * Called by the client to reserve an available Scan Server for running a scan on extent.
-   *
-   * @param extent
-   *          extent to be scanned
-   * @return address of scan server, in "host:port" format
-   * @throws NoAvailableScanServerException
-   *           when no scan server can be found
-   * @throws ScanServerLocatorException
-   *           an error has occurred
-   * @throws InterruptedException
-   *           if any thread has interrupted the current thread.
+   * This method is called once after a ScanDispatcher is instantiated.
    */
-  String reserveScanServer(TabletId extent)
-      throws NoAvailableScanServerException, ScanServerLocatorException, InterruptedException;
+  default void init(InitParameters params) {
+    Preconditions.checkArgument(params.getOptions().isEmpty(), "No options expected");
+  }
 
-  /**
-   * Called by the client to unreserve a Scan Server
-   *
-   * @param hostPort
-   *          host and port of reserved scan server
-   * @throws ScanServerLocatorException
-   *           an error has occurred
-   * @throws InterruptedException
-   *           if any thread has interrupted the current thread.
-   */
-  void unreserveScanServer(String hostPort) throws ScanServerLocatorException, InterruptedException;
+  public static class ScanAttempt {
 
+    private final String server;
+    private final long time;
+    private final Result result;
+
+    // represents reasons that previous attempts to scan failed
+    enum Result {
+      BUSY,
+      IO_ERROR,
+      NO_SCAN_SERVERS,
+      NO_TABLET_SERVERS
+    }
+
+    public ScanAttempt(String server, long time, Result result) {
+      this.server = server;
+      this.time = time;
+      this.result = result;
+    }
+
+    public long getTime() {
+      return time;
+    }
+
+    public Result getResult() {
+      return result;
+    }
+  }
+
+  public interface ScanAttempts {
+    List<ScanAttempt> all();
+
+    List<ScanAttempt> forServer(String server);
+
+    List<ScanAttempt> forTablet(TabletId tablet);
+  }
+
+  public interface LocateParameters {
+    List<TabletId> getTablets();
+
+    List<String> getScanServers();
+
+    ScanAttempts getScanAttempts();
+
+  }
+
+  public interface LocateResult {
+    String getServer(TabletId tablet);
+
+    long getSleepTime(String server);
+  }
+
+  LocateResult locate(LocateParameters params);
 }
