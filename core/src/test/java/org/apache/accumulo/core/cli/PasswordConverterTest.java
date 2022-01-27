@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
@@ -105,7 +104,7 @@ public class PasswordConverterTest {
   }
 
   @Test
-  public void testNoFile() throws FileNotFoundException {
+  public void testNoFile() {
     argv[1] = "file:doesnotexist";
     assertThrows(ParameterException.class, () -> new JCommander(password).parse(argv));
   }

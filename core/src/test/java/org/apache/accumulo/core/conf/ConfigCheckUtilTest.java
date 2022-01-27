@@ -64,27 +64,21 @@ public class ConfigCheckUtilTest {
 
   @Test
   public void testFail_Prefix() {
-    assertThrows(ConfigCheckException.class, () -> {
-      m.put(Property.MANAGER_CLIENTPORT.getKey(), "9999");
-      m.put(Property.MANAGER_PREFIX.getKey(), "oops");
-      ConfigCheckUtil.validate(m.entrySet());
-    });
+    m.put(Property.MANAGER_CLIENTPORT.getKey(), "9999");
+    m.put(Property.MANAGER_PREFIX.getKey(), "oops");
+    assertThrows(ConfigCheckException.class, () -> ConfigCheckUtil.validate(m.entrySet()));
   }
 
   @Test
   public void testFail_InstanceZkTimeoutOutOfRange() {
-    assertThrows(ConfigCheckException.class, () -> {
-      m.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "10ms");
-      ConfigCheckUtil.validate(m.entrySet());
-    });
+    m.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "10ms");
+    assertThrows(ConfigCheckException.class, () -> ConfigCheckUtil.validate(m.entrySet()));
   }
 
   @Test
   public void testFail_badCryptoService() {
-    assertThrows(ConfigCheckException.class, () -> {
-      m.put(Property.INSTANCE_CRYPTO_SERVICE.getKey(), "DoesNotExistCryptoService");
-      ConfigCheckUtil.validate(m.entrySet());
-    });
+    m.put(Property.INSTANCE_CRYPTO_SERVICE.getKey(), "DoesNotExistCryptoService");
+    assertThrows(ConfigCheckException.class, () -> ConfigCheckUtil.validate(m.entrySet()));
   }
 
   @Test

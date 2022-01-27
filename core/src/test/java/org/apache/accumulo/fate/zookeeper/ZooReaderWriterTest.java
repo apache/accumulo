@@ -97,20 +97,18 @@ public class ZooReaderWriterTest {
 
   @Test
   public void testMutateNodeCreationFails() throws Exception {
-    assertThrows(SessionExpiredException.class, () -> {
-      final String path = "/foo";
-      final byte[] value = {0};
-      Mutator mutator = currentValue -> new byte[] {1};
+    final String path = "/foo";
+    final byte[] value = {0};
+    Mutator mutator = currentValue -> new byte[] {1};
 
-      zk.create(path, value, ZooUtil.PUBLIC, CreateMode.PERSISTENT);
-      expectLastCall().andThrow(new SessionExpiredException()).once();
-      expect(retry.canRetry()).andReturn(false);
-      expect(retry.retriesCompleted()).andReturn(1L).once();
+    zk.create(path, value, ZooUtil.PUBLIC, CreateMode.PERSISTENT);
+    expectLastCall().andThrow(new SessionExpiredException()).once();
+    expect(retry.canRetry()).andReturn(false);
+    expect(retry.retriesCompleted()).andReturn(1L).once();
 
-      replay(zk, zrw, retryFactory, retry);
+    replay(zk, zrw, retryFactory, retry);
 
-      zrw.mutateOrCreate(path, value, mutator);
-    });
+    assertThrows(SessionExpiredException.class, () -> zrw.mutateOrCreate(path, value, mutator));
   }
 
   @Test

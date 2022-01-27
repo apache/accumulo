@@ -58,7 +58,6 @@ public class ConfigurationTypeHelperTest {
   public void testGetFixedMemoryAsBytesFailureCases2() {
     assertThrows(IllegalArgumentException.class,
         () -> ConfigurationTypeHelper.getFixedMemoryAsBytes("FooBar"));
-
   }
 
   @Test

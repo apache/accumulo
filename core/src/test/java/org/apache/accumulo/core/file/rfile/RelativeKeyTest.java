@@ -186,15 +186,14 @@ public class RelativeKeyTest {
   }
 
   @Test
-  public void testSeekAfterEverythingWrongCount() throws IOException {
-    assertThrows(EOFException.class, () -> {
-      Key seekKey = new Key("s", "t", "u", "v", 1);
-      Key prevKey = new Key();
-      Key currKey = null;
-      MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
+  public void testSeekAfterEverythingWrongCount() {
+    Key seekKey = new Key("s", "t", "u", "v", 1);
+    Key prevKey = new Key();
+    Key currKey = null;
+    MutableByteSequence value = new MutableByteSequence(new byte[64], 0, 0);
 
-      RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey, expectedKeys.size() + 1);
-    });
+    assertThrows(EOFException.class,
+        () -> RelativeKey.fastSkip(in, seekKey, value, prevKey, currKey, expectedKeys.size() + 1));
   }
 
   @Test

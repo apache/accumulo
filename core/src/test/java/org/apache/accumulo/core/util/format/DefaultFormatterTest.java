@@ -47,16 +47,14 @@ public class DefaultFormatterTest {
 
   @Test
   public void testDoubleInitialize() {
-    assertThrows(IllegalStateException.class, () -> {
-      final FormatterConfig timestampConfig = new FormatterConfig().setPrintTimestamps(true);
-      df.initialize(empty, timestampConfig);
-      df.initialize(empty, timestampConfig);
-    });
+    final FormatterConfig timestampConfig = new FormatterConfig().setPrintTimestamps(true);
+    df.initialize(empty, timestampConfig);
+    assertThrows(IllegalStateException.class, () -> df.initialize(empty, timestampConfig));
   }
 
   @Test
   public void testNextBeforeInitialize() {
-    assertThrows(IllegalStateException.class, () -> df.hasNext());
+    assertThrows(IllegalStateException.class, df::hasNext);
   }
 
   @Test

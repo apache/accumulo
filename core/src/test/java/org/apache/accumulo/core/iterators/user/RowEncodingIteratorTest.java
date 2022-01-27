@@ -159,24 +159,22 @@ public class RowEncodingIteratorTest {
   }
 
   @Test
-  public void testEncodeSome() {
-    assertThrows(IllegalArgumentException.class, () -> {
-      byte[] kbVal = new byte[1024];
-      // This code is shamelessly borrowed from the WholeRowIteratorTest.
-      SortedMap<Key,Value> map1 = new TreeMap<>();
-      pkv(map1, "row1", "cf1", "cq1", "cv1", 5, kbVal);
-      pkv(map1, "row1", "cf1", "cq2", "cv1", 6, kbVal);
+  public void testEncodeSome() throws IOException {
+    byte[] kbVal = new byte[1024];
+    // This code is shamelessly borrowed from the WholeRowIteratorTest.
+    SortedMap<Key,Value> map1 = new TreeMap<>();
+    pkv(map1, "row1", "cf1", "cq1", "cv1", 5, kbVal);
+    pkv(map1, "row1", "cf1", "cq2", "cv1", 6, kbVal);
 
-      SortedMap<Key,Value> map = new TreeMap<>();
-      map.putAll(map1);
-      SortedMapIterator src = new SortedMapIterator(map);
-      Range range = new Range(new Text("row1"), true, new Text("row2"), true);
-      RowEncodingIteratorImpl iter = new RowEncodingIteratorImpl();
-      Map<String,String> bigBufferOpts = new HashMap<>();
-      bigBufferOpts.put(RowEncodingIterator.MAX_BUFFER_SIZE_OPT, "1K");
-      iter.init(src, bigBufferOpts, new DummyIteratorEnv());
-      iter.seek(range, new ArrayList<>(), false);
-      // IllegalArgumentException should be thrown as we can't fit the whole row into its buffer
-    });
+    SortedMap<Key,Value> map = new TreeMap<>();
+    map.putAll(map1);
+    SortedMapIterator src = new SortedMapIterator(map);
+    Range range = new Range(new Text("row1"), true, new Text("row2"), true);
+    RowEncodingIteratorImpl iter = new RowEncodingIteratorImpl();
+    Map<String,String> bigBufferOpts = new HashMap<>();
+    bigBufferOpts.put(RowEncodingIterator.MAX_BUFFER_SIZE_OPT, "1K");
+    iter.init(src, bigBufferOpts, new DummyIteratorEnv());
+    assertThrows(IllegalArgumentException.class, () -> iter.seek(range, new ArrayList<>(), false));
+    // IllegalArgumentException should be thrown as we can't fit the whole row into its buffer
   }
 }

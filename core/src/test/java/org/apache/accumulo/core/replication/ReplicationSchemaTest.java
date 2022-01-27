@@ -58,13 +58,11 @@ public class ReplicationSchemaTest {
 
   @Test
   public void failOnExtractEmptyFile() {
-    assertThrows(IllegalArgumentException.class, () -> {
-      String file = "";
-      Key k = new Key(file);
-      Text extractedFile = new Text();
-      StatusSection.getFile(k, extractedFile);
-      assertEquals(file, extractedFile.toString());
-    });
+    String file = "";
+    Key k = new Key(file);
+    Text extractedFile = new Text();
+    assertThrows(IllegalArgumentException.class, () -> StatusSection.getFile(k, extractedFile));
+    assertEquals(file, extractedFile.toString());
   }
 
   @Test

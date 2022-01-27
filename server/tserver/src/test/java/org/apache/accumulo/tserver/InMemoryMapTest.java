@@ -696,7 +696,7 @@ public class InMemoryMapTest {
     expectedAll.put(k1, new Value(val));
   }
 
-  @Test(expected = SampleNotPresentException.class)
+  @Test
   public void testDifferentSampleConfig() throws Exception {
     SamplerConfigurationImpl sampleConfig = new SamplerConfigurationImpl(RowSampler.class.getName(),
         Map.of("hasher", "murmur3_32", "modulus", "7"));
@@ -713,10 +713,10 @@ public class InMemoryMapTest {
     SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
         RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "9"));
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
-    iter.seek(new Range(), Set.of(), false);
+    assertThrows(SampleNotPresentException.class, () -> iter.seek(new Range(), Set.of(), false));
   }
 
-  @Test(expected = SampleNotPresentException.class)
+  @Test
   public void testNoSampleConfig() throws Exception {
     InMemoryMap imm = newInMemoryMap(false, tempFolder.newFolder().getAbsolutePath());
 
@@ -725,7 +725,7 @@ public class InMemoryMapTest {
     SamplerConfigurationImpl sampleConfig2 = new SamplerConfigurationImpl(
         RowSampler.class.getName(), Map.of("hasher", "murmur3_32", "modulus", "9"));
     MemoryIterator iter = imm.skvIterator(sampleConfig2);
-    iter.seek(new Range(), Set.of(), false);
+    assertThrows(SampleNotPresentException.class, () -> iter.seek(new Range(), Set.of(), false));
   }
 
   @Test

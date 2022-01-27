@@ -368,20 +368,19 @@ public class MutationTest {
 
   @Test
   public void testFluentPutNull() {
-    assertThrows(IllegalStateException.class, () -> {
-      final String fam = "f16bc";
-      final String qual = "q1pm2";
-      final String val = "v8672194923750";
+    final String fam = "f16bc";
+    final String qual = "q1pm2";
+    final String val = "v8672194923750";
 
-      Mutation expected = new Mutation("row5");
-      expected.put(fam, qual, val);
+    Mutation expected = new Mutation("row5");
+    expected.put(fam, qual, val);
 
-      Mutation actual = new Mutation("row5");
-      actual.at().family(fam).qualifier(qual).put(val.getBytes());
-      assertEquals(expected, actual);
-      assertEquals(34, actual.numBytes());
-      actual.at().family(fam).qualifier(qual).put("test2");
-    });
+    Mutation actual = new Mutation("row5");
+    actual.at().family(fam).qualifier(qual).put(val.getBytes());
+    assertEquals(expected, actual);
+    assertEquals(34, actual.numBytes());
+    assertThrows(IllegalStateException.class,
+        () -> actual.at().family(fam).qualifier(qual).put("test2"));
   }
 
   @Test
@@ -879,13 +878,11 @@ public class MutationTest {
 
   @Test
   public void testThrift_Invalid() {
-    assertThrows(IllegalArgumentException.class, () -> {
-      Mutation m1 = new Mutation("r1");
-      m1.put("cf1", "cq1", "v1");
-      TMutation tm1 = m1.toThrift();
-      tm1.setRow((byte[]) null);
-      new Mutation(tm1);
-    });
+    Mutation m1 = new Mutation("r1");
+    m1.put("cf1", "cq1", "v1");
+    TMutation tm1 = m1.toThrift();
+    tm1.setRow((byte[]) null);
+    assertThrows(IllegalArgumentException.class, () -> new Mutation(tm1));
   }
 
   /*
@@ -920,12 +917,10 @@ public class MutationTest {
 
   @Test
   public void testSanityCheck() {
-    assertThrows(IllegalArgumentException.class, () -> {
-      Mutation m = new Mutation("too big mutation");
-      m.put("cf", "cq1", "v");
-      m.estRowAndLargeValSize += (Long.MAX_VALUE / 2);
-      m.put("cf", "cq2", "v");
-    });
+    Mutation m = new Mutation("too big mutation");
+    m.put("cf", "cq1", "v");
+    m.estRowAndLargeValSize += (Long.MAX_VALUE / 2);
+    assertThrows(IllegalArgumentException.class, () -> m.put("cf", "cq2", "v"));
   }
 
   @Test

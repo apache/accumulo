@@ -163,18 +163,16 @@ public class TabletMetadataTest {
 
   @Test
   public void testFutureAndCurrent() {
-    assertThrows(IllegalStateException.class, () -> {
-      KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
+    KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
-      Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
-      mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
-      mutation.at().family(FutureLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
+    Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
+    mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
+    mutation.at().family(FutureLocationColumnFamily.NAME).qualifier("s001").put("server1:8555");
 
-      SortedMap<Key,Value> rowMap = toRowMap(mutation);
+    SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
-      TabletMetadata.convertRow(rowMap.entrySet().iterator(), EnumSet.allOf(ColumnType.class),
-          false);
-    });
+    assertThrows(IllegalStateException.class, () -> TabletMetadata
+        .convertRow(rowMap.entrySet().iterator(), EnumSet.allOf(ColumnType.class), false));
   }
 
   @Test

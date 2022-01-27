@@ -74,13 +74,14 @@ public class ThriftTransportKeyTest {
 
     // We don't care to verify the sslparam or saslparam mocks
     replay(clientCtx);
-    assertThrows(RuntimeException.class, () -> {
-      try {
-        new ThriftTransportKey(HostAndPort.fromParts("localhost", 9999), 120 * 1000, clientCtx);
-      } finally {
-        verify(clientCtx);
-      }
-    });
+
+    try {
+      assertThrows(RuntimeException.class,
+          () -> new ThriftTransportKey(HostAndPort.fromParts("localhost", 9999), 120 * 1000,
+              clientCtx));
+    } finally {
+      verify(clientCtx);
+    }
   }
 
   @Test

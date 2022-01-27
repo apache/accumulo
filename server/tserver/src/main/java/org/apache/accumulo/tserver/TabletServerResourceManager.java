@@ -72,6 +72,7 @@ import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.fs.FileManager;
 import org.apache.accumulo.server.fs.FileManager.ScanFileManager;
 import org.apache.accumulo.tserver.memory.LargestFirstMemoryManager;
+import org.apache.accumulo.tserver.memory.NativeMapLoader;
 import org.apache.accumulo.tserver.memory.TabletMemoryReport;
 import org.apache.accumulo.tserver.session.ScanSession;
 import org.apache.accumulo.tserver.tablet.Tablet;
@@ -253,8 +254,10 @@ public class TabletServerResourceManager {
     final AccumuloConfiguration acuConf = context.getConfiguration();
 
     long maxMemory = acuConf.getAsBytes(Property.TSERV_MAXMEM);
-    boolean usingNativeMap =
-        acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED) && NativeMap.isLoaded();
+    boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED);
+    if (usingNativeMap) {
+      NativeMapLoader.load();
+    }
 
     long totalQueueSize = acuConf.getAsBytes(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX);
 

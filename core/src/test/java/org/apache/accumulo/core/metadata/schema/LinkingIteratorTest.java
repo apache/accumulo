@@ -88,14 +88,13 @@ public class LinkingIteratorTest {
   @Test
   public void testMerge() {
     // test for case when a tablet is merged away
+    List<TabletMetadata> tablets1 = Arrays.asList(create("4", null, "f"), create("4", "f", "m"),
+        create("4", "f", "r"), create("4", "x", null));
+    List<TabletMetadata> tablets2 = Arrays.asList(create("4", null, "f"), create("4", "f", "r"),
+        create("4", "r", "x"), create("4", "x", null));
+
+    LinkingIterator li = new LinkingIterator(new IterFactory(tablets1, tablets2), new Range());
     assertThrows(TabletDeletedException.class, () -> {
-      List<TabletMetadata> tablets1 = Arrays.asList(create("4", null, "f"), create("4", "f", "m"),
-          create("4", "f", "r"), create("4", "x", null));
-      List<TabletMetadata> tablets2 = Arrays.asList(create("4", null, "f"), create("4", "f", "r"),
-          create("4", "r", "x"), create("4", "x", null));
-
-      LinkingIterator li = new LinkingIterator(new IterFactory(tablets1, tablets2), new Range());
-
       while (li.hasNext()) {
         li.next();
       }
@@ -147,12 +146,12 @@ public class LinkingIteratorTest {
   public void testIncompleteTable() {
     // the last tablet in a table should have a null end row. Ensure the code detects when this does
     // not happen.
+    List<TabletMetadata> tablets1 = Arrays.asList(create("4", null, "f"), create("4", "f", "m"));
+
+    LinkingIterator li = new LinkingIterator(new IterFactory(tablets1, tablets1),
+        TabletsSection.getRange(TableId.of("4")));
+
     assertThrows(IllegalStateException.class, () -> {
-      List<TabletMetadata> tablets1 = Arrays.asList(create("4", null, "f"), create("4", "f", "m"));
-
-      LinkingIterator li = new LinkingIterator(new IterFactory(tablets1, tablets1),
-          TabletsSection.getRange(TableId.of("4")));
-
       while (li.hasNext()) {
         li.next();
       }

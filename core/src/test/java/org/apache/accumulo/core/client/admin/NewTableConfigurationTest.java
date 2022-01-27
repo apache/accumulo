@@ -20,18 +20,24 @@ package org.apache.accumulo.core.client.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -162,4 +168,121 @@ public class NewTableConfigurationTest {
         ntcSummarization3.getProperties().get("table.summarizer.s2"));
 
   }
+
+  /**
+   * Verify that you cannot have overlapping locality groups.
+   *
+   * Attempt to set a locality group with overlapping groups. This test should throw an
+   * IllegalArgumentException indicating that groups overlap.
+   */
+  @Test
+  public void testOverlappingGroupsFail() {
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    Map<String,Set<Text>> lgroups = new HashMap<>();
+    lgroups.put("lg1", Set.of(new Text("colFamA"), new Text("colFamB")));
+    lgroups.put("lg2", Set.of(new Text("colFamC"), new Text("colFamB")));
+    assertThrows(IllegalArgumentException.class, () -> ntc.setLocalityGroups(lgroups));
+  }
+
+  /**
+   * Verify iterator conflicts are discovered
+   */
+  @Test
+  public void testIteratorConflictFound1() {
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    IteratorSetting setting = new IteratorSetting(10, "someName", "foo.bar");
+    ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
+    IteratorSetting setting2 = new IteratorSetting(12, "someName", "foo2.bar");
+    assertThrows(IllegalArgumentException.class,
+        () -> ntc.attachIterator(setting2, EnumSet.of(IteratorScope.scan)));
+  }
+
+  @Test
+  public void testIteratorConflictFound2() {
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    IteratorSetting setting = new IteratorSetting(10, "someName", "foo.bar");
+    ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
+    IteratorSetting setting2 = new IteratorSetting(10, "anotherName", "foo2.bar");
+    assertThrows(IllegalArgumentException.class,
+        () -> ntc.attachIterator(setting2, EnumSet.of(IteratorScope.scan)));
+  }
+
+  @Test
+  public void testIteratorConflictFound3() {
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    IteratorSetting setting = new IteratorSetting(10, "someName", "foo.bar");
+    ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
+    IteratorSetting setting2 = new IteratorSetting(12, "someName", "foo.bar");
+    assertThrows(IllegalArgumentException.class,
+        () -> ntc.attachIterator(setting2, EnumSet.of(IteratorScope.scan)));
+  }
+
+  /**
+   * Verify that properties set using NewTableConfiguration must be table properties.
+   */
+  @Test
+  public void testInvalidTablePropertiesSet() {
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    Map<String,String> props = new HashMap<>();
+
+    // These properties should work just with no issue
+    props.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1", "val1");
+    props.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop2", "val2");
+    ntc.setProperties(props);
+
+    // These properties should result in an illegalArgumentException
+    props.put("invalidProp1", "value1");
+    props.put("invalidProp2", "value2");
+    assertThrows(IllegalArgumentException.class, () -> ntc.setProperties(props));
+  }
+
+  /**
+   * Verify checkDisjoint works with iterators groups.
+   */
+  @Test
+  public void testAttachIteratorDisjointCheck() {
+    NewTableConfiguration ntc = new NewTableConfiguration();
+
+    Map<String,String> props = new HashMap<>();
+    props.put("table.iterator.scan.someName", "10");
+    ntc.setProperties(props);
+
+    IteratorSetting setting = new IteratorSetting(10, "someName", "foo.bar");
+    assertThrows(IllegalArgumentException.class,
+        () -> ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan)));
+  }
+
+  /**
+   * Verify that disjoint check works as expected with setProperties
+   */
+  @Test
+  public void testSetPropertiesDisjointCheck() {
+    NewTableConfiguration ntc = new NewTableConfiguration();
+
+    Map<String,Set<Text>> lgroups = new HashMap<>();
+    lgroups.put("lg1", Set.of(new Text("dog")));
+    ntc.setLocalityGroups(lgroups);
+
+    Map<String,String> props = new HashMap<>();
+    props.put("table.key1", "val1");
+    props.put("table.group.lg1", "cat");
+    assertThrows(IllegalArgumentException.class, () -> ntc.setProperties(props));
+  }
+
+  /**
+   * Verify checkDisjoint works with locality groups.
+   */
+  @Test
+  public void testSetLocalityGroupsDisjointCheck() {
+    NewTableConfiguration ntc = new NewTableConfiguration();
+
+    Map<String,String> props = new HashMap<>();
+    props.put("table.group.lg1", "cat");
+    ntc.setProperties(props);
+
+    Map<String,Set<Text>> lgroups = new HashMap<>();
+    lgroups.put("lg1", Set.of(new Text("dog")));
+    assertThrows(IllegalArgumentException.class, () -> ntc.setLocalityGroups(lgroups));
+  }
+
 }

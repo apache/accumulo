@@ -1704,7 +1704,7 @@ public class RFileTest {
   }
 
   @Test
-  public void testMissingUnreleasedVersions() throws Exception {
+  public void testMissingUnreleasedVersions() {
     assertThrows(NullPointerException.class,
         () -> runVersionTest(5, getAccumuloConfig(ConfigMode.CRYPTO_OFF)));
   }

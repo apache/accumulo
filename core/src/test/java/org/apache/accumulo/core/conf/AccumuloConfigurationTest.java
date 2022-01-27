@@ -105,7 +105,7 @@ public class AccumuloConfigurationTest {
       AccumuloConfiguration c = DefaultConfiguration.getInstance();
       ConfigurationCopy cc = new ConfigurationCopy(c);
       cc.set(Property.TSERV_CLIENTPORT, "1020-1026");
-      int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
+      assertThrows(IllegalArgumentException.class, () -> {int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
       assertEquals(3, ports.length);
       assertEquals(1024, ports[0]);
       assertEquals(1025, ports[1]);
@@ -115,10 +115,10 @@ public class AccumuloConfigurationTest {
 
   @Test
   public void testGetPortRangeInvalidHigh() {
+    AccumuloConfiguration c = DefaultConfiguration.getInstance();
+    ConfigurationCopy cc = new ConfigurationCopy(c);
+    cc.set(Property.TSERV_CLIENTPORT, "65533-65538");
     assertThrows(IllegalArgumentException.class, () -> {
-      AccumuloConfiguration c = DefaultConfiguration.getInstance();
-      ConfigurationCopy cc = new ConfigurationCopy(c);
-      cc.set(Property.TSERV_CLIENTPORT, "65533-65538");
       int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
       assertEquals(3, ports.length);
       assertEquals(65533, ports[0]);
@@ -129,12 +129,10 @@ public class AccumuloConfigurationTest {
 
   @Test
   public void testGetPortInvalidSyntax() {
-    assertThrows(IllegalArgumentException.class, () -> {
-      AccumuloConfiguration c = DefaultConfiguration.getInstance();
-      ConfigurationCopy cc = new ConfigurationCopy(c);
-      cc.set(Property.TSERV_CLIENTPORT, "[65533,65538]");
-      cc.getPort(Property.TSERV_CLIENTPORT);
-    });
+    AccumuloConfiguration c = DefaultConfiguration.getInstance();
+    ConfigurationCopy cc = new ConfigurationCopy(c);
+    cc.set(Property.TSERV_CLIENTPORT, "[65533,65538]");
+    assertThrows(IllegalArgumentException.class, () -> cc.getPort(Property.TSERV_CLIENTPORT));
   }
 
   private static class TestConfiguration extends AccumuloConfiguration {
