@@ -101,11 +101,11 @@ public class AccumuloConfigurationTest {
 
   @Test
   public void testGetPortRangeInvalidLow() {
+    AccumuloConfiguration c = DefaultConfiguration.getInstance();
+    ConfigurationCopy cc = new ConfigurationCopy(c);
+    cc.set(Property.TSERV_CLIENTPORT, "1020-1026");
     assertThrows(IllegalArgumentException.class, () -> {
-      AccumuloConfiguration c = DefaultConfiguration.getInstance();
-      ConfigurationCopy cc = new ConfigurationCopy(c);
-      cc.set(Property.TSERV_CLIENTPORT, "1020-1026");
-      assertThrows(IllegalArgumentException.class, () -> {int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
+      int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
       assertEquals(3, ports.length);
       assertEquals(1024, ports[0]);
       assertEquals(1025, ports[1]);
