@@ -92,12 +92,9 @@ public class AccumuloTest {
 
   @Test
   public void testGetAccumuloPersistentVersion_Fail() throws Exception {
-    assertThrows(RuntimeException.class, () -> {
-      expect(fs.listStatus(path)).andThrow(new FileNotFoundException());
-      replay(fs);
-
-      assertEquals(-1, serverDirs.getAccumuloPersistentVersion(fs, path));
-    });
+    expect(fs.listStatus(path)).andThrow(new FileNotFoundException());
+    replay(fs);
+    assertThrows(RuntimeException.class, () -> serverDirs.getAccumuloPersistentVersion(fs, path));
   }
 
   @Test

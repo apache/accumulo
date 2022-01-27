@@ -585,28 +585,21 @@ public class KerberosIT extends AccumuloITBase {
     UserGroupInformation root = UserGroupInformation.loginUserFromKeytabAndReturnUGI(
         rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
     log.info("Logged in as {}", rootUser.getPrincipal());
-    assertThrows(AccumuloException.class, () -> {
+    var e = assertThrows(UndeclaredThrowableException.class, () -> {
       // As the "root" user, open up the connection and get a delegation token
-      try {
-        root.doAs((PrivilegedExceptionAction<AuthenticationToken>) () -> {
-          AccumuloClient client =
-              mac.createAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
+      root.doAs((PrivilegedExceptionAction<AuthenticationToken>) () -> {
+        try (AccumuloClient client =
+            mac.createAccumuloClient(rootUser.getPrincipal(), new KerberosToken())) {
           log.info("Created client as {}", rootUser.getPrincipal());
           assertEquals(rootUser.getPrincipal(), client.whoami());
 
           // Should fail
           return client.securityOperations().getDelegationToken(
               new DelegationTokenConfig().setTokenLifetime(Long.MAX_VALUE, TimeUnit.MILLISECONDS));
-        });
-      } catch (UndeclaredThrowableException e) {
-        Throwable cause = e.getCause();
-        if (cause != null) {
-          throw cause;
-        } else {
-          throw e;
         }
-      }
+      });
     });
+    assertEquals(AccumuloException.class, e.getCause().getClass());
   }
 
   @Test
@@ -619,13 +612,14 @@ public class KerberosIT extends AccumuloITBase {
     // As the "root" user, open up the connection and get a delegation token
     final AuthenticationToken dt =
         root.doAs((PrivilegedExceptionAction<AuthenticationToken>) () -> {
-          AccumuloClient client =
-              mac.createAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
-          log.info("Created client as {}", rootUser.getPrincipal());
-          assertEquals(rootUser.getPrincipal(), client.whoami());
+          try (AccumuloClient client =
+              mac.createAccumuloClient(rootUser.getPrincipal(), new KerberosToken())) {
+            log.info("Created client as {}", rootUser.getPrincipal());
+            assertEquals(rootUser.getPrincipal(), client.whoami());
 
-          return client.securityOperations().getDelegationToken(
-              new DelegationTokenConfig().setTokenLifetime(5, TimeUnit.MINUTES));
+            return client.securityOperations().getDelegationToken(
+                new DelegationTokenConfig().setTokenLifetime(5, TimeUnit.MINUTES));
+          }
         });
 
     AuthenticationTokenIdentifier identifier = ((DelegationTokenImpl) dt).getIdentifier();
@@ -639,14 +633,14 @@ public class KerberosIT extends AccumuloITBase {
     UserGroupInformation.loginUserFromKeytab(rootUser.getPrincipal(),
         rootUser.getKeytab().getAbsolutePath());
 
-    final AccumuloClient client =
-        mac.createAccumuloClient(rootUser.getPrincipal(), new KerberosToken());
+    try (AccumuloClient client =
+        mac.createAccumuloClient(rootUser.getPrincipal(), new KerberosToken())) {
 
-    // The server-side implementation should prevent the revocation of the 'root' user's systems
-    // permissions
-    // because once they're gone, it's possible that they could never be restored.
-    assertThrows(AccumuloSecurityException.class, () -> client.securityOperations()
-        .revokeSystemPermission(rootUser.getPrincipal(), SystemPermission.GRANT));
+      // The server-side implementation should prevent the revocation of the 'root' user's systems
+      // permissions because once they're gone, it's possible that they could never be restored.
+      assertThrows(AccumuloSecurityException.class, () -> client.securityOperations()
+          .revokeSystemPermission(rootUser.getPrincipal(), SystemPermission.GRANT));
+    }
   }
 
   /**
