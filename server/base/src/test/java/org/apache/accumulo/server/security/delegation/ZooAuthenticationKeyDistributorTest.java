@@ -129,42 +129,30 @@ public class ZooAuthenticationKeyDistributorTest {
   }
 
   @Test
-  public void testMissingAcl() {
+  public void testMissingAcl() throws Exception {
     ZooAuthenticationKeyDistributor distributor =
         new ZooAuthenticationKeyDistributor(zrw, baseNode);
-    assertThrows(IllegalStateException.class, () -> {
-      // Attempt to create the directory and fail
-      expect(zrw.exists(baseNode)).andReturn(true);
-      expect(zrw.getACL(eq(baseNode))).andReturn(Collections.emptyList());
+    // Attempt to create the directory and fail
+    expect(zrw.exists(baseNode)).andReturn(true);
+    expect(zrw.getACL(eq(baseNode))).andReturn(Collections.emptyList());
 
-      replay(zrw);
-
-      try {
-        distributor.initialize();
-      } finally {
-        verify(zrw);
-      }
-    });
+    replay(zrw);
+    assertThrows(IllegalStateException.class, distributor::initialize);
+    verify(zrw);
   }
 
   @Test
-  public void testBadAcl() {
+  public void testBadAcl() throws Exception {
     ZooAuthenticationKeyDistributor distributor =
         new ZooAuthenticationKeyDistributor(zrw, baseNode);
-    assertThrows(IllegalStateException.class, () -> {
-      // Attempt to create the directory and fail
-      expect(zrw.exists(baseNode)).andReturn(true);
-      expect(zrw.getACL(eq(baseNode))).andReturn(Collections.singletonList(
-          new ACL(ZooUtil.PRIVATE.get(0).getPerms(), new Id("digest", "somethingweird"))));
+    // Attempt to create the directory and fail
+    expect(zrw.exists(baseNode)).andReturn(true);
+    expect(zrw.getACL(eq(baseNode))).andReturn(Collections.singletonList(
+        new ACL(ZooUtil.PRIVATE.get(0).getPerms(), new Id("digest", "somethingweird"))));
 
-      replay(zrw);
-
-      try {
-        distributor.initialize();
-      } finally {
-        verify(zrw);
-      }
-    });
+    replay(zrw);
+    assertThrows(IllegalStateException.class, distributor::initialize);
+    verify(zrw);
   }
 
   @Test

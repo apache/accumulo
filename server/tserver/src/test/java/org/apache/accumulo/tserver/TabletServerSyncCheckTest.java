@@ -47,11 +47,8 @@ public class TabletServerSyncCheckTest {
     conf.set(DFS_SUPPORT_APPEND, "false");
 
     FileSystem fs = new TestFileSystem(conf);
-    assertThrows(RuntimeException.class, () -> {
-      try (var vm = new TestVolumeManagerImpl(Map.of("foo", new VolumeImpl(fs, "/")))) {
-        vm.ensureSyncIsEnabled();
-      }
-    });
+    assertThrows(RuntimeException.class,
+        () -> new TestVolumeManagerImpl(Map.of("foo", new VolumeImpl(fs, "/"))));
   }
 
   private class TestFileSystem extends DistributedFileSystem {

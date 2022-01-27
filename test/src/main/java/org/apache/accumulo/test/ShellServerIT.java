@@ -2663,13 +2663,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
     String splitsFile = System.getProperty("user.dir") + "/target/splitFile";
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       generateSplitsFile(splitsFile, 0, 0, false, false, false, false, false);
-      SortedSet<Text> expectedSplits = readSplitsFromFile(splitsFile);
       final String tableName = getUniqueNames(1)[0];
       ts.exec("createtable " + tableName + " -sf " + splitsFile, false);
-      assertThrows(TableNotFoundException.class, () -> {
-        Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
-        assertEquals(expectedSplits, new TreeSet<>(createdSplits));
-      });
+      assertThrows(TableNotFoundException.class,
+          () -> client.tableOperations().listSplits(tableName));
     } finally {
       Files.delete(Paths.get(splitsFile));
     }

@@ -124,11 +124,8 @@ public class SpaceAwareVolumeChooserTest {
 
   @Test
   public void testNoFreeSpace() throws IOException {
-    assertThrows(UncheckedExecutionException.class, () -> {
-      testSpecificSetup(0L, 0L, null, 1, false);
-
-      makeChoices();
-    });
+    testSpecificSetup(0L, 0L, null, 1, false);
+    assertThrows(UncheckedExecutionException.class, this::makeChoices);
   }
 
   @Test

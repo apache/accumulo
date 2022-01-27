@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -55,15 +56,9 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
       Mutation m = new Mutation(extent.toMetaRow());
       // unknown columns should cause constraint violation
       m.put("badcolfam", "badcolqual", "3");
-      assertThrows(ConstraintViolationException.class, () -> {
-        try {
-          MetadataTableUtil.update(context, w, null, m, extent);
-        } catch (RuntimeException e) {
-          if (e.getCause().getClass().equals(ConstraintViolationException.class)) {
-            throw (ConstraintViolationException) e.getCause();
-          }
-        }
-      });
+      var e = assertThrows(RuntimeException.class,
+          () -> MetadataTableUtil.update(context, w, null, m, extent));
+      assertEquals(ConstraintViolationException.class, e.getCause().getClass());
     }
   }
 }
