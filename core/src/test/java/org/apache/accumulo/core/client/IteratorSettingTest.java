@@ -122,7 +122,7 @@ public class IteratorSettingTest {
   @Test
   public void testIteratorNameCannotContainDot() {
     assertThrows(IllegalArgumentException.class,
-        () -> new IteratorSetting(500, "iterator.name.with" + ".dots", Combiner.class.getName()));
+        () -> new IteratorSetting(500, "iterator.name.with.dots", Combiner.class.getName()));
   }
 
 }

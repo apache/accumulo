@@ -442,7 +442,6 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
         IteratorSetting setting = new IteratorSetting(10, "someName", "foo.bar");
         ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
         setting = new IteratorSetting(12, "someName", "foo2.bar");
-
         ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
         client.tableOperations().create(tableName, ntc);
       });
@@ -469,7 +468,6 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   public void testIteratorConflictFound3() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       assertThrows(IllegalArgumentException.class, () -> {
-
         String tableName = getUniqueNames(2)[0];
 
         NewTableConfiguration ntc = new NewTableConfiguration();
