@@ -27,6 +27,7 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -69,7 +70,7 @@ public class ZooAuthenticationKeyDistributorTest {
     zrw = createMock(ZooReaderWriter.class);
   }
 
-  @Test(expected = AuthFailedException.class)
+  @Test
   public void testInitialize() throws Exception {
     ZooAuthenticationKeyDistributor distributor =
         new ZooAuthenticationKeyDistributor(zrw, baseNode);
@@ -82,7 +83,7 @@ public class ZooAuthenticationKeyDistributorTest {
 
     replay(zrw);
 
-    distributor.initialize();
+    assertThrows(AuthFailedException.class, distributor::initialize);
 
     verify(zrw);
   }
@@ -104,62 +105,66 @@ public class ZooAuthenticationKeyDistributorTest {
     verify(zrw);
   }
 
-  @Test(expected = IllegalStateException.class)
-  public void testInitializedNotCalledAdvertise() throws Exception {
+  @Test
+  public void testInitializedNotCalledAdvertise() {
     ZooAuthenticationKeyDistributor distributor =
         new ZooAuthenticationKeyDistributor(zrw, baseNode);
-    distributor.advertise(new AuthenticationKey(1, 0L, 5L, keyGen.generateKey()));
+    assertThrows(IllegalStateException.class,
+        () -> distributor.advertise(new AuthenticationKey(1, 0L, 5L, keyGen.generateKey())));
   }
 
-  @Test(expected = IllegalStateException.class)
-  public void testInitializedNotCalledCurrentKeys() throws Exception {
+  @Test
+  public void testInitializedNotCalledCurrentKeys() {
     ZooAuthenticationKeyDistributor distributor =
         new ZooAuthenticationKeyDistributor(zrw, baseNode);
-    distributor.getCurrentKeys();
+    assertThrows(IllegalStateException.class, distributor::getCurrentKeys);
   }
 
-  @Test(expected = IllegalStateException.class)
-  public void testInitializedNotCalledRemove() throws Exception {
+  @Test
+  public void testInitializedNotCalledRemove() {
     ZooAuthenticationKeyDistributor distributor =
         new ZooAuthenticationKeyDistributor(zrw, baseNode);
-    distributor.remove(new AuthenticationKey(1, 0L, 5L, keyGen.generateKey()));
+    assertThrows(IllegalStateException.class,
+        () -> distributor.remove(new AuthenticationKey(1, 0L, 5L, keyGen.generateKey())));
   }
 
-  @Test(expected = IllegalStateException.class)
-  public void testMissingAcl() throws Exception {
+  @Test
+  public void testMissingAcl() {
     ZooAuthenticationKeyDistributor distributor =
         new ZooAuthenticationKeyDistributor(zrw, baseNode);
+    assertThrows(IllegalStateException.class, () -> {
+      // Attempt to create the directory and fail
+      expect(zrw.exists(baseNode)).andReturn(true);
+      expect(zrw.getACL(eq(baseNode))).andReturn(Collections.emptyList());
 
-    // Attempt to create the directory and fail
-    expect(zrw.exists(baseNode)).andReturn(true);
-    expect(zrw.getACL(eq(baseNode))).andReturn(Collections.emptyList());
+      replay(zrw);
 
-    replay(zrw);
-
-    try {
-      distributor.initialize();
-    } finally {
-      verify(zrw);
-    }
+      try {
+        distributor.initialize();
+      } finally {
+        verify(zrw);
+      }
+    });
   }
 
-  @Test(expected = IllegalStateException.class)
-  public void testBadAcl() throws Exception {
+  @Test
+  public void testBadAcl() {
     ZooAuthenticationKeyDistributor distributor =
         new ZooAuthenticationKeyDistributor(zrw, baseNode);
+    assertThrows(IllegalStateException.class, () -> {
+      // Attempt to create the directory and fail
+      expect(zrw.exists(baseNode)).andReturn(true);
+      expect(zrw.getACL(eq(baseNode))).andReturn(Collections.singletonList(
+          new ACL(ZooUtil.PRIVATE.get(0).getPerms(), new Id("digest", "somethingweird"))));
 
-    // Attempt to create the directory and fail
-    expect(zrw.exists(baseNode)).andReturn(true);
-    expect(zrw.getACL(eq(baseNode))).andReturn(Collections.singletonList(
-        new ACL(ZooUtil.PRIVATE.get(0).getPerms(), new Id("digest", "somethingweird"))));
+      replay(zrw);
 
-    replay(zrw);
-
-    try {
-      distributor.initialize();
-    } finally {
-      verify(zrw);
-    }
+      try {
+        distributor.initialize();
+      } finally {
+        verify(zrw);
+      }
+    });
   }
 
   @Test

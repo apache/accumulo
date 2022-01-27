@@ -30,6 +30,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.util.EnumSet;
@@ -160,7 +161,7 @@ public class TabletMetadataTest {
     assertFalse(tm.hasCurrent());
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void testFutureAndCurrent() {
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
@@ -170,7 +171,8 @@ public class TabletMetadataTest {
 
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
-    TabletMetadata.convertRow(rowMap.entrySet().iterator(), EnumSet.allOf(ColumnType.class), false);
+    assertThrows(IllegalStateException.class, () -> TabletMetadata
+        .convertRow(rowMap.entrySet().iterator(), EnumSet.allOf(ColumnType.class), false));
   }
 
   @Test

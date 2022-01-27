@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static org.junit.Assert.assertThrows;
+
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.ConfigCheckUtil.ConfigCheckException;
@@ -60,23 +62,23 @@ public class ConfigCheckUtilTest {
     ConfigCheckUtil.validate(m.entrySet());
   }
 
-  @Test(expected = ConfigCheckException.class)
+  @Test
   public void testFail_Prefix() {
     m.put(Property.MANAGER_CLIENTPORT.getKey(), "9999");
     m.put(Property.MANAGER_PREFIX.getKey(), "oops");
-    ConfigCheckUtil.validate(m.entrySet());
+    assertThrows(ConfigCheckException.class, () -> ConfigCheckUtil.validate(m.entrySet()));
   }
 
-  @Test(expected = ConfigCheckException.class)
+  @Test
   public void testFail_InstanceZkTimeoutOutOfRange() {
     m.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "10ms");
-    ConfigCheckUtil.validate(m.entrySet());
+    assertThrows(ConfigCheckException.class, () -> ConfigCheckUtil.validate(m.entrySet()));
   }
 
-  @Test(expected = ConfigCheckException.class)
+  @Test
   public void testFail_badCryptoService() {
     m.put(Property.INSTANCE_CRYPTO_SERVICE.getKey(), "DoesNotExistCryptoService");
-    ConfigCheckUtil.validate(m.entrySet());
+    assertThrows(ConfigCheckException.class, () -> ConfigCheckUtil.validate(m.entrySet()));
   }
 
   @Test

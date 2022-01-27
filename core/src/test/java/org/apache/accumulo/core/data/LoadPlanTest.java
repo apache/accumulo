@@ -21,6 +21,7 @@ package org.apache.accumulo.core.data;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -31,29 +32,34 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class LoadPlanTest {
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testBadRange1() {
-    LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, "a", "a").build();
+    assertThrows(IllegalArgumentException.class,
+        () -> LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, "a", "a").build());
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testBadRange2() {
-    LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, "b", "a").build();
+    assertThrows(IllegalArgumentException.class,
+        () -> LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, "b", "a").build());
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testBadRange3() {
-    LoadPlan.builder().loadFileTo("f1.rf", RangeType.FILE, "b", "a").build();
+    assertThrows(IllegalArgumentException.class,
+        () -> LoadPlan.builder().loadFileTo("f1.rf", RangeType.FILE, "b", "a").build());
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testBadRange4() {
-    LoadPlan.builder().loadFileTo("f1.rf", RangeType.FILE, null, "a").build();
+    assertThrows(IllegalArgumentException.class,
+        () -> LoadPlan.builder().loadFileTo("f1.rf", RangeType.FILE, null, "a").build());
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testBadRange5() {
-    LoadPlan.builder().loadFileTo("f1.rf", RangeType.FILE, "a", null).build();
+    assertThrows(IllegalArgumentException.class,
+        () -> LoadPlan.builder().loadFileTo("f1.rf", RangeType.FILE, "a", null).build());
   }
 
   @Test

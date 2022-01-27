@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.tserver;
 
+import static org.junit.Assert.assertThrows;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -39,15 +41,17 @@ import org.junit.Test;
 public class TabletServerSyncCheckTest {
   private static final String DFS_SUPPORT_APPEND = "dfs.support.append";
 
-  @Test(expected = RuntimeException.class)
+  @Test
   public void testFailureOnExplicitAppendFalseConf() {
     Configuration conf = new Configuration();
     conf.set(DFS_SUPPORT_APPEND, "false");
 
     FileSystem fs = new TestFileSystem(conf);
-    try (var vm = new TestVolumeManagerImpl(Map.of("foo", new VolumeImpl(fs, "/")))) {
-      vm.ensureSyncIsEnabled();
-    }
+    assertThrows(RuntimeException.class, () -> {
+      try (var vm = new TestVolumeManagerImpl(Map.of("foo", new VolumeImpl(fs, "/")))) {
+        vm.ensureSyncIsEnabled();
+      }
+    });
   }
 
   private class TestFileSystem extends DistributedFileSystem {

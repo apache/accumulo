@@ -20,6 +20,7 @@ package org.apache.accumulo.shell;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -64,8 +65,8 @@ public class ShellUtilTest {
     assertEquals(List.of(new Text("line1"), new Text("line2")), output);
   }
 
-  @Test(expected = FileNotFoundException.class)
-  public void testWithMissingFile() throws IOException {
-    ShellUtil.scanFile("missingFile.txt", false);
+  @Test
+  public void testWithMissingFile() {
+    assertThrows(FileNotFoundException.class, () -> ShellUtil.scanFile("missingFile.txt", false));
   }
 }

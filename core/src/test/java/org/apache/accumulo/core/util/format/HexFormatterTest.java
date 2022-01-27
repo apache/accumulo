@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.util.format;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
@@ -68,14 +69,14 @@ public class HexFormatterTest {
     assertEquals(bytes, formatter.interpretRow(new Text(row)));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testInterpretBadRow0() {
-    formatter.interpretRow(new Text("!"));
+    assertThrows(IllegalArgumentException.class, () -> formatter.interpretRow(new Text("!")));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testInterpretBadRow1() {
-    formatter.interpretRow(new Text("z"));
+    assertThrows(IllegalArgumentException.class, () -> formatter.interpretRow(new Text("z")));
   }
 
   @Test

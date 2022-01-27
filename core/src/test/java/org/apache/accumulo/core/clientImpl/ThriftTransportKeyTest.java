@@ -24,6 +24,7 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
@@ -62,7 +63,7 @@ public class ThriftTransportKeyTest {
     return new SaslConnectionParams(props, token);
   }
 
-  @Test(expected = RuntimeException.class)
+  @Test
   public void testSslAndSaslErrors() {
     ClientContext clientCtx = createMock(ClientContext.class);
     SslConnectionParams sslParams = createMock(SslConnectionParams.class);
@@ -75,7 +76,9 @@ public class ThriftTransportKeyTest {
     replay(clientCtx);
 
     try {
-      new ThriftTransportKey(HostAndPort.fromParts("localhost", 9999), 120 * 1000, clientCtx);
+      assertThrows(RuntimeException.class,
+          () -> new ThriftTransportKey(HostAndPort.fromParts("localhost", 9999), 120 * 1000,
+              clientCtx));
     } finally {
       verify(clientCtx);
     }

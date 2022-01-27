@@ -20,9 +20,9 @@ package org.apache.accumulo.core.cli;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
@@ -103,10 +103,10 @@ public class PasswordConverterTest {
     assertEquals(expected, password.password);
   }
 
-  @Test(expected = ParameterException.class)
-  public void testNoFile() throws FileNotFoundException {
+  @Test
+  public void testNoFile() {
     argv[1] = "file:doesnotexist";
-    new JCommander(password).parse(argv);
+    assertThrows(ParameterException.class, () -> new JCommander(password).parse(argv));
   }
 
   @Test
