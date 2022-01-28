@@ -1,18 +1,18 @@
 package org.apache.accumulo.core.spi.scan;
 
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.sample.impl.DataoutputHasher;
 
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
-public class DefaultScanServerLocator implements ScanServerLocator {
+public class DefaultScanServerLocator implements EcScanManager {
 
     private static final long INITIAL_SLEEP_TIME = 100L;
     private static final long MAX_SLEEP_TIME = 300000L;
@@ -20,9 +20,27 @@ public class DefaultScanServerLocator implements ScanServerLocator {
     private final int MAX_DEPTH = 3;
 
     @Override
-    public LocateResult locate(LocateParameters params) {
+    public EcScanActions determineActions(DaParamaters params) {
 
-        // TODO how to handle the case when there are zero scan servers.  Thinking this plugin can make two choices, fall back to the tablet servers serving the tablet or wait and try again later.
+        if(params.getScanServers().isEmpty()) {
+            return  new EcScanActions() {
+                @Override
+                public Action getAction(TabletId tablet) {
+                    return Action.USE_TABLET_SERVER;
+                }
+
+                @Override
+                public String getScanServer(TabletId tablet) {
+                    return null;
+                }
+
+                @Override
+                public Duration getDelay(String server) {
+                    // TODO is delay needed if there were prev errors?
+                    return Duration.ZERO;
+                }
+            };
+        }
 
         Random rand = new Random();
 
@@ -48,7 +66,7 @@ public class DefaultScanServerLocator implements ScanServerLocator {
 
             long sleepTime = 0;
             if(busyAttempts > MAX_DEPTH) {
-                sleepTime = INITIAL_SLEEP_TIME * Math.pow(2,busyAttempts - (MAX_DEPTH+1));
+                sleepTime = (long) (INITIAL_SLEEP_TIME * Math.pow(2,busyAttempts - (MAX_DEPTH+1)));
                 sleepTime = Math.min(sleepTime, MAX_SLEEP_TIME);
             }
 
@@ -57,15 +75,20 @@ public class DefaultScanServerLocator implements ScanServerLocator {
 
         }
 
-        return  new LocateResult() {
+        return  new EcScanActions() {
             @Override
-            public String getServer(TabletId tablet) {
+            public Action getAction(TabletId tablet) {
+                return Action.USE_SCAN_SERVER;
+            }
+
+            @Override
+            public String getScanServer(TabletId tablet) {
                 return serversMap.get(tablet);
             }
 
             @Override
-            public long getSleepTime(String server) {
-                return sleepTimes.getOrDefault(server, 0L);
+            public Duration getDelay(String server) {
+                return Duration.of(sleepTimes.getOrDefault(server, 0L), ChronoUnit.MILLIS);
             }
         };
     }

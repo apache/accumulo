@@ -24,6 +24,8 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 public class ScanServerDiscovery {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScanServerDiscovery.class);
@@ -32,33 +34,7 @@ public class ScanServerDiscovery {
     return zooRoot + Constants.ZSSERVERS;
   }
 
-  public static String reserve(String zooRoot, ZooReaderWriter zrw)
-      throws KeeperException, InterruptedException {
-    String root = getScanServerRoot(zooRoot);
-    // ZooKeeper zk = zrw.getZooKeeper();
-    LOG.debug("Looking for scan servers in {}", root);
-    for (String child : zrw.getChildren(root)) {
-      LOG.debug("Found scan server: {}", child);
-      // try {
-      // LOG.debug("Attempting to delete available scan server node: {}", root + "/" + child);
-      // zk.delete(root + "/" + child, -1);
-      // } catch (KeeperException e) {
-      // // ignore the case where the node doesn't exist
-      // if (e.code() != Code.NONODE) {
-      // LOG.debug(
-      // "Node {} could not be deleted, scan server possibly taken by another scan, looking for
-      // another",
-      // child);
-      // LOG.error("", e);
-      // continue;
-      // } else {
-      // throw e;
-      // }
-      // }
-      LOG.debug("Using scan server: {}", child);
-      return child;
-    }
-    return null;
+  public static List<String> getScanServers(ClientContext context){
+    return context.getZooCache().getChildren(getScanServerRoot(context.getZooKeeperRoot()));
   }
-
 }

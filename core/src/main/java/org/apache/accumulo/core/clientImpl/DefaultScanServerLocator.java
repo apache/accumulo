@@ -20,11 +20,11 @@ package org.apache.accumulo.core.clientImpl;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.spi.scan.ScanServerLocator;
+import org.apache.accumulo.core.spi.scan.EcScanManager;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 
-public class DefaultScanServerLocator implements ScanServerLocator {
+public class DefaultScanServerLocator implements EcScanManager {
 
   private ClientContext context = null;
   private ZooReaderWriter zrw = null;

@@ -19,18 +19,18 @@
 package org.apache.accumulo.core.spi.scan;
 
 import com.google.common.base.Preconditions;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
 /**
  * @since 2.1.0
  */
-// TODO maybe name ScanServerAssigner ... it assigns a tablet to scan server
-public interface ScanServerLocator {
+// this plugin decides how to handle eventually consistent scans on the client side... long name could be EventuallyConsistentScan(Manager/Dispatcher/Govenor).. shorter name EcScan(Manager/Dispatcher/Govenor)
+public interface EcScanManager {
 
   class ScanServerLocatorException extends Exception {
     private static final long serialVersionUID = 1L;
@@ -63,8 +63,10 @@ public interface ScanServerLocator {
     Preconditions.checkArgument(params.getOptions().isEmpty(), "No options expected");
   }
 
+  // this object is used to communicate what the previous actions were attempted, when they were attempted, and the result of the attempt
   public static class ScanAttempt {
 
+    private final Action requestedAction;
     private final String server;
     private final long time;
     private final Result result;
@@ -73,11 +75,12 @@ public interface ScanServerLocator {
     enum Result {
       BUSY,
       IO_ERROR,
-      NO_SCAN_SERVERS,
-      NO_TABLET_SERVERS
+      ERROR,
+      SUCCESS
     }
 
-    public ScanAttempt(String server, long time, Result result) {
+    public ScanAttempt(Action action, String server, long time, Result result) {
+      this.requestedAction = action;
       this.server = server;
       this.time = time;
       this.result = result;
@@ -100,7 +103,7 @@ public interface ScanServerLocator {
     List<ScanAttempt> forTablet(TabletId tablet);
   }
 
-  public interface LocateParameters {
+  public interface DaParamaters {
     List<TabletId> getTablets();
 
     List<String> getScanServers();
@@ -109,11 +112,23 @@ public interface ScanServerLocator {
 
   }
 
-  public interface LocateResult {
-    String getServer(TabletId tablet);
-
-    long getSleepTime(String server);
+  public enum Action {
+    WAIT,
+    USE_SCAN_SERVER,
+    USE_TABLET_SERVER,
+    // TODO remove... leaving here now to help think through things
+    // USE_FILES ... thinking about this possibility made me change names from scan server specific to more general eventual consistent handling
   }
 
-  LocateResult locate(LocateParameters params);
+  // TODO need a better name.. this interface is used to communicate what actions the plugin would like Accumulo to take for the scan... maybe EcScanActions
+  public interface EcScanActions {
+
+    Action getAction(TabletId tablet);
+
+    String getScanServer(TabletId tablet);
+
+    Duration getDelay(String server);
+  }
+
+  EcScanActions determineActions(DaParamaters params);
 }

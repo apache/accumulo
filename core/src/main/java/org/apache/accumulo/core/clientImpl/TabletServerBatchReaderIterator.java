@@ -62,7 +62,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.scan.ScanServerLocator;
+import org.apache.accumulo.core.spi.scan.EcScanManager;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -500,12 +500,14 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     for (final String tsLocation : locations) {
 
       final Map<KeyExtent,List<Range>> tabletsRanges = binnedRanges.get(tsLocation);
+      //TODO use EcScanmanager giving it all tablets at once.
+      // TODO refactor code so that tablet locations in metadata table are not looked up unless needed
       if (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL)) {
         // Ignore the tablets location and find a scan server to use
-        ScanServerLocator ssl = context.getScanServerLocator();
+        EcScanManager ssl = context.getEcScanManager();
         tabletsRanges.forEach((k, v) -> {
           try {
-            String location = ssl.reserveScanServer(new TabletIdImpl(k));
+            String location = null;
             QueryTask queryTask = new QueryTask(location, Collections.singletonMap(k, v), failures,
                 receiver, columns);
             queryTasks.add(queryTask);

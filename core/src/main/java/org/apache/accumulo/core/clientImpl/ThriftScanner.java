@@ -41,13 +41,7 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Column;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.KeyValue;
-import org.apache.accumulo.core.data.PartialKey;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
@@ -57,8 +51,9 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.scan.ScanServerLocator.NoAvailableScanServerException;
-import org.apache.accumulo.core.spi.scan.ScanServerLocator.ScanServerLocatorException;
+import org.apache.accumulo.core.spi.scan.EcScanManager;
+import org.apache.accumulo.core.spi.scan.EcScanManager.EcScanActions;
+import org.apache.accumulo.core.spi.scan.EcScanManager.NoAvailableScanServerException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
@@ -76,6 +71,8 @@ import org.slf4j.LoggerFactory;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
+
+import static org.apache.accumulo.core.clientImpl.ScanServerDiscovery.*;
 
 public class ThriftScanner {
   private static final Logger log = LoggerFactory.getLogger(ThriftScanner.class);
@@ -478,19 +475,61 @@ public class ThriftScanner {
     final TInfo tinfo = TraceUtil.traceInfo();
 
     HostAndPort parsedLocation = null;
-    if (scanState.runOnScanServer) {
-      try {
-        String sserver =
-            context.getScanServerLocator().reserveScanServer(new TabletIdImpl(loc.tablet_extent));
-        parsedLocation = HostAndPort.fromString(sserver);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-      } catch (ScanServerLocatorException e) {
-        throw new TException("Error finding scan server", e);
+
+    if(scanState.runOnScanServer) {
+
+      var scanServers = getScanServers(context);
+
+      var tabletId = new TabletIdImpl(loc.tablet_extent);
+
+      var params = new EcScanManager.DaParamaters(){
+
+        @Override
+        public List<TabletId> getTablets() {
+          return List.of(tabletId);
+        }
+
+        @Override
+        public List<String> getScanServers() {
+          return scanServers;
+        }
+
+        @Override
+        public EcScanManager.ScanAttempts getScanAttempts() {
+          // TODO implement tracking and passing history
+          return new EcScanManager.ScanAttempts() {
+            @Override
+            public List<EcScanManager.ScanAttempt> all() {
+              return List.of();
+            }
+
+            @Override
+            public List<EcScanManager.ScanAttempt> forServer(String server) {
+              return List.of();
+            }
+
+            @Override
+            public List<EcScanManager.ScanAttempt> forTablet(TabletId tablet) {
+              return List.of();
+            }
+          };
+        }
+      };
+
+      EcScanActions actions = context.getEcScanManager().determineActions(params);
+
+      if(actions.getAction(tabletId) == EcScanManager.Action.USE_SCAN_SERVER){
+        parsedLocation = HostAndPort.fromString(actions.getScanServer(tabletId));
+      } else {
+        // TODO handle other cases like wait... for now just use tserver
+        parsedLocation = HostAndPort.fromString(loc.tablet_location);
       }
+
     } else {
+      // TODO refactor code such that the tablet location is not looked up in the metadata table unless its needed
       parsedLocation = HostAndPort.fromString(loc.tablet_location);
     }
+
     TabletClientService.Client client = ThriftUtil.getTServerClient(parsedLocation, context);
 
     String old = Thread.currentThread().getName();
