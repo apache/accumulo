@@ -671,8 +671,6 @@ public class Initialize implements KeywordExecutable {
         NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZSSERVERS, EMPTY_BYTE_ARRAY,
         NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZSSERVERS_DISCOVERY, EMPTY_BYTE_ARRAY,
-        NodeExistsPolicy.FAIL, Ids.OPEN_ACL_UNSAFE);
   }
 
   private String getInstanceNamePrefix() {
