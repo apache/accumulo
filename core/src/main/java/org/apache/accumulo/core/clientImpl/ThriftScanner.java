@@ -58,6 +58,7 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.scan.ScanServerLocator.NoAvailableScanServerException;
+import org.apache.accumulo.core.spi.scan.ScanServerLocator.ScanServerLocatorException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
@@ -484,8 +485,8 @@ public class ThriftScanner {
         parsedLocation = HostAndPort.fromString(sserver);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
-      } catch (Exception e) {
-        throw new RuntimeException(e);
+      } catch (ScanServerLocatorException e) {
+        throw new TException("Error finding scan server", e);
       }
     } else {
       parsedLocation = HostAndPort.fromString(loc.tablet_location);

@@ -21,8 +21,6 @@ package org.apache.accumulo.core.clientImpl;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.Code;
-import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,43 +28,37 @@ public class ScanServerDiscovery {
 
   private static final Logger LOG = LoggerFactory.getLogger(ScanServerDiscovery.class);
 
-  private static String getDiscoveryRoot(String zooRoot) {
-    return zooRoot + Constants.ZSSERVERS_DISCOVERY;
+  private static String getScanServerRoot(String zooRoot) {
+    return zooRoot + Constants.ZSSERVERS;
   }
 
   public static String reserve(String zooRoot, ZooReaderWriter zrw)
       throws KeeperException, InterruptedException {
-    String root = getDiscoveryRoot(zooRoot);
-    ZooKeeper zk = zrw.getZooKeeper();
+    String root = getScanServerRoot(zooRoot);
+    // ZooKeeper zk = zrw.getZooKeeper();
     LOG.debug("Looking for scan servers in {}", root);
     for (String child : zrw.getChildren(root)) {
       LOG.debug("Found scan server: {}", child);
-      try {
-        LOG.debug("Attempting to delete available scan server node: {}", root + "/" + child);
-        zk.delete(root + "/" + child, -1);
-      } catch (KeeperException e) {
-        // ignore the case where the node doesn't exist
-        if (e.code() != Code.NONODE) {
-          LOG.debug(
-              "Node {} could not be deleted, scan server possibly taken by another scan, looking for another",
-              child);
-          LOG.error("", e);
-          continue;
-        } else {
-          throw e;
-        }
-      }
+      // try {
+      // LOG.debug("Attempting to delete available scan server node: {}", root + "/" + child);
+      // zk.delete(root + "/" + child, -1);
+      // } catch (KeeperException e) {
+      // // ignore the case where the node doesn't exist
+      // if (e.code() != Code.NONODE) {
+      // LOG.debug(
+      // "Node {} could not be deleted, scan server possibly taken by another scan, looking for
+      // another",
+      // child);
+      // LOG.error("", e);
+      // continue;
+      // } else {
+      // throw e;
+      // }
+      // }
       LOG.debug("Using scan server: {}", child);
       return child;
     }
     return null;
-  }
-
-  public static void unreserve(String zooRoot, ZooReaderWriter zrw, String hostPort)
-      throws KeeperException, InterruptedException {
-    String root = getDiscoveryRoot(zooRoot);
-    LOG.debug("Adding scan server {} in {}", hostPort, root);
-    zrw.putUnsafeEphemeralData(root + "/" + hostPort, new byte[0]);
   }
 
 }

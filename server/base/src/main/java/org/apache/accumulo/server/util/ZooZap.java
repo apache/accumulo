@@ -173,8 +173,6 @@ public class ZooZap {
               }
             }
           }
-          String discoveryPath = Constants.ZROOT + "/" + iid + Constants.ZSSERVERS_DISCOVERY;
-          zapDirectory(zoo, discoveryPath, opts);
         } catch (Exception e) {
           log.error("{}", e.getMessage(), e);
         }

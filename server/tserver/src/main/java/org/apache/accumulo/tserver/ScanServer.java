@@ -26,15 +26,17 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.clientImpl.ScanServerDiscovery;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.TDiskUsage;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -108,13 +110,41 @@ import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletData;
+import org.apache.commons.lang3.tuple.MutableTriple;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.Code;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ScanServer extends TabletServer implements TabletClientService.Iface {
+
+  static class ScanInformation extends MutableTriple<Long,KeyExtent,Tablet> {
+    private static final long serialVersionUID = 1L;
+
+    public Long getScanId() {
+      return getLeft();
+    }
+
+    public void setScanId(Long scanId) {
+      setLeft(scanId);
+    }
+
+    public KeyExtent getExtent() {
+      return getMiddle();
+    }
+
+    public void setExtent(KeyExtent extent) {
+      setMiddle(extent);
+    }
+
+    public Tablet getTablet() {
+      return getRight();
+    }
+
+    public void setTablet(Tablet tablet) {
+      setRight(tablet);
+    }
+  }
 
   /**
    * A compaction manager that does nothing
@@ -187,19 +217,32 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
 
   }
 
-  protected static class CurrentScan {
-    protected KeyExtent extent;
-    protected Tablet tablet;
-    protected Long scanId;
-  }
-
   private static final Logger LOG = LoggerFactory.getLogger(ScanServer.class);
 
+  protected final Map<KeyExtent,AtomicInteger> scansForExtent = new HashMap<>();
+  protected Map<Long,ScanInformation> scans;
   protected ThriftClientHandler handler;
-  protected CurrentScan currentScan = new CurrentScan();
+  protected int MAX_CONCURRENT_SCANS;
 
   public ScanServer(ServerOpts opts, String[] args) {
     super(opts, args, true);
+    // Sanity check some configuration settings
+    MAX_CONCURRENT_SCANS = getConfiguration().getCount(Property.SSERV_CONCURRENT_SCANS);
+    int tserverScanThreads =
+        getConfiguration().getCount(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS);
+    if (MAX_CONCURRENT_SCANS > tserverScanThreads) {
+      throw new RuntimeException(
+          Property.SSERV_CONCURRENT_SCANS.getKey() + " must be less than or equal to "
+              + Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey());
+    }
+    int thriftServerThreads = getConfiguration().getCount(Property.SSERV_MINTHREADS);
+    if (MAX_CONCURRENT_SCANS > thriftServerThreads) {
+      LOG.warn(
+          "Thrift server threads (property {}) value {} is lower than configured concurrent scans (property {}) value {}",
+          Property.SSERV_MINTHREADS.getKey(), thriftServerThreads,
+          Property.SSERV_CONCURRENT_SCANS.getKey(), MAX_CONCURRENT_SCANS);
+    }
+    scans = new ConcurrentHashMap<>(MAX_CONCURRENT_SCANS, 1.0f, MAX_CONCURRENT_SCANS);
     handler = getHandler();
   }
 
@@ -208,12 +251,12 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   }
 
   private void cleanupTimedOutSession() {
-    synchronized (currentScan) {
-      if (currentScan.scanId != null && !sessionManager.exists(currentScan.scanId)) {
-        LOG.info("{} is no longer active, ending scan", currentScan.scanId);
-        endScan();
+    scans.forEach((k, v) -> {
+      if (v.getScanId() != null && !sessionManager.exists(v.getScanId())) {
+        LOG.info("{} is no longer active, ending scan", v.getScanId());
+        endScan(v);
       }
-    }
+    });
   }
 
   /**
@@ -341,13 +384,6 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
         Math.max(maxIdle / 2, 1000), Math.max(maxIdle / 2, 1000), TimeUnit.MILLISECONDS);
 
     try {
-      try {
-        ScanServerDiscovery.unreserve(this.getContext().getZooKeeperRoot(),
-            getContext().getZooReaderWriter(), getClientAddressString());
-      } catch (Exception e2) {
-        throw new RuntimeException("Error setting initial unreserved state in ZooKeeper", e2);
-      }
-
       while (!serverStopRequested) {
         UtilWaitThread.sleep(1000);
       }
@@ -378,64 +414,59 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     }
   }
 
-  private synchronized void checkInUse() {
-    synchronized (currentScan) {
-      if (currentScan.extent != null || currentScan.tablet != null) {
-        throw new RuntimeException("Scan server in use for another query");
-      }
-    }
-  }
-
-  protected synchronized boolean loadTablet(TKeyExtent textent)
+  protected ScanInformation loadTablet(TKeyExtent textent)
       throws IllegalArgumentException, IOException, AccumuloException {
-    synchronized (currentScan) {
-      KeyExtent extent = KeyExtent.fromThrift(textent);
-      TabletMetadata tabletMetadata = getContext().getAmple().readTablet(extent);
-      boolean canLoad =
-          AssignmentHandler.checkTabletMetadata(extent, getTabletSession(), tabletMetadata, true);
-      if (canLoad) {
-        TabletResourceManager trm =
-            resourceManager.createTabletResourceManager(extent, getTableConfiguration(extent));
-        TabletData data = new TabletData(tabletMetadata);
-        currentScan.tablet = new Tablet(this, extent, trm, data);
-        currentScan.extent = extent;
-        onlineTablets.put(currentScan.extent, currentScan.tablet);
-        return true;
-      } else {
-        return false;
+    KeyExtent extent = KeyExtent.fromThrift(textent);
+    TabletMetadata tabletMetadata = getContext().getAmple().readTablet(extent);
+    boolean canLoad =
+        AssignmentHandler.checkTabletMetadata(extent, getTabletSession(), tabletMetadata, true);
+    if (canLoad) {
+      ScanInformation si = new ScanInformation();
+      si.setExtent(extent);
+      synchronized (scansForExtent) {
+        int refsForExtent =
+            scansForExtent.computeIfAbsent(extent, k -> new AtomicInteger(0)).addAndGet(1);
+        if (refsForExtent == 1) {
+          // If this is the first scan for the extent, then put this tablet into the
+          // online tablets. The side effect of this is that any subsequent scans that
+          // come in for this extent will be run on the same tablet, which may be out
+          // of date.
+          TabletResourceManager trm =
+              resourceManager.createTabletResourceManager(extent, getTableConfiguration(extent));
+          TabletData data = new TabletData(tabletMetadata);
+          si.setTablet(new Tablet(this, extent, trm, data));
+          onlineTablets.put(si.getExtent(), si.getTablet());
+          LOG.debug("loaded tablet: {}", si.getExtent());
+        } else {
+          si.setTablet(onlineTablets.snapshot().get(si.getExtent()));
+          LOG.debug("reused tablet: {}", si.getExtent());
+        }
       }
+      return si;
+    } else {
+      return null;
     }
   }
 
-  protected synchronized void endScan() {
-    synchronized (currentScan) {
-      LOG.trace("ending scan: {}", currentScan.scanId);
-      try {
-        if (currentScan.tablet != null) {
-          try {
-            currentScan.tablet.close(false);
-          } catch (IOException e1) {
-            throw new RuntimeException("Error closing tablet", e1);
+  protected void endScan(ScanInformation si) {
+    LOG.debug("ending scan: {}", si.getScanId());
+    try {
+      if (si.getExtent() != null && si.getTablet() != null) {
+        synchronized (scansForExtent) {
+          int refsForExtent = scansForExtent.get(si.getExtent()).decrementAndGet();
+          if (refsForExtent == 0) {
+            onlineTablets.remove(si.getExtent());
+            try {
+              si.getTablet().close(false);
+            } catch (IOException e1) {
+              throw new RuntimeException("Error closing tablet", e1);
+            }
+            LOG.debug("Closed Tablet for extent: " + si.getExtent());
           }
-        }
-        if (currentScan.extent != null) {
-          onlineTablets.remove(currentScan.extent);
-        }
-      } finally {
-        currentScan.extent = null;
-        currentScan.tablet = null;
-        currentScan.scanId = null;
-        try {
-          ScanServerDiscovery.unreserve(this.getContext().getZooKeeperRoot(),
-              getContext().getZooReaderWriter(), getClientAddressString());
-        } catch (KeeperException ke) {
-          if (ke.code() != Code.NODEEXISTS) {
-            throw new RuntimeException("Error setting initial unreserved state in ZooKeeper", ke);
-          }
-        } catch (Exception e2) {
-          throw new RuntimeException("Error setting initial unreserved state in ZooKeeper", e2);
         }
       }
+    } finally {
+      scans.remove(si.getScanId(), si);
     }
   }
 
@@ -448,46 +479,68 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       throws ThriftSecurityException, NotServingTabletException, TooManyFilesException,
       TSampleNotPresentException, TException {
 
-    checkInUse();
+    if (scans.size() == MAX_CONCURRENT_SCANS) {
+      throw new TException("ScanServer is busy");
+    }
     try {
-      if (loadTablet(textent)) {
-        LOG.trace("loaded tablet: {}", currentScan.extent);
-        synchronized (currentScan) {
-          InitialScan is = handler.startScan(tinfo, credentials, textent, range, columns, batchSize,
-              ssiList, ssio, authorizations, waitForWrites, isolated, readaheadThreshold,
-              samplerConfig, batchTimeOut, classLoaderContext, executionHints);
-          currentScan.scanId = is.getScanID();
-          LOG.trace("starting scan: {}", currentScan.scanId);
-          return is;
+      ScanInformation si = null;
+      try {
+        si = loadTablet(textent);
+        if (si == null) {
+          throw new NotServingTabletException();
         }
-      } else {
-        throw new RuntimeException("Unable to load tablet for scan");
+      } catch (Exception e) {
+        LOG.error("Error loading tablet for extent: " + textent, e);
+        if (si != null) {
+          endScan(si);
+        }
+        throw new NotServingTabletException();
       }
-    } catch (Exception e) {
-      endScan();
-      throw new RuntimeException("Error creating tablet for scan", e);
+      InitialScan is = handler.startScan(tinfo, credentials, textent, range, columns, batchSize,
+          ssiList, ssio, authorizations, waitForWrites, isolated, readaheadThreshold, samplerConfig,
+          batchTimeOut, classLoaderContext, executionHints);
+      si.setScanId(is.getScanID());
+      LOG.debug("started scan: {}", si.getScanId());
+      synchronized (scans) {
+        if (scans.size() == MAX_CONCURRENT_SCANS) {
+          endScan(si);
+          throw new TException("ScanServer is busy");
+        }
+        scans.put(si.getScanId(), si);
+      }
+      return is;
+    } catch (TException e) {
+      throw e;
     }
   }
 
   @Override
   public ScanResult continueScan(TInfo tinfo, long scanID) throws NoSuchScanIDException,
       NotServingTabletException, TooManyFilesException, TSampleNotPresentException, TException {
-    LOG.trace("continue scan: {}", scanID);
+    ScanInformation si = scans.get(scanID);
+    if (si == null) {
+      throw new NoSuchScanIDException();
+    }
+    LOG.debug("continue scan: {}", scanID);
     try {
       return handler.continueScan(tinfo, scanID);
     } catch (Exception e) {
-      endScan();
+      endScan(si);
       throw e;
     }
   }
 
   @Override
   public void closeScan(TInfo tinfo, long scanID) throws TException {
-    LOG.trace("close scan: {}", scanID);
+    ScanInformation si = scans.get(scanID);
+    if (si == null) {
+      throw new NoSuchScanIDException();
+    }
+    LOG.debug("close scan: {}", scanID);
     try {
       handler.closeScan(tinfo, scanID);
     } finally {
-      endScan();
+      endScan(si);
     }
   }
 
@@ -499,51 +552,76 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       Map<String,String> executionHints)
       throws ThriftSecurityException, TSampleNotPresentException, TException {
 
-    checkInUse();
-
     if (tbatch.size() != 1) {
-      throw new RuntimeException("Scan Server expects scans for one tablet only");
+      throw new TException("Scan Server expects scans for one tablet only");
+    }
+    TKeyExtent textent = tbatch.keySet().iterator().next();
+    if (textent == null) {
+      throw new TException("TKeyExtent is missing!");
     }
 
+    if (scans.size() == MAX_CONCURRENT_SCANS) {
+      throw new TException("ScanServer is busy");
+    }
     try {
-      if (loadTablet(tbatch.keySet().iterator().next())) {
-        LOG.trace("loaded tablet: {}", currentScan.extent);
-        synchronized (currentScan) {
-          InitialMultiScan ims = handler.startMultiScan(tinfo, credentials, tbatch, tcolumns,
-              ssiList, ssio, authorizations, waitForWrites, tSamplerConfig, batchTimeOut,
-              contextArg, executionHints);
-          currentScan.scanId = ims.getScanID();
-          LOG.trace("starting scan: {}", currentScan.scanId);
-          return ims;
+      ScanInformation si = null;
+      try {
+        si = loadTablet(textent);
+        if (si == null) {
+          throw new NotServingTabletException();
         }
-      } else {
-        throw new RuntimeException("Unable to load tablet for scan");
+      } catch (Exception e) {
+        LOG.error("Error loading tablet for extent: " + textent, e);
+        if (si != null) {
+          endScan(si);
+        }
+        throw new NotServingTabletException();
       }
-    } catch (Exception e) {
-      endScan();
-      throw new RuntimeException("Error creating tablet for scan", e);
+      InitialMultiScan ims = handler.startMultiScan(tinfo, credentials, tbatch, tcolumns, ssiList,
+          ssio, authorizations, waitForWrites, tSamplerConfig, batchTimeOut, contextArg,
+          executionHints);
+      si.setScanId(ims.getScanID());
+      LOG.debug("started scan: {}", si.getScanId());
+      synchronized (scans) {
+        if (scans.size() == MAX_CONCURRENT_SCANS) {
+          endScan(si);
+          throw new TException("ScanServer is busy");
+        }
+        scans.put(si.getScanId(), si);
+      }
+      return ims;
+    } catch (TException e) {
+      throw e;
     }
   }
 
   @Override
   public MultiScanResult continueMultiScan(TInfo tinfo, long scanID)
       throws NoSuchScanIDException, TSampleNotPresentException, TException {
-    LOG.trace("continue multi scan: {}", scanID);
+    ScanInformation si = scans.get(scanID);
+    if (si == null) {
+      throw new NoSuchScanIDException();
+    }
+    LOG.debug("continue multi scan: {}", scanID);
     try {
       return handler.continueMultiScan(tinfo, scanID);
     } catch (Exception e) {
-      endScan();
+      endScan(si);
       throw e;
     }
   }
 
   @Override
   public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException, TException {
-    LOG.trace("close multi scan: {}", scanID);
+    ScanInformation si = scans.get(scanID);
+    if (si == null) {
+      throw new NoSuchScanIDException();
+    }
+    LOG.debug("close multi scan: {}", scanID);
     try {
       handler.closeMultiScan(tinfo, scanID);
     } finally {
-      endScan();
+      endScan(si);
     }
   }
 
