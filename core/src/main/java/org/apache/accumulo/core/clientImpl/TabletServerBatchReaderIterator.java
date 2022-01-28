@@ -53,7 +53,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
@@ -500,8 +499,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     for (final String tsLocation : locations) {
 
       final Map<KeyExtent,List<Range>> tabletsRanges = binnedRanges.get(tsLocation);
-      //TODO use EcScanmanager giving it all tablets at once.
-      // TODO refactor code so that tablet locations in metadata table are not looked up unless needed
+      // TODO use EcScanmanager giving it all tablets at once.
+      // TODO refactor code so that tablet locations in metadata table are not looked up unless
+      // needed
       if (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL)) {
         // Ignore the tablets location and find a scan server to use
         EcScanManager ssl = context.getEcScanManager();

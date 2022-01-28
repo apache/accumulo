@@ -18,13 +18,11 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import java.util.List;
+
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 public class ScanServerDiscovery {
 
@@ -34,7 +32,7 @@ public class ScanServerDiscovery {
     return zooRoot + Constants.ZSSERVERS;
   }
 
-  public static List<String> getScanServers(ClientContext context){
+  public static List<String> getScanServers(ClientContext context) {
     return context.getZooCache().getChildren(getScanServerRoot(context.getZooKeeperRoot()));
   }
 }

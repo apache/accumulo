@@ -328,8 +328,7 @@ public class ClientContext implements AccumuloClient {
     if (ecScanManager == null) {
       String clazz = ClientProperty.SCAN_SERVER_LOCATOR.getValue(info.getProperties());
       try {
-        Class<? extends EcScanManager> impl =
-            Class.forName(clazz).asSubclass(EcScanManager.class);
+        Class<? extends EcScanManager> impl = Class.forName(clazz).asSubclass(EcScanManager.class);
         ecScanManager = impl.getDeclaredConstructor().newInstance();
         // TODO initialize
       } catch (Exception e) {

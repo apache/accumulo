@@ -18,18 +18,21 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
-import com.google.common.base.Preconditions;
-import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+
+import com.google.common.base.Preconditions;
+
 /**
  * @since 2.1.0
  */
-// this plugin decides how to handle eventually consistent scans on the client side... long name could be EventuallyConsistentScan(Manager/Dispatcher/Govenor).. shorter name EcScan(Manager/Dispatcher/Govenor)
+// this plugin decides how to handle eventually consistent scans on the client side... long name
+// could be EventuallyConsistentScan(Manager/Dispatcher/Govenor).. shorter name
+// EcScan(Manager/Dispatcher/Govenor)
 public interface EcScanManager {
 
   class ScanServerLocatorException extends Exception {
@@ -54,8 +57,6 @@ public interface EcScanManager {
     ServiceEnvironment getServiceEnv();
   }
 
-
-
   /**
    * This method is called once after a ScanDispatcher is instantiated.
    */
@@ -63,7 +64,8 @@ public interface EcScanManager {
     Preconditions.checkArgument(params.getOptions().isEmpty(), "No options expected");
   }
 
-  // this object is used to communicate what the previous actions were attempted, when they were attempted, and the result of the attempt
+  // this object is used to communicate what the previous actions were attempted, when they were
+  // attempted, and the result of the attempt
   public static class ScanAttempt {
 
     private final Action requestedAction;
@@ -73,10 +75,7 @@ public interface EcScanManager {
 
     // represents reasons that previous attempts to scan failed
     enum Result {
-      BUSY,
-      IO_ERROR,
-      ERROR,
-      SUCCESS
+      BUSY, IO_ERROR, ERROR, SUCCESS
     }
 
     public ScanAttempt(Action action, String server, long time, Result result) {
@@ -113,14 +112,14 @@ public interface EcScanManager {
   }
 
   public enum Action {
-    WAIT,
-    USE_SCAN_SERVER,
-    USE_TABLET_SERVER,
+    WAIT, USE_SCAN_SERVER, USE_TABLET_SERVER,
     // TODO remove... leaving here now to help think through things
-    // USE_FILES ... thinking about this possibility made me change names from scan server specific to more general eventual consistent handling
+    // USE_FILES ... thinking about this possibility made me change names from scan server specific
+    // to more general eventual consistent handling
   }
 
-  // TODO need a better name.. this interface is used to communicate what actions the plugin would like Accumulo to take for the scan... maybe EcScanActions
+  // TODO need a better name.. this interface is used to communicate what actions the plugin would
+  // like Accumulo to take for the scan... maybe EcScanActions
   public interface EcScanActions {
 
     Action getAction(TabletId tablet);

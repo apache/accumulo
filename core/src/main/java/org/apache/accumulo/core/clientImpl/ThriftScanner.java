@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static org.apache.accumulo.core.clientImpl.ScanServerDiscovery.*;
+
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -71,8 +73,6 @@ import org.slf4j.LoggerFactory;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
-
-import static org.apache.accumulo.core.clientImpl.ScanServerDiscovery.*;
 
 public class ThriftScanner {
   private static final Logger log = LoggerFactory.getLogger(ThriftScanner.class);
@@ -476,13 +476,13 @@ public class ThriftScanner {
 
     HostAndPort parsedLocation = null;
 
-    if(scanState.runOnScanServer) {
+    if (scanState.runOnScanServer) {
 
       var scanServers = getScanServers(context);
 
       var tabletId = new TabletIdImpl(loc.tablet_extent);
 
-      var params = new EcScanManager.DaParamaters(){
+      var params = new EcScanManager.DaParamaters() {
 
         @Override
         public List<TabletId> getTablets() {
@@ -518,7 +518,7 @@ public class ThriftScanner {
 
       EcScanActions actions = context.getEcScanManager().determineActions(params);
 
-      if(actions.getAction(tabletId) == EcScanManager.Action.USE_SCAN_SERVER){
+      if (actions.getAction(tabletId) == EcScanManager.Action.USE_SCAN_SERVER) {
         parsedLocation = HostAndPort.fromString(actions.getScanServer(tabletId));
       } else {
         // TODO handle other cases like wait... for now just use tserver
@@ -526,7 +526,8 @@ public class ThriftScanner {
       }
 
     } else {
-      // TODO refactor code such that the tablet location is not looked up in the metadata table unless its needed
+      // TODO refactor code such that the tablet location is not looked up in the metadata table
+      // unless its needed
       parsedLocation = HostAndPort.fromString(loc.tablet_location);
     }
 
