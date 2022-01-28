@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.replication;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -41,26 +42,26 @@ public class ReplicationSchemaTest {
     assertEquals(file, extractedFile.toString());
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void failOnNullKeyForFileExtract() {
     Text extractedFile = new Text();
-    StatusSection.getFile(null, extractedFile);
+    assertThrows(NullPointerException.class, () -> StatusSection.getFile(null, extractedFile));
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void failOnNullBufferForFileExtract() {
     String file = "hdfs://foo:8020/bar";
     Key k = new Key(file);
     Text extractedFile = null;
-    StatusSection.getFile(k, extractedFile);
+    assertThrows(NullPointerException.class, () -> StatusSection.getFile(k, extractedFile));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void failOnExtractEmptyFile() {
     String file = "";
     Key k = new Key(file);
     Text extractedFile = new Text();
-    StatusSection.getFile(k, extractedFile);
+    assertThrows(IllegalArgumentException.class, () -> StatusSection.getFile(k, extractedFile));
     assertEquals(file, extractedFile.toString());
   }
 
@@ -78,30 +79,30 @@ public class ReplicationSchemaTest {
     assertEquals(tableId, StatusSection.getTableId(k));
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void failOnNullKeyForTableIdExtract() {
     Text extractedFile = new Text();
-    StatusSection.getFile(null, extractedFile);
+    assertThrows(NullPointerException.class, () -> StatusSection.getFile(null, extractedFile));
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void failOnNullBufferForTableIdExtract() {
     String file = "hdfs://foo:8020/bar";
     Key k = new Key(file);
     Text extractedFile = null;
-    StatusSection.getFile(k, extractedFile);
+    assertThrows(NullPointerException.class, () -> StatusSection.getFile(k, extractedFile));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void failOnIncorrectStatusColfam() {
     Key k = new Key("file", WorkSection.NAME.toString(), "");
-    StatusSection.getFile(k, new Text());
+    assertThrows(IllegalArgumentException.class, () -> StatusSection.getFile(k, new Text()));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void failOnIncorrectWorkColfam() {
     Key k = new Key("file", StatusSection.NAME.toString(), "");
-    WorkSection.getFile(k, new Text());
+    assertThrows(IllegalArgumentException.class, () -> WorkSection.getFile(k, new Text()));
   }
 
   @Test

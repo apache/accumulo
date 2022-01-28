@@ -24,6 +24,7 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
@@ -67,9 +68,9 @@ public class ProblemReportingIteratorTest {
     assertEquals(RESOURCE, pri.getResource());
   }
 
-  @Test(expected = UnsupportedOperationException.class)
+  @Test
   public void testInit() {
-    pri.init(null, null, null);
+    assertThrows(UnsupportedOperationException.class, () -> pri.init(null, null, null));
   }
 
   @Test

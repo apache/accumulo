@@ -241,7 +241,7 @@ public class MultiThreadedRFileTest {
       int maxThreads = 10;
       String name = "MultiThreadedRFileTestThread";
       ThreadPoolExecutor pool = ThreadPools.createThreadPool(maxThreads + 1, maxThreads + 1, 5 * 60,
-          TimeUnit.SECONDS, name, new LinkedBlockingQueue<>(), OptionalInt.empty());
+          TimeUnit.SECONDS, name, new LinkedBlockingQueue<>(), OptionalInt.empty(), false);
       try {
         Runnable runnable = () -> {
           try {

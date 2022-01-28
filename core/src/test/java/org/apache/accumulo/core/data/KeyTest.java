@@ -22,6 +22,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -244,12 +245,12 @@ public class KeyTest {
     assertEquals(k, k2);
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testThrift_Invalid() {
     Key k = new Key("r1", "cf2", "cq2", "cv");
     TKey tk = k.toThrift();
     tk.setRow((byte[]) null);
-    new Key(tk);
+    assertThrows(IllegalArgumentException.class, () -> new Key(tk));
   }
 
   @Test

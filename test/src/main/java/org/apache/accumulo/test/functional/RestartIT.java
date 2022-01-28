@@ -251,6 +251,8 @@ public class RestartIT extends AccumuloClusterHarness {
         getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
         getCluster().getClusterControl().adminStopAll();
       } finally {
+        // make sure processes are cleaned up before we restart clean for other tests
+        getCluster().stop();
         getCluster().start();
       }
     }

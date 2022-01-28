@@ -26,6 +26,7 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -173,7 +174,7 @@ public class TServerUtilsTest {
   }
 
   @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET", justification = "socket for testing")
-  @Test(expected = UnknownHostException.class)
+  @Test
   public void testStartServerUsedPort() throws Exception {
     int port = getFreePort(1024);
     InetAddress addr = InetAddress.getByName("localhost");
@@ -181,7 +182,7 @@ public class TServerUtilsTest {
     conf.set(Property.TSERV_CLIENTPORT, Integer.toString(port));
     try (ServerSocket s = new ServerSocket(port, 50, addr)) {
       assertNotNull(s);
-      startServer();
+      assertThrows(UnknownHostException.class, this::startServer);
     }
   }
 

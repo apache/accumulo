@@ -782,7 +782,7 @@ public class TabletServer extends AbstractServer {
     }
 
     ThreadPoolExecutor distWorkQThreadPool = (ThreadPoolExecutor) ThreadPools
-        .createExecutorService(getConfiguration(), Property.TSERV_WORKQ_THREADS);
+        .createExecutorService(getConfiguration(), Property.TSERV_WORKQ_THREADS, true);
 
     bulkFailedCopyQ =
         new DistributedWorkQueue(getContext().getZooKeeperRoot() + Constants.ZBULK_FAILED_COPYQ,
@@ -954,7 +954,7 @@ public class TabletServer extends AbstractServer {
 
     // Start the pool to handle outgoing replications
     final ThreadPoolExecutor replicationThreadPool = (ThreadPoolExecutor) ThreadPools
-        .createExecutorService(getConfiguration(), Property.REPLICATION_WORKER_THREADS);
+        .createExecutorService(getConfiguration(), Property.REPLICATION_WORKER_THREADS, false);
     replWorker.setExecutor(replicationThreadPool);
     replWorker.run();
 

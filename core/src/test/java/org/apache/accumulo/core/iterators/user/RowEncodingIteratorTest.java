@@ -20,6 +20,7 @@ package org.apache.accumulo.core.iterators.user;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -157,7 +158,7 @@ public class RowEncodingIteratorTest {
     assertFalse(iter.hasTop());
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testEncodeSome() throws IOException {
     byte[] kbVal = new byte[1024];
     // This code is shamelessly borrowed from the WholeRowIteratorTest.
@@ -173,7 +174,7 @@ public class RowEncodingIteratorTest {
     Map<String,String> bigBufferOpts = new HashMap<>();
     bigBufferOpts.put(RowEncodingIterator.MAX_BUFFER_SIZE_OPT, "1K");
     iter.init(src, bigBufferOpts, new DummyIteratorEnv());
-    iter.seek(range, new ArrayList<>(), false);
+    assertThrows(IllegalArgumentException.class, () -> iter.seek(range, new ArrayList<>(), false));
     // IllegalArgumentException should be thrown as we can't fit the whole row into its buffer
   }
 }

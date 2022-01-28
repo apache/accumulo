@@ -20,6 +20,7 @@ package org.apache.accumulo.core.client;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -118,9 +119,10 @@ public class IteratorSettingTest {
   /**
    * Iterator names cannot contain dots. Throw IllegalArgumentException is invalid name is used.
    */
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testIteratorNameCannotContainDot() {
-    new IteratorSetting(500, "iterator.name.with.dots", Combiner.class.getName());
+    assertThrows(IllegalArgumentException.class,
+        () -> new IteratorSetting(500, "iterator.name.with.dots", Combiner.class.getName()));
   }
 
 }

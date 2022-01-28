@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.spi.fs;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.io.IOException;
 import java.util.Set;
@@ -121,12 +122,10 @@ public class SpaceAwareVolumeChooserTest {
 
   }
 
-  @Test(expected = UncheckedExecutionException.class)
+  @Test
   public void testNoFreeSpace() throws IOException {
-
     testSpecificSetup(0L, 0L, null, 1, false);
-
-    makeChoices();
+    assertThrows(UncheckedExecutionException.class, this::makeChoices);
   }
 
   @Test
