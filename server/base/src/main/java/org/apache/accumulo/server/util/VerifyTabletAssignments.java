@@ -125,7 +125,7 @@ public class VerifyTabletAssignments {
       }
     }
 
-    ExecutorService tp = ThreadPools.createFixedThreadPool(20, "CheckTabletServer");
+    ExecutorService tp = ThreadPools.createFixedThreadPool(20, "CheckTabletServer", false);
     for (final Entry<HostAndPort,List<KeyExtent>> entry : extentsPerServer.entrySet()) {
       Runnable r = () -> {
         try {

@@ -68,7 +68,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
    * is reporting lots of problems, but problem reports can not be processed
    */
   private ExecutorService reportExecutor = ThreadPools.createThreadPool(0, 1, 60, TimeUnit.SECONDS,
-      "acu-problem-reporter", new LinkedBlockingQueue<>(500), OptionalInt.empty());
+      "acu-problem-reporter", new LinkedBlockingQueue<>(500), OptionalInt.empty(), false);
 
   private final ServerContext context;
 

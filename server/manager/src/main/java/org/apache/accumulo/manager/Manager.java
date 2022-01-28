@@ -918,7 +918,7 @@ public class Manager extends AbstractServer
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
     int threads = getConfiguration().getCount(Property.MANAGER_STATUS_THREAD_POOL_SIZE);
     ExecutorService tp = ThreadPools.createExecutorService(getConfiguration(),
-        Property.MANAGER_STATUS_THREAD_POOL_SIZE);
+        Property.MANAGER_STATUS_THREAD_POOL_SIZE, false);
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
     final RateLimiter shutdownServerRateLimiter = RateLimiter.create(MAX_SHUTDOWNS_PER_SEC);
