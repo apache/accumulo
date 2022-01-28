@@ -23,6 +23,7 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
@@ -101,14 +102,14 @@ public class TabletTimeTest {
     assertNull(TabletTime.maxMetadataTime(nullTime, nullTime));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testMaxMetadataTime_DifferentTypes1() {
-    TabletTime.maxMetadataTime(l1234, m5678);
+    assertThrows(IllegalArgumentException.class, () -> TabletTime.maxMetadataTime(l1234, m5678));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testMaxMetadataTime_DifferentTypes2() {
-    TabletTime.maxMetadataTime(m1234, l5678);
+    assertThrows(IllegalArgumentException.class, () -> TabletTime.maxMetadataTime(m1234, l5678));
   }
 
 }

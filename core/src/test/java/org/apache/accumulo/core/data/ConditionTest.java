@@ -23,6 +23,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThrows;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -129,20 +130,20 @@ public class ConditionTest {
     assertArrayEquals(ITERATORS, c.getIterators());
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testSetIterators_DuplicateName() {
     IteratorSetting[] iterators = {new IteratorSetting(1, "first", "someclass"),
         new IteratorSetting(2, "second", "someotherclass"),
         new IteratorSetting(3, "first", "yetanotherclass")};
-    c.setIterators(iterators);
+    assertThrows(IllegalArgumentException.class, () -> c.setIterators(iterators));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testSetIterators_DuplicatePriority() {
     IteratorSetting[] iterators = {new IteratorSetting(1, "first", "someclass"),
         new IteratorSetting(2, "second", "someotherclass"),
         new IteratorSetting(1, "third", "yetanotherclass")};
-    c.setIterators(iterators);
+    assertThrows(IllegalArgumentException.class, () -> c.setIterators(iterators));
   }
 
   @Test

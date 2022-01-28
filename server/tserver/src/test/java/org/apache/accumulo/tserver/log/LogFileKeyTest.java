@@ -19,6 +19,7 @@
 package org.apache.accumulo.tserver.log;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -143,8 +144,8 @@ public class LogFileKeyTest {
     testToFromKey(Integer.MAX_VALUE, 0);
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void testNegativeSeq() throws IOException {
-    testToFromKey(1, -1);
+  @Test
+  public void testNegativeSeq() {
+    assertThrows(IllegalArgumentException.class, () -> testToFromKey(1, -1));
   }
 }

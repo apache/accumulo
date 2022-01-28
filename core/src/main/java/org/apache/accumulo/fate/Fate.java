@@ -230,7 +230,7 @@ public class Fate<T> {
    */
   public void startTransactionRunners(AccumuloConfiguration conf) {
     final ThreadPoolExecutor pool = (ThreadPoolExecutor) ThreadPools.createExecutorService(conf,
-        Property.MANAGER_FATE_THREADPOOL_SIZE);
+        Property.MANAGER_FATE_THREADPOOL_SIZE, true);
     fatePoolWatcher = ThreadPools.createGeneralScheduledExecutorService(conf);
     fatePoolWatcher.schedule(() -> {
       // resize the pool if the property changed

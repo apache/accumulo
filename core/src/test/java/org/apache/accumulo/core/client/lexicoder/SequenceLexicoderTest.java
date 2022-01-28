@@ -22,6 +22,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -73,8 +74,9 @@ public class SequenceLexicoderTest extends AbstractLexicoderTest {
     assertDecodes(new SequenceLexicoder<>(new StringLexicoder()), data5);
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void tesRejectsTrailingBytes() {
-    new SequenceLexicoder<>(new StringLexicoder()).decode(new byte[] {10});
+    assertThrows(IllegalArgumentException.class,
+        () -> new SequenceLexicoder<>(new StringLexicoder()).decode(new byte[] {10}));
   }
 }

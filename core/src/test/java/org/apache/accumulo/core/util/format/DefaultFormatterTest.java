@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.util.format;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.util.Collections;
 import java.util.Map;
@@ -44,16 +45,16 @@ public class DefaultFormatterTest {
     df = new DefaultFormatter();
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void testDoubleInitialize() {
     final FormatterConfig timestampConfig = new FormatterConfig().setPrintTimestamps(true);
     df.initialize(empty, timestampConfig);
-    df.initialize(empty, timestampConfig);
+    assertThrows(IllegalStateException.class, () -> df.initialize(empty, timestampConfig));
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void testNextBeforeInitialize() {
-    df.hasNext();
+    assertThrows(IllegalStateException.class, df::hasNext);
   }
 
   @Test

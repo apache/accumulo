@@ -25,6 +25,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collection;
@@ -85,16 +86,13 @@ public class TabletLocationStateTest {
     assertTrue(tls.chopped);
   }
 
-  @Test(expected = TabletLocationState.BadLocationStateException.class)
-  public void testConstruction_FutureAndCurrent() throws Exception {
+  @Test
+  public void testConstruction_FutureAndCurrent() {
     expect(keyExtent.toMetaRow()).andReturn(new Text("entry"));
     replay(keyExtent);
-    try {
-      new TabletLocationState(keyExtent, future, current, last, null, walogs, true);
-    } catch (TabletLocationState.BadLocationStateException e) {
-      assertEquals(new Text("entry"), e.getEncodedEndRow());
-      throw (e);
-    }
+    var e = assertThrows(TabletLocationState.BadLocationStateException.class,
+        () -> new TabletLocationState(keyExtent, future, current, last, null, walogs, true));
+    assertEquals(new Text("entry"), e.getEncodedEndRow());
   }
 
   @Test

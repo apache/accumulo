@@ -188,7 +188,7 @@ public class TabletServerResourceManager {
 
     ExecutorService es =
         ThreadPools.createThreadPool(sec.getCurrentMaxThreads(), sec.getCurrentMaxThreads(), 0L,
-            TimeUnit.MILLISECONDS, "scan-" + sec.name, queue, sec.priority);
+            TimeUnit.MILLISECONDS, "scan-" + sec.name, queue, sec.priority, true);
     modifyThreadPoolSizesAtRuntime(sec::getCurrentMaxThreads, "scan-" + sec.name,
         (ThreadPoolExecutor) es);
     return es;
@@ -304,21 +304,21 @@ public class TabletServerResourceManager {
     }
 
     minorCompactionThreadPool =
-        ThreadPools.createExecutorService(acuConf, Property.TSERV_MINC_MAXCONCURRENT);
+        ThreadPools.createExecutorService(acuConf, Property.TSERV_MINC_MAXCONCURRENT, true);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT),
         "minor compactor", (ThreadPoolExecutor) minorCompactionThreadPool);
 
-    splitThreadPool = ThreadPools.createThreadPool(0, 1, 1, TimeUnit.SECONDS, "splitter");
+    splitThreadPool = ThreadPools.createThreadPool(0, 1, 1, TimeUnit.SECONDS, "splitter", true);
 
     defaultSplitThreadPool =
-        ThreadPools.createThreadPool(0, 1, 60, TimeUnit.SECONDS, "md splitter");
+        ThreadPools.createThreadPool(0, 1, 60, TimeUnit.SECONDS, "md splitter", true);
 
     defaultMigrationPool =
-        ThreadPools.createThreadPool(0, 1, 60, TimeUnit.SECONDS, "metadata tablet migration");
+        ThreadPools.createThreadPool(0, 1, 60, TimeUnit.SECONDS, "metadata tablet migration", true);
 
     migrationPool =
-        ThreadPools.createExecutorService(acuConf, Property.TSERV_MIGRATE_MAXCONCURRENT);
+        ThreadPools.createExecutorService(acuConf, Property.TSERV_MIGRATE_MAXCONCURRENT, true);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_MIGRATE_MAXCONCURRENT),
         "tablet migration", (ThreadPoolExecutor) migrationPool);
@@ -329,30 +329,30 @@ public class TabletServerResourceManager {
     // individual tablet server run
     // concurrent assignments would put more load on the metadata table at startup
     assignmentPool =
-        ThreadPools.createExecutorService(acuConf, Property.TSERV_ASSIGNMENT_MAXCONCURRENT);
+        ThreadPools.createExecutorService(acuConf, Property.TSERV_ASSIGNMENT_MAXCONCURRENT, true);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_ASSIGNMENT_MAXCONCURRENT),
         "tablet assignment", (ThreadPoolExecutor) assignmentPool);
 
-    assignMetaDataPool =
-        ThreadPools.createThreadPool(0, 1, 60, TimeUnit.SECONDS, "metadata tablet assignment");
+    assignMetaDataPool = ThreadPools.createThreadPool(0, 1, 60, TimeUnit.SECONDS,
+        "metadata tablet assignment", true);
 
     activeAssignments = new ConcurrentHashMap<>();
 
     summaryRetrievalPool =
-        ThreadPools.createExecutorService(acuConf, Property.TSERV_SUMMARY_RETRIEVAL_THREADS);
+        ThreadPools.createExecutorService(acuConf, Property.TSERV_SUMMARY_RETRIEVAL_THREADS, true);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_RETRIEVAL_THREADS),
         "summary file retriever", (ThreadPoolExecutor) summaryRetrievalPool);
 
     summaryRemotePool =
-        ThreadPools.createExecutorService(acuConf, Property.TSERV_SUMMARY_REMOTE_THREADS);
+        ThreadPools.createExecutorService(acuConf, Property.TSERV_SUMMARY_REMOTE_THREADS, true);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_REMOTE_THREADS),
         "summary remote", (ThreadPoolExecutor) summaryRemotePool);
 
     summaryPartitionPool =
-        ThreadPools.createExecutorService(acuConf, Property.TSERV_SUMMARY_PARTITION_THREADS);
+        ThreadPools.createExecutorService(acuConf, Property.TSERV_SUMMARY_PARTITION_THREADS, true);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_SUMMARY_PARTITION_THREADS),
         "summary partition", (ThreadPoolExecutor) summaryPartitionPool);
