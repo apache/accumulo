@@ -511,8 +511,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             QueryTask queryTask = new QueryTask(location, Collections.singletonMap(k, v), failures,
                 receiver, columns);
             queryTasks.add(queryTask);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
           } catch (Exception e) {
             throw new RuntimeException(e);
           }

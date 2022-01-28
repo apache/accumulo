@@ -35,9 +35,9 @@ import org.apache.accumulo.core.client.security.tokens.CredentialProviderToken;
 import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.clientImpl.DefaultScanServerLocator;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.accumulo.core.spi.scan.DefaultScanServerLocator;
 
 public enum ClientProperty {
 

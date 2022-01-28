@@ -331,7 +331,7 @@ public class ClientContext implements AccumuloClient {
         Class<? extends EcScanManager> impl =
             Class.forName(clazz).asSubclass(EcScanManager.class);
         ecScanManager = impl.getDeclaredConstructor().newInstance();
-        ecScanManager.setClient(this);
+        // TODO initialize
       } catch (Exception e) {
         throw new RuntimeException("Error creating ScanServerLocator implemenation: " + clazz, e);
       }
