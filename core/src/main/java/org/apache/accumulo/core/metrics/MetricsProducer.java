@@ -623,7 +623,7 @@ public interface MetricsProducer {
   void registerMetrics(MeterRegistry registry);
 
   /**
-   * Returns a mapping of metric field value to metric field name.
+   * Returns a new mutable mapping of metric field value to metric field name.
    *
    * @return map of field names to variable names.
    */
