@@ -26,6 +26,7 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -137,7 +138,7 @@ public class ScanServerTest {
     verify(handler);
   }
 
-  @Test(expected = TException.class)
+  @Test
   public void testScanInUse() throws Exception {
     handler = createMock(ThriftClientHandler.class);
 
@@ -179,11 +180,13 @@ public class ScanServerTest {
     assertNotNull(ss.scans.get(15L).getExtent());
     assertNotNull(ss.scans.get(15L).getTablet());
     assertEquals((Long) 15L, ss.scans.get(15L).getScanId());
-    ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false, false, 10,
-        tsc, 30L, classLoaderContext, execHints);
+    assertThrows(TException.class, () -> {
+      ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false, false, 10,
+          tsc, 30L, classLoaderContext, execHints);
+    });
   }
 
-  @Test(expected = NotServingTabletException.class)
+  @Test
   public void testTabletLoadFailure() throws Exception {
     handler = createMock(ThriftClientHandler.class);
 
@@ -213,8 +216,10 @@ public class ScanServerTest {
     ss.handler = handler;
 
     assertEquals(0, ss.scans.size());
-    ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false, false, 10,
-        tsc, 30L, classLoaderContext, execHints);
+    assertThrows(NotServingTabletException.class, () -> {
+      ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false, false, 10,
+          tsc, 30L, classLoaderContext, execHints);
+    });
     assertEquals(0, ss.scans.size());
   }
 
@@ -267,7 +272,7 @@ public class ScanServerTest {
     verify(handler);
   }
 
-  @Test(expected = TException.class)
+  @Test
   public void testBatchScanInUse() throws Exception {
     handler = createMock(ThriftClientHandler.class);
 
@@ -311,11 +316,13 @@ public class ScanServerTest {
     assertNotNull(ss.scans.get(15L).getExtent());
     assertNotNull(ss.scans.get(15L).getTablet());
     assertEquals((Long) 15L, ss.scans.get(15L).getScanId());
-    ss.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths, false, tsc, 30L,
-        classLoaderContext, execHints);
+    assertThrows(TException.class, () -> {
+      ss.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths, false, tsc, 30L,
+          classLoaderContext, execHints);
+    });
   }
 
-  @Test(expected = TException.class)
+  @Test
   public void testBatchScanNoRanges() throws Exception {
     handler = createMock(ThriftClientHandler.class);
 
@@ -330,11 +337,6 @@ public class ScanServerTest {
     String classLoaderContext = new String();
     Map<String,String> execHints = new HashMap<>();
 
-    expect(handler.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths, false, tsc,
-        30L, classLoaderContext, execHints)).andReturn(new InitialMultiScan(15, null));
-    expect(handler.continueScan(tinfo, 15)).andReturn(new ScanResult());
-    handler.closeScan(tinfo, 15);
-
     replay(handler);
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
@@ -344,13 +346,15 @@ public class ScanServerTest {
     ss.handler = handler;
 
     assertEquals(0, ss.scans.size());
-    ss.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths, false, tsc, 30L,
-        classLoaderContext, execHints);
+    assertThrows(TException.class, () -> {
+      ss.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths, false, tsc, 30L,
+          classLoaderContext, execHints);
+    });
     assertEquals(0, ss.scans.size());
     verify(handler);
   }
 
-  @Test(expected = TException.class)
+  @Test
   public void testBatchScanTooManyRanges() throws Exception {
     handler = createMock(ThriftClientHandler.class);
 
@@ -368,11 +372,6 @@ public class ScanServerTest {
     String classLoaderContext = new String();
     Map<String,String> execHints = new HashMap<>();
 
-    expect(handler.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths, false, tsc,
-        30L, classLoaderContext, execHints)).andReturn(new InitialMultiScan(15, null));
-    expect(handler.continueScan(tinfo, 15)).andReturn(new ScanResult());
-    handler.closeScan(tinfo, 15);
-
     replay(handler);
 
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
@@ -382,8 +381,10 @@ public class ScanServerTest {
     ss.handler = handler;
 
     assertEquals(0, ss.scans.size());
-    ss.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths, false, tsc, 30L,
-        classLoaderContext, execHints);
+    assertThrows(TException.class, () -> {
+      ss.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths, false, tsc, 30L,
+          classLoaderContext, execHints);
+    });
     assertEquals(0, ss.scans.size());
     verify(handler);
   }
