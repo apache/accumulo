@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.mapreduce;
+package org.apache.accumulo.hadoop.its;
 
 import static org.junit.Assert.assertEquals;
 
@@ -26,6 +26,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Map.Entry;
+import java.util.Properties;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -36,10 +37,12 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.hadoop.its.mapreduce.RowHashIT;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.io.Text;
@@ -48,9 +51,8 @@ import org.junit.Test;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
- * This tests deprecated mapreduce code in core jar
+ * This tests mapreduce code
  */
-@Deprecated(since = "2.0.0")
 public class MapReduceIT extends ConfigurableMacBase {
 
   @Override
@@ -89,8 +91,8 @@ public class MapReduceIT extends ConfigurableMacBase {
     }
     bw.close();
 
-    Process hash = cluster.exec(RowHash.class, Collections.singletonList(hadoopTmpDirArg), "-c",
-        cluster.getClientPropsPath(), "-t", tablename, "--column", input_cfcq).getProcess();
+    Process hash = cluster.exec(RowHashIT.RowHash.class, Collections.singletonList(hadoopTmpDirArg),
+        "-c", cluster.getClientPropsPath(), "-t", tablename, "--column", input_cfcq).getProcess();
     assertEquals(0, hash.waitFor());
 
     try (Scanner s = c.createScanner(tablename, Authorizations.EMPTY)) {
@@ -102,6 +104,30 @@ public class MapReduceIT extends ConfigurableMacBase {
         assertEquals(entry.getValue().toString(), new String(check));
         i++;
       }
+    }
+  }
+
+  @Test
+  public void mapReduceWithSsl() throws Exception {
+    configureForSsl(getCluster().getConfig(),
+        getSslDir(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName())));
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      // testing old mapreduce code from core jar; the new mapreduce module should have its own test
+      // case which checks functionality with ssl enabled
+      runTest(client, getCluster());
+    }
+  }
+
+  @Test
+  public void sslWithAuth() throws Exception {
+    Properties props = getClientProperties();
+    props.put(Property.INSTANCE_RPC_SSL_CLIENT_AUTH.getKey(), "true");
+    configureForSsl(getCluster().getConfig(),
+        getSslDir(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName())));
+    try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
+      // testing old mapreduce code from core jar; the new mapreduce module should have its own test
+      // case which checks functionality with ssl enabled
+      runTest(client, getCluster());
     }
   }
 }
