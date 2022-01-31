@@ -22,6 +22,7 @@ import static java.lang.System.currentTimeMillis;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import java.io.File;
@@ -439,7 +440,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
     }
   }
 
-  @Test(expected = IOException.class)
+  @Test
   public void testGetSplitsNoReadPermission() throws Exception {
     Job job = Job.getInstance();
 
@@ -472,7 +473,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat aif =
           new org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat();
 
-      aif.getSplits(job);
+      assertThrows(IOException.class, () -> aif.getSplits(job));
     }
   }
 

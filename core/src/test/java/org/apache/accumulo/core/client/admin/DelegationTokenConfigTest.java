@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.client.admin;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.util.concurrent.TimeUnit;
 
@@ -50,18 +51,21 @@ public class DelegationTokenConfigTest {
 
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testInvalidLifetime() {
-    new DelegationTokenConfig().setTokenLifetime(-1, TimeUnit.DAYS);
+    assertThrows(IllegalArgumentException.class,
+        () -> new DelegationTokenConfig().setTokenLifetime(-1, TimeUnit.DAYS));
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testSetInvalidTimeUnit() {
-    new DelegationTokenConfig().setTokenLifetime(5, null);
+    assertThrows(NullPointerException.class,
+        () -> new DelegationTokenConfig().setTokenLifetime(5, null));
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testGetInvalidTimeUnit() {
-    new DelegationTokenConfig().getTokenLifetime(null);
+    assertThrows(NullPointerException.class,
+        () -> new DelegationTokenConfig().getTokenLifetime(null));
   }
 }

@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 
 import java.io.File;
 import java.net.URL;
@@ -79,25 +80,25 @@ public class CredentialProviderTokenTest {
     assertArrayEquals(token.getPassword(), clone.getPassword());
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void missingProperties() {
     CredentialProviderToken token = new CredentialProviderToken();
-    token.init(new Properties());
+    assertThrows(IllegalArgumentException.class, () -> token.init(new Properties()));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void missingNameProperty() {
     CredentialProviderToken token = new CredentialProviderToken();
     Properties props = new Properties();
     props.put(CredentialProviderToken.NAME_PROPERTY, "root.password");
-    token.init(props);
+    assertThrows(IllegalArgumentException.class, () -> token.init(props));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void missingProviderProperty() {
     CredentialProviderToken token = new CredentialProviderToken();
     Properties props = new Properties();
     props.put(CredentialProviderToken.CREDENTIAL_PROVIDERS_PROPERTY, keystorePath);
-    token.init(props);
+    assertThrows(IllegalArgumentException.class, () -> token.init(props));
   }
 }

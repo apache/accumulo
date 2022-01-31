@@ -125,9 +125,9 @@ public class UnsynchronizedBufferTest {
         Arrays.equals(hadoopBytes, accumuloBytes));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testNextArraySizeNegative() {
-    UnsynchronizedBuffer.nextArraySize(-1);
+    assertThrows(IllegalArgumentException.class, () -> UnsynchronizedBuffer.nextArraySize(-1));
   }
 
   @Test

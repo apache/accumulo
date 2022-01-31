@@ -19,6 +19,7 @@
 package org.apache.accumulo.gc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -528,34 +529,36 @@ public class GarbageCollectionTest {
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testBadFileRef1() {
-    badRefTest("/F00.rf");
+    assertThrows(IllegalArgumentException.class, () -> badRefTest("/F00.rf"));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testBadFileRef2() {
-    badRefTest("../F00.rf");
+    assertThrows(IllegalArgumentException.class, () -> badRefTest("../F00.rf"));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testBadFileRef3() {
-    badRefTest("hdfs://foo.com:6000/accumulo/F00.rf");
+    assertThrows(IllegalArgumentException.class,
+        () -> badRefTest("hdfs://foo.com:6000/accumulo/F00.rf"));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testBadFileRef4() {
-    badRefTest("hdfs://foo.com:6000/accumulo/tbls/5/F00.rf");
+    assertThrows(IllegalArgumentException.class,
+        () -> badRefTest("hdfs://foo.com:6000/accumulo/tbls/5/F00.rf"));
   }
 
-  @Test(expected = RuntimeException.class)
+  @Test
   public void testBadFileRef5() {
-    badRefTest("F00.rf");
+    assertThrows(RuntimeException.class, () -> badRefTest("F00.rf"));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testBadFileRef6() {
-    badRefTest("/accumulo/tbls/5/F00.rf");
+    assertThrows(IllegalArgumentException.class, () -> badRefTest("/accumulo/tbls/5/F00.rf"));
   }
 
   @Test

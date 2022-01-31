@@ -92,7 +92,7 @@ class LoadFiles extends ManagerRepo {
   private static synchronized ExecutorService getThreadPool(Manager manager) {
     if (threadPool == null) {
       threadPool = ThreadPools.createExecutorService(manager.getConfiguration(),
-          Property.MANAGER_BULK_THREADPOOL_SIZE);
+          Property.MANAGER_BULK_THREADPOOL_SIZE, true);
     }
     return threadPool;
   }

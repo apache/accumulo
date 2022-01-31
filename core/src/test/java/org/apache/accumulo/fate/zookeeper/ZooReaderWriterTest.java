@@ -25,6 +25,7 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertThrows;
 
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.util.Retry.RetryFactory;
@@ -94,7 +95,7 @@ public class ZooReaderWriterTest {
     verify(zk, zrw, retryFactory, retry);
   }
 
-  @Test(expected = SessionExpiredException.class)
+  @Test
   public void testMutateNodeCreationFails() throws Exception {
     final String path = "/foo";
     final byte[] value = {0};
@@ -107,7 +108,7 @@ public class ZooReaderWriterTest {
 
     replay(zk, zrw, retryFactory, retry);
 
-    zrw.mutateOrCreate(path, value, mutator);
+    assertThrows(SessionExpiredException.class, () -> zrw.mutateOrCreate(path, value, mutator));
   }
 
   @Test
