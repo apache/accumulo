@@ -22,6 +22,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -188,6 +189,22 @@ public class TraceUtil {
             return carrier.getHeaders().get(key);
           }
         });
+  }
+
+  public static Runnable wrap(Runnable r) {
+    return r instanceof TraceWrappedRunnable ? r : new TraceWrappedRunnable(r);
+  }
+
+  public static Runnable unwrap(Runnable r) {
+    return TraceWrappedRunnable.unwrapFully(r);
+  }
+
+  public static <T> Callable<T> wrap(Callable<T> c) {
+    return c instanceof TraceWrappedCallable ? c : new TraceWrappedCallable<>(c);
+  }
+
+  public static <T> Callable<T> unwrap(Callable<T> c) {
+    return TraceWrappedCallable.unwrapFully(c);
   }
 
   public static <T> T wrapService(final T instance) {

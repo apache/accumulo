@@ -21,7 +21,7 @@ package org.apache.accumulo.core.util.threads;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.OptionalInt;
 
-import io.opentelemetry.context.Context;
+import org.apache.accumulo.core.trace.TraceUtil;
 
 public class Threads {
 
@@ -36,7 +36,7 @@ public class Threads {
   }
 
   public static Thread createThread(String name, OptionalInt priority, Runnable r) {
-    Thread thread = new Thread(Context.current().wrap(r), name);
+    Thread thread = new Thread(TraceUtil.wrap(r), name);
     priority.ifPresent(thread::setPriority);
     thread.setDaemon(true);
     thread.setUncaughtExceptionHandler(UEH);
