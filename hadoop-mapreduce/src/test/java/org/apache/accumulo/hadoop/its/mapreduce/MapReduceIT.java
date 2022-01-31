@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.hadoop.its;
+package org.apache.accumulo.hadoop.its.mapreduce;
 
 import static org.junit.Assert.assertEquals;
 
@@ -50,9 +50,6 @@ import org.junit.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-/**
- * This tests mapreduce code
- */
 public class MapReduceIT extends ConfigurableMacBase {
 
   @Override
@@ -68,11 +65,11 @@ public class MapReduceIT extends ConfigurableMacBase {
   static final String input_cq = "cq-NOTHASHED";
   static final String input_cfcq = input_cf + ":" + input_cq;
   static final String output_cq = "cq-MD4BASE64";
-  static final String output_cfcq = input_cf + ":" + output_cq;
 
   @Test
   public void test() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    var props = getClientProperties();
+    try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
       runTest(client, getCluster());
     }
   }
@@ -104,30 +101,6 @@ public class MapReduceIT extends ConfigurableMacBase {
         assertEquals(entry.getValue().toString(), new String(check));
         i++;
       }
-    }
-  }
-
-  @Test
-  public void mapReduceWithSsl() throws Exception {
-    configureForSsl(getCluster().getConfig(),
-        getSslDir(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName())));
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      // testing old mapreduce code from core jar; the new mapreduce module should have its own test
-      // case which checks functionality with ssl enabled
-      runTest(client, getCluster());
-    }
-  }
-
-  @Test
-  public void sslWithAuth() throws Exception {
-    Properties props = getClientProperties();
-    props.put(Property.INSTANCE_RPC_SSL_CLIENT_AUTH.getKey(), "true");
-    configureForSsl(getCluster().getConfig(),
-        getSslDir(createTestDir(this.getClass().getName() + "_" + this.testName.getMethodName())));
-    try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
-      // testing old mapreduce code from core jar; the new mapreduce module should have its own test
-      // case which checks functionality with ssl enabled
-      runTest(client, getCluster());
     }
   }
 }
