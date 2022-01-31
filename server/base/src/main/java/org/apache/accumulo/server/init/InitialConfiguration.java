@@ -45,7 +45,7 @@ import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Joiner;
 
-public class InitialConfiguration {
+class InitialConfiguration {
 
   // config only for root table
   private final HashMap<String,String> initialRootConf = new HashMap<>();
@@ -57,7 +57,7 @@ public class InitialConfiguration {
   private final Configuration hadoopConf;
   private final SiteConfiguration siteConf;
 
-  public InitialConfiguration(Configuration hadoopConf, SiteConfiguration siteConf) {
+  InitialConfiguration(Configuration hadoopConf, SiteConfiguration siteConf) {
     this.hadoopConf = hadoopConf;
     this.siteConf = siteConf;
     initialRootConf.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
@@ -187,43 +187,43 @@ public class InitialConfiguration {
     initialRootMetaConf.put(Property.TABLE_FILE_REPLICATION.getKey(), rep);
   }
 
-  public HashMap<String,String> getRootTableConf() {
+  HashMap<String,String> getRootTableConf() {
     return initialRootConf;
   }
 
-  public HashMap<String,String> getRootMetaConf() {
+  HashMap<String,String> getRootMetaConf() {
     return initialRootMetaConf;
   }
 
-  public HashMap<String,String> getMetaTableConf() {
+  HashMap<String,String> getMetaTableConf() {
     return initialMetaConf;
   }
 
-  public HashMap<String,String> getReplTableConf() {
+  HashMap<String,String> getReplTableConf() {
     return initialReplicationTableConf;
   }
 
-  public Configuration getHadoopConf() {
+  Configuration getHadoopConf() {
     return hadoopConf;
   }
 
-  public SiteConfiguration getSiteConf() {
+  SiteConfiguration getSiteConf() {
     return siteConf;
   }
 
-  public Set<String> getVolumeUris() {
+  Set<String> getVolumeUris() {
     return VolumeConfiguration.getVolumeUris(siteConf);
   }
 
-  public String get(Property property) {
+  String get(Property property) {
     return siteConf.get(property);
   }
 
-  public boolean getBoolean(Property property) {
+  boolean getBoolean(Property property) {
     return siteConf.getBoolean(property);
   }
 
-  public void getProperties(Map<String,String> props, Predicate<String> filter, boolean defaults) {
+  void getProperties(Map<String,String> props, Predicate<String> filter, boolean defaults) {
     siteConf.getProperties(props, filter, defaults);
   }
 }

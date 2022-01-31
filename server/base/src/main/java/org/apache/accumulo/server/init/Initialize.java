@@ -43,7 +43,6 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
-import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
@@ -56,6 +55,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.accumulo.server.util.ChangeSecret;
 import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.lang3.StringUtils;
@@ -109,8 +109,7 @@ public class Initialize implements KeywordExecutable {
       System.out.println();
       System.out.println();
       System.out.println("You can change the instance secret in accumulo by using:");
-      System.out.println(
-          "   bin/accumulo " + org.apache.accumulo.server.util.ChangeSecret.class.getName());
+      System.out.println("   bin/accumulo " + ChangeSecret.class.getName());
       System.out.println("You will also need to edit your secret in your configuration"
           + " file by adding the property instance.secret to your"
           + " accumulo.properties. Without this accumulo will not operate" + " correctly");
@@ -122,7 +121,7 @@ public class Initialize implements KeywordExecutable {
     }
   }
 
-  static void printInitializeFailureMessages(InitialConfiguration initConfig) {
+  private static void printInitializeFailureMessages(InitialConfiguration initConfig) {
     log.error("It appears the directories {}",
         initConfig.getVolumeUris() + " were previously initialized.");
     log.error("Change the property {} to use different volumes.",
@@ -131,7 +130,7 @@ public class Initialize implements KeywordExecutable {
         initConfig.get(Property.INSTANCE_VOLUMES));
   }
 
-  public boolean doInit(ZooReaderWriter zoo, Opts opts, VolumeManager fs,
+  private boolean doInit(ZooReaderWriter zoo, Opts opts, VolumeManager fs,
       InitialConfiguration initConfig) {
     String instanceNamePath;
     String instanceName;
@@ -162,8 +161,7 @@ public class Initialize implements KeywordExecutable {
     UUID uuid = UUID.randomUUID();
     try (ServerContext context =
         ServerContext.initialize(initConfig.getSiteConf(), instanceName, uuid.toString())) {
-      VolumeChooserEnvironment chooserEnv =
-          new VolumeChooserEnvironmentImpl(Scope.INIT, RootTable.ID, null, context);
+      var chooserEnv = new VolumeChooserEnvironmentImpl(Scope.INIT, RootTable.ID, null, context);
       String rootTabletDirName = RootTable.ROOT_TABLET_DIR_NAME;
       String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
       String rootTabletFileUri = new Path(
@@ -172,7 +170,8 @@ public class Initialize implements KeywordExecutable {
                   .toString();
 
       ZooKeeperInitializer zki = new ZooKeeperInitializer();
-      zki.go(zoo, opts, uuid.toString(), instanceNamePath, rootTabletDirName, rootTabletFileUri);
+      zki.initialize(zoo, opts.clearInstanceName, uuid.toString(), instanceNamePath,
+          rootTabletDirName, rootTabletFileUri);
       if (!createDirs(fs, uuid, initConfig.getVolumeUris())) {
         throw new IOException("Problem creating directories on " + fs.getVolumes());
       }
@@ -180,7 +179,7 @@ public class Initialize implements KeywordExecutable {
       var rootVol = fs.choose(chooserEnv, initConfig.getVolumeUris());
       var rootPath =
           new Path(rootVol + SEPARATOR + TABLE_DIR + SEPARATOR + RootTable.ID + rootTabletDirName);
-      fileSystemInitializer.go(fs, rootPath.toString(), rootTabletFileUri, context);
+      fileSystemInitializer.initialize(fs, rootPath.toString(), rootTabletFileUri, context);
 
       checkSASL(initConfig);
       initSecurity(context, opts, rootUser);
@@ -250,7 +249,7 @@ public class Initialize implements KeywordExecutable {
     }
   }
 
-  public static boolean createDirs(VolumeManager fs, UUID uuid, Set<String> baseDirs) {
+  private static boolean createDirs(VolumeManager fs, UUID uuid, Set<String> baseDirs) {
     try {
       for (String baseDir : baseDirs) {
         fs.mkdirs(
@@ -391,7 +390,7 @@ public class Initialize implements KeywordExecutable {
         opts.rootpass);
   }
 
-  public static boolean isInitialized(VolumeManager fs, InitialConfiguration initConfig)
+  static boolean isInitialized(VolumeManager fs, InitialConfiguration initConfig)
       throws IOException {
     for (String baseDir : initConfig.getVolumeUris()) {
       if (fs.exists(new Path(baseDir, Constants.INSTANCE_ID_DIR))
@@ -443,7 +442,7 @@ public class Initialize implements KeywordExecutable {
     return createDirs(fs, uuid, uinitializedDirs);
   }
 
-  static class Opts extends Help {
+  private static class Opts extends Help {
     @Parameter(names = "--add-volumes",
         description = "Initialize any uninitialized volumes listed in instance.volumes")
     boolean addVolumes = false;

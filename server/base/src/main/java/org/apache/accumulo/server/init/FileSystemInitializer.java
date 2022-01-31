@@ -62,7 +62,7 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FileSystemInitializer {
+class FileSystemInitializer {
   private static final String TABLE_TABLETS_TABLET_DIR = "table_info";
   private static final Logger log = LoggerFactory.getLogger(FileSystemInitializer.class);
 
@@ -71,7 +71,7 @@ public class FileSystemInitializer {
   private final ZooReaderWriter zoo;
   private final String zkRoot;
 
-  public FileSystemInitializer(InitialConfiguration initConfig, ZooReaderWriter zoo, UUID uuid) {
+  FileSystemInitializer(InitialConfiguration initConfig, ZooReaderWriter zoo, UUID uuid) {
     this.initConfig = initConfig;
     this.zoo = zoo;
     this.zkRoot = Constants.ZROOT + "/" + uuid;
@@ -92,7 +92,7 @@ public class FileSystemInitializer {
     }
   }
 
-  public void go(VolumeManager fs, String rootTabletDirUri, String rootTabletFileUri,
+  void initialize(VolumeManager fs, String rootTabletDirUri, String rootTabletFileUri,
       ServerContext context) throws IOException, InterruptedException, KeeperException {
     SiteConfiguration siteConfig = initConfig.getSiteConf();
     // initialize initial system tables config in zookeeper

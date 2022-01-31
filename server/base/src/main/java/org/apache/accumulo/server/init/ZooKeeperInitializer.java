@@ -36,10 +36,10 @@ import org.apache.accumulo.server.tables.TableManager;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 
-public class ZooKeeperInitializer {
+class ZooKeeperInitializer {
 
-  public void go(ZooReaderWriter zoo, Initialize.Opts opts, String uuid, String instanceNamePath,
-      String rootTabletDirName, String rootTabletFileUri)
+  void initialize(ZooReaderWriter zoo, boolean clearInstanceName, String uuid,
+      String instanceNamePath, String rootTabletDirName, String rootTabletFileUri)
       throws KeeperException, InterruptedException {
     // setup basic data in zookeeper
     zoo.putPersistentData(Constants.ZROOT, new byte[0], ZooUtil.NodeExistsPolicy.SKIP,
@@ -48,7 +48,7 @@ public class ZooKeeperInitializer {
         ZooUtil.NodeExistsPolicy.SKIP, ZooDefs.Ids.OPEN_ACL_UNSAFE);
 
     // setup instance name
-    if (opts.clearInstanceName) {
+    if (clearInstanceName) {
       zoo.recursiveDelete(instanceNamePath, ZooUtil.NodeMissingPolicy.SKIP);
     }
     zoo.putPersistentData(instanceNamePath, uuid.getBytes(UTF_8), ZooUtil.NodeExistsPolicy.FAIL);
