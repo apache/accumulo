@@ -21,7 +21,6 @@ package org.apache.accumulo.core.util.threads;
 import java.util.OptionalInt;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledFuture;
@@ -34,10 +33,9 @@ import java.util.function.IntSupplier;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.opentelemetry.context.Context;
 
 public class ThreadPools {
 
@@ -110,7 +108,7 @@ public class ThreadPools {
    *           if property is not handled
    */
   @SuppressWarnings("deprecation")
-  public static ExecutorService createExecutorService(final AccumuloConfiguration conf,
+  public static ThreadPoolExecutor createExecutorService(final AccumuloConfiguration conf,
       final Property p, boolean emitThreadPoolMetrics) {
 
     switch (p) {
@@ -129,8 +127,7 @@ public class ThreadPools {
         int threads = conf.getCount(p);
         if (threads == 0) {
           return createThreadPool(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
-              "GatherTableInformation", new SynchronousQueue<Runnable>(), OptionalInt.empty(),
-              emitThreadPoolMetrics);
+              "GatherTableInformation", new SynchronousQueue<>(), emitThreadPoolMetrics);
         } else {
           return createFixedThreadPool(threads, "GatherTableInformation", emitThreadPoolMetrics);
         }
@@ -207,7 +204,7 @@ public class ThreadPools {
   public static ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
       BlockingQueue<Runnable> queue, boolean emitThreadPoolMetrics) {
     return createThreadPool(numThreads, numThreads, DEFAULT_TIMEOUT_MILLISECS,
-        TimeUnit.MILLISECONDS, name, queue, OptionalInt.empty(), emitThreadPoolMetrics);
+        TimeUnit.MILLISECONDS, name, queue, emitThreadPoolMetrics);
   }
 
   /**
@@ -232,8 +229,7 @@ public class ThreadPools {
    */
   public static ThreadPoolExecutor createFixedThreadPool(int numThreads, long timeOut,
       TimeUnit units, final String name, boolean emitThreadPoolMetrics) {
-    return createThreadPool(numThreads, numThreads, timeOut, units, name,
-        new LinkedBlockingQueue<Runnable>(), OptionalInt.empty(), emitThreadPoolMetrics);
+    return createThreadPool(numThreads, numThreads, timeOut, units, name, emitThreadPoolMetrics);
   }
 
   /**
@@ -261,7 +257,38 @@ public class ThreadPools {
   public static ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
       TimeUnit units, final String name, boolean emitThreadPoolMetrics) {
     return createThreadPool(coreThreads, maxThreads, timeOut, units, name,
-        new LinkedBlockingQueue<Runnable>(), OptionalInt.empty(), emitThreadPoolMetrics);
+        new LinkedBlockingQueue<>(), emitThreadPoolMetrics);
+  }
+
+  /**
+   * Create a named thread pool
+   *
+   * @param coreThreads
+   *          number of threads
+   * @param maxThreads
+   *          max number of threads
+   * @param timeOut
+   *          core thread time out
+   * @param units
+   *          core thread time out units
+   * @param name
+   *          thread pool name
+   * @param queue
+   *          queue to use for tasks
+   * @param emitThreadPoolMetrics
+   *          When set to true will emit metrics and register the metrics in a static registry.
+   *          After the thread pool is deleted, there will still be metrics objects related to it in
+   *          the static registry. There is no way to clean these left over objects up therefore its
+   *          recommended that this option only be set true for long lived thread pools. Creating
+   *          lots of short lived thread pools and registering them can lead to out of memory errors
+   *          over long time periods.
+   * @return ThreadPoolExecutor
+   */
+  public static ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
+      TimeUnit units, final String name, BlockingQueue<Runnable> queue,
+      boolean emitThreadPoolMetrics) {
+    return createThreadPool(coreThreads, maxThreads, timeOut, units, name, queue,
+        OptionalInt.empty(), emitThreadPoolMetrics);
   }
 
   /**
@@ -293,32 +320,32 @@ public class ThreadPools {
   public static ThreadPoolExecutor createThreadPool(int coreThreads, int maxThreads, long timeOut,
       TimeUnit units, final String name, BlockingQueue<Runnable> queue, OptionalInt priority,
       boolean emitThreadPoolMetrics) {
-    ThreadPoolExecutor result = new ThreadPoolExecutor(coreThreads, maxThreads, timeOut, units,
-        queue, new NamedThreadFactory(name, priority)) {
+    var result = new ThreadPoolExecutor(coreThreads, maxThreads, timeOut, units, queue,
+        new NamedThreadFactory(name, priority)) {
 
       @Override
       public void execute(Runnable arg0) {
-        super.execute(Context.current().wrap(arg0));
+        super.execute(TraceUtil.wrap(arg0));
       }
 
       @Override
       public boolean remove(Runnable task) {
-        return super.remove(Context.current().wrap(task));
+        return super.remove(TraceUtil.wrap(task));
       }
 
       @Override
       public <T> Future<T> submit(Callable<T> task) {
-        return super.submit(Context.current().wrap(task));
+        return super.submit(TraceUtil.wrap(task));
       }
 
       @Override
       public <T> Future<T> submit(Runnable task, T result) {
-        return super.submit(Context.current().wrap(task), result);
+        return super.submit(TraceUtil.wrap(task), result);
       }
 
       @Override
       public Future<?> submit(Runnable task) {
-        return super.submit(Context.current().wrap(task));
+        return super.submit(TraceUtil.wrap(task));
       }
     };
     if (timeOut > 0) {
@@ -358,83 +385,56 @@ public class ThreadPools {
    */
   public static ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
       final String name, boolean emitThreadPoolMetrics) {
-    return createScheduledExecutorService(numThreads, name, OptionalInt.empty(),
-        emitThreadPoolMetrics);
-  }
+    var result = new ScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory(name)) {
 
-  /**
-   * Create a named ScheduledThreadPool
-   *
-   * @param numThreads
-   *          number of threads
-   * @param name
-   *          thread pool name
-   * @param priority
-   *          thread priority
-   * @param emitThreadPoolMetrics
-   *          When set to true will emit metrics and register the metrics in a static registry.
-   *          After the thread pool is deleted, there will still be metrics objects related to it in
-   *          the static registry. There is no way to clean these left over objects up therefore its
-   *          recommended that this option only be set true for long lived thread pools. Creating
-   *          lots of short lived thread pools and registering them can lead to out of memory errors
-   *          over long time periods.
-   * @return ScheduledThreadPoolExecutor
-   */
-  private static ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
-      final String name, OptionalInt priority, boolean emitThreadPoolMetrics) {
-    ScheduledThreadPoolExecutor result =
-        new ScheduledThreadPoolExecutor(numThreads, new NamedThreadFactory(name, priority)) {
+      @Override
+      public void execute(Runnable command) {
+        super.execute(TraceUtil.wrap(command));
+      }
 
-          @Override
-          public void execute(Runnable command) {
-            super.execute(Context.current().wrap(command));
-          }
+      @Override
+      public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
+        return super.schedule(TraceUtil.wrap(callable), delay, unit);
+      }
 
-          @Override
-          public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
-            return super.schedule(Context.current().wrap(callable), delay, unit);
-          }
+      @Override
+      public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
+        return super.schedule(TraceUtil.wrap(command), delay, unit);
+      }
 
-          @Override
-          public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
-            return super.schedule(Context.current().wrap(command), delay, unit);
-          }
+      @Override
+      public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay,
+          long period, TimeUnit unit) {
+        return super.scheduleAtFixedRate(TraceUtil.wrap(command), initialDelay, period, unit);
+      }
 
-          @Override
-          public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay,
-              long period, TimeUnit unit) {
-            return super.scheduleAtFixedRate(Context.current().wrap(command), initialDelay, period,
-                unit);
-          }
+      @Override
+      public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay,
+          long delay, TimeUnit unit) {
+        return super.scheduleWithFixedDelay(TraceUtil.wrap(command), initialDelay, delay, unit);
+      }
 
-          @Override
-          public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay,
-              long delay, TimeUnit unit) {
-            return super.scheduleWithFixedDelay(Context.current().wrap(command), initialDelay,
-                delay, unit);
-          }
+      @Override
+      public <T> Future<T> submit(Callable<T> task) {
+        return super.submit(TraceUtil.wrap(task));
+      }
 
-          @Override
-          public <T> Future<T> submit(Callable<T> task) {
-            return super.submit(Context.current().wrap(task));
-          }
+      @Override
+      public <T> Future<T> submit(Runnable task, T result) {
+        return super.submit(TraceUtil.wrap(task), result);
+      }
 
-          @Override
-          public <T> Future<T> submit(Runnable task, T result) {
-            return super.submit(Context.current().wrap(task), result);
-          }
+      @Override
+      public Future<?> submit(Runnable task) {
+        return super.submit(TraceUtil.wrap(task));
+      }
 
-          @Override
-          public Future<?> submit(Runnable task) {
-            return super.submit(Context.current().wrap(task));
-          }
+      @Override
+      public boolean remove(Runnable task) {
+        return super.remove(TraceUtil.wrap(task));
+      }
 
-          @Override
-          public boolean remove(Runnable task) {
-            return super.remove(Context.current().wrap(task));
-          }
-
-        };
+    };
     if (emitThreadPoolMetrics) {
       MetricsUtil.addExecutorServiceMetrics(result, name);
     }
