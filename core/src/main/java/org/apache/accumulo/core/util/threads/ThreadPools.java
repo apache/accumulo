@@ -33,10 +33,9 @@ import java.util.function.IntSupplier;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.opentelemetry.context.Context;
 
 public class ThreadPools {
 
@@ -326,27 +325,27 @@ public class ThreadPools {
 
       @Override
       public void execute(Runnable arg0) {
-        super.execute(Context.current().wrap(arg0));
+        super.execute(TraceUtil.wrap(arg0));
       }
 
       @Override
       public boolean remove(Runnable task) {
-        return super.remove(Context.current().wrap(task));
+        return super.remove(TraceUtil.wrap(task));
       }
 
       @Override
       public <T> Future<T> submit(Callable<T> task) {
-        return super.submit(Context.current().wrap(task));
+        return super.submit(TraceUtil.wrap(task));
       }
 
       @Override
       public <T> Future<T> submit(Runnable task, T result) {
-        return super.submit(Context.current().wrap(task), result);
+        return super.submit(TraceUtil.wrap(task), result);
       }
 
       @Override
       public Future<?> submit(Runnable task) {
-        return super.submit(Context.current().wrap(task));
+        return super.submit(TraceUtil.wrap(task));
       }
     };
     if (timeOut > 0) {
@@ -390,51 +389,49 @@ public class ThreadPools {
 
       @Override
       public void execute(Runnable command) {
-        super.execute(Context.current().wrap(command));
+        super.execute(TraceUtil.wrap(command));
       }
 
       @Override
       public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
-        return super.schedule(Context.current().wrap(callable), delay, unit);
+        return super.schedule(TraceUtil.wrap(callable), delay, unit);
       }
 
       @Override
       public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
-        return super.schedule(Context.current().wrap(command), delay, unit);
+        return super.schedule(TraceUtil.wrap(command), delay, unit);
       }
 
       @Override
       public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay,
           long period, TimeUnit unit) {
-        return super.scheduleAtFixedRate(Context.current().wrap(command), initialDelay, period,
-            unit);
+        return super.scheduleAtFixedRate(TraceUtil.wrap(command), initialDelay, period, unit);
       }
 
       @Override
       public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay,
           long delay, TimeUnit unit) {
-        return super.scheduleWithFixedDelay(Context.current().wrap(command), initialDelay, delay,
-            unit);
+        return super.scheduleWithFixedDelay(TraceUtil.wrap(command), initialDelay, delay, unit);
       }
 
       @Override
       public <T> Future<T> submit(Callable<T> task) {
-        return super.submit(Context.current().wrap(task));
+        return super.submit(TraceUtil.wrap(task));
       }
 
       @Override
       public <T> Future<T> submit(Runnable task, T result) {
-        return super.submit(Context.current().wrap(task), result);
+        return super.submit(TraceUtil.wrap(task), result);
       }
 
       @Override
       public Future<?> submit(Runnable task) {
-        return super.submit(Context.current().wrap(task));
+        return super.submit(TraceUtil.wrap(task));
       }
 
       @Override
       public boolean remove(Runnable task) {
-        return super.remove(Context.current().wrap(task));
+        return super.remove(TraceUtil.wrap(task));
       }
 
     };

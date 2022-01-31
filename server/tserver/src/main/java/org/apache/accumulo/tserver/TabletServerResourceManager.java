@@ -65,6 +65,7 @@ import org.apache.accumulo.core.spi.scan.ScanExecutor;
 import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
@@ -175,8 +176,9 @@ public class TabletServerResourceManager {
               }
             });
 
-        // function to extract scan scan session from runnable
-        Function<Runnable,ScanInfo> extractor = r -> ((ScanSession.ScanMeasurer) r).getScanInfo();
+        // function to extract scan session from runnable
+        Function<Runnable,ScanInfo> extractor =
+            r -> ((ScanSession.ScanMeasurer) TraceUtil.unwrap(r)).getScanInfo();
 
         queue = new PriorityBlockingQueue<>(sec.maxThreads,
             Comparator.comparing(extractor, comparator));

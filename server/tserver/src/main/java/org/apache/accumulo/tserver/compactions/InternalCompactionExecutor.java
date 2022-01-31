@@ -35,6 +35,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -125,6 +126,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
         // priority. This runs periodically, instead of every time something is canceled, to avoid
         // hurting performance.
         queue.removeIf(runnable -> {
+          runnable = TraceUtil.unwrap(runnable);
           InternalJob internalJob;
           if (runnable instanceof InternalJob) {
             internalJob = (InternalJob) runnable;
@@ -145,6 +147,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
   }
 
   private static CompactionJob getJob(Runnable r) {
+    r = TraceUtil.unwrap(r);
     if (r instanceof InternalJob) {
       return ((InternalJob) r).getJob();
     }
@@ -157,7 +160,7 @@ public class InternalCompactionExecutor implements CompactionExecutor {
     var comparator = Comparator.comparing(InternalCompactionExecutor::getJob,
         CompactionJobPrioritizer.JOB_COMPARATOR);
 
-    queue = new PriorityBlockingQueue<Runnable>(100, comparator);
+    queue = new PriorityBlockingQueue<>(100, comparator);
 
     threadPool = ThreadPools.createThreadPool(threads, threads, 60, TimeUnit.SECONDS,
         "compaction." + ceid, queue, false);
