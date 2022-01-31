@@ -232,6 +232,13 @@
         <scope>import</scope>
       </dependency>
       <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>5.8.2</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
         <groupId>com.beust</groupId>
         <artifactId>jcommander</artifactId>
         <version>1.81</version>
@@ -606,16 +613,6 @@
         <version>3.20.0</version>
       </dependency>
       <dependency>
-        <groupId>org.junit.jupiter</groupId>
-        <artifactId>junit-jupiter-api</artifactId>
-        <version>5.8.2</version>
-      </dependency>
-      <dependency>
-        <groupId>org.junit.vintage</groupId>
-        <artifactId>junit-vintage-engine</artifactId>
-        <version>5.8.2</version>
-      </dependency>
-      <dependency>
         <groupId>org.latencyutils</groupId>
         <artifactId>LatencyUtils</artifactId>
         <version>2.0.3</version>
@@ -987,7 +984,6 @@
                 -
                 <unusedDeclaredDependency>org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-grizzly2:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.powermock:powermock-api-easymock:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>junit:junit:jar:*</unusedDeclaredDependency>
                 <!-- spotbugs annotations may or may not be used in each module -->
                 <unusedDeclaredDependency>com.github.spotbugs:spotbugs-annotations:jar:*</unusedDeclaredDependency>
                 <!-- ignore unused native; analysis isn't possible with tar.gz dependency -->
@@ -1092,6 +1088,10 @@
                 </module>
                 <module name="RegexpSinglelineJava">
                   <property name="format" value="import org[.]junit[.]Assert;" />
+                  <property name="message" value="Use static imports for Assert.* methods for consistency" />
+                </module>
+                <module name="RegexpSinglelineJava">
+                  <property name="format" value="org[.]junit[.]jupiter[.]api[.]Assertions;" />
                   <property name="message" value="Use static imports for Assert.* methods for consistency" />
                 </module>
                 <module name="RegexpSinglelineJava">
