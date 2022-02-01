@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.data.InstanceId;
 
 public interface InstanceOperations {
 
@@ -154,6 +155,17 @@ public interface InstanceOperations {
    *
    * @return a String
    * @since 2.0.0
+   *
+   * @deprecated in 2.1.0 Use {@link #getInstanceId()}
    */
+  @Deprecated(since = "2.1.0")
   String getInstanceID();
+
+  /**
+   * Returns a unique ID object that identifies this instance of accumulo.
+   *
+   * @return an InstanceId
+   * @since 2.1.0
+   */
+  InstanceId getInstanceId();
 }

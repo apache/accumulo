@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Authe
 import org.apache.accumulo.core.client.security.tokens.NullToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.Credentials;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,7 +45,7 @@ public class CredentialsTest {
   @Rule
   public TestName test = new TestName();
 
-  private String instanceID = test.getMethodName();
+  private InstanceId instanceID = InstanceId.of(test.getMethodName());
 
   @Test
   public void testToThrift() throws DestroyFailedException {

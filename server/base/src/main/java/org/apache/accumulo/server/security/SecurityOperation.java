@@ -163,7 +163,7 @@ public class SecurityOperation {
   }
 
   protected void authenticate(TCredentials credentials) throws ThriftSecurityException {
-    if (!credentials.getInstanceId().equals(context.getInstanceID()))
+    if (!credentials.getInstanceId().equals(context.getInstanceID().canonical()))
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.INVALID_INSTANCEID);
 

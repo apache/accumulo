@@ -113,7 +113,7 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   @Override
   public String getInstanceId() {
-    return context.getInstanceID();
+    return context.getInstanceID().canonical();
   }
 
   @Override

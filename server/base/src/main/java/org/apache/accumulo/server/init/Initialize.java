@@ -38,6 +38,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -158,9 +159,9 @@ public class Initialize implements KeywordExecutable {
       return false;
     }
 
-    UUID uuid = UUID.randomUUID();
+    InstanceId iid = InstanceId.of(UUID.randomUUID());
     try (ServerContext context =
-        ServerContext.initialize(initConfig.getSiteConf(), instanceName, uuid.toString())) {
+        ServerContext.initialize(initConfig.getSiteConf(), instanceName, iid)) {
       var chooserEnv = new VolumeChooserEnvironmentImpl(Scope.INIT, RootTable.ID, null, context);
       String rootTabletDirName = RootTable.ROOT_TABLET_DIR_NAME;
       String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
@@ -170,12 +171,12 @@ public class Initialize implements KeywordExecutable {
                   .toString();
 
       ZooKeeperInitializer zki = new ZooKeeperInitializer();
-      zki.initialize(zoo, opts.clearInstanceName, uuid.toString(), instanceNamePath,
-          rootTabletDirName, rootTabletFileUri);
-      if (!createDirs(fs, uuid, initConfig.getVolumeUris())) {
+      zki.initialize(zoo, opts.clearInstanceName, iid, instanceNamePath, rootTabletDirName,
+          rootTabletFileUri);
+      if (!createDirs(fs, iid, initConfig.getVolumeUris())) {
         throw new IOException("Problem creating directories on " + fs.getVolumes());
       }
-      var fileSystemInitializer = new FileSystemInitializer(initConfig, zoo, uuid);
+      var fileSystemInitializer = new FileSystemInitializer(initConfig, zoo, iid);
       var rootVol = fs.choose(chooserEnv, initConfig.getVolumeUris());
       var rootPath =
           new Path(rootVol + SEPARATOR + TABLE_DIR + SEPARATOR + RootTable.ID + rootTabletDirName);
@@ -249,7 +250,7 @@ public class Initialize implements KeywordExecutable {
     }
   }
 
-  private static boolean createDirs(VolumeManager fs, UUID uuid, Set<String> baseDirs) {
+  private static boolean createDirs(VolumeManager fs, InstanceId iid, Set<String> baseDirs) {
     try {
       for (String baseDir : baseDirs) {
         fs.mkdirs(
@@ -257,7 +258,7 @@ public class Initialize implements KeywordExecutable {
             new FsPermission("700"));
         Path iidLocation = new Path(baseDir, Constants.INSTANCE_ID_DIR);
         fs.mkdirs(iidLocation);
-        fs.createNewFile(new Path(iidLocation, uuid.toString()));
+        fs.createNewFile(new Path(iidLocation, iid.canonical()));
         log.info("Created directory {}", baseDir);
       }
       return true;
@@ -417,7 +418,7 @@ public class Initialize implements KeywordExecutable {
     Path iidPath = new Path(aBasePath, Constants.INSTANCE_ID_DIR);
     Path versionPath = new Path(aBasePath, Constants.VERSION_DIR);
 
-    UUID uuid = UUID.fromString(VolumeManager.getInstanceIDFromHdfs(iidPath, hadoopConf));
+    InstanceId iid = VolumeManager.getInstanceIDFromHdfs(iidPath, hadoopConf);
     for (Pair<Path,Path> replacementVolume : serverDirs.getVolumeReplacements()) {
       if (aBasePath.equals(replacementVolume.getFirst())) {
         log.error(
@@ -439,7 +440,7 @@ public class Initialize implements KeywordExecutable {
       log.error("Problem getting accumulo data version", e);
       return false;
     }
-    return createDirs(fs, uuid, uinitializedDirs);
+    return createDirs(fs, iid, uinitializedDirs);
   }
 
   private static class Opts extends Help {

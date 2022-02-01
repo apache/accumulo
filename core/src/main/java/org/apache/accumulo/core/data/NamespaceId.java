@@ -46,7 +46,7 @@ public class NamespaceId extends AbstractId<NamespaceId> {
    *
    * @param canonical
    *          Namespace ID string
-   * @return Namespace.ID object
+   * @return NamespaceId object
    */
   public static NamespaceId of(final String canonical) {
     try {

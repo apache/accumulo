@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
@@ -84,7 +85,7 @@ public class ChangeSecret {
 
         verifyAccumuloIsDown(context, opts.oldPass);
 
-        final String newInstanceId = UUID.randomUUID().toString();
+        final InstanceId newInstanceId = InstanceId.of(UUID.randomUUID());
         updateHdfs(serverDirs, fs, newInstanceId);
         rewriteZooKeeperInstance(context, newInstanceId, opts.oldPass, opts.newPass);
         if (opts.oldPass != null) {
@@ -135,7 +136,7 @@ public class ChangeSecret {
   }
 
   private static void rewriteZooKeeperInstance(final ServerContext context,
-      final String newInstanceId, String oldPass, String newPass) throws Exception {
+      final InstanceId newInstanceId, String oldPass, String newPass) throws Exception {
     final ZooReaderWriter orig = new ZooReaderWriter(context.getZooKeepers(),
         context.getZooKeepersSessionTimeOut(), oldPass);
     final ZooReaderWriter new_ = new ZooReaderWriter(context.getZooKeepers(),
@@ -143,7 +144,7 @@ public class ChangeSecret {
 
     String root = context.getZooKeeperRoot();
     recurse(orig, root, (zoo, path) -> {
-      String newPath = path.replace(context.getInstanceID(), newInstanceId);
+      String newPath = path.replace(context.getInstanceID().canonical(), newInstanceId.canonical());
       byte[] data = zoo.getData(path);
       List<ACL> acls = orig.getZooKeeper().getACL(path, new Stat());
       if (acls.containsAll(Ids.READ_ACL_UNSAFE)) {
@@ -166,10 +167,11 @@ public class ChangeSecret {
     });
     String path = "/accumulo/instances/" + context.getInstanceName();
     orig.recursiveDelete(path, NodeMissingPolicy.SKIP);
-    new_.putPersistentData(path, newInstanceId.getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
+    new_.putPersistentData(path, newInstanceId.canonical().getBytes(UTF_8),
+        NodeExistsPolicy.OVERWRITE);
   }
 
-  private static void updateHdfs(ServerDirs serverDirs, VolumeManager fs, String newInstanceId)
+  private static void updateHdfs(ServerDirs serverDirs, VolumeManager fs, InstanceId newInstanceId)
       throws IOException {
     // Need to recreate the instanceId on all of them to keep consistency
     for (Volume v : fs.getVolumes()) {
@@ -182,7 +184,7 @@ public class ChangeSecret {
         throw new IOException("Could not create directory " + instanceId);
       }
 
-      v.getFileSystem().create(new Path(instanceId, newInstanceId)).close();
+      v.getFileSystem().create(new Path(instanceId, newInstanceId.canonical())).close();
     }
   }
 

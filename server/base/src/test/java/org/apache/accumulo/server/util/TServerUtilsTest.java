@@ -39,6 +39,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ClientService.Processor;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -66,7 +67,7 @@ public class TServerUtilsTest {
     expect(context.getZooKeepers()).andReturn("").anyTimes();
     expect(context.getInstanceName()).andReturn("instance").anyTimes();
     expect(context.getZooKeepersSessionTimeOut()).andReturn(1).anyTimes();
-    expect(context.getInstanceID()).andReturn("11111").anyTimes();
+    expect(context.getInstanceID()).andReturn(InstanceId.of("11111")).anyTimes();
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
     expect(context.getThriftServerType()).andReturn(ThriftServerType.THREADPOOL).anyTimes();
     expect(context.getServerSslParams()).andReturn(null).anyTimes();

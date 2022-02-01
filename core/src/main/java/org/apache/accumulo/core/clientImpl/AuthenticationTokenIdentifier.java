@@ -25,6 +25,8 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.securityImpl.thrift.TAuthenticationTokenIdentifier;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.ThriftMessageUtil;
@@ -77,12 +79,12 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
     return impl.getExpirationDate();
   }
 
-  public void setInstanceId(String instanceId) {
-    impl.setInstanceId(instanceId);
+  public void setInstanceId(InstanceId instanceId) {
+    impl.setInstanceId(instanceId.canonical());
   }
 
-  public String getInstanceId() {
-    return impl.getInstanceId();
+  public InstanceId getInstanceId() {
+    return InstanceId.of(impl.getInstanceId());
   }
 
   public TAuthenticationTokenIdentifier getThriftIdentifier() {
