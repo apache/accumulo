@@ -143,7 +143,7 @@ public final class HostAndPort implements Serializable {
    *           if nothing meaningful could be parsed.
    */
   public static HostAndPort fromString(String hostPortString) {
-    hostPortString = java.util.Objects.requireNonNull(hostPortString);
+    java.util.Objects.requireNonNull(hostPortString);
     String host;
     String portString = null;
     boolean hasBracketlessColons = false;
