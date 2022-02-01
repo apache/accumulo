@@ -439,11 +439,11 @@ public class ClientContext implements AccumuloClient {
    */
   public String getInstanceID() {
     ensureOpen();
-    final String instanceName = info.getInstanceName();
     if (instanceId == null) {
+      final String instanceName = info.getInstanceName();
       instanceId = getInstanceID(zooCache, instanceName);
+      verifyInstanceId(zooCache, instanceId, instanceName);
     }
-    verifyInstanceId(zooCache, instanceId, instanceName);
     return instanceId;
   }
 
