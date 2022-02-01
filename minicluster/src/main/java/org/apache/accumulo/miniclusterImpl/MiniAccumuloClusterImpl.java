@@ -503,7 +503,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         for (String name : zrw.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
           String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
           byte[] bytes = zrw.getData(instanceNamePath);
-          String iid = new String(bytes, UTF_8);
+          InstanceId iid = InstanceId.of(new String(bytes, UTF_8));
           if (iid.equals(instanceIdFromFile)) {
             instanceName = name;
           }

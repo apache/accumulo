@@ -69,7 +69,7 @@ public final class SystemCredentials extends Credentials {
 
   @Override
   public TCredentials toThrift(InstanceId instanceID) {
-    if (!AS_THRIFT.getInstanceId().equals(instanceID))
+    if (!AS_THRIFT.getInstanceId().equals(instanceID.canonical()))
       throw new IllegalArgumentException("Unexpected instance used for "
           + SystemCredentials.class.getSimpleName() + ": " + instanceID);
     return AS_THRIFT;
