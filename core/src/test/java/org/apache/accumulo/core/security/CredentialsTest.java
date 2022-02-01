@@ -45,10 +45,11 @@ public class CredentialsTest {
   @Rule
   public TestName test = new TestName();
 
-  private InstanceId instanceID = InstanceId.of(test.getMethodName());
+  private InstanceId instanceID;
 
   @Test
   public void testToThrift() throws DestroyFailedException {
+    instanceID = InstanceId.of(test.getMethodName());
     // verify thrift serialization
     Credentials creds = new Credentials("test", new PasswordToken("testing"));
     TCredentials tCreds = creds.toThrift(instanceID);
@@ -72,6 +73,7 @@ public class CredentialsTest {
 
   @Test
   public void roundtripThrift() {
+    instanceID = InstanceId.of(test.getMethodName());
     Credentials creds = new Credentials("test", new PasswordToken("testing"));
     TCredentials tCreds = creds.toThrift(instanceID);
     Credentials roundtrip = Credentials.fromThrift(tCreds);
@@ -80,6 +82,7 @@ public class CredentialsTest {
 
   @Test
   public void testEqualsAndHashCode() {
+    instanceID = InstanceId.of(test.getMethodName());
     Credentials nullNullCreds = new Credentials(null, null);
     Credentials abcNullCreds = new Credentials("abc", new NullToken());
     Credentials cbaNullCreds = new Credentials("cba", new NullToken());
@@ -105,6 +108,7 @@ public class CredentialsTest {
 
   @Test
   public void testCredentialsSerialization() {
+    instanceID = InstanceId.of(test.getMethodName());
     Credentials creds = new Credentials("a:b-c", new PasswordToken("d-e-f".getBytes(UTF_8)));
     String serialized = creds.serialize();
     Credentials result = Credentials.deserialize(serialized);
@@ -121,6 +125,7 @@ public class CredentialsTest {
 
   @Test
   public void testToString() {
+    instanceID = InstanceId.of(test.getMethodName());
     Credentials creds = new Credentials(null, null);
     assertEquals(Credentials.class.getName() + ":null:null:<hidden>", creds.toString());
     creds = new Credentials("", new NullToken());
