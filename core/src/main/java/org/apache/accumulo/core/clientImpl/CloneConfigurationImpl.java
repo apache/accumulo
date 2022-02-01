@@ -53,23 +53,27 @@ public class CloneConfigurationImpl implements CloneConfiguration, CloneConfigur
 
   public CloneConfigurationImpl() {}
 
+  @Override
   public boolean isFlush() {
     Preconditions.checkState(built);
     return flush;
   }
 
+  @Override
   public Map<String,String> getPropertiesToSet() {
     Preconditions.checkState(built);
     return (propertiesToSet == null ? Collections.<String,String>emptyMap()
         : Collections.unmodifiableMap(propertiesToSet));
   }
 
+  @Override
   public Set<String> getPropertiesToExclude() {
     Preconditions.checkState(built);
     return (propertiesToExclude == null ? Collections.<String>emptySet()
         : Collections.unmodifiableSet(propertiesToExclude));
   }
 
+  @Override
   public boolean isKeepOffline() {
     Preconditions.checkState(built);
     return keepOffline;

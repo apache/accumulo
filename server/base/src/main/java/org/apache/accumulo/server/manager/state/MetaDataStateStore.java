@@ -56,6 +56,7 @@ class MetaDataStateStore implements TabletStateStore {
     return new MetaDataTableScanner(context, TabletsSection.getRange(), state, targetTableName);
   }
 
+  @Override
   public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
     try (var tabletsMutator = ample.mutateTablets()) {
       for (Assignment assignment : assignments) {
