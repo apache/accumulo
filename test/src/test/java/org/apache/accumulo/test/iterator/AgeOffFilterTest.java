@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.iterator;
 
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -33,8 +32,6 @@ import org.apache.accumulo.iteratortest.IteratorTestOutput;
 import org.apache.accumulo.iteratortest.junit4.BaseJUnit4IteratorTest;
 import org.apache.accumulo.iteratortest.testcases.IteratorTestCase;
 import org.junit.runners.Parameterized.Parameters;
-
-import com.google.common.collect.Iterables;
 
 /**
  * Iterator test harness tests for AgeOffFilter
@@ -56,7 +53,7 @@ public class AgeOffFilterTest extends BaseJUnit4IteratorTest {
   }
 
   private static final TreeMap<Key,Value> INPUT_DATA = createInputData();
-  private static final TreeMap<Key,Value> OUTPUT_DATA = createOutputData();
+  private static final TreeMap<Key,Value> OUTPUT_DATA = new TreeMap<>();
 
   private static TreeMap<Key,Value> createInputData() {
     TreeMap<Key,Value> data = new TreeMap<>();
@@ -98,19 +95,6 @@ public class AgeOffFilterTest extends BaseJUnit4IteratorTest {
    */
   private static long nowDelta(long seconds) {
     return NOW + (seconds * 1000);
-  }
-
-  private static TreeMap<Key,Value> createOutputData() {
-    TreeMap<Key,Value> data = new TreeMap<>();
-
-    Iterable<Entry<Key,Value>> filtered =
-        Iterables.filter(data.entrySet(), input -> NOW - input.getKey().getTimestamp() > TTL);
-
-    for (Entry<Key,Value> entry : filtered) {
-      data.put(entry.getKey(), entry.getValue());
-    }
-
-    return data;
   }
 
   private static IteratorTestInput getIteratorInput() {
