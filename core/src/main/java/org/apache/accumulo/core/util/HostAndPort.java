@@ -19,6 +19,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * This class was copied from Guava release 23.0 to replace the older Guava 14 version that had been
@@ -143,7 +144,7 @@ public final class HostAndPort implements Serializable {
    *           if nothing meaningful could be parsed.
    */
   public static HostAndPort fromString(String hostPortString) {
-    java.util.Objects.requireNonNull(hostPortString);
+    Objects.requireNonNull(hostPortString, "hostPortString variable was null!");
     String host;
     String portString = null;
     boolean hasBracketlessColons = false;
