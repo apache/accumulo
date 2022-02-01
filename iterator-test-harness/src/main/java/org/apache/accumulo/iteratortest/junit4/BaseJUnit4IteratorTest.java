@@ -96,9 +96,9 @@ public class BaseJUnit4IteratorTest {
     IteratorTestReport report = reports.get(0);
     assertNotNull(report);
 
-    assertTrue(report.getSummary(), report.didTestSucceed());
-
     // Present for manual verification
     log.trace("Expected: {}, Actual: {}", report.getExpectedOutput(), report.getActualOutput());
+
+    assertTrue(report.getSummary(), report.didTestSucceed());
   }
 }
