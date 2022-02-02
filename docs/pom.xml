@@ -30,6 +30,13 @@
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-core</artifactId>
+      <scope>runtime</scope>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-reload4j</artifactId>
+      <scope>runtime</scope>
       <optional>true</optional>
     </dependency>
   </dependencies>
@@ -109,7 +116,7 @@
             <phase>compile</phase>
             <configuration>
               <mainClass>org.apache.accumulo.core.conf.ConfigurationDocGen</mainClass>
-              <classpathScope>compile</classpathScope>
+              <classpathScope>runtime</classpathScope>
               <arguments>
                 <argument>--generate-html</argument>
                 <argument>${project.build.directory}/config.html</argument>
@@ -124,7 +131,7 @@
             <phase>compile</phase>
             <configuration>
               <mainClass>org.apache.accumulo.core.conf.ConfigurationDocGen</mainClass>
-              <classpathScope>compile</classpathScope>
+              <classpathScope>runtime</classpathScope>
               <arguments>
                 <argument>--generate-asciidoc</argument>
                 <argument>${project.build.directory}/asciidoc/appendices/config.txt</argument>
