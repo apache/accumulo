@@ -155,7 +155,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   private ServerAddress compactorAddress = null;
 
   // Exposed for tests
-  protected volatile Boolean shutdown = false;
+  protected volatile boolean shutdown = false;
 
   private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
 
@@ -626,10 +626,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   protected Supplier<UUID> getNextId() {
-    Supplier<UUID> supplier = () -> {
-      return UUID.randomUUID();
-    };
-    return supplier;
+    return UUID::randomUUID;
   }
 
   protected long getWaitTimeBetweenCompactionChecks() {
