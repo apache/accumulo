@@ -831,7 +831,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     } finally {
       // Shutdown local thrift server
       LOG.info("Stopping Thrift Servers");
-      TServerUtils.stopTServer(compactorAddress.server);
+      if (compactorAddress.server != null) {
+        compactorAddress.server.stop();
+      }
 
       try {
         LOG.debug("Closing filesystems");

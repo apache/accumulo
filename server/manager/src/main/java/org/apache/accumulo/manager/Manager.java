@@ -1232,7 +1232,10 @@ public class Manager extends AbstractServer
     } catch (InterruptedException e) {
       throw new IllegalStateException("Exception stopping replication workers", e);
     }
-    TServerUtils.stopTServer(replServer.get());
+    var nullableReplServer = replServer.get();
+    if (nullableReplServer != null) {
+      nullableReplServer.stop();
+    }
 
     // Signal that we want it to stop, and wait for it to do so.
     if (authenticationTokenKeyManager != null) {

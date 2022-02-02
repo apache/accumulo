@@ -906,10 +906,14 @@ public class TabletServer extends AbstractServer {
       }
     }
     log.debug("Stopping Replication Server");
-    TServerUtils.stopTServer(this.replServer);
+    if (this.replServer != null) {
+      this.replServer.stop();
+    }
 
     log.debug("Stopping Thrift Servers");
-    TServerUtils.stopTServer(server);
+    if (server != null) {
+      server.stop();
+    }
 
     try {
       log.debug("Closing filesystems");
