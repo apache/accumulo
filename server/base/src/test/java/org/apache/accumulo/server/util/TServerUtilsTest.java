@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -35,7 +33,6 @@ import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ExecutorService;
 
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Iface;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Processor;
@@ -49,7 +46,6 @@ import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.thrift.server.TServer;
-import org.apache.thrift.transport.TServerSocket;
 import org.easymock.EasyMock;
 import org.junit.After;
 import org.junit.Before;
@@ -58,60 +54,6 @@ import org.junit.Test;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class TServerUtilsTest {
-
-  private static class TServerWithoutES extends TServer {
-    boolean stopCalled;
-
-    TServerWithoutES(TServerSocket socket) {
-      super(new TServer.Args(socket));
-      stopCalled = false;
-    }
-
-    @Override
-    public void serve() {}
-
-    @Override
-    public void stop() {
-      stopCalled = true;
-    }
-  }
-
-  private static class TServerWithES extends TServerWithoutES {
-    final ExecutorService executorService_;
-
-    TServerWithES(TServerSocket socket) {
-      super(socket);
-      executorService_ = createMock(ExecutorService.class);
-      expect(executorService_.shutdownNow()).andReturn(null);
-      replay(executorService_);
-    }
-  }
-
-  @Test
-  public void testStopTServer_ES() {
-    TServerSocket socket = createNiceMock(TServerSocket.class);
-    replay(socket);
-    TServerWithES s = new TServerWithES(socket);
-    TServerUtils.stopTServer(s);
-    assertTrue(s.stopCalled);
-    verify(socket, s.executorService_);
-  }
-
-  @Test
-  public void testStopTServer_NoES() {
-    TServerSocket socket = createNiceMock(TServerSocket.class);
-    replay(socket);
-    TServerWithoutES s = new TServerWithoutES(socket);
-    TServerUtils.stopTServer(s);
-    assertTrue(s.stopCalled);
-    verify(socket);
-  }
-
-  @Test
-  public void testStopTServer_Null() {
-    TServerUtils.stopTServer(null);
-    // not dying is enough
-  }
 
   private ServerContext context;
   private final ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
@@ -149,8 +91,8 @@ public class TServerUtilsTest {
       assertNotNull(server);
       assertTrue(address.getAddress().getPort() > 1024);
     } finally {
-      if (null != server) {
-        TServerUtils.stopTServer(server);
+      if (server != null) {
+        server.stop();
       }
     }
   }
@@ -167,8 +109,8 @@ public class TServerUtilsTest {
       assertNotNull(server);
       assertEquals(port, address.getAddress().getPort());
     } finally {
-      if (null != server) {
-        TServerUtils.stopTServer(server);
+      if (server != null) {
+        server.stop();
       }
     }
   }
@@ -203,8 +145,8 @@ public class TServerUtilsTest {
       assertNotNull(server);
       assertEquals(port[1], address.getAddress().getPort());
     } finally {
-      if (null != server) {
-        TServerUtils.stopTServer(server);
+      if (server != null) {
+        server.stop();
       }
 
     }
@@ -266,8 +208,8 @@ public class TServerUtilsTest {
       // Finally ensure that the TServer is using the last port (i.e. port search worked)
       assertTrue(address.getAddress().getPort() == tserverFinalPort);
     } finally {
-      if (null != server) {
-        TServerUtils.stopTServer(server);
+      if (server != null) {
+        server.stop();
       }
 
     }
@@ -287,8 +229,8 @@ public class TServerUtilsTest {
       assertTrue(
           port[0] == address.getAddress().getPort() || port[1] == address.getAddress().getPort());
     } finally {
-      if (null != server) {
-        TServerUtils.stopTServer(server);
+      if (server != null) {
+        server.stop();
       }
     }
   }
@@ -310,8 +252,8 @@ public class TServerUtilsTest {
       assertNotNull(server);
       assertEquals(port[1], address.getAddress().getPort());
     } finally {
-      if (null != server) {
-        TServerUtils.stopTServer(server);
+      if (server != null) {
+        server.stop();
       }
     }
   }
