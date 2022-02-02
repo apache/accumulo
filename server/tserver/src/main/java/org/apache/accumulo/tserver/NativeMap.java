@@ -46,7 +46,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.util.PreAllocatedArray;
-import org.apache.accumulo.tserver.memory.NativeMapLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,10 +65,6 @@ import com.google.common.annotations.VisibleForTesting;
 public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
   private static final Logger log = LoggerFactory.getLogger(NativeMap.class);
-
-  static {
-    NativeMapLoader.load();
-  }
 
   private final AtomicLong nmPtr = new AtomicLong(0);
 
