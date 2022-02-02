@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.security;
 
+import static org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier.createTAuthIdentifier;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
@@ -29,6 +30,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.securityImpl.thrift.TAuthenticationTokenIdentifier;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.junit.Test;
 
@@ -37,7 +39,8 @@ public class AuthenticationTokenIdentifierTest {
   @Test
   public void testUgi() {
     String principal = "user";
-    AuthenticationTokenIdentifier token = new AuthenticationTokenIdentifier(principal);
+    AuthenticationTokenIdentifier token =
+        new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
     UserGroupInformation actual = token.getUser(),
         expected = UserGroupInformation.createRemoteUser(principal);
     assertEquals(expected.getAuthenticationMethod(), actual.getAuthenticationMethod());
@@ -47,9 +50,11 @@ public class AuthenticationTokenIdentifierTest {
   @Test
   public void testEquality() {
     String principal = "user";
-    AuthenticationTokenIdentifier token = new AuthenticationTokenIdentifier(principal);
+    AuthenticationTokenIdentifier token =
+        new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
     assertEquals(token, token);
-    AuthenticationTokenIdentifier newToken = new AuthenticationTokenIdentifier(principal);
+    AuthenticationTokenIdentifier newToken =
+        new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
     assertEquals(token, newToken);
     assertEquals(token.hashCode(), newToken.hashCode());
   }
@@ -57,13 +62,15 @@ public class AuthenticationTokenIdentifierTest {
   @Test
   public void testExtendedEquality() {
     String principal = "user";
-    AuthenticationTokenIdentifier token = new AuthenticationTokenIdentifier(principal);
+    AuthenticationTokenIdentifier token =
+        new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
     assertEquals(token, token);
     AuthenticationTokenIdentifier newToken =
-        new AuthenticationTokenIdentifier(principal, 1, 5L, 10L, "uuid");
+        new AuthenticationTokenIdentifier(createTAuthIdentifier(principal, 1, 5L, 10L, "uuid"));
     assertNotEquals(token, newToken);
     assertNotEquals(token.hashCode(), newToken.hashCode());
-    AuthenticationTokenIdentifier dblNewToken = new AuthenticationTokenIdentifier(principal);
+    AuthenticationTokenIdentifier dblNewToken =
+        new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
     dblNewToken.setKeyId(1);
     dblNewToken.setIssueDate(5L);
     dblNewToken.setExpirationDate(10L);
@@ -73,14 +80,16 @@ public class AuthenticationTokenIdentifierTest {
   @Test
   public void testToString() {
     String principal = "my_special_principal";
-    AuthenticationTokenIdentifier token = new AuthenticationTokenIdentifier(principal);
+    AuthenticationTokenIdentifier token =
+        new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
     assertTrue(token.toString().contains(principal));
   }
 
   @Test
   public void testSerialization() throws IOException {
     String principal = "my_special_principal";
-    AuthenticationTokenIdentifier token = new AuthenticationTokenIdentifier(principal);
+    AuthenticationTokenIdentifier token =
+        new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream out = new DataOutputStream(baos);
     token.write(out);
@@ -95,7 +104,8 @@ public class AuthenticationTokenIdentifierTest {
   @Test
   public void testTokenKind() {
     String principal = "my_special_principal";
-    AuthenticationTokenIdentifier token = new AuthenticationTokenIdentifier(principal);
+    AuthenticationTokenIdentifier token =
+        new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
     assertEquals(AuthenticationTokenIdentifier.TOKEN_KIND, token.getKind());
   }
 

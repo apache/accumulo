@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
+import org.apache.accumulo.core.securityImpl.thrift.TAuthenticationTokenIdentifier;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.token.SecretManager;
 import org.apache.hadoop.security.token.Token;
@@ -77,24 +78,11 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
     this.tokenMaxLifetime = tokenMaxLifetime;
   }
 
-  @Override
-  protected byte[] createPassword(AuthenticationTokenIdentifier identifier) {
-    DelegationTokenConfig cfg = identifier.getConfig();
-
+  private byte[] createPassword(AuthenticationTokenIdentifier identifier,
+      DelegationTokenConfig cfg) {
     long now = System.currentTimeMillis();
-    final AuthenticationKey secretKey;
-    synchronized (this) {
-      secretKey = currentKey;
-    }
-    identifier.setKeyId(secretKey.getKeyId());
     identifier.setIssueDate(now);
-    long expiration = now + tokenMaxLifetime;
-    // Catch overflow
-    if (expiration < now) {
-      expiration = Long.MAX_VALUE;
-    }
-    identifier.setExpirationDate(expiration);
-
+    identifier.setExpirationDate(calculateExpirationDate());
     // Limit the lifetime if the user requests it
     if (cfg != null) {
       long requestedLifetime = cfg.getTokenLifetime(TimeUnit.MILLISECONDS);
@@ -113,8 +101,32 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
         identifier.setExpirationDate(requestedExpirationDate);
       }
     }
+    return createPassword(identifier);
+  }
 
+  private long calculateExpirationDate() {
+    long now = System.currentTimeMillis();
+    long expiration = now + tokenMaxLifetime;
+    // Catch overflow
+    if (expiration < now) {
+      expiration = Long.MAX_VALUE;
+    }
+    return expiration;
+  }
+
+  @Override
+  protected byte[] createPassword(AuthenticationTokenIdentifier identifier) {
+    final AuthenticationKey secretKey;
+    synchronized (this) {
+      secretKey = currentKey;
+    }
+    identifier.setKeyId(secretKey.getKeyId());
     identifier.setInstanceId(instanceID);
+
+    if (!identifier.isSetIssueDate())
+      identifier.setIssueDate(System.currentTimeMillis());
+    if (!identifier.isSetExpirationDate())
+      identifier.setExpirationDate(calculateExpirationDate());
     return createPassword(identifier.getBytes(), secretKey.getKey());
   }
 
@@ -138,7 +150,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
   @Override
   public AuthenticationTokenIdentifier createIdentifier() {
     // Return our TokenIdentifier implementation
-    return new AuthenticationTokenIdentifier();
+    return new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier());
   }
 
   /**
@@ -155,17 +167,16 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
     requireNonNull(username);
     requireNonNull(cfg);
 
-    final AuthenticationTokenIdentifier id = new AuthenticationTokenIdentifier(username, cfg);
+    var id = new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(username));
 
     final StringBuilder svcName = new StringBuilder(DelegationTokenImpl.SERVICE_NAME);
-    if (id.getInstanceId() != null) {
-      svcName.append("-").append(id.getInstanceId());
-    }
+    svcName.append("-").append(id.getInstanceId());
+
     // Create password will update the state on the identifier given currentKey. Need to call this
     // before serializing the identifier
     byte[] password;
     try {
-      password = createPassword(id);
+      password = createPassword(id, cfg);
     } catch (RuntimeException e) {
       throw new AccumuloException(e.getMessage());
     }
