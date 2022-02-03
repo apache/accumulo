@@ -159,10 +159,9 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <!-- 1.2.18.4 can't be used because ZK complains that the JMX stuff is missing -->
         <groupId>ch.qos.reload4j</groupId>
         <artifactId>reload4j</artifactId>
-        <version>1.2.18.3</version>
+        <version>1.2.18.4</version>
       </dependency>
       <dependency>
         <groupId>com.beust</groupId>
