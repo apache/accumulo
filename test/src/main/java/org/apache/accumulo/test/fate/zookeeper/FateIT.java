@@ -153,12 +153,14 @@ public class FateIT {
       TStatus s = getTxStatus(zk, txid);
       while (!s.equals(TStatus.SUCCESSFUL)) {
         s = getTxStatus(zk, txid);
+        Thread.sleep(10);
       }
       // Check that it gets removed
       boolean errorSeen = false;
       while (!errorSeen) {
         try {
           s = getTxStatus(zk, txid);
+          Thread.sleep(10);
         } catch (KeeperException e) {
           if (e.code() == KeeperException.Code.NONODE) {
             errorSeen = true;
@@ -173,7 +175,7 @@ public class FateIT {
     }
   }
 
-  public static void inCall() throws InterruptedException {
+  private static void inCall() throws InterruptedException {
     // signal that call started
     callStarted.countDown();
     // wait for the signal to exit the method
@@ -186,7 +188,7 @@ public class FateIT {
    */
   private static TStatus getTxStatus(ZooReaderWriter zrw, long txid)
       throws KeeperException, InterruptedException {
-    String txdir = String.format("%s/tx_%016x", ZK_ROOT + Constants.ZFATE, txid);
+    String txdir = String.format("%s%s/tx_%016x", ZK_ROOT, Constants.ZFATE, txid);
     return TStatus.valueOf(new String(zrw.getData(txdir), UTF_8));
   }
 
