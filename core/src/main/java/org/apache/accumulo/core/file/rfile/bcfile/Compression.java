@@ -30,7 +30,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CodecPool;
 import org.apache.hadoop.io.compress.CompressionCodec;
@@ -243,8 +242,7 @@ public final class Compression {
       private static final String USE_QAT_PROPERTY = "accumulo.rfile.compression.quickassist";
 
       /** Intel® QuickAssist codec **/
-      private static final String DEFAULT_QAT_CLASS =
-          "org.apache.hadoop.io.compress.QatCodec.class";
+      private static final String DEFAULT_QAT_CLASS = "org.apache.hadoop.io.compress.QatCodec";
 
       /**
        * QAT Buffer size option
@@ -342,11 +340,9 @@ public final class Compression {
 
             CompressionCodec c =
                 (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
-            if (c instanceof Configurable) {
-              ((Configurable) c).setConf(myConf);
-            }
+            c.getCompressorType();
             return c;
-          } catch (ClassNotFoundException e) {
+          } catch (Exception e) {
             LOG.error("Unable to find QAT codec class", e);
           }
           return null;
