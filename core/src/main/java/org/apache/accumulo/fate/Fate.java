@@ -81,6 +81,9 @@ public class Fate<T> {
 
               if (deferTime == 0) {
                 prevOp = op;
+                if (status.equals(TStatus.SUBMITTED)) {
+                  store.setStatus(tid, TStatus.IN_PROGRESS);
+                }
                 op = op.call(tid, environment);
               } else
                 continue;
@@ -284,7 +287,7 @@ public class Fate<T> {
 
         store.setProperty(tid, DEBUG_PROP, repo.getDescription());
 
-        store.setStatus(tid, TStatus.IN_PROGRESS);
+        store.setStatus(tid, TStatus.SUBMITTED);
       }
     } finally {
       store.unreserve(tid, 0);
@@ -303,6 +306,7 @@ public class Fate<T> {
     try {
       switch (store.getStatus(tid)) {
         case NEW:
+        case SUBMITTED:
         case FAILED:
         case SUCCESSFUL:
           store.delete(tid);

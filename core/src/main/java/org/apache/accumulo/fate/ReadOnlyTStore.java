@@ -36,7 +36,9 @@ public interface ReadOnlyTStore<T> {
   enum TStatus {
     /** Unseeded transaction */
     NEW,
-    /** Transaction is eligible to be executing */
+    /** Transaction that is eligible to be executed */
+    SUBMITTED,
+    /** Transaction that is executing */
     IN_PROGRESS,
     /** Transaction has failed, and is in the process of being rolled back */
     FAILED_IN_PROGRESS,

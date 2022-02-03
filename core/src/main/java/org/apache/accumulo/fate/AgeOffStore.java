@@ -94,6 +94,7 @@ public class AgeOffStore<T> implements TStore<T> {
         try {
           switch (store.getStatus(txid)) {
             case NEW:
+            case SUBMITTED:
             case FAILED:
             case SUCCESSFUL:
               store.delete(txid);
@@ -126,6 +127,7 @@ public class AgeOffStore<T> implements TStore<T> {
       try {
         switch (store.getStatus(txid)) {
           case NEW:
+          case SUBMITTED:
           case FAILED:
           case SUCCESSFUL:
             addCandidate(txid);
@@ -190,6 +192,7 @@ public class AgeOffStore<T> implements TStore<T> {
     store.setStatus(tid, status);
 
     switch (status) {
+      case SUBMITTED:
       case IN_PROGRESS:
       case FAILED_IN_PROGRESS:
         removeCandidate(tid);
