@@ -151,7 +151,7 @@ public class FateIT {
       finishCall.countDown();
       // Check that it transitions to SUCCESSFUL
       TStatus s = getTxStatus(zk, txid);
-      while (!s.equals(TStatus.SUCCESSFUL)) {
+      while (s != TStatus.SUCCESSFUL) {
         s = getTxStatus(zk, txid);
         Thread.sleep(10);
       }
