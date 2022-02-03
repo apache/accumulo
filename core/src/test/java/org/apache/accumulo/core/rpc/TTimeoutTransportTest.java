@@ -60,7 +60,7 @@ public class TTimeoutTransportTest {
     expectedSocketSetup(s);
 
     // Connect to the addr
-    s.connect(addr);
+    s.connect(addr, 1);
     expectLastCall().andThrow(new IOException());
 
     // The socket should be closed after the above IOException
@@ -69,7 +69,7 @@ public class TTimeoutTransportTest {
     replay(addr, s, timeoutTransport);
 
     try {
-      timeoutTransport.openSocket(addr);
+      timeoutTransport.openSocket(addr, 1);
       fail("Expected to catch IOException but got none");
     } catch (IOException e) {
       // Expected
@@ -93,7 +93,7 @@ public class TTimeoutTransportTest {
     expectedSocketSetup(s);
 
     // Connect to the addr
-    s.connect(addr);
+    s.connect(addr, (int) timeout);
     expectLastCall().once();
 
     expect(timeoutTransport.wrapInputStream(s, timeout)).andThrow(new IOException());
@@ -130,7 +130,7 @@ public class TTimeoutTransportTest {
     expectedSocketSetup(s);
 
     // Connect to the addr
-    s.connect(addr);
+    s.connect(addr, (int) timeout);
     expectLastCall().once();
 
     // Input stream is set up
