@@ -81,7 +81,7 @@ public class Fate<T> {
 
               if (deferTime == 0) {
                 prevOp = op;
-                if (status.equals(TStatus.SUBMITTED)) {
+                if (status == TStatus.SUBMITTED) {
                   store.setStatus(tid, TStatus.IN_PROGRESS);
                 }
                 op = op.call(tid, environment);
