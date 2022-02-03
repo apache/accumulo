@@ -307,7 +307,7 @@ public class ServerContext extends ClientContext {
    * Check to see if this version of Accumulo can run against or upgrade the passed in data version.
    */
   public static void ensureDataVersionCompatible(int dataVersion) {
-    if (!(AccumuloDataVersion.CAN_RUN.contains(dataVersion))) {
+    if (!AccumuloDataVersion.CAN_RUN.contains(dataVersion)) {
       throw new IllegalStateException("This version of accumulo (" + Constants.VERSION
           + ") is not compatible with files stored using data version " + dataVersion);
     }

@@ -760,7 +760,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           }
 
           if (compactionThread.isInterrupted() || JOB_HOLDER.isCancelled()
-              || ((err.get() != null && err.get().getClass().equals(InterruptedException.class)))) {
+              || (err.get() != null && err.get().getClass().equals(InterruptedException.class))) {
             LOG.warn("Compaction thread was interrupted, sending CANCELLED state");
             try {
               TCompactionStatusUpdate update = new TCompactionStatusUpdate(

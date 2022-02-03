@@ -80,7 +80,7 @@ public abstract class SynchronizedServerFilter implements SortedKeyValueIterator
   private void findTop() throws IOException {
     while (source.hasTop()) {
       Key top = source.getTopKey();
-      if (top.isDeleted() || (accept(top, source.getTopValue()))) {
+      if (top.isDeleted() || accept(top, source.getTopValue())) {
         break;
       }
       source.next();

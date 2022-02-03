@@ -728,7 +728,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     final int SELECTION_THRESHOLD = 1;
 
     // stepSize can never be greater than 1 due to the if-loop check above.
-    final double stepSize = (maxSplits + 1) / (double) (existingSplits.size());
+    final double stepSize = (maxSplits + 1) / (double) existingSplits.size();
     double selectionTrigger = 0.0;
 
     for (Text existingSplit : existingSplits) {

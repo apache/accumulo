@@ -142,10 +142,10 @@ public class AESCryptoService implements CryptoService {
     switch (parsed.getCryptoServiceVersion()) {
       case AESCBCCryptoModule.VERSION:
         cm = new AESCBCCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
-        return (cm.getDecrypter(fek));
+        return cm.getDecrypter(fek);
       case AESGCMCryptoModule.VERSION:
         cm = new AESGCMCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
-        return (cm.getDecrypter(fek));
+        return cm.getDecrypter(fek);
       default:
         throw new CryptoException(
             "Unknown crypto module version: " + parsed.getCryptoServiceVersion());
@@ -247,7 +247,7 @@ public class AESCryptoService implements CryptoService {
     Key ret = null;
     String keyTag = params.getKeyManagerVersion() + "!" + params.getKekId();
     if (this.decryptingKeys.get(keyTag) != null) {
-      return (this.decryptingKeys.get(keyTag));
+      return this.decryptingKeys.get(keyTag);
     }
 
     switch (params.keyManagerVersion) {
@@ -263,7 +263,7 @@ public class AESCryptoService implements CryptoService {
     if (ret == null)
       throw new CryptoException("Unable to load decryption KEK");
 
-    return (ret);
+    return ret;
   }
 
   /**

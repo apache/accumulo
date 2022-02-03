@@ -95,7 +95,7 @@ public class TabletIT extends AccumuloClusterHarness {
       int count = 0;
       for (Entry<Key,Value> elt : scanner) {
         String expected = String.format("%05d", count);
-        assert (elt.getKey().getRow().toString().equals(expected));
+        assert elt.getKey().getRow().toString().equals(expected);
         count++;
       }
       assertEquals(N, count);
