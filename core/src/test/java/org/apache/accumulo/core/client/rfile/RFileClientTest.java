@@ -20,6 +20,7 @@ package org.apache.accumulo.core.client.rfile;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -688,7 +689,7 @@ public class RFileClientTest {
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testOutOfOrder() throws Exception {
     // test that exception declared in API is thrown
     Key k1 = new Key("r1", "f1", "q1");
@@ -701,11 +702,11 @@ public class RFileClientTest {
     String testFile = createTmpTestFile();
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
       writer.append(k2, v2);
-      writer.append(k1, v1);
+      assertThrows(IllegalArgumentException.class, () -> writer.append(k1, v1));
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testOutOfOrderIterable() throws Exception {
     // test that exception declared in API is thrown
     Key k1 = new Key("r1", "f1", "q1");
@@ -721,11 +722,11 @@ public class RFileClientTest {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
-      writer.append(data);
+      assertThrows(IllegalArgumentException.class, () -> writer.append(data));
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testBadVis() throws Exception {
     // this test has two purposes ensure an exception is thrown and ensure the exception document in
     // the javadoc is thrown
@@ -734,11 +735,11 @@ public class RFileClientTest {
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
       writer.startDefaultLocalityGroup();
       Key k1 = new Key("r1", "f1", "q1", "(A&(B");
-      writer.append(k1, new Value(""));
+      assertThrows(IllegalArgumentException.class, () -> writer.append(k1, new Value("")));
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testBadVisIterable() throws Exception {
     // test append(iterable) method
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
@@ -747,42 +748,43 @@ public class RFileClientTest {
       writer.startDefaultLocalityGroup();
       Key k1 = new Key("r1", "f1", "q1", "(A&(B");
       Entry<Key,Value> entry = new AbstractMap.SimpleEntry<>(k1, new Value(""));
-      writer.append(Collections.singletonList(entry));
+      assertThrows(IllegalArgumentException.class,
+          () -> writer.append(Collections.singletonList(entry)));
     }
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void testDoubleStart() throws Exception {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
       writer.startDefaultLocalityGroup();
-      writer.startDefaultLocalityGroup();
+      assertThrows(IllegalStateException.class, writer::startDefaultLocalityGroup);
     }
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void testAppendStartDefault() throws Exception {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
       writer.append(new Key("r1", "f1", "q1"), new Value("1"));
-      writer.startDefaultLocalityGroup();
+      assertThrows(IllegalStateException.class, writer::startDefaultLocalityGroup);
     }
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void testStartAfter() throws Exception {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
     try (RFileWriter writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build()) {
       Key k1 = new Key("r1", "f1", "q1");
       writer.append(k1, new Value(""));
-      writer.startNewLocalityGroup("lg1", "fam1");
+      assertThrows(IllegalStateException.class, () -> writer.startNewLocalityGroup("lg1", "fam1"));
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testIllegalColumn() throws Exception {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
@@ -790,11 +792,11 @@ public class RFileClientTest {
       writer.startNewLocalityGroup("lg1", "fam1");
       Key k1 = new Key("r1", "f1", "q1");
       // should not be able to append the column family f1
-      writer.append(k1, new Value(""));
+      assertThrows(IllegalArgumentException.class, () -> writer.append(k1, new Value("")));
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testWrongGroup() throws Exception {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
     String testFile = createTmpTestFile();
@@ -805,7 +807,7 @@ public class RFileClientTest {
       writer.startDefaultLocalityGroup();
       // should not be able to append the column family fam1 to default locality group
       Key k2 = new Key("r1", "fam1", "q2");
-      writer.append(k2, new Value(""));
+      assertThrows(IllegalArgumentException.class, () -> writer.append(k2, new Value("")));
     }
   }
 

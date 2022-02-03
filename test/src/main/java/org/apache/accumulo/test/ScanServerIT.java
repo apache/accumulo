@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -153,7 +154,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
   }
 
   // TODO: This test currently fails, but we could change the client code to make it work.
-  @Test(expected = TableOfflineException.class)
+  @Test
   public void testScanOfflineTable() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -165,16 +166,18 @@ public class ScanServerIT extends SharedMiniClusterBase {
       client.tableOperations().flush(tableName, null, null, true);
       client.tableOperations().offline(tableName, true);
 
-      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-        scanner.setRange(new Range());
-        scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        int count = 0;
-        for (@SuppressWarnings("unused")
-        Entry<Key,Value> entry : scanner) {
-          count++;
-        }
-        assertEquals(100, count);
-      } // when the scanner is closed, all open sessions should be closed
+      assertThrows(TableOfflineException.class, () -> {
+        try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+          scanner.setRange(new Range());
+          scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
+          int count = 0;
+          for (@SuppressWarnings("unused")
+          Entry<Key,Value> entry : scanner) {
+            count++;
+          }
+          assertEquals(100, count);
+        } // when the scanner is closed, all open sessions should be closed
+      });
     }
   }
 

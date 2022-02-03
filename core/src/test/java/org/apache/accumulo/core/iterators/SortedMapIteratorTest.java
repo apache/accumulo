@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.iterators;
 
+import static org.junit.Assert.assertThrows;
+
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
@@ -28,10 +30,10 @@ import org.junit.Test;
 
 public class SortedMapIteratorTest {
 
-  @Test(expected = SampleNotPresentException.class)
+  @Test
   public void testSampleNotPresent() {
     SortedMapIterator smi = new SortedMapIterator(new TreeMap<>());
-    smi.deepCopy(new IteratorEnvironment() {
+    assertThrows(SampleNotPresentException.class, () -> smi.deepCopy(new IteratorEnvironment() {
       @Override
       public boolean isSamplingEnabled() {
         return true;
@@ -41,6 +43,6 @@ public class SortedMapIteratorTest {
       public SamplerConfiguration getSamplerConfiguration() {
         return new SamplerConfiguration(RowSampler.class.getName());
       }
-    });
+    }));
   }
 }

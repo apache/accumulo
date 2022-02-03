@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
-import java.util.OptionalInt;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
@@ -68,7 +67,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
   private static ThreadPoolExecutor readaheadPool =
       ThreadPools.createThreadPool(0, Integer.MAX_VALUE, 3L, TimeUnit.SECONDS,
-          "Accumulo scanner read ahead thread", new SynchronousQueue<>(), OptionalInt.empty());
+          "Accumulo scanner read ahead thread", new SynchronousQueue<>(), true);
 
   private boolean closed = false;
 

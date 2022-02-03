@@ -21,6 +21,7 @@ package org.apache.accumulo.tserver.tablet;
 import static org.easymock.EasyMock.mock;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -40,28 +41,28 @@ public class TabletMutationPrepAttemptTest {
     assertTrue(prepared.tabletClosed());
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void callGetSessionWhenClosed() {
     PreparedMutations prepared = new PreparedMutations();
-    prepared.getCommitSession();
+    assertThrows(IllegalStateException.class, prepared::getCommitSession);
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void callGetNonViolatorsWhenClosed() {
     PreparedMutations prepared = new PreparedMutations();
-    prepared.getNonViolators();
+    assertThrows(IllegalStateException.class, prepared::getNonViolators);
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void callGetViolatorsWhenClosed() {
     PreparedMutations prepared = new PreparedMutations();
-    prepared.getViolators();
+    assertThrows(IllegalStateException.class, prepared::getViolators);
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void callGetViolationsWhenClosed() {
     PreparedMutations prepared = new PreparedMutations();
-    prepared.getViolations();
+    assertThrows(IllegalStateException.class, prepared::getViolations);
   }
 
   @Test

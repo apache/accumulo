@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.conf;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.util.Arrays;
 import java.util.function.Function;
@@ -47,29 +48,34 @@ public class ConfigurationTypeHelperTest {
         ConfigurationTypeHelper.getMemoryAsBytes("20%"));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testGetFixedMemoryAsBytesFailureCases1() {
-    ConfigurationTypeHelper.getFixedMemoryAsBytes("42x");
+    assertThrows(IllegalArgumentException.class,
+        () -> ConfigurationTypeHelper.getFixedMemoryAsBytes("42x"));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testGetFixedMemoryAsBytesFailureCases2() {
-    ConfigurationTypeHelper.getFixedMemoryAsBytes("FooBar");
+    assertThrows(IllegalArgumentException.class,
+        () -> ConfigurationTypeHelper.getFixedMemoryAsBytes("FooBar"));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testGetFixedMemoryAsBytesFailureCases3() {
-    ConfigurationTypeHelper.getFixedMemoryAsBytes("40%");
+    assertThrows(IllegalArgumentException.class,
+        () -> ConfigurationTypeHelper.getFixedMemoryAsBytes("40%"));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testGetMemoryAsBytesFailureCases1() {
-    ConfigurationTypeHelper.getMemoryAsBytes("42x");
+    assertThrows(IllegalArgumentException.class,
+        () -> ConfigurationTypeHelper.getMemoryAsBytes("42x"));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testGetMemoryAsBytesFailureCases2() {
-    ConfigurationTypeHelper.getMemoryAsBytes("FooBar");
+    assertThrows(IllegalArgumentException.class,
+        () -> ConfigurationTypeHelper.getMemoryAsBytes("FooBar"));
   }
 
   @Test
@@ -82,14 +88,16 @@ public class ConfigurationTypeHelperTest {
     assertEquals(42L, ConfigurationTypeHelper.getTimeInMillis("42ms"));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testGetTimeInMillisFailureCase1() {
-    ConfigurationTypeHelper.getTimeInMillis("abc");
+    assertThrows(IllegalArgumentException.class,
+        () -> ConfigurationTypeHelper.getTimeInMillis("abc"));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testGetTimeInMillisFailureCase2() {
-    ConfigurationTypeHelper.getTimeInMillis("ms");
+    assertThrows(IllegalArgumentException.class,
+        () -> ConfigurationTypeHelper.getTimeInMillis("ms"));
   }
 
   @Test
@@ -105,18 +113,19 @@ public class ConfigurationTypeHelperTest {
     assertEquals(1d, ConfigurationTypeHelper.getFraction("1."), delta);
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testGetFractionFailureCase1() {
-    ConfigurationTypeHelper.getFraction("%");
+    assertThrows(IllegalArgumentException.class, () -> ConfigurationTypeHelper.getFraction("%"));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testGetFractionFailureCase2() {
-    ConfigurationTypeHelper.getFraction("abc0%");
+    assertThrows(IllegalArgumentException.class,
+        () -> ConfigurationTypeHelper.getFraction("abc0%"));
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testGetFractionFailureCase3() {
-    ConfigurationTypeHelper.getFraction(".%");
+    assertThrows(IllegalArgumentException.class, () -> ConfigurationTypeHelper.getFraction(".%"));
   }
 }

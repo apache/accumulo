@@ -107,7 +107,7 @@ JAVA_OPTS=("${JAVA_OPTS[@]}"
 #JAVA_OPTS=("${JAVA_OPTS[@]}"  "-javaagent:path/to/opentelemetry-javaagent-all.jar")
 
 case "$cmd" in
-  monitor|gc|manager|master|tserver|compaction-coordinator|compactor)
+  monitor|gc|manager|master|tserver|compaction-coordinator|compactor|sserver)
     JAVA_OPTS=("${JAVA_OPTS[@]}" "-Dlog4j.configurationFile=log4j2-service.properties")
     ;;
   *)

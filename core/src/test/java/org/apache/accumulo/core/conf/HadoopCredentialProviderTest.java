@@ -22,6 +22,7 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
 import java.io.File;
 import java.net.URL;
@@ -69,14 +70,16 @@ public class HadoopCredentialProviderTest {
     return "jceks://file" + absoluteFilePath.getAbsolutePath();
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testNullConfigOnGetValue() {
-    HadoopCredentialProvider.getValue(null, "alias");
+    assertThrows(NullPointerException.class,
+        () -> HadoopCredentialProvider.getValue(null, "alias"));
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testNullAliasOnGetValue() {
-    HadoopCredentialProvider.getValue(new Configuration(false), null);
+    assertThrows(NullPointerException.class,
+        () -> HadoopCredentialProvider.getValue(new Configuration(false), null));
   }
 
   protected void checkCredentialProviders(Configuration conf, Map<String,String> expectation) {

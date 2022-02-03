@@ -19,6 +19,7 @@
 package org.apache.accumulo.server;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -118,10 +119,10 @@ public class ServerContextTest {
     });
   }
 
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void testCanRun() {
     // ensure this fails with older versions
-    ServerContext.ensureDataVersionCompatible(7);
+    assertThrows(IllegalStateException.class, () -> ServerContext.ensureDataVersionCompatible(7));
   }
 
 }

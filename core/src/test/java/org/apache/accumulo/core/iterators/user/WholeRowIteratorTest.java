@@ -20,6 +20,7 @@ package org.apache.accumulo.core.iterators.user;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -42,13 +43,13 @@ import org.junit.Test;
 
 public class WholeRowIteratorTest {
 
-  @Test(expected = IOException.class)
+  @Test
   public void testBadDecodeRow() throws IOException {
     Key k = new Key(new Text("r1"), new Text("cf1234567890"));
     Value v = new Value("v1");
     Value encoded = WholeRowIterator.encodeRow(List.of(k), List.of(v));
     encoded.set(Arrays.copyOfRange(encoded.get(), 0, 10)); // truncate to 10 bytes only
-    WholeRowIterator.decodeRow(k, encoded);
+    assertThrows(IOException.class, () -> WholeRowIterator.decodeRow(k, encoded));
   }
 
   @Test

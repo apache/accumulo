@@ -20,6 +20,7 @@ package org.apache.accumulo.core.security;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
@@ -93,12 +94,13 @@ public class AuthorizationsTest {
     assertArrayEquals(expected.getAuthorizationsArray(), actual.getAuthorizationsArray());
   }
 
-  @Test(expected = UnsupportedOperationException.class)
+  @Test
   public void testUnmodifiableList() {
     Authorizations expected = new Authorizations("foo");
     Authorizations actual = new Authorizations("foo");
 
     assertArrayEquals(expected.getAuthorizationsArray(), actual.getAuthorizationsArray());
-    actual.getAuthorizationsBB().add(ByteBuffer.wrap(new byte[] {'a'}));
+    assertThrows(UnsupportedOperationException.class,
+        () -> actual.getAuthorizationsBB().add(ByteBuffer.wrap(new byte[] {'a'})));
   }
 }

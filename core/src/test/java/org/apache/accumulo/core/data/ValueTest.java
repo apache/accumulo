@@ -27,6 +27,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -61,25 +62,25 @@ public class ValueTest {
     assertEquals(0, v.get().length);
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testNullBytesConstructor() {
-    new Value((byte[]) null);
+    assertThrows(NullPointerException.class, () -> new Value((byte[]) null));
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testNullCopyConstructor() {
-    new Value((Value) null);
+    assertThrows(NullPointerException.class, () -> new Value((Value) null));
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testNullByteBufferConstructor() {
-    new Value((ByteBuffer) null);
+    assertThrows(NullPointerException.class, () -> new Value((ByteBuffer) null));
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testNullSet() {
     Value v = new Value();
-    v.set(null);
+    assertThrows(NullPointerException.class, () -> v.set(null));
   }
 
   @Test
@@ -199,9 +200,9 @@ public class ValueTest {
     assertEquals(v2, v1);
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testNullCharSequence() {
-    new Value((CharSequence) null);
+    assertThrows(NullPointerException.class, () -> new Value((CharSequence) null));
   }
 
   @Test
@@ -211,8 +212,8 @@ public class ValueTest {
     assertEquals(v2, v1);
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   public void testNullText() {
-    new Value((Text) null);
+    assertThrows(NullPointerException.class, () -> new Value((Text) null));
   }
 }

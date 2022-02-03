@@ -34,8 +34,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.OptionalInt;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -241,7 +239,7 @@ public class MultiThreadedRFileTest {
       int maxThreads = 10;
       String name = "MultiThreadedRFileTestThread";
       ThreadPoolExecutor pool = ThreadPools.createThreadPool(maxThreads + 1, maxThreads + 1, 5 * 60,
-          TimeUnit.SECONDS, name, new LinkedBlockingQueue<>(), OptionalInt.empty());
+          TimeUnit.SECONDS, name, false);
       try {
         Runnable runnable = () -> {
           try {

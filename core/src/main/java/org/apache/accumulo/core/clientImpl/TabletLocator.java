@@ -132,8 +132,7 @@ public abstract class TabletLocator {
 
   public static synchronized TabletLocator getLocator(ClientContext context, TableId tableId) {
     Preconditions.checkState(enabled, "The Accumulo singleton that that tracks tablet locations is "
-        + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected"
-        + ".");
+        + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected");
     LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
     TabletLocator tl = locators.get(key);
     if (tl == null) {
