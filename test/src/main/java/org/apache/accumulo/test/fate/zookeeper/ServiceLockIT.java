@@ -190,7 +190,7 @@ public class ServiceLockIT {
 
   private static ServiceLock getZooLock(ServiceLockPath parent, UUID uuid) {
     var zooKeeper = ZooSession.getAuthenticatedSession(szk.getConn(), 30000, "digest",
-        ("accumulo:secret").getBytes(UTF_8));
+        "accumulo:secret".getBytes(UTF_8));
     return new ServiceLock(zooKeeper, parent, uuid);
   }
 

@@ -59,7 +59,7 @@ public class CreateEmpty implements KeywordExecutable {
     @Override
     public void validate(String name, String value) throws ParameterException {
       String[] algorithms = Compression.getSupportedAlgorithms();
-      if (!((Arrays.asList(algorithms)).contains(value))) {
+      if (!Arrays.asList(algorithms).contains(value)) {
         throw new ParameterException(
             "Compression codec must be one of " + Arrays.toString(algorithms));
       }
@@ -102,7 +102,7 @@ public class CreateEmpty implements KeywordExecutable {
     for (String arg : opts.files) {
       Path path = new Path(arg);
       log.info("Writing to file '{}'", path);
-      FileSKVWriter writer = (new RFileOperations()).newWriterBuilder()
+      FileSKVWriter writer = new RFileOperations().newWriterBuilder()
           .forFile(arg, path.getFileSystem(conf), conf, CryptoServiceFactory.newDefaultInstance())
           .withTableConfiguration(DefaultConfiguration.getInstance()).withCompression(opts.codec)
           .build();

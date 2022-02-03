@@ -162,10 +162,10 @@ public class Credentials {
       return false;
     Credentials other = Credentials.class.cast(obj);
     boolean pEq = getPrincipal() == null ? (other.getPrincipal() == null)
-        : (getPrincipal().equals(other.getPrincipal()));
+        : getPrincipal().equals(other.getPrincipal());
     if (!pEq)
       return false;
-    return getToken() == null ? (other.getToken() == null) : (getToken().equals(other.getToken()));
+    return getToken() == null ? (other.getToken() == null) : getToken().equals(other.getToken());
   }
 
   @Override

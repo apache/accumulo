@@ -208,7 +208,7 @@ public class BloomFilter extends Filter {
     }
 
     if (super.getSerialVersion() == super.getVersion()) {
-      ObjectInputStream ois = new ObjectInputStream((DataInputStream) (in));
+      ObjectInputStream ois = new ObjectInputStream((DataInputStream) in);
       try {
         bits = (BitSet) ois.readObject();
       } catch (ClassNotFoundException e) {

@@ -252,7 +252,7 @@ public class UpgradeCoordinator {
       final ReadOnlyTStore<UpgradeCoordinator> fate =
           new ReadOnlyStore<>(new ZooStore<>(context.getZooKeeperRoot() + Constants.ZFATE,
               context.getZooReaderWriter()));
-      if (!(fate.list().isEmpty())) {
+      if (!fate.list().isEmpty()) {
         throw new AccumuloException("Aborting upgrade because there are"
             + " outstanding FATE transactions from a previous Accumulo version."
             + " You can start the tservers and then use the shell to delete completed "
