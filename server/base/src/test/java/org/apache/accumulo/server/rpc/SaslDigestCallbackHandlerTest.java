@@ -25,7 +25,6 @@ import static org.junit.Assert.assertEquals;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.util.Map.Entry;
 
 import javax.crypto.KeyGenerator;
 import javax.security.auth.callback.Callback;
@@ -36,7 +35,6 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.rpc.SaslDigestCallbackHandler;
 import org.apache.accumulo.server.security.delegation.AuthenticationKey;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
-import org.apache.hadoop.security.token.Token;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -95,8 +93,7 @@ public class SaslDigestCallbackHandlerTest {
     var secretManager = new AuthenticationTokenSecretManager(InstanceId.of("instanceid"), 1000L);
 
     secretManager.addKey(new AuthenticationKey(1, 0L, 100L, keyGen.generateKey()));
-    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> entry =
-        secretManager.generateToken("user", cfg);
+    var entry = secretManager.generateToken("user", cfg);
     byte[] password = entry.getKey().getPassword();
     char[] encodedPassword = handler.encodePassword(password);
 

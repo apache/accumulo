@@ -83,7 +83,10 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
   }
 
   public InstanceId getInstanceId() {
-    return InstanceId.of(requireNonNull(impl.getInstanceId(), "InstanceId is null"));
+    if (impl.getInstanceId() == null)
+      return InstanceId.of("");
+    else
+      return InstanceId.of(impl.getInstanceId());
   }
 
   public TAuthenticationTokenIdentifier getThriftIdentifier() {

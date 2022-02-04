@@ -171,8 +171,9 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
     var id = new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(username));
 
     final StringBuilder svcName = new StringBuilder(DelegationTokenImpl.SERVICE_NAME);
-    svcName.append("-").append(id.getInstanceId());
-
+    if (id.getInstanceId() != null) {
+      svcName.append("-").append(id.getInstanceId());
+    }
     // Create password will update the state on the identifier given currentKey. Need to call this
     // before serializing the identifier
     byte[] password;
