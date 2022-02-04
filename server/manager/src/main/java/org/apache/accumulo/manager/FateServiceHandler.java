@@ -55,6 +55,7 @@ import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
@@ -765,6 +766,12 @@ class FateServiceHandler implements FateService.Iface {
       fs.delete(p, true);
     fs.mkdirs(p);
     return p;
+  }
+
+  @Override
+  public boolean cancelFateOperation(TInfo tinfo, TCredentials credentials, long opid)
+      throws ThriftSecurityException, ThriftNotActiveServiceException {
+    return manager.fate.cancel(opid);
   }
 
 }

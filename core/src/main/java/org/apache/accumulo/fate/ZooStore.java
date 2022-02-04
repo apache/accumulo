@@ -227,6 +227,24 @@ public class ZooStore<T> implements TStore<T> {
     }
   }
 
+  /**
+   * Attempt to reserve transaction
+   *
+   * @param tid
+   *          transaction id
+   * @return true if reserved by this call, false if already reserved
+   */
+  @Override
+  public boolean tryReserve(long tid) {
+    synchronized (this) {
+      if (!reserved.contains(tid)) {
+        reserve(tid);
+        return true;
+      }
+      return false;
+    }
+  }
+
   private void unreserve(long tid) {
     synchronized (this) {
       if (!reserved.remove(tid))

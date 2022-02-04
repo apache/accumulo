@@ -56,6 +56,17 @@ public class SimpleStore<T> implements TStore<T> {
   }
 
   @Override
+  public boolean tryReserve(long tid) {
+    synchronized (this) {
+      if (!reserved.contains(tid)) {
+        reserve(tid);
+        return true;
+      }
+      return false;
+    }
+  }
+
+  @Override
   public void unreserve(long tid, long deferTime) {
     if (!reserved.remove(tid)) {
       throw new IllegalStateException();

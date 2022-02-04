@@ -23,6 +23,7 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.UUID;
@@ -53,11 +54,15 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Category({ZooKeeperTestingServerTests.class})
 public class FateIT {
 
   public static class TestOperation extends ManagerRepo {
+
+    private static final Logger LOG = LoggerFactory.getLogger(TestOperation.class);
 
     private static final long serialVersionUID = 1L;
 
@@ -71,35 +76,63 @@ public class FateIT {
 
     @Override
     public long isReady(long tid, Manager manager) throws Exception {
-      return Utils.reserveNamespace(manager, namespaceId, tid, false, true, TableOperation.RENAME)
-          + Utils.reserveTable(manager, tableId, tid, true, true, TableOperation.RENAME);
+      LOG.info("Entering isReady {}", Long.toHexString(tid));
+      try {
+        FateIT.inReady();
+        return Utils.reserveNamespace(manager, namespaceId, tid, false, true, TableOperation.RENAME)
+            + Utils.reserveTable(manager, tableId, tid, true, true, TableOperation.RENAME);
+      } finally {
+        LOG.info("Leaving isReady {}", Long.toHexString(tid));
+      }
     }
 
     @Override
     public void undo(long tid, Manager manager) throws Exception {
-      Utils.unreserveNamespace(manager, namespaceId, tid, false);
-      Utils.unreserveTable(manager, tableId, tid, true);
+      LOG.info("Entering undo {}", Long.toHexString(tid));
+      try {
+        Utils.unreserveNamespace(manager, namespaceId, tid, false);
+        Utils.unreserveTable(manager, tableId, tid, true);
+      } finally {
+        LOG.info("Leaving undo {}", Long.toHexString(tid));
+      }
     }
 
     @Override
-    public Repo<Manager> call(long tid, Manager environment) throws Exception {
-      FateIT.inCall();
-      return null;
+    public Repo<Manager> call(long tid, Manager manager) throws Exception {
+      LOG.info("Entering call {}", Long.toHexString(tid));
+      try {
+        FateIT.inCall();
+        return null;
+      } finally {
+        Utils.unreserveNamespace(manager, namespaceId, tid, false);
+        Utils.unreserveTable(manager, tableId, tid, true);
+        LOG.info("Leaving call {}", Long.toHexString(tid));
+      }
+
     }
 
   }
+
+  private static final Logger LOG = LoggerFactory.getLogger(FateIT.class);
 
   private static ZooKeeperTestingServer szk = null;
   private static final String ZK_ROOT = "/accumulo/" + UUID.randomUUID().toString();
   private static final NamespaceId NS = NamespaceId.of("testNameSpace");
   private static final TableId TID = TableId.of("testTable");
 
+  private static CountDownLatch doReady;
   private static CountDownLatch callStarted;
   private static CountDownLatch finishCall;
 
   @BeforeClass
   public static void setup() throws Exception {
     szk = new ZooKeeperTestingServer();
+    ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
+    zk.mkdirs(ZK_ROOT + Constants.ZFATE);
+    zk.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);
+    zk.mkdirs(ZK_ROOT + Constants.ZNAMESPACES + "/" + NS.canonical());
+    zk.mkdirs(ZK_ROOT + Constants.ZTABLE_STATE + "/" + TID.canonical());
+    zk.mkdirs(ZK_ROOT + Constants.ZTABLES + "/" + TID.canonical());
   }
 
   @AfterClass
@@ -109,16 +142,9 @@ public class FateIT {
 
   @Test(timeout = 30000)
   public void testTransactionStatus() throws Exception {
-    ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
-
-    zk.mkdirs(ZK_ROOT + Constants.ZFATE);
-    zk.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);
-    zk.mkdirs(ZK_ROOT + Constants.ZNAMESPACES + "/" + NS.canonical());
-    zk.mkdirs(ZK_ROOT + Constants.ZTABLE_STATE + "/" + TID.canonical());
-    zk.mkdirs(ZK_ROOT + Constants.ZTABLES + "/" + TID.canonical());
-
-    ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
-    final AgeOffStore<Manager> store = new AgeOffStore<Manager>(zooStore, 1000 * 60 * 60 * 8);
+    final ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
+    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
+    final AgeOffStore<Manager> store = new AgeOffStore<Manager>(zooStore, 3000);
 
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
@@ -137,13 +163,17 @@ public class FateIT {
       // Wait for the transaction runner to be scheduled.
       UtilWaitThread.sleep(3000);
 
+      doReady = new CountDownLatch(1);
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
 
       long txid = fate.startTransaction();
+      LOG.info("Starting test testTransactionStatus with {}", Long.toHexString(txid));
       assertEquals(TStatus.NEW, getTxStatus(zk, txid));
       fate.seedTransaction(txid, new TestOperation(NS, TID), true);
       assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
+      // do the isReady method
+      doReady.countDown();
       // wait for call() to be called
       callStarted.await();
       assertEquals(TStatus.IN_PROGRESS, getTxStatus(zk, txid));
@@ -173,6 +203,170 @@ public class FateIT {
     } finally {
       fate.shutdown();
     }
+  }
+
+  @Test
+  public void testCancelWhileNew() throws Exception {
+    final ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
+    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
+    final AgeOffStore<Manager> store = new AgeOffStore<Manager>(zooStore, 3000);
+
+    Manager manager = createMock(Manager.class);
+    ServerContext sctx = createMock(ServerContext.class);
+    expect(manager.getContext()).andReturn(sctx).anyTimes();
+    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
+    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
+    replay(manager, sctx);
+
+    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
+    try {
+      ConfigurationCopy config = new ConfigurationCopy();
+      config.set(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE, "2");
+      config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
+      fate.startTransactionRunners(config);
+
+      // Wait for the transaction runner to be scheduled.
+      UtilWaitThread.sleep(3000);
+
+      doReady = new CountDownLatch(1);
+      callStarted = new CountDownLatch(1);
+      finishCall = new CountDownLatch(1);
+
+      long txid = fate.startTransaction();
+      LOG.info("Starting test testCancelWhileNew with {}", Long.toHexString(txid));
+      assertEquals(TStatus.NEW, getTxStatus(zk, txid));
+      // cancel the transaction
+      assertTrue(fate.cancel(txid));
+      assertTrue(TStatus.FAILED_IN_PROGRESS == getTxStatus(zk, txid)
+          || TStatus.FAILED == getTxStatus(zk, txid));
+      fate.seedTransaction(txid, new TestOperation(NS, TID), true);
+      assertTrue(TStatus.FAILED_IN_PROGRESS == getTxStatus(zk, txid)
+          || TStatus.FAILED == getTxStatus(zk, txid));
+    } finally {
+      fate.shutdown();
+    }
+  }
+
+  @Test
+  public void testCancelWhileSubmitted() throws Exception {
+    final ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
+    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
+    final AgeOffStore<Manager> store = new AgeOffStore<Manager>(zooStore, 3000);
+
+    Manager manager = createMock(Manager.class);
+    ServerContext sctx = createMock(ServerContext.class);
+    expect(manager.getContext()).andReturn(sctx).anyTimes();
+    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
+    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
+    replay(manager, sctx);
+
+    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
+    try {
+      ConfigurationCopy config = new ConfigurationCopy();
+      config.set(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE, "2");
+      config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
+      fate.startTransactionRunners(config);
+
+      // Wait for the transaction runner to be scheduled.
+      UtilWaitThread.sleep(3000);
+
+      doReady = new CountDownLatch(1);
+      callStarted = new CountDownLatch(1);
+      finishCall = new CountDownLatch(1);
+
+      long txid = fate.startTransaction();
+      LOG.info("Starting test testCancelWhileSubmitted with {}", Long.toHexString(txid));
+      assertEquals(TStatus.NEW, getTxStatus(zk, txid));
+      fate.seedTransaction(txid, new TestOperation(NS, TID), true);
+      assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
+      // cancel the transaction
+      assertTrue(fate.cancel(txid));
+      // do the isReady method
+      doReady.countDown();
+      // Check that tx is failing or gets removed
+      boolean nodeRemoved = false;
+      while (!nodeRemoved) {
+        try {
+          TStatus s = getTxStatus(zk, txid);
+          assertTrue(
+              s == TStatus.SUBMITTED || s == TStatus.FAILED_IN_PROGRESS || s == TStatus.FAILED);
+          Thread.sleep(10);
+        } catch (KeeperException e) {
+          if (e.code() == KeeperException.Code.NONODE) {
+            nodeRemoved = true;
+          } else {
+            fail("Unexpected error thrown: " + e.getMessage());
+          }
+        }
+      }
+    } finally {
+      fate.shutdown();
+    }
+  }
+
+  @Test
+  public void testCancelWhileInCall() throws Exception {
+    final ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
+    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
+    final AgeOffStore<Manager> store = new AgeOffStore<Manager>(zooStore, 3000);
+
+    Manager manager = createMock(Manager.class);
+    ServerContext sctx = createMock(ServerContext.class);
+    expect(manager.getContext()).andReturn(sctx).anyTimes();
+    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
+    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
+    replay(manager, sctx);
+
+    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
+    try {
+      ConfigurationCopy config = new ConfigurationCopy();
+      config.set(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE, "2");
+      config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
+      fate.startTransactionRunners(config);
+
+      // Wait for the transaction runner to be scheduled.
+      UtilWaitThread.sleep(3000);
+
+      doReady = new CountDownLatch(1);
+      callStarted = new CountDownLatch(1);
+      finishCall = new CountDownLatch(1);
+
+      long txid = fate.startTransaction();
+      LOG.info("Starting test testCancelWhileInCall with {}", Long.toHexString(txid));
+      assertEquals(TStatus.NEW, getTxStatus(zk, txid));
+      fate.seedTransaction(txid, new TestOperation(NS, TID), true);
+      assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
+      // do the isReady method
+      doReady.countDown();
+      // wait for call() to be called
+      callStarted.await();
+      // cancel the transaction
+      assertTrue(fate.cancel(txid));
+      // Check that tx is failing or gets removed
+      boolean nodeRemoved = false;
+      while (!nodeRemoved) {
+        try {
+          TStatus s = getTxStatus(zk, txid);
+          assertTrue(
+              s == TStatus.IN_PROGRESS || s == TStatus.FAILED_IN_PROGRESS || s == TStatus.FAILED);
+          Thread.sleep(10);
+        } catch (KeeperException e) {
+          if (e.code() == KeeperException.Code.NONODE) {
+            nodeRemoved = true;
+          } else {
+            fail("Unexpected error thrown: " + e.getMessage());
+          }
+        }
+      }
+    } finally {
+      fate.shutdown();
+    }
+
+  }
+
+  private static void inReady() throws InterruptedException {
+    // wait to start isReady
+    doReady.await();
   }
 
   private static void inCall() throws InterruptedException {
