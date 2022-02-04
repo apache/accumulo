@@ -109,20 +109,12 @@ shell)   export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_SHELL_OPTS}" 
 esac
 
 XML_FILES="${ACCUMULO_CONF_DIR}"
-LOG4J_JAR=$(find -H "${HADOOP_PREFIX}/lib" "${HADOOP_PREFIX}"/share/hadoop/common/lib -regex '.*/log4j-[0-9.]*[.]jar$' -print 2>/dev/null | head -1)
-SLF4J_JARS="${ACCUMULO_HOME}/lib/slf4j-api.jar:${ACCUMULO_HOME}/lib/slf4j-log4j12.jar"
-
-# The `find` command could fail for environmental reasons or bad configuration
-# Avoid trying to run Accumulo when we can't find the jar
-if [[ -z "${LOG4J_JAR}" && -z "${CLASSPATH}" ]]; then
-   echo "Could not locate Log4j jar in Hadoop installation at ${HADOOP_PREFIX}"
-   exit 1
-fi
+SLF4J_JARS="${ACCUMULO_HOME}/lib/slf4j-api.jar:${ACCUMULO_HOME}/lib/slf4j-reload4j.jar:${ACCUMULO_HOME}/lib/reload4j.jar"
 
 if [[ -n "$CLASSPATH" ]]; then
-  CLASSPATH="${XML_FILES}:${START_JAR}:${SLF4J_JARS}:${LOG4J_JAR}:${CLASSPATH}"
+  CLASSPATH="${XML_FILES}:${START_JAR}:${SLF4J_JARS}:${CLASSPATH}"
 else
-  CLASSPATH="${XML_FILES}:${START_JAR}:${SLF4J_JARS}:${LOG4J_JAR}"
+  CLASSPATH="${XML_FILES}:${START_JAR}:${SLF4J_JARS}"
 fi
 
 if [[ -z "${JAVA_HOME}" || ! -d "${JAVA_HOME}" ]]; then

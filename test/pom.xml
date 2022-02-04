@@ -30,6 +30,10 @@
   </properties>
   <dependencies>
     <dependency>
+      <groupId>ch.qos.reload4j</groupId>
+      <artifactId>reload4j</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.beust</groupId>
       <artifactId>jcommander</artifactId>
     </dependency>
@@ -69,10 +73,6 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
@@ -180,7 +180,7 @@
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
+      <artifactId>slf4j-reload4j</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
@@ -302,7 +302,7 @@
                   <exclude>com.google.auto</exclude>
                   <exclude>javax.servlet:servlet-api</exclude>
                   <exclude>org.apache.accumulo:accumulo-native</exclude>
-                  <exclude>org.slf4j:slf4j-log4j12</exclude>
+                  <exclude>org.slf4j:slf4j-reload4j</exclude>
                 </excludes>
               </artifactSet>
               <shadedArtifactAttached>true</shadedArtifactAttached>

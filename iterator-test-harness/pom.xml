@@ -26,14 +26,14 @@
   <name>Apache Accumulo Iterator Test Harness</name>
   <description>A library for testing Apache Accumulo Iterators.</description>
   <dependencies>
+    <dependency>
+      <groupId>ch.qos.reload4j</groupId>
+      <artifactId>reload4j</artifactId>
+    </dependency>
     <!--TODO Don't force downstream users to have JUnit -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
