@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.spi.scan;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -95,17 +96,17 @@ public interface EcScanManager {
   }
 
   public interface ScanAttempts {
-    List<ScanAttempt> all();
+    Collection<ScanAttempt> all();
 
-    List<ScanAttempt> forServer(String server);
+    Collection<ScanAttempt> forServer(String server);
 
-    List<ScanAttempt> forTablet(TabletId tablet);
+    Collection<ScanAttempt> forTablet(TabletId tablet);
   }
 
   public interface DaParamaters {
-    List<TabletId> getTablets();
+    Collection<TabletId> getTablets();
 
-    List<String> getScanServers();
+    Collection<String> getScanServers();
 
     ScanAttempts getScanAttempts();
 
