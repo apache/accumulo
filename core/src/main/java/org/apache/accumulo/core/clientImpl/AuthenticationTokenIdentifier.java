@@ -114,7 +114,8 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
     impl.principal = tAuthTokenId.getPrincipal();
     setExpirationDate(tAuthTokenId.getExpirationDate());
     setIssueDate(tAuthTokenId.getIssueDate());
-    setInstanceId(InstanceId.of(tAuthTokenId.getInstanceId()));
+    if (tAuthTokenId.getInstanceId() != null)
+      setInstanceId(InstanceId.of(tAuthTokenId.getInstanceId()));
     setKeyId(tAuthTokenId.getKeyId());
   }
 
