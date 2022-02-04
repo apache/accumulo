@@ -25,7 +25,6 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.securityImpl.thrift.TAuthenticationTokenIdentifier;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.ThriftMessageUtil;
@@ -41,41 +40,17 @@ import org.apache.hadoop.security.token.TokenIdentifier;
 public class AuthenticationTokenIdentifier extends TokenIdentifier {
   public static final Text TOKEN_KIND = new Text("ACCUMULO_AUTH_TOKEN");
 
-  private TAuthenticationTokenIdentifier impl = null;
-  private DelegationTokenConfig cfg = null;
+  private final TAuthenticationTokenIdentifier impl;
 
   public AuthenticationTokenIdentifier() {
-    // noop for Writable
-  }
-
-  public AuthenticationTokenIdentifier(String principal) {
-    this(principal, null);
-  }
-
-  public AuthenticationTokenIdentifier(String principal, DelegationTokenConfig cfg) {
-    requireNonNull(principal);
-    impl = new TAuthenticationTokenIdentifier(principal);
-    this.cfg = cfg;
-  }
-
-  public AuthenticationTokenIdentifier(String principal, int keyId, long issueDate,
-      long expirationDate, String instanceId) {
-    requireNonNull(principal);
-    impl = new TAuthenticationTokenIdentifier(principal);
-    impl.setKeyId(keyId);
-    impl.setIssueDate(issueDate);
-    impl.setExpirationDate(expirationDate);
-    impl.setInstanceId(instanceId);
-  }
-
-  public AuthenticationTokenIdentifier(AuthenticationTokenIdentifier identifier) {
-    requireNonNull(identifier);
-    impl = new TAuthenticationTokenIdentifier(identifier.getThriftIdentifier());
+    impl = new TAuthenticationTokenIdentifier();
+    populateFields(impl);
   }
 
   public AuthenticationTokenIdentifier(TAuthenticationTokenIdentifier identifier) {
     requireNonNull(identifier);
     impl = new TAuthenticationTokenIdentifier(identifier);
+    populateFields(identifier);
   }
 
   public void setKeyId(int keyId) {
@@ -83,62 +58,43 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
   }
 
   public int getKeyId() {
-    requireNonNull(impl, "Identifier not initialized");
     return impl.getKeyId();
   }
 
   public void setIssueDate(long issueDate) {
-    requireNonNull(impl, "Identifier not initialized");
     impl.setIssueDate(issueDate);
   }
 
   public long getIssueDate() {
-    requireNonNull(impl, "Identifier not initialized");
     return impl.getIssueDate();
   }
 
   public void setExpirationDate(long expirationDate) {
-    requireNonNull(impl, "Identifier not initialized");
     impl.setExpirationDate(expirationDate);
   }
 
   public long getExpirationDate() {
-    requireNonNull(impl, "Identifier not initialized");
     return impl.getExpirationDate();
   }
 
   public void setInstanceId(String instanceId) {
-    requireNonNull(impl, "Identifier not initialized");
     impl.setInstanceId(instanceId);
   }
 
   public String getInstanceId() {
-    requireNonNull(impl, "Identifier not initialized");
     return impl.getInstanceId();
   }
 
   public TAuthenticationTokenIdentifier getThriftIdentifier() {
-    requireNonNull(impl);
     return impl;
-  }
-
-  /**
-   * A configuration from the requesting user, may be null.
-   */
-  public DelegationTokenConfig getConfig() {
-    return cfg;
   }
 
   @Override
   public void write(DataOutput out) throws IOException {
-    if (impl != null) {
-      ThriftMessageUtil msgUtil = new ThriftMessageUtil();
-      ByteBuffer serialized = msgUtil.serialize(impl);
-      out.writeInt(serialized.limit());
-      ByteBufferUtil.write(out, serialized);
-    } else {
-      out.writeInt(0);
-    }
+    ThriftMessageUtil msgUtil = new ThriftMessageUtil();
+    ByteBuffer serialized = msgUtil.serialize(impl);
+    out.writeInt(serialized.limit());
+    ByteBufferUtil.write(out, serialized);
   }
 
   @Override
@@ -148,9 +104,17 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
       ThriftMessageUtil msgUtil = new ThriftMessageUtil();
       byte[] serialized = new byte[length];
       in.readFully(serialized);
-      impl = new TAuthenticationTokenIdentifier();
-      msgUtil.deserialize(serialized, impl);
+      var tAuthTokenId = msgUtil.deserialize(serialized, new TAuthenticationTokenIdentifier());
+      populateFields(tAuthTokenId);
     }
+  }
+
+  private void populateFields(TAuthenticationTokenIdentifier tAuthTokenId) {
+    impl.principal = tAuthTokenId.getPrincipal();
+    setExpirationDate(tAuthTokenId.getExpirationDate());
+    setIssueDate(tAuthTokenId.getIssueDate());
+    setInstanceId(tAuthTokenId.getInstanceId());
+    setKeyId(tAuthTokenId.getKeyId());
   }
 
   @Override
@@ -160,7 +124,7 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
 
   @Override
   public UserGroupInformation getUser() {
-    if (impl != null && impl.isSetPrincipal()) {
+    if (impl.isSetPrincipal()) {
       return UserGroupInformation.createRemoteUser(impl.getPrincipal());
     }
     return null;
@@ -168,9 +132,6 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
 
   @Override
   public int hashCode() {
-    if (impl == null) {
-      return 0;
-    }
     HashCodeBuilder hcb = new HashCodeBuilder(7, 11);
     if (impl.isSetPrincipal()) {
       hcb.append(impl.getPrincipal());
@@ -204,11 +165,26 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
     }
     if (o instanceof AuthenticationTokenIdentifier) {
       AuthenticationTokenIdentifier other = (AuthenticationTokenIdentifier) o;
-      if (impl == null) {
-        return other.impl == null;
-      }
       return impl.equals(other.impl);
     }
     return false;
+  }
+
+  public static TAuthenticationTokenIdentifier createTAuthIdentifier(String principal, int keyId,
+      long issueDate, long expirationDate, String instanceId) {
+    TAuthenticationTokenIdentifier tIdentifier = new TAuthenticationTokenIdentifier(principal);
+    tIdentifier.setKeyId(keyId);
+    tIdentifier.setIssueDate(issueDate);
+    tIdentifier.setExpirationDate(expirationDate);
+    tIdentifier.setInstanceId(instanceId);
+    return tIdentifier;
+  }
+
+  public boolean isSetIssueDate() {
+    return impl.isSetIssueDate();
+  }
+
+  public boolean isSetExpirationDate() {
+    return impl.isSetExpirationDate();
   }
 }
