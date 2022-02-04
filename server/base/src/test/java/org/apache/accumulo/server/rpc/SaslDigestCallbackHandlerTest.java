@@ -75,8 +75,8 @@ public class SaslDigestCallbackHandlerTest {
 
   @Test
   public void testIdentifierSerialization() throws IOException {
-    AuthenticationTokenIdentifier identifier = new AuthenticationTokenIdentifier(
-        createTAuthIdentifier("user", 1, 100L, 1000L, "instanceid"));
+    var tAuthIdentifier = createTAuthIdentifier("user", 1, 100L, 1000L, "instanceid");
+    var identifier = new AuthenticationTokenIdentifier(tAuthIdentifier);
     byte[] serialized = identifier.getBytes();
     String name = handler.encodeIdentifier(serialized);
 
@@ -91,8 +91,7 @@ public class SaslDigestCallbackHandlerTest {
 
   @Test
   public void testTokenSerialization() throws Exception {
-    AuthenticationTokenSecretManager secretManager =
-        new AuthenticationTokenSecretManager("instanceid", 1000L);
+    var secretManager = new AuthenticationTokenSecretManager("instanceid", 1000L);
 
     secretManager.addKey(new AuthenticationKey(1, 0L, 100L, keyGen.generateKey()));
     Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> entry =
@@ -107,9 +106,7 @@ public class SaslDigestCallbackHandlerTest {
 
   @Test
   public void testTokenAndIdentifierSerialization() throws Exception {
-    AuthenticationTokenSecretManager secretManager =
-
-        new AuthenticationTokenSecretManager("instanceid", 1000L);
+    var secretManager = new AuthenticationTokenSecretManager("instanceid", 1000L);
     var key = new AuthenticationKey(1, 0L, 100_000L, keyGen.generateKey());
     secretManager.addKey(key);
     var entry = secretManager.generateToken("user", cfg);

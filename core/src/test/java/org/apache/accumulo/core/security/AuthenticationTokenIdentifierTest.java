@@ -39,10 +39,9 @@ public class AuthenticationTokenIdentifierTest {
   @Test
   public void testUgi() {
     String principal = "user";
-    AuthenticationTokenIdentifier token =
-        new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
-    UserGroupInformation actual = token.getUser(),
-        expected = UserGroupInformation.createRemoteUser(principal);
+    var token = new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
+    UserGroupInformation actual = token.getUser();
+    UserGroupInformation expected = UserGroupInformation.createRemoteUser(principal);
     assertEquals(expected.getAuthenticationMethod(), actual.getAuthenticationMethod());
     assertEquals(expected.getUserName(), expected.getUserName());
   }
@@ -50,11 +49,9 @@ public class AuthenticationTokenIdentifierTest {
   @Test
   public void testEquality() {
     String principal = "user";
-    AuthenticationTokenIdentifier token =
-        new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
+    var token = new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
     assertEquals(token, token);
-    AuthenticationTokenIdentifier newToken =
-        new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
+    var newToken = new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
     assertEquals(token, newToken);
     assertEquals(token.hashCode(), newToken.hashCode());
   }
@@ -62,14 +59,13 @@ public class AuthenticationTokenIdentifierTest {
   @Test
   public void testExtendedEquality() {
     String principal = "user";
-    AuthenticationTokenIdentifier token =
-        new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
+    var token = new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
     assertEquals(token, token);
-    AuthenticationTokenIdentifier newToken =
+    var newToken =
         new AuthenticationTokenIdentifier(createTAuthIdentifier(principal, 1, 5L, 10L, "uuid"));
     assertNotEquals(token, newToken);
     assertNotEquals(token.hashCode(), newToken.hashCode());
-    AuthenticationTokenIdentifier dblNewToken =
+    var dblNewToken =
         new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
     dblNewToken.setKeyId(1);
     dblNewToken.setIssueDate(5L);
@@ -80,8 +76,7 @@ public class AuthenticationTokenIdentifierTest {
   @Test
   public void testToString() {
     String principal = "my_special_principal";
-    AuthenticationTokenIdentifier token =
-        new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
+    var token = new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
     assertTrue(token.toString().contains(principal));
   }
 
@@ -103,8 +98,7 @@ public class AuthenticationTokenIdentifierTest {
   @Test
   public void testTokenKind() {
     String principal = "my_special_principal";
-    AuthenticationTokenIdentifier token =
-        new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
+    var token = new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
     assertEquals(AuthenticationTokenIdentifier.TOKEN_KIND, token.getKind());
   }
 
@@ -120,6 +114,5 @@ public class AuthenticationTokenIdentifierTest {
     assertEquals(token, deserializedToken);
     assertEquals(token.hashCode(), deserializedToken.hashCode());
     assertEquals(token.toString(), deserializedToken.toString());
-
   }
 }
