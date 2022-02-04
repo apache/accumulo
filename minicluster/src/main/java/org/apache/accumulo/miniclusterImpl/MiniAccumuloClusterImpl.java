@@ -285,8 +285,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       Map<String,String> configOverrides, String... args) throws IOException {
     List<String> jvmOpts = new ArrayList<>();
     if (serverType == ServerType.ZOOKEEPER) {
-      // disable zookeeper's log4j 1.2 jmx support, which depends on log4j 1.2 on the class path,
-      // which we don't need or expect to be there
+      // disable zookeeper's log4j 1.2 jmx support, which requires old versions of log4j 1.2
+      // and won't work with reload4j or log4j2
       jvmOpts.add("-Dzookeeper.jmx.log4j.disable=true");
     }
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
