@@ -25,7 +25,6 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.securityImpl.thrift.TAuthenticationTokenIdentifier;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -115,7 +114,7 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
     impl.principal = tAuthTokenId.getPrincipal();
     setExpirationDate(tAuthTokenId.getExpirationDate());
     setIssueDate(tAuthTokenId.getIssueDate());
-    setInstanceId(tAuthTokenId.getInstanceId());
+    setInstanceId(InstanceId.of(tAuthTokenId.getInstanceId()));
     setKeyId(tAuthTokenId.getKeyId());
   }
 
