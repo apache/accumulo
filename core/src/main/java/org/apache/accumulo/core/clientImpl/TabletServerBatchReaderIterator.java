@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static org.apache.accumulo.core.clientImpl.ScanServerDiscovery.getScanServers;
+
 import java.io.IOException;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
@@ -71,8 +73,6 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.accumulo.core.clientImpl.ScanServerDiscovery.getScanServers;
 
 public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value>> {
 
@@ -157,7 +157,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     }
   }
 
-  @Override public boolean hasNext() {
+  @Override
+  public boolean hasNext() {
     synchronized (nextLock) {
       if (batch == LAST_BATCH)
         return false;
@@ -180,9 +181,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         if (queryThreadPool.isShutdown()) {
           String shortMsg =
               "The BatchScanner was unexpectedly closed while" + " this Iterator was still in use.";
-          log.error(
-              "{} Ensure that a reference to the BatchScanner is retained" + " so that it can be closed when this Iterator is exhausted. Not" + " retaining a reference to the BatchScanner guarantees that you are" + " leaking threads in your client JVM.",
-              shortMsg);
+          log.error("{} Ensure that a reference to the BatchScanner is retained"
+              + " so that it can be closed when this Iterator is exhausted. Not"
+              + " retaining a reference to the BatchScanner guarantees that you are"
+              + " leaking threads in your client JVM.", shortMsg);
           throw new RuntimeException(shortMsg + " Ensure proper handling of the BatchScanner.");
         }
 
@@ -194,7 +196,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     }
   }
 
-  @Override public Entry<Key,Value> next() {
+  @Override
+  public Entry<Key,Value> next() {
     // if there's one waiting, or hasNext() can get one, return it
     synchronized (nextLock) {
       if (hasNext())
@@ -204,7 +207,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     }
   }
 
-  @Override public void remove() {
+  @Override
+  public void remove() {
     throw new UnsupportedOperationException();
   }
 
@@ -339,7 +343,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       this.semaphoreSize = semaphoreSize;
     }
 
-    @Override public void run() {
+    @Override
+    public void run() {
       String threadName = Thread.currentThread().getName();
       Thread.currentThread()
           .setName(threadName + " looking up " + tabletsRanges.size() + " ranges at " + tsLocation);
@@ -478,7 +483,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     if (!timedoutServers.isEmpty()) {
       // go ahead and fail any timed out servers
       for (Iterator<Entry<String,Map<KeyExtent,List<Range>>>> iterator =
-           binnedRanges.entrySet().iterator(); iterator.hasNext(); ) {
+          binnedRanges.entrySet().iterator(); iterator.hasNext();) {
         Entry<String,Map<KeyExtent,List<Range>>> entry = iterator.next();
         if (timedoutServers.contains(entry.getKey())) {
           failures.putAll(entry.getValue());
@@ -529,8 +534,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     }
   }
 
-  private Map<String,Map<KeyExtent,List<Range>>> rebinToScanServers(
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
+  private Map<String,Map<KeyExtent,List<Range>>>
+      rebinToScanServers(Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
     EcScanManager ecsm = context.getEcScanManager();
 
     var scanServers = getScanServers(context);
@@ -540,26 +545,32 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             .map(TabletIdImpl::new).collect(Collectors.toList());
 
     EcScanManager.DaParamaters params = new EcScanManager.DaParamaters() {
-      @Override public Collection<TabletId> getTablets() {
+      @Override
+      public Collection<TabletId> getTablets() {
         return Collections.unmodifiableCollection(tabletIds);
       }
 
-      @Override public List<String> getScanServers() {
+      @Override
+      public List<String> getScanServers() {
         return scanServers;
       }
 
-      @Override public EcScanManager.ScanAttempts getScanAttempts() {
+      @Override
+      public EcScanManager.ScanAttempts getScanAttempts() {
         // TODO implement tracking and passing history (also share code w/ scanner)
         return new EcScanManager.ScanAttempts() {
-          @Override public List<EcScanManager.ScanAttempt> all() {
+          @Override
+          public List<EcScanManager.ScanAttempt> all() {
             return List.of();
           }
 
-          @Override public List<EcScanManager.ScanAttempt> forServer(String server) {
+          @Override
+          public List<EcScanManager.ScanAttempt> forServer(String server) {
             return List.of();
           }
 
-          @Override public List<EcScanManager.ScanAttempt> forTablet(TabletId tablet) {
+          @Override
+          public List<EcScanManager.ScanAttempt> forTablet(TabletId tablet) {
             return List.of();
           }
         };
@@ -588,8 +599,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       } else {
         server = extentToTserverMap.get(tablet.toKeyExtent());
       }
-      binnedRanges2.computeIfAbsent(server, k -> new HashMap<>())
-          .put(tablet.toKeyExtent(), extentToRangesMap.get(tablet.toKeyExtent()));
+      binnedRanges2.computeIfAbsent(server, k -> new HashMap<>()).put(tablet.toKeyExtent(),
+          extentToRangesMap.get(tablet.toKeyExtent()));
     }
     return binnedRanges2;
   }
@@ -621,8 +632,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       while (iterator.hasNext()) {
         Range range = iterator.next();
 
-        if (range.afterEndKey(nextKey) || (nextKey.equals(
-            range.getEndKey()) && scanResult.partNextKeyInclusive != range.isEndKeyInclusive())) {
+        if (range.afterEndKey(nextKey) || (nextKey.equals(range.getEndKey())
+            && scanResult.partNextKeyInclusive != range.isEndKeyInclusive())) {
           iterator.remove();
         } else if (range.contains(nextKey)) {
           iterator.remove();
@@ -749,13 +760,12 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         Map<String,String> execHints =
             options.executionHints.isEmpty() ? null : options.executionHints;
 
-        InitialMultiScan imsr =
-            client.startMultiScan(TraceUtil.traceInfo(), context.rpcCreds(), thriftTabletRanges,
-                columns.stream().map(Column::toThrift).collect(Collectors.toList()),
-                options.serverSideIteratorList, options.serverSideIteratorOptions,
-                ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites,
-                SamplerConfigurationImpl.toThrift(options.getSamplerConfiguration()),
-                options.batchTimeOut, options.classLoaderContext, execHints);
+        InitialMultiScan imsr = client.startMultiScan(TraceUtil.traceInfo(), context.rpcCreds(),
+            thriftTabletRanges, columns.stream().map(Column::toThrift).collect(Collectors.toList()),
+            options.serverSideIteratorList, options.serverSideIteratorOptions,
+            ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites,
+            SamplerConfigurationImpl.toThrift(options.getSamplerConfiguration()),
+            options.batchTimeOut, options.classLoaderContext, execHints);
         if (waitForWrites)
           ThriftScanner.serversWaitedForWrites.get(ttype).add(server.toString());
 
