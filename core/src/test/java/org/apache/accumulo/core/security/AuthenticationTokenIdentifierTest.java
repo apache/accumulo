@@ -88,8 +88,7 @@ public class AuthenticationTokenIdentifierTest {
   @Test
   public void testSerialization() throws IOException {
     String principal = "my_special_principal";
-    AuthenticationTokenIdentifier token =
-        new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
+    var token = new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(principal));
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream out = new DataOutputStream(baos);
     token.write(out);
