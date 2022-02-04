@@ -110,7 +110,7 @@ public class SaslDigestCallbackHandlerTest {
     AuthenticationTokenSecretManager secretManager =
 
         new AuthenticationTokenSecretManager("instanceid", 1000L);
-    var key = new AuthenticationKey(1, 0L, 1000 * 100L, keyGen.generateKey());
+    var key = new AuthenticationKey(1, 0L, 100_000L, keyGen.generateKey());
     secretManager.addKey(key);
     var entry = secretManager.generateToken("user", cfg);
     byte[] password = entry.getKey().getPassword();
