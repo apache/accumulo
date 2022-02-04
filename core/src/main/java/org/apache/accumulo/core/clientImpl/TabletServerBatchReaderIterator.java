@@ -544,7 +544,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         return Collections.unmodifiableCollection(tabletIds);
       }
 
-      @Override public Collection<String> getScanServers() {
+      @Override public List<String> getScanServers() {
         return scanServers;
       }
 

@@ -106,10 +106,9 @@ public interface EcScanManager {
   public interface DaParamaters {
     Collection<TabletId> getTablets();
 
-    Collection<String> getScanServers();
+    List<String> getScanServers();
 
     ScanAttempts getScanAttempts();
-
   }
 
   public enum Action {
