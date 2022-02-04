@@ -190,6 +190,7 @@ public class AgeOffStore<T> implements TStore<T> {
     store.setStatus(tid, status);
 
     switch (status) {
+      case SUBMITTED:
       case IN_PROGRESS:
       case FAILED_IN_PROGRESS:
         removeCandidate(tid);

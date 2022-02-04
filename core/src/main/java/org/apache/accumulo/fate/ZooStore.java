@@ -174,7 +174,8 @@ public class ZooStore<T> implements TStore<T> {
 
           try {
             TStatus status = TStatus.valueOf(new String(zk.getData(path + "/" + txdir), UTF_8));
-            if (status == TStatus.IN_PROGRESS || status == TStatus.FAILED_IN_PROGRESS) {
+            if (status == TStatus.SUBMITTED || status == TStatus.IN_PROGRESS
+                || status == TStatus.FAILED_IN_PROGRESS) {
               return tid;
             } else {
               unreserve(tid);
