@@ -71,7 +71,7 @@ public class TTimeoutTransport {
       socket = SelectorProvider.provider().openSocketChannel().socket();
       socket.setSoLinger(false, 0);
       socket.setTcpNoDelay(true);
-      socket.connect(addr);
+      socket.connect(addr, (int) timeoutMillis);
       InputStream input = new BufferedInputStream(getInputStream(socket, timeoutMillis), 1024 * 10);
       OutputStream output =
           new BufferedOutputStream(NetUtils.getOutputStream(socket, timeoutMillis), 1024 * 10);
