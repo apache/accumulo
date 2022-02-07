@@ -76,37 +76,37 @@ public class FateIT {
 
     @Override
     public long isReady(long tid, Manager manager) throws Exception {
-      LOG.info("Entering isReady {}", Long.toHexString(tid));
+      LOG.debug("Entering isReady {}", Long.toHexString(tid));
       try {
         FateIT.inReady();
         return Utils.reserveNamespace(manager, namespaceId, tid, false, true, TableOperation.RENAME)
             + Utils.reserveTable(manager, tableId, tid, true, true, TableOperation.RENAME);
       } finally {
-        LOG.info("Leaving isReady {}", Long.toHexString(tid));
+        LOG.debug("Leaving isReady {}", Long.toHexString(tid));
       }
     }
 
     @Override
     public void undo(long tid, Manager manager) throws Exception {
-      LOG.info("Entering undo {}", Long.toHexString(tid));
+      LOG.debug("Entering undo {}", Long.toHexString(tid));
       try {
         Utils.unreserveNamespace(manager, namespaceId, tid, false);
         Utils.unreserveTable(manager, tableId, tid, true);
       } finally {
-        LOG.info("Leaving undo {}", Long.toHexString(tid));
+        LOG.debug("Leaving undo {}", Long.toHexString(tid));
       }
     }
 
     @Override
     public Repo<Manager> call(long tid, Manager manager) throws Exception {
-      LOG.info("Entering call {}", Long.toHexString(tid));
+      LOG.debug("Entering call {}", Long.toHexString(tid));
       try {
         FateIT.inCall();
         return null;
       } finally {
         Utils.unreserveNamespace(manager, namespaceId, tid, false);
         Utils.unreserveTable(manager, tableId, tid, true);
-        LOG.info("Leaving call {}", Long.toHexString(tid));
+        LOG.debug("Leaving call {}", Long.toHexString(tid));
       }
 
     }
@@ -168,7 +168,7 @@ public class FateIT {
       finishCall = new CountDownLatch(1);
 
       long txid = fate.startTransaction();
-      LOG.info("Starting test testTransactionStatus with {}", Long.toHexString(txid));
+      LOG.debug("Starting test testTransactionStatus with {}", Long.toHexString(txid));
       assertEquals(TStatus.NEW, getTxStatus(zk, txid));
       fate.seedTransaction(txid, new TestOperation(NS, TID), true);
       assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
@@ -233,7 +233,7 @@ public class FateIT {
       finishCall = new CountDownLatch(1);
 
       long txid = fate.startTransaction();
-      LOG.info("Starting test testCancelWhileNew with {}", Long.toHexString(txid));
+      LOG.debug("Starting test testCancelWhileNew with {}", Long.toHexString(txid));
       assertEquals(TStatus.NEW, getTxStatus(zk, txid));
       // cancel the transaction
       assertTrue(fate.cancel(txid));
@@ -275,7 +275,7 @@ public class FateIT {
       finishCall = new CountDownLatch(1);
 
       long txid = fate.startTransaction();
-      LOG.info("Starting test testCancelWhileSubmitted with {}", Long.toHexString(txid));
+      LOG.debug("Starting test testCancelWhileSubmitted with {}", Long.toHexString(txid));
       assertEquals(TStatus.NEW, getTxStatus(zk, txid));
       fate.seedTransaction(txid, new TestOperation(NS, TID), true);
       assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
@@ -332,7 +332,7 @@ public class FateIT {
       finishCall = new CountDownLatch(1);
 
       long txid = fate.startTransaction();
-      LOG.info("Starting test testCancelWhileInCall with {}", Long.toHexString(txid));
+      LOG.debug("Starting test testCancelWhileInCall with {}", Long.toHexString(txid));
       assertEquals(TStatus.NEW, getTxStatus(zk, txid));
       fate.seedTransaction(txid, new TestOperation(NS, TID), true);
       assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
