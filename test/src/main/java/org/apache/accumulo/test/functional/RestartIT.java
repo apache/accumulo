@@ -141,7 +141,7 @@ public class RestartIT extends AccumuloClusterHarness {
       ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       ZooCache zcache = new ZooCache(zreader, null);
       var zLockPath = ServiceLock
-          .path(ZooUtil.getRoot(c.instanceOperations().getInstanceID()) + Constants.ZMANAGER_LOCK);
+          .path(ZooUtil.getRoot(c.instanceOperations().getInstanceId()) + Constants.ZMANAGER_LOCK);
       byte[] managerLockData;
       do {
         managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
@@ -194,7 +194,7 @@ public class RestartIT extends AccumuloClusterHarness {
       ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       ZooCache zcache = new ZooCache(zreader, null);
       var zLockPath = ServiceLock
-          .path(ZooUtil.getRoot(c.instanceOperations().getInstanceID()) + Constants.ZMANAGER_LOCK);
+          .path(ZooUtil.getRoot(c.instanceOperations().getInstanceId()) + Constants.ZMANAGER_LOCK);
       byte[] managerLockData;
       do {
         managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);

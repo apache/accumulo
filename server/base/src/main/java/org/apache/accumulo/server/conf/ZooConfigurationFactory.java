@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.ServerContext;
@@ -32,7 +33,7 @@ import org.apache.zookeeper.Watcher;
  * A factory for {@link ZooConfiguration} objects.
  */
 class ZooConfigurationFactory {
-  private static final Map<String,ZooConfiguration> instances = new HashMap<>();
+  private static final Map<InstanceId,ZooConfiguration> instances = new HashMap<>();
 
   /**
    * Gets a configuration object for the given instance with the given parent. Repeated calls will

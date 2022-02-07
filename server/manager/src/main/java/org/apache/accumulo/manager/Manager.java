@@ -57,6 +57,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -409,7 +410,7 @@ public class Manager extends AbstractServer
     }
   }
 
-  public String getInstanceID() {
+  public InstanceId getInstanceID() {
     return getContext().getInstanceID();
   }
 

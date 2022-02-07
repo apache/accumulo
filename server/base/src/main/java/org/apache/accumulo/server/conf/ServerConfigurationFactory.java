@@ -27,6 +27,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigCheckUtil;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
@@ -37,13 +38,14 @@ import org.apache.accumulo.server.ServerContext;
  */
 public class ServerConfigurationFactory extends ServerConfiguration {
 
-  private static final Map<String,Map<TableId,TableConfiguration>> tableConfigs = new HashMap<>(1);
-  private static final Map<String,Map<NamespaceId,NamespaceConfiguration>> namespaceConfigs =
+  private static final Map<InstanceId,Map<TableId,TableConfiguration>> tableConfigs =
       new HashMap<>(1);
-  private static final Map<String,Map<TableId,NamespaceConfiguration>> tableParentConfigs =
+  private static final Map<InstanceId,Map<NamespaceId,NamespaceConfiguration>> namespaceConfigs =
+      new HashMap<>(1);
+  private static final Map<InstanceId,Map<TableId,NamespaceConfiguration>> tableParentConfigs =
       new HashMap<>(1);
 
-  private static void addInstanceToCaches(String iid) {
+  private static void addInstanceToCaches(InstanceId iid) {
     synchronized (tableConfigs) {
       tableConfigs.computeIfAbsent(iid, k -> new HashMap<>());
     }
@@ -69,7 +71,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   private final ServerContext context;
   private final SiteConfiguration siteConfig;
-  private final String instanceID;
+  private final InstanceId instanceID;
   private ZooCacheFactory zcf = new ZooCacheFactory();
 
   public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {

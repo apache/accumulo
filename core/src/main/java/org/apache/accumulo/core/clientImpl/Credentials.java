@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 
 /**
@@ -91,9 +92,10 @@ public class Credentials {
    * @throws RuntimeException
    *           if the authentication token has been destroyed (expired)
    */
-  public TCredentials toThrift(String instanceID) {
+  public TCredentials toThrift(InstanceId instanceID) {
     TCredentials tCreds = new TCredentials(getPrincipal(), getToken().getClass().getName(),
-        ByteBuffer.wrap(AuthenticationTokenSerializer.serialize(getToken())), instanceID);
+        ByteBuffer.wrap(AuthenticationTokenSerializer.serialize(getToken())),
+        instanceID.canonical());
     if (getToken().isDestroyed())
       throw new RuntimeException("Token has been destroyed",
           new AccumuloSecurityException(getPrincipal(), SecurityErrorCode.TOKEN_EXPIRED));

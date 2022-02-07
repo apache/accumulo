@@ -22,7 +22,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.util.Properties;
-import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -33,6 +32,7 @@ import org.apache.accumulo.core.clientImpl.InstanceOperationsImpl;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -47,7 +47,7 @@ public class ServerInfo implements ClientInfo {
 
   private final SiteConfiguration siteConfig;
   private final Configuration hadoopConf;
-  private final String instanceID;
+  private final InstanceId instanceID;
   private final String instanceName;
   private final String zooKeepers;
   private final int zooKeepersSessionTimeOut;
@@ -76,7 +76,7 @@ public class ServerInfo implements ClientInfo {
       throw new RuntimeException("Instance name " + instanceName + " does not exist in zookeeper. "
           + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
     }
-    instanceID = new String(iidb, UTF_8);
+    instanceID = InstanceId.of(new String(iidb, UTF_8));
     if (zooCache.get(Constants.ZROOT + "/" + instanceID) == null) {
       if (instanceName == null) {
         throw new RuntimeException("Instance id " + instanceID + " does not exist in zookeeper");
@@ -103,11 +103,11 @@ public class ServerInfo implements ClientInfo {
     zooKeepers = config.get(Property.INSTANCE_ZK_HOST);
     zooKeepersSessionTimeOut = (int) config.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
-    instanceName = InstanceOperationsImpl.lookupInstanceName(zooCache, UUID.fromString(instanceID));
+    instanceName = InstanceOperationsImpl.lookupInstanceName(zooCache, instanceID);
     credentials = SystemCredentials.get(instanceID, siteConfig);
   }
 
-  ServerInfo(SiteConfiguration config, String instanceName, String instanceID) {
+  ServerInfo(SiteConfiguration config, String instanceName, InstanceId instanceID) {
     SingletonManager.setMode(Mode.SERVER);
     siteConfig = config;
     hadoopConf = new Configuration();
@@ -133,7 +133,7 @@ public class ServerInfo implements ClientInfo {
     return volumeManager;
   }
 
-  public String getInstanceID() {
+  public InstanceId getInstanceID() {
     return instanceID;
   }
 

@@ -28,6 +28,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.apache.commons.codec.digest.Crypt;
@@ -44,8 +45,8 @@ public class SystemCredentialsTest {
   public TestName test = new TestName();
 
   private static SiteConfiguration siteConfig = SiteConfiguration.auto();
-  private String instanceId =
-      UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}).toString();
+  private InstanceId instanceId =
+      InstanceId.of(UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}));
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "input not from a user")
   @BeforeClass

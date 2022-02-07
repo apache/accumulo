@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
 import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.securityImpl.thrift.TAuthenticationTokenIdentifier;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.token.SecretManager;
@@ -58,7 +59,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
 
   private static final Logger log = LoggerFactory.getLogger(AuthenticationTokenSecretManager.class);
 
-  private final String instanceID;
+  private final InstanceId instanceID;
   private final long tokenMaxLifetime;
   private final ConcurrentHashMap<Integer,AuthenticationKey> allKeys = new ConcurrentHashMap<>();
   private AuthenticationKey currentKey;
@@ -71,7 +72,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
    * @param tokenMaxLifetime
    *          Maximum age (in milliseconds) before a token expires and is no longer valid
    */
-  public AuthenticationTokenSecretManager(String instanceID, long tokenMaxLifetime) {
+  public AuthenticationTokenSecretManager(InstanceId instanceID, long tokenMaxLifetime) {
     requireNonNull(instanceID);
     checkArgument(tokenMaxLifetime > 0, "Max lifetime must be positive");
     this.instanceID = instanceID;
@@ -170,8 +171,9 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
     var id = new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier(username));
 
     final StringBuilder svcName = new StringBuilder(DelegationTokenImpl.SERVICE_NAME);
-    svcName.append("-").append(id.getInstanceId());
-
+    if (id.getInstanceId() != null) {
+      svcName.append("-").append(id.getInstanceId());
+    }
     // Create password will update the state on the identifier given currentKey. Need to call this
     // before serializing the identifier
     byte[] password;

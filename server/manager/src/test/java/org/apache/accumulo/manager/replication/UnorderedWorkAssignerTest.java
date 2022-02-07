@@ -45,9 +45,11 @@ import org.apache.accumulo.server.replication.DistributedWorkQueueWorkAssignerHe
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.hadoop.fs.Path;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 @Deprecated
+@Ignore("Replication Tests are not stable and not currently maintained")
 public class UnorderedWorkAssignerTest {
 
   private AccumuloClient client;

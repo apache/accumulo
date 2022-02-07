@@ -25,6 +25,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.securityImpl.thrift.TAuthenticationTokenIdentifier;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.ThriftMessageUtil;
@@ -77,12 +78,15 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
     return impl.getExpirationDate();
   }
 
-  public void setInstanceId(String instanceId) {
-    impl.setInstanceId(instanceId);
+  public void setInstanceId(InstanceId instanceId) {
+    impl.setInstanceId(instanceId.canonical());
   }
 
-  public String getInstanceId() {
-    return impl.getInstanceId();
+  public InstanceId getInstanceId() {
+    if (impl.getInstanceId() == null)
+      return InstanceId.of("");
+    else
+      return InstanceId.of(impl.getInstanceId());
   }
 
   public TAuthenticationTokenIdentifier getThriftIdentifier() {
@@ -113,7 +117,8 @@ public class AuthenticationTokenIdentifier extends TokenIdentifier {
     impl.principal = tAuthTokenId.getPrincipal();
     setExpirationDate(tAuthTokenId.getExpirationDate());
     setIssueDate(tAuthTokenId.getIssueDate());
-    setInstanceId(tAuthTokenId.getInstanceId());
+    if (tAuthTokenId.getInstanceId() != null)
+      setInstanceId(InstanceId.of(tAuthTokenId.getInstanceId()));
     setKeyId(tAuthTokenId.getKeyId());
   }
 
