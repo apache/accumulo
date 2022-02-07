@@ -114,7 +114,7 @@ public class ZooStore<T> implements TStore<T> {
   /**
    * For testing only
    */
-  public ZooStore() {}
+  ZooStore() {}
 
   @Override
   public long create() {
