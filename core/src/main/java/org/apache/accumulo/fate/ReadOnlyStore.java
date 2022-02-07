@@ -32,13 +32,13 @@ import java.util.List;
  */
 public class ReadOnlyStore<T> implements ReadOnlyTStore<T> {
 
-  private final TStore<T> store;
+  private final ZooStore<T> store;
 
   /**
    * @param store
    *          may not be null
    */
-  public ReadOnlyStore(TStore<T> store) {
+  public ReadOnlyStore(ZooStore<T> store) {
     requireNonNull(store);
     this.store = store;
   }

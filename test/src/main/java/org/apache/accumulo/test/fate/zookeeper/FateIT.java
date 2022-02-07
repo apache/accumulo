@@ -118,7 +118,8 @@ public class FateIT {
     zk.mkdirs(ZK_ROOT + Constants.ZTABLES + "/" + TID.canonical());
 
     ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
-    final AgeOffStore<Manager> store = new AgeOffStore<Manager>(zooStore, 1000 * 60 * 60 * 8);
+    final AgeOffStore<Manager> store =
+        new AgeOffStore<Manager>(zooStore, 1000 * 60 * 60 * 8, System::currentTimeMillis);
 
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
