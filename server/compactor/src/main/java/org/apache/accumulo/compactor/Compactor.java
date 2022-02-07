@@ -155,7 +155,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   private ServerAddress compactorAddress = null;
 
   // Exposed for tests
-  protected volatile Boolean shutdown = false;
+  protected volatile boolean shutdown = false;
 
   private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
 
@@ -626,10 +626,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   protected Supplier<UUID> getNextId() {
-    Supplier<UUID> supplier = () -> {
-      return UUID.randomUUID();
-    };
-    return supplier;
+    return UUID::randomUUID;
   }
 
   protected long getWaitTimeBetweenCompactionChecks() {
@@ -763,7 +760,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           }
 
           if (compactionThread.isInterrupted() || JOB_HOLDER.isCancelled()
-              || ((err.get() != null && err.get().getClass().equals(InterruptedException.class)))) {
+              || (err.get() != null && err.get().getClass().equals(InterruptedException.class))) {
             LOG.warn("Compaction thread was interrupted, sending CANCELLED state");
             try {
               TCompactionStatusUpdate update = new TCompactionStatusUpdate(
@@ -831,7 +828,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     } finally {
       // Shutdown local thrift server
       LOG.info("Stopping Thrift Servers");
-      TServerUtils.stopTServer(compactorAddress.server);
+      if (compactorAddress.server != null) {
+        compactorAddress.server.stop();
+      }
 
       try {
         LOG.debug("Closing filesystems");

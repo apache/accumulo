@@ -324,7 +324,7 @@ public class PrintInfo implements KeywordExecutable {
     byte[] noCryptoBytes = new NoFileEncrypter().getDecryptionParameters();
     try (FSDataInputStream fsDis = fs.open(path)) {
       long fileLength = fs.getFileStatus(path).getLen();
-      fsDis.seek(fileLength - 16 - Utils.Version.size() - (Long.BYTES));
+      fsDis.seek(fileLength - 16 - Utils.Version.size() - Long.BYTES);
       long cryptoParamOffset = fsDis.readLong();
       fsDis.seek(cryptoParamOffset);
       byte[] cryptoParams = CryptoUtils.readParams(fsDis);

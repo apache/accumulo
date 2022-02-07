@@ -23,7 +23,7 @@ import java.util.HashSet;
 
 public enum TabletServerState {
   // not a valid state, reserved for internal use only
-  RESERVED((byte) (-1)),
+  RESERVED((byte) -1),
 
   // the following are normally functioning states
   NEW((byte) 0),

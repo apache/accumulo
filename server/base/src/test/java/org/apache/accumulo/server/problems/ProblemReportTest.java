@@ -34,6 +34,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.util.Encoding;
@@ -58,7 +59,7 @@ public class ProblemReportTest {
 
   @Before
   public void setUp() {
-    context = MockServerContext.getWithZK("instance", "", 30_000);
+    context = MockServerContext.getWithZK(InstanceId.of("instance"), "", 30_000);
     zoorw = createMock(ZooReaderWriter.class);
     expect(context.getZooReaderWriter()).andReturn(zoorw).anyTimes();
     replay(context);
@@ -157,7 +158,7 @@ public class ProblemReportTest {
   public void testRemoveFromZooKeeper() throws Exception {
     r = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null);
     byte[] zpathFileName = makeZPathFileName(TABLE_ID, ProblemType.FILE_READ, RESOURCE);
-    String path = ZooUtil.getRoot("instance") + Constants.ZPROBLEMS + "/"
+    String path = ZooUtil.getRoot(InstanceId.of("instance")) + Constants.ZPROBLEMS + "/"
         + Encoding.encodeAsBase64FileName(new Text(zpathFileName));
     zoorw.recursiveDelete(path, NodeMissingPolicy.SKIP);
     replay(zoorw);
@@ -171,7 +172,7 @@ public class ProblemReportTest {
     long now = System.currentTimeMillis();
     r = new ProblemReport(TABLE_ID, ProblemType.FILE_READ, RESOURCE, SERVER, null, now);
     byte[] zpathFileName = makeZPathFileName(TABLE_ID, ProblemType.FILE_READ, RESOURCE);
-    String path = ZooUtil.getRoot("instance") + Constants.ZPROBLEMS + "/"
+    String path = ZooUtil.getRoot(InstanceId.of("instance")) + Constants.ZPROBLEMS + "/"
         + Encoding.encodeAsBase64FileName(new Text(zpathFileName));
     byte[] encoded = encodeReportData(now, SERVER, null);
     expect(zoorw.putPersistentData(eq(path), aryEq(encoded), eq(NodeExistsPolicy.OVERWRITE)))
@@ -189,8 +190,9 @@ public class ProblemReportTest {
     long now = System.currentTimeMillis();
     byte[] encoded = encodeReportData(now, SERVER, "excmsg");
 
-    expect(zoorw.getData(ZooUtil.getRoot("instance") + Constants.ZPROBLEMS + "/" + node))
-        .andReturn(encoded);
+    expect(zoorw
+        .getData(ZooUtil.getRoot(InstanceId.of("instance")) + Constants.ZPROBLEMS + "/" + node))
+            .andReturn(encoded);
     replay(zoorw);
 
     r = ProblemReport.decodeZooKeeperEntry(context, node);

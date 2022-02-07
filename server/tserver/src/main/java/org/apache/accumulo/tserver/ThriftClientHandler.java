@@ -638,7 +638,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       // if user has no permission to write to this table, add it to
       // the failures list
       boolean sameTable = us.currentTablet != null
-          && (us.currentTablet.getExtent().tableId().equals(keyExtent.tableId()));
+          && us.currentTablet.getExtent().tableId().equals(keyExtent.tableId());
       tableId = keyExtent.tableId();
       if (sameTable || security.canWrite(us.getCredentials(), tableId,
           Tables.getNamespaceId(server.getContext(), tableId))) {

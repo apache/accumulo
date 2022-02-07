@@ -42,6 +42,7 @@ import javax.crypto.KeyGenerator;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.hadoop.security.token.SecretManager.InvalidToken;
 import org.apache.hadoop.security.token.Token;
 import org.junit.Before;
@@ -68,12 +69,12 @@ public class AuthenticationTokenSecretManagerTest {
     keyGen.init(KEY_LENGTH);
   }
 
-  private String instanceId;
+  private InstanceId instanceId;
   private DelegationTokenConfig cfg;
 
   @Before
   public void setup() {
-    instanceId = UUID.randomUUID().toString();
+    instanceId = InstanceId.of(UUID.randomUUID());
     cfg = new DelegationTokenConfig();
   }
 

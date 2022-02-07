@@ -1125,7 +1125,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       ConditionalMutation cm = new ConditionalMutation(row, cond);
 
       cm.put("meta", "seq", (seq + 1) + "");
-      cm.put("meta", "sum", (sum) + "");
+      cm.put("meta", "sum", sum + "");
 
       for (int i = 0; i < data.length; i++) {
         cm.put("data", i + "", data[i] + "");

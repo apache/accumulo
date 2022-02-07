@@ -266,7 +266,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       verifyIterators(client, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"},
           true);
       client.tableOperations().removeIterator(tableName, "someName",
-          EnumSet.allOf((IteratorScope.class)));
+          EnumSet.allOf(IteratorScope.class));
       verifyIterators(client, tableName, new String[] {}, true);
       Map<String,EnumSet<IteratorScope>> iteratorList2 =
           client.tableOperations().listIterators(tableName);

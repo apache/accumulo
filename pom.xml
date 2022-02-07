@@ -145,7 +145,7 @@
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
     <project.build.outputTimestamp>2020-12-17T22:06:50Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
-    <slf4j.version>1.7.32</slf4j.version>
+    <slf4j.version>1.7.35</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
@@ -1027,6 +1027,7 @@
                     <!-- we redirect logging to log4j2, so we should have those bridges instead -->
                     <!-- commons-logging is allowed because log4j-jcl uses it as a dependency -->
                     <exclude>ch.qos.logback:*</exclude>
+                    <exclude>ch.qos.reload4j:*</exclude>
                     <exclude>log4j:*</exclude>
                     <exclude>org.apache.logging.log4j:log4j-to-slf4j</exclude>
                     <exclude>org.slf4j:*</exclude>

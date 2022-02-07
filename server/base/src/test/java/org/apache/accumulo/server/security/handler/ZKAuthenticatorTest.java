@@ -34,6 +34,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
@@ -133,7 +134,7 @@ public class ZKAuthenticatorTest {
     byte[] newHash = ZKSecurityTool.createPass(rawPass.clone());
 
     // mocking zk interaction
-    ServerContext context = MockServerContext.getWithZK("example", "", 30_000);
+    ServerContext context = MockServerContext.getWithZK(InstanceId.of("example"), "", 30_000);
     ZooReaderWriter zr = createMock(ZooReaderWriter.class);
     expect(context.getZooReaderWriter()).andReturn(zr).anyTimes();
     ZooKeeper zk = createMock(ZooKeeper.class);
@@ -166,7 +167,7 @@ public class ZKAuthenticatorTest {
     byte[] outdatedHash = ZKSecurityTool.createOutdatedPass(rawPass);
 
     // mocking zk interaction
-    ServerContext context = MockServerContext.getWithZK("example", "", 30_000);
+    ServerContext context = MockServerContext.getWithZK(InstanceId.of("example"), "", 30_000);
     ZooReaderWriter zr = createMock(ZooReaderWriter.class);
     expect(context.getZooReaderWriter()).andReturn(zr).anyTimes();
     ZooKeeper zk = createMock(ZooKeeper.class);

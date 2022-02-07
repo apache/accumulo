@@ -58,6 +58,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -97,7 +98,7 @@ public class ClientContext implements AccumuloClient {
   private static final Logger log = LoggerFactory.getLogger(ClientContext.class);
 
   private final ClientInfo info;
-  private String instanceId;
+  private InstanceId instanceId;
   private final ZooCache zooCache;
 
   private Credentials creds;
@@ -179,7 +180,7 @@ public class ClientContext implements AccumuloClient {
 
       @Override
       public String getInstanceID() {
-        return context.getInstanceID();
+        return context.getInstanceID().canonical();
       }
 
       @Override
@@ -402,12 +403,13 @@ public class ClientContext implements AccumuloClient {
    */
   public List<String> getManagerLocations() {
     ensureOpen();
-    return getManagerLocations(zooCache, getInstanceID());
+    return getManagerLocations(zooCache, getInstanceID().canonical());
   }
 
   // available only for sharing code with old ZooKeeperInstance
   public static List<String> getManagerLocations(ZooCache zooCache, String instanceId) {
-    var zLockManagerPath = ServiceLock.path(ZooUtil.getRoot(instanceId) + Constants.ZMANAGER_LOCK);
+    var zLockManagerPath =
+        ServiceLock.path(Constants.ZROOT + "/" + instanceId + Constants.ZMANAGER_LOCK);
 
     OpTimer timer = null;
 
@@ -437,18 +439,18 @@ public class ClientContext implements AccumuloClient {
    *
    * @return a UUID
    */
-  public String getInstanceID() {
+  public InstanceId getInstanceID() {
     ensureOpen();
     if (instanceId == null) {
       final String instanceName = info.getInstanceName();
       instanceId = getInstanceID(zooCache, instanceName);
-      verifyInstanceId(zooCache, instanceId, instanceName);
+      verifyInstanceId(zooCache, instanceId.canonical(), instanceName);
     }
     return instanceId;
   }
 
   // available only for sharing code with old ZooKeeperInstance
-  public static String getInstanceID(ZooCache zooCache, String instanceName) {
+  public static InstanceId getInstanceID(ZooCache zooCache, String instanceName) {
     requireNonNull(zooCache, "zooCache cannot be null");
     requireNonNull(instanceName, "instanceName cannot be null");
     String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
@@ -457,7 +459,7 @@ public class ClientContext implements AccumuloClient {
       throw new RuntimeException("Instance name " + instanceName + " does not exist in zookeeper. "
           + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
     }
-    return new String(data, UTF_8);
+    return InstanceId.of(new String(data, UTF_8));
   }
 
   // available only for sharing code with old ZooKeeperInstance
