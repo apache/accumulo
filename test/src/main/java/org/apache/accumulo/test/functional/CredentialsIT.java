@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -114,17 +115,12 @@ public class CredentialsIT extends AccumuloClusterHarness {
         assertFalse(token.isDestroyed());
         token.destroy();
         assertTrue(token.isDestroyed());
-        try {
-          Iterator<Entry<Key,Value>> iter = scanner.iterator();
-          while (iter.hasNext())
-            fail();
-          fail();
-        } catch (Exception e) {
-          assertTrue(e instanceof RuntimeException);
-          assertTrue(e.getCause() instanceof AccumuloSecurityException);
-          assertEquals(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode(),
-              SecurityErrorCode.TOKEN_EXPIRED);
-        }
+
+        Iterator<Entry<Key,Value>> iter = scanner.iterator();
+        var e = assertThrows(RuntimeException.class, iter::hasNext);
+        assertTrue(e.getCause() instanceof AccumuloSecurityException);
+        assertEquals(((AccumuloSecurityException) e.getCause()).getSecurityErrorCode(),
+            SecurityErrorCode.TOKEN_EXPIRED);
       }
     }
   }

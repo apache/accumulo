@@ -21,7 +21,7 @@ package org.apache.accumulo.hadoop.mapred;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -90,10 +90,8 @@ public class AccumuloOutputFormatTest {
     Properties cp = Accumulo.newClientProperties().to("test", "zk").as("blah", "blah").build();
 
     AccumuloOutputFormat.configure().clientProperties(cp);
-    try {
-      new AccumuloOutputFormat().checkOutputSpecs(null, job);
-      fail("IllegalStateException should have been thrown.");
-    } catch (IllegalStateException e) {}
+    assertThrows(IllegalStateException.class,
+        () -> new AccumuloOutputFormat().checkOutputSpecs(null, job));
   }
 
   @Test

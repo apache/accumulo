@@ -20,6 +20,7 @@ package org.apache.accumulo.core.iterators.user;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -950,9 +951,7 @@ public class CombinerTest {
     assertTrue(summingArrayCombiner.validateOptions(iteratorSetting.getOptions()));
 
     summingArrayCombiner.init(new SortedMapIterator(tm1), iteratorSetting.getOptions(), SCAN_IE);
-    try {
-      summingArrayCombiner.seek(new Range(), EMPTY_COL_FAMS, false);
-      fail("ValueFormatException should have been thrown");
-    } catch (ValueFormatException e) {}
+    assertThrows(ValueFormatException.class,
+        () -> summingArrayCombiner.seek(new Range(), EMPTY_COL_FAMS, false));
   }
 }

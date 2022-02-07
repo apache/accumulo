@@ -21,8 +21,8 @@ package org.apache.accumulo.core.iterators.system;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -286,10 +286,8 @@ public class SourceSwitchingIteratorTest {
 
     flag.set(true);
 
-    try {
-      ssi.seek(new Range("r1"), new ArrayList<>(), false);
-      fail("expected to see IterationInterruptedException");
-    } catch (IterationInterruptedException iie) {}
+    assertThrows(IterationInterruptedException.class,
+        () -> ssi.seek(new Range("r1"), new ArrayList<>(), false));
 
   }
 

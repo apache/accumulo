@@ -24,7 +24,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -68,12 +68,7 @@ public class TTimeoutTransportTest {
 
     replay(addr, s, timeoutTransport);
 
-    try {
-      timeoutTransport.openSocket(addr);
-      fail("Expected to catch IOException but got none");
-    } catch (IOException e) {
-      // Expected
-    }
+    assertThrows(IOException.class, () -> timeoutTransport.openSocket(addr));
 
     verify(addr, s, timeoutTransport);
   }
@@ -103,12 +98,7 @@ public class TTimeoutTransportTest {
 
     replay(addr, s, timeoutTransport);
 
-    try {
-      timeoutTransport.createInternal(addr, timeout);
-      fail("Expected to catch TTransportException but got none");
-    } catch (TTransportException e) {
-      // Expected
-    }
+    assertThrows(TTransportException.class, () -> timeoutTransport.createInternal(addr, timeout));
 
     verify(addr, s, timeoutTransport);
   }
@@ -143,12 +133,7 @@ public class TTimeoutTransportTest {
 
     replay(addr, s, timeoutTransport);
 
-    try {
-      timeoutTransport.createInternal(addr, timeout);
-      fail("Expected to catch TTransportException but got none");
-    } catch (TTransportException e) {
-      // Expected
-    }
+    assertThrows(TTransportException.class, () -> timeoutTransport.createInternal(addr, timeout));
 
     verify(addr, s, timeoutTransport);
   }

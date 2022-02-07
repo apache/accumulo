@@ -21,8 +21,8 @@ package org.apache.accumulo.core.security;
 import static org.apache.accumulo.core.security.ColumnVisibility.quote;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.util.BadArgumentException;
@@ -62,33 +62,21 @@ public class VisibilityEvaluatorTest {
 
     // test missing separators; these should throw an exception
     for (String marking : new String[] {"one(five)", "(five)one", "(one)(two)", "a|(b(c))"}) {
-      try {
-        ct.evaluate(new ColumnVisibility(marking));
-        fail(marking + " failed to throw");
-      } catch (BadArgumentException e) {
-        // all is good
-      }
+      assertThrows(marking + " failed to throw", BadArgumentException.class,
+          () -> ct.evaluate(new ColumnVisibility(marking)));
     }
 
     // test unexpected separator
     for (String marking : new String[] {"&(five)", "|(five)", "(five)&", "five|", "a|(b)&",
         "(&five)", "(five|)"}) {
-      try {
-        ct.evaluate(new ColumnVisibility(marking));
-        fail(marking + " failed to throw");
-      } catch (BadArgumentException e) {
-        // all is good
-      }
+      assertThrows(marking + " failed to throw", BadArgumentException.class,
+          () -> ct.evaluate(new ColumnVisibility(marking)));
     }
 
     // test mismatched parentheses
     for (String marking : new String[] {"(", ")", "(a&b", "b|a)"}) {
-      try {
-        ct.evaluate(new ColumnVisibility(marking));
-        fail(marking + " failed to throw");
-      } catch (BadArgumentException e) {
-        // all is good
-      }
+      assertThrows(marking + " failed to throw", BadArgumentException.class,
+          () -> ct.evaluate(new ColumnVisibility(marking)));
     }
   }
 
@@ -141,20 +129,12 @@ public class VisibilityEvaluatorTest {
     assertEquals("a\\b\\c\\d",
         VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\\b\\\\c\\\\d")).toString());
 
-    try {
-      VisibilityEvaluator.unescape(new ArrayByteSequence("a\\b"));
-      fail("Expected failure to unescape invalid escape sequence");
-    } catch (IllegalArgumentException e) {}
-
-    try {
-      VisibilityEvaluator.unescape(new ArrayByteSequence("a\\b\\c"));
-      fail("Expected failure to unescape invalid escape sequence");
-    } catch (IllegalArgumentException e) {}
-
-    try {
-      VisibilityEvaluator.unescape(new ArrayByteSequence("a\"b\\"));
-      fail("Expected failure to unescape invalid escape sequence");
-    } catch (IllegalArgumentException e) {}
+    assertThrows(IllegalArgumentException.class,
+        () -> VisibilityEvaluator.unescape(new ArrayByteSequence("a\\b")));
+    assertThrows(IllegalArgumentException.class,
+        () -> VisibilityEvaluator.unescape(new ArrayByteSequence("a\\b\\c")));
+    assertThrows(IllegalArgumentException.class,
+        () -> VisibilityEvaluator.unescape(new ArrayByteSequence("a\"b\\")));
 
   }
 

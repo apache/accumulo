@@ -19,8 +19,8 @@
 package org.apache.accumulo.core.iterators.user;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -200,10 +200,9 @@ public class FilterTest {
     AgeOffFilter.setCurrentTime(is, 1001L);
     AgeOffFilter.setNegate(is, true);
     assertTrue(((AgeOffFilter) a).validateOptions(is.getOptions()));
-    try {
-      ((AgeOffFilter) a).validateOptions(EMPTY_OPTS);
-      fail();
-    } catch (IllegalArgumentException e) {}
+    SortedKeyValueIterator<Key,Value> finalA = a; // effectively final var needed for lambda below
+    assertThrows(IllegalArgumentException.class,
+        () -> ((AgeOffFilter) finalA).validateOptions(EMPTY_OPTS));
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a = a.deepCopy(null);
     SortedKeyValueIterator<Key,Value> copy = a.deepCopy(null);
@@ -559,10 +558,8 @@ public class FilterTest {
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(32, size(a));
 
-    try {
-      a.validateOptions(EMPTY_OPTS);
-      fail();
-    } catch (IllegalArgumentException e) {}
+    TimestampFilter finalA = a; // effectively final var needed for lambda below
+    assertThrows(IllegalArgumentException.class, () -> finalA.validateOptions(EMPTY_OPTS));
   }
 
   @Test

@@ -20,6 +20,7 @@ package org.apache.accumulo.core.iterators.system;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -244,13 +245,12 @@ public class DeletingIteratorTest {
     SortedKeyValueIterator<Key,Value> it =
         DeletingIterator.wrap(new SortedMapIterator(tm), false, Behavior.FAIL);
     it.seek(new Range(), EMPTY_COL_FAMS, false);
-    try {
+    assertThrows(IllegalStateException.class, () -> {
       while (it.hasTop()) {
         it.getTopKey();
         it.next();
       }
-      fail();
-    } catch (IllegalStateException e) {}
+    });
   }
 
   private Range newRange(String row, long ts, boolean inclusive) {

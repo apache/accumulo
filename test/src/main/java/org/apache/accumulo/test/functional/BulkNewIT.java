@@ -443,31 +443,20 @@ public class BulkNewIT extends SharedMiniClusterBase {
       LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333))
           .loadFileTo("f2.rf", RangeType.TABLE, null, row(666))
           .loadFileTo("f3.rf", RangeType.TABLE, null, row(666)).build();
-      try {
-        c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
-        fail();
-      } catch (IllegalArgumentException e) {
-        // ignore
-      }
+      assertThrows(IllegalArgumentException.class,
+          () -> c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load());
 
       // Create a plan with less files than exists in dir
-      loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333)).build();
-      try {
-        c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
-        fail();
-      } catch (IllegalArgumentException e) {
-        // ignore
-      }
+      LoadPlan loadPlan1 =
+          LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333)).build();
+      assertThrows(IllegalArgumentException.class,
+          () -> c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan1).load());
 
       // Create a plan with tablet boundary that does not exits
-      loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(555))
+      LoadPlan loadPlan2 = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(555))
           .loadFileTo("f2.rf", RangeType.TABLE, null, row(555)).build();
-      try {
-        c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
-        fail();
-      } catch (AccumuloException e) {
-        // ignore
-      }
+      assertThrows(AccumuloException.class,
+          () -> c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan2).load());
     }
   }
 

@@ -420,10 +420,9 @@ public class InMemoryMapTest {
     }
 
     for (int i = 1; i <= 4; i++) {
-      try {
-        deepCopyAndDelete(i, true);
-        fail("i = " + i);
-      } catch (IterationInterruptedException iie) {}
+      final int finalI = i;
+      assertThrows("i = " + finalI, IterationInterruptedException.class,
+          () -> deepCopyAndDelete(finalI, true));
     }
   }
 

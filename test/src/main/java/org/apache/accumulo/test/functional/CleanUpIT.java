@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import java.util.Map.Entry;
@@ -115,28 +116,13 @@ public class CleanUpIT extends SharedMiniClusterBase {
       Mutation m2 = new Mutation("r2");
       m2.put("cf1", "cq1", 1, "6");
 
-      try {
-        bw.addMutation(m1);
-        bw.flush();
-        fail("batch writer did not fail");
-      } catch (Exception e) {
+      bw.addMutation(m1);
+      assertThrows(Exception.class, bw::flush);
 
-      }
+      // expect this to fail also, want to clean up batch writer threads
+      assertThrows(Exception.class, bw::close);
 
-      try {
-        // expect this to fail also, want to clean up batch writer threads
-        bw.close();
-        fail("batch writer close not fail");
-      } catch (Exception e) {
-
-      }
-
-      try {
-        count = Iterables.size(scanner);
-        fail("scanner did not fail");
-      } catch (Exception e) {
-
-      }
+      assertThrows(Exception.class, () -> Iterables.size(scanner));
 
       threadCount = countThreads();
       if (threadCount > 0) {

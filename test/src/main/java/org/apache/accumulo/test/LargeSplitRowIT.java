@@ -20,8 +20,8 @@ package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -96,10 +96,8 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       partitionKeys.add(new Text(data));
 
       // try to add the split point that is too large, if the split point is created the test fails.
-      try {
-        client.tableOperations().addSplits(tableName, partitionKeys);
-        fail();
-      } catch (AccumuloServerException e) {}
+      assertThrows(AccumuloServerException.class,
+          () -> client.tableOperations().addSplits(tableName, partitionKeys));
 
       // Make sure that the information that was written to the table before we tried to add the
       // split

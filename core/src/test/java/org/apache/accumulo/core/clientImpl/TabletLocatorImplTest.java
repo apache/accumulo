@@ -22,7 +22,7 @@ import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1278,12 +1278,8 @@ public class TabletLocatorImplTest {
     setLocation(tservers, "tserver2", MTE, ke1, "L1", "I1");
     setLocation(tservers, "tserver2", MTE, ke1, "L2", "I2");
 
-    try {
-      metaCache.locateTablet(context, new Text("a"), false, false);
-      fail();
-    } catch (Exception e) {
-
-    }
+    assertThrows(Exception.class,
+        () -> metaCache.locateTablet(context, new Text("a"), false, false));
 
   }
 

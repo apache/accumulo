@@ -21,6 +21,7 @@ package org.apache.accumulo.core.data;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -883,10 +884,8 @@ public class RangeTest {
     ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
     Range r2 = new Range();
     try (DataInputStream dis = new DataInputStream(bais)) {
-      r2.readFields(dis);
-      fail("readFields allowed invalid range");
-    } catch (InvalidObjectException exc) {
-      /* good! */
+      assertThrows("readFields allowed invalid range", InvalidObjectException.class,
+          () -> r2.readFields(dis));
     }
   }
 
@@ -903,11 +902,7 @@ public class RangeTest {
     Range r =
         new Range(new Key(new Text("soup")), true, false, new Key(new Text("nuts")), true, false);
     TRange tr = r.toThrift();
-    try {
-      new Range(tr);
-      fail("Thrift constructor allowed invalid range");
-    } catch (IllegalArgumentException exc) {
-      /* good! */
-    }
+    assertThrows("Thrift constructor allowed invalid range", IllegalArgumentException.class,
+        () -> new Range(tr));
   }
 }

@@ -20,8 +20,8 @@ package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -122,21 +122,13 @@ public class LocatorIT extends AccumuloClusterHarness {
 
       client.tableOperations().offline(tableName, true);
 
-      try {
-        client.tableOperations().locate(tableName, ranges);
-        fail();
-      } catch (TableOfflineException e) {
-        // expected
-      }
+      assertThrows(TableOfflineException.class,
+          () -> client.tableOperations().locate(tableName, ranges));
 
       client.tableOperations().delete(tableName);
 
-      try {
-        client.tableOperations().locate(tableName, ranges);
-        fail();
-      } catch (TableNotFoundException e) {
-        // expected
-      }
+      assertThrows(TableNotFoundException.class,
+          () -> client.tableOperations().locate(tableName, ranges));
     }
   }
 }

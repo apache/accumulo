@@ -19,8 +19,8 @@
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.Set;
 
@@ -50,17 +50,15 @@ public class UsersIT extends AccumuloClusterHarness {
         client.securityOperations().createLocalUser(user0.getPrincipal(), token);
       }
 
-      try {
-        client.securityOperations().createLocalUser(user0.getPrincipal(),
-            new PasswordToken("better_fail"));
-        fail("Creating a user that already exists should throw an exception");
-      } catch (AccumuloSecurityException e) {
-        assertSame("Expected USER_EXISTS error", SecurityErrorCode.USER_EXISTS,
-            e.getSecurityErrorCode());
-        String msg = e.getMessage();
-        assertTrue("Error message didn't contain principal: '" + msg + "'",
-            msg.contains(user0.getPrincipal()));
-      }
+      AccumuloSecurityException e =
+          assertThrows("Creating a user that already exists should " + "throw an exception",
+              AccumuloSecurityException.class, () -> client.securityOperations()
+                  .createLocalUser(user0.getPrincipal(), new PasswordToken("better_fail")));
+      assertSame("Expected USER_EXISTS error", SecurityErrorCode.USER_EXISTS,
+          e.getSecurityErrorCode());
+      String msg = e.getMessage();
+      assertTrue("Error message didn't contain principal: '" + msg + "'",
+          msg.contains(user0.getPrincipal()));
     }
   }
 

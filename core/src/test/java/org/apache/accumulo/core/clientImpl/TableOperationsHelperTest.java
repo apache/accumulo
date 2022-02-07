@@ -20,8 +20,8 @@ package org.apache.accumulo.core.clientImpl;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -327,23 +327,15 @@ public class TableOperationsHelperTest {
             "table.iterator.minc.otherName.opt.key=value",
             "table.iterator.scan.otherName=20,some.classname",});
 
-    try {
-      t.attachIterator("table", setting);
-      fail();
-    } catch (AccumuloException e) {
-      // expected, ignore
-    }
+    IteratorSetting finalSetting = setting; // effectively final var needed for lambda below
+    assertThrows(AccumuloException.class, () -> t.attachIterator("table", finalSetting));
     setting.setName("thirdName");
-    try {
-      t.attachIterator("table", setting);
-      fail();
-    } catch (AccumuloException e) {}
+    IteratorSetting finalSetting1 = setting; // effectively final var needed for lambda below
+    assertThrows(AccumuloException.class, () -> t.attachIterator("table", finalSetting1));
     setting.setPriority(10);
     t.setProperty("table", "table.iterator.minc.thirdName.opt.key", "value");
-    try {
-      t.attachIterator("table", setting);
-      fail();
-    } catch (AccumuloException e) {}
+    IteratorSetting finalSetting2 = setting; // effectively final var needed for lambda below
+    assertThrows(AccumuloException.class, () -> t.attachIterator("table", finalSetting2));
     t.removeProperty("table", "table.iterator.minc.thirdName.opt.key");
     t.attachIterator("table", setting);
   }

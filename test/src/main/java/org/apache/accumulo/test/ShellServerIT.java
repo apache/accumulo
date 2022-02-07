@@ -1914,13 +1914,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void scansWithClassLoaderContext() throws IOException {
 
-    try {
-      var clazzName = Class.forName(VALUE_REVERSING_ITERATOR);
-      log.warn("Found {} on classpath - failing test", clazzName);
-      fail("ValueReversingIterator already on the classpath");
-    } catch (ClassNotFoundException e) {
-      // expected; iterator is already on the class path
-    }
+    assertThrows("ValueReversingIterator already on the classpath", ClassNotFoundException.class,
+        () -> Class.forName(VALUE_REVERSING_ITERATOR));
 
     final String tableName = getUniqueNames(1)[0];
 
