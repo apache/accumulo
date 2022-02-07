@@ -1145,7 +1145,7 @@ public class Manager extends AbstractServer
       final AgeOffStore<Manager> store = new AgeOffStore<>(
           new org.apache.accumulo.fate.ZooStore<>(getZooKeeperRoot() + Constants.ZFATE,
               context.getZooReaderWriter()),
-          1000 * 60 * 60 * 8, System::currentTimeMillis);
+          TimeUnit.HOURS.toMillis(8), System::currentTimeMillis);
 
       fate = new Fate<>(this, store, TraceRepo::toLogString);
       fate.startTransactionRunners(getConfiguration());
