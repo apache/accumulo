@@ -19,6 +19,12 @@
 package org.apache.accumulo.test.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.FAILED;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.IN_PROGRESS;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.NEW;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.SUBMITTED;
+import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.SUCCESSFUL;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -169,19 +175,19 @@ public class FateIT {
 
       long txid = fate.startTransaction();
       LOG.debug("Starting test testTransactionStatus with {}", Long.toHexString(txid));
-      assertEquals(TStatus.NEW, getTxStatus(zk, txid));
+      assertEquals(NEW, getTxStatus(zk, txid));
       fate.seedTransaction(txid, new TestOperation(NS, TID), true);
-      assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
+      assertEquals(SUBMITTED, getTxStatus(zk, txid));
       // do the isReady method
       doReady.countDown();
       // wait for call() to be called
       callStarted.await();
-      assertEquals(TStatus.IN_PROGRESS, getTxStatus(zk, txid));
+      assertEquals(IN_PROGRESS, getTxStatus(zk, txid));
       // tell the op to exit the method
       finishCall.countDown();
       // Check that it transitions to SUCCESSFUL
       TStatus s = getTxStatus(zk, txid);
-      while (s != TStatus.SUCCESSFUL) {
+      while (s != SUCCESSFUL) {
         s = getTxStatus(zk, txid);
         Thread.sleep(10);
       }
@@ -234,14 +240,12 @@ public class FateIT {
 
       long txid = fate.startTransaction();
       LOG.debug("Starting test testCancelWhileNew with {}", Long.toHexString(txid));
-      assertEquals(TStatus.NEW, getTxStatus(zk, txid));
+      assertEquals(NEW, getTxStatus(zk, txid));
       // cancel the transaction
       assertTrue(fate.cancel(txid));
-      assertTrue(TStatus.FAILED_IN_PROGRESS == getTxStatus(zk, txid)
-          || TStatus.FAILED == getTxStatus(zk, txid));
+      assertTrue(FAILED_IN_PROGRESS == getTxStatus(zk, txid) || FAILED == getTxStatus(zk, txid));
       fate.seedTransaction(txid, new TestOperation(NS, TID), true);
-      assertTrue(TStatus.FAILED_IN_PROGRESS == getTxStatus(zk, txid)
-          || TStatus.FAILED == getTxStatus(zk, txid));
+      assertTrue(FAILED_IN_PROGRESS == getTxStatus(zk, txid) || FAILED == getTxStatus(zk, txid));
     } finally {
       fate.shutdown();
     }
@@ -276,9 +280,9 @@ public class FateIT {
 
       long txid = fate.startTransaction();
       LOG.debug("Starting test testCancelWhileSubmitted with {}", Long.toHexString(txid));
-      assertEquals(TStatus.NEW, getTxStatus(zk, txid));
+      assertEquals(NEW, getTxStatus(zk, txid));
       fate.seedTransaction(txid, new TestOperation(NS, TID), true);
-      assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
+      assertEquals(SUBMITTED, getTxStatus(zk, txid));
       // cancel the transaction
       assertTrue(fate.cancel(txid));
       // do the isReady method
@@ -288,8 +292,7 @@ public class FateIT {
       while (!nodeRemoved) {
         try {
           TStatus s = getTxStatus(zk, txid);
-          assertTrue(
-              s == TStatus.SUBMITTED || s == TStatus.FAILED_IN_PROGRESS || s == TStatus.FAILED);
+          assertTrue(s == SUBMITTED || s == FAILED_IN_PROGRESS || s == FAILED);
           Thread.sleep(10);
         } catch (KeeperException e) {
           if (e.code() == KeeperException.Code.NONODE) {
@@ -333,9 +336,9 @@ public class FateIT {
 
       long txid = fate.startTransaction();
       LOG.debug("Starting test testCancelWhileInCall with {}", Long.toHexString(txid));
-      assertEquals(TStatus.NEW, getTxStatus(zk, txid));
+      assertEquals(NEW, getTxStatus(zk, txid));
       fate.seedTransaction(txid, new TestOperation(NS, TID), true);
-      assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
+      assertEquals(SUBMITTED, getTxStatus(zk, txid));
       // do the isReady method
       doReady.countDown();
       // wait for call() to be called
@@ -347,8 +350,7 @@ public class FateIT {
       while (!nodeRemoved) {
         try {
           TStatus s = getTxStatus(zk, txid);
-          assertTrue(
-              s == TStatus.IN_PROGRESS || s == TStatus.FAILED_IN_PROGRESS || s == TStatus.FAILED);
+          assertTrue(s == IN_PROGRESS || s == FAILED_IN_PROGRESS || s == FAILED);
           Thread.sleep(10);
         } catch (KeeperException e) {
           if (e.code() == KeeperException.Code.NONODE) {
