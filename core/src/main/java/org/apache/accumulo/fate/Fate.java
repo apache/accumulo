@@ -94,39 +94,35 @@ public class Fate<T> {
           } else {
             Repo<T> prevOp = null;
             try {
-              synchronized (RUNNING_TRANSACTIONS) {
-                RUNNING_TRANSACTIONS.put(tid, Thread.currentThread());
-              }
-              deferTime = op.isReady(tid, environment);
-
-              if (deferTime == 0) {
-                prevOp = op;
-                if (status == SUBMITTED) {
-                  store.setStatus(tid, IN_PROGRESS);
+              try {
+                synchronized (RUNNING_TRANSACTIONS) {
+                  RUNNING_TRANSACTIONS.put(tid, Thread.currentThread());
                 }
-                op = op.call(tid, environment);
-              } else
-                continue;
-
+                deferTime = op.isReady(tid, environment);
+                if (deferTime == 0) {
+                  prevOp = op;
+                  if (status == SUBMITTED) {
+                    store.setStatus(tid, IN_PROGRESS);
+                  }
+                  op = op.call(tid, environment);
+                } else
+                  continue;
+              } finally {
+                synchronized (Thread.currentThread()) {
+                  synchronized (RUNNING_TRANSACTIONS) {
+                    RUNNING_TRANSACTIONS.remove(tid);
+                  }
+                }
+              }
             } catch (Exception e) {
               if (e instanceof InterruptedException) {
                 runnerLog.info(
                     "FATE Runner thread interrupted processing txid " + Long.toHexString(tid));
-                if (prevOp != null) {
-                  processFailed(tid, prevOp);
-                }
-                if (op != prevOp) {
-                  processFailed(tid, op);
-                }
                 Thread.interrupted();
               }
               blockIfHadoopShutdown(tid, e);
               transitionToFailed(tid, e);
               continue;
-            } finally {
-              synchronized (RUNNING_TRANSACTIONS) {
-                RUNNING_TRANSACTIONS.remove(tid);
-              }
             }
 
             if (op == null) {
@@ -365,13 +361,26 @@ public class Fate<T> {
           store.unreserve(tid, 0);
         }
       } else {
-        // It's possible that the FateOp is being run by the TransactionRunner
+        // It's possible that the FateOp is being run by the TransactionRunner. Look up
+        // the thread that is running this transaction.
         Thread t = null;
         synchronized (RUNNING_TRANSACTIONS) {
           t = RUNNING_TRANSACTIONS.get(tid);
         }
         if (t != null) {
-          t.interrupt();
+          Thread t2 = null;
+          synchronized (t) {
+            // Make sure that the transaction is still associated
+            // with this thread. If it is, then this thread is blocked
+            // from removing this transaction from the table and we can
+            // interrupt it and cause it to fail.
+            synchronized (RUNNING_TRANSACTIONS) {
+              t2 = RUNNING_TRANSACTIONS.get(tid);
+            }
+            if (t2 != null && t == t2) {
+              t.interrupt();
+            }
+          }
           return true;
         } else {
           // reserved, but not in transaction table. It should transition to
