@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
@@ -31,16 +30,14 @@ import java.util.Formatter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ManagerClient;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.FateTxId;
 import org.apache.accumulo.fate.ReadOnlyRepo;
@@ -55,7 +52,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 
 import com.google.gson.Gson;
@@ -125,7 +121,8 @@ public class FateCommand extends Command {
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
-      throws ParseException, KeeperException, InterruptedException, IOException, TException {
+      throws AccumuloSecurityException, AccumuloException, ParseException, KeeperException,
+      InterruptedException, IOException {
     ClientContext context = shellState.getContext();
     var siteConfig = SiteConfiguration.auto();
     String[] args = cl.getArgs();
@@ -147,28 +144,22 @@ public class FateCommand extends Command {
       if (args.length <= 1) {
         throw new ParseException("Must provide transaction ID");
       }
-      ManagerClientService.Iface client = null;
-      try {
-        client = ManagerClient.getConnectionWithRetry(context);
-        for (int i = 1; i < args.length; i++) {
-          Long txid = Long.parseLong(args[i]);
-          boolean cancelled =
-              client.cancelFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), txid);
+      for (int i = 1; i < args.length; i++) {
+        Long txid = Long.parseLong(args[i]);
+        shellState.getWriter().flush();
+        String line = shellState.getReader().readLine("Cancel FaTE Tx " + txid + " (yes|no)? ");
+        boolean cancelTx =
+            line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
+        if (cancelTx) {
+          boolean cancelled = ManagerClient.cancelFateOperation(context, txid);
           if (cancelled) {
-            shellState.printLines(Collections
-                .singleton("Fate transaction " + txid + " was cancelled or already completed.")
-                .iterator(), false);
+            shellState.getWriter()
+                .println("FaTE transaction " + txid + " was cancelled or already completed.");
           } else {
-            shellState.printLines(Collections
-                .singleton("Fate transaction " + txid + " was not cancelled.").iterator(), false);
+            shellState.getWriter().println("FaTE transaction " + txid + " was not cancelled.");
           }
-        }
-      } catch (ThriftNotActiveServiceException e) {
-        // Let it loop, fetching a new location
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
-      } finally {
-        if (client != null) {
-          ManagerClient.close(client, context);
+        } else {
+          shellState.getWriter().println("Not cancelling FaTE transaction " + txid);
         }
       }
     } else if ("fail".equals(cmd)) {

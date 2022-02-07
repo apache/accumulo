@@ -771,6 +771,11 @@ class FateServiceHandler implements FateService.Iface {
   @Override
   public boolean cancelFateOperation(TInfo tinfo, TCredentials credentials, long opid)
       throws ThriftSecurityException, ThriftNotActiveServiceException {
+
+    if (!manager.security.canPerformSystemActions(credentials))
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+
     return manager.fate.cancel(opid);
   }
 
