@@ -93,6 +93,7 @@ public class Fate<T> {
             processFailed(tid, op);
           } else {
             Repo<T> prevOp = null;
+            boolean ieSeen = false;
             try {
               try {
                 synchronized (RUNNING_TRANSACTIONS) {
@@ -107,11 +108,18 @@ public class Fate<T> {
                   op = op.call(tid, environment);
                 } else
                   continue;
+              } catch (InterruptedException ie) {
+                ieSeen = true;
+                throw ie;
               } finally {
-                synchronized (Thread.currentThread()) {
-                  synchronized (RUNNING_TRANSACTIONS) {
-                    RUNNING_TRANSACTIONS.remove(tid);
-                  }
+                synchronized (RUNNING_TRANSACTIONS) {
+                  RUNNING_TRANSACTIONS.remove(tid);
+                }
+                // It's possible that cancel was called between
+                // op.call and the synchronized block above. Do a last
+                // check to see if that's the case.
+                if (!ieSeen && Thread.currentThread().isInterrupted()) {
+                  throw new InterruptedException("FaTE thread was interrupted");
                 }
               }
             } catch (Exception e) {
@@ -366,28 +374,15 @@ public class Fate<T> {
         Thread t = null;
         synchronized (RUNNING_TRANSACTIONS) {
           t = RUNNING_TRANSACTIONS.get(tid);
-        }
-        if (t != null) {
-          Thread t2 = null;
-          synchronized (t) {
-            // Make sure that the transaction is still associated
-            // with this thread. If it is, then this thread is blocked
-            // from removing this transaction from the table and we can
-            // interrupt it and cause it to fail.
-            synchronized (RUNNING_TRANSACTIONS) {
-              t2 = RUNNING_TRANSACTIONS.get(tid);
-            }
-            if (t2 != null && t == t2) {
-              t.interrupt();
-            }
+          if (t != null) {
+            t.interrupt();
+            return true;
           }
-          return true;
-        } else {
-          // reserved, but not in transaction table. It should transition to
-          // an end state or become unreserved in a short amount of time.
-          // Lets retry.
-          UtilWaitThread.sleep(500);
         }
+        // reserved, but not in transaction table. It should transition to
+        // an end state or become unreserved in a short amount of time.
+        // Lets retry.
+        UtilWaitThread.sleep(500);
       }
     }
     return false;
