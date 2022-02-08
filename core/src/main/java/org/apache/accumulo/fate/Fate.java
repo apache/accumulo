@@ -93,7 +93,7 @@ public class Fate<T> {
             processFailed(tid, op);
           } else {
             Repo<T> prevOp = null;
-            boolean ieSeen = false;
+            boolean exceptionSeen = false;
             try {
               try {
                 synchronized (RUNNING_TRANSACTIONS) {
@@ -108,9 +108,9 @@ public class Fate<T> {
                   op = op.call(tid, environment);
                 } else
                   continue;
-              } catch (InterruptedException ie) {
-                ieSeen = true;
-                throw ie;
+              } catch (Exception e) {
+                exceptionSeen = true;
+                throw e;
               } finally {
                 synchronized (RUNNING_TRANSACTIONS) {
                   RUNNING_TRANSACTIONS.remove(tid);
@@ -118,7 +118,7 @@ public class Fate<T> {
                 // It's possible that cancel was called between
                 // op.call and the synchronized block above. Do a last
                 // check to see if that's the case.
-                if (!ieSeen && Thread.currentThread().isInterrupted()) {
+                if (!exceptionSeen && Thread.currentThread().isInterrupted()) {
                   throw new InterruptedException("FaTE thread was interrupted");
                 }
               }
