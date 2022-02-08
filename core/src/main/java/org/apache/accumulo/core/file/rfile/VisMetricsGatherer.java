@@ -75,9 +75,7 @@ public class VisMetricsGatherer
     ByteSequence cf = new ArrayByteSequence(oneCF.toString());
     for (Entry<String,ArrayList<ByteSequence>> entry : localityGroupCF.entrySet()) {
       if (entry.getValue().contains(cf)) {
-        if (entry.getKey() == null)
-          name = null;
-        else
+        if (entry.getKey() != null)
           name = entry.getKey().toString();
         break;
       }

@@ -61,7 +61,6 @@ public class YieldingTestCase extends OutputVerifyingTestCase {
   TreeMap<Key,Value> consume(IteratorTestInput testInput, SortedKeyValueIterator<Key,Value> skvi,
       YieldCallback<Key> yield) throws IOException {
     TreeMap<Key,Value> data = new TreeMap<>();
-    Key lastKey = null;
     while (yield.hasYielded() || skvi.hasTop()) {
       if (yield.hasYielded()) {
         Range r = testInput.getRange();
@@ -73,10 +72,6 @@ public class YieldingTestCase extends OutputVerifyingTestCase {
         if (skvi.hasTop()) {
           throw new IOException(
               "Underlying iterator reports having a top, but has yielded: " + yieldPosition);
-        }
-        if (lastKey != null && yieldPosition.compareTo(lastKey) <= 0) {
-          throw new IOException(
-              "Underlying iterator yielded at a position that is not past the last key returned");
         }
         skvi.seek(new Range(yieldPosition, false, r.getEndKey(), r.isEndKeyInclusive()),
             testInput.getFamilies(), testInput.isInclusive());

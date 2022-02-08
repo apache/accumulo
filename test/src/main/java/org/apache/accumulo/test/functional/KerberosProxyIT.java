@@ -193,9 +193,7 @@ public class KerberosProxyIT extends AccumuloITBase {
       TSaslClientTransport transport = new TSaslClientTransport("GSSAPI", null, proxyPrimary,
           hostname, Collections.singletonMap("javax.security.sasl.qop", "auth"), null, socket);
 
-      final UGIAssumingTransport ugiTransport = new UGIAssumingTransport(transport, ugi);
-
-      try {
+      try (UGIAssumingTransport ugiTransport = new UGIAssumingTransport(transport, ugi)) {
         // UGI transport will perform the doAs for us
         ugiTransport.open();
         success = true;
@@ -206,10 +204,6 @@ public class KerberosProxyIT extends AccumuloITBase {
           Thread.sleep(3000);
           proxyProcess = checkProxyAndRestart(proxyProcess, cfg);
           continue;
-        }
-      } finally {
-        if (null != ugiTransport) {
-          ugiTransport.close();
         }
       }
     }
@@ -416,17 +410,16 @@ public class KerberosProxyIT extends AccumuloITBase {
     TSaslClientTransport transport = new TSaslClientTransport("GSSAPI", null, proxyPrimary,
         hostname, Collections.singletonMap("javax.security.sasl.qop", "auth"), null, socket);
 
-    final UGIAssumingTransport ugiTransport = new UGIAssumingTransport(transport, ugi);
+    try (UGIAssumingTransport ugiTransport = new UGIAssumingTransport(transport, ugi)) {
 
-    // UGI transport will perform the doAs for us
-    ugiTransport.open();
+      // UGI transport will perform the doAs for us
+      ugiTransport.open();
 
-    AccumuloProxy.Client.Factory factory = new AccumuloProxy.Client.Factory();
-    Client client =
-        factory.getClient(new TCompactProtocol(ugiTransport), new TCompactProtocol(ugiTransport));
+      AccumuloProxy.Client.Factory factory = new AccumuloProxy.Client.Factory();
+      Client client =
+          factory.getClient(new TCompactProtocol(ugiTransport), new TCompactProtocol(ugiTransport));
 
-    // Will fail because the proxy can't impersonate this user (per the site configuration)
-    try {
+      // Will fail because the proxy can't impersonate this user (per the site configuration)
       // Error msg would look like:
       //
       // org.apache.accumulo.core.client.AccumuloSecurityException: Error BAD_CREDENTIALS for user
@@ -439,10 +432,6 @@ public class KerberosProxyIT extends AccumuloITBase {
       assertTrue(thriftExceptionMatchesPattern(e, ".*Error BAD_CREDENTIALS.*"));
       assertTrue(thriftExceptionMatchesPattern(e,
           ".*Expected '" + proxyPrincipal + "' but was '" + kdc.qualifyUser(user) + "'.*"));
-    } finally {
-      if (null != ugiTransport) {
-        ugiTransport.close();
-      }
     }
   }
 
@@ -469,27 +458,22 @@ public class KerberosProxyIT extends AccumuloITBase {
     TSaslClientTransport transport = new TSaslClientTransport("GSSAPI", null, proxyPrimary,
         hostname, Collections.singletonMap("javax.security.sasl.qop", "auth"), null, socket);
 
-    final UGIAssumingTransport ugiTransport = new UGIAssumingTransport(transport, ugi);
+    try (UGIAssumingTransport ugiTransport = new UGIAssumingTransport(transport, ugi)) {
 
-    // UGI transport will perform the doAs for us
-    ugiTransport.open();
+      // UGI transport will perform the doAs for us
+      ugiTransport.open();
 
-    AccumuloProxy.Client.Factory factory = new AccumuloProxy.Client.Factory();
-    Client client =
-        factory.getClient(new TCompactProtocol(ugiTransport), new TCompactProtocol(ugiTransport));
+      AccumuloProxy.Client.Factory factory = new AccumuloProxy.Client.Factory();
+      Client client =
+          factory.getClient(new TCompactProtocol(ugiTransport), new TCompactProtocol(ugiTransport));
 
-    // The proxy needs to recognize that the requested principal isn't the same as the SASL
-    // principal and fail
-    // Accumulo should let this through -- we need to rely on the proxy to dump me before talking to
-    // accumulo
-    try {
+      // The proxy needs to recognize that the requested principal isn't the same as the SASL
+      // principal and fail
+      // Accumulo should let this through -- we need to rely on the proxy to dump me before talking
+      // to accumulo
       AccumuloSecurityException e = assertThrows(AccumuloSecurityException.class,
           () -> client.login(rootUser.getPrincipal(), Collections.<String,String>emptyMap()));
       assertTrue(thriftExceptionMatchesPattern(e, ProxyServer.RPC_ACCUMULO_PRINCIPAL_MISMATCH_MSG));
-    } finally {
-      if (null != ugiTransport) {
-        ugiTransport.close();
-      }
     }
   }
 

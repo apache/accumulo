@@ -758,14 +758,12 @@ public class TabletServerBatchWriter {
 
         @Override
         public void run() {
-          if (null != mutationsToSend) {
-            try {
-              log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
-                  mutationsToSend.size());
-              addMutations(mutationsToSend);
-            } catch (Exception e) {
-              updateUnknownErrors("Error processing mutation set", e);
-            }
+          try {
+            log.trace("{} - binning {} mutations", Thread.currentThread().getName(),
+                mutationsToSend.size());
+            addMutations(mutationsToSend);
+          } catch (Exception e) {
+            updateUnknownErrors("Error processing mutation set", e);
           }
         }
       }));

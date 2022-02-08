@@ -361,9 +361,7 @@ public class Module extends Node {
         curNodeId = nextNodeId;
       }
     } finally {
-      if (null != service) {
-        service.shutdownNow();
-      }
+      service.shutdownNow();
     }
 
     if (teardown && (fixture != null)) {

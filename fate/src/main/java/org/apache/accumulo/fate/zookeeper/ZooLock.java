@@ -401,7 +401,7 @@ public class ZooLock implements Watcher {
         if (lock != null || asyncLock != null) {
           lockWatcher.unableToMonitorLockNode(ex);
           log.error(
-              "Error resetting watch on ZooLock " + lock == null ? asyncLock : lock + " " + event,
+              "Error resetting watch on ZooLock " + (lock == null ? asyncLock : lock) + " " + event,
               ex);
         }
       }

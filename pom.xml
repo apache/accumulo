@@ -20,7 +20,7 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>23</version>
+    <version>24</version>
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
@@ -116,11 +116,13 @@
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- bouncycastle version for test dependencies -->
-    <bouncycastle.version>1.66</bouncycastle.version>
+    <bouncycastle.version>1.70</bouncycastle.version>
     <!-- Curator version -->
     <curator.version>2.11.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
+    <!-- avoid error shutting down built-in ForkJoinPool.commonPool() during exec:java tasks -->
+    <exec.cleanupDaemonThreads>false</exec.cleanupDaemonThreads>
     <failsafe.excludedGroups />
     <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
@@ -131,14 +133,16 @@
     <htrace.version>3.1.0-incubating</htrace.version>
     <it.failIfNoSpecifiedTests>false</it.failIfNoSpecifiedTests>
     <!-- jetty 9.2 is the last version to support jdk less than 1.8 -->
-    <jetty.version>9.2.26.v20180806</jetty.version>
+    <jetty.version>9.2.30.v20200428</jetty.version>
     <maven.compiler.release>8</maven.compiler.release>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <maven.plugin-version>3.5.0</maven.plugin-version>
     <!-- surefire/failsafe plugin option -->
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-    <powermock.version>2.0.7</powermock.version>
+    <minimalJavaBuildVersion>11</minimalJavaBuildVersion>
+    <minimalMavenBuildVersion>3.5.0</minimalMavenBuildVersion>
+    <powermock.version>2.0.9</powermock.version>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
     <project.build.outputTimestamp>2020-12-17T22:06:50Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
@@ -150,7 +154,8 @@
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
     <surefire.forkCount>1C</surefire.forkCount>
     <surefire.groups />
-    <surefire.version>3.0.0-M3</surefire.version>
+    <!-- 3.0.0-M5 causes RowHashIT.test and ShellServerIT.scansWithClassLoaderContext to fail -->
+    <surefire.version>3.0.0-M4</surefire.version>
     <!-- Thrift version -->
     <thrift.version>0.9.3-1</thrift.version>
     <!-- ZooKeeper version -->
@@ -161,12 +166,12 @@
       <dependency>
         <groupId>ch.qos.reload4j</groupId>
         <artifactId>reload4j</artifactId>
-        <version>1.2.18.4</version>
+        <version>1.2.18.5</version>
       </dependency>
       <dependency>
         <groupId>com.beust</groupId>
         <artifactId>jcommander</artifactId>
-        <version>1.78</version>
+        <version>1.82</version>
       </dependency>
       <dependency>
         <groupId>com.google.auto.service</groupId>
@@ -177,7 +182,7 @@
       <dependency>
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
-        <version>2.8.6</version>
+        <version>2.8.9</version>
       </dependency>
       <dependency>
         <groupId>com.google.guava</groupId>
@@ -243,7 +248,7 @@
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
-        <version>4.13.1</version>
+        <version>4.13.2</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
@@ -524,7 +529,7 @@
       <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
-        <version>4.0.2</version>
+        <version>4.3</version>
       </dependency>
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
@@ -625,7 +630,7 @@
         <plugin>
           <groupId>com.github.spotbugs</groupId>
           <artifactId>spotbugs-maven-plugin</artifactId>
-          <version>4.2.0</version>
+          <version>4.4.2.2</version>
           <configuration>
             <xmlOutput>true</xmlOutput>
             <effort>Max</effort>
@@ -648,15 +653,17 @@
         <plugin>
           <groupId>com.github.ekryd.sortpom</groupId>
           <artifactId>sortpom-maven-plugin</artifactId>
-          <version>2.13.1</version>
+          <version>3.0.0</version>
           <configuration>
-            <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
             <createBackupFile>false</createBackupFile>
-            <lineSeparator>\n</lineSeparator>
             <expandEmptyElements>false</expandEmptyElements>
+            <keepBlankLines>false</keepBlankLines>
+            <lineSeparator>\n</lineSeparator>
             <nrOfIndentSpace>2</nrOfIndentSpace>
+            <predefinedSortOrder>recommended_2008_06</predefinedSortOrder>
             <sortDependencies>scope,groupId,artifactId</sortDependencies>
             <sortProperties>true</sortProperties>
+            <spaceBeforeCloseEmptyElement>true</spaceBeforeCloseEmptyElement>
             <verifyFail>Stop</verifyFail>
           </configuration>
         </plugin>
@@ -713,7 +720,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
-          <version>3.2.0</version>
           <configuration>
             <quiet>true</quiet>
             <additionalJOption>-J-Xmx512m</additionalJOption>
@@ -771,12 +777,12 @@
         <plugin>
           <groupId>org.asciidoctor</groupId>
           <artifactId>asciidoctor-maven-plugin</artifactId>
-          <version>2.1.0</version>
+          <version>2.2.2</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
-          <version>3.2.0</version>
+          <version>3.3.0</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
@@ -791,23 +797,24 @@
         <plugin>
           <groupId>net.revelc.code.formatter</groupId>
           <artifactId>formatter-maven-plugin</artifactId>
-          <version>2.15.0</version>
+          <version>2.17.1</version>
           <configuration>
-            <configFile>${eclipseFormatterStyle}</configFile>
             <compilerCompliance>${maven.compiler.source}</compilerCompliance>
             <compilerSource>${maven.compiler.source}</compilerSource>
             <compilerTargetPlatform>${maven.compiler.target}</compilerTargetPlatform>
+            <configFile>${eclipseFormatterStyle}</configFile>
             <excludes>
               <exclude>**/thrift/*.java</exclude>
               <exclude>**/proto/*.java</exclude>
             </excludes>
             <lineEnding>LF</lineEnding>
             <overrideConfigCompilerVersion>true</overrideConfigCompilerVersion>
-            <skipJsFormatting>true</skipJsFormatting>
-            <skipHtmlFormatting>true</skipHtmlFormatting>
-            <skipXmlFormatting>true</skipXmlFormatting>
-            <skipJsonFormatting>true</skipJsonFormatting>
+            <removeTrailingWhitespace>true</removeTrailingWhitespace>
             <skipCssFormatting>true</skipCssFormatting>
+            <skipHtmlFormatting>true</skipHtmlFormatting>
+            <skipJsFormatting>true</skipJsFormatting>
+            <skipJsonFormatting>true</skipJsonFormatting>
+            <skipXmlFormatting>true</skipXmlFormatting>
           </configuration>
         </plugin>
         <plugin>
@@ -830,7 +837,7 @@
         <plugin>
           <groupId>net.revelc.code</groupId>
           <artifactId>impsort-maven-plugin</artifactId>
-          <version>1.6.1</version>
+          <version>1.6.2</version>
           <configuration>
             <removeUnused>true</removeUnused>
             <groups>java.,javax.,org.,com.</groups>
@@ -879,19 +886,16 @@
         <executions>
           <execution>
             <!-- must be same id as in the apache parent pom, to override the version -->
-            <id>enforce-maven-version</id>
+            <id>enforce-java-version</id>
             <goals>
               <goal>enforce</goal>
             </goals>
             <phase>validate</phase>
             <configuration>
               <rules>
-                <requireMavenVersion>
-                  <version>[3.5.0,)</version>
-                </requireMavenVersion>
                 <requireJavaVersion>
                   <!-- 15 dropped support for UseConcMarkSweepGC flag that Accumulo 1.x uses -->
-                  <version>[11,15)</version>
+                  <version>[${minimalJavaBuildVersion},15)</version>
                 </requireJavaVersion>
               </rules>
             </configuration>
@@ -1027,7 +1031,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>8.42</version>
+            <version>9.3</version>
           </dependency>
         </dependencies>
         <executions>

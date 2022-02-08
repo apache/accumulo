@@ -119,7 +119,6 @@ public class SendLogToChainsaw extends XMLLayout {
   public void processLogFiles() throws IOException {
     String line = null;
     String out = null;
-    BufferedReader reader = null;
     try {
       for (File log : logFiles) {
         // Parse the server type and name from the log file name
@@ -131,9 +130,7 @@ public class SendLogToChainsaw extends XMLLayout {
           System.out.println("Unable to find file: " + log.getAbsolutePath());
           throw e;
         }
-        reader = new BufferedReader(new InputStreamReader(fis, UTF_8));
-
-        try {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(fis, UTF_8))) {
           line = reader.readLine();
           while (null != line) {
             out = convertLine(line, threadName);
@@ -148,10 +145,6 @@ public class SendLogToChainsaw extends XMLLayout {
         } catch (IOException e) {
           System.out.println("Error processing line: " + line + ". Output was " + out);
           throw e;
-        } finally {
-          if (reader != null) {
-            reader.close();
-          }
         }
       }
     } finally {

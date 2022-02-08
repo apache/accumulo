@@ -114,7 +114,6 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
     getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
     log.info("Garbage collector was restarted");
 
-    gcLockData = null;
     do {
       gcLockData = ZooLock.getLockData(zcache, path, null);
       if (null == gcLockData) {

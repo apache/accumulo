@@ -875,8 +875,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
           ++exitCode;
           printException(e);
         }
-        if (sc != null)
-          sc.printHelp(this);
+        sc.printHelp(this);
       } catch (UserInterruptException e) {
         ++exitCode;
       } catch (Exception e) {
