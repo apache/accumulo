@@ -25,6 +25,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCache.ZcStat;
 import org.easymock.EasyMock;
@@ -35,7 +36,7 @@ public class AdminTest {
   @Test
   public void testZooKeeperTserverPath() {
     ClientContext context = EasyMock.createMock(ClientContext.class);
-    String instanceId = UUID.randomUUID().toString();
+    InstanceId instanceId = InstanceId.of(UUID.randomUUID());
 
     EasyMock.expect(context.getZooKeeperRoot()).andReturn(Constants.ZROOT + "/" + instanceId);
 
