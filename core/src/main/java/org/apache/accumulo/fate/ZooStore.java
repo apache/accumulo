@@ -111,6 +111,11 @@ public class ZooStore<T> implements TStore<T> {
     zk.putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
   }
 
+  /**
+   * For testing only
+   */
+  ZooStore() {}
+
   @Override
   public long create() {
     while (true) {

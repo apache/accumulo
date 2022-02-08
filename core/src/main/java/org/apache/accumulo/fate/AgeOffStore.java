@@ -43,7 +43,7 @@ public class AgeOffStore<T> implements TStore<T> {
 
   private static final Logger log = LoggerFactory.getLogger(AgeOffStore.class);
 
-  private TStore<T> store;
+  private final ZooStore<T> store;
   private Map<Long,Long> candidates;
   private long ageOffTime;
   private long minTime;
@@ -112,7 +112,7 @@ public class AgeOffStore<T> implements TStore<T> {
     }
   }
 
-  public AgeOffStore(TStore<T> store, long ageOffTime, TimeSource timeSource) {
+  public AgeOffStore(ZooStore<T> store, long ageOffTime, TimeSource timeSource) {
     this.store = store;
     this.ageOffTime = ageOffTime;
     this.timeSource = timeSource;
@@ -137,10 +137,6 @@ public class AgeOffStore<T> implements TStore<T> {
         store.unreserve(txid, 0);
       }
     }
-  }
-
-  public AgeOffStore(TStore<T> store, long ageOffTime) {
-    this(store, ageOffTime, System::currentTimeMillis);
   }
 
   @Override
