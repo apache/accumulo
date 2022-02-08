@@ -148,9 +148,11 @@ public class FateIT {
 
   @Test(timeout = 30000)
   public void testTransactionStatus() throws Exception {
+
     final ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
     final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
-    final AgeOffStore<Manager> store = new AgeOffStore<Manager>(zooStore, 3000);
+    final AgeOffStore<Manager> store =
+        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
 
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
@@ -215,7 +217,8 @@ public class FateIT {
   public void testCancelWhileNew() throws Exception {
     final ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
     final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
-    final AgeOffStore<Manager> store = new AgeOffStore<Manager>(zooStore, 3000);
+    final AgeOffStore<Manager> store =
+        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
 
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
@@ -255,7 +258,8 @@ public class FateIT {
   public void testCancelWhileSubmitted() throws Exception {
     final ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
     final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
-    final AgeOffStore<Manager> store = new AgeOffStore<Manager>(zooStore, 3000);
+    final AgeOffStore<Manager> store =
+        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
 
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
@@ -311,7 +315,8 @@ public class FateIT {
   public void testCancelWhileInCall() throws Exception {
     final ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
     final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
-    final AgeOffStore<Manager> store = new AgeOffStore<Manager>(zooStore, 3000);
+    final AgeOffStore<Manager> store =
+        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
 
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);

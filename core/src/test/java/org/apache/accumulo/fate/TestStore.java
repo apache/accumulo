@@ -18,9 +18,7 @@
  */
 package org.apache.accumulo.fate;
 
-import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,7 +28,7 @@ import java.util.Set;
 /**
  * Transient in memory store for transactions.
  */
-public class SimpleStore<T> implements TStore<T> {
+public class TestStore extends ZooStore<String> {
 
   private long nextId = 1;
   private Map<Long,TStatus> statuses = new HashMap<>();
@@ -40,11 +38,6 @@ public class SimpleStore<T> implements TStore<T> {
   public long create() {
     statuses.put(nextId, TStatus.NEW);
     return nextId++;
-  }
-
-  @Override
-  public long reserve() {
-    throw new UnsupportedOperationException();
   }
 
   @Override
@@ -74,21 +67,6 @@ public class SimpleStore<T> implements TStore<T> {
   }
 
   @Override
-  public Repo<T> top(long tid) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void push(long tid, Repo<T> repo) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void pop(long tid) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public org.apache.accumulo.fate.TStore.TStatus getStatus(long tid) {
     if (!reserved.contains(tid))
       throw new IllegalStateException();
@@ -109,22 +87,6 @@ public class SimpleStore<T> implements TStore<T> {
   }
 
   @Override
-  public org.apache.accumulo.fate.TStore.TStatus waitForStatusChange(long tid,
-      EnumSet<org.apache.accumulo.fate.TStore.TStatus> expected) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public void setProperty(long tid, String prop, Serializable val) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public Serializable getProperty(long tid, String prop) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public void delete(long tid) {
     if (!reserved.contains(tid))
       throw new IllegalStateException();
@@ -134,16 +96,6 @@ public class SimpleStore<T> implements TStore<T> {
   @Override
   public List<Long> list() {
     return new ArrayList<>(statuses.keySet());
-  }
-
-  @Override
-  public long timeCreated(long tid) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public List<ReadOnlyRepo<T>> getStack(long tid) {
-    throw new UnsupportedOperationException();
   }
 
 }

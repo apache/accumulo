@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -63,7 +64,7 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
     var siteConfig = SiteConfiguration.auto();
     try (ServerContext context = new ServerContext(siteConfig)) {
       Credentials creds;
-      String badInstanceID = SystemCredentials.class.getName();
+      InstanceId badInstanceID = InstanceId.of(SystemCredentials.class.getName());
       if (args.length < 2) {
         throw new RuntimeException("Incorrect usage; expected to be run by test only");
       }

@@ -43,6 +43,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -107,7 +108,7 @@ public class ServerContext extends ClientContext {
    * Used during initialization to set the instance name and ID.
    */
   public static ServerContext initialize(SiteConfiguration siteConfig, String instanceName,
-      String instanceID) {
+      InstanceId instanceID) {
     return new ServerContext(new ServerInfo(siteConfig, instanceName, instanceID));
   }
 
@@ -121,7 +122,7 @@ public class ServerContext extends ClientContext {
   }
 
   @Override
-  public String getInstanceID() {
+  public InstanceId getInstanceID() {
     return info.getInstanceID();
   }
 

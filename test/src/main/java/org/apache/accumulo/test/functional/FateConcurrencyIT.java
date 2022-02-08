@@ -41,6 +41,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.fate.AdminUtil;
@@ -252,7 +253,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       try {
 
-        String instanceId = context.getInstanceID();
+        InstanceId instanceId = context.getInstanceID();
         ZooReaderWriter zk = new ZooReaderWriter(context.getZooKeepers(),
             context.getZooKeepersSessionTimeOut(), secret);
         ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
@@ -344,7 +345,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       log.trace("tid: {}", tableId);
 
-      String instanceId = context.getInstanceID();
+      InstanceId instanceId = context.getInstanceID();
       ZooReaderWriter zk = new ZooReaderWriter(context.getZooKeepers(),
           context.getZooKeepersSessionTimeOut(), secret);
       ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);

@@ -30,6 +30,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationTarget;
@@ -76,17 +77,18 @@ public class SequentialWorkAssignerTest {
     assigner.setQueuedWork(queuedWork);
 
     InstanceOperations opts = createMock(InstanceOperations.class);
-    expect(opts.getInstanceID()).andReturn("instance");
+    var iid = InstanceId.of("instance");
+    expect(opts.getInstanceId()).andReturn(iid);
     expect(client.instanceOperations()).andReturn(opts);
 
     // file1 replicated
-    expect(zooCache.get(ZooUtil.getRoot("instance") + ReplicationConstants.ZOO_WORK_QUEUE + "/"
+    expect(zooCache.get(ZooUtil.getRoot(iid) + ReplicationConstants.ZOO_WORK_QUEUE + "/"
         + DistributedWorkQueueWorkAssignerHelper.getQueueKey("file1",
             new ReplicationTarget("cluster1", "1", TableId.of("1"))))).andReturn(null);
     // file2 still needs to replicate
     expect(
         zooCache
-            .get(ZooUtil.getRoot("instance") + ReplicationConstants.ZOO_WORK_QUEUE + "/"
+            .get(ZooUtil.getRoot(iid) + ReplicationConstants.ZOO_WORK_QUEUE + "/"
                 + DistributedWorkQueueWorkAssignerHelper.getQueueKey("file2",
                     new ReplicationTarget("cluster1", "2", TableId.of("2")))))
                         .andReturn(new byte[0]);

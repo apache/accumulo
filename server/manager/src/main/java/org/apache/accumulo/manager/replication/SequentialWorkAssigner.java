@@ -28,6 +28,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.replication.ReplicationConstants;
 import org.apache.accumulo.core.replication.ReplicationTarget;
@@ -116,7 +117,7 @@ public class SequentialWorkAssigner extends DistributedWorkQueueWorkAssigner {
   protected void cleanupFinishedWork() {
     final Iterator<Entry<String,Map<TableId,String>>> queuedWork =
         queuedWorkByPeerName.entrySet().iterator();
-    final String instanceId = client.instanceOperations().getInstanceID();
+    final InstanceId instanceId = client.instanceOperations().getInstanceId();
 
     int elementsRemoved = 0;
     // Check the status of all the work we've queued up

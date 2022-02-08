@@ -23,6 +23,7 @@ import static org.apache.accumulo.server.init.Initialize.REPL_TABLE_ID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.metadata.MetadataTable;
@@ -38,7 +39,7 @@ import org.apache.zookeeper.ZooDefs;
 
 class ZooKeeperInitializer {
 
-  void initialize(ZooReaderWriter zoo, boolean clearInstanceName, String uuid,
+  void initialize(ZooReaderWriter zoo, boolean clearInstanceName, InstanceId iid,
       String instanceNamePath, String rootTabletDirName, String rootTabletFileUri)
       throws KeeperException, InterruptedException {
     // setup basic data in zookeeper
@@ -51,29 +52,30 @@ class ZooKeeperInitializer {
     if (clearInstanceName) {
       zoo.recursiveDelete(instanceNamePath, ZooUtil.NodeMissingPolicy.SKIP);
     }
-    zoo.putPersistentData(instanceNamePath, uuid.getBytes(UTF_8), ZooUtil.NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(instanceNamePath, iid.canonical().getBytes(UTF_8),
+        ZooUtil.NodeExistsPolicy.FAIL);
 
     final byte[] EMPTY_BYTE_ARRAY = new byte[0];
     final byte[] ZERO_CHAR_ARRAY = {'0'};
 
     // setup the instance
-    String zkInstanceRoot = Constants.ZROOT + "/" + uuid;
+    String zkInstanceRoot = Constants.ZROOT + "/" + iid;
     zoo.putPersistentData(zkInstanceRoot, EMPTY_BYTE_ARRAY, ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLES, Constants.ZTABLES_INITIAL_ID,
         ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZNAMESPACES, new byte[0],
         ZooUtil.NodeExistsPolicy.FAIL);
-    TableManager.prepareNewNamespaceState(zoo, uuid, Namespace.DEFAULT.id(),
+    TableManager.prepareNewNamespaceState(zoo, iid, Namespace.DEFAULT.id(),
         Namespace.DEFAULT.name(), ZooUtil.NodeExistsPolicy.FAIL);
-    TableManager.prepareNewNamespaceState(zoo, uuid, Namespace.ACCUMULO.id(),
+    TableManager.prepareNewNamespaceState(zoo, iid, Namespace.ACCUMULO.id(),
         Namespace.ACCUMULO.name(), ZooUtil.NodeExistsPolicy.FAIL);
-    TableManager.prepareNewTableState(zoo, uuid, RootTable.ID, Namespace.ACCUMULO.id(),
+    TableManager.prepareNewTableState(zoo, iid, RootTable.ID, Namespace.ACCUMULO.id(),
         RootTable.NAME, TableState.ONLINE, ZooUtil.NodeExistsPolicy.FAIL);
-    TableManager.prepareNewTableState(zoo, uuid, MetadataTable.ID, Namespace.ACCUMULO.id(),
+    TableManager.prepareNewTableState(zoo, iid, MetadataTable.ID, Namespace.ACCUMULO.id(),
         MetadataTable.NAME, TableState.ONLINE, ZooUtil.NodeExistsPolicy.FAIL);
     @SuppressWarnings("deprecation")
     String replicationTableName = org.apache.accumulo.core.replication.ReplicationTable.NAME;
-    TableManager.prepareNewTableState(zoo, uuid, REPL_TABLE_ID, Namespace.ACCUMULO.id(),
+    TableManager.prepareNewTableState(zoo, iid, REPL_TABLE_ID, Namespace.ACCUMULO.id(),
         replicationTableName, TableState.OFFLINE, ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);

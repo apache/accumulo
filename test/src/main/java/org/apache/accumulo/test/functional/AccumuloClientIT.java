@@ -235,7 +235,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     expectClosed(c::securityOperations);
     expectClosed(c::namespaceOperations);
     expectClosed(c::properties);
-    expectClosed(() -> c.instanceOperations().getInstanceID());
+    expectClosed(() -> c.instanceOperations().getInstanceId());
 
     // check a few table ops to ensure they fail
     expectClosed(() -> tops.create("expectFail"));
