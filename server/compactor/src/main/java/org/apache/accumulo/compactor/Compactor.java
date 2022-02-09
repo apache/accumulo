@@ -633,7 +633,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     // get the total number of compactors assigned to this queue
     int numCompactors = ExternalCompactionUtil.countCompactors(queueName, getContext());
     // Aim for around 3 compactors checking in every second
-    long sleepTime = numCompactors * 1000 / 3;
+    long sleepTime = numCompactors * 1000L / 3;
     // Ensure a compactor sleeps at least around a second
     sleepTime = Math.max(1000, sleepTime);
     // Ensure a compactor sleep not too much more than 5 mins
