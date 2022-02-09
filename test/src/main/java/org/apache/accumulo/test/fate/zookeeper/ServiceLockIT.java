@@ -624,9 +624,7 @@ public class ServiceLockIT {
       workers.forEach(w -> assertNull(w.getException()));
       assertEquals(0, zk.getChildren(parent.toString(), false).size());
 
-      threads.forEach(t -> {
-        Uninterruptibles.joinUninterruptibly(t);
-      });
+      threads.forEach(Uninterruptibles::joinUninterruptibly);
     }
 
   }
