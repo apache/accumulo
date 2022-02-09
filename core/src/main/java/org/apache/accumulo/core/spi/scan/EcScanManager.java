@@ -19,9 +19,7 @@
 package org.apache.accumulo.core.spi.scan;
 
 import java.time.Duration;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -67,7 +65,7 @@ public interface EcScanManager {
 
   // this object is used to communicate what the previous actions were attempted, when they were
   // attempted, and the result of the attempt
-  public static class ScanAttempt {
+  public static class ScanAttempt implements Comparable<ScanAttempt>{
 
     private final Action requestedAction;
     private final String server;
@@ -93,20 +91,36 @@ public interface EcScanManager {
     public Result getResult() {
       return result;
     }
+
+    public Action getAction() {
+      return action;
+    }
+
+    public String getServer() {
+      return server;
+    }
+
+    private static Comparator<ScanAttempt> COMPARATOR = Comparator.comparingLong(ScanAttempt::getTime).reversed().thenComparing(ScanAttempt::getServer).thenComparing(ScanAttempt::getResult).thenComparing(ScanAttempt::getAction);
+
+    @Override public int compareTo(ScanAttempt o) {
+      return COMPARATOR.compare(this, o);
+    }
   }
 
   public interface ScanAttempts {
     Collection<ScanAttempt> all();
 
-    Collection<ScanAttempt> forServer(String server);
+    SortedSet<ScanAttempt> forServer(String server);
 
-    Collection<ScanAttempt> forTablet(TabletId tablet);
+    SortedSet<ScanAttempt> forTablet(TabletId tablet);
   }
 
   public interface DaParamaters {
     Collection<TabletId> getTablets();
 
-    List<String> getScanServers();
+    Set<String> getScanServers();
+
+    List<String> getOrderedScanServers();
 
     ScanAttempts getScanAttempts();
   }
