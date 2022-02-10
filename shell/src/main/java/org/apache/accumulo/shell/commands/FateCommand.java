@@ -140,7 +140,7 @@ public class FateCommand extends Command {
         getZooReaderWriter(context, siteConfig, cl.getOptionValue(secretOption.getOpt()));
     ZooStore<FateCommand> zs = new ZooStore<>(path, zk);
 
-    if ("fail-live".equals(cmd)) {
+    if ("cancel-submitted".equals(cmd)) {
       if (args.length <= 1) {
         throw new ParseException("Must provide transaction ID");
       }
@@ -156,7 +156,8 @@ public class FateCommand extends Command {
             shellState.getWriter()
                 .println("FaTE transaction " + txid + " was cancelled or already completed.");
           } else {
-            shellState.getWriter().println("FaTE transaction " + txid + " was not cancelled.");
+            shellState.getWriter().println(
+                "FaTE transaction " + txid + " was not cancelled, status may have changed.");
           }
         } else {
           shellState.getWriter().println("Not cancelling FaTE transaction " + txid);
@@ -275,7 +276,7 @@ public class FateCommand extends Command {
   @Override
   public String usage() {
     return getName()
-        + "fail-live <txid> | fail <txid>... | delete <txid>... | print [<txid>...] | dump [<txid>...]";
+        + "cancel-submitted <txid> | fail <txid>... | delete <txid>... | print [<txid>...] | dump [<txid>...]";
   }
 
   @Override

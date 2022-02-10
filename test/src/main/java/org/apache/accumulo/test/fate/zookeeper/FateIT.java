@@ -29,6 +29,7 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -82,25 +83,14 @@ public class FateIT {
 
     @Override
     public long isReady(long tid, Manager manager) throws Exception {
-      LOG.debug("Entering isReady {}", Long.toHexString(tid));
-      try {
-        FateIT.inReady();
-        return Utils.reserveNamespace(manager, namespaceId, tid, false, true, TableOperation.RENAME)
-            + Utils.reserveTable(manager, tableId, tid, true, true, TableOperation.RENAME);
-      } finally {
-        LOG.debug("Leaving isReady {}", Long.toHexString(tid));
-      }
+      return Utils.reserveNamespace(manager, namespaceId, tid, false, true, TableOperation.RENAME)
+          + Utils.reserveTable(manager, tableId, tid, true, true, TableOperation.RENAME);
     }
 
     @Override
     public void undo(long tid, Manager manager) throws Exception {
-      LOG.debug("Entering undo {}", Long.toHexString(tid));
-      try {
-        Utils.unreserveNamespace(manager, namespaceId, tid, false);
-        Utils.unreserveTable(manager, tableId, tid, true);
-      } finally {
-        LOG.debug("Leaving undo {}", Long.toHexString(tid));
-      }
+      Utils.unreserveNamespace(manager, namespaceId, tid, false);
+      Utils.unreserveTable(manager, tableId, tid, true);
     }
 
     @Override
@@ -126,7 +116,6 @@ public class FateIT {
   private static final NamespaceId NS = NamespaceId.of("testNameSpace");
   private static final TableId TID = TableId.of("testTable");
 
-  private static CountDownLatch doReady;
   private static CountDownLatch callStarted;
   private static CountDownLatch finishCall;
 
@@ -171,7 +160,6 @@ public class FateIT {
       // Wait for the transaction runner to be scheduled.
       UtilWaitThread.sleep(3000);
 
-      doReady = new CountDownLatch(1);
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
 
@@ -180,8 +168,6 @@ public class FateIT {
       assertEquals(NEW, getTxStatus(zk, txid));
       fate.seedTransaction(txid, new TestOperation(NS, TID), true);
       assertEquals(SUBMITTED, getTxStatus(zk, txid));
-      // do the isReady method
-      doReady.countDown();
       // wait for call() to be called
       callStarted.await();
       assertEquals(IN_PROGRESS, getTxStatus(zk, txid));
@@ -237,7 +223,6 @@ public class FateIT {
       // Wait for the transaction runner to be scheduled.
       UtilWaitThread.sleep(3000);
 
-      doReady = new CountDownLatch(1);
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
 
@@ -249,13 +234,48 @@ public class FateIT {
       assertTrue(FAILED_IN_PROGRESS == getTxStatus(zk, txid) || FAILED == getTxStatus(zk, txid));
       fate.seedTransaction(txid, new TestOperation(NS, TID), true);
       assertTrue(FAILED_IN_PROGRESS == getTxStatus(zk, txid) || FAILED == getTxStatus(zk, txid));
+      fate.delete(txid);
     } finally {
       fate.shutdown();
     }
   }
 
   @Test
-  public void testCancelWhileSubmitted() throws Exception {
+  public void testCancelWhileSubmittedNotRunning() throws Exception {
+    final ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
+    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
+    final AgeOffStore<Manager> store =
+        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
+
+    Manager manager = createMock(Manager.class);
+    ServerContext sctx = createMock(ServerContext.class);
+    expect(manager.getContext()).andReturn(sctx).anyTimes();
+    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
+    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
+    replay(manager, sctx);
+
+    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
+    ConfigurationCopy config = new ConfigurationCopy();
+    config.set(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE, "2");
+
+    // Notice that we did not start the transaction runners
+
+    // Wait for the transaction runner to be scheduled.
+    UtilWaitThread.sleep(3000);
+
+    callStarted = new CountDownLatch(1);
+    finishCall = new CountDownLatch(1);
+
+    long txid = fate.startTransaction();
+    LOG.debug("Starting test testCancelWhileSubmitted with {}", Long.toHexString(txid));
+    assertEquals(NEW, getTxStatus(zk, txid));
+    fate.seedTransaction(txid, new TestOperation(NS, TID), true);
+    assertEquals(SUBMITTED, getTxStatus(zk, txid));
+    assertTrue(fate.cancel(txid));
+  }
+
+  @Test
+  public void testCancelWhileSubmittedAndRunning() throws Exception {
     final ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 30000, "secret");
     final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
     final AgeOffStore<Manager> store =
@@ -278,7 +298,6 @@ public class FateIT {
       // Wait for the transaction runner to be scheduled.
       UtilWaitThread.sleep(3000);
 
-      doReady = new CountDownLatch(1);
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
 
@@ -287,25 +306,12 @@ public class FateIT {
       assertEquals(NEW, getTxStatus(zk, txid));
       fate.seedTransaction(txid, new TestOperation(NS, TID), true);
       assertEquals(SUBMITTED, getTxStatus(zk, txid));
-      // cancel the transaction
-      assertTrue(fate.cancel(txid));
-      // do the isReady method
-      doReady.countDown();
-      // Check that tx is failing or gets removed
-      boolean nodeRemoved = false;
-      while (!nodeRemoved) {
-        try {
-          TStatus s = getTxStatus(zk, txid);
-          assertTrue(s == SUBMITTED || s == FAILED_IN_PROGRESS || s == FAILED);
-          Thread.sleep(10);
-        } catch (KeeperException e) {
-          if (e.code() == KeeperException.Code.NONODE) {
-            nodeRemoved = true;
-          } else {
-            fail("Unexpected error thrown: " + e.getMessage());
-          }
-        }
-      }
+      // This is false because the transaction runner has reserved the FaTe
+      // transaction.
+      assertFalse(fate.cancel(txid));
+      callStarted.await();
+      finishCall.countDown();
+      fate.delete(txid);
     } finally {
       fate.shutdown();
     }
@@ -335,7 +341,6 @@ public class FateIT {
       // Wait for the transaction runner to be scheduled.
       UtilWaitThread.sleep(3000);
 
-      doReady = new CountDownLatch(1);
       callStarted = new CountDownLatch(1);
       finishCall = new CountDownLatch(1);
 
@@ -344,36 +349,14 @@ public class FateIT {
       assertEquals(NEW, getTxStatus(zk, txid));
       fate.seedTransaction(txid, new TestOperation(NS, TID), true);
       assertEquals(SUBMITTED, getTxStatus(zk, txid));
-      // do the isReady method
-      doReady.countDown();
       // wait for call() to be called
       callStarted.await();
       // cancel the transaction
-      assertTrue(fate.cancel(txid));
-      // Check that tx is failing or gets removed
-      boolean nodeRemoved = false;
-      while (!nodeRemoved) {
-        try {
-          TStatus s = getTxStatus(zk, txid);
-          assertTrue(s == IN_PROGRESS || s == FAILED_IN_PROGRESS || s == FAILED);
-          Thread.sleep(10);
-        } catch (KeeperException e) {
-          if (e.code() == KeeperException.Code.NONODE) {
-            nodeRemoved = true;
-          } else {
-            fail("Unexpected error thrown: " + e.getMessage());
-          }
-        }
-      }
+      assertFalse(fate.cancel(txid));
     } finally {
       fate.shutdown();
     }
 
-  }
-
-  private static void inReady() throws InterruptedException {
-    // wait to start isReady
-    doReady.await();
   }
 
   private static void inCall() throws InterruptedException {

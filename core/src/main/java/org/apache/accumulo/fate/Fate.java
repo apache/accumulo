@@ -28,8 +28,6 @@ import static org.apache.accumulo.fate.ReadOnlyTStore.TStatus.UNKNOWN;
 
 import java.io.IOException;
 import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -71,8 +69,6 @@ public class Fate<T> {
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
 
-  private static final Map<Long,Thread> RUNNING_TRANSACTIONS = new HashMap<>();
-
   private class TransactionRunner implements Runnable {
 
     @Override
@@ -83,51 +79,24 @@ public class Fate<T> {
         try {
           tid = store.reserve();
           TStatus status = store.getStatus(tid);
-          if (status == FAILED) {
-            runnerLog.info(
-                "FATE txid " + Long.toHexString(tid) + " likely cancelled before it started.");
-            return;
-          }
           Repo<T> op = store.top(tid);
           if (status == FAILED_IN_PROGRESS) {
             processFailed(tid, op);
           } else {
             Repo<T> prevOp = null;
-            boolean exceptionSeen = false;
             try {
-              try {
-                synchronized (RUNNING_TRANSACTIONS) {
-                  RUNNING_TRANSACTIONS.put(tid, Thread.currentThread());
+              deferTime = op.isReady(tid, environment);
+
+              if (deferTime == 0) {
+                prevOp = op;
+                if (status == SUBMITTED) {
+                  store.setStatus(tid, IN_PROGRESS);
                 }
-                deferTime = op.isReady(tid, environment);
-                if (deferTime == 0) {
-                  prevOp = op;
-                  if (status == SUBMITTED) {
-                    store.setStatus(tid, IN_PROGRESS);
-                  }
-                  op = op.call(tid, environment);
-                } else
-                  continue;
-              } catch (Exception e) {
-                exceptionSeen = true;
-                throw e;
-              } finally {
-                synchronized (RUNNING_TRANSACTIONS) {
-                  RUNNING_TRANSACTIONS.remove(tid);
-                }
-                // It's possible that cancel was called between
-                // op.call and the synchronized block above. Do a last
-                // check to see if that's the case.
-                if (!exceptionSeen && Thread.currentThread().isInterrupted()) {
-                  throw new InterruptedException("FaTE thread was interrupted");
-                }
-              }
+                op = op.call(tid, environment);
+              } else
+                continue;
+
             } catch (Exception e) {
-              if (e instanceof InterruptedException) {
-                runnerLog.info(
-                    "FATE Runner thread interrupted processing txid " + Long.toHexString(tid));
-                Thread.interrupted();
-              }
               blockIfHadoopShutdown(tid, e);
               transitionToFailed(tid, e);
               continue;
@@ -353,7 +322,8 @@ public class Fate<T> {
       if (store.tryReserve(tid)) {
         try {
           TStatus status = store.getStatus(tid);
-          if (status == NEW || status == SUBMITTED || status == IN_PROGRESS) {
+          log.info("status is: {}", status);
+          if (status == NEW || status == SUBMITTED) {
             store.setProperty(tid, EXCEPTION_PROP, new TApplicationException(
                 TApplicationException.INTERNAL_ERROR, "Fate transaction cancelled by user"));
             store.setStatus(tid, FAILED_IN_PROGRESS);
@@ -362,29 +332,18 @@ public class Fate<T> {
                 tidStr);
             return true;
           } else {
-            log.info("Repo {} cancelled by user but already in finished state", tidStr);
-            return true;
+            log.info("Repo {} cancelled by user but already in progress or finished state", tidStr);
+            return false;
           }
         } finally {
           store.unreserve(tid, 0);
         }
       } else {
-        // It's possible that the FateOp is being run by the TransactionRunner. Look up
-        // the thread that is running this transaction.
-        Thread t = null;
-        synchronized (RUNNING_TRANSACTIONS) {
-          t = RUNNING_TRANSACTIONS.get(tid);
-          if (t != null) {
-            t.interrupt();
-            return true;
-          }
-        }
-        // reserved, but not in transaction table. It should transition to
-        // an end state or become unreserved in a short amount of time.
-        // Lets retry.
+        // reserved, lets retry.
         UtilWaitThread.sleep(500);
       }
     }
+    log.info("Unable to reserve transaction {} to cancel it", tid);
     return false;
   }
 
