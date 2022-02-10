@@ -124,7 +124,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
   }
 
   @After
-  public void swingMjölnir() throws Exception {
+  public void swingThorsHammer() throws Exception {
     if (c == null) {
       return;
     }
