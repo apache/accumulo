@@ -59,6 +59,8 @@ import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.util.concurrent.Uninterruptibles;
+
 @Category({ZooKeeperTestingServerTests.class})
 public class ServiceLockIT {
 
@@ -622,13 +624,7 @@ public class ServiceLockIT {
       workers.forEach(w -> assertNull(w.getException()));
       assertEquals(0, zk.getChildren(parent.toString(), false).size());
 
-      threads.forEach(t -> {
-        try {
-          t.join();
-        } catch (InterruptedException e) {
-          // ignore
-        }
-      });
+      threads.forEach(Uninterruptibles::joinUninterruptibly);
     }
 
   }
