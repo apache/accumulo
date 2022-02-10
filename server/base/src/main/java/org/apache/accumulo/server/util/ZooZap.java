@@ -24,6 +24,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
@@ -86,7 +87,7 @@ public class ZooZap {
 
       String volDir = VolumeConfiguration.getVolumeUris(siteConf).iterator().next();
       Path instanceDir = new Path(volDir, "instance_id");
-      String iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, new Configuration());
+      InstanceId iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, new Configuration());
       ZooReaderWriter zoo = new ZooReaderWriter(siteConf);
 
       if (opts.zapMaster) {

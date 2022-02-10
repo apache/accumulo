@@ -18,23 +18,23 @@
  */
 package org.apache.accumulo.server.rpc;
 
+import static org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier.createTAuthIdentifier;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
-import java.util.Map.Entry;
 
 import javax.crypto.KeyGenerator;
 import javax.security.auth.callback.Callback;
 
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.rpc.SaslDigestCallbackHandler;
 import org.apache.accumulo.server.security.delegation.AuthenticationKey;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
-import org.apache.hadoop.security.token.Token;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -74,8 +74,8 @@ public class SaslDigestCallbackHandlerTest {
 
   @Test
   public void testIdentifierSerialization() throws IOException {
-    AuthenticationTokenIdentifier identifier =
-        new AuthenticationTokenIdentifier("user", 1, 100L, 1000L, "instanceid");
+    var tAuthIdentifier = createTAuthIdentifier("user", 1, 100L, 1000L, "instanceid");
+    var identifier = new AuthenticationTokenIdentifier(tAuthIdentifier);
     byte[] serialized = identifier.getBytes();
     String name = handler.encodeIdentifier(serialized);
 
@@ -90,12 +90,10 @@ public class SaslDigestCallbackHandlerTest {
 
   @Test
   public void testTokenSerialization() throws Exception {
-    AuthenticationTokenSecretManager secretManager =
-        new AuthenticationTokenSecretManager("instanceid", 1000L);
+    var secretManager = new AuthenticationTokenSecretManager(InstanceId.of("instanceid"), 1000L);
 
     secretManager.addKey(new AuthenticationKey(1, 0L, 100L, keyGen.generateKey()));
-    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> entry =
-        secretManager.generateToken("user", cfg);
+    var entry = secretManager.generateToken("user", cfg);
     byte[] password = entry.getKey().getPassword();
     char[] encodedPassword = handler.encodePassword(password);
 
@@ -106,12 +104,10 @@ public class SaslDigestCallbackHandlerTest {
 
   @Test
   public void testTokenAndIdentifierSerialization() throws Exception {
-    AuthenticationTokenSecretManager secretManager =
-        new AuthenticationTokenSecretManager("instanceid", 1000L);
-
-    secretManager.addKey(new AuthenticationKey(1, 0L, 1000 * 100L, keyGen.generateKey()));
-    Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> entry =
-        secretManager.generateToken("user", cfg);
+    var secretManager = new AuthenticationTokenSecretManager(InstanceId.of("instanceid"), 1000L);
+    var key = new AuthenticationKey(1, 0L, 100_000L, keyGen.generateKey());
+    secretManager.addKey(key);
+    var entry = secretManager.generateToken("user", cfg);
     byte[] password = entry.getKey().getPassword();
     char[] encodedPassword = handler.encodePassword(password);
     String name = handler.encodeIdentifier(entry.getValue().getBytes());

@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tableOps.delete;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.Repo;
@@ -33,7 +34,7 @@ import org.apache.zookeeper.KeeperException;
 
 public class PreDeleteTable extends ManagerRepo {
 
-  public static String createDeleteMarkerPath(String instanceId, TableId tableId) {
+  public static String createDeleteMarkerPath(InstanceId instanceId, TableId tableId) {
     return Constants.ZROOT + "/" + instanceId + Constants.ZTABLES + "/" + tableId.canonical()
         + Constants.ZTABLE_DELETE_MARKER;
   }

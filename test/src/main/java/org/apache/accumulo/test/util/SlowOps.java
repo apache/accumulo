@@ -128,7 +128,7 @@ public class SlowOps {
       int count = 0;
       for (Map.Entry<Key,Value> elt : scanner) {
         String expected = String.format("%05d", count);
-        assert (elt.getKey().getRow().toString().equals(expected));
+        assert elt.getKey().getRow().toString().equals(expected);
         count++;
       }
       return count;

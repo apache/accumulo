@@ -70,6 +70,7 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -285,8 +286,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       Map<String,String> configOverrides, String... args) throws IOException {
     List<String> jvmOpts = new ArrayList<>();
     if (serverType == ServerType.ZOOKEEPER) {
-      // disable zookeeper's log4j 1.2 jmx support, which depends on log4j 1.2 on the class path,
-      // which we don't need or expect to be there
+      // disable zookeeper's log4j 1.2 jmx support, which requires old versions of log4j 1.2
+      // and won't work with reload4j or log4j2
       jvmOpts.add("-Dzookeeper.jmx.log4j.disable=true");
     }
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
@@ -490,7 +491,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         throw new RuntimeException(e);
       }
 
-      String instanceIdFromFile = VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
+      InstanceId instanceIdFromFile =
+          VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
       ZooReaderWriter zrw = new ZooReaderWriter(cc.get(Property.INSTANCE_ZK_HOST),
           (int) cc.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), cc.get(Property.INSTANCE_SECRET));
 
@@ -501,7 +503,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         for (String name : zrw.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
           String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
           byte[] bytes = zrw.getData(instanceNamePath);
-          String iid = new String(bytes, UTF_8);
+          InstanceId iid = InstanceId.of(new String(bytes, UTF_8));
           if (iid.equals(instanceIdFromFile)) {
             instanceName = name;
           }

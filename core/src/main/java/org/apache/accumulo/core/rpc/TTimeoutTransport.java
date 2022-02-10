@@ -84,7 +84,7 @@ public class TTimeoutTransport {
   TTransport createInternal(SocketAddress addr, long timeoutMillis) throws TTransportException {
     Socket socket = null;
     try {
-      socket = openSocket(addr);
+      socket = openSocket(addr, (int) timeoutMillis);
     } catch (IOException e) {
       // openSocket handles closing the Socket on error
       throw new TTransportException(e);
@@ -131,15 +131,17 @@ public class TTimeoutTransport {
    *
    * @param addr
    *          The address to connect the socket to
+   * @param timeoutMillis
+   *          The timeout in milliseconds to apply to the socket connect call
    * @return A socket connected to the given address, or null if the socket fails to connect
    */
-  Socket openSocket(SocketAddress addr) throws IOException {
+  Socket openSocket(SocketAddress addr, int timeoutMillis) throws IOException {
     Socket socket = null;
     try {
       socket = openSocketChannel();
       socket.setSoLinger(false, 0);
       socket.setTcpNoDelay(true);
-      socket.connect(addr);
+      socket.connect(addr, timeoutMillis);
       return socket;
     } catch (IOException e) {
       closeSocket(socket, e);

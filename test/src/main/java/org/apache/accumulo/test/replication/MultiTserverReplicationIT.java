@@ -74,14 +74,14 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
           new ZooReader(context.getZooKeepers(), context.getZooKeepersSessionTimeOut());
       Set<String> tserverHost = new HashSet<>();
       tserverHost.addAll(zreader.getChildren(
-          ZooUtil.getRoot(client.instanceOperations().getInstanceID()) + Constants.ZTSERVERS));
+          ZooUtil.getRoot(client.instanceOperations().getInstanceId()) + Constants.ZTSERVERS));
 
       Set<HostAndPort> replicationServices = new HashSet<>();
 
       for (String tserver : tserverHost) {
         try {
           byte[] portData =
-              zreader.getData(ZooUtil.getRoot(client.instanceOperations().getInstanceID())
+              zreader.getData(ZooUtil.getRoot(client.instanceOperations().getInstanceId())
                   + ReplicationConstants.ZOO_TSERVERS + "/" + tserver);
           HostAndPort replAddress = HostAndPort.fromString(new String(portData, UTF_8));
           replicationServices.add(replAddress);
@@ -119,7 +119,7 @@ public class MultiTserverReplicationIT extends ConfigurableMacBase {
 
       // Get the manager replication coordinator addr
       String replCoordAddr =
-          new String(zreader.getData(ZooUtil.getRoot(client.instanceOperations().getInstanceID())
+          new String(zreader.getData(ZooUtil.getRoot(client.instanceOperations().getInstanceId())
               + Constants.ZMANAGER_REPLICATION_COORDINATOR_ADDR), UTF_8);
 
       // They shouldn't be the same

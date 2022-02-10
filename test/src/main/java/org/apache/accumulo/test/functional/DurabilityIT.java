@@ -182,7 +182,7 @@ public class DurabilityIT extends ConfigurableMacBase {
         Mutation m = new Mutation("" + i);
         m.put("", "", "");
         bw.addMutation(m);
-        if (i % (Math.max(1, count / 100)) == 0) {
+        if (i % Math.max(1, count / 100) == 0) {
           bw.flush();
         }
       }

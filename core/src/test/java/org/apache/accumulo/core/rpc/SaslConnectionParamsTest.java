@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.rpc;
 
+import static org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier.createTAuthIdentifier;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -107,8 +108,9 @@ public class SaslConnectionParamsTest {
 
   @Test
   public void testDelegationTokenImpl() throws Exception {
-    final DelegationTokenImpl token = new DelegationTokenImpl(new byte[0],
-        new AuthenticationTokenIdentifier("user", 1, 10L, 20L, "instanceid"));
+    final DelegationTokenImpl token =
+        new DelegationTokenImpl(new byte[0], new AuthenticationTokenIdentifier(
+            createTAuthIdentifier("user", 1, 10L, 20L, "instanceid")));
     testUser.doAs((PrivilegedExceptionAction<Void>) () -> {
       final SaslConnectionParams saslParams = createSaslParams(token);
       assertEquals(primary, saslParams.getKerberosServerPrimary());
@@ -142,8 +144,9 @@ public class SaslConnectionParamsTest {
     assertEquals(params1, params2);
     assertEquals(params1.hashCode(), params2.hashCode());
 
-    final DelegationTokenImpl delToken1 = new DelegationTokenImpl(new byte[0],
-        new AuthenticationTokenIdentifier("user", 1, 10L, 20L, "instanceid"));
+    final DelegationTokenImpl delToken1 =
+        new DelegationTokenImpl(new byte[0], new AuthenticationTokenIdentifier(
+            createTAuthIdentifier("user", 1, 10L, 20L, "instanceid")));
     SaslConnectionParams params3 = testUser
         .doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(delToken1));
 
@@ -152,8 +155,9 @@ public class SaslConnectionParamsTest {
     assertNotEquals(params2, params3);
     assertNotEquals(params2.hashCode(), params3.hashCode());
 
-    final DelegationTokenImpl delToken2 = new DelegationTokenImpl(new byte[0],
-        new AuthenticationTokenIdentifier("user", 1, 10L, 20L, "instanceid"));
+    final DelegationTokenImpl delToken2 =
+        new DelegationTokenImpl(new byte[0], new AuthenticationTokenIdentifier(
+            createTAuthIdentifier("user", 1, 10L, 20L, "instanceid")));
     SaslConnectionParams params4 = testUser
         .doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(delToken2));
 

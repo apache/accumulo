@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
@@ -75,7 +76,7 @@ public class ZooMutatorIT {
   public void concurrentMutatorTest() throws Exception {
 
     try (ZooKeeperTestingServer szk = new ZooKeeperTestingServer()) {
-      szk.initPaths("/accumulo/" + UUID.randomUUID());
+      szk.initPaths("/accumulo/" + InstanceId.of(UUID.randomUUID()));
       ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 10_0000, "aPasswd");
 
       var executor = Executors.newFixedThreadPool(16);

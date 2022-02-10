@@ -77,14 +77,12 @@ abstract class TableMetadataServicer extends MetadataServicer {
     Text colf = new Text();
     Text colq = new Text();
 
-    KeyExtent currentKeyExtent;
     String location = null;
     Text row = null;
     // acquire this table's tablets from the metadata table which services it
     for (Entry<Key,Value> entry : scanner) {
       if (row != null) {
         if (!row.equals(entry.getKey().getRow())) {
-          currentKeyExtent = null;
           location = null;
           row = entry.getKey().getRow();
         }
@@ -96,9 +94,8 @@ abstract class TableMetadataServicer extends MetadataServicer {
       colq = entry.getKey().getColumnQualifier(colq);
 
       if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
-        currentKeyExtent = KeyExtent.fromMetaPrevRow(entry);
+        KeyExtent currentKeyExtent = KeyExtent.fromMetaPrevRow(entry);
         tablets.put(currentKeyExtent, location);
-        currentKeyExtent = null;
         location = null;
       } else if (colf.equals(CurrentLocationColumnFamily.NAME)) {
         location = entry.getValue().toString();

@@ -34,7 +34,7 @@ public class DelegationTokenConfig {
   private long lifetime = 0;
 
   /**
-   * Requests a specific lifetime for the token that is different than the default system lifetime.
+   * Requests a specific lifetime for the token that is different from the default system lifetime.
    * The lifetime must not exceed the secret key lifetime configured on the servers.
    *
    * @param lifetime

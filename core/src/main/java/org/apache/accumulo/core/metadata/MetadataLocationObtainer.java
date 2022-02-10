@@ -213,7 +213,6 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   public static TabletLocations getMetadataLocationEntries(SortedMap<Key,Value> entries) {
     Text location = null;
     Text session = null;
-    KeyExtent ke;
 
     List<TabletLocation> results = new ArrayList<>();
     ArrayList<KeyExtent> locationless = new ArrayList<>();
@@ -246,7 +245,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
         location = new Text(val.toString());
         session = new Text(colq);
       } else if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
-        ke = KeyExtent.fromMetaPrevRow(entry);
+        KeyExtent ke = KeyExtent.fromMetaPrevRow(entry);
         if (location != null)
           results.add(new TabletLocation(ke, location.toString(), session.toString()));
         else

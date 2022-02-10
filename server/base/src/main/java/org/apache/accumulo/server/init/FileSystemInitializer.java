@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TimeType;
@@ -36,6 +35,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -71,7 +71,7 @@ class FileSystemInitializer {
   private final ZooReaderWriter zoo;
   private final String zkRoot;
 
-  FileSystemInitializer(InitialConfiguration initConfig, ZooReaderWriter zoo, UUID uuid) {
+  FileSystemInitializer(InitialConfiguration initConfig, ZooReaderWriter zoo, InstanceId uuid) {
     this.initConfig = initConfig;
     this.zoo = zoo;
     this.zkRoot = Constants.ZROOT + "/" + uuid;

@@ -28,6 +28,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.server.MockServerContext;
@@ -46,7 +47,7 @@ public class ZooConfigurationFactoryTest {
 
   @Before
   public void setUp() {
-    context = MockServerContext.getWithZK("iid", "localhost", 120000);
+    context = MockServerContext.getWithZK(InstanceId.of("iid"), "localhost", 120000);
     zcf = createMock(ZooCacheFactory.class);
     zc = createMock(ZooCache.class);
     zconff = new ZooConfigurationFactory();

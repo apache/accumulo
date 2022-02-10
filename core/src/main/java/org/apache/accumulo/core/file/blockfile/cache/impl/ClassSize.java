@@ -94,7 +94,7 @@ public class ClassSize {
    * @return smallest number &gt;= input that is a multiple of 8
    */
   public static int align(int num) {
-    return (int) (align((long) num));
+    return (int) align((long) num);
   }
 
   /**

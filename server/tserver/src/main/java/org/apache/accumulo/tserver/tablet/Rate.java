@@ -46,7 +46,7 @@ public class Rate {
       throw new IllegalArgumentException("update time < last value");
     }
     double keep = 1. - ratio;
-    current = (keep * current + ratio * ((counter - lastCounter)) * 1000. / (when - lastTime));
+    current = (keep * current + ratio * (counter - lastCounter) * 1000. / (when - lastTime));
     lastTime = when;
     lastCounter = counter;
     return current;
