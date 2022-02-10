@@ -81,7 +81,6 @@ public class ServerContext extends ClientContext {
   private static final Logger log = LoggerFactory.getLogger(ServerContext.class);
 
   private final ServerInfo info;
-  private final ZooReaderWriter zooReaderWriter;
   private final ServerDirs serverDirs;
 
   private TableManager tableManager;
@@ -100,7 +99,6 @@ public class ServerContext extends ClientContext {
   private ServerContext(ServerInfo info) {
     super(SingletonReservation.noop(), info, info.getSiteConfiguration());
     this.info = info;
-    zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
     serverDirs = info.getServerDirs();
   }
 

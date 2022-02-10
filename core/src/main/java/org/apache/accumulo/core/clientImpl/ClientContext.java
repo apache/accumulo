@@ -77,6 +77,7 @@ import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
@@ -100,6 +101,7 @@ public class ClientContext implements AccumuloClient {
   private final ClientInfo info;
   private InstanceId instanceId;
   private final ZooCache zooCache;
+  protected final ZooReaderWriter zooReaderWriter;
 
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
@@ -157,6 +159,7 @@ public class ClientContext implements AccumuloClient {
     this.singletonReservation = Objects.requireNonNull(reservation);
     this.tableops = new TableOperationsImpl(this);
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
+    this.zooReaderWriter = new ZooReaderWriter(getConfiguration());
   }
 
   /**
@@ -720,6 +723,10 @@ public class ClientContext implements AccumuloClient {
       thriftTransportPool.shutdown();
     }
     singletonReservation.close();
+  }
+
+  public ZooReaderWriter getZooReaderWriter() {
+    return zooReaderWriter;
   }
 
   public static class ClientBuilderImpl<T>
