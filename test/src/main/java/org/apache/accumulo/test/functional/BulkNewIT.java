@@ -439,24 +439,25 @@ public class BulkNewIT extends SharedMiniClusterBase {
       writeData(dir + "/f1.", aconf, 0, 333);
       writeData(dir + "/f2.", aconf, 0, 666);
 
+      final var importMappingOptions = c.tableOperations().importDirectory(dir).to(tableName);
+
       // Create a plan with more files than exists in dir
       LoadPlan loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333))
           .loadFileTo("f2.rf", RangeType.TABLE, null, row(666))
           .loadFileTo("f3.rf", RangeType.TABLE, null, row(666)).build();
-      assertThrows(IllegalArgumentException.class,
-          () -> c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load());
+      final var tooManyFiles = importMappingOptions.plan(loadPlan);
+      assertThrows(IllegalArgumentException.class, tooManyFiles::load);
 
-      // Create a plan with less files than exists in dir
-      LoadPlan loadPlan1 =
-          LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333)).build();
-      assertThrows(IllegalArgumentException.class,
-          () -> c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan1).load());
+      // Create a plan with fewer files than exists in dir
+      loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(333)).build();
+      final var tooFewFiles = importMappingOptions.plan(loadPlan);
+      assertThrows(IllegalArgumentException.class, tooFewFiles::load);
 
-      // Create a plan with tablet boundary that does not exits
-      LoadPlan loadPlan2 = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(555))
+      // Create a plan with tablet boundary that does not exist
+      loadPlan = LoadPlan.builder().loadFileTo("f1.rf", RangeType.TABLE, null, row(555))
           .loadFileTo("f2.rf", RangeType.TABLE, null, row(555)).build();
-      assertThrows(AccumuloException.class,
-          () -> c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan2).load());
+      final var nonExistentBoundary = importMappingOptions.plan(loadPlan);
+      assertThrows(AccumuloException.class, nonExistentBoundary::load);
     }
   }
 

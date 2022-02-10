@@ -936,7 +936,8 @@ public class CombinerTest {
     assertTrue(summingArrayCombiner.validateOptions(iteratorSetting.getOptions()));
 
     summingArrayCombiner.init(new SortedMapIterator(tm1), iteratorSetting.getOptions(), SCAN_IE);
-    summingArrayCombiner.seek(new Range(), EMPTY_COL_FAMS, false);
+    final Range range = new Range();
+    summingArrayCombiner.seek(range, EMPTY_COL_FAMS, false);
 
     assertTrue(summingArrayCombiner.hasTop());
     assertEquals(newKey(1, 1, 1, 3), summingArrayCombiner.getTopKey());
@@ -952,6 +953,6 @@ public class CombinerTest {
 
     summingArrayCombiner.init(new SortedMapIterator(tm1), iteratorSetting.getOptions(), SCAN_IE);
     assertThrows(ValueFormatException.class,
-        () -> summingArrayCombiner.seek(new Range(), EMPTY_COL_FAMS, false));
+        () -> summingArrayCombiner.seek(range, EMPTY_COL_FAMS, false));
   }
 }

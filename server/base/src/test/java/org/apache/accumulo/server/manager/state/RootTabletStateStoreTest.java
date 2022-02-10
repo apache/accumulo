@@ -127,16 +127,16 @@ public class RootTabletStateStoreTest {
     assertEquals(count, 1);
 
     KeyExtent notRoot = new KeyExtent(TableId.of("0"), null, null);
-    assertThrows(IllegalArgumentException.class,
-        () -> tstore.setLocations(List.of(new Assignment(notRoot, server))));
+    final var assignmentList = List.of(new Assignment(notRoot, server));
 
-    assertThrows(IllegalArgumentException.class,
-        () -> tstore.setFutureLocations(List.of(new Assignment(notRoot, server))));
+    assertThrows(IllegalArgumentException.class, () -> tstore.setLocations(assignmentList));
+    assertThrows(IllegalArgumentException.class, () -> tstore.setFutureLocations(assignmentList));
 
     try {
       TabletLocationState broken =
           new TabletLocationState(notRoot, server, null, null, null, null, false);
-      assertThrows(IllegalArgumentException.class, () -> tstore.unassign(List.of(broken), null));
+      final var assignmentList1 = List.of(broken);
+      assertThrows(IllegalArgumentException.class, () -> tstore.unassign(assignmentList1, null));
     } catch (BadLocationStateException e) {
       fail("Unexpected error " + e);
     }

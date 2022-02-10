@@ -55,24 +55,25 @@ public class TabletFileTest {
   @Test
   public void testBadPaths() {
     // 2a< srv:dir
-    assertThrows("Failed to throw error on bad path", NullPointerException.class,
-        () -> test("C0004.rf", "", "2a", "t-0003", "C0004.rf"));
-    assertThrows("Failed to throw error on bad path", NullPointerException.class,
-        () -> test("dir", "", "2a", "", ""));
+    final String message = "Failed to throw error on bad path";
 
-    assertThrows("Failed to throw error on bad path", IllegalArgumentException.class,
+    assertThrows(message, NullPointerException.class,
+        () -> test("C0004.rf", "", "2a", "t-0003", "C0004.rf"));
+    assertThrows(message, NullPointerException.class, () -> test("dir", "", "2a", "", ""));
+
+    assertThrows(message, IllegalArgumentException.class,
         () -> test("hdfs://localhost:8020/accumulo/tablets/2a/default_tablet/F0000070.rf",
             "hdfs://localhost:8020/accumulo", "2a", "default_tablet", "F0000070.rf"));
-    assertThrows("Failed to throw error on bad path", IllegalArgumentException.class,
+    assertThrows(message, IllegalArgumentException.class,
         () -> test("hdfs://localhost:8020/accumulo/2a/default_tablet/F0000070.rf",
             " hdfs://localhost:8020/accumulo", "2a", "default_tablet", " F0000070.rf"));
-    assertThrows("Failed to throw error on bad path", IllegalArgumentException.class,
+    assertThrows(message, IllegalArgumentException.class,
         () -> test("/accumulo/tables/2a/default_tablet/F0000070.rf", "", "2a", "default_tablet",
             "F0000070.rf"));
-    assertThrows("Failed to throw error on bad path", IllegalArgumentException.class,
+    assertThrows(message, IllegalArgumentException.class,
         () -> test("hdfs://localhost:8020/accumulo/tables/2a/F0000070.rf",
             "hdfs://localhost:8020/accumulo", "2a", "", "F0000070.rf"));
-    assertThrows("Failed to throw error on bad path", IllegalArgumentException.class,
+    assertThrows(message, IllegalArgumentException.class,
         () -> test("hdfs://localhost:8020/accumulo/tables/F0000070.rf",
             "hdfs://localhost:8020/accumulo", null, "", "F0000070.rf"));
 

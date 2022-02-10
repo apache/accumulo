@@ -23,6 +23,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1281,8 +1282,9 @@ public class TabletLocatorImplTest {
     setLocation(tservers, "tserver2", MTE, ke1, "L1", "I1");
     setLocation(tservers, "tserver2", MTE, ke1, "L2", "I2");
 
-    assertThrows(Exception.class,
+    var e = assertThrows(IllegalStateException.class,
         () -> metaCache.locateTablet(context, new Text("a"), false, false));
+    assertTrue(e.getMessage().startsWith("Tablet has multiple locations : "));
 
   }
 

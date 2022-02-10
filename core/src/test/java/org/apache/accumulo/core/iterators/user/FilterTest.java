@@ -199,10 +199,9 @@ public class FilterTest {
     AgeOffFilter.setTTL(is, 101L);
     AgeOffFilter.setCurrentTime(is, 1001L);
     AgeOffFilter.setNegate(is, true);
-    assertTrue(((AgeOffFilter) a).validateOptions(is.getOptions()));
-    SortedKeyValueIterator<Key,Value> finalA = a; // effectively final var needed for lambda below
-    assertThrows(IllegalArgumentException.class,
-        () -> ((AgeOffFilter) finalA).validateOptions(EMPTY_OPTS));
+    final AgeOffFilter finalA = (AgeOffFilter) a;
+    assertTrue((finalA.validateOptions(is.getOptions())));
+    assertThrows(IllegalArgumentException.class, () -> finalA.validateOptions(EMPTY_OPTS));
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a = a.deepCopy(null);
     SortedKeyValueIterator<Key,Value> copy = a.deepCopy(null);
@@ -558,7 +557,7 @@ public class FilterTest {
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(32, size(a));
 
-    TimestampFilter finalA = a; // effectively final var needed for lambda below
+    final TimestampFilter finalA = a;
     assertThrows(IllegalArgumentException.class, () -> finalA.validateOptions(EMPTY_OPTS));
   }
 

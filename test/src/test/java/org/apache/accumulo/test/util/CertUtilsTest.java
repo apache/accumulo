@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.PublicKey;
 import java.security.SignatureException;
 import java.security.cert.Certificate;
 
@@ -104,9 +105,11 @@ public class CertUtilsTest {
     try (FileInputStream fis = new FileInputStream(signedKeyStoreFile)) {
       signedKeyStore.load(fis, PASSWORD_CHARS);
     }
+
     Certificate signedCert = CertUtils.findCert(signedKeyStore);
+    PublicKey pubKey = signedCert.getPublicKey();
     assertThrows("signed cert should not be able to verify itself", SignatureException.class,
-        () -> signedCert.verify(signedCert.getPublicKey()));
+        () -> signedCert.verify(pubKey));
 
     signedCert.verify(rootCert.getPublicKey()); // throws exception if it can't be verified
   }
@@ -138,9 +141,10 @@ public class CertUtilsTest {
     }
     Certificate rootCert = CertUtils.findCert(rootKeyStore);
     Certificate signedCert = CertUtils.findCert(signedKeyStore);
+    PublicKey pubKey = signedCert.getPublicKey();
 
     assertThrows("signed cert should not be able to verify itself", SignatureException.class,
-        () -> signedCert.verify(signedCert.getPublicKey()));
+        () -> signedCert.verify(pubKey));
 
     signedCert.verify(rootCert.getPublicKey()); // throws exception if it can't be verified
   }

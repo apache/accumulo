@@ -27,6 +27,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -117,12 +118,12 @@ public class CleanUpIT extends SharedMiniClusterBase {
       m2.put("cf1", "cq1", 1, "6");
 
       bw.addMutation(m1);
-      assertThrows(Exception.class, bw::flush);
+      assertThrows(MutationsRejectedException.class, bw::flush);
 
       // expect this to fail also, want to clean up batch writer threads
-      assertThrows(Exception.class, bw::close);
+      assertThrows(MutationsRejectedException.class, bw::close);
 
-      assertThrows(Exception.class, () -> Iterables.size(scanner));
+      assertThrows(IllegalStateException.class, () -> Iterables.size(scanner));
 
       threadCount = countThreads();
       if (threadCount > 0) {

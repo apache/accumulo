@@ -269,16 +269,14 @@ public class NativeMapIT {
 
     nm.delete();
 
-    assertThrows(IllegalStateException.class, () -> nm.put(newKey(1), newValue(1)));
+    final Key key1 = newKey(1);
+    final Value value1 = newValue(1);
 
-    assertThrows(IllegalStateException.class, () -> nm.get(newKey(1)));
-
+    assertThrows(IllegalStateException.class, () -> nm.put(key1, value1));
+    assertThrows(IllegalStateException.class, () -> nm.get(key1));
+    assertThrows(IllegalStateException.class, () -> nm.iterator(key1));
     assertThrows(IllegalStateException.class, nm::iterator);
-
-    assertThrows(IllegalStateException.class, () -> nm.iterator(newKey(1)));
-
     assertThrows(IllegalStateException.class, nm::size);
-
     assertThrows(IllegalStateException.class, iter::next);
 
   }

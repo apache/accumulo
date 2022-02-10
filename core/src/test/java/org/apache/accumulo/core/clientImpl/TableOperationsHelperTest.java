@@ -314,12 +314,13 @@ public class TableOperationsHelperTest {
     assertEquals(20, setting.getPriority());
     assertEquals("some.classname", setting.getIteratorClass());
     assertTrue(setting.getOptions().isEmpty());
-    setting = t.getIteratorSetting("table", "otherName", IteratorScope.majc);
-    assertEquals(20, setting.getPriority());
-    assertEquals("some.classname", setting.getIteratorClass());
-    assertFalse(setting.getOptions().isEmpty());
-    assertEquals(Collections.singletonMap("key", "value"), setting.getOptions());
-    t.attachIterator("table", setting, EnumSet.of(IteratorScope.minc));
+
+    final IteratorSetting setting1 = t.getIteratorSetting("table", "otherName", IteratorScope.majc);
+    assertEquals(20, setting1.getPriority());
+    assertEquals("some.classname", setting1.getIteratorClass());
+    assertFalse(setting1.getOptions().isEmpty());
+    assertEquals(Collections.singletonMap("key", "value"), setting1.getOptions());
+    t.attachIterator("table", setting1, EnumSet.of(IteratorScope.minc));
     check(t, "table",
         new String[] {"table.iterator.majc.otherName=20,some.classname",
             "table.iterator.majc.otherName.opt.key=value",
@@ -327,16 +328,13 @@ public class TableOperationsHelperTest {
             "table.iterator.minc.otherName.opt.key=value",
             "table.iterator.scan.otherName=20,some.classname",});
 
-    IteratorSetting finalSetting = setting; // effectively final var needed for lambda below
-    assertThrows(AccumuloException.class, () -> t.attachIterator("table", finalSetting));
-    setting.setName("thirdName");
-    IteratorSetting finalSetting1 = setting; // effectively final var needed for lambda below
-    assertThrows(AccumuloException.class, () -> t.attachIterator("table", finalSetting1));
-    setting.setPriority(10);
+    assertThrows(AccumuloException.class, () -> t.attachIterator("table", setting1));
+    setting1.setName("thirdName");
+    assertThrows(AccumuloException.class, () -> t.attachIterator("table", setting1));
+    setting1.setPriority(10);
     t.setProperty("table", "table.iterator.minc.thirdName.opt.key", "value");
-    IteratorSetting finalSetting2 = setting; // effectively final var needed for lambda below
-    assertThrows(AccumuloException.class, () -> t.attachIterator("table", finalSetting2));
+    assertThrows(AccumuloException.class, () -> t.attachIterator("table", setting1));
     t.removeProperty("table", "table.iterator.minc.thirdName.opt.key");
-    t.attachIterator("table", setting);
+    t.attachIterator("table", setting1);
   }
 }

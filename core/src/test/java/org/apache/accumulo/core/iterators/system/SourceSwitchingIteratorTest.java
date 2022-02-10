@@ -280,14 +280,17 @@ public class SourceSwitchingIteratorTest {
 
     assertSame(flag, tds.iflag);
 
-    ssi.seek(new Range("r1"), new ArrayList<>(), false);
+    final Range r1Range = new Range("r1");
+    final List<ByteSequence> columnFamilies = List.of();
+
+    ssi.seek(r1Range, columnFamilies, false);
     testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
     assertFalse(ssi.hasTop());
 
     flag.set(true);
 
     assertThrows(IterationInterruptedException.class,
-        () -> ssi.seek(new Range("r1"), new ArrayList<>(), false));
+        () -> ssi.seek(r1Range, columnFamilies, false));
 
   }
 
