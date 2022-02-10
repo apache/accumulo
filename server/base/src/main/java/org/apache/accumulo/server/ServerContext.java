@@ -205,7 +205,7 @@ public class ServerContext extends ClientContext {
   }
 
   public ZooReaderWriter getZooReaderWriter() {
-    return zooReaderWriter;
+    return super.getZooReaderWriter();
   }
 
   /**

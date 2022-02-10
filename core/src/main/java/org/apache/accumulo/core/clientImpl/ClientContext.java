@@ -101,7 +101,7 @@ public class ClientContext implements AccumuloClient {
   private final ClientInfo info;
   private InstanceId instanceId;
   private final ZooCache zooCache;
-  protected final ZooReaderWriter zooReaderWriter;
+  protected ZooReaderWriter zooReaderWriter;
 
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
@@ -159,7 +159,7 @@ public class ClientContext implements AccumuloClient {
     this.singletonReservation = Objects.requireNonNull(reservation);
     this.tableops = new TableOperationsImpl(this);
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
-    this.zooReaderWriter = new ZooReaderWriter(getConfiguration());
+    this.zooReaderWriter = new ZooReaderWriter(serverConf);
   }
 
   /**
@@ -726,6 +726,10 @@ public class ClientContext implements AccumuloClient {
   }
 
   public ZooReaderWriter getZooReaderWriter() {
+    ensureOpen();
+    if (zooReaderWriter == null) {
+      zooReaderWriter = new ZooReaderWriter(getConfiguration());
+    }
     return zooReaderWriter;
   }
 
