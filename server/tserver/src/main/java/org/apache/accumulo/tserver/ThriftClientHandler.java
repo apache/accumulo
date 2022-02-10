@@ -283,13 +283,27 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       throws NotServingTabletException, ThriftSecurityException,
       org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException,
       TSampleNotPresentException {
+    final KeyExtent extent = KeyExtent.fromThrift(textent);
+    return this.startScan(tinfo, credentials, extent, range, columns, batchSize, ssiList, ssio,
+        authorizations, waitForWrites, isolated, readaheadThreshold, tSamplerConfig, batchTimeOut,
+        contextArg, executionHints);
+  }
 
-    TableId tableId = TableId.of(new String(textent.getTable(), UTF_8));
+  public InitialScan startScan(TInfo tinfo, TCredentials credentials, KeyExtent extent,
+      TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
+      Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
+      boolean isolated, long readaheadThreshold, TSamplerConfiguration tSamplerConfig,
+      long batchTimeOut, String contextArg, Map<String,String> executionHints)
+      throws NotServingTabletException, ThriftSecurityException,
+      org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException,
+      TSampleNotPresentException {
+
+    TableId tableId = extent.tableId();
     NamespaceId namespaceId;
     try {
       namespaceId = Tables.getNamespaceId(server.getContext(), tableId);
     } catch (TableNotFoundException e1) {
-      throw new NotServingTabletException(textent);
+      throw new NotServingTabletException(extent.toThrift());
     }
     if (!security.canScan(credentials, tableId, namespaceId, range, columns, ssiList, ssio,
         authorizations)) {
@@ -301,8 +315,6 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.BAD_AUTHORIZATIONS);
     }
-
-    final KeyExtent extent = KeyExtent.fromThrift(textent);
 
     // wait for any writes that are in flight.. this done to ensure
     // consistency across client restarts... assume a client writes
@@ -320,7 +332,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
     Tablet tablet = server.getOnlineTablet(extent);
     if (tablet == null) {
-      throw new NotServingTabletException(textent);
+      throw new NotServingTabletException(extent.toThrift());
     }
 
     HashSet<Column> columnSet = new HashSet<>();
@@ -466,10 +478,26 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       TSamplerConfiguration tSamplerConfig, long batchTimeOut, String contextArg,
       Map<String,String> executionHints)
       throws ThriftSecurityException, TSampleNotPresentException {
+
+    final Map<KeyExtent,List<TRange>> batch = new HashMap<>();
+    tbatch.forEach((k, v) -> {
+      batch.put(KeyExtent.fromThrift(k), v);
+    });
+    return this.startMultiScan(tinfo, credentials, tcolumns, ssiList, batch, ssio, authorizations,
+        waitForWrites, tSamplerConfig, batchTimeOut, contextArg, executionHints);
+  }
+
+  public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials,
+      List<TColumn> tcolumns, List<IterInfo> ssiList, Map<KeyExtent,List<TRange>> tbatch,
+      Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
+      TSamplerConfiguration tSamplerConfig, long batchTimeOut, String contextArg,
+      Map<String,String> executionHints)
+      throws ThriftSecurityException, TSampleNotPresentException {
+
     // find all of the tables that need to be scanned
     final HashSet<TableId> tables = new HashSet<>();
-    for (TKeyExtent keyExtent : tbatch.keySet()) {
-      tables.add(TableId.of(new String(keyExtent.getTable(), UTF_8)));
+    for (KeyExtent keyExtent : tbatch.keySet()) {
+      tables.add(keyExtent.tableId());
     }
 
     if (tables.size() != 1) {
@@ -479,8 +507,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     // check if user has permission to the tables
     for (TableId tableId : tables) {
       NamespaceId namespaceId = getNamespaceId(credentials, tableId);
-      if (!security.canScan(credentials, tableId, namespaceId, tbatch, tcolumns, ssiList, ssio,
-          authorizations)) {
+      if (!security.canScan(credentials, tableId, namespaceId)) {
         throw new ThriftSecurityException(credentials.getPrincipal(),
             SecurityErrorCode.PERMISSION_DENIED);
       }
@@ -498,7 +525,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
     // @formatter:off
     Map<KeyExtent, List<Range>> batch = tbatch.entrySet().stream().collect(Collectors.toMap(
-                    entry -> KeyExtent.fromThrift(entry.getKey()),
+                    entry -> entry.getKey(),
                     entry -> entry.getValue().stream().map(Range::new).collect(Collectors.toList())
     ));
     // @formatter:on
