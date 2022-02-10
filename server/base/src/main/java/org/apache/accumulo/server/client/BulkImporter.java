@@ -315,7 +315,7 @@ public class BulkImporter {
     return Collections.emptySet();
   }
 
-  private class AssignmentInfo {
+  private static class AssignmentInfo {
     public AssignmentInfo(KeyExtent keyExtent, Long estSize) {
       this.ke = keyExtent;
       this.estSize = estSize;
@@ -488,7 +488,7 @@ public class BulkImporter {
 
   }
 
-  private class PathSize {
+  private static class PathSize {
     public PathSize(Path mapFile, long estSize) {
       this.path = mapFile;
       this.estSize = estSize;

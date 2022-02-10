@@ -182,7 +182,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   private ServiceLock monitorLock;
 
-  private class EventCounter {
+  private static class EventCounter {
 
     Map<String,Pair<Long,Long>> prevSamples = new HashMap<>();
     Map<String,Pair<Long,Long>> samples = new HashMap<>();
