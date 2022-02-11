@@ -1624,7 +1624,7 @@
       </properties>
     </profile>
     <profile>
-      <!-- This profile uses the Google errorprone tool to perform static code analysis at
+      <!-- This profile uses the Google ErrorProne tool to perform static code analysis at
       compile time. Auto-generated code is not checked.
       See: https://errorprone.info/bugpatterns for list of available bug patterns.-->
       <id>errorprone</id>
