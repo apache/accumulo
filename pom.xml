@@ -1649,8 +1649,8 @@
                   <!-- error/warning patterns to specifically check -->
                   -Xep:ExpectedExceptionChecker \
                   -Xep:MissingOverride \
-                  <!-- Items containing 'OFF' are currently flagged by errorprone. The 'OFF'
-                  can be removed and the project recompiled to discover lcation of errors for
+                  <!-- Items containing 'OFF' are currently flagged by ErrorProne. The 'OFF'
+                  can be removed and the project recompiled to discover location of errors for
                   further analysis. @SuppressWarnings can be used to ignore errors if desired. -->
                 </arg>
                 <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
