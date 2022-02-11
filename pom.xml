@@ -122,7 +122,7 @@
     <curator.version>5.1.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
-    <errorprone.version>2.10.0</errorprone.version>
+    <errorprone.version>2.11.0</errorprone.version>
     <!-- avoid error shutting down built-in ForkJoinPool.commonPool() during exec:java tasks -->
     <exec.cleanupDaemonThreads>false</exec.cleanupDaemonThreads>
     <failsafe.excludedGroups />
@@ -1647,6 +1647,7 @@
                   -Xep:CheckReturnValue:OFF \
                   -Xep:MustBeClosedChecker:OFF \
                   -Xep:ReturnValueIgnored:OFF \
+                  -Xep:UnicodeInCode:OFF \
                   <!-- error/warning patterns to specifically check -->
                   -Xep:ExpectedExceptionChecker \
                   -Xep:MissingOverride \
@@ -1670,6 +1671,11 @@
                   <groupId>com.google.errorprone</groupId>
                   <artifactId>error_prone_core</artifactId>
                   <version>${errorprone.version}</version>
+                </path>
+                <path>
+                  <groupId>com.github.spotbugs</groupId>
+                  <artifactId>spotbugs-annotations</artifactId>
+                  <version>4.4.2</version>
                 </path>
               </annotationProcessorPaths>
             </configuration>
