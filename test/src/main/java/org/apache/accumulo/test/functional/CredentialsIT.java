@@ -22,10 +22,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.cluster.ClusterUser;
@@ -95,12 +95,10 @@ public class CredentialsIT extends AccumuloClusterHarness {
     assertFalse(token.isDestroyed());
     token.destroy();
     assertTrue(token.isDestroyed());
-    try (AccumuloClient ignored = Accumulo.newClient().from(getClientInfo().getProperties())
-        .as("non_existent_user", token).build()) {
-      fail("should ignore " + ignored);
-    } catch (IllegalArgumentException e) {
-      assertEquals(e.getMessage(), "AuthenticationToken has been destroyed");
-    }
+    Properties props = getClientInfo().getProperties();
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> Accumulo.newClient().from(props).as("non_existent_user", token).build().close());
+    assertEquals(e.getMessage(), "AuthenticationToken has been destroyed");
   }
 
   @Test

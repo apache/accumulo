@@ -23,7 +23,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -621,13 +620,7 @@ public class RangeTest {
   }
 
   private void runClipTest(Range fence, Range range) {
-    try {
-      fence.clip(range);
-      fail();
-    } catch (IllegalArgumentException e) {
-
-    }
-
+    assertThrows(IllegalArgumentException.class, () -> fence.clip(range));
   }
 
   private void runClipTest(Range fence, Range range, Range expected) {

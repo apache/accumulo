@@ -20,7 +20,6 @@ package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -65,10 +64,14 @@ import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 
 public class SampleIT extends AccumuloClusterHarness {
+
+  Logger log = LoggerFactory.getLogger(AccumuloClusterHarness.class);
 
   private static final Map<String,String> OPTIONS_1 =
       Map.of("hasher", "murmur3_32", "modulus", "1009");
@@ -485,15 +488,11 @@ public class SampleIT extends AccumuloClusterHarness {
 
       scanner.setSamplerConfiguration(sc);
 
-      try {
-        for (Entry<Key,Value> entry : scanner) {
-          entry.getKey();
-        }
-        fail("Expected SampleNotPresentException, but it did not happen : "
-            + scanner.getClass().getSimpleName());
-      } catch (SampleNotPresentException e) {
-
-      }
+      final String message = "Expected SampleNotPresentException, but it did not happen : "
+          + scanner.getClass().getSimpleName();
+      assertThrows(message, SampleNotPresentException.class, () -> {
+        var ignored = scanner.iterator().next().getKey();
+      });
 
       scanner.clearSamplerConfiguration();
       for (Entry<Key,Value> entry : scanner) {

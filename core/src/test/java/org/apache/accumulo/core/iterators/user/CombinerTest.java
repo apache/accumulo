@@ -22,7 +22,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -707,7 +706,8 @@ public class CombinerTest {
     SummingArrayCombiner.setEncodingType(is, type);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
+    SortedMapIterator sortedMapIterator = new SortedMapIterator(tm1);
+    ai.init(sortedMapIterator, is.getOptions(), SCAN_IE);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
@@ -722,7 +722,7 @@ public class CombinerTest {
     SummingArrayCombiner.setEncodingType(is, encoderClass);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
+    ai.init(sortedMapIterator, is.getOptions(), SCAN_IE);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
@@ -737,7 +737,7 @@ public class CombinerTest {
     SummingArrayCombiner.setEncodingType(is, encoderClass.getName());
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
-    ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
+    ai.init(sortedMapIterator, is.getOptions(), SCAN_IE);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(ai.hasTop());
@@ -752,19 +752,17 @@ public class CombinerTest {
     SummingArrayCombiner.setEncodingType(is, SummingCombiner.VAR_LEN_ENCODER.getClass().getName());
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
-    try {
-      ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
-      fail();
-    } catch (IllegalArgumentException e) {}
+    final var isOptions = is.getOptions();
+    assertThrows(IllegalArgumentException.class,
+        () -> ai.init(sortedMapIterator, isOptions, SCAN_IE));
 
     is.clearOptions();
     SummingArrayCombiner.setEncodingType(is, BadEncoder.class.getName());
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
 
-    try {
-      ai.init(new SortedMapIterator(tm1), is.getOptions(), SCAN_IE);
-      fail();
-    } catch (IllegalArgumentException e) {}
+    final var isOptions1 = is.getOptions();
+    assertThrows(IllegalArgumentException.class,
+        () -> ai.init(sortedMapIterator, isOptions1, SCAN_IE));
   }
 
   public static class BadEncoder implements Encoder<List<Long>> {

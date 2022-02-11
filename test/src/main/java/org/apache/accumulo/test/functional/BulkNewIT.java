@@ -24,7 +24,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -276,13 +275,11 @@ public class BulkNewIT extends SharedMiniClusterBase {
       FsPermission originalPerms = fs.getFileStatus(rFilePath).getPermission();
       fs.setPermission(rFilePath, FsPermission.valueOf("----------"));
       try {
-        c.tableOperations().importDirectory(dir).to(tableName).load();
-      } catch (Exception e) {
+        final var importMappingOptions = c.tableOperations().importDirectory(dir).to(tableName);
+        var e = assertThrows(Exception.class, importMappingOptions::load);
         Throwable cause = e.getCause();
-        if (!(cause instanceof FileNotFoundException)
-            && !(cause.getCause() instanceof FileNotFoundException)) {
-          fail("Expected FileNotFoundException but threw " + e.getCause());
-        }
+        assertTrue(cause instanceof FileNotFoundException
+            || cause.getCause() instanceof FileNotFoundException);
       } finally {
         fs.setPermission(rFilePath, originalPerms);
       }
@@ -290,11 +287,9 @@ public class BulkNewIT extends SharedMiniClusterBase {
       originalPerms = fs.getFileStatus(new Path(dir)).getPermission();
       fs.setPermission(new Path(dir), FsPermission.valueOf("dr--r--r--"));
       try {
-        c.tableOperations().importDirectory(dir).to(tableName).load();
-      } catch (AccumuloException ae) {
-        if (!(ae.getCause() instanceof FileNotFoundException)) {
-          fail("Expected FileNotFoundException but threw " + ae.getCause());
-        }
+        final var importMappingOptions = c.tableOperations().importDirectory(dir).to(tableName);
+        var ae = assertThrows(AccumuloException.class, importMappingOptions::load);
+        assertTrue(ae.getCause() instanceof FileNotFoundException);
       } finally {
         fs.setPermission(new Path(dir), originalPerms);
       }

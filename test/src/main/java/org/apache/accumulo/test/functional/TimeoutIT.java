@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import java.util.Collections;
 import java.util.Map.Entry;
@@ -70,14 +70,11 @@ public class TimeoutIT extends AccumuloClusterHarness {
     mut.put("cf1", "cq1", "v1");
 
     bw.addMutation(mut);
-    try {
-      bw.close();
-      fail("batch writer did not timeout");
-    } catch (MutationsRejectedException mre) {
-      if (mre.getCause() instanceof TimedOutException)
-        return;
-      throw mre;
-    }
+    var mre =
+        assertThrows("batch writer did not timeout", MutationsRejectedException.class, bw::close);
+    if (mre.getCause() instanceof TimedOutException)
+      return;
+    throw mre;
   }
 
   public void testBatchScannerTimeout(AccumuloClient client, String tableName) throws Exception {
@@ -105,14 +102,9 @@ public class TimeoutIT extends AccumuloClusterHarness {
       iterSetting.addOption("sleepTime", 2000 + "");
       bs.addScanIterator(iterSetting);
 
-      try {
-        for (Entry<Key,Value> entry : bs) {
-          entry.getKey();
-        }
-        fail("batch scanner did not time out");
-      } catch (TimedOutException toe) {
-        // toe.printStackTrace();
-      }
+      assertThrows("batch scanner did not time out", TimedOutException.class, () -> {
+        var ignored = bs.iterator().next().getKey();
+      });
     }
   }
 
