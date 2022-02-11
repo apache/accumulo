@@ -268,18 +268,18 @@ public class Fate<T> {
 
   // start work in the transaction.. it is safe to call this
   // multiple times for a transaction... but it will only seed once
-  public void seedTransaction(long tid, Repo<T> repo, boolean autoCleanUp) {
+  public void seedTransaction(long tid, Repo<T> repo, boolean autoCleanUp, String goalMessage) {
     store.reserve(tid);
     try {
       if (store.getStatus(tid) == TStatus.NEW) {
         if (store.top(tid) == null) {
           try {
+            log.info("FATE TxId: {} {}", tid, goalMessage);
             store.push(tid, repo);
           } catch (StackOverflowException e) {
             // this should not happen
             throw new RuntimeException(e);
           }
-
         }
 
         if (autoCleanUp)
