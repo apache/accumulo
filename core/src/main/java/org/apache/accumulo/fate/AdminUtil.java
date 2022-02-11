@@ -139,7 +139,7 @@ public class AdminUtil<T> {
     }
 
     /**
-     * @return The timestamp of when the operation was created in ISO format wiht UTC timezone.
+     * @return The timestamp of when the operation was created in ISO format with UTC timezone.
      */
     public String getTimeCreatedFormatted() {
       return timeCreated > 0 ? new Date(timeCreated).toInstant().atZone(ZoneOffset.UTC)
@@ -459,6 +459,7 @@ public class AdminUtil<T> {
         System.out.printf("Invalid transaction ID: %016x%n", txid);
         break;
 
+      case SUBMITTED:
       case IN_PROGRESS:
       case NEW:
       case FAILED:
@@ -494,6 +495,7 @@ public class AdminUtil<T> {
         System.out.printf("Invalid transaction ID: %016x%n", txid);
         break;
 
+      case SUBMITTED:
       case IN_PROGRESS:
       case NEW:
         System.out.printf("Failing transaction: %016x (%s)%n", txid, ts);

@@ -207,7 +207,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     if (timer != null) {
       timer.stop();
-      log.trace("tid={} Checked existance of {} in {}", Thread.currentThread().getId(), exists,
+      log.trace("tid={} Checked existence of {} in {}", Thread.currentThread().getId(), exists,
           String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
     }
 
@@ -487,7 +487,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     CountDownLatch latch = new CountDownLatch(splits.size());
     AtomicReference<Exception> exception = new AtomicReference<>(null);
 
-    ExecutorService executor = ThreadPools.createFixedThreadPool(16, "addSplits");
+    ExecutorService executor = ThreadPools.createFixedThreadPool(16, "addSplits", false);
     try {
       executor.execute(
           new SplitTask(new SplitEnv(tableName, tableId, executor, latch, exception), splits));
@@ -728,7 +728,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     final int SELECTION_THRESHOLD = 1;
 
     // stepSize can never be greater than 1 due to the if-loop check above.
-    final double stepSize = (maxSplits + 1) / (double) (existingSplits.size());
+    final double stepSize = (maxSplits + 1) / (double) existingSplits.size();
     double selectionTrigger = 0.0;
 
     for (Text existingSplit : existingSplits) {

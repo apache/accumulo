@@ -40,8 +40,13 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
+import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.Client;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
@@ -52,6 +57,8 @@ import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -60,6 +67,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -86,6 +94,7 @@ import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.compaction.CompactionInfo;
+import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.compaction.RetryableThriftCall;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
@@ -107,7 +116,10 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
 
-public class Compactor extends AbstractServer implements CompactorService.Iface {
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.MeterRegistry;
+
+public class Compactor extends AbstractServer implements MetricsProducer, CompactorService.Iface {
 
   private static final SecureRandom random = new SecureRandom();
 
@@ -136,13 +148,14 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
   private final String queueName;
   protected final AtomicReference<ExternalCompactionId> currentCompactionId =
       new AtomicReference<>();
+  private final CompactionWatcher watcher;
 
   private SecurityOperation security;
   private ServiceLock compactorLock;
   private ServerAddress compactorAddress = null;
 
   // Exposed for tests
-  protected volatile Boolean shutdown = false;
+  protected volatile boolean shutdown = false;
 
   private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
 
@@ -151,6 +164,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     queueName = opts.getQueueName();
     aconf = getConfiguration();
     setupSecurity();
+    watcher = new CompactionWatcher(aconf);
     var schedExecutor = ThreadPools.createGeneralScheduledExecutorService(aconf);
     startGCLogger(schedExecutor);
     startCancelChecker(schedExecutor, TIME_BETWEEN_CANCEL_CHECKS);
@@ -162,10 +176,18 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     queueName = opts.getQueueName();
     aconf = conf;
     setupSecurity();
+    watcher = new CompactionWatcher(aconf);
     var schedExecutor = ThreadPools.createGeneralScheduledExecutorService(aconf);
     startGCLogger(schedExecutor);
     startCancelChecker(schedExecutor, TIME_BETWEEN_CANCEL_CHECKS);
     printStartupMsg();
+  }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    LongTaskTimer timer = LongTaskTimer.builder(METRICS_COMPACTOR_MAJC_STUCK)
+        .description("Number and duration of stuck major compactions").register(registry);
+    CompactionWatcher.setTimer(timer);
   }
 
   protected void setupSecurity() {
@@ -343,6 +365,24 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     } else {
       throw new UnknownCompactionIdException();
     }
+  }
+
+  @Override
+  public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
+      throws TException {
+    TableId tableId = JOB_HOLDER.getTableId();
+    try {
+      NamespaceId nsId = Tables.getNamespaceId(getContext(), tableId);
+      if (!security.canCompact(credentials, tableId, nsId)) {
+        throw new AccumuloSecurityException(credentials.getPrincipal(),
+            SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+      }
+    } catch (TableNotFoundException e) {
+      throw new ThriftTableOperationException(tableId.canonical(), null,
+          TableOperation.COMPACT_CANCEL, TableOperationExceptionType.NOTFOUND, e.getMessage());
+    }
+
+    cancel(externalCompactionId);
   }
 
   /**
@@ -586,17 +626,14 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
   }
 
   protected Supplier<UUID> getNextId() {
-    Supplier<UUID> supplier = () -> {
-      return UUID.randomUUID();
-    };
-    return supplier;
+    return UUID::randomUUID;
   }
 
   protected long getWaitTimeBetweenCompactionChecks() {
     // get the total number of compactors assigned to this queue
     int numCompactors = ExternalCompactionUtil.countCompactors(queueName, getContext());
     // Aim for around 3 compactors checking in every second
-    long sleepTime = numCompactors * 1000 / 3;
+    long sleepTime = numCompactors * 1000L / 3;
     // Ensure a compactor sleeps at least around a second
     sleepTime = Math.max(1000, sleepTime);
     // Ensure a compactor sleep not too much more than 5 mins
@@ -630,6 +667,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     } catch (Exception e1) {
       LOG.error("Error initializing metrics, metrics will not be emitted.", e1);
     }
+    MetricsUtil.initializeProducers(this);
 
     LOG.info("Compactor started, waiting for work");
     try {
@@ -693,6 +731,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
                     "Compaction in progress, read %d of %d input entries ( %s %s ), written %d entries",
                     info.getEntriesRead(), inputEntries, percentComplete, "%",
                     info.getEntriesWritten());
+                watcher.run();
                 try {
                   LOG.debug("Updating coordinator with compaction progress: {}.", message);
                   TCompactionStatusUpdate update =
@@ -710,6 +749,9 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
           }
           compactionThread.join();
           LOG.trace("Compaction thread finished.");
+          // Run the watcher again to clear out the finished compaction and set the
+          // stuck count to zero.
+          watcher.run();
 
           if (err.get() != null) {
             // maybe the error occured because the table was deleted or something like that, so
@@ -718,7 +760,7 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
           }
 
           if (compactionThread.isInterrupted() || JOB_HOLDER.isCancelled()
-              || ((err.get() != null && err.get().getClass().equals(InterruptedException.class)))) {
+              || (err.get() != null && err.get().getClass().equals(InterruptedException.class))) {
             LOG.warn("Compaction thread was interrupted, sending CANCELLED state");
             try {
               TCompactionStatusUpdate update = new TCompactionStatusUpdate(
@@ -786,7 +828,9 @@ public class Compactor extends AbstractServer implements CompactorService.Iface 
     } finally {
       // Shutdown local thrift server
       LOG.info("Stopping Thrift Servers");
-      TServerUtils.stopTServer(compactorAddress.server);
+      if (compactorAddress.server != null) {
+        compactorAddress.server.stop();
+      }
 
       try {
         LOG.debug("Closing filesystems");

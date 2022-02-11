@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import java.util.SortedSet;
@@ -78,11 +79,11 @@ public class ScannerOptionsTest {
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testFetchNullColumn() {
     try (ScannerOptions options = new ScannerOptions()) {
       // Require a non-null instance of Column
-      options.fetchColumn(null);
+      assertThrows(IllegalArgumentException.class, () -> options.fetchColumn(null));
     }
   }
 }

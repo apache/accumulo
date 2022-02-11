@@ -47,7 +47,7 @@ public class BackupManagerIT extends ConfigurableMacBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String secret = getCluster().getSiteConfiguration().get(Property.INSTANCE_SECRET);
       ZooReaderWriter writer = new ZooReaderWriter(cluster.getZooKeepers(), 30 * 1000, secret);
-      String root = "/accumulo/" + client.instanceOperations().getInstanceID();
+      String root = "/accumulo/" + client.instanceOperations().getInstanceId();
       List<String> children;
       // wait for 2 lock entries
       do {

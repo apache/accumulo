@@ -82,7 +82,6 @@ class DatafileManager {
   private final Map<Long,Set<StoredTabletFile>> scanFileReservations = new HashMap<>();
   private final MapCounter<StoredTabletFile> fileScanReferenceCounts = new MapCounter<>();
   private long nextScanReservationId = 0;
-  private boolean reservationsBlocked = false;
 
   static void rename(VolumeManager fs, Path src, Path dst) throws IOException {
     if (!fs.rename(src, dst)) {
@@ -92,14 +91,6 @@ class DatafileManager {
 
   Pair<Long,Map<TabletFile,DataFileValue>> reserveFilesForScan() {
     synchronized (tablet) {
-
-      while (reservationsBlocked) {
-        try {
-          tablet.wait(50);
-        } catch (InterruptedException e) {
-          log.warn("{}", e.getMessage(), e);
-        }
-      }
 
       Set<StoredTabletFile> absFilePaths = new HashSet<>(datafileSizes.keySet());
 

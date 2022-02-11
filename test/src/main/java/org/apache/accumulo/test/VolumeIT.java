@@ -54,6 +54,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -189,7 +190,7 @@ public class VolumeIT extends ConfigurableMacBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String[] tableNames = getUniqueNames(2);
 
-      String uuid = verifyAndShutdownCluster(client, tableNames[0]);
+      InstanceId uuid = verifyAndShutdownCluster(client, tableNames[0]);
 
       updateConfig(config -> config.setProperty(Property.INSTANCE_VOLUMES.getKey(),
           v1 + "," + v2 + "," + v3));
@@ -207,8 +208,8 @@ public class VolumeIT extends ConfigurableMacBase {
   }
 
   // grab uuid before shutting down cluster
-  private String verifyAndShutdownCluster(AccumuloClient c, String tableName) throws Exception {
-    String uuid = c.instanceOperations().getInstanceID();
+  private InstanceId verifyAndShutdownCluster(AccumuloClient c, String tableName) throws Exception {
+    InstanceId uuid = c.instanceOperations().getInstanceId();
 
     verifyVolumesUsed(c, tableName, false, v1, v2);
 
@@ -225,7 +226,7 @@ public class VolumeIT extends ConfigurableMacBase {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
-      String uuid = verifyAndShutdownCluster(client, tableNames[0]);
+      InstanceId uuid = verifyAndShutdownCluster(client, tableNames[0]);
 
       updateConfig(config -> config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2 + "," + v3));
 
@@ -246,13 +247,13 @@ public class VolumeIT extends ConfigurableMacBase {
   }
 
   // check that all volumes are initialized
-  private void checkVolumesInitialized(List<Path> volumes, String uuid) throws Exception {
+  private void checkVolumesInitialized(List<Path> volumes, InstanceId uuid) throws Exception {
     for (Path volumePath : volumes) {
       FileSystem fs = volumePath.getFileSystem(cluster.getServerContext().getHadoopConf());
       Path vp = new Path(volumePath, Constants.INSTANCE_ID_DIR);
       FileStatus[] iids = fs.listStatus(vp);
       assertEquals(1, iids.length);
-      assertEquals(uuid, iids[0].getPath().getName());
+      assertEquals(uuid.canonical(), iids[0].getPath().getName());
     }
   }
 

@@ -21,11 +21,9 @@ package org.apache.accumulo.monitor.rest.compactions.external;
 public class CompactorInfo {
 
   // Variable names become JSON keys
-  public long lastContact = 0L;
-  public String server = "";
-  public String queueName = "";
-
-  public CompactorInfo() {}
+  public final long lastContact;
+  public final String server;
+  public final String queueName;
 
   public CompactorInfo(long fetchedTimeMillis, String queue, String hostAndPort) {
     lastContact = System.currentTimeMillis() - fetchedTimeMillis;

@@ -171,6 +171,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private Exception problemException;
   private GCStatus gcStatus;
   private Optional<HostAndPort> coordinatorHost = Optional.empty();
+  private long coordinatorCheckNanos = 0L;
   private CompactionCoordinatorService.Client coordinatorClient;
   private final String coordinatorMissingMsg =
       "Error getting the compaction coordinator. Check that it is running. It is not "
@@ -181,7 +182,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   private ServiceLock monitorLock;
 
-  private class EventCounter {
+  private static class EventCounter {
 
     Map<String,Pair<Long,Long>> prevSamples = new HashMap<>();
     Map<String,Pair<Long,Long>> samples = new HashMap<>();
@@ -378,10 +379,14 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         this.problemException = e;
       }
 
-      if (coordinatorHost.isEmpty()) {
+      // check for compaction coordinator host and only notify its discovery
+      Optional<HostAndPort> previousHost;
+      if (System.nanoTime() - coordinatorCheckNanos > fetchTimeNanos) {
+        previousHost = coordinatorHost;
         coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
-      } else {
-        log.info("External Compaction Coordinator found at {}", coordinatorHost.get());
+        coordinatorCheckNanos = System.nanoTime();
+        if (previousHost.isEmpty() && coordinatorHost.isPresent())
+          log.info("External Compaction Coordinator found at {}", coordinatorHost.get());
       }
 
     } finally {

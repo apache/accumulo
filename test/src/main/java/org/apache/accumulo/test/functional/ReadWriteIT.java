@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -116,12 +117,12 @@ public class ReadWriteIT extends AccumuloClusterHarness {
     return 6 * 60;
   }
 
-  @Test(expected = RuntimeException.class)
+  @Test
   public void invalidInstanceName() {
     try (AccumuloClient client =
         Accumulo.newClient().to("fake_instance_name", cluster.getZooKeepers())
             .as(getAdminPrincipal(), getAdminToken()).build()) {
-      client.instanceOperations().getTabletServers();
+      assertThrows(RuntimeException.class, () -> client.instanceOperations().getTabletServers());
     }
   }
 
@@ -170,7 +171,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
       ZooReader zreader = new ZooReader(info.getZooKeepers(), info.getZooKeepersSessionTimeOut());
       ZooCache zcache = new ZooCache(zreader, null);
       var zLockPath =
-          ServiceLock.path(ZooUtil.getRoot(accumuloClient.instanceOperations().getInstanceID())
+          ServiceLock.path(ZooUtil.getRoot(accumuloClient.instanceOperations().getInstanceId())
               + Constants.ZMANAGER_LOCK);
       byte[] managerLockData;
       do {
@@ -180,7 +181,8 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           Thread.sleep(1000);
         }
       } while (managerLockData != null);
-
+      control.stopAllServers(ServerType.MANAGER);
+      control.stopAllServers(ServerType.TABLET_SERVER);
       control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
       control.stopAllServers(ServerType.MONITOR);
       log.debug("success!");

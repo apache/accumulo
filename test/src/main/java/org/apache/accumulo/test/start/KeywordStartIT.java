@@ -36,8 +36,10 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.compactor.CompactorExecutable;
 import org.apache.accumulo.coordinator.CoordinatorExecutable;
+import org.apache.accumulo.core.file.rfile.CreateEmpty;
 import org.apache.accumulo.core.file.rfile.GenerateSplits;
 import org.apache.accumulo.core.file.rfile.PrintInfo;
+import org.apache.accumulo.core.file.rfile.SplitLarge;
 import org.apache.accumulo.core.util.CreateToken;
 import org.apache.accumulo.core.util.Help;
 import org.apache.accumulo.core.util.Version;
@@ -48,10 +50,12 @@ import org.apache.accumulo.minicluster.MiniAccumuloRunner;
 import org.apache.accumulo.miniclusterImpl.MiniClusterExecutable;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.MonitorExecutable;
+import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.conf.CheckServerConfig;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.ConvertConfig;
+import org.apache.accumulo.server.util.ECAdmin;
 import org.apache.accumulo.server.util.Info;
 import org.apache.accumulo.server.util.LoginProperties;
 import org.apache.accumulo.server.util.ZooKeeperMain;
@@ -104,11 +108,13 @@ public class KeywordStartIT {
     assumeTrue(new File(System.getProperty("user.dir") + "/src").exists());
     TreeMap<String,Class<? extends KeywordExecutable>> expectSet = new TreeMap<>();
     expectSet.put("admin", Admin.class);
+    expectSet.put("check-compaction-config", CheckCompactionConfig.class);
     expectSet.put("check-server-config", CheckServerConfig.class);
     expectSet.put("compaction-coordinator", CoordinatorExecutable.class);
     expectSet.put("compactor", CompactorExecutable.class);
     expectSet.put("convert-config", ConvertConfig.class);
     expectSet.put("create-token", CreateToken.class);
+    expectSet.put("ec-admin", ECAdmin.class);
     expectSet.put("gc", GCExecutable.class);
     expectSet.put("generate-splits", GenerateSplits.class);
     expectSet.put("help", Help.class);
@@ -125,6 +131,8 @@ public class KeywordStartIT {
     expectSet.put("tserver", TServerExecutable.class);
     expectSet.put("version", Version.class);
     expectSet.put("zookeeper", ZooKeeperMain.class);
+    expectSet.put("create-empty", CreateEmpty.class);
+    expectSet.put("split-large", SplitLarge.class);
 
     Iterator<Entry<String,Class<? extends KeywordExecutable>>> expectIter =
         expectSet.entrySet().iterator();
@@ -163,6 +171,7 @@ public class KeywordStartIT {
 
     HashSet<Class<?>> expectSet = new HashSet<>();
     expectSet.add(Admin.class);
+    expectSet.add(CheckCompactionConfig.class);
     expectSet.add(CreateToken.class);
     expectSet.add(Info.class);
     expectSet.add(Initialize.class);
@@ -186,12 +195,11 @@ public class KeywordStartIT {
   private static boolean hasMain(Class<?> classToCheck) {
     Method main;
     try {
-      main = classToCheck.getMethod("main", new String[0].getClass());
+      main = classToCheck.getMethod("main", String[].class);
     } catch (NoSuchMethodException e) {
       return false;
     }
-    return main != null && Modifier.isPublic(main.getModifiers())
-        && Modifier.isStatic(main.getModifiers());
+    return Modifier.isPublic(main.getModifiers()) && Modifier.isStatic(main.getModifiers());
   }
 
   private static class NoOp implements KeywordExecutable {

@@ -173,7 +173,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
     int expected = start;
     for (Entry<Key,Value> entry : scanner) {
       if (Integer.parseInt(entry.getKey().getRow().toString()) != expected) {
-        throw new Exception("Saw unexpexted " + entry.getKey().getRow() + " " + expected);
+        throw new Exception("Saw unexpected " + entry.getKey().getRow() + " " + expected);
       }
 
       if (entry.getKey().getColumnQualifier().toString().equals("cq2")) {

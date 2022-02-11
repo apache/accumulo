@@ -61,7 +61,7 @@ public class AddressUtil {
     try {
       negativeTtl = Integer.parseInt(Security.getProperty("networkaddress.cache.negative.ttl"));
     } catch (NumberFormatException exception) {
-      log.warn("Failed to get JVM negative DNS respones cache TTL due to format problem "
+      log.warn("Failed to get JVM negative DNS response cache TTL due to format problem "
           + "(e.g. this JVM might not have the property). "
           + "Falling back to default based on Oracle JVM 1.4+ (10s)", exception);
     } catch (SecurityException exception) {
@@ -70,7 +70,7 @@ public class AddressUtil {
     }
     if (negativeTtl == -1) {
       log.error(
-          "JVM negative DNS repsonse cache TTL is set to 'forever' and host lookup failed. "
+          "JVM negative DNS response cache TTL is set to 'forever' and host lookup failed. "
               + "TTL can be changed with security property "
               + "'networkaddress.cache.negative.ttl', see java.net.InetAddress.",
           originalException);

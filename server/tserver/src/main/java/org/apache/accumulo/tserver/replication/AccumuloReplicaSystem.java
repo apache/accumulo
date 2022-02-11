@@ -503,7 +503,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   @Deprecated
-  protected class RFileClientExecReturn
+  protected static class RFileClientExecReturn
       implements ClientExecReturn<ReplicationStats,ReplicationServicer.Client> {
 
     @Override
@@ -669,7 +669,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
           }
           break;
         default:
-          log.trace("Ignorning WAL entry which doesn't contain mutations,"
+          log.trace("Ignoring WAL entry which doesn't contain mutations,"
               + " should not have received such entries");
           break;
       }

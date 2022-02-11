@@ -26,6 +26,7 @@ import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationExcepti
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
@@ -40,7 +41,7 @@ public class CompactionDriverTest {
   @Test
   public void testCancelId() throws Exception {
 
-    final String instance = UUID.randomUUID().toString();
+    final InstanceId instance = InstanceId.of(UUID.randomUUID());
     final long compactId = 123;
     final long cancelId = 124;
     final NamespaceId namespaceId = NamespaceId.of("13");
@@ -81,7 +82,7 @@ public class CompactionDriverTest {
   @Test
   public void testTableBeingDeleted() throws Exception {
 
-    final String instance = UUID.randomUUID().toString();
+    final InstanceId instance = InstanceId.of(UUID.randomUUID());
     final long compactId = 123;
     final long cancelId = 122;
     final NamespaceId namespaceId = NamespaceId.of("14");

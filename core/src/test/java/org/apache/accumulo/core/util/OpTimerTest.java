@@ -20,6 +20,7 @@ package org.apache.accumulo.core.util;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
@@ -85,7 +86,7 @@ public class OpTimerTest {
   /**
    * Verify that IllegalStateException is thrown when calling stop when timer has not been started.
    */
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void verifyExceptionCallingStopWhenNotStarted() {
 
     OpTimer timer = new OpTimer();
@@ -93,13 +94,13 @@ public class OpTimerTest {
     assertFalse(timer.isRunning());
 
     // should throw exception - not running
-    timer.stop();
+    assertThrows(IllegalStateException.class, timer::stop);
   }
 
   /**
    * Verify that IllegalStateException is thrown when calling start on running timer.
    */
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void verifyExceptionCallingStartWhenRunning() {
 
     OpTimer timer = new OpTimer().start();
@@ -114,13 +115,13 @@ public class OpTimerTest {
     assertTrue(timer.isRunning());
 
     // should throw exception - already running
-    timer.start();
+    assertThrows(IllegalStateException.class, timer::start);
   }
 
   /**
    * Verify that IllegalStateException is thrown when calling stop when not running.
    */
-  @Test(expected = IllegalStateException.class)
+  @Test
   public void verifyExceptionCallingStopWhenNotRunning() {
 
     OpTimer timer = new OpTimer().start();
@@ -139,7 +140,7 @@ public class OpTimerTest {
     assertFalse(timer.isRunning());
 
     // should throw exception
-    timer.stop();
+    assertThrows(IllegalStateException.class, timer::stop);
   }
 
   /**

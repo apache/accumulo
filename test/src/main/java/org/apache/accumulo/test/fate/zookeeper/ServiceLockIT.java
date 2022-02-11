@@ -34,12 +34,14 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooSession;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.test.categories.ZooKeeperTestingServerTests;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
@@ -57,6 +59,8 @@ import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.util.concurrent.Uninterruptibles;
+
 @Category({ZooKeeperTestingServerTests.class})
 public class ServiceLockIT {
 
@@ -65,7 +69,7 @@ public class ServiceLockIT {
   @BeforeClass
   public static void setup() throws Exception {
     szk = new ZooKeeperTestingServer();
-    szk.initPaths("/accumulo/" + UUID.randomUUID());
+    szk.initPaths("/accumulo/" + InstanceId.of(UUID.randomUUID()));
   }
 
   @AfterClass
@@ -189,7 +193,7 @@ public class ServiceLockIT {
 
   private static ServiceLock getZooLock(ServiceLockPath parent, UUID uuid) {
     var zooKeeper = ZooSession.getAuthenticatedSession(szk.getConn(), 30000, "digest",
-        ("accumulo:secret").getBytes(UTF_8));
+        "accumulo:secret".getBytes(UTF_8));
     return new ServiceLock(zooKeeper, parent, uuid);
   }
 
@@ -355,7 +359,7 @@ public class ServiceLockIT {
 
     ConnectedWatcher watcher = new ConnectedWatcher();
     try (ZooKeeper zk = new ZooKeeper(szk.getConn(), 30000, watcher)) {
-      zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
+      ZooUtil.digestAuth(zk, "secret");
 
       while (!watcher.isConnected()) {
         Thread.sleep(200);
@@ -403,8 +407,8 @@ public class ServiceLockIT {
     try (ZooKeeperWrapper zk1 = new ZooKeeperWrapper(szk.getConn(), 30000, watcher1);
         ZooKeeperWrapper zk2 = new ZooKeeperWrapper(szk.getConn(), 30000, watcher2)) {
 
-      zk1.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
-      zk2.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
+      ZooUtil.digestAuth(zk1, "secret");
+      ZooUtil.digestAuth(zk2, "secret");
 
       while (!watcher1.isConnected()) {
         Thread.sleep(200);
@@ -515,7 +519,8 @@ public class ServiceLockIT {
       try {
         ConnectedWatcher watcher = new ConnectedWatcher();
         try (ZooKeeperWrapper zk = new ZooKeeperWrapper(szk.getConn(), 30000, watcher)) {
-          zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
+          ZooUtil.digestAuth(zk, "secret");
+
           while (!watcher.isConnected()) {
             Thread.sleep(50);
           }
@@ -564,7 +569,7 @@ public class ServiceLockIT {
 
     ConnectedWatcher watcher = new ConnectedWatcher();
     try (ZooKeeperWrapper zk = new ZooKeeperWrapper(szk.getConn(), 30000, watcher)) {
-      zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
+      ZooUtil.digestAuth(zk, "secret");
 
       while (!watcher.isConnected()) {
         Thread.sleep(50);
@@ -619,13 +624,7 @@ public class ServiceLockIT {
       workers.forEach(w -> assertNull(w.getException()));
       assertEquals(0, zk.getChildren(parent.toString(), false).size());
 
-      threads.forEach(t -> {
-        try {
-          t.join();
-        } catch (InterruptedException e) {
-          // ignore
-        }
-      });
+      threads.forEach(Uninterruptibles::joinUninterruptibly);
     }
 
   }
@@ -639,7 +638,7 @@ public class ServiceLockIT {
 
     ConnectedWatcher watcher = new ConnectedWatcher();
     try (ZooKeeper zk = new ZooKeeper(szk.getConn(), 30000, watcher)) {
-      zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
+      ZooUtil.digestAuth(zk, "secret");
 
       while (!watcher.isConnected()) {
         Thread.sleep(200);
@@ -676,7 +675,7 @@ public class ServiceLockIT {
         ServiceLock.path("/zltestChangeData-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
     ConnectedWatcher watcher = new ConnectedWatcher();
     try (ZooKeeper zk = new ZooKeeper(szk.getConn(), 30000, watcher)) {
-      zk.addAuthInfo("digest", "accumulo:secret".getBytes(UTF_8));
+      ZooUtil.digestAuth(zk, "secret");
 
       while (!watcher.isConnected()) {
         Thread.sleep(200);

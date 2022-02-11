@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.tablet;
+package org.apache.accumulo.server.compaction;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -29,18 +29,26 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.compaction.CompactionInfo;
-import org.apache.accumulo.server.compaction.FileCompactor;
 import org.slf4j.LoggerFactory;
 
+import io.micrometer.core.instrument.LongTaskTimer;
+import io.micrometer.core.instrument.LongTaskTimer.Sample;
+
 public class CompactionWatcher implements Runnable {
+
+  public static void setTimer(LongTaskTimer ltt) {
+    timer = ltt;
+  }
+
   private final Map<List<Long>,ObservedCompactionInfo> observedCompactions = new HashMap<>();
   private final AccumuloConfiguration config;
   private static boolean watching = false;
+  private static LongTaskTimer timer = null;
 
   private static class ObservedCompactionInfo {
-    CompactionInfo compactionInfo;
-    long firstSeen;
+    final CompactionInfo compactionInfo;
+    final long firstSeen;
+    Sample stuckSample;
     boolean loggedWarning;
 
     ObservedCompactionInfo(CompactionInfo ci, long time) {
@@ -76,6 +84,10 @@ public class CompactionWatcher implements Runnable {
     copy.keySet().removeAll(newKeys);
 
     for (ObservedCompactionInfo oci : copy.values()) {
+      if (oci.stuckSample != null) {
+        oci.stuckSample.stop();
+        oci.stuckSample = null;
+      }
       if (oci.loggedWarning) {
         LoggerFactory.getLogger(CompactionWatcher.class).info("Compaction of {} is no longer stuck",
             oci.compactionInfo.getExtent());
@@ -89,18 +101,20 @@ public class CompactionWatcher implements Runnable {
 
     // check for stuck compactions
     for (ObservedCompactionInfo oci : observedCompactions.values()) {
-      if (time - oci.firstSeen > warnTime && !oci.loggedWarning) {
-        Thread compactionThread = oci.compactionInfo.getThread();
-        if (compactionThread != null) {
-          StackTraceElement[] trace = compactionThread.getStackTrace();
-          Exception e = new Exception(
-              "Possible stack trace of compaction stuck on " + oci.compactionInfo.getExtent());
-          e.setStackTrace(trace);
-          LoggerFactory.getLogger(CompactionWatcher.class)
-              .warn("Compaction of " + oci.compactionInfo.getExtent() + " to "
-                  + oci.compactionInfo.getOutputFile() + " has not made progress for at least "
-                  + (time - oci.firstSeen) + "ms", e);
-          oci.loggedWarning = true;
+      if (time - oci.firstSeen > warnTime) {
+        oci.stuckSample = timer == null ? null : timer.start();
+        if (!oci.loggedWarning) {
+          Thread compactionThread = oci.compactionInfo.getThread();
+          if (compactionThread != null) {
+            StackTraceElement[] trace = compactionThread.getStackTrace();
+            Exception e = new Exception(
+                "Possible stack trace of compaction stuck on " + oci.compactionInfo.getExtent());
+            e.setStackTrace(trace);
+            LoggerFactory.getLogger(CompactionWatcher.class).warn("Compaction of "
+                + oci.compactionInfo.getExtent() + " to " + oci.compactionInfo.getOutputFile()
+                + " has not made progress for at least " + (time - oci.firstSeen) + "ms", e);
+            oci.loggedWarning = true;
+          }
         }
       }
     }

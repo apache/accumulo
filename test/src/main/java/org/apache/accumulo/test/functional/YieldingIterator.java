@@ -107,7 +107,7 @@ public class YieldingIterator extends WrappingIterator {
 
     if (range.isStartKeyInclusive()) {
       // must be a new scan so re-initialize the counters
-      log.info("reseting counters");
+      log.info("resetting counters");
       resetCounters();
     } else {
       rebuilds.incrementAndGet();

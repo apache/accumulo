@@ -146,7 +146,7 @@ public final class Utils {
         out.writeLong(n);
         return;
       default:
-        throw new RuntimeException("Internel error");
+        throw new RuntimeException("Internal error");
     }
   }
 
@@ -197,15 +197,15 @@ public final class Utils {
       case 9:
       case 8:
       case 7:
-        return ((firstByte + 52) << 8) | in.readUnsignedByte();
+        return ((firstByte + 52L) << 8) | in.readUnsignedByte();
       case 6:
       case 5:
       case 4:
       case 3:
-        return ((firstByte + 88) << 16) | in.readUnsignedShort();
+        return ((firstByte + 88L) << 16) | in.readUnsignedShort();
       case 2:
       case 1:
-        return ((firstByte + 112) << 24) | (in.readUnsignedShort() << 8) | in.readUnsignedByte();
+        return ((firstByte + 112L) << 24) | (in.readUnsignedShort() << 8) | in.readUnsignedByte();
       case 0:
         int len = firstByte + 129;
         switch (len) {

@@ -23,7 +23,7 @@ package org.apache.accumulo.core.logging;
  */
 public class Logging {
   /**
-   * Prefix for all log messages in logical logging namespaces. When chosing suffixes, try to avoid
+   * Prefix for all log messages in logical logging namespaces. When choosing suffixes, try to avoid
    * existing source package names like {@code core}. This prefix was chosen to make it easy to
    * configure all Accumulo logging for loggers using fully qualified class names and logical
    * loggers.

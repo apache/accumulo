@@ -28,6 +28,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.securityImpl.thrift.TAuthenticationTokenIdentifier;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -41,10 +42,11 @@ public class DelegationTokenImpl extends PasswordToken implements DelegationToke
 
   public static final String SERVICE_NAME = "AccumuloDelegationToken";
 
-  private AuthenticationTokenIdentifier identifier;
+  private final AuthenticationTokenIdentifier identifier;
 
   public DelegationTokenImpl() {
     super();
+    this.identifier = new AuthenticationTokenIdentifier(new TAuthenticationTokenIdentifier());
   }
 
   public DelegationTokenImpl(byte[] delegationTokenPassword,
@@ -68,18 +70,19 @@ public class DelegationTokenImpl extends PasswordToken implements DelegationToke
       throw new IllegalArgumentException(
           "Did not find Accumulo delegation token in provided UserGroupInformation");
     }
-    setPasswordFromToken(token, identifier);
+    setPasswordFromToken(token);
+    this.identifier = identifier;
   }
 
   public DelegationTokenImpl(Token<? extends TokenIdentifier> token,
       AuthenticationTokenIdentifier identifier) {
     requireNonNull(token);
     requireNonNull(identifier);
-    setPasswordFromToken(token, identifier);
+    setPasswordFromToken(token);
+    this.identifier = identifier;
   }
 
-  private void setPasswordFromToken(Token<? extends TokenIdentifier> token,
-      AuthenticationTokenIdentifier identifier) {
+  private void setPasswordFromToken(Token<? extends TokenIdentifier> token) {
     if (!AuthenticationTokenIdentifier.TOKEN_KIND.equals(token.getKind())) {
       String msg = "Expected an AuthenticationTokenIdentifier but got a " + token.getKind();
       log.error(msg);
@@ -87,7 +90,6 @@ public class DelegationTokenImpl extends PasswordToken implements DelegationToke
     }
 
     setPassword(token.getPassword());
-    this.identifier = identifier;
   }
 
   /**
@@ -125,16 +127,14 @@ public class DelegationTokenImpl extends PasswordToken implements DelegationToke
   @Override
   public void readFields(DataInput in) throws IOException {
     super.readFields(in);
-    identifier = new AuthenticationTokenIdentifier();
     identifier.readFields(in);
   }
 
   @Override
   public DelegationTokenImpl clone() {
-    DelegationTokenImpl copy = (DelegationTokenImpl) super.clone();
-    copy.setPassword(getPassword());
-    copy.identifier = new AuthenticationTokenIdentifier(identifier);
-    return copy;
+    var clone = super.clone();
+    return new DelegationTokenImpl(clone.getPassword(),
+        new AuthenticationTokenIdentifier(identifier.getThriftIdentifier()));
   }
 
   @Override

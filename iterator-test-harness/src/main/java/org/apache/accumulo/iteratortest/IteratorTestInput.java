@@ -121,7 +121,7 @@ public class IteratorTestInput {
     // Already immutable
     this.range = requireNonNull(range);
     // Make it immutable to the test
-    this.input = Collections.unmodifiableSortedMap((requireNonNull(input)));
+    this.input = Collections.unmodifiableSortedMap(requireNonNull(input));
     this.families = Collections.unmodifiableCollection(requireNonNull(families));
     this.inclusive = inclusive;
     this.iteratorEnvironment = iterEnv == null ? new SimpleIteratorEnvironment() : iterEnv;

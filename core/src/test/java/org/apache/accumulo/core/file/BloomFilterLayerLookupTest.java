@@ -138,7 +138,7 @@ public class BloomFilterLayerLookupTest {
     t2 = System.currentTimeMillis();
 
     double rate2 = 500 / ((t2 - t1) / 1000.0);
-    log.debug(String.format("existant lookup rate %6.2f%n", rate2));
+    log.debug(String.format("existing lookup rate %6.2f%n", rate2));
     log.debug("expected hits 500.  Receive hits: {}", count);
     bmfr.close();
 

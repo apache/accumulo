@@ -149,7 +149,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
           int row = i * NUM_TO_FLUSH + j;
 
           if (!iter.hasNext())
-            throw new Exception("Scan stopped permaturely at " + row);
+            throw new Exception("Scan stopped prematurely at " + row);
 
           Entry<Key,Value> entry = iter.next();
 
@@ -207,7 +207,8 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         allMuts.add(muts);
       }
 
-      ThreadPoolExecutor threads = ThreadPools.createFixedThreadPool(NUM_THREADS, "ClientThreads");
+      ThreadPoolExecutor threads =
+          ThreadPools.createFixedThreadPool(NUM_THREADS, "ClientThreads", false);
       threads.allowCoreThreadTimeOut(false);
       threads.prestartAllCoreThreads();
 

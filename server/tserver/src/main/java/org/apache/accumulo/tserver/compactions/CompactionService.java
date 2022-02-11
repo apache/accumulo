@@ -41,7 +41,6 @@ import java.util.function.Function;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -52,9 +51,9 @@ import org.apache.accumulo.core.spi.compaction.CompactionPlan;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner.PlanningParameters;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
-import org.apache.accumulo.core.spi.compaction.ExecutorManager;
 import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
+import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.core.util.ratelimit.SharedRateLimiterFactory;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -88,59 +87,6 @@ public class CompactionService {
 
   private static final Logger log = LoggerFactory.getLogger(CompactionService.class);
 
-  private class CpInitParams implements CompactionPlanner.InitParameters {
-
-    private final Map<String,String> plannerOpts;
-    private final Map<CompactionExecutorId,Integer> requestedExecutors;
-    private final Set<CompactionExecutorId> requestedExternalExecutors;
-    private final ServiceEnvironment senv = new ServiceEnvironmentImpl(context);
-
-    CpInitParams(Map<String,String> plannerOpts) {
-      this.plannerOpts = plannerOpts;
-      this.requestedExecutors = new HashMap<>();
-      this.requestedExternalExecutors = new HashSet<>();
-    }
-
-    @Override
-    public ServiceEnvironment getServiceEnvironment() {
-      return senv;
-    }
-
-    @Override
-    public Map<String,String> getOptions() {
-      return plannerOpts;
-    }
-
-    @Override
-    public String getFullyQualifiedOption(String key) {
-      return Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + myId + ".opts." + key;
-    }
-
-    @Override
-    public ExecutorManager getExecutorManager() {
-      return new ExecutorManager() {
-        @Override
-        public CompactionExecutorId createExecutor(String executorName, int threads) {
-          Preconditions.checkArgument(threads > 0, "Positive number of threads required : %s",
-              threads);
-          var ceid = CompactionExecutorIdImpl.internalId(myId, executorName);
-          Preconditions.checkState(!requestedExecutors.containsKey(ceid));
-          requestedExecutors.put(ceid, threads);
-          return ceid;
-        }
-
-        @Override
-        public CompactionExecutorId getExternalExecutor(String name) {
-          var ceid = CompactionExecutorIdImpl.externalId(name);
-          Preconditions.checkArgument(!requestedExternalExecutors.contains(ceid),
-              "Duplicate external executor for queue " + name);
-          requestedExternalExecutors.add(ceid);
-          return ceid;
-        }
-      };
-    }
-  }
-
   public CompactionService(String serviceName, String plannerClass, Long maxRate,
       Map<String,String> plannerOptions, ServerContext context,
       CompactionExecutorsMetrics ceMetrics,
@@ -155,7 +101,8 @@ public class CompactionService {
     this.ceMetrics = ceMetrics;
     this.externExecutorSupplier = externExecutorSupplier;
 
-    var initParams = new CpInitParams(plannerOpts);
+    var initParams =
+        new CompactionPlannerInitParams(myId, plannerOpts, new ServiceEnvironmentImpl(context));
     planner = createPlanner(plannerClass);
     planner.init(initParams);
 
@@ -168,19 +115,19 @@ public class CompactionService {
     this.writeLimiter = SharedRateLimiterFactory.getInstance(this.context.getConfiguration())
         .create("CS_" + serviceName + "_write", () -> rateLimit.get());
 
-    initParams.requestedExecutors.forEach((ceid, numThreads) -> {
+    initParams.getRequestedExecutors().forEach((ceid, numThreads) -> {
       tmpExecutors.put(ceid,
           new InternalCompactionExecutor(ceid, numThreads, ceMetrics, readLimiter, writeLimiter));
     });
 
-    initParams.requestedExternalExecutors.forEach((ceid) -> {
+    initParams.getRequestedExternalExecutors().forEach((ceid) -> {
       tmpExecutors.put(ceid, externExecutorSupplier.apply(ceid));
     });
 
     this.executors = Map.copyOf(tmpExecutors);
 
     this.planningExecutor =
-        ThreadPools.createThreadPool(1, 1, 0L, TimeUnit.MILLISECONDS, "CompactionPlanner");
+        ThreadPools.createThreadPool(1, 1, 0L, TimeUnit.MILLISECONDS, "CompactionPlanner", false);
 
     this.queuedForPlanning = new EnumMap<>(CompactionKind.class);
     for (CompactionKind kind : CompactionKind.values()) {
@@ -415,13 +362,14 @@ public class CompactionService {
     if (this.plannerClassName.equals(plannerClassName) && this.plannerOpts.equals(plannerOptions))
       return;
 
-    var initParams = new CpInitParams(plannerOptions);
+    var initParams =
+        new CompactionPlannerInitParams(myId, plannerOptions, new ServiceEnvironmentImpl(context));
     var tmpPlanner = createPlanner(plannerClassName);
     tmpPlanner.init(initParams);
 
     Map<CompactionExecutorId,CompactionExecutor> tmpExecutors = new HashMap<>();
 
-    initParams.requestedExecutors.forEach((ceid, numThreads) -> {
+    initParams.getRequestedExecutors().forEach((ceid, numThreads) -> {
       InternalCompactionExecutor executor = (InternalCompactionExecutor) executors.get(ceid);
       if (executor == null) {
         executor =
@@ -432,7 +380,7 @@ public class CompactionService {
       tmpExecutors.put(ceid, executor);
     });
 
-    initParams.requestedExternalExecutors.forEach(ceid -> {
+    initParams.getRequestedExternalExecutors().forEach(ceid -> {
       ExternalCompactionExecutor executor = (ExternalCompactionExecutor) executors.get(ceid);
       if (executor == null) {
         executor = externExecutorSupplier.apply(ceid);

@@ -69,7 +69,7 @@ import org.slf4j.LoggerFactory;
  */
 public class WalStateManager {
 
-  public class WalMarkerException extends Exception {
+  public static class WalMarkerException extends Exception {
     private static final long serialVersionUID = 1L;
 
     public WalMarkerException(Exception ex) {

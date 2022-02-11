@@ -93,21 +93,6 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   }
 
   /**
-   * Verify that you cannot have overlapping locality groups.
-   *
-   * Attempt to set a locality group with overlapping groups. This test should throw an
-   * IllegalArgumentException indicating that groups overlap.
-   */
-  @Test(expected = IllegalArgumentException.class)
-  public void testOverlappingGroupsFail() {
-    NewTableConfiguration ntc = new NewTableConfiguration();
-    Map<String,Set<Text>> lgroups = new HashMap<>();
-    lgroups.put("lg1", Set.of(new Text("colFamA"), new Text("colFamB")));
-    lgroups.put("lg2", Set.of(new Text("colFamC"), new Text("colFamB")));
-    ntc.setLocalityGroups(lgroups);
-  }
-
-  /**
    * Test simplest case of setting locality groups at table creation.
    */
   @Test
@@ -206,25 +191,6 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   }
 
   /**
-   * Verify that properties set using NewTableConfiguration must be table properties.
-   */
-  @Test(expected = IllegalArgumentException.class)
-  public void testInvalidTablePropertiesSet() {
-    NewTableConfiguration ntc = new NewTableConfiguration();
-    Map<String,String> props = new HashMap<>();
-
-    // These properties should work just with no issue
-    props.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1", "val1");
-    props.put(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop2", "val2");
-    ntc.setProperties(props);
-
-    // These properties should result in an illegalArgumentException
-    props.put("invalidProp1", "value1");
-    props.put("invalidProp2", "value2");
-    ntc.setProperties(props);
-  }
-
-  /**
    * Create table with initial locality groups but no default iterators
    */
   @Test
@@ -300,7 +266,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       verifyIterators(client, tableName, new String[] {"table.iterator.scan.someName=10,foo.bar"},
           true);
       client.tableOperations().removeIterator(tableName, "someName",
-          EnumSet.allOf((IteratorScope.class)));
+          EnumSet.allOf(IteratorScope.class));
       verifyIterators(client, tableName, new String[] {}, true);
       Map<String,EnumSet<IteratorScope>> iteratorList2 =
           client.tableOperations().listIterators(tableName);
@@ -429,54 +395,6 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   }
 
   /**
-   * Verify iterator conflicts are discovered
-   */
-  @Test(expected = IllegalArgumentException.class)
-  public void testIteratorConflictFound1()
-      throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(2)[0];
-
-      NewTableConfiguration ntc = new NewTableConfiguration();
-      IteratorSetting setting = new IteratorSetting(10, "someName", "foo.bar");
-      ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
-      setting = new IteratorSetting(12, "someName", "foo2.bar");
-      ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
-      client.tableOperations().create(tableName, ntc);
-    }
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testIteratorConflictFound2()
-      throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(2)[0];
-
-      NewTableConfiguration ntc = new NewTableConfiguration();
-      IteratorSetting setting = new IteratorSetting(10, "someName", "foo.bar");
-      ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
-      setting = new IteratorSetting(10, "anotherName", "foo2.bar");
-      ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
-      client.tableOperations().create(tableName, ntc);
-    }
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testIteratorConflictFound3()
-      throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(2)[0];
-
-      NewTableConfiguration ntc = new NewTableConfiguration();
-      IteratorSetting setting = new IteratorSetting(10, "someName", "foo.bar");
-      ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
-      setting = new IteratorSetting(12, "someName", "foo.bar");
-      ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
-      client.tableOperations().create(tableName, ntc);
-    }
-  }
-
-  /**
    * Verify that multiple calls to attachIterator keep adding to iterators, i.e., do not overwrite
    * existing iterators.
    */
@@ -596,54 +514,6 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       assertEquals(1, createdLocalityGroups.size());
       assertEquals(createdLocalityGroups.get("lgp"), Set.of(new Text("col")));
     }
-  }
-
-  /**
-   * Verify that disjoint check works as expected with setProperties
-   */
-  @Test(expected = IllegalArgumentException.class)
-  public void testSetPropertiesDisjointCheck() {
-    NewTableConfiguration ntc = new NewTableConfiguration();
-
-    Map<String,Set<Text>> lgroups = new HashMap<>();
-    lgroups.put("lg1", Set.of(new Text("dog")));
-    ntc.setLocalityGroups(lgroups);
-
-    Map<String,String> props = new HashMap<>();
-    props.put("table.key1", "val1");
-    props.put("table.group.lg1", "cat");
-    ntc.setProperties(props);
-  }
-
-  /**
-   * Verify checkDisjoint works with locality groups.
-   */
-  @Test(expected = IllegalArgumentException.class)
-  public void testSetLocalityGroupsDisjointCheck() {
-    NewTableConfiguration ntc = new NewTableConfiguration();
-
-    Map<String,String> props = new HashMap<>();
-    props.put("table.group.lg1", "cat");
-    ntc.setProperties(props);
-
-    Map<String,Set<Text>> lgroups = new HashMap<>();
-    lgroups.put("lg1", Set.of(new Text("dog")));
-    ntc.setLocalityGroups(lgroups);
-  }
-
-  /**
-   * Verify checkDisjoint works with iterators groups.
-   */
-  @Test(expected = IllegalArgumentException.class)
-  public void testAttachIteratorDisjointCheck() {
-    NewTableConfiguration ntc = new NewTableConfiguration();
-
-    Map<String,String> props = new HashMap<>();
-    props.put("table.iterator.scan.someName", "10");
-    ntc.setProperties(props);
-
-    IteratorSetting setting = new IteratorSetting(10, "someName", "foo.bar");
-    ntc.attachIterator(setting, EnumSet.of(IteratorScope.scan));
   }
 
   /**

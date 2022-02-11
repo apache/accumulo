@@ -50,7 +50,7 @@ import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.test.functional.NativeMapIT;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.MemKey;
-import org.apache.accumulo.tserver.NativeMap;
+import org.apache.accumulo.tserver.memory.NativeMapLoader;
 import org.easymock.EasyMock;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -93,13 +93,7 @@ public class InMemoryMapIT {
   @BeforeClass
   public static void ensureNativeLibrary() {
     File nativeMapLocation = NativeMapIT.nativeMapLocation();
-    System.setProperty("accumulo.native.lib.path", nativeMapLocation.getAbsolutePath());
-    if (!NativeMap.isLoaded()) {
-      fail("Missing the native library from " + nativeMapLocation.getAbsolutePath()
-          + "\nYou need to build the libaccumulo binary first. "
-          + "\nTry running 'mvn clean verify -Dit.test=InMemoryMapIT -Dtest=foo"
-          + " -DfailIfNoTests=false -Dspotbugs.skip -Dcheckstyle.skip'");
-    }
+    NativeMapLoader.loadForTest(List.of(nativeMapLocation), () -> fail("Can't load native maps"));
   }
 
   public static ServerContext getServerContext() {

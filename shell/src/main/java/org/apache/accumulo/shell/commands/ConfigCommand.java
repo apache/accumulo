@@ -62,7 +62,7 @@ public class ConfigCommand extends Command {
     final Token cmd = new Token(getName());
     final Token sub = new Token("-" + setOpt.getOpt());
     for (Property p : Property.values()) {
-      if (!(p.getKey().endsWith(".")) && !p.isExperimental()) {
+      if (!p.getKey().endsWith(".") && !p.isExperimental()) {
         sub.addSubcommand(new Token(p.toString()));
       }
     }

@@ -566,7 +566,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
             .setSelector(new PluginConfig(CompressionConfigurer.class.getName())).setWait(true));
       }).getMessage();
 
-      assertTrue("Unexcpected message : " + msg,
+      assertTrue("Unexpected message : " + msg,
           msg.contains("TabletServer could not load CompactionSelector"));
 
     }
@@ -585,7 +585,7 @@ public class CompactionExecutorIT extends SharedMiniClusterBase {
             .setConfigurer(new PluginConfig(TooManyDeletesSelector.class.getName())).setWait(true));
       }).getMessage();
 
-      assertTrue("Unexcpected message : " + msg,
+      assertTrue("Unexpected message : " + msg,
           msg.contains("TabletServer could not load CompactionConfigurer"));
     }
   }

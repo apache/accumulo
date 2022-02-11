@@ -26,6 +26,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.monitor.Monitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,7 +47,7 @@ public class ECResource {
   @GET
   public CoordinatorInfo getCoordinator() {
     var cc = monitor.getCompactorsInfo();
-    log.info("Got coordinator from monitor = {}", cc);
+    log.info("Got coordinator from monitor = {}", cc.getCoordinatorHost());
     return new CoordinatorInfo(cc.getCoordinatorHost(), cc);
   }
 
@@ -66,10 +67,7 @@ public class ECResource {
   @GET
   public RunningCompactorDetails getDetails(@QueryParam("ecid") @NotNull String ecid) {
     // make parameter more user-friendly by ensuring the ecid prefix is present
-    ecid = ecid.replace("ecid:", "ECID:");
-    if (!ecid.startsWith("ECID:"))
-      ecid = "ECID:" + ecid;
-
+    ecid = ExternalCompactionId.from(ecid).canonical();
     var ecMap = monitor.getEcRunningMap();
     var externalCompaction = ecMap.get(ecid);
     if (externalCompaction == null) {
@@ -77,10 +75,9 @@ public class ECResource {
       ecMap = monitor.fetchRunningInfo();
       externalCompaction = ecMap.get(ecid);
       if (externalCompaction == null) {
-        log.warn("Failed to find details for ECID: {}", ecid);
-        return new RunningCompactorDetails();
+        throw new IllegalStateException("Failed to find details for ECID: " + ecid);
       }
     }
-    return new RunningCompactorDetails(System.currentTimeMillis(), ecid, externalCompaction);
+    return new RunningCompactorDetails(externalCompaction);
   }
 }

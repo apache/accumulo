@@ -36,7 +36,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
-import org.apache.accumulo.core.conf.AccumuloConfiguration.Deriver;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
@@ -410,19 +409,13 @@ public class CompactableImplFileManagerTest {
 
   static class TestFileManager extends CompactableImpl.FileManager {
 
-    public static final Duration SELECTION_EXPIRATION = Duration.ofSeconds(120);
+    public static final Duration SELECTION_EXPIRATION = Duration.ofMinutes(2);
     private long time = 0;
     public Set<CompactionKind> running = new HashSet<>();
 
     public TestFileManager() {
       super(new KeyExtent(TableId.of("1"), null, null), Set.of(), Optional.empty(),
-          new Deriver<Duration>() {
-
-            @Override
-            public Duration derive() {
-              return SELECTION_EXPIRATION;
-            }
-          });
+          () -> SELECTION_EXPIRATION);
     }
 
     @Override

@@ -43,6 +43,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.crypto.CryptoServiceFactory.ClassloaderType;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -107,7 +108,7 @@ public class ServerContext extends ClientContext {
    * Used during initialization to set the instance name and ID.
    */
   public static ServerContext initialize(SiteConfiguration siteConfig, String instanceName,
-      String instanceID) {
+      InstanceId instanceID) {
     return new ServerContext(new ServerInfo(siteConfig, instanceName, instanceID));
   }
 
@@ -121,7 +122,7 @@ public class ServerContext extends ClientContext {
   }
 
   @Override
-  public String getInstanceID() {
+  public InstanceId getInstanceID() {
     return info.getInstanceID();
   }
 
@@ -307,7 +308,7 @@ public class ServerContext extends ClientContext {
    * Check to see if this version of Accumulo can run against or upgrade the passed in data version.
    */
   public static void ensureDataVersionCompatible(int dataVersion) {
-    if (!(AccumuloDataVersion.CAN_RUN.contains(dataVersion))) {
+    if (!AccumuloDataVersion.CAN_RUN.contains(dataVersion)) {
       throw new IllegalStateException("This version of accumulo (" + Constants.VERSION
           + ") is not compatible with files stored using data version " + dataVersion);
     }
@@ -441,8 +442,9 @@ public class ServerContext extends ClientContext {
    */
   public synchronized ScheduledThreadPoolExecutor getScheduledExecutor() {
     if (sharedScheduledThreadPool == null) {
-      sharedScheduledThreadPool = (ScheduledThreadPoolExecutor) ThreadPools
-          .createExecutorService(getConfiguration(), Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE);
+      sharedScheduledThreadPool =
+          (ScheduledThreadPoolExecutor) ThreadPools.createExecutorService(getConfiguration(),
+              Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE, true);
     }
     return sharedScheduledThreadPool;
   }

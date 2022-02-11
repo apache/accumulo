@@ -39,6 +39,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -119,7 +120,7 @@ public class CloseWriteAheadLogReferencesIT extends ConfigurableMacBase {
     expect(context.getZooKeepers()).andReturn("localhost").anyTimes();
     expect(context.getInstanceName()).andReturn("test").anyTimes();
     expect(context.getZooKeepersSessionTimeOut()).andReturn(30000).anyTimes();
-    expect(context.getInstanceID()).andReturn("1111").anyTimes();
+    expect(context.getInstanceID()).andReturn(InstanceId.of("1111")).anyTimes();
     expect(context.getZooKeeperRoot()).andReturn(Constants.ZROOT + "/1111").anyTimes();
 
     replay(siteConfig, context);

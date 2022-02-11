@@ -18,13 +18,12 @@
  */
 package org.apache.accumulo.test.zookeeper;
 
-import static org.apache.accumulo.harness.AccumuloITBase.random;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.accumulo.server.util.PortUtils;
 import org.apache.curator.test.TestingServer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;
@@ -49,7 +48,7 @@ public class ZooKeeperTestingServer implements AutoCloseable {
    * client connections. It will try three times, with a 5 second pause to connect.
    */
   public ZooKeeperTestingServer() {
-    this(getPort());
+    this(PortUtils.getRandomFreePort());
   }
 
   private ZooKeeperTestingServer(int port) {
@@ -92,18 +91,6 @@ public class ZooKeeperTestingServer implements AutoCloseable {
       throw new IllegalStateException("Failed to start testing zookeeper", ex);
     }
 
-  }
-
-  /**
-   * Returns an random integer between 50_000 and 65_000 (typical ephemeral port range for linux is
-   * listed as 49,152 to 65,535
-   *
-   * @return a random port with the linux ephemeral port range.
-   */
-  private static int getPort() {
-    final int minPort = 50_000;
-    final int maxPort = 65_000;
-    return random.nextInt((maxPort - minPort) + 1) + minPort;
   }
 
   public ZooKeeper getZooKeeper() {

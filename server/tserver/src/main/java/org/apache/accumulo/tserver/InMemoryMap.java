@@ -156,7 +156,7 @@ public class InMemoryMap {
   }
 
   private static SimpleMap newMap(boolean useNativeMap) {
-    if (useNativeMap && NativeMap.isLoaded()) {
+    if (useNativeMap) {
       try {
         return new NativeMapWrapper();
       } catch (Exception t) {

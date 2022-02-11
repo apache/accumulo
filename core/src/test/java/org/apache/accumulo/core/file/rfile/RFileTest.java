@@ -22,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -1703,9 +1704,10 @@ public class RFileTest {
     trf.closeReader();
   }
 
-  @Test(expected = NullPointerException.class)
-  public void testMissingUnreleasedVersions() throws Exception {
-    runVersionTest(5, getAccumuloConfig(ConfigMode.CRYPTO_OFF));
+  @Test
+  public void testMissingUnreleasedVersions() {
+    assertThrows(NullPointerException.class,
+        () -> runVersionTest(5, getAccumuloConfig(ConfigMode.CRYPTO_OFF)));
   }
 
   @Test

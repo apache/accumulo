@@ -21,6 +21,7 @@ package org.apache.accumulo.test;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -1126,7 +1127,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       ConditionalMutation cm = new ConditionalMutation(row, cond);
 
       cm.put("meta", "seq", (seq + 1) + "");
-      cm.put("meta", "sum", (sum) + "");
+      cm.put("meta", "sum", sum + "");
 
       for (int i = 0; i < data.length; i++) {
         cm.put("data", i + "", data[i] + "");
@@ -1489,7 +1490,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testNoConditions() throws AccumuloException, AccumuloSecurityException,
       TableExistsException, TableNotFoundException {
     String table = getUniqueNames(1)[0];
@@ -1503,7 +1504,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         cm1.put("tx", "seq", "1");
         cm1.put("data", "x", "a");
 
-        cw.write(cm1);
+        assertThrows(IllegalArgumentException.class, () -> cw.write(cm1));
       }
     }
   }

@@ -71,6 +71,7 @@ public class VersionedPropGzipCodec extends VersionedPropCodec {
     return encodingOpts.getEncodingVersion() == EncodingOptions.EncodingVersion_1_0;
   }
 
+  @Override
   Map<String,String> decodePayload(final InputStream inStream, final EncodingOptions encodingOpts)
       throws IOException {
     // read the property map keys, values

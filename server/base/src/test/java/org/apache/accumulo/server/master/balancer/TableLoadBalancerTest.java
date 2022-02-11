@@ -35,6 +35,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
@@ -134,8 +135,8 @@ public class TableLoadBalancerTest {
   }
 
   private ServerContext createMockContext() {
-    final String instanceId =
-        UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}).toString();
+    final InstanceId instanceId =
+        InstanceId.of(UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}));
     return MockServerContext.getWithZK(instanceId, "10.0.0.1:1234", 30_000);
   }
 

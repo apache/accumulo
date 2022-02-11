@@ -117,7 +117,7 @@
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- bouncycastle version for test dependencies -->
-    <bouncycastle.version>1.68</bouncycastle.version>
+    <bouncycastle.version>1.70</bouncycastle.version>
     <!-- Curator version -->
     <curator.version>5.1.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
@@ -144,7 +144,7 @@
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
     <project.build.outputTimestamp>2020-12-17T22:06:50Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
-    <slf4j.version>1.7.30</slf4j.version>
+    <slf4j.version>1.7.35</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
     <surefire.failIfNoSpecifiedTests>false</surefire.failIfNoSpecifiedTests>
@@ -199,7 +199,7 @@
       <dependency>
         <groupId>org.apache.logging.log4j</groupId>
         <artifactId>log4j-bom</artifactId>
-        <version>2.16.0</version>
+        <version>2.17.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -234,7 +234,7 @@
       <dependency>
         <groupId>com.beust</groupId>
         <artifactId>jcommander</artifactId>
-        <version>1.81</version>
+        <version>1.82</version>
       </dependency>
       <dependency>
         <groupId>com.fasterxml</groupId>
@@ -264,7 +264,7 @@
       <dependency>
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
-        <version>2.8.6</version>
+        <version>2.8.9</version>
       </dependency>
       <dependency>
         <!-- converge transitive dependency version between guava and caffeine -->
@@ -286,7 +286,7 @@
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
-        <version>3.7.1</version>
+        <version>3.19.2</version>
       </dependency>
       <dependency>
         <groupId>com.lmax</groupId>
@@ -871,7 +871,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
-          <version>3.2.0</version>
+          <version>3.3.0</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
@@ -886,7 +886,7 @@
         <plugin>
           <groupId>net.revelc.code.formatter</groupId>
           <artifactId>formatter-maven-plugin</artifactId>
-          <version>2.17.0</version>
+          <version>2.17.1</version>
           <configuration>
             <compilerCompliance>${maven.compiler.source}</compilerCompliance>
             <compilerSource>${maven.compiler.source}</compilerSource>
@@ -1026,6 +1026,7 @@
                     <!-- we redirect logging to log4j2, so we should have those bridges instead -->
                     <!-- commons-logging is allowed because log4j-jcl uses it as a dependency -->
                     <exclude>ch.qos.logback:*</exclude>
+                    <exclude>ch.qos.reload4j:*</exclude>
                     <exclude>log4j:*</exclude>
                     <exclude>org.apache.logging.log4j:log4j-to-slf4j</exclude>
                     <exclude>org.slf4j:*</exclude>
@@ -1132,7 +1133,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>9.1</version>
+            <version>9.3</version>
           </dependency>
         </dependencies>
         <executions>

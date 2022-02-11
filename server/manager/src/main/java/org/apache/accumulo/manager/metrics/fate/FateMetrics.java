@@ -56,6 +56,7 @@ public class FateMetrics implements MetricsProducer {
   private AtomicLong totalOpsGauge;
   private AtomicLong fateErrorsGauge;
   private AtomicLong newTxGauge;
+  private AtomicLong submittedTxGauge;
   private AtomicLong inProgressTxGauge;
   private AtomicLong failedInProgressTxGauge;
   private AtomicLong failedTxGauge;
@@ -95,6 +96,9 @@ public class FateMetrics implements MetricsProducer {
         case NEW:
           newTxGauge.set(vals.getValue());
           break;
+        case SUBMITTED:
+          submittedTxGauge.set(vals.getValue());
+          break;
         case IN_PROGRESS:
           inProgressTxGauge.set(vals.getValue());
           break;
@@ -130,6 +134,8 @@ public class FateMetrics implements MetricsProducer {
         Tags.concat(MetricsUtil.getCommonTags(), "type", "zk.connection"), new AtomicLong(0));
     newTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(), "state",
         ReadOnlyTStore.TStatus.NEW.name().toLowerCase()), new AtomicLong(0));
+    submittedTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
+        "state", ReadOnlyTStore.TStatus.SUBMITTED.name().toLowerCase()), new AtomicLong(0));
     inProgressTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
         "state", ReadOnlyTStore.TStatus.IN_PROGRESS.name().toLowerCase()), new AtomicLong(0));
     failedInProgressTxGauge =
@@ -146,7 +152,7 @@ public class FateMetrics implements MetricsProducer {
 
     // get fate status is read only operation - no reason to be nice on shutdown.
     ScheduledExecutorService scheduler =
-        ThreadPools.createScheduledExecutorService(1, "fateMetricsPoller");
+        ThreadPools.createScheduledExecutorService(1, "fateMetricsPoller", false);
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
 
     scheduler.scheduleAtFixedRate(() -> {

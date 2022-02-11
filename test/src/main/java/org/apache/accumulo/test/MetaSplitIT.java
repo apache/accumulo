@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -81,12 +82,13 @@ public class MetaSplitIT extends AccumuloClusterHarness {
     }
   }
 
-  @Test(expected = AccumuloException.class)
-  public void testRootTableSplit() throws Exception {
+  @Test
+  public void testRootTableSplit() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("5"));
-      client.tableOperations().addSplits(RootTable.NAME, splits);
+      assertThrows(AccumuloException.class,
+          () -> client.tableOperations().addSplits(RootTable.NAME, splits));
     }
   }
 
