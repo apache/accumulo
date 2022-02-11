@@ -1625,7 +1625,7 @@
       </properties>
     </profile>
     <profile>
-      <!-- This profile uses the Google errorprone tool to perform static code analysis at
+      <!-- This profile uses the Google ErrorProne tool to perform static code analysis at
       compile time. Auto-generated code is not checked.
       See: https://errorprone.info/bugpatterns for list of available bug patterns.-->
       <id>errorprone</id>
@@ -1635,10 +1635,6 @@
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
             <configuration>
-              <showWarnings>true</showWarnings>
-              <source>${maven.compiler.source}</source>
-              <source>${maven.compiler.target}}</source>
-              <encoding>UTF-8</encoding>
               <compilerArgs>
                 <arg>-XDcompilePolicy=simple</arg>
                 <arg>
@@ -1654,8 +1650,8 @@
                   <!-- error/warning patterns to specifically check -->
                   -Xep:ExpectedExceptionChecker \
                   -Xep:MissingOverride \
-                  <!-- Items containing 'OFF' are currently flagged by errorprone. The 'OFF'
-                  can be removed and the project recompiled to discover lcation of errors for
+                  <!-- Items containing 'OFF' are currently flagged by ErrorProne. The 'OFF'
+                  can be removed and the project recompiled to discover location of errors for
                   further analysis. @SuppressWarnings can be used to ignore errors if desired. -->
                 </arg>
                 <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
