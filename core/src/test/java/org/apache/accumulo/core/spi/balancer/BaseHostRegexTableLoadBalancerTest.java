@@ -35,7 +35,8 @@ import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TableStatisticsImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
-import org.apache.accumulo.core.master.thrift.TableInfo;
+import org.apache.accumulo.core.manager.thrift.TableInfo;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TableStatistics;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -127,35 +128,35 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     servers.put("192.168.0.15", "r03s05");
 
     allTabletServers.put(new TabletServerIdImpl("192.168.0.1", 9997, Integer.toHexString(1)),
-        new TServerStatusImpl(new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
+        new TServerStatusImpl(new TabletServerStatus()));
     allTabletServers.put(new TabletServerIdImpl("192.168.0.2", 9997, Integer.toHexString(1)),
-        new TServerStatusImpl(new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
+        new TServerStatusImpl(new TabletServerStatus()));
     allTabletServers.put(new TabletServerIdImpl("192.168.0.3", 9997, Integer.toHexString(1)),
-        new TServerStatusImpl(new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
+        new TServerStatusImpl(new TabletServerStatus()));
     allTabletServers.put(new TabletServerIdImpl("192.168.0.4", 9997, Integer.toHexString(1)),
-        new TServerStatusImpl(new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
+        new TServerStatusImpl(new TabletServerStatus()));
     allTabletServers.put(new TabletServerIdImpl("192.168.0.5", 9997, Integer.toHexString(1)),
-        new TServerStatusImpl(new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
+        new TServerStatusImpl(new TabletServerStatus()));
     allTabletServers.put(new TabletServerIdImpl("192.168.0.6", 9997, Integer.toHexString(1)),
-        new TServerStatusImpl(new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
+        new TServerStatusImpl(new TabletServerStatus()));
     allTabletServers.put(new TabletServerIdImpl("192.168.0.7", 9997, Integer.toHexString(1)),
-        new TServerStatusImpl(new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
+        new TServerStatusImpl(new TabletServerStatus()));
     allTabletServers.put(new TabletServerIdImpl("192.168.0.8", 9997, Integer.toHexString(1)),
-        new TServerStatusImpl(new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
+        new TServerStatusImpl(new TabletServerStatus()));
     allTabletServers.put(new TabletServerIdImpl("192.168.0.9", 9997, Integer.toHexString(1)),
-        new TServerStatusImpl(new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
+        new TServerStatusImpl(new TabletServerStatus()));
     allTabletServers.put(new TabletServerIdImpl("192.168.0.10", 9997, Integer.toHexString(1)),
-        new TServerStatusImpl(new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
+        new TServerStatusImpl(new TabletServerStatus()));
     allTabletServers.put(new TabletServerIdImpl("192.168.0.11", 9997, Integer.toHexString(1)),
-        new TServerStatusImpl(new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
+        new TServerStatusImpl(new TabletServerStatus()));
     allTabletServers.put(new TabletServerIdImpl("192.168.0.12", 9997, Integer.toHexString(1)),
-        new TServerStatusImpl(new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
+        new TServerStatusImpl(new TabletServerStatus()));
     allTabletServers.put(new TabletServerIdImpl("192.168.0.13", 9997, Integer.toHexString(1)),
-        new TServerStatusImpl(new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
+        new TServerStatusImpl(new TabletServerStatus()));
     allTabletServers.put(new TabletServerIdImpl("192.168.0.14", 9997, Integer.toHexString(1)),
-        new TServerStatusImpl(new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
+        new TServerStatusImpl(new TabletServerStatus()));
     allTabletServers.put(new TabletServerIdImpl("192.168.0.15", 9997, Integer.toHexString(1)),
-        new TServerStatusImpl(new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
+        new TServerStatusImpl(new TabletServerStatus()));
 
     initialTableLocation.put(FOO.getTableName(),
         new TabletServerIdImpl("192.168.0.1", 9997, Integer.toHexString(1)));
@@ -248,8 +249,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
     String base = "192.168.0.";
     TreeMap<TabletServerId,TServerStatus> current = new TreeMap<>();
     for (int i = 1; i <= numTservers; i++) {
-      TServerStatusImpl status =
-          new TServerStatusImpl(new org.apache.accumulo.core.master.thrift.TabletServerStatus());
+      TServerStatusImpl status = new TServerStatusImpl(new TabletServerStatus());
       Map<String,TableStatistics> tableMap = new HashMap<>();
       tableMap.put(FOO.getId().canonical(), new TableStatisticsImpl(new TableInfo()));
       tableMap.put(BAR.getId().canonical(), new TableStatisticsImpl(new TableInfo()));

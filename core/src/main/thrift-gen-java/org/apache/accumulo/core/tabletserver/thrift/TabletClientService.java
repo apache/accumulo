@@ -75,7 +75,7 @@ public class TabletClientService {
 
     public void compact(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, java.lang.String tableId, java.nio.ByteBuffer startRow, java.nio.ByteBuffer endRow) throws org.apache.thrift.TException;
 
-    public org.apache.accumulo.core.master.thrift.TabletServerStatus getTabletServerStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public org.apache.accumulo.core.manager.thrift.TabletServerStatus getTabletServerStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
     public java.util.List<TabletStats> getTabletStats(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
@@ -159,7 +159,7 @@ public class TabletClientService {
 
     public void compact(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, java.lang.String tableId, java.nio.ByteBuffer startRow, java.nio.ByteBuffer endRow, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void getTabletServerStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.master.thrift.TabletServerStatus> resultHandler) throws org.apache.thrift.TException;
+    public void getTabletServerStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.manager.thrift.TabletServerStatus> resultHandler) throws org.apache.thrift.TException;
 
     public void getTabletStats(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableId, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TabletStats>> resultHandler) throws org.apache.thrift.TException;
 
@@ -777,7 +777,7 @@ public class TabletClientService {
       sendBaseOneway("compact", args);
     }
 
-    public org.apache.accumulo.core.master.thrift.TabletServerStatus getTabletServerStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public org.apache.accumulo.core.manager.thrift.TabletServerStatus getTabletServerStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_getTabletServerStatus(tinfo, credentials);
       return recv_getTabletServerStatus();
@@ -791,7 +791,7 @@ public class TabletClientService {
       sendBase("getTabletServerStatus", args);
     }
 
-    public org.apache.accumulo.core.master.thrift.TabletServerStatus recv_getTabletServerStatus() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public org.apache.accumulo.core.manager.thrift.TabletServerStatus recv_getTabletServerStatus() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       getTabletServerStatus_result result = new getTabletServerStatus_result();
       receiveBase(result, "getTabletServerStatus");
@@ -2209,17 +2209,17 @@ public class TabletClientService {
       }
     }
 
-    public void getTabletServerStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.master.thrift.TabletServerStatus> resultHandler) throws org.apache.thrift.TException {
+    public void getTabletServerStatus(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.manager.thrift.TabletServerStatus> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       getTabletServerStatus_call method_call = new getTabletServerStatus_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class getTabletServerStatus_call extends org.apache.thrift.async.TAsyncMethodCall<org.apache.accumulo.core.master.thrift.TabletServerStatus> {
+    public static class getTabletServerStatus_call extends org.apache.thrift.async.TAsyncMethodCall<org.apache.accumulo.core.manager.thrift.TabletServerStatus> {
       private org.apache.accumulo.core.trace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
-      public getTabletServerStatus_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.master.thrift.TabletServerStatus> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getTabletServerStatus_call(org.apache.accumulo.core.trace.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.manager.thrift.TabletServerStatus> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -2234,7 +2234,7 @@ public class TabletClientService {
         prot.writeMessageEnd();
       }
 
-      public org.apache.accumulo.core.master.thrift.TabletServerStatus getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
+      public org.apache.accumulo.core.manager.thrift.TabletServerStatus getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -5305,7 +5305,7 @@ public class TabletClientService {
       }
     }
 
-    public static class getTabletServerStatus<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getTabletServerStatus_args, org.apache.accumulo.core.master.thrift.TabletServerStatus> {
+    public static class getTabletServerStatus<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getTabletServerStatus_args, org.apache.accumulo.core.manager.thrift.TabletServerStatus> {
       public getTabletServerStatus() {
         super("getTabletServerStatus");
       }
@@ -5314,10 +5314,10 @@ public class TabletClientService {
         return new getTabletServerStatus_args();
       }
 
-      public org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.master.thrift.TabletServerStatus> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
+      public org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.manager.thrift.TabletServerStatus> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.master.thrift.TabletServerStatus>() { 
-          public void onComplete(org.apache.accumulo.core.master.thrift.TabletServerStatus o) {
+        return new org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.manager.thrift.TabletServerStatus>() { 
+          public void onComplete(org.apache.accumulo.core.manager.thrift.TabletServerStatus o) {
             getTabletServerStatus_result result = new getTabletServerStatus_result();
             result.success = o;
             try {
@@ -5365,7 +5365,7 @@ public class TabletClientService {
         return false;
       }
 
-      public void start(I iface, getTabletServerStatus_args args, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.master.thrift.TabletServerStatus> resultHandler) throws org.apache.thrift.TException {
+      public void start(I iface, getTabletServerStatus_args args, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.manager.thrift.TabletServerStatus> resultHandler) throws org.apache.thrift.TException {
         iface.getTabletServerStatus(args.tinfo, args.credentials,resultHandler);
       }
     }
@@ -32574,7 +32574,7 @@ public class TabletClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getTabletServerStatus_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getTabletServerStatus_resultTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.master.thrift.TabletServerStatus success; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.manager.thrift.TabletServerStatus success; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -32645,7 +32645,7 @@ public class TabletClientService {
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.master.thrift.TabletServerStatus.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.manager.thrift.TabletServerStatus.class)));
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
@@ -32656,7 +32656,7 @@ public class TabletClientService {
     }
 
     public getTabletServerStatus_result(
-      org.apache.accumulo.core.master.thrift.TabletServerStatus success,
+      org.apache.accumulo.core.manager.thrift.TabletServerStatus success,
       org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
     {
       this();
@@ -32669,7 +32669,7 @@ public class TabletClientService {
      */
     public getTabletServerStatus_result(getTabletServerStatus_result other) {
       if (other.isSetSuccess()) {
-        this.success = new org.apache.accumulo.core.master.thrift.TabletServerStatus(other.success);
+        this.success = new org.apache.accumulo.core.manager.thrift.TabletServerStatus(other.success);
       }
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
@@ -32687,11 +32687,11 @@ public class TabletClientService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.master.thrift.TabletServerStatus getSuccess() {
+    public org.apache.accumulo.core.manager.thrift.TabletServerStatus getSuccess() {
       return this.success;
     }
 
-    public getTabletServerStatus_result setSuccess(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.master.thrift.TabletServerStatus success) {
+    public getTabletServerStatus_result setSuccess(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.manager.thrift.TabletServerStatus success) {
       this.success = success;
       return this;
     }
@@ -32742,7 +32742,7 @@ public class TabletClientService {
         if (value == null) {
           unsetSuccess();
         } else {
-          setSuccess((org.apache.accumulo.core.master.thrift.TabletServerStatus)value);
+          setSuccess((org.apache.accumulo.core.manager.thrift.TabletServerStatus)value);
         }
         break;
 
@@ -32946,7 +32946,7 @@ public class TabletClientService {
           switch (schemeField.id) {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.success = new org.apache.accumulo.core.master.thrift.TabletServerStatus();
+                struct.success = new org.apache.accumulo.core.manager.thrift.TabletServerStatus();
                 struct.success.read(iprot);
                 struct.setSuccessIsSet(true);
               } else { 
@@ -33025,7 +33025,7 @@ public class TabletClientService {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          struct.success = new org.apache.accumulo.core.master.thrift.TabletServerStatus();
+          struct.success = new org.apache.accumulo.core.manager.thrift.TabletServerStatus();
           struct.success.read(iprot);
           struct.setSuccessIsSet(true);
         }

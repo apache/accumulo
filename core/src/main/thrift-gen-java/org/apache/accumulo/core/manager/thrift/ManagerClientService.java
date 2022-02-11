@@ -21125,13 +21125,13 @@ public class ManagerClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list78 = iprot.readListBegin();
-                  struct.success = new java.util.ArrayList<java.lang.String>(_list78.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _elem79;
-                  for (int _i80 = 0; _i80 < _list78.size; ++_i80)
+                  org.apache.thrift.protocol.TList _list104 = iprot.readListBegin();
+                  struct.success = new java.util.ArrayList<java.lang.String>(_list104.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _elem105;
+                  for (int _i106 = 0; _i106 < _list104.size; ++_i106)
                   {
-                    _elem79 = iprot.readString();
-                    struct.success.add(_elem79);
+                    _elem105 = iprot.readString();
+                    struct.success.add(_elem105);
                   }
                   iprot.readListEnd();
                 }
@@ -21177,9 +21177,9 @@ public class ManagerClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.lang.String _iter81 : struct.success)
+            for (java.lang.String _iter107 : struct.success)
             {
-              oprot.writeString(_iter81);
+              oprot.writeString(_iter107);
             }
             oprot.writeListEnd();
           }
@@ -21226,9 +21226,9 @@ public class ManagerClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.lang.String _iter82 : struct.success)
+            for (java.lang.String _iter108 : struct.success)
             {
-              oprot.writeString(_iter82);
+              oprot.writeString(_iter108);
             }
           }
         }
@@ -21246,13 +21246,13 @@ public class ManagerClientService {
         java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TList _list83 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
-            struct.success = new java.util.ArrayList<java.lang.String>(_list83.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _elem84;
-            for (int _i85 = 0; _i85 < _list83.size; ++_i85)
+            org.apache.thrift.protocol.TList _list109 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
+            struct.success = new java.util.ArrayList<java.lang.String>(_list109.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _elem110;
+            for (int _i111 = 0; _i111 < _list109.size; ++_i111)
             {
-              _elem84 = iprot.readString();
-              struct.success.add(_elem84);
+              _elem110 = iprot.readString();
+              struct.success.add(_elem110);
             }
           }
           struct.setSuccessIsSet(true);
@@ -23042,13 +23042,13 @@ public class ManagerClientService {
             case 4: // LOGS_TO_WATCH
               if (schemeField.type == org.apache.thrift.protocol.TType.SET) {
                 {
-                  org.apache.thrift.protocol.TSet _set86 = iprot.readSetBegin();
-                  struct.logsToWatch = new java.util.HashSet<java.lang.String>(2*_set86.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _elem87;
-                  for (int _i88 = 0; _i88 < _set86.size; ++_i88)
+                  org.apache.thrift.protocol.TSet _set112 = iprot.readSetBegin();
+                  struct.logsToWatch = new java.util.HashSet<java.lang.String>(2*_set112.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _elem113;
+                  for (int _i114 = 0; _i114 < _set112.size; ++_i114)
                   {
-                    _elem87 = iprot.readString();
-                    struct.logsToWatch.add(_elem87);
+                    _elem113 = iprot.readString();
+                    struct.logsToWatch.add(_elem113);
                   }
                   iprot.readSetEnd();
                 }
@@ -23091,9 +23091,9 @@ public class ManagerClientService {
           oprot.writeFieldBegin(LOGS_TO_WATCH_FIELD_DESC);
           {
             oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, struct.logsToWatch.size()));
-            for (java.lang.String _iter89 : struct.logsToWatch)
+            for (java.lang.String _iter115 : struct.logsToWatch)
             {
-              oprot.writeString(_iter89);
+              oprot.writeString(_iter115);
             }
             oprot.writeSetEnd();
           }
@@ -23142,9 +23142,9 @@ public class ManagerClientService {
         if (struct.isSetLogsToWatch()) {
           {
             oprot.writeI32(struct.logsToWatch.size());
-            for (java.lang.String _iter90 : struct.logsToWatch)
+            for (java.lang.String _iter116 : struct.logsToWatch)
             {
-              oprot.writeString(_iter90);
+              oprot.writeString(_iter116);
             }
           }
         }
@@ -23170,13 +23170,13 @@ public class ManagerClientService {
         }
         if (incoming.get(3)) {
           {
-            org.apache.thrift.protocol.TSet _set91 = iprot.readSetBegin(org.apache.thrift.protocol.TType.STRING);
-            struct.logsToWatch = new java.util.HashSet<java.lang.String>(2*_set91.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _elem92;
-            for (int _i93 = 0; _i93 < _set91.size; ++_i93)
+            org.apache.thrift.protocol.TSet _set117 = iprot.readSetBegin(org.apache.thrift.protocol.TType.STRING);
+            struct.logsToWatch = new java.util.HashSet<java.lang.String>(2*_set117.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _elem118;
+            for (int _i119 = 0; _i119 < _set117.size; ++_i119)
             {
-              _elem92 = iprot.readString();
-              struct.logsToWatch.add(_elem92);
+              _elem118 = iprot.readString();
+              struct.logsToWatch.add(_elem118);
             }
           }
           struct.setLogsToWatchIsSet(true);

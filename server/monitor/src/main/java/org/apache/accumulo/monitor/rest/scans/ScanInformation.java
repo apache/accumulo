@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.monitor.rest.scans;
 
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
 
 /**

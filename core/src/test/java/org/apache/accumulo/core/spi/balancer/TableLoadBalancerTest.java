@@ -43,7 +43,8 @@ import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
-import org.apache.accumulo.core.master.thrift.TableInfo;
+import org.apache.accumulo.core.manager.thrift.TableInfo;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -63,8 +64,7 @@ public class TableLoadBalancerTest {
   }
 
   private static TServerStatus status(Object... config) {
-    org.apache.accumulo.core.master.thrift.TabletServerStatus thriftStatus =
-        new org.apache.accumulo.core.master.thrift.TabletServerStatus();
+    TabletServerStatus thriftStatus = new TabletServerStatus();
     thriftStatus.tableMap = new HashMap<>();
     String tablename = null;
     for (Object c : config) {

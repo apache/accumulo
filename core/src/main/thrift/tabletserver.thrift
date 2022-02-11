@@ -23,7 +23,6 @@ include "data.thrift"
 include "security.thrift"
 include "client.thrift"
 include "manager.thrift"
-include "master.thrift"
 include "trace.thrift"
 
 exception NotServingTabletException {
@@ -418,7 +417,7 @@ service TabletClientService extends client.ClientService {
     6:binary endRow
   )
 
-  master.TabletServerStatus getTabletServerStatus(
+  manager.TabletServerStatus getTabletServerStatus(
     3:trace.TInfo tinfo
     1:security.TCredentials credentials
   ) throws (

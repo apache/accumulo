@@ -40,6 +40,7 @@ import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -117,8 +118,7 @@ public class GroupBalancerTest {
         SortedMap<TabletServerId,TServerStatus> current = new TreeMap<>();
 
         for (TabletServerId tsi : tservers) {
-          current.put(tsi, new TServerStatusImpl(
-              new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
+          current.put(tsi, new TServerStatusImpl(new TabletServerStatus()));
         }
 
         balancer.balance(new BalanceParamsImpl(current, migrations, migrationsOut));

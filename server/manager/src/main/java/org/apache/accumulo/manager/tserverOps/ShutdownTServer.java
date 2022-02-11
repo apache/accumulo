@@ -21,7 +21,7 @@ package org.apache.accumulo.manager.tserverOps;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.fate.Repo;

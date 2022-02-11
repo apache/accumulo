@@ -37,7 +37,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.file.FileOperations;
-import org.apache.accumulo.core.master.thrift.RecoveryStatus;
+import org.apache.accumulo.core.manager.thrift.RecoveryStatus;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
