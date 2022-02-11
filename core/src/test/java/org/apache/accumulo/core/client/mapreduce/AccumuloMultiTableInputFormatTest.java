@@ -41,8 +41,10 @@ public class AccumuloMultiTableInputFormatTest {
    */
   @Test
   public void testInputTableConfigSerialization(TestInfo testInfo) throws IOException {
-    String table1 = testInfo.getDisplayName() + "1";
-    String table2 = testInfo.getDisplayName() + "2";
+    String table1 =
+        testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName() + "1";
+    String table2 =
+        testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName() + "2";
     Job job = Job.getInstance();
 
     InputTableConfig tableConfig = new InputTableConfig()

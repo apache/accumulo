@@ -43,7 +43,7 @@ public class PropertyTypeTest {
 
   @BeforeEach
   public void getPropertyTypeForTest(TestInfo testInfo) {
-    String displayName = testInfo.getDisplayName();
+    String displayName = testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName();
     if (displayName.startsWith("testType")) {
       String tn = displayName.substring("testType".length());
       try {

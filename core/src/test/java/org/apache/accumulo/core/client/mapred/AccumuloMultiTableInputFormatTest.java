@@ -41,8 +41,10 @@ public class AccumuloMultiTableInputFormatTest {
    */
   @Test
   public void testTableQueryConfigSerialization(TestInfo testInfo) {
-    String table1Name = testInfo.getDisplayName() + "1";
-    String table2Name = testInfo.getDisplayName() + "2";
+    String table1Name =
+        testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName() + "1";
+    String table2Name =
+        testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName() + "2";
     JobConf job = new JobConf();
 
     org.apache.accumulo.core.client.mapreduce.InputTableConfig table1 =

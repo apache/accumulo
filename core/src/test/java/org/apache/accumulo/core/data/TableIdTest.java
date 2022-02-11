@@ -58,7 +58,8 @@ public class TableIdTest {
     assertNotSame(RootTable.ID, MetadataTable.ID);
     assertNotSame(RootTable.ID, REPL_TABLE_ID);
 
-    String tableString = "table-" + testInfo.getDisplayName();
+    String tableString =
+        "table-" + testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName();
     long initialSize = cacheCount();
     TableId table1 = TableId.of(tableString);
     assertEquals(initialSize + 1, cacheCount());
@@ -89,7 +90,8 @@ public class TableIdTest {
     LOG.info(TableId.cache.asMap().toString());
 
     // add one and check increase
-    String tableString = "table-" + testInfo.getDisplayName();
+    String tableString =
+        "table-" + testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName();
     TableId table1 = TableId.of(tableString);
     assertEquals(initialSize + 1, cacheCount());
     assertEquals(tableString, table1.canonical());

@@ -49,7 +49,8 @@ public class NamespaceIdTest {
     // NamespaceId, and aren't preloaded when the NamespaceId class is referenced
     assertNotSame(Namespace.ACCUMULO.id(), Namespace.DEFAULT.id());
 
-    String namespaceString = "namespace-" + testInfo.getDisplayName();
+    String namespaceString =
+        "namespace-" + testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName();
     long initialSize = cacheCount();
     NamespaceId nsId = NamespaceId.of(namespaceString);
     assertEquals(initialSize + 1, cacheCount());
@@ -77,7 +78,8 @@ public class NamespaceIdTest {
     LOG.info(NamespaceId.cache.asMap().toString());
 
     // add one and check increase
-    String namespaceString = "namespace-" + testInfo.getDisplayName();
+    String namespaceString =
+        "namespace-" + testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName();
     NamespaceId nsId = NamespaceId.of(namespaceString);
     assertEquals(initialSize + 1, cacheCount());
     assertEquals(namespaceString, nsId.canonical());

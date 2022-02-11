@@ -37,18 +37,16 @@ import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
 public class CredentialsTest {
 
-  @Rule
-  public TestName test = new TestName();
-
   private InstanceId instanceID;
-  private final String instanceID = CredentialsTest.class.getName();
 
   @Test
-  public void testToThrift() throws DestroyFailedException {
-    instanceID = InstanceId.of(test.getMethodName());
+  public void testToThrift(TestInfo testInfo) throws DestroyFailedException {
+    instanceID =
+        InstanceId.of(testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName());
     // verify thrift serialization
     Credentials creds = new Credentials("test", new PasswordToken("testing"));
     TCredentials tCreds = creds.toThrift(instanceID);
@@ -71,17 +69,19 @@ public class CredentialsTest {
   }
 
   @Test
-  public void roundtripThrift() {
-    instanceID = InstanceId.of(test.getMethodName());
+  public void roundtripThrift(TestInfo testInfo) {
+    instanceID =
+        InstanceId.of(testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName());
     Credentials creds = new Credentials("test", new PasswordToken("testing"));
     TCredentials tCreds = creds.toThrift(instanceID);
     Credentials roundtrip = Credentials.fromThrift(tCreds);
-    assertEquals("Round-trip through thrift changed credentials equality", creds, roundtrip);
+    assertEquals(creds, roundtrip, "Round-trip through thrift changed credentials equality");
   }
 
   @Test
-  public void testEqualsAndHashCode() {
-    instanceID = InstanceId.of(test.getMethodName());
+  public void testEqualsAndHashCode(TestInfo testInfo) {
+    instanceID =
+        InstanceId.of(testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName());
     Credentials nullNullCreds = new Credentials(null, null);
     Credentials abcNullCreds = new Credentials("abc", new NullToken());
     Credentials cbaNullCreds = new Credentials("cba", new NullToken());
@@ -106,8 +106,9 @@ public class CredentialsTest {
   }
 
   @Test
-  public void testCredentialsSerialization() {
-    instanceID = InstanceId.of(test.getMethodName());
+  public void testCredentialsSerialization(TestInfo testInfo) {
+    instanceID =
+        InstanceId.of(testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName());
     Credentials creds = new Credentials("a:b-c", new PasswordToken("d-e-f".getBytes(UTF_8)));
     String serialized = creds.serialize();
     Credentials result = Credentials.deserialize(serialized);
@@ -123,8 +124,9 @@ public class CredentialsTest {
   }
 
   @Test
-  public void testToString() {
-    instanceID = InstanceId.of(test.getMethodName());
+  public void testToString(TestInfo testInfo) {
+    instanceID =
+        InstanceId.of(testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName());
     Credentials creds = new Credentials(null, null);
     assertEquals(Credentials.class.getName() + ":null:null:<hidden>", creds.toString());
     creds = new Credentials("", new NullToken());

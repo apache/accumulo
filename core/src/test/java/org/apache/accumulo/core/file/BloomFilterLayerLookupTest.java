@@ -80,7 +80,9 @@ public class BloomFilterLayerLookupTest {
 
     // get output file name
     String suffix = FileOperations.getNewFileExtension(acuconf);
-    String fname = new File(tempDir, testInfo.getDisplayName() + "." + suffix).getAbsolutePath();
+    String fname = new File(tempDir,
+        testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName() + "." + suffix)
+            .getAbsolutePath();
     FileSKVWriter bmfw = FileOperations.getInstance().newWriterBuilder()
         .forFile(fname, fs, conf, CryptoServiceFactory.newDefaultInstance())
         .withTableConfiguration(acuconf).build();
