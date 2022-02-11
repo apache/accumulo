@@ -39,7 +39,7 @@ public class ReadOnlyStoreTest {
     EasyMock.expect(repo.getDescription()).andReturn("description");
     EasyMock.expect(repo.isReady(0xdeadbeefL, null)).andReturn(0x0L);
 
-    TStore<String> mock = EasyMock.createNiceMock(TStore.class);
+    ZooStore<String> mock = EasyMock.createNiceMock(ZooStore.class);
     EasyMock.expect(mock.reserve()).andReturn(0xdeadbeefL);
     mock.reserve(0xdeadbeefL);
     EasyMock.expect(mock.top(0xdeadbeefL)).andReturn(repo);

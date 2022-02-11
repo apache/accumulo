@@ -52,6 +52,7 @@ public interface Constraint extends org.apache.accumulo.core.data.constraints.Co
      *
      * @return user
      */
+    @Override
     String getUser();
 
     /**
@@ -59,6 +60,7 @@ public interface Constraint extends org.apache.accumulo.core.data.constraints.Co
      *
      * @return authorizations
      */
+    @Override
     AuthorizationContainer getAuthorizationsContainer();
   }
 
@@ -69,6 +71,7 @@ public interface Constraint extends org.apache.accumulo.core.data.constraints.Co
    *          numeric violation code
    * @return matching violation description
    */
+  @Override
   String getViolationDescription(short violationCode);
 
   /**

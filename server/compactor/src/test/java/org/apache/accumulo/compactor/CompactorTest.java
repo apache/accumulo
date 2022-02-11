@@ -49,7 +49,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.rpc.ServerAddress;
-import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooKeeper;
 import org.easymock.EasyMock;
@@ -322,7 +321,6 @@ public class CompactorTest {
 
     PowerMock.resetAll();
     PowerMock.suppress(PowerMock.methods(Halt.class, "halt"));
-    PowerMock.suppress(PowerMock.methods(TServerUtils.class, "stopTServer"));
     PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
 
     ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
@@ -375,7 +373,6 @@ public class CompactorTest {
 
     PowerMock.resetAll();
     PowerMock.suppress(PowerMock.methods(Halt.class, "halt"));
-    PowerMock.suppress(PowerMock.methods(TServerUtils.class, "stopTServer"));
     PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
 
     ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
@@ -430,7 +427,6 @@ public class CompactorTest {
 
     PowerMock.resetAll();
     PowerMock.suppress(PowerMock.methods(Halt.class, "halt"));
-    PowerMock.suppress(PowerMock.methods(TServerUtils.class, "stopTServer"));
     PowerMock.suppress(PowerMock.constructor(AbstractServer.class));
 
     ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);

@@ -246,7 +246,7 @@ public class ZooCache {
     this.externalWatcher = watcher;
   }
 
-  private abstract class ZooRunnable<T> {
+  private abstract static class ZooRunnable<T> {
     /**
      * Runs an operation against ZooKeeper. Retries are performed by the retry method when
      * KeeperExceptions occur.

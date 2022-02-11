@@ -26,7 +26,7 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import com.google.common.base.Preconditions;
 
 /**
- * A per table scan dispatcher that decides which executor should be used to processes a scan. For
+ * A per table scan dispatcher that decides which executor should be used to process a scan. For
  * information about configuring, find the documentation for the {@code table.scan.dispatcher} and
  * {@code table.scan.dispatcher.opts.} properties.
  *

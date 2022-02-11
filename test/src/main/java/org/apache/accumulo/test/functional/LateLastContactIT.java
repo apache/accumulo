@@ -40,7 +40,7 @@ public class LateLastContactIT extends ConfigurableMacBase {
 
   @Override
   protected int defaultTimeoutSeconds() {
-    return 60;
+    return 90;
   }
 
   @Test

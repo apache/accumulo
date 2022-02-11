@@ -31,6 +31,7 @@ public class PrintableTable {
     this.data = data;
   }
 
+  @Override
   public String toString() {
     int widestRow = Arrays.asList(rows).stream().mapToInt(String::length).max().getAsInt();
 

@@ -41,6 +41,7 @@ import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocations;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
 import org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletLocationObtainer;
 import org.apache.accumulo.core.clientImpl.TabletLocatorImpl.TabletServerLockChecker;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -169,12 +170,14 @@ public class TabletLocatorImplTest {
   }
 
   private ClientContext context;
+  private InstanceId iid;
 
   @BeforeEach
   public void setUp() {
     context = EasyMock.createMock(ClientContext.class);
+    iid = InstanceId.of("instance1");
     EasyMock.expect(context.getRootTabletLocation()).andReturn("tserver1").anyTimes();
-    EasyMock.expect(context.getInstanceID()).andReturn("instance1").anyTimes();
+    EasyMock.expect(context.getInstanceID()).andReturn(iid).anyTimes();
     replay(context);
   }
 
@@ -669,7 +672,7 @@ public class TabletLocatorImplTest {
     EasyMock.verify(context);
 
     context = EasyMock.createMock(ClientContext.class);
-    EasyMock.expect(context.getInstanceID()).andReturn("instance1").anyTimes();
+    EasyMock.expect(context.getInstanceID()).andReturn(iid).anyTimes();
     EasyMock.expect(context.getRootTabletLocation()).andReturn("tserver4").anyTimes();
     replay(context);
 

@@ -62,6 +62,7 @@ import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
@@ -165,8 +166,8 @@ public class TabletServer extends AbstractServer {
 
   private static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(TabletServer.class);
-  private static final long TIME_BETWEEN_GC_CHECKS = 5000;
-  private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = 60 * 60 * 1000;
+  private static final long TIME_BETWEEN_GC_CHECKS = TimeUnit.SECONDS.toMillis(5);
+  private static final long TIME_BETWEEN_LOCATOR_CACHE_CLEARS = TimeUnit.HOURS.toMillis(1);
 
   final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
   final ZooCache managerLockCache;
@@ -299,7 +300,7 @@ public class TabletServer extends AbstractServer {
               }
             }
           }
-        }), 5000, 5000, TimeUnit.MILLISECONDS);
+        }), 5, 5, TimeUnit.SECONDS);
 
     @SuppressWarnings("deprecation")
     final long walMaxSize =
@@ -366,7 +367,7 @@ public class TabletServer extends AbstractServer {
     config();
   }
 
-  public String getInstanceID() {
+  public InstanceId getInstanceID() {
     return getContext().getInstanceID();
   }
 
@@ -767,8 +768,8 @@ public class TabletServer extends AbstractServer {
       throw new RuntimeException(e);
     }
 
-    ThreadPoolExecutor distWorkQThreadPool = (ThreadPoolExecutor) ThreadPools
-        .createExecutorService(getConfiguration(), Property.TSERV_WORKQ_THREADS);
+    ThreadPoolExecutor distWorkQThreadPool =
+        ThreadPools.createExecutorService(getConfiguration(), Property.TSERV_WORKQ_THREADS, true);
 
     bulkFailedCopyQ =
         new DistributedWorkQueue(getContext().getZooKeeperRoot() + Constants.ZBULK_FAILED_COPYQ,
@@ -797,7 +798,7 @@ public class TabletServer extends AbstractServer {
           setupReplication(aconf);
         }
       }
-    }, 0, 5000, TimeUnit.MILLISECONDS);
+    }, 0, 5, TimeUnit.SECONDS);
 
     int tabletCheckFrequency = 30 + random.nextInt(31); // random 30-60 minute delay
     // Periodically check that metadata of tablets matches what is held in memory
@@ -825,7 +826,7 @@ public class TabletServer extends AbstractServer {
       }
     }, tabletCheckFrequency, tabletCheckFrequency, TimeUnit.MINUTES);
 
-    final long CLEANUP_BULK_LOADED_CACHE_MILLIS = 15 * 60 * 1000;
+    final long CLEANUP_BULK_LOADED_CACHE_MILLIS = TimeUnit.MINUTES.toMillis(15);
     context.getScheduledExecutor().scheduleWithFixedDelay(new BulkImportCacheCleaner(this),
         CLEANUP_BULK_LOADED_CACHE_MILLIS, CLEANUP_BULK_LOADED_CACHE_MILLIS, TimeUnit.MILLISECONDS);
 
@@ -840,7 +841,7 @@ public class TabletServer extends AbstractServer {
           // wait until a message is ready to send, or a sever stop
           // was requested
           while (mm == null && !serverStopRequested) {
-            mm = managerMessages.poll(1000, TimeUnit.MILLISECONDS);
+            mm = managerMessages.poll(1, TimeUnit.SECONDS);
           }
 
           // have a message to send to the manager, so grab a
@@ -906,10 +907,14 @@ public class TabletServer extends AbstractServer {
       }
     }
     log.debug("Stopping Replication Server");
-    TServerUtils.stopTServer(this.replServer);
+    if (this.replServer != null) {
+      this.replServer.stop();
+    }
 
     log.debug("Stopping Thrift Servers");
-    TServerUtils.stopTServer(server);
+    if (server != null) {
+      server.stop();
+    }
 
     try {
       log.debug("Closing filesystems");
@@ -939,8 +944,8 @@ public class TabletServer extends AbstractServer {
     }
 
     // Start the pool to handle outgoing replications
-    final ThreadPoolExecutor replicationThreadPool = (ThreadPoolExecutor) ThreadPools
-        .createExecutorService(getConfiguration(), Property.REPLICATION_WORKER_THREADS);
+    final ThreadPoolExecutor replicationThreadPool = ThreadPools
+        .createExecutorService(getConfiguration(), Property.REPLICATION_WORKER_THREADS, false);
     replWorker.setExecutor(replicationThreadPool);
     replWorker.run();
 
@@ -948,8 +953,8 @@ public class TabletServer extends AbstractServer {
     Runnable replicationWorkThreadPoolResizer = () -> {
       ThreadPools.resizePool(replicationThreadPool, aconf, Property.REPLICATION_WORKER_THREADS);
     };
-    context.getScheduledExecutor().scheduleWithFixedDelay(replicationWorkThreadPoolResizer, 10000,
-        30000, TimeUnit.MILLISECONDS);
+    context.getScheduledExecutor().scheduleWithFixedDelay(replicationWorkThreadPoolResizer, 10, 30,
+        TimeUnit.SECONDS);
   }
 
   public String getClientAddressString() {

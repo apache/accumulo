@@ -127,7 +127,7 @@ public class DeleteRowsSplitIT extends AccumuloClusterHarness {
   private void generateRandomRange(Text start, Text end) {
     List<String> bunch = new ArrayList<>(ROWS);
     Collections.shuffle(bunch);
-    if (bunch.get(0).compareTo((bunch.get(1))) < 0) {
+    if (bunch.get(0).compareTo(bunch.get(1)) < 0) {
       start.set(bunch.get(0));
       end.set(bunch.get(1));
     } else {

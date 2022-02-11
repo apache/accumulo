@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.conf.Configuration;
@@ -201,7 +202,7 @@ public interface VolumeManager extends AutoCloseable {
 
   Logger log = LoggerFactory.getLogger(VolumeManager.class);
 
-  static String getInstanceIDFromHdfs(Path instanceDirectory, Configuration hadoopConf) {
+  static InstanceId getInstanceIDFromHdfs(Path instanceDirectory, Configuration hadoopConf) {
     try {
       FileSystem fs =
           VolumeConfiguration.fileSystemForPath(instanceDirectory.toString(), hadoopConf);
@@ -221,7 +222,7 @@ public interface VolumeManager extends AutoCloseable {
         throw new RuntimeException(
             "Accumulo found multiple possible instance ids in " + instanceDirectory);
       } else {
-        return files[0].getPath().getName();
+        return InstanceId.of(files[0].getPath().getName());
       }
     } catch (IOException e) {
       log.error("Problem reading instance id out of hdfs at " + instanceDirectory, e);

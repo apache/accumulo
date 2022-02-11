@@ -26,6 +26,7 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,10 +38,10 @@ public class ZooCachePropertyAccessor {
   private static final Logger log = LoggerFactory.getLogger(ZooCachePropertyAccessor.class);
 
   static class PropCacheKey {
-    final String instanceId;
+    final InstanceId instanceId;
     final String scope;
 
-    PropCacheKey(String iid, String s) {
+    PropCacheKey(InstanceId iid, String s) {
       instanceId = iid;
       scope = s;
     }

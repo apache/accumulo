@@ -90,7 +90,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
           try {
             client = ManagerClient.getConnectionWithRetry((ClientContext) c);
             stats = client.getManagerStats(TraceUtil.traceInfo(),
-                creds.toThrift(c.instanceOperations().getInstanceID()));
+                creds.toThrift(c.instanceOperations().getInstanceId()));
             break;
           } catch (ThriftNotActiveServiceException e) {
             // Let it loop, fetching a new location

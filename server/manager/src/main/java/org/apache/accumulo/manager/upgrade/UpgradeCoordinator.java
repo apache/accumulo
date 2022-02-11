@@ -20,7 +20,6 @@ package org.apache.accumulo.manager.upgrade;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.OptionalInt;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
@@ -176,8 +175,7 @@ public class UpgradeCoordinator {
 
     if (currentVersion < AccumuloDataVersion.get()) {
       return ThreadPools.createThreadPool(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
-          "UpgradeMetadataThreads", new SynchronousQueue<Runnable>(), OptionalInt.empty())
-          .submit(() -> {
+          "UpgradeMetadataThreads", new SynchronousQueue<>(), false).submit(() -> {
             try {
               for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
                 log.info("Upgrading Root from data version {}", v);
@@ -254,7 +252,7 @@ public class UpgradeCoordinator {
       final ReadOnlyTStore<UpgradeCoordinator> fate =
           new ReadOnlyStore<>(new ZooStore<>(context.getZooKeeperRoot() + Constants.ZFATE,
               context.getZooReaderWriter()));
-      if (!(fate.list().isEmpty())) {
+      if (!fate.list().isEmpty()) {
         throw new AccumuloException("Aborting upgrade because there are"
             + " outstanding FATE transactions from a previous Accumulo version."
             + " You can start the tservers and then use the shell to delete completed "

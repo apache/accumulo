@@ -34,6 +34,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
@@ -58,6 +59,8 @@ import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.util.concurrent.Uninterruptibles;
+
 @Category({ZooKeeperTestingServerTests.class})
 public class ServiceLockIT {
 
@@ -66,7 +69,7 @@ public class ServiceLockIT {
   @BeforeClass
   public static void setup() throws Exception {
     szk = new ZooKeeperTestingServer();
-    szk.initPaths("/accumulo/" + UUID.randomUUID());
+    szk.initPaths("/accumulo/" + InstanceId.of(UUID.randomUUID()));
   }
 
   @AfterClass
@@ -190,7 +193,7 @@ public class ServiceLockIT {
 
   private static ServiceLock getZooLock(ServiceLockPath parent, UUID uuid) {
     var zooKeeper = ZooSession.getAuthenticatedSession(szk.getConn(), 30000, "digest",
-        ("accumulo:secret").getBytes(UTF_8));
+        "accumulo:secret".getBytes(UTF_8));
     return new ServiceLock(zooKeeper, parent, uuid);
   }
 
@@ -621,13 +624,7 @@ public class ServiceLockIT {
       workers.forEach(w -> assertNull(w.getException()));
       assertEquals(0, zk.getChildren(parent.toString(), false).size());
 
-      threads.forEach(t -> {
-        try {
-          t.join();
-        } catch (InterruptedException e) {
-          // ignore
-        }
-      });
+      threads.forEach(Uninterruptibles::joinUninterruptibly);
     }
 
   }

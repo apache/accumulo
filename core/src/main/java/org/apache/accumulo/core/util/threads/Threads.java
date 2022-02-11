@@ -21,16 +21,12 @@ package org.apache.accumulo.core.util.threads;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.OptionalInt;
 
-import io.opentelemetry.context.Context;
+import org.apache.accumulo.core.trace.TraceUtil;
 
 public class Threads {
 
   public static Runnable createNamedRunnable(String name, Runnable r) {
     return new NamedRunnable(name, r);
-  }
-
-  public static Runnable createNamedRunnable(String name, OptionalInt priority, Runnable r) {
-    return new NamedRunnable(name, priority, r);
   }
 
   private static final UncaughtExceptionHandler UEH = new AccumuloUncaughtExceptionHandler();
@@ -40,19 +36,8 @@ public class Threads {
   }
 
   public static Thread createThread(String name, OptionalInt priority, Runnable r) {
-    Thread thread = new Thread(Context.current().wrap(r), name);
-    boolean prioritySet = false;
-    if (r instanceof NamedRunnable) {
-      NamedRunnable nr = (NamedRunnable) r;
-      if (nr.getPriority().isPresent()) {
-        thread.setPriority(nr.getPriority().getAsInt());
-        prioritySet = true;
-      }
-    }
-    // Don't override priority set in NamedRunnable, if set
-    if (priority.isPresent() && !prioritySet) {
-      thread.setPriority(priority.getAsInt());
-    }
+    Thread thread = new Thread(TraceUtil.wrap(r), name);
+    priority.ifPresent(thread::setPriority);
     thread.setDaemon(true);
     thread.setUncaughtExceptionHandler(UEH);
     return thread;
