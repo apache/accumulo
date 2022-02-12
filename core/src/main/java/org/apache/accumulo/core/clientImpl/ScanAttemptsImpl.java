@@ -18,17 +18,18 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import com.google.common.collect.Sets;
-import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.spi.scan.EcScanManager;
-import org.apache.accumulo.core.spi.scan.EcScanManager.ScanAttempt;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.SortedSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+
+import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.spi.scan.EcScanManager;
+import org.apache.accumulo.core.spi.scan.EcScanManager.ScanAttempt;
+
+import com.google.common.collect.Sets;
 
 public class ScanAttemptsImpl {
 
@@ -51,32 +52,37 @@ public class ScanAttemptsImpl {
       this.tablet = tablet;
     }
 
-    @Override public long getTime() {
+    @Override
+    public long getTime() {
       return time;
     }
 
-    @Override public Result getResult() {
+    @Override
+    public Result getResult() {
       return result;
     }
 
-    @Override public EcScanManager.Action getAction() {
+    @Override
+    public EcScanManager.Action getAction() {
       return requestedAction;
     }
 
-    @Override public String getServer() {
+    @Override
+    public String getServer() {
       return server;
     }
 
-    @Override public TabletId getTablet() {
+    @Override
+    public TabletId getTablet() {
       return tablet;
     }
 
-    private static Comparator<ScanAttempt> COMPARATOR =
-        Comparator.comparingLong(ScanAttempt::getTime).reversed()
-            .thenComparing(ScanAttempt::getServer).thenComparing(ScanAttempt::getResult)
-            .thenComparing(ScanAttempt::getAction);
+    private static Comparator<ScanAttempt> COMPARATOR = Comparator
+        .comparingLong(ScanAttempt::getTime).reversed().thenComparing(ScanAttempt::getServer)
+        .thenComparing(ScanAttempt::getResult).thenComparing(ScanAttempt::getAction);
 
-    @Override public int compareTo(ScanAttempt o) {
+    @Override
+    public int compareTo(ScanAttempt o) {
       return COMPARATOR.compare(this, o);
     }
 
@@ -123,17 +129,20 @@ public class ScanAttemptsImpl {
     }
 
     return new EcScanManager.ScanAttempts() {
-      @Override public Collection<ScanAttempt> all() {
+      @Override
+      public Collection<ScanAttempt> all() {
         return Sets.filter(attempts,
             attempt -> ((ScanAttemptImpl) attempt).getMutationCount() <= snapMC);
       }
 
-      @Override public SortedSet<ScanAttempt> forServer(String server) {
+      @Override
+      public SortedSet<ScanAttempt> forServer(String server) {
         return Sets.filter(attemptsByServer.getOrDefault(server, Collections.emptySortedSet()),
             attempt -> ((ScanAttemptImpl) attempt).getMutationCount() <= snapMC);
       }
 
-      @Override public SortedSet<ScanAttempt> forTablet(TabletId tablet) {
+      @Override
+      public SortedSet<ScanAttempt> forTablet(TabletId tablet) {
         return Sets.filter(attemptsByServer.getOrDefault(tablet, Collections.emptySortedSet()),
             attempt -> ((ScanAttemptImpl) attempt).getMutationCount() <= snapMC);
       }

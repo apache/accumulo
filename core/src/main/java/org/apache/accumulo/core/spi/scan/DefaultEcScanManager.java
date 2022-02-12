@@ -1,8 +1,5 @@
 package org.apache.accumulo.core.spi.scan;
 
-import com.google.common.hash.Hashing;
-import org.apache.accumulo.core.data.TabletId;
-
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -11,6 +8,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.SortedSet;
 
+import org.apache.accumulo.core.data.TabletId;
+
+import com.google.common.hash.Hashing;
+
 public class DefaultEcScanManager implements EcScanManager {
 
   private static final long INITIAL_SLEEP_TIME = 100L;
@@ -18,19 +19,23 @@ public class DefaultEcScanManager implements EcScanManager {
   private final int INITIAL_SERVERS = 3;
   private final int MAX_DEPTH = 3;
 
-  @Override public EcScanActions determineActions(DaParamaters params) {
+  @Override
+  public EcScanActions determineActions(DaParamaters params) {
 
     if (params.getScanServers().isEmpty()) {
       return new EcScanActions() {
-        @Override public Action getAction(TabletId tablet) {
+        @Override
+        public Action getAction(TabletId tablet) {
           return Action.USE_TABLET_SERVER;
         }
 
-        @Override public String getScanServer(TabletId tablet) {
+        @Override
+        public String getScanServer(TabletId tablet) {
           return null;
         }
 
-        @Override public Duration getDelay(String server) {
+        @Override
+        public Duration getDelay(String server) {
           // TODO is delay needed if there were prev errors?
           return Duration.ZERO;
         }
@@ -48,9 +53,8 @@ public class DefaultEcScanManager implements EcScanManager {
       long sleepTime = 0;
       String serverToUse;
 
-      if (!attempts.isEmpty() && attempts.last()
-          .getResult() == ScanAttempt.Result.SUCCESS && params.getScanServers()
-          .contains(attempts.last().getServer())) {
+      if (!attempts.isEmpty() && attempts.last().getResult() == ScanAttempt.Result.SUCCESS
+          && params.getScanServers().contains(attempts.last().getServer())) {
         // Stick with what was chosen last time
         serverToUse = attempts.last().getServer();
       } else {
@@ -63,9 +67,9 @@ public class DefaultEcScanManager implements EcScanManager {
         int numServers;
 
         if (busyAttempts < MAX_DEPTH) {
-          numServers = (int) Math.round(INITIAL_SERVERS * Math.pow(
-              params.getOrderedScanServers().size() / (double) INITIAL_SERVERS,
-              busyAttempts / (double) MAX_DEPTH));
+          numServers = (int) Math.round(INITIAL_SERVERS
+              * Math.pow(params.getOrderedScanServers().size() / (double) INITIAL_SERVERS,
+                  busyAttempts / (double) MAX_DEPTH));
         } else {
           numServers = params.getOrderedScanServers().size();
         }
@@ -85,15 +89,18 @@ public class DefaultEcScanManager implements EcScanManager {
     }
 
     return new EcScanActions() {
-      @Override public Action getAction(TabletId tablet) {
+      @Override
+      public Action getAction(TabletId tablet) {
         return Action.USE_SCAN_SERVER;
       }
 
-      @Override public String getScanServer(TabletId tablet) {
+      @Override
+      public String getScanServer(TabletId tablet) {
         return serversMap.get(tablet);
       }
 
-      @Override public Duration getDelay(String server) {
+      @Override
+      public Duration getDelay(String server) {
         return Duration.of(sleepTimes.getOrDefault(server, 0L), ChronoUnit.MILLIS);
       }
     };

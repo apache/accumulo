@@ -471,11 +471,12 @@ public class ThriftScanner {
 
         @Override
         public Set<String> getScanServers() {
-          //TODO can this copy and set creation be avoided?
+          // TODO can this copy and set creation be avoided?
           return new HashSet<>(scanServers);
         }
 
-        @Override public List<String> getOrderedScanServers() {
+        @Override
+        public List<String> getOrderedScanServers() {
           // TODO sort
           return scanServers;
         }
@@ -493,7 +494,7 @@ public class ThriftScanner {
       var action = actions.getAction(tabletId);
 
       if (actions.getAction(tabletId) == EcScanManager.Action.USE_SCAN_SERVER) {
-        //TODO what to use for session?
+        // TODO what to use for session?
         newLoc = new TabletLocation(loc.tablet_extent, actions.getScanServer(tabletId), "none");
       } else {
         // TODO handle other cases like wait... for now just use tserver
@@ -502,13 +503,13 @@ public class ThriftScanner {
 
       try {
         var ret = scanRpc(newLoc, scanState, context);
-        scanState.scanAttempts.add(action, actions.getScanServer(tabletId), System.currentTimeMillis(),
-            EcScanManager.ScanAttempt.Result.SUCCESS, tabletId);
+        scanState.scanAttempts.add(action, actions.getScanServer(tabletId),
+            System.currentTimeMillis(), EcScanManager.ScanAttempt.Result.SUCCESS, tabletId);
         return ret;
-      } catch (AccumuloSecurityException|TException e) {
+      } catch (AccumuloSecurityException | TException e) {
         // TODO need to handle busy case
-        scanState.scanAttempts.add(action, actions.getScanServer(tabletId), System.currentTimeMillis(),
-            EcScanManager.ScanAttempt.Result.ERROR, tabletId);
+        scanState.scanAttempts.add(action, actions.getScanServer(tabletId),
+            System.currentTimeMillis(), EcScanManager.ScanAttempt.Result.ERROR, tabletId);
         throw e;
       }
     } else {
@@ -516,16 +517,16 @@ public class ThriftScanner {
     }
   }
 
-
-  private static List<KeyValue> scanRpc(TabletLocation loc, ScanState scanState, ClientContext context)
-      throws AccumuloSecurityException, NotServingTabletException, TException,
-      NoSuchScanIDException, TooManyFilesException, TSampleNotPresentException {
+  private static List<KeyValue> scanRpc(TabletLocation loc, ScanState scanState,
+      ClientContext context) throws AccumuloSecurityException, NotServingTabletException,
+      TException, NoSuchScanIDException, TooManyFilesException, TSampleNotPresentException {
 
     OpTimer timer = null;
 
     final TInfo tinfo = TraceUtil.traceInfo();
 
-    HostAndPort parsedLocation =  HostAndPort.fromString(loc.tablet_location);;
+    HostAndPort parsedLocation = HostAndPort.fromString(loc.tablet_location);
+    ;
 
     TabletClientService.Client client = ThriftUtil.getTServerClient(parsedLocation, context);
 

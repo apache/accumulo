@@ -546,8 +546,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         return new HashSet<>(scanServers);
       }
 
-      @Override public List<String> getOrderedScanServers() {
-        //TODO sort
+      @Override
+      public List<String> getOrderedScanServers() {
+        // TODO sort
         return scanServers;
       }
 
@@ -557,17 +558,17 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         return new EcScanManager.ScanAttempts() {
           @Override
           public List<EcScanManager.ScanAttempt> all() {
-            return List.of(); //TODO
+            return List.of(); // TODO
           }
 
           @Override
           public SortedSet<EcScanManager.ScanAttempt> forServer(String server) {
-            return  new TreeSet<>(); //TODO
+            return new TreeSet<>(); // TODO
           }
 
           @Override
           public SortedSet<EcScanManager.ScanAttempt> forTablet(TabletId tablet) {
-            return new TreeSet<>(); //TODO
+            return new TreeSet<>(); // TODO
           }
         };
       }
