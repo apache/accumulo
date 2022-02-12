@@ -21,19 +21,9 @@ package org.apache.accumulo.core.clientImpl;
 import static org.apache.accumulo.core.clientImpl.ScanServerDiscovery.getScanServers;
 
 import java.io.IOException;
+import java.util.*;
 import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
@@ -551,7 +541,13 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       }
 
       @Override
-      public List<String> getScanServers() {
+      public Set<String> getScanServers() {
+        // TODO can copy be avoided?
+        return new HashSet<>(scanServers);
+      }
+
+      @Override public List<String> getOrderedScanServers() {
+        //TODO sort
         return scanServers;
       }
 
@@ -561,17 +557,17 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         return new EcScanManager.ScanAttempts() {
           @Override
           public List<EcScanManager.ScanAttempt> all() {
-            return List.of();
+            return List.of(); //TODO
           }
 
           @Override
-          public List<EcScanManager.ScanAttempt> forServer(String server) {
-            return List.of();
+          public SortedSet<EcScanManager.ScanAttempt> forServer(String server) {
+            return  new TreeSet<>(); //TODO
           }
 
           @Override
-          public List<EcScanManager.ScanAttempt> forTablet(TabletId tablet) {
-            return List.of();
+          public SortedSet<EcScanManager.ScanAttempt> forTablet(TabletId tablet) {
+            return new TreeSet<>(); //TODO
           }
         };
       }

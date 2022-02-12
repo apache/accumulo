@@ -501,9 +501,10 @@ public class ThriftScanner {
       }
 
       try {
-        scanRpc(newLoc, scanState, context);
+        var ret = scanRpc(newLoc, scanState, context);
         scanState.scanAttempts.add(action, actions.getScanServer(tabletId), System.currentTimeMillis(),
             EcScanManager.ScanAttempt.Result.SUCCESS, tabletId);
+        return ret;
       } catch (AccumuloSecurityException|TException e) {
         // TODO need to handle busy case
         scanState.scanAttempts.add(action, actions.getScanServer(tabletId), System.currentTimeMillis(),
@@ -511,7 +512,7 @@ public class ThriftScanner {
         throw e;
       }
     } else {
-      scanRpc(loc, scanState, context);
+      return scanRpc(loc, scanState, context);
     }
   }
 
