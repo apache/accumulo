@@ -34,22 +34,6 @@ import com.google.common.base.Preconditions;
 // EcScan(Manager/Dispatcher/Govenor)
 public interface EcScanManager {
 
-  class ScanServerLocatorException extends Exception {
-    private static final long serialVersionUID = 1L;
-
-    public ScanServerLocatorException() {
-      super();
-    }
-
-    public ScanServerLocatorException(String message, Throwable cause) {
-      super(message, cause);
-    }
-  }
-
-  class NoAvailableScanServerException extends Exception {
-    private static final long serialVersionUID = 1L;
-  }
-
   public interface InitParameters {
     Map<String,String> getOptions();
 
@@ -65,46 +49,22 @@ public interface EcScanManager {
 
   // this object is used to communicate what the previous actions were attempted, when they were
   // attempted, and the result of the attempt
-  public static class ScanAttempt implements Comparable<ScanAttempt>{
-
-    private final Action requestedAction;
-    private final String server;
-    private final long time;
-    private final Result result;
+  interface ScanAttempt extends Comparable<ScanAttempt> {
 
     // represents reasons that previous attempts to scan failed
     enum Result {
       BUSY, IO_ERROR, ERROR, SUCCESS
     }
 
-    public ScanAttempt(Action action, String server, long time, Result result) {
-      this.requestedAction = action;
-      this.server = server;
-      this.time = time;
-      this.result = result;
-    }
+    long getTime();
 
-    public long getTime() {
-      return time;
-    }
+    Result getResult();
 
-    public Result getResult() {
-      return result;
-    }
+    EcScanManager.Action getAction();
 
-    public Action getAction() {
-      return action;
-    }
+    String getServer();
 
-    public String getServer() {
-      return server;
-    }
-
-    private static Comparator<ScanAttempt> COMPARATOR = Comparator.comparingLong(ScanAttempt::getTime).reversed().thenComparing(ScanAttempt::getServer).thenComparing(ScanAttempt::getResult).thenComparing(ScanAttempt::getAction);
-
-    @Override public int compareTo(ScanAttempt o) {
-      return COMPARATOR.compare(this, o);
-    }
+    TabletId getTablet();
   }
 
   public interface ScanAttempts {

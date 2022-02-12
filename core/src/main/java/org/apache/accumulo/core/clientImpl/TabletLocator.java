@@ -38,6 +38,7 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Interner;
 import org.apache.hadoop.io.Text;
 

@@ -55,7 +55,6 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.scan.EcScanManager;
 import org.apache.accumulo.core.spi.scan.EcScanManager.EcScanActions;
-import org.apache.accumulo.core.spi.scan.EcScanManager.NoAvailableScanServerException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
@@ -177,6 +176,8 @@ public class ThriftScanner {
     SamplerConfiguration samplerConfig;
     Map<String,String> executionHints;
 
+    ScanAttemptsImpl scanAttempts;
+
     public ScanState(ClientContext context, TableId tableId, Authorizations authorizations,
         Range range, SortedSet<Column> fetchedColumns, int size,
         List<IterInfo> serverSideIteratorList,
@@ -221,6 +222,10 @@ public class ThriftScanner {
         this.executionHints = executionHints;
 
       this.runOnScanServer = useScanServer;
+
+      if (useScanServer) {
+        scanAttempts = new ScanAttemptsImpl();
+      }
     }
   }
 
@@ -424,27 +429,6 @@ public class ThriftScanner {
 
           TraceUtil.setException(child2, e, false);
           sleepMillis = pause(sleepMillis, maxSleepTime);
-        } catch (NoAvailableScanServerException e) {
-          error = "Scan failed, no available scan server for extent: " + loc.tablet_extent;
-          if (!error.equals(lastError))
-            log.debug("{}", error);
-          else if (log.isTraceEnabled())
-            log.trace("{}", error);
-          lastError = error;
-          loc = null;
-
-          // do not want to continue using the same scan id, if a timeout occurred could cause a
-          // batch to be skipped
-          // because a thread on the server side may still be processing the timed out continue scan
-          scanState.scanID = null;
-
-          if (scanState.isolated) {
-            TraceUtil.setException(child2, e, true);
-            throw new IsolationException();
-          }
-
-          TraceUtil.setException(child2, e, false);
-          sleepMillis = pause(sleepMillis, maxSleepTime);
         } finally {
           child2.end();
         }
@@ -465,16 +449,9 @@ public class ThriftScanner {
 
   private static List<KeyValue> scan(TabletLocation loc, ScanState scanState, ClientContext context)
       throws AccumuloSecurityException, NotServingTabletException, TException,
-      NoSuchScanIDException, TooManyFilesException, TSampleNotPresentException,
-      NoAvailableScanServerException {
+      NoSuchScanIDException, TooManyFilesException, TSampleNotPresentException {
     if (scanState.finished)
       return null;
-
-    OpTimer timer = null;
-
-    final TInfo tinfo = TraceUtil.traceInfo();
-
-    HostAndPort parsedLocation = null;
 
     if (scanState.runOnScanServer) {
 
@@ -484,52 +461,70 @@ public class ThriftScanner {
 
       var params = new EcScanManager.DaParamaters() {
 
+        // obtain a snapshot once and always use it
+        EcScanManager.ScanAttempts attempts = scanState.scanAttempts.snapshot();
+
         @Override
         public List<TabletId> getTablets() {
           return List.of(tabletId);
         }
 
         @Override
-        public List<String> getScanServers() {
+        public Set<String> getScanServers() {
+          //TODO can this copy and set creation be avoided?
+          return new HashSet<>(scanServers);
+        }
+
+        @Override public List<String> getOrderedScanServers() {
+          // TODO sort
           return scanServers;
         }
 
         @Override
         public EcScanManager.ScanAttempts getScanAttempts() {
-          // TODO implement tracking and passing history
-          return new EcScanManager.ScanAttempts() {
-            @Override
-            public List<EcScanManager.ScanAttempt> all() {
-              return List.of();
-            }
-
-            @Override
-            public List<EcScanManager.ScanAttempt> forServer(String server) {
-              return List.of();
-            }
-
-            @Override
-            public List<EcScanManager.ScanAttempt> forTablet(TabletId tablet) {
-              return List.of();
-            }
-          };
+          return attempts;
         }
       };
 
       EcScanActions actions = context.getEcScanManager().determineActions(params);
 
+      TabletLocation newLoc;
+
+      var action = actions.getAction(tabletId);
+
       if (actions.getAction(tabletId) == EcScanManager.Action.USE_SCAN_SERVER) {
-        parsedLocation = HostAndPort.fromString(actions.getScanServer(tabletId));
+        //TODO what to use for session?
+        newLoc = new TabletLocation(loc.tablet_extent, actions.getScanServer(tabletId), "none");
       } else {
         // TODO handle other cases like wait... for now just use tserver
-        parsedLocation = HostAndPort.fromString(loc.tablet_location);
+        newLoc = loc;
       }
 
+      try {
+        scanRpc(newLoc, scanState, context);
+        scanState.scanAttempts.add(action, actions.getScanServer(tabletId), System.currentTimeMillis(),
+            EcScanManager.ScanAttempt.Result.SUCCESS, tabletId);
+      } catch (AccumuloSecurityException|TException e) {
+        // TODO need to handle busy case
+        scanState.scanAttempts.add(action, actions.getScanServer(tabletId), System.currentTimeMillis(),
+            EcScanManager.ScanAttempt.Result.ERROR, tabletId);
+        throw e;
+      }
     } else {
-      // TODO refactor code such that the tablet location is not looked up in the metadata table
-      // unless its needed
-      parsedLocation = HostAndPort.fromString(loc.tablet_location);
+      scanRpc(loc, scanState, context);
     }
+  }
+
+
+  private static List<KeyValue> scanRpc(TabletLocation loc, ScanState scanState, ClientContext context)
+      throws AccumuloSecurityException, NotServingTabletException, TException,
+      NoSuchScanIDException, TooManyFilesException, TSampleNotPresentException {
+
+    OpTimer timer = null;
+
+    final TInfo tinfo = TraceUtil.traceInfo();
+
+    HostAndPort parsedLocation =  HostAndPort.fromString(loc.tablet_location);;
 
     TabletClientService.Client client = ThriftUtil.getTServerClient(parsedLocation, context);
 
