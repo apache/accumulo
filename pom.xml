@@ -142,7 +142,7 @@
     <minimalMavenBuildVersion>3.5.0</minimalMavenBuildVersion>
     <powermock.version>2.0.9</powermock.version>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
-    <project.build.outputTimestamp>2020-12-17T22:06:50Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2022-02-08T14:59:16Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
     <slf4j.version>1.7.35</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
