@@ -346,19 +346,6 @@ public class SortedLogRecoveryTest {
   }
 
   @Test
-  public void testMissingDefinition() {
-    // Create a test log
-    KeyValue[] entries = {createKeyValue(OPEN, 0, -1, "1"),};
-    Map<String,KeyValue[]> logs = new TreeMap<>();
-    logs.put("testlog", entries);
-    // Recover
-    try {
-      recover(logs, extent);
-      fail("tablet should not have been found");
-    } catch (Throwable t) {}
-  }
-
-  @Test
   public void testSimple() throws IOException {
     // Create a test log
     Mutation m = new ServerMutation(new Text("row1"));
