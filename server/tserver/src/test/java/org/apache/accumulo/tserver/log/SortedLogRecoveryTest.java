@@ -818,7 +818,7 @@ public class SortedLogRecoveryTest {
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
 
-    HashSet<String> filesSet = new HashSet<>(List.of(tabletFiles));
+    HashSet<String> filesSet = new HashSet<>(Arrays.asList(tabletFiles));
     List<Mutation> mutations = recover(logs, filesSet, extent, bufferSize);
 
     if (startMatches) {
