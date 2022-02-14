@@ -486,9 +486,7 @@ public class SampleIT extends AccumuloClusterHarness {
 
       final String message = "Expected SampleNotPresentException, but it did not happen : "
           + scanner.getClass().getSimpleName();
-      assertThrows(message, SampleNotPresentException.class, () -> {
-        var ignored = scanner.iterator().next().getKey();
-      });
+      assertThrows(message, SampleNotPresentException.class, () -> scanner.iterator().next());
 
       scanner.clearSamplerConfiguration();
       for (Entry<Key,Value> entry : scanner) {

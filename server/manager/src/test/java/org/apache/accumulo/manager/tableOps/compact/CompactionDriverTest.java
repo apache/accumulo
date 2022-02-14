@@ -69,10 +69,10 @@ public class CompactionDriverTest {
     var e = assertThrows(AcceptableThriftTableOperationException.class,
         () -> driver.isReady(tableIdLong, manager));
 
-    assertTrue("Unexpected error thrown: " + e.getMessage(),
-        e.getTableId().equals(tableId.toString()) && e.getOp().equals(TableOperation.COMPACT)
-            && e.getType().equals(TableOperationExceptionType.OTHER)
-            && e.getDescription().equals(TableOperationsImpl.COMPACTION_CANCELED_MSG));
+    assertTrue(e.getTableId().equals(tableId.toString()));
+    assertTrue(e.getOp().equals(TableOperation.COMPACT));
+    assertTrue(e.getType().equals(TableOperationExceptionType.OTHER));
+    assertTrue(e.getDescription().equals(TableOperationsImpl.COMPACTION_CANCELED_MSG));
 
     EasyMock.verify(manager, ctx, zrw);
   }
@@ -110,10 +110,10 @@ public class CompactionDriverTest {
     var e = assertThrows(AcceptableThriftTableOperationException.class,
         () -> driver.isReady(tableIdLong, manager));
 
-    assertTrue("Unexpected error thrown: " + e.getMessage(),
-        e.getTableId().equals(tableId.toString()) && e.getOp().equals(TableOperation.COMPACT)
-            && e.getType().equals(TableOperationExceptionType.OTHER)
-            && e.getDescription().equals(TableOperationsImpl.TABLE_DELETED_MSG));
+    assertTrue(e.getTableId().equals(tableId.toString()));
+    assertTrue(e.getOp().equals(TableOperation.COMPACT));
+    assertTrue(e.getType().equals(TableOperationExceptionType.OTHER));
+    assertTrue(e.getDescription().equals(TableOperationsImpl.TABLE_DELETED_MSG));
 
     EasyMock.verify(manager, ctx, zrw);
   }

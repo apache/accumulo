@@ -102,9 +102,8 @@ public class TimeoutIT extends AccumuloClusterHarness {
       iterSetting.addOption("sleepTime", 2000 + "");
       bs.addScanIterator(iterSetting);
 
-      assertThrows("batch scanner did not time out", TimedOutException.class, () -> {
-        var ignored = bs.iterator().next().getKey();
-      });
+      assertThrows("batch scanner did not time out", TimedOutException.class,
+          () -> bs.iterator().next());
     }
   }
 
