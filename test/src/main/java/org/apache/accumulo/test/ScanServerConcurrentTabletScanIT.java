@@ -87,7 +87,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
 
     Map<String,String> overrides = new HashMap<>();
     overrides.put(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION.getKey(),
-        cacheEnabled ? "5m" : "0m");
+        cacheEnabled ? "300m" : "0m");
     SharedMiniClusterBase.getCluster().getClusterControl().start(ServerType.SCAN_SERVER, overrides,
         1);
     while (zrw.getChildren(scanServerRoot).size() == 0) {
