@@ -267,7 +267,6 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           try {
             for (Process sserver : scanServerProcesses) {
               try {
-                log.info("Stopping scan server: {}", sserver);
                 cluster.stopProcessWithTimeout(sserver, 30, TimeUnit.SECONDS);
               } catch (ExecutionException | TimeoutException e) {
                 log.warn("ScanServer did not fully stop after 30 seconds", e);
