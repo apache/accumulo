@@ -56,6 +56,7 @@ public class MiniAccumuloConfigImpl {
   private Map<String,String> configuredSiteConig = new HashMap<>();
   private Map<String,String> clientProps = new HashMap<>();
   private int numTservers = 2;
+  private int numCompactors = 1;
   private Map<ServerType,Long> memoryConfig = new HashMap<>();
   private boolean jdwpEnabled = false;
   private Map<String,String> systemProperties = new HashMap<>();
@@ -790,5 +791,24 @@ public class MiniAccumuloConfigImpl {
    */
   public void setRootUserName(String rootUserName) {
     this.rootUserName = rootUserName;
+  }
+
+  /**
+   * @return number of Compactors
+   * @since 2.1.0
+   */
+  public int getNumCompactors() {
+    return numCompactors;
+  }
+
+  /**
+   * Set number of Compactors
+   *
+   * @param numCompactors
+   *          number of compactors
+   * @since 2.1.0
+   */
+  public void setNumCompactors(int numCompactors) {
+    this.numCompactors = numCompactors;
   }
 }
