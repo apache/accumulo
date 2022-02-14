@@ -805,6 +805,7 @@ public class MiniAccumuloConfigImpl {
    * Set number of Compactors
    *
    * @param numCompactors
+   *          number of compactors
    * @since 2.1.0
    */
   public void setNumCompactors(int numCompactors) {
