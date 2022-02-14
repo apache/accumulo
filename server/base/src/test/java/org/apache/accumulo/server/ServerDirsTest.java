@@ -19,7 +19,7 @@
 package org.apache.accumulo.server;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import java.io.File;
 import java.io.IOException;
@@ -102,28 +102,12 @@ public class ServerDirsTest {
   private void verifySomePass(Set<String> paths) {
     Set<String> subset = paths.stream().limit(2).collect(Collectors.toSet());
     assertEquals(subset, constants.checkBaseUris(hadoopConf, paths, true));
-    try {
-      constants.checkBaseUris(hadoopConf, paths, false);
-      fail();
-    } catch (Exception e) {
-      // ignored
-    }
+    assertThrows(RuntimeException.class, () -> constants.checkBaseUris(hadoopConf, paths, false));
   }
 
   private void verifyError(Set<String> paths) {
-    try {
-      constants.checkBaseUris(hadoopConf, paths, true);
-      fail();
-    } catch (Exception e) {
-      // ignored
-    }
-
-    try {
-      constants.checkBaseUris(hadoopConf, paths, false);
-      fail();
-    } catch (Exception e) {
-      // ignored
-    }
+    assertThrows(RuntimeException.class, () -> constants.checkBaseUris(hadoopConf, paths, true));
+    assertThrows(RuntimeException.class, () -> constants.checkBaseUris(hadoopConf, paths, false));
   }
 
   private Set<String> init(File newFile, List<String> uuids, List<Integer> dataVersions)

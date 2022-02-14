@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -105,12 +105,8 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
           future.get();
         }
 
-        try {
-          c.createScanner(table, Authorizations.EMPTY);
-          fail("Expected table " + table + " to be gone.");
-        } catch (TableNotFoundException tnfe) {
-          // expected
-        }
+        assertThrows("Expected table " + table + " to be gone.", TableNotFoundException.class,
+            () -> c.createScanner(table, Authorizations.EMPTY));
 
         FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
       }
@@ -213,12 +209,8 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
           future.get();
         }
 
-        try {
-          c.createScanner(table, Authorizations.EMPTY);
-          fail("Expected table " + table + " to be gone.");
-        } catch (TableNotFoundException tnfe) {
-          // expected
-        }
+        assertThrows("Expected table " + table + " to be gone.", TableNotFoundException.class,
+            () -> c.createScanner(table, Authorizations.EMPTY));
 
         FunctionalTestUtils.assertNoDanglingFateLocks((ClientContext) c, getCluster());
       }

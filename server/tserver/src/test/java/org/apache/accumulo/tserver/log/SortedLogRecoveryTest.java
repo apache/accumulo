@@ -1074,12 +1074,8 @@ public class SortedLogRecoveryTest {
     // test all the possible properties for tserver.sort.file. prefix
     String prop = Property.TSERV_WAL_SORT_FILE_PREFIX + "invalid";
     testConfig.set(prop, "snappy");
-    try {
-      new LogSorter(context, testConfig);
-      fail("Did not throw IllegalArgumentException for " + prop);
-    } catch (IllegalArgumentException e) {
-      // valid for test
-    }
+    assertThrows("Did not throw IllegalArgumentException for " + prop,
+        IllegalArgumentException.class, () -> new LogSorter(context, testConfig));
   }
 
   @Test

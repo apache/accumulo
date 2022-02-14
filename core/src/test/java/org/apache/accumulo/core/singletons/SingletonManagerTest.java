@@ -20,8 +20,8 @@ package org.apache.accumulo.core.singletons;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.junit.Before;
@@ -121,10 +121,8 @@ public class SingletonManagerTest {
     assertEquals(new TestService(false, 0, 1), service1);
     assertEquals(new TestService(false, 1, 1), service2);
 
-    try {
-      SingletonManager.setMode(Mode.CONNECTOR);
-      fail("Should only be able to set mode to CONNECTOR once");
-    } catch (IllegalStateException e) {}
+    assertThrows("Should only be able to set mode to CONNECTOR once", IllegalStateException.class,
+        () -> SingletonManager.setMode(Mode.CONNECTOR));
 
     assertEquals(Mode.CLIENT, SingletonManager.getMode());
   }

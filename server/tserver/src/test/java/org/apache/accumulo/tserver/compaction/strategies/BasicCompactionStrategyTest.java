@@ -21,8 +21,8 @@ package org.apache.accumulo.tserver.compaction.strategies;
 import static org.apache.accumulo.tserver.compaction.DefaultCompactionStrategyTest.getServerContext;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -115,24 +115,14 @@ public class BasicCompactionStrategyTest {
 
   @Test
   public void testMissingType() {
-    try {
-      opts.remove(BasicCompactionStrategy.LARGE_FILE_COMPRESSION_TYPE);
-      ttcs.init(opts);
-      fail("IllegalArgumentException should have been thrown.");
-    } catch (IllegalArgumentException iae) {} catch (Throwable t) {
-      fail("IllegalArgumentException should have been thrown.");
-    }
+    opts.remove(BasicCompactionStrategy.LARGE_FILE_COMPRESSION_TYPE);
+    assertThrows(IllegalArgumentException.class, () -> ttcs.init(opts));
   }
 
   @Test
   public void testMissingThreshold() {
-    try {
-      opts.remove(BasicCompactionStrategy.LARGE_FILE_COMPRESSION_THRESHOLD);
-      ttcs.init(opts);
-      fail("IllegalArgumentException should have been thrown.");
-    } catch (IllegalArgumentException iae) {} catch (Throwable t) {
-      fail("IllegalArgumentException should have been thrown.");
-    }
+    opts.remove(BasicCompactionStrategy.LARGE_FILE_COMPRESSION_THRESHOLD);
+    assertThrows(IllegalArgumentException.class, () -> ttcs.init(opts));
   }
 
   @Test

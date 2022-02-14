@@ -19,8 +19,8 @@
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.Set;
 
@@ -28,6 +28,7 @@ import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -39,28 +40,28 @@ public class UsersIT extends AccumuloClusterHarness {
   public void testCreateExistingUser() throws Exception {
     ClusterUser user0 = getUser(0);
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      Set<String> currentUsers = client.securityOperations().listLocalUsers();
+      SecurityOperations securityOperations = client.securityOperations();
+      Set<String> currentUsers = securityOperations.listLocalUsers();
+      final String user0Principal = user0.getPrincipal();
 
       // Ensure that the user exists
-      if (!currentUsers.contains(user0.getPrincipal())) {
+      if (!currentUsers.contains(user0Principal)) {
         PasswordToken token = null;
         if (!saslEnabled()) {
           token = new PasswordToken(user0.getPassword());
         }
-        client.securityOperations().createLocalUser(user0.getPrincipal(), token);
+        securityOperations.createLocalUser(user0Principal, token);
       }
 
-      try {
-        client.securityOperations().createLocalUser(user0.getPrincipal(),
-            new PasswordToken("better_fail"));
-        fail("Creating a user that already exists should throw an exception");
-      } catch (AccumuloSecurityException e) {
-        assertSame("Expected USER_EXISTS error", SecurityErrorCode.USER_EXISTS,
-            e.getSecurityErrorCode());
-        String msg = e.getMessage();
-        assertTrue("Error message didn't contain principal: '" + msg + "'",
-            msg.contains(user0.getPrincipal()));
-      }
+      final PasswordToken badToken = new PasswordToken("better_fail");
+      var ase = assertThrows("Creating a user that already exists should throw an exception",
+          AccumuloSecurityException.class,
+          () -> securityOperations.createLocalUser(user0Principal, badToken));
+      assertSame("Expected USER_EXISTS error", SecurityErrorCode.USER_EXISTS,
+          ase.getSecurityErrorCode());
+      String msg = ase.getMessage();
+      assertTrue("Error message didn't contain principal: '" + msg + "'",
+          msg.contains(user0Principal));
     }
   }
 

@@ -22,7 +22,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -36,7 +35,6 @@ import java.util.TreeSet;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
-import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -68,8 +66,6 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.compaction.ExternalCompaction_1_IT.TestFilter;
@@ -78,16 +74,14 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.internal.Maps;
 
 public class ExternalCompactionTestUtils {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ExternalCompactionTestUtils.class);
-
   public static final int MAX_DATA = 1000;
+  public static final String QUEUE1 = "DCQ1";
+  public static final String QUEUE2 = "DCQ2";
 
   public static String row(int r) {
     return String.format("r:%04d", r);
@@ -188,22 +182,6 @@ public class ExternalCompactionTestUtils {
     }
   }
 
-  public static void stopProcesses(ProcessInfo... processes) throws Exception {
-    for (ProcessInfo p : processes) {
-      if (p != null) {
-        Process proc = p.getProcess();
-        if (proc.supportsNormalTermination()) {
-          LOG.info("Stopping process {}", proc.pid());
-          proc.destroyForcibly().waitFor();
-        } else {
-          LOG.info("Stopping process {} manually", proc.pid());
-          new ProcessBuilder("kill", Long.toString(proc.pid())).start();
-          proc.waitFor();
-        }
-      }
-    }
-  }
-
   public static void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
 
     // ecomp writes from the TabletServer are not being written to the metadata
@@ -229,22 +207,6 @@ public class ExternalCompactionTestUtils {
     cfg.setProperty(Property.MANAGER_FATE_THREADPOOL_SIZE, "10");
     // use raw local file system so walogs sync and flush will work
     coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-  }
-
-  public static ProcessInfo startCoordinator(MiniAccumuloClusterImpl cluster,
-      Class<? extends CompactionCoordinator> coord, ClientContext context) throws IOException {
-    ProcessInfo pi = cluster.exec(coord);
-    UtilWaitThread.sleep(1000);
-    // Wait for coordinator to start
-    TExternalCompactionList metrics = null;
-    while (null == metrics) {
-      try {
-        metrics = getRunningCompactions(context);
-      } catch (Exception e) {
-        UtilWaitThread.sleep(250);
-      }
-    }
-    return pi;
   }
 
   public static TExternalCompactionList getRunningCompactions(ClientContext context)

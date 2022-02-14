@@ -20,8 +20,8 @@ package org.apache.accumulo.core.client;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -74,10 +74,7 @@ public class RowIteratorTest {
     assertEquals(1, rows.get(1).size());
 
     RowIterator i = new RowIterator(makeIterator());
-    try {
-      i.next();
-      fail();
-    } catch (NoSuchElementException ex) {}
+    assertThrows(NoSuchElementException.class, i::next);
 
     i = new RowIterator(makeIterator("a b c d", "a 1 2 3"));
     assertTrue(i.hasNext());
@@ -87,17 +84,11 @@ public class RowIteratorTest {
     assertTrue(row.hasNext());
     row.next();
     assertFalse(row.hasNext());
-    try {
-      row.next();
-      fail();
-    } catch (NoSuchElementException ex) {}
+    assertThrows(NoSuchElementException.class, row::next);
     assertEquals(0, i.getKVCount());
     assertFalse(i.hasNext());
     assertEquals(2, i.getKVCount());
-    try {
-      i.next();
-      fail();
-    } catch (NoSuchElementException ex) {}
+    assertThrows(NoSuchElementException.class, i::next);
   }
 
   @Test
@@ -112,13 +103,7 @@ public class RowIteratorTest {
     assertEquals(2, i.getKVCount());
     assertFalse(i.hasNext());
     assertEquals(3, i.getKVCount());
-    try {
-      firstRow.hasNext();
-      fail();
-    } catch (IllegalStateException e) {}
-    try {
-      nextRow.next();
-      fail();
-    } catch (IllegalStateException e) {}
+    assertThrows(IllegalStateException.class, firstRow::hasNext);
+    assertThrows(IllegalStateException.class, nextRow::next);
   }
 }
