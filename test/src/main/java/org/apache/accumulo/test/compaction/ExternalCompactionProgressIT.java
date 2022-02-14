@@ -19,6 +19,12 @@
 package org.apache.accumulo.test.compaction;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getRunningCompactions;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -75,15 +81,16 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
 
   @Test
   public void testProgress() throws Exception {
-    MiniAccumuloClusterImpl.ProcessInfo c1 = null, coord = null;
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
-      ExternalCompactionTestUtils.createTable(client, table1, "cs1");
-      ExternalCompactionTestUtils.writeData(client, table1, ROWS);
-      c1 = ((MiniAccumuloClusterImpl) getCluster()).exec(Compactor.class, "-q", "DCQ1");
-      coord = ExternalCompactionTestUtils.startCoordinator(((MiniAccumuloClusterImpl) getCluster()),
-          CompactionCoordinator.class, getCluster().getServerContext());
+      createTable(client, table1, "cs1");
+      writeData(client, table1, ROWS);
+
+      ((MiniAccumuloClusterImpl) cluster).getClusterControl().startCompactors(Compactor.class, 1,
+          QUEUE1);
+      ((MiniAccumuloClusterImpl) cluster).getClusterControl()
+          .startCoordinator(CompactionCoordinator.class);
 
       Thread checkerThread = startChecker();
       checkerThread.start();
@@ -93,16 +100,14 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       client.tableOperations().attachIterator(table1, setting,
           EnumSet.of(IteratorUtil.IteratorScope.majc));
       log.info("Compacting table");
-      ExternalCompactionTestUtils.compact(client, table1, 2, "DCQ1", true);
-      ExternalCompactionTestUtils.verify(client, table1, 2, ROWS);
+      compact(client, table1, 2, "DCQ1", true);
+      verify(client, table1, 2, ROWS);
 
       log.info("Done Compacting table");
       compactionFinished.set(true);
       checkerThread.join();
 
       verifyProgress();
-    } finally {
-      ExternalCompactionTestUtils.stopProcesses(c1, coord);
     }
   }
 
@@ -123,7 +128,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
    * Check running compaction progress.
    */
   private void checkRunning() throws TException {
-    var ecList = ExternalCompactionTestUtils.getRunningCompactions(getCluster().getServerContext());
+    var ecList = getRunningCompactions(getCluster().getServerContext());
     var ecMap = ecList.getCompactions();
     if (ecMap != null) {
       ecMap.forEach((ecid, ec) -> {

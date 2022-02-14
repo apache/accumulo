@@ -18,6 +18,14 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionCompleted;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getLastState;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getRunningCompactions;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.waitForCompactionStartAndReturnEcids;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -40,63 +48,61 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.After;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class ExternalCompaction_3_IT extends AccumuloClusterHarness
-    implements MiniClusterConfigurationCallback {
+public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
 
-  private ProcessInfo testCompactor = null;
-  private ProcessInfo testCoordinator = null;
+  public static class ExternalCompaction3Config implements MiniClusterConfigurationCallback {
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+      ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
+    }
+  }
 
-  @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-    ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
+  @BeforeClass
+  public static void beforeTests() throws Exception {
+    startMiniClusterWithConfig(new ExternalCompaction3Config());
   }
 
   @After
   public void tearDown() throws Exception {
-    super.teardownCluster();
-    ExternalCompactionTestUtils.stopProcesses(testCompactor, testCoordinator);
-    testCompactor = null;
-    testCoordinator = null;
+    // The ExternalDoNothingCompactor needs to be restarted between tests
+    getCluster().getClusterControl().stop(ServerType.COMPACTOR);
   }
 
   @Test
   public void testMergeCancelsExternalCompaction() throws Exception {
+
+    getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
+    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE1);
+
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
-      ExternalCompactionTestUtils.createTable(client, table1, "cs1", 2);
+      createTable(client, table1, "cs1", 2);
       // set compaction ratio to 1 so that majc occurs naturally, not user compaction
       // user compaction blocks merge
       client.tableOperations().setProperty(table1, Property.TABLE_MAJC_RATIO.toString(), "1.0");
       // cause multiple rfiles to be created
-      ExternalCompactionTestUtils.writeData(client, table1);
-      ExternalCompactionTestUtils.writeData(client, table1);
-      ExternalCompactionTestUtils.writeData(client, table1);
-      ExternalCompactionTestUtils.writeData(client, table1);
+      writeData(client, table1);
+      writeData(client, table1);
+      writeData(client, table1);
+      writeData(client, table1);
 
       TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
 
-      testCoordinator =
-          ExternalCompactionTestUtils.startCoordinator(((MiniAccumuloClusterImpl) getCluster()),
-              CompactionCoordinator.class, getCluster().getServerContext());
-
-      testCompactor = ((MiniAccumuloClusterImpl) getCluster())
-          .exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
-
       // Wait for the compaction to start by waiting for 1 external compaction column
-      Set<ExternalCompactionId> ecids = ExternalCompactionTestUtils
-          .waitForCompactionStartAndReturnEcids(getCluster().getServerContext(), tid);
+      Set<ExternalCompactionId> ecids =
+          waitForCompactionStartAndReturnEcids(getCluster().getServerContext(), tid);
 
       var md = new ArrayList<TabletMetadata>();
       try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
@@ -110,7 +116,7 @@ public class ExternalCompaction_3_IT extends AccumuloClusterHarness
       Text end = md.get(1).getEndRow();
       client.tableOperations().merge(table1, start, end);
 
-      ExternalCompactionTestUtils.confirmCompactionCompleted(getCluster().getServerContext(), ecids,
+      confirmCompactionCompleted(getCluster().getServerContext(), ecids,
           TCompactionState.CANCELLED);
 
       // ensure compaction ids were deleted by merge operation from metadata table
@@ -125,53 +131,48 @@ public class ExternalCompaction_3_IT extends AccumuloClusterHarness
               .collect(Collectors.toSet());
         }
       }
+      // We need to cancel the compaction or delete the table here because we initiate a user
+      // compaction above in the test. Even though the external compaction was cancelled
+      // because we split the table, FaTE will continue to queue up a compaction
+      client.tableOperations().delete(table1);
     }
   }
 
   @Test
   public void testCoordinatorRestartsDuringCompaction() throws Exception {
+    getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
+    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE1);
+
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
-      ExternalCompactionTestUtils.createTable(client, table1, "cs1", 2);
-      ExternalCompactionTestUtils.writeData(client, table1);
-
-      testCoordinator =
-          ExternalCompactionTestUtils.startCoordinator(((MiniAccumuloClusterImpl) getCluster()),
-              CompactionCoordinator.class, getCluster().getServerContext());
-
-      testCompactor = ((MiniAccumuloClusterImpl) getCluster())
-          .exec(ExternalDoNothingCompactor.class, "-q", "DCQ1");
-
-      ExternalCompactionTestUtils.compact(client, table1, 2, "DCQ1", false);
+      createTable(client, table1, "cs1", 2);
+      writeData(client, table1);
+      compact(client, table1, 2, QUEUE1, false);
 
       TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
 
       // Wait for the compaction to start by waiting for 1 external compaction column
-      Set<ExternalCompactionId> ecids = ExternalCompactionTestUtils
-          .waitForCompactionStartAndReturnEcids(getCluster().getServerContext(), tid);
+      Set<ExternalCompactionId> ecids =
+          waitForCompactionStartAndReturnEcids(getCluster().getServerContext(), tid);
 
       // Stop the Coordinator
-      ExternalCompactionTestUtils.stopProcesses(testCoordinator);
+      getCluster().getClusterControl().stop(ServerType.COMPACTION_COORDINATOR);
 
       // Restart the coordinator while the compaction is running
-      testCoordinator =
-          ExternalCompactionTestUtils.startCoordinator(((MiniAccumuloClusterImpl) getCluster()),
-              CompactionCoordinator.class, getCluster().getServerContext());
+      getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
 
       // Confirm compaction is still running
       int matches = 0;
       while (matches == 0) {
-        TExternalCompactionList running =
-            ExternalCompactionTestUtils.getRunningCompactions(getCluster().getServerContext());
+        TExternalCompactionList running = getRunningCompactions(getCluster().getServerContext());
         if (running.getCompactions() != null) {
           for (ExternalCompactionId ecid : ecids) {
             TExternalCompaction tec = running.getCompactions().get(ecid.canonical());
             if (tec != null && tec.getUpdates() != null && !tec.getUpdates().isEmpty()) {
               matches++;
-              assertEquals(TCompactionState.IN_PROGRESS,
-                  ExternalCompactionTestUtils.getLastState(tec));
+              assertEquals(TCompactionState.IN_PROGRESS, getLastState(tec));
             }
           }
         }
@@ -179,9 +180,10 @@ public class ExternalCompaction_3_IT extends AccumuloClusterHarness
       }
       assertTrue(matches > 0);
 
-      // Delete the table to cancel the running compaction, else the ExternalDoNothingCompactor
-      // will run forever
-      client.tableOperations().delete(table1);
+      // We need to cancel the compaction or delete the table here because we initiate a user
+      // compaction above in the test. Even though the external compaction was cancelled
+      // because we split the table, FaTE will continue to queue up a compaction
+      client.tableOperations().cancelCompaction(table1);
 
     }
   }
