@@ -113,8 +113,7 @@ public class SortedLogRecoveryTest {
 
     @Override
     public boolean equals(Object obj) {
-      return this == obj
-          || (obj instanceof KeyValue && 0 == compareTo((KeyValue) obj));
+      return this == obj || (obj instanceof KeyValue && 0 == compareTo((KeyValue) obj));
     }
 
     @Override
