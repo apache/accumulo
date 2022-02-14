@@ -1673,9 +1673,9 @@
                   <version>${errorprone.version}</version>
                 </path>
                 <path>
-                  <groupId>com.github.spotbugs</groupId>
-                  <artifactId>spotbugs-annotations</artifactId>
-                  <version>4.4.2</version>
+                  <groupId>com.google.auto.service</groupId>
+                  <artifactId>auto-service</artifactId>
+                  <version>1.0</version>
                 </path>
               </annotationProcessorPaths>
             </configuration>
