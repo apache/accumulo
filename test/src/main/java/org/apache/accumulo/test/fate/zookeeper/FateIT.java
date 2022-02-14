@@ -143,7 +143,7 @@ public class FateIT {
 
       long txid = fate.startTransaction();
       assertEquals(TStatus.NEW, getTxStatus(zk, txid));
-      fate.seedTransaction(txid, new TestOperation(NS, TID), true);
+      fate.seedTransaction(txid, new TestOperation(NS, TID), true, "Test Op");
       assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
       // wait for call() to be called
       callStarted.await();

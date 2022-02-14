@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.security.Security;
@@ -94,13 +95,12 @@ public class AddressUtilTest {
       log.error("We can't set the DNS cache period, so this test is effectively ignored.");
       return;
     }
-    try {
-      log.info("AddressUtil is (hopefully) going to spit out an error about DNS lookups. "
-          + "you can ignore it.");
-      AddressUtil.getAddressCacheNegativeTtl(null);
-      fail("The JVM Security settings cache DNS failures forever, this should cause an exception.");
-    } catch (IllegalArgumentException exception) {
-      // expected
-    }
+
+    log.info("AddressUtil is (hopefully) going to spit out an error about DNS lookups. "
+        + "you can ignore it.");
+    assertThrows(
+        "The JVM Security settings cache DNS failures forever, this should cause an exception.",
+        IllegalArgumentException.class, () -> AddressUtil.getAddressCacheNegativeTtl(null));
+
   }
 }

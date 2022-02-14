@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.compact;
 
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import java.util.UUID;
 
@@ -63,19 +64,16 @@ public class CompactionDriverTest {
 
     final CompactionDriver driver =
         new CompactionDriver(compactId, namespaceId, tableId, startRow, endRow);
-    try {
-      driver.isReady(Long.parseLong(tableId.toString()), manager);
-    } catch (AcceptableThriftTableOperationException e) {
-      if (e.getTableId().equals(tableId.toString()) && e.getOp().equals(TableOperation.COMPACT)
-          && e.getType().equals(TableOperationExceptionType.OTHER)
-          && e.getDescription().equals(TableOperationsImpl.COMPACTION_CANCELED_MSG)) {
-        // success
-      } else {
-        fail("Unexpected error thrown: " + e.getMessage());
-      }
-    } catch (Exception e) {
-      fail("Unhandled error thrown: " + e.getMessage());
-    }
+    final long tableIdLong = Long.parseLong(tableId.toString());
+
+    var e = assertThrows(AcceptableThriftTableOperationException.class,
+        () -> driver.isReady(tableIdLong, manager));
+
+    assertTrue(e.getTableId().equals(tableId.toString()));
+    assertTrue(e.getOp().equals(TableOperation.COMPACT));
+    assertTrue(e.getType().equals(TableOperationExceptionType.OTHER));
+    assertTrue(e.getDescription().equals(TableOperationsImpl.COMPACTION_CANCELED_MSG));
+
     EasyMock.verify(manager, ctx, zrw);
   }
 
@@ -107,19 +105,16 @@ public class CompactionDriverTest {
 
     final CompactionDriver driver =
         new CompactionDriver(compactId, namespaceId, tableId, startRow, endRow);
-    try {
-      driver.isReady(Long.parseLong(tableId.toString()), manager);
-    } catch (AcceptableThriftTableOperationException e) {
-      if (e.getTableId().equals(tableId.toString()) && e.getOp().equals(TableOperation.COMPACT)
-          && e.getType().equals(TableOperationExceptionType.OTHER)
-          && e.getDescription().equals(TableOperationsImpl.TABLE_DELETED_MSG)) {
-        // success
-      } else {
-        fail("Unexpected error thrown: " + e.getMessage());
-      }
-    } catch (Exception e) {
-      fail("Unhandled error thrown: " + e.getMessage());
-    }
+    final long tableIdLong = Long.parseLong(tableId.toString());
+
+    var e = assertThrows(AcceptableThriftTableOperationException.class,
+        () -> driver.isReady(tableIdLong, manager));
+
+    assertTrue(e.getTableId().equals(tableId.toString()));
+    assertTrue(e.getOp().equals(TableOperation.COMPACT));
+    assertTrue(e.getType().equals(TableOperationExceptionType.OTHER));
+    assertTrue(e.getDescription().equals(TableOperationsImpl.TABLE_DELETED_MSG));
+
     EasyMock.verify(manager, ctx, zrw);
   }
 

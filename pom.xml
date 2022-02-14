@@ -122,6 +122,7 @@
     <curator.version>5.1.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
+    <errorprone.version>2.11.0</errorprone.version>
     <!-- avoid error shutting down built-in ForkJoinPool.commonPool() during exec:java tasks -->
     <exec.cleanupDaemonThreads>false</exec.cleanupDaemonThreads>
     <failsafe.excludedGroups />
@@ -142,7 +143,7 @@
     <minimalMavenBuildVersion>3.5.0</minimalMavenBuildVersion>
     <powermock.version>2.0.9</powermock.version>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
-    <project.build.outputTimestamp>2020-12-17T22:06:50Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2022-02-08T14:59:16Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
     <slf4j.version>1.7.35</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
@@ -1627,6 +1628,65 @@
         <failsafe.reuseForks>${reuseForks}</failsafe.reuseForks>
         <surefire.reuseForks>${reuseForks}</surefire.reuseForks>
       </properties>
+    </profile>
+    <profile>
+      <!-- This profile uses the Google ErrorProne tool to perform static code analysis at
+      compile time. Auto-generated code is not checked.
+      See: https://errorprone.info/bugpatterns for list of available bug patterns.-->
+      <id>errorprone</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <configuration>
+              <compilerArgs>
+                <arg>-XDcompilePolicy=simple</arg>
+                <arg>
+                  -Xplugin:ErrorProne \
+                  -XepExcludedPaths:.*/(proto|thrift|generated-sources)/.* \
+                  -XepDisableWarningsInGeneratedCode \
+                  -XepDisableAllWarnings \
+                  <!-- error/warning patterns to ignore -->
+                  -Xep:Incomparable:OFF \
+                  -Xep:CheckReturnValue:OFF \
+                  -Xep:MustBeClosedChecker:OFF \
+                  -Xep:ReturnValueIgnored:OFF \
+                  -Xep:UnicodeInCode:OFF \
+                  <!-- error/warning patterns to specifically check -->
+                  -Xep:ExpectedExceptionChecker \
+                  -Xep:MissingOverride \
+                  <!-- Items containing 'OFF' are currently flagged by ErrorProne. The 'OFF'
+                  can be removed and the project recompiled to discover location of errors for
+                  further analysis. @SuppressWarnings can be used to ignore errors if desired. -->
+                </arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>
+                <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
+              </compilerArgs>
+              <annotationProcessorPaths>
+                <path>
+                  <groupId>com.google.errorprone</groupId>
+                  <artifactId>error_prone_core</artifactId>
+                  <version>${errorprone.version}</version>
+                </path>
+                <path>
+                  <groupId>com.google.auto.service</groupId>
+                  <artifactId>auto-service</artifactId>
+                  <version>1.0</version>
+                </path>
+              </annotationProcessorPaths>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 </project>

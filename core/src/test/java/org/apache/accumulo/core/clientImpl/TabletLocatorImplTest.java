@@ -22,7 +22,8 @@ import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1281,12 +1282,9 @@ public class TabletLocatorImplTest {
     setLocation(tservers, "tserver2", MTE, ke1, "L1", "I1");
     setLocation(tservers, "tserver2", MTE, ke1, "L2", "I2");
 
-    try {
-      metaCache.locateTablet(context, new Text("a"), false, false);
-      fail();
-    } catch (Exception e) {
-
-    }
+    var e = assertThrows(IllegalStateException.class,
+        () -> metaCache.locateTablet(context, new Text("a"), false, false));
+    assertTrue(e.getMessage().startsWith("Tablet has multiple locations : "));
 
   }
 

@@ -20,7 +20,6 @@ package org.apache.accumulo.core.clientImpl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.SortedSet;
 
@@ -53,14 +52,10 @@ public class ScannerOptionsTest {
   public void testIteratorConflict() {
     try (ScannerOptions options = new ScannerOptions()) {
       options.addScanIterator(new IteratorSetting(1, "NAME", DebugIterator.class));
-      try {
-        options.addScanIterator(new IteratorSetting(2, "NAME", DebugIterator.class));
-        fail();
-      } catch (IllegalArgumentException e) {}
-      try {
-        options.addScanIterator(new IteratorSetting(1, "NAME2", DebugIterator.class));
-        fail();
-      } catch (IllegalArgumentException e) {}
+      assertThrows(IllegalArgumentException.class,
+          () -> options.addScanIterator(new IteratorSetting(2, "NAME", DebugIterator.class)));
+      assertThrows(IllegalArgumentException.class,
+          () -> options.addScanIterator(new IteratorSetting(1, "NAME2", DebugIterator.class)));
     }
   }
 

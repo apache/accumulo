@@ -21,8 +21,8 @@ package org.apache.accumulo.core.iterators.system;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -280,16 +280,17 @@ public class SourceSwitchingIteratorTest {
 
     assertSame(flag, tds.iflag);
 
-    ssi.seek(new Range("r1"), new ArrayList<>(), false);
+    final Range r1Range = new Range("r1");
+    final List<ByteSequence> columnFamilies = List.of();
+
+    ssi.seek(r1Range, columnFamilies, false);
     testAndCallNext(ssi, "r1", "cf1", "cq1", 5, "v1", true);
     assertFalse(ssi.hasTop());
 
     flag.set(true);
 
-    try {
-      ssi.seek(new Range("r1"), new ArrayList<>(), false);
-      fail("expected to see IterationInterruptedException");
-    } catch (IterationInterruptedException iie) {}
+    assertThrows(IterationInterruptedException.class,
+        () -> ssi.seek(r1Range, columnFamilies, false));
 
   }
 

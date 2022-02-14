@@ -20,6 +20,7 @@ package org.apache.accumulo.core.iterators.system;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -244,13 +245,22 @@ public class DeletingIteratorTest {
     SortedKeyValueIterator<Key,Value> it =
         DeletingIterator.wrap(new SortedMapIterator(tm), false, Behavior.FAIL);
     it.seek(new Range(), EMPTY_COL_FAMS, false);
-    try {
-      while (it.hasTop()) {
-        it.getTopKey();
-        it.next();
-      }
-      fail();
-    } catch (IllegalStateException e) {}
+
+    // first entry should pass
+    it.getTopKey();
+    it.next();
+
+    // second entry should fail due to delete
+    assertThrows(IllegalStateException.class, it::getTopKey);
+    it.next();
+
+    // third entry should pass
+    it.getTopKey();
+    it.next();
+
+    // fourth entry should pass
+    it.getTopKey();
+    it.next();
   }
 
   private Range newRange(String row, long ts, boolean inclusive) {

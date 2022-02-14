@@ -20,6 +20,7 @@ package org.apache.accumulo.core.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -51,14 +52,11 @@ public class LocalityGroupUtilTest {
     } catch (LocalityGroupConfigurationError err) {
       fail();
     }
-    try {
-      conf.set("table.group.lg2", "cf1");
-      conf.set("table.groups.enabled", "lg1,lg2");
-      LocalityGroupUtil.getLocalityGroups(conf);
-      fail();
-    } catch (LocalityGroupConfigurationError err) {
-      // expected, ignore
-    }
+
+    conf.set("table.group.lg2", "cf1");
+    conf.set("table.groups.enabled", "lg1,lg2");
+    assertThrows(LocalityGroupConfigurationError.class,
+        () -> LocalityGroupUtil.getLocalityGroups(conf));
   }
 
   @Test

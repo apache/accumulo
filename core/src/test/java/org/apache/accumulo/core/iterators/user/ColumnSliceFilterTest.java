@@ -21,7 +21,7 @@ package org.apache.accumulo.core.iterators.user;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -236,32 +236,20 @@ public class ColumnSliceFilterTest {
 
   @Test
   public void testStartAfterEnd() {
-    try {
-      ColumnSliceFilter.setSlice(is, "20080204", "20080202");
-      fail("IllegalArgumentException expected but not thrown");
-    } catch (IllegalArgumentException expectedException) {
-      // Exception successfully thrown
-    }
+    assertThrows(IllegalArgumentException.class,
+        () -> ColumnSliceFilter.setSlice(is, "20080204", "20080202"));
   }
 
   @Test
   public void testStartEqualToEndStartInclusiveEndExclusive() {
-    try {
-      ColumnSliceFilter.setSlice(is, "20080202", "20080202");
-      fail("IllegalArgumentException expected but not thrown");
-    } catch (IllegalArgumentException expectedException) {
-      // Exception successfully thrown
-    }
+    assertThrows(IllegalArgumentException.class,
+        () -> ColumnSliceFilter.setSlice(is, "20080202", "20080202"));
   }
 
   @Test
   public void testStartEqualToEndStartExclusiveEndInclusive() {
-    try {
-      ColumnSliceFilter.setSlice(is, "20080202", false, "20080202", true);
-      fail("IllegalArgumentException expected but not thrown");
-    } catch (IllegalArgumentException expectedException) {
-      // Exception successfully thrown
-    }
+    assertThrows(IllegalArgumentException.class,
+        () -> ColumnSliceFilter.setSlice(is, "20080202", false, "20080202", true));
   }
 
   @Test

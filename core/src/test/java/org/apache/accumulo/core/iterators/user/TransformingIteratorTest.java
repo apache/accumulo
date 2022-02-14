@@ -21,8 +21,8 @@ package org.apache.accumulo.core.iterators.user;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -373,12 +373,7 @@ public class TransformingIteratorTest {
   @Test
   public void testCompactionAndIllegalVisibility() throws Exception {
     setUpTransformIterator(IllegalVisCompactionKeyTransformingIterator.class);
-    try {
-      checkExpected(new TreeMap<>());
-      fail();
-    } catch (Exception e) {
-
-    }
+    assertThrows(Exception.class, () -> checkExpected(new TreeMap<>()));
   }
 
   @Test
@@ -417,17 +412,11 @@ public class TransformingIteratorTest {
 
     opts.clear();
     opts.put(TransformingIterator.MAX_BUFFER_SIZE_OPT, "A,B");
-    try {
-      ti.validateOptions(opts);
-      fail();
-    } catch (IllegalArgumentException e) {}
+    assertThrows(IllegalArgumentException.class, () -> ti.validateOptions(opts));
 
     opts.clear();
     opts.put(TransformingIterator.AUTH_OPT, Authorizations.HEADER + "~~~~");
-    try {
-      ti.validateOptions(opts);
-      fail();
-    } catch (IllegalArgumentException e) {}
+    assertThrows(IllegalArgumentException.class, () -> ti.validateOptions(opts));
 
   }
 
