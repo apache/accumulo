@@ -172,8 +172,8 @@ public class ExternalCompactionMetricsIT extends AccumuloClusterHarness
     } finally {
       // We stopped the TServer and started our own, restart the original TabletServers
       // Uncomment this if other tests are added.
-      // ((MiniAccumuloClusterImpl)
-      // getCluster()).getClusterControl().start(ServerType.TABLET_SERVER);
+      //
+      // cluster.getClusterControl().start(ServerType.TABLET_SERVER);
     }
   }
 

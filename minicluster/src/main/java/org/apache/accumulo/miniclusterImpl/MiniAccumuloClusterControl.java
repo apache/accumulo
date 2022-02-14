@@ -165,9 +165,9 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   public synchronized void startCompactors(Class<? extends Compactor> compactor, int limit,
       String queueName) throws IOException {
     synchronized (compactorProcesses) {
-      int count = 0;
-      for (int i = compactorProcesses.size();
-          count < limit && i < cluster.getConfig().getNumCompactors(); i++, ++count) {
+      int count =
+          Math.min(limit, cluster.getConfig().getNumCompactors() - compactorProcesses.size());
+      for (int i = 0; i < count; i++) {
         compactorProcesses.add(cluster.exec(compactor, "-q", queueName).getProcess());
       }
     }
