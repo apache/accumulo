@@ -97,7 +97,7 @@ public class LookupTask extends ScanTask<MultiScanResult> {
         iter.remove();
 
         // check that tablet server is serving requested tablet
-        Tablet tablet = server.getOnlineTablet(entry.getKey());
+        Tablet tablet = session.getTabletResolver().getTablet(entry.getKey());
         if (tablet == null) {
           failures.put(entry.getKey(), entry.getValue());
           continue;

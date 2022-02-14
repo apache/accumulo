@@ -28,6 +28,7 @@ import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.apache.accumulo.tserver.scan.ScanTask;
+import org.apache.accumulo.tserver.tablet.Tablet;
 
 public class MultiScanSession extends ScanSession {
   public final KeyExtent threadPoolExtent;
@@ -43,9 +44,8 @@ public class MultiScanSession extends ScanSession {
 
   public MultiScanSession(TCredentials credentials, KeyExtent threadPoolExtent,
       Map<KeyExtent,List<Range>> queries, ScanParameters scanParams,
-
-      Map<String,String> executionHints) {
-    super(credentials, scanParams, executionHints);
+      Map<String,String> executionHints, TabletResolver tabletResolver) {
+    super(credentials, scanParams, executionHints, tabletResolver);
     this.queries = queries;
     this.threadPoolExtent = threadPoolExtent;
   }

@@ -63,7 +63,7 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
           .setName("User: " + scanSession.getUser() + " Start: " + scanSession.startTime
               + " Client: " + scanSession.client + " Tablet: " + scanSession.extent);
 
-      Tablet tablet = server.getOnlineTablet(scanSession.extent);
+      Tablet tablet = scanSession.getTabletResolver().getTablet(scanSession.extent);
 
       if (tablet == null) {
         addResult(new org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException(

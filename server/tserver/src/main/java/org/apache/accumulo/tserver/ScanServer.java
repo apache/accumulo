@@ -35,6 +35,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Preconditions;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
@@ -43,7 +44,6 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.ScanServerKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
@@ -109,6 +109,7 @@ import org.apache.accumulo.tserver.compactions.CompactionManager;
 import org.apache.accumulo.tserver.compactions.ExternalCompactionJob;
 import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
+import org.apache.accumulo.tserver.session.ScanSession;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletData;
 import org.apache.commons.lang3.tuple.MutableTriple;
@@ -119,7 +120,7 @@ import org.slf4j.LoggerFactory;
 
 public class ScanServer extends TabletServer implements TabletClientService.Iface {
 
-  static class ScanInformation extends MutableTriple<Long,ScanServerKeyExtent,Tablet> {
+  static class ScanInformation extends MutableTriple<Long,KeyExtent,Tablet> {
     private static final long serialVersionUID = 1L;
 
     public Long getScanId() {
@@ -130,11 +131,11 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       setLeft(scanId);
     }
 
-    public ScanServerKeyExtent getExtent() {
+    public KeyExtent getExtent() {
       return getMiddle();
     }
 
-    public void setExtent(ScanServerKeyExtent extent) {
+    public void setExtent(KeyExtent extent) {
       setMiddle(extent);
     }
 
@@ -414,12 +415,12 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     }
   }
 
-  protected ScanInformation loadTablet(ScanServerKeyExtent extent)
+  protected ScanInformation loadTablet(KeyExtent extent)
       throws IllegalArgumentException, IOException, AccumuloException {
     TabletMetadata tabletMetadata = getContext().getAmple().readTablet(extent);
     // Need to call ScanServerKeyExtent.toKeyExtent for the equivalence checks that
     // happen inside AssignmentHandler.
-    boolean canLoad = AssignmentHandler.checkTabletMetadata(extent.toKeyExent(), getTabletSession(),
+    boolean canLoad = AssignmentHandler.checkTabletMetadata(extent, getTabletSession(),
         tabletMetadata, true);
     if (canLoad) {
       ScanInformation si = new ScanInformation();
@@ -428,7 +429,6 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
           resourceManager.createTabletResourceManager(extent, getTableConfiguration(extent));
       TabletData data = new TabletData(tabletMetadata);
       si.setTablet(new Tablet(this, extent, trm, data));
-      onlineTablets.put(si.getExtent(), si.getTablet());
       LOG.debug("loaded tablet: {}", si.getExtent());
       return si;
     } else {
@@ -462,13 +462,6 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     }
   }
 
-  /*
-   * extracted to method so that it can be overriden for tests
-   */
-  protected ScanServerKeyExtent getScanServerKeyExtent(TKeyExtent textent) {
-    return ScanServerKeyExtent.fromThrift(textent);
-  }
-
   @Override
   public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent textent,
       TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
@@ -481,7 +474,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     if (scans.size() == maxConcurrentScans) {
       throw new TException("ScanServer is busy");
     }
-    ScanServerKeyExtent extent = getScanServerKeyExtent(textent);
+    KeyExtent extent = KeyExtent.fromThrift(textent);
     try {
       ScanInformation si = null;
       try {
@@ -496,9 +489,19 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
         }
         throw new NotServingTabletException();
       }
+
+      var fsi = si;
+      ScanSession.TabletResolver tabletResolver = ke-> {
+        if(ke.equals(fsi.getExtent())){
+          return fsi.getTablet();
+        } else {
+          return null;
+        }
+      };
+
       InitialScan is = handler.startScan(tinfo, credentials, extent, range, columns, batchSize,
           ssiList, ssio, authorizations, waitForWrites, isolated, readaheadThreshold, samplerConfig,
-          batchTimeOut, classLoaderContext, executionHints);
+          batchTimeOut, classLoaderContext, executionHints, tabletResolver);
       si.setScanId(is.getScanID());
       if (scans.size() == maxConcurrentScans) {
         endScan(si);
@@ -552,6 +555,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       throws ThriftSecurityException, TSampleNotPresentException, TException {
 
     if (tbatch.size() != 1) {
+      //TODO support multiple tablets
       throw new TException("Scan Server expects scans for one tablet only");
     }
     Entry<TKeyExtent,List<TRange>> entry = tbatch.entrySet().iterator().next();
@@ -563,7 +567,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     if (scans.size() == maxConcurrentScans) {
       throw new TException("ScanServer is busy");
     }
-    ScanServerKeyExtent extent = getScanServerKeyExtent(textent);
+    KeyExtent extent = KeyExtent.fromThrift(textent);
     try {
       ScanInformation si = null;
       try {
@@ -580,9 +584,19 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       }
       Map<KeyExtent,List<TRange>> newBatch = new HashMap<>();
       newBatch.put(extent, entry.getValue());
+
+      var fsi = si;
+      ScanSession.TabletResolver tabletResolver = ke-> {
+        if(ke.equals(fsi.getExtent())){
+          return fsi.getTablet();
+        } else {
+          return null;
+        }
+      };
+
       InitialMultiScan ims = handler.startMultiScan(tinfo, credentials, tcolumns, ssiList, newBatch,
           ssio, authorizations, waitForWrites, tSamplerConfig, batchTimeOut, contextArg,
-          executionHints);
+          executionHints, tabletResolver);
       si.setScanId(ims.getScanID());
       if (scans.size() == maxConcurrentScans) {
         endScan(si);
