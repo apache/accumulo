@@ -18,9 +18,8 @@
  */
 package org.apache.accumulo.test.zookeeper;
 
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.accumulo.server.util.PortUtils;
@@ -29,6 +28,7 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,15 +47,15 @@ public class ZooKeeperTestingServer implements AutoCloseable {
    * Instantiate a running zookeeper server - this call will block until the server is ready for
    * client connections. It will try three times, with a 5 second pause to connect.
    */
-  public ZooKeeperTestingServer() {
-    this(PortUtils.getRandomFreePort());
+  public ZooKeeperTestingServer(TemporaryFolder tmpDir) {
+    this(tmpDir, PortUtils.getRandomFreePort());
   }
 
-  private ZooKeeperTestingServer(int port) {
+  private ZooKeeperTestingServer(TemporaryFolder tmpDir, int port) {
 
     try {
 
-      Path tmpDir = Files.createTempDirectory("zk_test");
+      File zkTmpDir = tmpDir.newFolder();
 
       CountDownLatch connectionLatch = new CountDownLatch(1);
 
@@ -68,7 +68,7 @@ public class ZooKeeperTestingServer implements AutoCloseable {
 
         try {
 
-          zkServer = new TestingServer(port, tmpDir.toFile());
+          zkServer = new TestingServer(port, zkTmpDir);
           zkServer.start();
 
           started = true;
