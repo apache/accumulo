@@ -24,7 +24,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -581,44 +580,26 @@ public class RFileTest {
   @Test
   public void test4() throws IOException {
     TestRFile trf = new TestRFile(conf);
-
     trf.openWriter();
+    RFile.Writer writer = trf.writer;
 
-    trf.writer.append(newKey("r1", "cf1", "cq1", "L1", 55), newValue("foo1"));
-    try {
-      trf.writer.append(newKey("r0", "cf1", "cq1", "L1", 55), newValue("foo1"));
-      fail();
-    } catch (IllegalArgumentException ioe) {
+    final Value foo1 = newValue("foo1");
+    final long ts = 55L;
 
-    }
+    writer.append(newKey("r1", "cf1", "cq1", "L1", ts), foo1);
 
-    try {
-      trf.writer.append(newKey("r1", "cf0", "cq1", "L1", 55), newValue("foo1"));
-      fail();
-    } catch (IllegalArgumentException ioe) {
+    // @formatter:off
+    final List<Key> badKeys = List.of(
+            newKey("r0", "cf1", "cq1", "L1", ts),
+            newKey("r1", "cf0", "cq1", "L1", ts),
+            newKey("r1", "cf1", "cq0", "L1", ts),
+            newKey("r1", "cf1", "cq1", "L0", ts),
+            newKey("r1", "cf1", "cq1", "L1", ts + 1)
+    );
+    // @formatter:on
 
-    }
-
-    try {
-      trf.writer.append(newKey("r1", "cf1", "cq0", "L1", 55), newValue("foo1"));
-      fail();
-    } catch (IllegalArgumentException ioe) {
-
-    }
-
-    try {
-      trf.writer.append(newKey("r1", "cf1", "cq1", "L0", 55), newValue("foo1"));
-      fail();
-    } catch (IllegalArgumentException ioe) {
-
-    }
-
-    try {
-      trf.writer.append(newKey("r1", "cf1", "cq1", "L1", 56), newValue("foo1"));
-      fail();
-    } catch (IllegalArgumentException ioe) {
-
-    }
+    badKeys.forEach(
+        key -> assertThrows(IllegalArgumentException.class, () -> writer.append(key, foo1)));
   }
 
   @Test
@@ -1291,12 +1272,8 @@ public class RFileTest {
 
     trf.writer.append(newKey("0007", "a", "cq1", "", 4), newValue("1"));
 
-    try {
-      trf.writer.append(newKey("0009", "c", "cq1", "", 4), newValue("1"));
-      fail();
-    } catch (IllegalArgumentException ioe) {
-
-    }
+    assertThrows(IllegalArgumentException.class,
+        () -> trf.writer.append(newKey("0009", "c", "cq1", "", 4), newValue("1")));
 
     trf.closeWriter();
 
@@ -1322,23 +1299,17 @@ public class RFileTest {
 
     trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("a", "b"));
 
-    trf.writer.append(newKey("0007", "a", "cq1", "", 4), newValue("1"));
+    final Value valueOf1 = newValue("1");
+
+    trf.writer.append(newKey("0007", "a", "cq1", "", 4), valueOf1);
 
     trf.writer.startDefaultLocalityGroup();
 
-    try {
-      trf.writer.append(newKey("0008", "a", "cq1", "", 4), newValue("1"));
-      fail();
-    } catch (IllegalArgumentException ioe) {
+    assertThrows(IllegalArgumentException.class,
+        () -> trf.writer.append(newKey("0008", "a", "cq1", "", 4), valueOf1));
 
-    }
-
-    try {
-      trf.writer.append(newKey("0009", "b", "cq1", "", 4), newValue("1"));
-      fail();
-    } catch (IllegalArgumentException ioe) {
-
-    }
+    assertThrows(IllegalArgumentException.class,
+        () -> trf.writer.append(newKey("0009", "b", "cq1", "", 4), valueOf1));
 
     trf.closeWriter();
 
@@ -1347,7 +1318,7 @@ public class RFileTest {
     trf.iter.seek(new Range(), EMPTY_COL_FAMS, false);
     assertTrue(trf.iter.hasTop());
     assertEquals(newKey("0007", "a", "cq1", "", 4), trf.iter.getTopKey());
-    assertEquals(newValue("1"), trf.iter.getTopValue());
+    assertEquals(valueOf1, trf.iter.getTopValue());
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
@@ -1361,19 +1332,12 @@ public class RFileTest {
     trf.openWriter(false);
 
     trf.writer.startDefaultLocalityGroup();
-    try {
-      trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("a", "b"));
-      fail();
-    } catch (IllegalStateException ioe) {
 
-    }
+    Set<ByteSequence> columnFamilies = newColFamByteSequence("a", "b");
+    assertThrows(IllegalStateException.class,
+        () -> trf.writer.startNewLocalityGroup("lg1", columnFamilies));
 
-    try {
-      trf.writer.startDefaultLocalityGroup();
-      fail();
-    } catch (IllegalStateException ioe) {
-
-    }
+    assertThrows(IllegalStateException.class, () -> trf.writer.startDefaultLocalityGroup());
 
     trf.writer.close();
   }
@@ -1387,12 +1351,10 @@ public class RFileTest {
     trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("a", "b"));
 
     trf.writer.append(newKey("0007", "a", "cq1", "", 4), newValue("1"));
-    try {
-      trf.writer.startNewLocalityGroup("lg1", newColFamByteSequence("b", "c"));
-      fail();
-    } catch (IllegalArgumentException ioe) {
 
-    }
+    Set<ByteSequence> columnFamilies = newColFamByteSequence("b", "c");
+    assertThrows(IllegalArgumentException.class,
+        () -> trf.writer.startNewLocalityGroup("lg1", columnFamilies));
 
     trf.closeWriter();
   }

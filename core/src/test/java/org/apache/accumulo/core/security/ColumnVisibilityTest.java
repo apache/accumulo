@@ -22,8 +22,8 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.security.ColumnVisibility.quote;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.Comparator;
 
@@ -36,13 +36,11 @@ import org.junit.Test;
 public class ColumnVisibilityTest {
 
   private void shouldThrow(String... strings) {
-    for (String s : strings)
-      try {
-        new ColumnVisibility(s.getBytes());
-        fail("Should throw: " + s);
-      } catch (IllegalArgumentException e) {
-        // expected
-      }
+    for (String s : strings) {
+      final byte[] sBytes = s.getBytes();
+      assertThrows("Should throw: " + s, IllegalArgumentException.class,
+          () -> new ColumnVisibility(sBytes));
+    }
   }
 
   private void shouldNotThrow(String... strings) {

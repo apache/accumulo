@@ -19,8 +19,8 @@
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -395,10 +395,8 @@ public class CloneIT extends AccumuloClusterHarness {
 
         bw1.flush();
 
-        try {
-          MetadataTableUtil.checkClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
-          fail();
-        } catch (TabletDeletedException tde) {}
+        assertThrows(TabletDeletedException.class, () -> MetadataTableUtil.checkClone(tableName,
+            TableId.of("0"), TableId.of("1"), client, bw2));
       }
     }
   }

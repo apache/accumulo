@@ -20,7 +20,6 @@ package org.apache.accumulo.manager.tableOps.bulkVer2;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -38,7 +37,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk;
 import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
@@ -149,15 +147,11 @@ public class PrepBulkImportTest {
         .collect(Collectors.joining(","));
   }
 
-  public void runExceptionTest(List<KeyExtent> loadRanges, List<KeyExtent> tabletRanges)
-      throws AccumuloException {
-    try {
-      runTest(loadRanges, tabletRanges);
-      fail("expected " + toRangeStrings(loadRanges) + " to fail against "
-          + toRangeStrings(tabletRanges));
-    } catch (Exception e) {
-      assertTrue(e instanceof AcceptableThriftTableOperationException);
-    }
+  public void runExceptionTest(List<KeyExtent> loadRanges, List<KeyExtent> tabletRanges) {
+    String message = "expected " + toRangeStrings(loadRanges) + " to fail against "
+        + toRangeStrings(tabletRanges);
+    assertThrows(message, AcceptableThriftTableOperationException.class,
+        () -> runTest(loadRanges, tabletRanges));
   }
 
   @Test

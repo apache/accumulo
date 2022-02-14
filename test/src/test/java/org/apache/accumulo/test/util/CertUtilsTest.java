@@ -18,13 +18,14 @@
  */
 package org.apache.accumulo.test.util;
 
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.PublicKey;
 import java.security.SignatureException;
 import java.security.cert.Certificate;
 
@@ -77,12 +78,9 @@ public class CertUtilsTest {
     try (FileInputStream fis = new FileInputStream(publicKeyStoreFile)) {
       keyStore.load(fis, new char[0]);
     }
-    try {
-      CertUtils.findPrivateKey(keyStore, PASSWORD_CHARS);
-      fail("expected not to find private key in keystore");
-    } catch (KeyStoreException e) {
-      assertTrue(e.getMessage().contains("private key"));
-    }
+    var e = assertThrows("expected not to find private key in keystore", KeyStoreException.class,
+        () -> CertUtils.findPrivateKey(keyStore, PASSWORD_CHARS));
+    assertTrue(e.getMessage().contains("private key"));
     Certificate cert = CertUtils.findCert(keyStore);
     cert.verify(cert.getPublicKey()); // throws exception if it can't be verified
   }
@@ -107,14 +105,11 @@ public class CertUtilsTest {
     try (FileInputStream fis = new FileInputStream(signedKeyStoreFile)) {
       signedKeyStore.load(fis, PASSWORD_CHARS);
     }
-    Certificate signedCert = CertUtils.findCert(signedKeyStore);
 
-    try {
-      signedCert.verify(signedCert.getPublicKey());
-      fail("signed cert should not be able to verify itself");
-    } catch (SignatureException e) {
-      // expected
-    }
+    Certificate signedCert = CertUtils.findCert(signedKeyStore);
+    PublicKey pubKey = signedCert.getPublicKey();
+    assertThrows("signed cert should not be able to verify itself", SignatureException.class,
+        () -> signedCert.verify(pubKey));
 
     signedCert.verify(rootCert.getPublicKey()); // throws exception if it can't be verified
   }
@@ -146,13 +141,10 @@ public class CertUtilsTest {
     }
     Certificate rootCert = CertUtils.findCert(rootKeyStore);
     Certificate signedCert = CertUtils.findCert(signedKeyStore);
+    PublicKey pubKey = signedCert.getPublicKey();
 
-    try {
-      signedCert.verify(signedCert.getPublicKey());
-      fail("signed cert should not be able to verify itself");
-    } catch (SignatureException e) {
-      // expected
-    }
+    assertThrows("signed cert should not be able to verify itself", SignatureException.class,
+        () -> signedCert.verify(pubKey));
 
     signedCert.verify(rootCert.getPublicKey()); // throws exception if it can't be verified
   }
