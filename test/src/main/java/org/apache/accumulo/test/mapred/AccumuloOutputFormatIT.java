@@ -21,8 +21,8 @@ package org.apache.accumulo.test.mapred;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -115,13 +115,9 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       client.securityOperations().revokeTablePermission("root", testName.getMethodName(),
           TablePermission.WRITE);
 
-      try {
-        writer.close(null);
-        fail("Did not throw exception");
-      } catch (IOException ex) {
-        log.info(ex.getMessage(), ex);
-        assertTrue(ex.getCause() instanceof MutationsRejectedException);
-      }
+      var ex = assertThrows(IOException.class, () -> writer.close(null));
+      log.info(ex.getMessage(), ex);
+      assertTrue(ex.getCause() instanceof MutationsRejectedException);
     }
   }
 

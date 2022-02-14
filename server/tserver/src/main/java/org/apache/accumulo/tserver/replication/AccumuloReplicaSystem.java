@@ -503,7 +503,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
   }
 
   @Deprecated
-  protected class RFileClientExecReturn
+  protected static class RFileClientExecReturn
       implements ClientExecReturn<ReplicationStats,ReplicationServicer.Client> {
 
     @Override

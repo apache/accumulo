@@ -23,8 +23,8 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import javax.security.auth.DestroyFailedException;
 
@@ -60,15 +60,10 @@ public class CredentialsTest {
 
     // verify that we can't serialize if it's destroyed
     creds.getToken().destroy();
-    try {
-      creds.toThrift(instanceID);
-      fail();
-    } catch (Exception e) {
-      assertTrue(e instanceof RuntimeException);
-      assertTrue(e.getCause() instanceof AccumuloSecurityException);
-      assertEquals(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode(),
-          SecurityErrorCode.TOKEN_EXPIRED);
-    }
+    Exception e = assertThrows(RuntimeException.class, () -> creds.toThrift(instanceID));
+    assertTrue(e.getCause() instanceof AccumuloSecurityException);
+    assertEquals(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode(),
+        SecurityErrorCode.TOKEN_EXPIRED);
   }
 
   @Test

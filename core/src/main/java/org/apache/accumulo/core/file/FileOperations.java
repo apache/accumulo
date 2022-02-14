@@ -163,7 +163,7 @@ public abstract class FileOperations {
     return new ReaderBuilder();
   }
 
-  public class FileOptions {
+  public static class FileOptions {
     // objects used by all
     public final AccumuloConfiguration tableConfiguration;
     public final String filename;
@@ -270,7 +270,7 @@ public abstract class FileOperations {
   /**
    * Helper class extended by both writers and readers.
    */
-  public class FileHelper {
+  public static class FileHelper {
     private AccumuloConfiguration tableConfiguration;
     private String filename;
     private FileSystem fs;

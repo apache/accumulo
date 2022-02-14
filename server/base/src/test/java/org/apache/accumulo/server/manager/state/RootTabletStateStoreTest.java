@@ -21,6 +21,7 @@ package org.apache.accumulo.server.manager.state;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 import java.util.Collections;
@@ -126,25 +127,18 @@ public class RootTabletStateStoreTest {
     assertEquals(count, 1);
 
     KeyExtent notRoot = new KeyExtent(TableId.of("0"), null, null);
-    try {
-      tstore.setLocations(Collections.singletonList(new Assignment(notRoot, server)));
-      fail("should not get here");
-    } catch (IllegalArgumentException ex) {}
+    final var assignmentList = List.of(new Assignment(notRoot, server));
+
+    assertThrows(IllegalArgumentException.class, () -> tstore.setLocations(assignmentList));
+    assertThrows(IllegalArgumentException.class, () -> tstore.setFutureLocations(assignmentList));
 
     try {
-      tstore.setFutureLocations(Collections.singletonList(new Assignment(notRoot, server)));
-      fail("should not get here");
-    } catch (IllegalArgumentException ex) {}
-
-    TabletLocationState broken = null;
-    try {
-      broken = new TabletLocationState(notRoot, server, null, null, null, null, false);
+      TabletLocationState broken =
+          new TabletLocationState(notRoot, server, null, null, null, null, false);
+      final var assignmentList1 = List.of(broken);
+      assertThrows(IllegalArgumentException.class, () -> tstore.unassign(assignmentList1, null));
     } catch (BadLocationStateException e) {
       fail("Unexpected error " + e);
     }
-    try {
-      tstore.unassign(Collections.singletonList(broken), null);
-      fail("should not get here");
-    } catch (IllegalArgumentException ex) {}
   }
 }
