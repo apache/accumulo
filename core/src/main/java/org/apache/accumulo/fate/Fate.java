@@ -274,7 +274,7 @@ public class Fate<T> {
       if (store.getStatus(tid) == TStatus.NEW) {
         if (store.top(tid) == null) {
           try {
-            log.info("FATE TxId: {} {}", tid, goalMessage);
+            log.info("Seeding {} goal: {}", formatTid(tid), goalMessage);
             store.push(tid, repo);
           } catch (StackOverflowException e) {
             // this should not happen
