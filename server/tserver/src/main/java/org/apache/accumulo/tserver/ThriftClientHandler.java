@@ -282,16 +282,16 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     final KeyExtent extent = KeyExtent.fromThrift(textent);
     return this.startScan(tinfo, credentials, extent, range, columns, batchSize, ssiList, ssio,
         authorizations, waitForWrites, isolated, readaheadThreshold, tSamplerConfig, batchTimeOut,
-        contextArg, executionHints, ke->server.getOnlineTablet(ke));
+        contextArg, executionHints, ke -> server.getOnlineTablet(ke));
   }
 
   public InitialScan startScan(TInfo tinfo, TCredentials credentials, KeyExtent extent,
       TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
       boolean isolated, long readaheadThreshold, TSamplerConfiguration tSamplerConfig,
-      long batchTimeOut, String contextArg, Map<String,String> executionHints, ScanSession.TabletResolver tabletResolver)
-      throws NotServingTabletException, ThriftSecurityException,
-      org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException,
+      long batchTimeOut, String contextArg, Map<String,String> executionHints,
+      ScanSession.TabletResolver tabletResolver) throws NotServingTabletException,
+      ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException,
       TSampleNotPresentException {
 
     TableId tableId = extent.tableId();
@@ -340,8 +340,8 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         columnSet, ssiList, ssio, isolated, SamplerConfigurationImpl.fromThrift(tSamplerConfig),
         batchTimeOut, contextArg);
 
-    final SingleScanSession scanSession =
-        new SingleScanSession(credentials, extent, scanParams, readaheadThreshold, executionHints, tabletResolver);
+    final SingleScanSession scanSession = new SingleScanSession(credentials, extent, scanParams,
+        readaheadThreshold, executionHints, tabletResolver);
     scanSession.scanner =
         tablet.createScanner(new Range(range), scanParams, scanSession.interruptFlag);
 
@@ -480,7 +480,8 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       batch.put(KeyExtent.fromThrift(k), v);
     });
     return this.startMultiScan(tinfo, credentials, tcolumns, ssiList, batch, ssio, authorizations,
-        waitForWrites, tSamplerConfig, batchTimeOut, contextArg, executionHints, ke -> server.getOnlineTablet(ke));
+        waitForWrites, tSamplerConfig, batchTimeOut, contextArg, executionHints,
+        ke -> server.getOnlineTablet(ke));
   }
 
   public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials,
@@ -540,8 +541,8 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         new ScanParameters(-1, new Authorizations(authorizations), columnSet, ssiList, ssio, false,
             SamplerConfigurationImpl.fromThrift(tSamplerConfig), batchTimeOut, contextArg);
 
-    final MultiScanSession mss =
-        new MultiScanSession(credentials, threadPoolExtent, batch, scanParams, executionHints, tabletResolver);
+    final MultiScanSession mss = new MultiScanSession(credentials, threadPoolExtent, batch,
+        scanParams, executionHints, tabletResolver);
 
     mss.numTablets = batch.size();
     for (List<Range> ranges : batch.values()) {

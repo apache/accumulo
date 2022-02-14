@@ -35,7 +35,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Preconditions;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
@@ -420,8 +419,8 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     TabletMetadata tabletMetadata = getContext().getAmple().readTablet(extent);
     // Need to call ScanServerKeyExtent.toKeyExtent for the equivalence checks that
     // happen inside AssignmentHandler.
-    boolean canLoad = AssignmentHandler.checkTabletMetadata(extent, getTabletSession(),
-        tabletMetadata, true);
+    boolean canLoad =
+        AssignmentHandler.checkTabletMetadata(extent, getTabletSession(), tabletMetadata, true);
     if (canLoad) {
       ScanInformation si = new ScanInformation();
       si.setExtent(extent);
@@ -491,8 +490,8 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       }
 
       var fsi = si;
-      ScanSession.TabletResolver tabletResolver = ke-> {
-        if(ke.equals(fsi.getExtent())){
+      ScanSession.TabletResolver tabletResolver = ke -> {
+        if (ke.equals(fsi.getExtent())) {
           return fsi.getTablet();
         } else {
           return null;
@@ -555,7 +554,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       throws ThriftSecurityException, TSampleNotPresentException, TException {
 
     if (tbatch.size() != 1) {
-      //TODO support multiple tablets
+      // TODO support multiple tablets
       throw new TException("Scan Server expects scans for one tablet only");
     }
     Entry<TKeyExtent,List<TRange>> entry = tbatch.entrySet().iterator().next();
@@ -586,8 +585,8 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       newBatch.put(extent, entry.getValue());
 
       var fsi = si;
-      ScanSession.TabletResolver tabletResolver = ke-> {
-        if(ke.equals(fsi.getExtent())){
+      ScanSession.TabletResolver tabletResolver = ke -> {
+        if (ke.equals(fsi.getExtent())) {
           return fsi.getTablet();
         } else {
           return null;

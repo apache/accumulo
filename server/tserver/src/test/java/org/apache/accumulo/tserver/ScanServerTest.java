@@ -112,7 +112,8 @@ public class ScanServerTest {
     Map<String,String> execHints = new HashMap<>();
 
     expect(handler.startScan(tinfo, tcreds, sextent, trange, tcols, 10, titer, ssio, auths, false,
-        false, 10, tsc, 30L, classLoaderContext, execHints, ke->null)).andReturn(new InitialScan(15, null));
+        false, 10, tsc, 30L, classLoaderContext, execHints, ke -> null))
+            .andReturn(new InitialScan(15, null));
     expect(handler.continueScan(tinfo, 15)).andReturn(new ScanResult());
     handler.closeScan(tinfo, 15);
 
@@ -161,7 +162,8 @@ public class ScanServerTest {
     Map<String,String> execHints = new HashMap<>();
 
     expect(handler.startScan(tinfo, tcreds, sextent, trange, tcols, 10, titer, ssio, auths, false,
-        false, 10, tsc, 30L, classLoaderContext, execHints, ke->null)).andReturn(new InitialScan(15, null));
+        false, 10, tsc, 30L, classLoaderContext, execHints, ke -> null))
+            .andReturn(new InitialScan(15, null));
     expect(handler.continueScan(tinfo, 15)).andReturn(new ScanResult());
     handler.closeScan(tinfo, 15);
 
@@ -250,7 +252,7 @@ public class ScanServerTest {
     Map<String,String> execHints = new HashMap<>();
 
     expect(handler.startMultiScan(tinfo, tcreds, tcols, titer, sextents, ssio, auths, false, tsc,
-        30L, classLoaderContext, execHints, ke->null)).andReturn(new InitialMultiScan(15, null));
+        30L, classLoaderContext, execHints, ke -> null)).andReturn(new InitialMultiScan(15, null));
     expect(handler.continueMultiScan(tinfo, 15)).andReturn(new MultiScanResult());
     handler.closeMultiScan(tinfo, 15);
 
@@ -303,7 +305,7 @@ public class ScanServerTest {
     Map<String,String> execHints = new HashMap<>();
 
     expect(handler.startMultiScan(tinfo, tcreds, tcols, titer, sextents, ssio, auths, false, tsc,
-        30L, classLoaderContext, execHints, ke->null)).andReturn(new InitialMultiScan(15, null));
+        30L, classLoaderContext, execHints, ke -> null)).andReturn(new InitialMultiScan(15, null));
     expect(handler.continueMultiScan(tinfo, 15)).andReturn(new MultiScanResult());
     handler.closeMultiScan(tinfo, 15);
 
