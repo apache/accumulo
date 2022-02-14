@@ -216,10 +216,6 @@ class ContextManager {
     // the set of currently configured contexts. We will close the contexts that are
     // no longer in the configuration.
     synchronized (this) {
-      if (!contexts.isEmpty())
-        log.debug("Managed Contexts: {}", contexts);
-      if (!configuredContexts.isEmpty())
-        log.debug("Configured Contexts: {}", configuredContexts);
       unused = new HashMap<>(contexts);
       unused.keySet().removeAll(configuredContexts);
       contexts.keySet().removeAll(unused.keySet());
