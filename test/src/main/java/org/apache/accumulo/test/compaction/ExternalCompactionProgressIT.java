@@ -45,7 +45,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
@@ -87,10 +86,8 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       createTable(client, table1, "cs1");
       writeData(client, table1, ROWS);
 
-      ((MiniAccumuloClusterImpl) cluster).getClusterControl().startCompactors(Compactor.class, 1,
-          QUEUE1);
-      ((MiniAccumuloClusterImpl) cluster).getClusterControl()
-          .startCoordinator(CompactionCoordinator.class);
+      cluster.getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
+      cluster.getClusterControl().startCoordinator(CompactionCoordinator.class);
 
       Thread checkerThread = startChecker();
       checkerThread.start();

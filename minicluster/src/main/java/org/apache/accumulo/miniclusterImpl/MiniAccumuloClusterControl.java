@@ -137,9 +137,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     CompactionCoordinatorService.Client client = ThriftUtil.getClient(
         new CompactionCoordinatorService.Client.Factory(), coordinatorHost.get(), context);
     try {
-      TExternalCompactionList running =
-          client.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
-      return running;
+      return client.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
     } finally {
       ThriftUtil.returnClient(client, context);
     }
@@ -150,13 +148,14 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     if (coordinatorProcess == null) {
       coordinatorProcess = cluster
           ._exec(coordinator, ServerType.COMPACTION_COORDINATOR, new HashMap<>()).getProcess();
-      UtilWaitThread.sleep(1000);
       // Wait for coordinator to start
       TExternalCompactionList metrics = null;
-      while (null == metrics) {
+      while (metrics == null) {
         try {
           metrics = getRunningCompactions(cluster.getServerContext());
-        } catch (Exception e) {
+        } catch (TException e) {
+          log.debug(
+              "Error getting running compactions from coordinator, message: " + e.getMessage());
           UtilWaitThread.sleep(250);
         }
       }

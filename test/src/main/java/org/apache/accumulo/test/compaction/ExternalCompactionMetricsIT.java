@@ -139,12 +139,9 @@ public class ExternalCompactionMetricsIT extends AccumuloClusterHarness
         sawDCQ2_10 |= match(qm, "DCQ2", "10");
       }
 
-      ((MiniAccumuloClusterImpl) cluster).getClusterControl().startCompactors(Compactor.class, 1,
-          QUEUE1);
-      ((MiniAccumuloClusterImpl) cluster).getClusterControl().startCompactors(Compactor.class, 1,
-          QUEUE2);
-      ((MiniAccumuloClusterImpl) cluster).getClusterControl()
-          .startCoordinator(CompactionCoordinator.class);
+      cluster.getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
+      cluster.getClusterControl().startCompactors(Compactor.class, 1, QUEUE2);
+      cluster.getClusterControl().startCoordinator(CompactionCoordinator.class);
 
       boolean sawDCQ1_0 = false;
       boolean sawDCQ2_0 = false;
@@ -174,7 +171,7 @@ public class ExternalCompactionMetricsIT extends AccumuloClusterHarness
 
     } finally {
       // We stopped the TServer and started our own, restart the original TabletServers
-      // TODO: Uncomment this if other tests are added.
+      // Uncomment this if other tests are added.
       // ((MiniAccumuloClusterImpl)
       // getCluster()).getClusterControl().start(ServerType.TABLET_SERVER);
     }
