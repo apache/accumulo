@@ -114,7 +114,7 @@ public class SortedLogRecoveryTest {
     @Override
     public boolean equals(Object obj) {
       return this == obj
-          || (obj != null && obj instanceof KeyValue && 0 == compareTo((KeyValue) obj));
+          || (obj instanceof KeyValue && 0 == compareTo((KeyValue) obj));
     }
 
     @Override
@@ -142,7 +142,7 @@ public class SortedLogRecoveryTest {
         result.key.tablet = (KeyExtent) fileExtentMutation;
         break;
       case MUTATION:
-        result.value.mutations = Arrays.asList((Mutation) fileExtentMutation);
+        result.value.mutations = List.of((Mutation) fileExtentMutation);
         break;
       case MANY_MUTATIONS:
         result.value.mutations = Arrays.asList((Mutation[]) fileExtentMutation);
@@ -346,16 +346,15 @@ public class SortedLogRecoveryTest {
   }
 
   @Test
-  public void testMissingDefinition() {
+  public void testMissingDefinition() throws IOException {
     // Create a test log
     KeyValue[] entries = {createKeyValue(OPEN, 0, -1, "1"),};
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("testlog", entries);
     // Recover
-    try {
-      recover(logs, extent);
-      fail("tablet should not have been found");
-    } catch (Throwable t) {}
+    List<Mutation> mutations = recover(logs, extent);
+    // Verify recovered data
+    assertEquals(0, mutations.size());
   }
 
   @Test
@@ -820,8 +819,7 @@ public class SortedLogRecoveryTest {
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("entries", entries);
 
-    HashSet<String> filesSet = new HashSet<>();
-    filesSet.addAll(Arrays.asList(tabletFiles));
+    HashSet<String> filesSet = new HashSet<>(List.of(tabletFiles));
     List<Mutation> mutations = recover(logs, filesSet, extent, bufferSize);
 
     if (startMatches) {
@@ -892,7 +890,7 @@ public class SortedLogRecoveryTest {
   }
 
   @Test
-  public void testConsecutiveCompactionFinishEvents() throws IOException {
+  public void testConsecutiveCompactionFinishEvents() {
     Mutation m1 = new ServerMutation(new Text("r1"));
     m1.put("f1", "q1", "v1");
 
@@ -1048,7 +1046,7 @@ public class SortedLogRecoveryTest {
   }
 
   @Test
-  public void testFileWithoutOpen() throws IOException {
+  public void testFileWithoutOpen() {
     Mutation m1 = new ServerMutation(new Text("r1"));
     m1.put("f1", "q1", "v1");
 
@@ -1148,7 +1146,6 @@ public class SortedLogRecoveryTest {
    * Pulled from BCFile.Reader()
    */
   private final Utils.Version API_VERSION_3 = new Utils.Version((short) 3, (short) 0);
-  private final String defaultPrefix = "data:";
 
   private Compression.Algorithm getCompressionFromRFile(FSDataInputStream fsin, long fileLength)
       throws IOException {
@@ -1170,6 +1167,7 @@ public class SortedLogRecoveryTest {
       assertTrue(count > 0);
 
       String fullMetaName = Utils.readString(in);
+      String defaultPrefix = "data:";
       if (fullMetaName != null && !fullMetaName.startsWith(defaultPrefix)) {
         throw new IOException("Corrupted Meta region Index");
       }
