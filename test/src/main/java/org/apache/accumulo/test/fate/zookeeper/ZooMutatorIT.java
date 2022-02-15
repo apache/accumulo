@@ -83,7 +83,7 @@ public class ZooMutatorIT {
   @Test
   public void concurrentMutatorTest() throws Exception {
 
-    try (ZooKeeperTestingServer szk = new ZooKeeperTestingServer(tempFolder)) {
+    try (ZooKeeperTestingServer szk = new ZooKeeperTestingServer(tempFolder.newFolder())) {
       szk.initPaths("/accumulo/" + InstanceId.of(UUID.randomUUID()));
       ZooReaderWriter zk = new ZooReaderWriter(szk.getConn(), 10_0000, "aPasswd");
 

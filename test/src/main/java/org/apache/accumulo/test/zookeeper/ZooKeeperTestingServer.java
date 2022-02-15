@@ -28,7 +28,6 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
-import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,15 +46,13 @@ public class ZooKeeperTestingServer implements AutoCloseable {
    * Instantiate a running zookeeper server - this call will block until the server is ready for
    * client connections. It will try three times, with a 5 second pause to connect.
    */
-  public ZooKeeperTestingServer(TemporaryFolder tmpDir) {
+  public ZooKeeperTestingServer(File tmpDir) {
     this(tmpDir, PortUtils.getRandomFreePort());
   }
 
-  private ZooKeeperTestingServer(TemporaryFolder tmpDir, int port) {
+  private ZooKeeperTestingServer(File tmpDir, int port) {
 
     try {
-
-      File zkTmpDir = tmpDir.newFolder();
 
       CountDownLatch connectionLatch = new CountDownLatch(1);
 
@@ -68,7 +65,7 @@ public class ZooKeeperTestingServer implements AutoCloseable {
 
         try {
 
-          zkServer = new TestingServer(port, zkTmpDir);
+          zkServer = new TestingServer(port, tmpDir);
           zkServer.start();
 
           started = true;

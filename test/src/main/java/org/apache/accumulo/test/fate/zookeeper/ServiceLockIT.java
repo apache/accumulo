@@ -68,14 +68,14 @@ import com.google.common.util.concurrent.Uninterruptibles;
 public class ServiceLockIT {
 
   @ClassRule
-  public static TemporaryFolder TEMP =
+  public static final TemporaryFolder TEMP =
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   private static ZooKeeperTestingServer szk = null;
 
   @BeforeClass
   public static void setup() throws Exception {
-    szk = new ZooKeeperTestingServer(TEMP);
+    szk = new ZooKeeperTestingServer(TEMP.newFolder());
     szk.initPaths("/accumulo/" + InstanceId.of(UUID.randomUUID()));
   }
 

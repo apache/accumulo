@@ -93,7 +93,7 @@ public class FateIT {
   }
 
   @ClassRule
-  public static TemporaryFolder TEMP =
+  public static final TemporaryFolder TEMP =
       new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   private static ZooKeeperTestingServer szk = null;
@@ -106,7 +106,7 @@ public class FateIT {
 
   @BeforeClass
   public static void setup() throws Exception {
-    szk = new ZooKeeperTestingServer(TEMP);
+    szk = new ZooKeeperTestingServer(TEMP.newFolder());
   }
 
   @AfterClass
