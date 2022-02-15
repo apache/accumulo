@@ -121,8 +121,8 @@ public class SingletonManagerTest {
     assertEquals(new TestService(false, 0, 1), service1);
     assertEquals(new TestService(false, 1, 1), service2);
 
-    assertThrows("Should only be able to set mode to CONNECTOR once", IllegalStateException.class,
-        () -> SingletonManager.setMode(Mode.CONNECTOR));
+    assertThrows(IllegalStateException.class, () -> SingletonManager.setMode(Mode.CONNECTOR),
+        "Should only be able to set mode to CONNECTOR once");
 
     assertEquals(Mode.CLIENT, SingletonManager.getMode());
   }

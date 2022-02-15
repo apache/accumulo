@@ -98,9 +98,8 @@ public class AddressUtilTest {
 
     log.info("AddressUtil is (hopefully) going to spit out an error about DNS lookups. "
         + "you can ignore it.");
-    assertThrows(
-        "The JVM Security settings cache DNS failures forever, this should cause an exception.",
-        IllegalArgumentException.class, () -> AddressUtil.getAddressCacheNegativeTtl(null));
+    assertThrows(IllegalArgumentException.class, () -> AddressUtil.getAddressCacheNegativeTtl(null),
+        "The JVM Security settings cache DNS failures forever, this should cause an exception.");
 
   }
 }

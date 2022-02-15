@@ -41,8 +41,8 @@ public class FormatterConfigTest {
   @Test
   public void testSetShownLength() {
     FormatterConfig config = new FormatterConfig();
-    assertThrows("Should throw on negative length.", IllegalArgumentException.class,
-        () -> config.setShownLength(-1));
+    assertThrows(IllegalArgumentException.class, () -> config.setShownLength(-1),
+        "Should throw on negative length.");
 
     config.setShownLength(0);
     assertEquals(0, config.getShownLength());

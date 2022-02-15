@@ -877,8 +877,8 @@ public class RangeTest {
     ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
     Range r2 = new Range();
     try (DataInputStream dis = new DataInputStream(bais)) {
-      assertThrows("readFields allowed invalid range", InvalidObjectException.class,
-          () -> r2.readFields(dis));
+      assertThrows(InvalidObjectException.class, () -> r2.readFields(dis),
+          "readFields allowed invalid range");
     }
   }
 
@@ -895,7 +895,7 @@ public class RangeTest {
     Range r =
         new Range(new Key(new Text("soup")), true, false, new Key(new Text("nuts")), true, false);
     TRange tr = r.toThrift();
-    assertThrows("Thrift constructor allowed invalid range", IllegalArgumentException.class,
-        () -> new Range(tr));
+    assertThrows(IllegalArgumentException.class, () -> new Range(tr),
+        "Thrift constructor allowed invalid range");
   }
 }

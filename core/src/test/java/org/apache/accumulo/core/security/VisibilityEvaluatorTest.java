@@ -115,8 +115,8 @@ public class VisibilityEvaluatorTest {
     final var invalidEscapeSeqList = List.of(new ArrayByteSequence("a\\b"),
         new ArrayByteSequence("a\\b\\c"), new ArrayByteSequence("a\"b\\"));
 
-    invalidEscapeSeqList.forEach(seq -> assertThrows(message, IllegalArgumentException.class,
-        () -> VisibilityEvaluator.unescape(seq)));
+    invalidEscapeSeqList.forEach(seq -> assertThrows(IllegalArgumentException.class,
+        () -> VisibilityEvaluator.unescape(seq), message));
   }
 
   @Test

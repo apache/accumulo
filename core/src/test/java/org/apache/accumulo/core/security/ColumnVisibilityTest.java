@@ -38,8 +38,8 @@ public class ColumnVisibilityTest {
   private void shouldThrow(String... strings) {
     for (String s : strings) {
       final byte[] sBytes = s.getBytes();
-      assertThrows("Should throw: " + s, IllegalArgumentException.class,
-          () -> new ColumnVisibility(sBytes));
+      assertThrows(IllegalArgumentException.class, () -> new ColumnVisibility(sBytes),
+          "Should throw: " + s);
     }
   }
 

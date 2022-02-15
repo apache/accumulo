@@ -57,25 +57,30 @@ public class TabletFileTest {
     // 2a< srv:dir
     final String message = "Failed to throw error on bad path";
 
-    assertThrows(message, NullPointerException.class,
-        () -> test("C0004.rf", "", "2a", "t-0003", "C0004.rf"));
-    assertThrows(message, NullPointerException.class, () -> test("dir", "", "2a", "", ""));
+    assertThrows(NullPointerException.class, () -> test("C0004.rf", "", "2a", "t-0003", "C0004.rf"),
+        message);
+    assertThrows(NullPointerException.class, () -> test("dir", "", "2a", "", ""), message);
 
-    assertThrows(message, IllegalArgumentException.class,
+    assertThrows(IllegalArgumentException.class,
         () -> test("hdfs://localhost:8020/accumulo/tablets/2a/default_tablet/F0000070.rf",
-            "hdfs://localhost:8020/accumulo", "2a", "default_tablet", "F0000070.rf"));
-    assertThrows(message, IllegalArgumentException.class,
+            "hdfs://localhost:8020/accumulo", "2a", "default_tablet", "F0000070.rf"),
+        message);
+    assertThrows(IllegalArgumentException.class,
         () -> test("hdfs://localhost:8020/accumulo/2a/default_tablet/F0000070.rf",
-            " hdfs://localhost:8020/accumulo", "2a", "default_tablet", " F0000070.rf"));
-    assertThrows(message, IllegalArgumentException.class,
+            " hdfs://localhost:8020/accumulo", "2a", "default_tablet", " F0000070.rf"),
+        message);
+    assertThrows(IllegalArgumentException.class,
         () -> test("/accumulo/tables/2a/default_tablet/F0000070.rf", "", "2a", "default_tablet",
-            "F0000070.rf"));
-    assertThrows(message, IllegalArgumentException.class,
+            "F0000070.rf"),
+        message);
+    assertThrows(IllegalArgumentException.class,
         () -> test("hdfs://localhost:8020/accumulo/tables/2a/F0000070.rf",
-            "hdfs://localhost:8020/accumulo", "2a", "", "F0000070.rf"));
-    assertThrows(message, IllegalArgumentException.class,
+            "hdfs://localhost:8020/accumulo", "2a", "", "F0000070.rf"),
+        message);
+    assertThrows(IllegalArgumentException.class,
         () -> test("hdfs://localhost:8020/accumulo/tables/F0000070.rf",
-            "hdfs://localhost:8020/accumulo", null, "", "F0000070.rf"));
+            "hdfs://localhost:8020/accumulo", null, "", "F0000070.rf"),
+        message);
 
   }
 
