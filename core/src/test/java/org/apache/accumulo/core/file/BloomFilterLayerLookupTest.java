@@ -55,7 +55,7 @@ public class BloomFilterLayerLookupTest {
   private static final SecureRandom random = new SecureRandom();
 
   @TempDir
-  public File tempDir = new File(System.getProperty("user.dir") + "/target",
+  private static final File tempDir = new File(System.getProperty("user.dir") + "/target",
       BloomFilterLayerLookupTest.class.getSimpleName() + "/");
 
   @Test

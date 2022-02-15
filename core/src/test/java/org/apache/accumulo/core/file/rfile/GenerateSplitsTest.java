@@ -51,7 +51,7 @@ public class GenerateSplitsTest {
   private static final Logger log = LoggerFactory.getLogger(GenerateSplitsTest.class);
 
   @TempDir
-  public static File tempFolder = new File(System.getProperty("user.dir") + "/target",
+  public static final File tempFolder = new File(System.getProperty("user.dir") + "/target",
       GenerateSplitsTest.class.getSimpleName() + "/");
 
   private static final RFileTest.TestRFile trf = new RFileTest.TestRFile(null);
