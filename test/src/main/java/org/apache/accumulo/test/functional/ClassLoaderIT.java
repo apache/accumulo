@@ -100,7 +100,7 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
       scanCheck(c, tableName, "Test");
       FileSystem fs = getCluster().getFileSystem();
       Path jarPath = new Path(rootPath + "/lib/ext/Test.jar");
-      copyStreamToFileSystem(fs, "/TestCombinerX.jar", jarPath);
+      copyStreamToFileSystem(fs, "/org/apache/accumulo/test/TestCombinerX.jar", jarPath);
       sleepUninterruptibly(1, TimeUnit.SECONDS);
       IteratorSetting is = new IteratorSetting(10, "TestCombiner",
           "org.apache.accumulo.test.functional.TestCombiner");
@@ -109,7 +109,7 @@ public class ClassLoaderIT extends AccumuloClusterHarness {
       sleepUninterruptibly(ZOOKEEPER_PROPAGATION_TIME, TimeUnit.MILLISECONDS);
       scanCheck(c, tableName, "TestX");
       fs.delete(jarPath, true);
-      copyStreamToFileSystem(fs, "/TestCombinerY.jar", jarPath);
+      copyStreamToFileSystem(fs, "/org/apache/accumulo/test/TestCombinerY.jar", jarPath);
       sleepUninterruptibly(5, TimeUnit.SECONDS);
       scanCheck(c, tableName, "TestY");
       fs.delete(jarPath, true);
