@@ -31,6 +31,8 @@ import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Uses Apache Curator to create a running zookeeper server for internal tests. The zookeeper port
  * is randomly assigned in case multiple instances are created by concurrent tests.
@@ -51,6 +53,8 @@ public class ZooKeeperTestingServer implements AutoCloseable {
   }
 
   private ZooKeeperTestingServer(File tmpDir, int port) {
+
+    Preconditions.checkArgument(tmpDir.isDirectory());
 
     try {
 
