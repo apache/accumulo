@@ -60,17 +60,18 @@ jobs:
     strategy:
       matrix:
         profile:
-          - {name: 'unit-tests',    args: 'verify -PskipQA -DskipTests=false'}
-          - {name: 'qa-checks',     args: 'verify javadoc:jar -Psec-bugs -DskipTests -Dspotbugs.timeout=3600000'}
-          - {name: 'hadoop-compat', args: 'package -DskipTests -Dhadoop.version=3.0.3'}
+          - {name: 'unit-tests',    javaver: 11, args: 'verify -PskipQA -DskipTests=false'}
+          - {name: 'qa-checks',     javaver: 11, args: 'verify javadoc:jar -Psec-bugs -DskipTests -Dspotbugs.timeout=3600000'}
+          - {name: 'hadoop-compat', javaver: 11, args: 'package -DskipTests -Dhadoop.version=3.0.3'}
+          - {name: 'jdk17',         javaver: 17, args: 'verify -DskipITs'}
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Set up JDK 11
+    - name: Set up JDK ${{ matrix.profile.javaver }}
       uses: actions/setup-java@v1
       with:
-        java-version: 11
+        java-version: ${{ matrix.profile.javaver }}
     - name: Cache local maven repository
       uses: actions/cache@v2
       with:
