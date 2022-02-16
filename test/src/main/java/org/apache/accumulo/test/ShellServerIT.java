@@ -2099,7 +2099,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private void setupFakeContextPath() throws IOException {
     // Copy the test iterators jar to tmp
     Path baseDir = new Path(System.getProperty("user.dir"));
-    Path jarPath = new Path(baseDir + "/src/main/resources/org/apache/accumulo/test",
+    Path jarPath = new Path(baseDir + "/target/classes/org/apache/accumulo/test",
         "ShellServerIT-iterators.jar");
     Path dstPath = new Path(FAKE_CONTEXT_CLASSPATH);
     FileSystem fs = SharedMiniClusterBase.getCluster().getFileSystem();
