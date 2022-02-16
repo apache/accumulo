@@ -41,15 +41,13 @@ public class ClientPropertyTest {
     assertEquals("testpass1", new String(((PasswordToken) token).getPassword()));
 
     ClientProperty.setAuthenticationToken(props, new PasswordToken("testpass2"));
-    assertEquals("AAAAHR+LCAAAAAAAAAArSS0uKUgsLjYCANxwRH4JAAAA",
-        ClientProperty.AUTH_TOKEN.getValue(props));
+    assertEquals("/////gAAAAl0ZXN0cGFzczI=", ClientProperty.AUTH_TOKEN.getValue(props));
     token = ClientProperty.getAuthenticationToken(props);
     assertTrue(token instanceof PasswordToken);
     assertEquals("testpass2", new String(((PasswordToken) token).getPassword()));
 
     ClientProperty.setAuthenticationToken(props, new PasswordToken("testpass3"));
-    assertEquals("AAAAHR+LCAAAAAAAAAArSS0uKUgsLjYGAEpAQwkJAAAA",
-        ClientProperty.AUTH_TOKEN.getValue(props));
+    assertEquals("/////gAAAAl0ZXN0cGFzczM=", ClientProperty.AUTH_TOKEN.getValue(props));
     token = ClientProperty.getAuthenticationToken(props);
     assertTrue(token instanceof PasswordToken);
     assertEquals("testpass3", new String(((PasswordToken) token).getPassword()));

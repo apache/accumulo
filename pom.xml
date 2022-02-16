@@ -125,6 +125,7 @@
     <errorprone.version>2.11.0</errorprone.version>
     <!-- avoid error shutting down built-in ForkJoinPool.commonPool() during exec:java tasks -->
     <exec.cleanupDaemonThreads>false</exec.cleanupDaemonThreads>
+    <extraTestArgs />
     <failsafe.excludedGroups />
     <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
@@ -854,7 +855,7 @@
             <systemPropertyVariables>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
-            <argLine>${unitTestMemSize}</argLine>
+            <argLine>${unitTestMemSize} ${extraTestArgs}</argLine>
           </configuration>
         </plugin>
         <plugin>
@@ -868,6 +869,7 @@
             <systemPropertyVariables>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
+            <argLine>${extraTestArgs}</argLine>
             <trimStackTrace>false</trimStackTrace>
           </configuration>
         </plugin>
@@ -1691,6 +1693,15 @@
           </plugin>
         </plugins>
       </build>
+    </profile>
+    <profile>
+      <id>jdk17</id>
+      <activation>
+        <jdk>[17,)</jdk>
+      </activation>
+      <properties>
+        <extraTestArgs>--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.management/java.lang.management=ALL-UNNAMED --add-opens java.management/sun.management=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED</extraTestArgs>
+      </properties>
     </profile>
   </profiles>
 </project>

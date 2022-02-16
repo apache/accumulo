@@ -25,6 +25,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -54,8 +55,10 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,11 +67,15 @@ import com.google.common.util.concurrent.Uninterruptibles;
 @Category({ZooKeeperTestingServerTests.class})
 public class ServiceLockIT {
 
+  @ClassRule
+  public static final TemporaryFolder TEMP =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+
   private static ZooKeeperTestingServer szk = null;
 
   @BeforeClass
   public static void setup() throws Exception {
-    szk = new ZooKeeperTestingServer();
+    szk = new ZooKeeperTestingServer(TEMP.newFolder());
     szk.initPaths("/accumulo/" + InstanceId.of(UUID.randomUUID()));
   }
 

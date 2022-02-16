@@ -23,11 +23,14 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.security.auth.DestroyFailedException;
 
@@ -83,12 +86,46 @@ public class PasswordToken implements AuthenticationToken {
 
   @Override
   public void readFields(DataInput arg0) throws IOException {
-    password = WritableUtils.readCompressedByteArray(arg0);
+    int version = arg0.readInt();
+    // -1 is null, consistent with legacy format; legacy format length must be >= -1
+    // so, use -2 as a magic number to indicate the new format
+    if (version == -1) {
+      password = null;
+    } else if (version == -2) {
+      byte[] passwordTmp = new byte[arg0.readInt()];
+      arg0.readFully(passwordTmp);
+      password = passwordTmp;
+    } else {
+      // legacy format; should avoid reading/writing compressed byte arrays using WritableUtils,
+      // because GZip is expensive and it doesn't actually compress passwords very well
+      AtomicBoolean calledFirstReadInt = new AtomicBoolean(false);
+      DataInput wrapped = (DataInput) Proxy.newProxyInstance(DataInput.class.getClassLoader(),
+          arg0.getClass().getInterfaces(), (obj, method, args) -> {
+            // wrap the original DataInput in order to return the integer that was read
+            // and then not used, because it didn't match -2
+            if (!calledFirstReadInt.get() && method.getName().equals("readInt")) {
+              calledFirstReadInt.set(true);
+              return version;
+            }
+            try {
+              return method.invoke(arg0, args);
+            } catch (InvocationTargetException e) {
+              throw e.getCause();
+            }
+          });
+      password = WritableUtils.readCompressedByteArray(wrapped);
+    }
   }
 
   @Override
   public void write(DataOutput arg0) throws IOException {
-    WritableUtils.writeCompressedByteArray(arg0, password);
+    if (password == null) {
+      arg0.writeInt(-1);
+      return;
+    }
+    arg0.writeInt(-2); // magic number
+    arg0.writeInt(password.length);
+    arg0.write(password);
   }
 
   @Override
@@ -134,7 +171,7 @@ public class PasswordToken implements AuthenticationToken {
   protected void setPassword(CharBuffer charBuffer) {
     // encode() kicks back a C-string, which is not compatible with the old passwording system
     ByteBuffer bb = UTF_8.encode(charBuffer);
-    // create array using byter buffer length
+    // create array using byte buffer length
     this.password = new byte[bb.remaining()];
     bb.get(this.password);
     if (!bb.isReadOnly()) {

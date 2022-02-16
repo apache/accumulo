@@ -23,8 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import javax.security.auth.DestroyFailedException;
 
@@ -58,7 +58,7 @@ public class CredentialsTest {
     // verify that we can't serialize if it's destroyed
     creds.getToken().destroy();
     Exception e = assertThrows(RuntimeException.class, () -> creds.toThrift(instanceID));
-    assertTrue(e.getCause() instanceof AccumuloSecurityException);
+    assertSame(AccumuloSecurityException.class, e.getCause().getClass());
     assertEquals(AccumuloSecurityException.class.cast(e.getCause()).getSecurityErrorCode(),
         SecurityErrorCode.TOKEN_EXPIRED);
   }

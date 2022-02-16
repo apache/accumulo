@@ -113,7 +113,7 @@ class FateServiceHandler implements FateService.Iface {
       List<ByteBuffer> arguments, Map<String,String> options, boolean autoCleanup)
       throws ThriftSecurityException, ThriftTableOperationException {
     authenticate(c);
-    String goalMessage = "Op: " + op.toString() + " ";
+    String goalMessage = op.toString() + " ";
 
     switch (op) {
       case NAMESPACE_CREATE: {
