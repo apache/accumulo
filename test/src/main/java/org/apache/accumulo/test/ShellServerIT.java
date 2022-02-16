@@ -95,7 +95,6 @@ import org.apache.accumulo.test.categories.MiniClusterOnlyTests;
 import org.apache.accumulo.test.categories.SunnyDayTests;
 import org.apache.accumulo.test.compaction.TestCompactionStrategy;
 import org.apache.accumulo.test.functional.SlowIterator;
-import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -1718,28 +1717,22 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void testPerTableClasspathLegacyJar() throws Exception {
-
-    File fooConstraintJar = initJar("/FooConstraint.jar");
-
+    File fooConstraintJar =
+        initJar("/org/apache/accumulo/test/FooConstraint.jar", "FooContraint", rootPath);
     verifyPerTableClasspath(fooConstraintJar);
   }
 
   @Test
   public void testPerTableClasspath_2_1_Jar() throws Exception {
-
-    File fooConstraintJar = initJar("/FooConstraint_2_1.jar");
-
+    File fooConstraintJar =
+        initJar("/org/apache/accumulo/test/FooConstraint_2_1.jar", "FooConstraint_2_1", rootPath);
     verifyPerTableClasspath(fooConstraintJar);
   }
 
   public void verifyPerTableClasspath(final File fooConstraintJar) throws IOException {
     final String table = getUniqueNames(1)[0];
 
-    File fooFilterJar = File.createTempFile("FooFilter", ".jar", new File(rootPath));
-
-    FileUtils.copyInputStreamToFile(this.getClass().getResourceAsStream("/FooFilter.jar"),
-        fooFilterJar);
-    fooFilterJar.deleteOnExit();
+    File fooFilterJar = initJar("/org/apache/accumulo/test/FooFilter.jar", "FooFilter", rootPath);
 
     ts.exec("config -s " + VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1=" + fooFilterJar.toURI()
         + "," + fooConstraintJar.toURI(), true);
@@ -1774,15 +1767,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("deletetable -f " + table, true);
     ts.exec("config -d " + VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
 
-  }
-
-  private File initJar(final String jarPath) throws IOException {
-
-    File fooConstraintJar = File.createTempFile("FooConstraint", ".jar", new File(rootPath));
-    FileUtils.copyInputStreamToFile(this.getClass().getResourceAsStream(jarPath), fooConstraintJar);
-    fooConstraintJar.deleteOnExit();
-
-    return fooConstraintJar;
   }
 
   @Test
@@ -2115,9 +2099,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private void setupFakeContextPath() throws IOException {
     // Copy the test iterators jar to tmp
     Path baseDir = new Path(System.getProperty("user.dir"));
-    Path targetDir = new Path(baseDir, "target");
-    Path classesDir = new Path(targetDir, "classes");
-    Path jarPath = new Path(classesDir, "ShellServerIT-iterators.jar");
+    Path jarPath = new Path(baseDir + "/target/classes/org/apache/accumulo/test",
+        "ShellServerIT-iterators.jar");
     Path dstPath = new Path(FAKE_CONTEXT_CLASSPATH);
     FileSystem fs = SharedMiniClusterBase.getCluster().getFileSystem();
     fs.copyFromLocalFile(jarPath, dstPath);
