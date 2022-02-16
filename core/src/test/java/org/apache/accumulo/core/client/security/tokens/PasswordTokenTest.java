@@ -19,7 +19,16 @@
 package org.apache.accumulo.core.client.security.tokens;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.Base64;
+import java.util.List;
 
 import javax.security.auth.DestroyFailedException;
 
@@ -40,5 +49,35 @@ public class PasswordTokenTest {
     pt = new PasswordToken("五六");
     s = new String(pt.getPassword(), UTF_8);
     assertEquals("五六", s);
+  }
+
+  @Test
+  public void testReadingLegacyFormat() throws IOException {
+    String newFormat = "/////gAAAAh0ZXN0cGFzcw=="; // the new format without using GZip
+    String oldFormat1 = "AAAAHB+LCAAAAAAAAAArSS0uKUgsLgYAGRFm+ggAAAA="; // jdk 11 GZip produced this
+    String oldFormat2 = "AAAAHB+LCAAAAAAAAP8rSS0uKUgsLgYAGRFm+ggAAAA="; // jdk 17 GZip produced this
+    for (String format : List.of(oldFormat1, oldFormat2, newFormat)) {
+      byte[] array = Base64.getDecoder().decode(format);
+      try (var bais = new ByteArrayInputStream(array); var dis = new DataInputStream(bais)) {
+        var deserializedToken = new PasswordToken();
+        deserializedToken.readFields(dis);
+        assertArrayEquals("testpass".getBytes(UTF_8), deserializedToken.getPassword());
+      }
+    }
+  }
+
+  @Test
+  public void testReadingAndWriting() throws IOException {
+    var originalToken = new PasswordToken("testpass");
+    byte[] saved;
+    try (var baos = new ByteArrayOutputStream(); var dos = new DataOutputStream(baos)) {
+      originalToken.write(dos);
+      saved = baos.toByteArray();
+    }
+    try (var bais = new ByteArrayInputStream(saved); var dis = new DataInputStream(bais)) {
+      var deserializedToken = new PasswordToken();
+      deserializedToken.readFields(dis);
+      assertArrayEquals(originalToken.getPassword(), deserializedToken.getPassword());
+    }
   }
 }

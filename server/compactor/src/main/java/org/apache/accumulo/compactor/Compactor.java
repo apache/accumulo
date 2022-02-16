@@ -621,7 +621,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    *          number of bytes in input file
    * @return number of seconds to wait between progress checks
    */
-  protected long calculateProgressCheckTime(long numBytes) {
+  static long calculateProgressCheckTime(long numBytes) {
     return Math.max(1, (numBytes / TEN_MEGABYTES));
   }
 

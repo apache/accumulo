@@ -118,20 +118,12 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
      * @see #deserialize(Class, byte[])
      */
     public static byte[] serialize(AuthenticationToken token) {
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      DataOutputStream out = new DataOutputStream(baos);
-      try {
+      try (var baos = new ByteArrayOutputStream(); var out = new DataOutputStream(baos)) {
         token.write(out);
+        return baos.toByteArray();
       } catch (IOException e) {
         throw new RuntimeException("Bug found in serialization code", e);
       }
-      byte[] bytes = baos.toByteArray();
-      try {
-        out.close();
-      } catch (IOException e) {
-        throw new IllegalStateException("Shouldn't happen with ByteArrayOutputStream", e);
-      }
-      return bytes;
     }
   }
 
