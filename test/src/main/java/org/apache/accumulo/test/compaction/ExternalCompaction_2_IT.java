@@ -20,6 +20,10 @@ package org.apache.accumulo.test.compaction;
 
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE2;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE3;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE4;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE5;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionCompleted;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionRunning;
@@ -148,7 +152,7 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
-      createTable(client, table1, "cs1");
+      createTable(client, table1, "cs2");
       // set compaction ratio to 1 so that majc occurs naturally, not user compaction
       // user compaction blocks merge
       client.tableOperations().setProperty(table1, Property.TABLE_MAJC_RATIO.toString(), "1.0");
@@ -172,8 +176,10 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
             Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
           TExternalCompactionList metrics2 = getRunningCompactions(getCluster().getServerContext());
           while (metrics2.getCompactions() == null) {
-            UtilWaitThread.sleep(50);
             metrics2 = getRunningCompactions(getCluster().getServerContext());
+            if (metrics2.getCompactions() == null) {
+              UtilWaitThread.sleep(50);
+            }
           }
           LOG.info("Taking table offline");
           client2.tableOperations().offline(table1, false);
@@ -185,7 +191,7 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       t.start();
 
       // Start the compactor
-      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
+      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE2);
 
       // Wait for the compaction to start by waiting for 1 external compaction column
       Set<ExternalCompactionId> ecids = ExternalCompactionTestUtils
@@ -213,8 +219,10 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       // wait for compaction to be committed by tserver or test timeout
       long finalStateCount = getFinalStatesForTable(getCluster(), tid).count();
       while (finalStateCount > 0) {
-        UtilWaitThread.sleep(250);
         finalStateCount = getFinalStatesForTable(getCluster(), tid).count();
+        if (finalStateCount > 0) {
+          UtilWaitThread.sleep(50);
+        }
       }
 
       // We need to cancel the compaction or delete the table here because we initiate a user
@@ -231,16 +239,16 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
   public void testUserCompactionCancellation() throws Exception {
 
     getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
-    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE1);
+    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE3);
 
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
-      createTable(client, table1, "cs1");
+      createTable(client, table1, "cs3");
       TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
       writeData(client, table1);
-      compact(client, table1, 2, QUEUE1, false);
+      compact(client, table1, 2, QUEUE3, false);
 
       // Wait for the compaction to start by waiting for 1 external compaction column
       Set<ExternalCompactionId> ecids = ExternalCompactionTestUtils
@@ -267,16 +275,16 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
   public void testDeleteTableCancelsUserExternalCompaction() throws Exception {
 
     getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
-    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE1);
+    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE4);
 
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
-      createTable(client, table1, "cs1");
+      createTable(client, table1, "cs4");
       TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
       writeData(client, table1);
-      compact(client, table1, 2, QUEUE1, false);
+      compact(client, table1, 2, QUEUE4, false);
 
       // Wait for the compaction to start by waiting for 1 external compaction column
       Set<ExternalCompactionId> ecids =
@@ -297,13 +305,13 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
   @Test
   public void testDeleteTableCancelsExternalCompaction() throws Exception {
     getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
-    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE1);
+    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE5);
 
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
-      createTable(client, table1, "cs1");
+      createTable(client, table1, "cs5");
       // set compaction ratio to 1 so that majc occurs naturally, not user compaction
       // user compaction blocks delete
       client.tableOperations().setProperty(table1, Property.TABLE_MAJC_RATIO.toString(), "1.0");
