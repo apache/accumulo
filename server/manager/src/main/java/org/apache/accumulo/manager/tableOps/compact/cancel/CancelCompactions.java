@@ -64,7 +64,7 @@ public class CancelCompactions extends ManagerRepo {
     Utils.unreserveNamespace(env, namespaceId, tid, false);
   }
 
-  public static synchronized void mutateZooKeeper(long tid, TableId tableId, Manager environment)
+  public static void mutateZooKeeper(long tid, TableId tableId, Manager environment)
       throws Exception {
     String zCompactID = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES
         + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
