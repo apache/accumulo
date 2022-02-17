@@ -117,6 +117,10 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Scheduler;
+
 public class ScanServer extends TabletServer implements TabletClientService.Iface {
 
   static class ScanInformation extends MutableTriple<Long,KeyExtent,Tablet> {
@@ -223,6 +227,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
   protected Map<Long,ScanInformation> scans;
   protected ThriftClientHandler handler;
   protected int maxConcurrentScans;
+  private final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache;
 
   public ScanServer(ServerOpts opts, String[] args) {
     super(opts, args, true);
@@ -243,6 +248,21 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
           Property.SSERV_CONCURRENT_SCANS.getKey(), maxConcurrentScans);
     }
     scans = new ConcurrentHashMap<>(maxConcurrentScans, 1.0f, maxConcurrentScans);
+    long cacheExpiration =
+        getConfiguration().getTimeInMillis(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION);
+    if (cacheExpiration == 0L) {
+      LOG.warn("Tablet metadata caching disabled, may cause excessive scans on metadata table.");
+      tabletMetadataCache = null;
+    } else {
+      if (cacheExpiration < 60000) {
+        LOG.warn(
+            "Tablet metadata caching less than one minute, may cause excessive scans on metadata table.");
+      }
+      tabletMetadataCache =
+          Caffeine.newBuilder().expireAfterWrite(cacheExpiration, TimeUnit.MILLISECONDS)
+              .scheduler(Scheduler.systemScheduler())
+              .build(key -> getContext().getAmple().readTablet(key));
+    }
     handler = getHandler();
   }
 
@@ -359,8 +379,6 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       throw new RuntimeException("Failed to start the compactor client service", e1);
     }
 
-    ServiceLock lock = announceExistence();
-
     try {
       MetricsUtil.initializeMetrics(getContext().getConfiguration(), this.applicationName,
           clientAddress);
@@ -382,6 +400,8 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     LOG.debug("Looking for timed out scan sessions every {}ms", Math.max(maxIdle / 2, 1000));
     this.getContext().getScheduledExecutor().scheduleWithFixedDelay(() -> cleanupTimedOutSession(),
         Math.max(maxIdle / 2, 1000), Math.max(maxIdle / 2, 1000), TimeUnit.MILLISECONDS);
+
+    ServiceLock lock = announceExistence();
 
     try {
       while (!serverStopRequested) {
@@ -414,9 +434,21 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
     }
   }
 
+  private TabletMetadata getTabletMetadata(KeyExtent extent) {
+    if (tabletMetadataCache == null) {
+      return getContext().getAmple().readTablet(extent);
+    } else {
+      return tabletMetadataCache.get(extent);
+    }
+  }
+
   protected ScanInformation loadTablet(KeyExtent extent)
       throws IllegalArgumentException, IOException, AccumuloException {
-    TabletMetadata tabletMetadata = getContext().getAmple().readTablet(extent);
+
+    // Need to call ScanServerKeyExtent.toKeyExtent so that the cache key
+    // is the unique per tablet, not unique per scan.
+    TabletMetadata tabletMetadata = getTabletMetadata(extent);
+
     // Need to call ScanServerKeyExtent.toKeyExtent for the equivalence checks that
     // happen inside AssignmentHandler.
     boolean canLoad =

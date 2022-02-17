@@ -395,6 +395,10 @@ public enum Property {
   SSERV_PREFIX("sserver.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the scan servers", "2.1.0"),
   @Experimental
+  SSERV_CACHED_TABLET_METADATA_EXPIRATION("sserver.cache.metadata.expiration", "5m",
+      PropertyType.TIMEDURATION, "The time after which cached tablet metadata will be refreshed.",
+      "2.1.0"),
+  @Experimental
   SSERV_CONCURRENT_SCANS("sserver.server.concurrent.scans", "1", PropertyType.COUNT,
       "The number of concurrent scans that each scan server will permit.", "2.1.0"),
   @Experimental
