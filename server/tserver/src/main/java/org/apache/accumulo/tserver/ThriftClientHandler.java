@@ -326,7 +326,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       writeTracker.waitForWrites(TabletType.type(extent));
     }
 
-    Tablet tablet = server.getOnlineTablet(extent);
+    Tablet tablet = tabletResolver.getTablet(extent);
     if (tablet == null) {
       throw new NotServingTabletException(extent.toThrift());
     }

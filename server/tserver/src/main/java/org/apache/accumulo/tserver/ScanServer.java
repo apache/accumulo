@@ -544,7 +544,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       logOnlineTablets();
       return is;
     } catch (TException e) {
-      log.debug("Saw exception", e);
+      LOG.debug("Saw exception", e);
       throw e;
     }
   }
