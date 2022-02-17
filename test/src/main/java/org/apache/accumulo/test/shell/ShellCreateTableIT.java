@@ -65,7 +65,7 @@ import org.junit.experimental.categories.Category;
 @Category({MiniClusterOnlyTests.class, SunnyDayTests.class})
 public class ShellCreateTableIT extends SharedMiniClusterBase {
 
-  private TestShell ts;
+  private MockShell ts;
 
   private static class SSCTITCallback implements MiniClusterConfigurationCallback {
     @Override
@@ -85,7 +85,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   @Before
   public void setupShell() throws Exception {
-    ts = new TestShell(getPrincipal(), getRootPassword(),
+    ts = new MockShell(getPrincipal(), getRootPassword(),
         getCluster().getConfig().getInstanceName(), getCluster().getConfig().getZooKeepers(),
         getCluster().getConfig().getClientPropsFile());
   }

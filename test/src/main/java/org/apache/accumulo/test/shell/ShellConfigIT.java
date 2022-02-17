@@ -95,13 +95,13 @@ public class ShellConfigIT extends AccumuloClusterHarness {
 
     assertNotNull(clientPropsFile);
 
-    TestShell ts = null;
+    MockShell ts = null;
     if (token instanceof PasswordToken) {
       String passwd = new String(((PasswordToken) token).getPassword(), UTF_8);
-      ts = new TestShell(getAdminPrincipal(), passwd, getCluster().getInstanceName(),
+      ts = new MockShell(getAdminPrincipal(), passwd, getCluster().getInstanceName(),
           getCluster().getZooKeepers(), clientPropsFile);
     } else if (token instanceof KerberosToken) {
-      ts = new TestShell(getAdminPrincipal(), null, getCluster().getInstanceName(),
+      ts = new MockShell(getAdminPrincipal(), null, getCluster().getInstanceName(),
           getCluster().getZooKeepers(), clientPropsFile);
     } else {
       fail("Unknown token type");

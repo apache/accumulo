@@ -36,8 +36,8 @@ import org.jline.terminal.impl.DumbTerminal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TestShell {
-  private static final Logger shellLog = LoggerFactory.getLogger(TestShell.class);
+public class MockShell {
+  private static final Logger shellLog = LoggerFactory.getLogger(MockShell.class);
   private static final ErrorMessageCallback noop = new ErrorMessageCallback();
 
   public TestOutputStream output;
@@ -46,7 +46,7 @@ public class TestShell {
   public LineReader reader;
   public Terminal terminal;
 
-  TestShell(String user, String rootPass, String instanceName, String zookeepers, File configFile)
+  MockShell(String user, String rootPass, String instanceName, String zookeepers, File configFile)
       throws IOException {
     ClientInfo info = ClientInfo.from(configFile.toPath());
     // start the shell

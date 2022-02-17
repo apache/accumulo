@@ -108,7 +108,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   private static final Logger log = LoggerFactory.getLogger(ShellServerIT.class);
 
-  private TestShell ts;
+  private MockShell ts;
 
   private static String rootPath;
 
@@ -141,7 +141,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Before
   public void setupShell() throws Exception {
-    ts = new TestShell(getPrincipal(), getRootPassword(),
+    ts = new MockShell(getPrincipal(), getRootPassword(),
         getCluster().getConfig().getInstanceName(), getCluster().getConfig().getZooKeepers(),
         getCluster().getConfig().getClientPropsFile());
   }
