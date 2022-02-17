@@ -511,6 +511,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       try {
         si = loadTablet(extent);
         if (si == null) {
+          LOG.debug("Did not find tablet {}", extent);
           throw new NotServingTabletException();
         }
       } catch (Exception e) {
@@ -543,6 +544,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       logOnlineTablets();
       return is;
     } catch (TException e) {
+      log.debug("Saw exception", e);
       throw e;
     }
   }
