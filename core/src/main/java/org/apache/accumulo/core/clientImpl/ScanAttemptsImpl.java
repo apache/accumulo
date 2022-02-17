@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.SortedSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 
@@ -96,8 +97,8 @@ public class ScanAttemptsImpl {
   }
 
   private SortedSet<ScanAttempt> attempts = new ConcurrentSkipListSet<>();
-  private ConcurrentSkipListMap<TabletId,SortedSet<ScanAttempt>> attemptsByTablet =
-      new ConcurrentSkipListMap<>();
+  private ConcurrentHashMap<TabletId,SortedSet<ScanAttempt>> attemptsByTablet =
+      new ConcurrentHashMap<>();
   private ConcurrentSkipListMap<String,SortedSet<ScanAttempt>> attemptsByServer =
       new ConcurrentSkipListMap<>();
   private long mutationCounter = 0;
@@ -143,7 +144,7 @@ public class ScanAttemptsImpl {
 
       @Override
       public SortedSet<ScanAttempt> forTablet(TabletId tablet) {
-        return Sets.filter(attemptsByServer.getOrDefault(tablet, Collections.emptySortedSet()),
+        return Sets.filter(attemptsByTablet.getOrDefault(tablet, Collections.emptySortedSet()),
             attempt -> ((ScanAttemptImpl) attempt).getMutationCount() <= snapMC);
       }
     };
