@@ -27,25 +27,25 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.spi.scan.EcScanManager;
-import org.apache.accumulo.core.spi.scan.EcScanManager.ScanAttempt;
+import org.apache.accumulo.core.spi.scan.ScanServerDispatcher;
+import org.apache.accumulo.core.spi.scan.ScanServerDispatcher.ScanAttempt;
 
 import com.google.common.collect.Sets;
 
 public class ScanAttemptsImpl {
 
   public static class ScanAttemptImpl
-      implements org.apache.accumulo.core.spi.scan.EcScanManager.ScanAttempt {
+      implements org.apache.accumulo.core.spi.scan.ScanServerDispatcher.ScanAttempt {
 
-    private final EcScanManager.Action requestedAction;
+    private final ScanServerDispatcher.Action requestedAction;
     private final String server;
     private final long time;
     private final Result result;
     private final TabletId tablet;
     private volatile long mutationCount = Long.MAX_VALUE;
 
-    public ScanAttemptImpl(EcScanManager.Action action, String server, long time, Result result,
-        TabletId tablet) {
+    public ScanAttemptImpl(ScanServerDispatcher.Action action, String server, long time,
+        Result result, TabletId tablet) {
       this.requestedAction = action;
       this.server = server;
       this.time = time;
@@ -64,7 +64,7 @@ public class ScanAttemptsImpl {
     }
 
     @Override
-    public EcScanManager.Action getAction() {
+    public ScanServerDispatcher.Action getAction() {
       return requestedAction;
     }
 
@@ -94,6 +94,41 @@ public class ScanAttemptsImpl {
     public long getMutationCount() {
       return mutationCount;
     }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((requestedAction == null) ? 0 : requestedAction.hashCode());
+      result = prime * result + ((this.result == null) ? 0 : this.result.hashCode());
+      result = prime * result + ((server == null) ? 0 : server.hashCode());
+      result = prime * result + (int) (time ^ (time >>> 32));
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj)
+        return true;
+      if (obj == null)
+        return false;
+      if (getClass() != obj.getClass())
+        return false;
+      ScanAttemptImpl other = (ScanAttemptImpl) obj;
+      if (requestedAction != other.requestedAction)
+        return false;
+      if (result != other.result)
+        return false;
+      if (server == null) {
+        if (other.server != null)
+          return false;
+      } else if (!server.equals(other.server))
+        return false;
+      if (time != other.time)
+        return false;
+      return true;
+    }
+
   }
 
   private SortedSet<ScanAttempt> attempts = new ConcurrentSkipListSet<>();
@@ -103,8 +138,8 @@ public class ScanAttemptsImpl {
       new ConcurrentSkipListMap<>();
   private long mutationCounter = 0;
 
-  public void add(EcScanManager.Action action, String server, long time, ScanAttempt.Result result,
-      TabletId tablet) {
+  public void add(ScanServerDispatcher.Action action, String server, long time,
+      ScanAttempt.Result result, TabletId tablet) {
 
     ScanAttemptImpl sa = new ScanAttemptImpl(action, server, time, result, tablet);
 
@@ -121,7 +156,7 @@ public class ScanAttemptsImpl {
 
   }
 
-  EcScanManager.ScanAttempts snapshot() {
+  ScanServerDispatcher.ScanAttempts snapshot() {
     // allows only seeing scan attempt objs that were added before this call
 
     long snapMC;
@@ -129,7 +164,7 @@ public class ScanAttemptsImpl {
       snapMC = mutationCounter;
     }
 
-    return new EcScanManager.ScanAttempts() {
+    return new ScanServerDispatcher.ScanAttempts() {
       @Override
       public Collection<ScanAttempt> all() {
         return Sets.filter(attempts,

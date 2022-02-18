@@ -92,7 +92,7 @@ public enum ClientProperty {
   SCANNER_BATCH_SIZE("scanner.batch.size", "1000", PropertyType.COUNT,
       "Number of key/value pairs that will be fetched at time from tablet server", "2.0.0", false),
 
-  SCAN_SERVER_LOCATOR("scan.server.locator.impl", DefaultEcScanManager.class.getName(),
+  SCAN_SERVER_DISPATCHER("scan.server.dispatcher.impl", DefaultEcScanManager.class.getName(),
       PropertyType.CLASSNAME, "Class used by client to find Scan Servers", "2.1.0", false),
 
   // BatchScanner

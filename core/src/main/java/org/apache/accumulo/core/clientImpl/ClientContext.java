@@ -73,7 +73,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
-import org.apache.accumulo.core.spi.scan.EcScanManager;
+import org.apache.accumulo.core.spi.scan.ScanServerDispatcher;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -104,7 +104,7 @@ public class ClientContext implements AccumuloClient {
 
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
-  private EcScanManager ecScanManager;
+  private ScanServerDispatcher scanServerDispatcher;
   private ConditionalWriterConfig conditionalWriterConfig;
   private final AccumuloConfiguration serverConf;
   private final Configuration hadoopConf;
@@ -324,19 +324,32 @@ public class ClientContext implements AccumuloClient {
     return batchWriterConfig;
   }
 
-  public synchronized EcScanManager getEcScanManager() {
+  /**
+   * @return the list of scan servers
+   */
+  public List<String> getScanServers() {
+    return this.getZooCache().getChildren(this.getZooKeeperRoot() + Constants.ZSSERVERS);
+  }
+
+  /**
+   * @return the scan server dispatcher implementation used for determining which scan servers will
+   *         be used when performing an eventually consistent scan
+   */
+  public synchronized ScanServerDispatcher getScanServerDispatcher() {
     ensureOpen();
-    if (ecScanManager == null) {
-      String clazz = ClientProperty.SCAN_SERVER_LOCATOR.getValue(info.getProperties());
+    if (scanServerDispatcher == null) {
+      String clazz = ClientProperty.SCAN_SERVER_DISPATCHER.getValue(info.getProperties());
       try {
-        Class<? extends EcScanManager> impl = Class.forName(clazz).asSubclass(EcScanManager.class);
-        ecScanManager = impl.getDeclaredConstructor().newInstance();
+        Class<? extends ScanServerDispatcher> impl =
+            Class.forName(clazz).asSubclass(ScanServerDispatcher.class);
+        scanServerDispatcher = impl.getDeclaredConstructor().newInstance();
         // TODO initialize
       } catch (Exception e) {
-        throw new RuntimeException("Error creating ScanServerLocator implemenation: " + clazz, e);
+        throw new RuntimeException("Error creating ScanServerDispatcher implemenation: " + clazz,
+            e);
       }
     }
-    return ecScanManager;
+    return scanServerDispatcher;
   }
 
   static ConditionalWriterConfig getConditionalWriterConfig(Properties props) {

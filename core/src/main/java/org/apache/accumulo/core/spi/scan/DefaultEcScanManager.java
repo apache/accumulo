@@ -18,30 +18,23 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
-import java.nio.charset.StandardCharsets;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 import java.util.SortedSet;
 
 import org.apache.accumulo.core.data.TabletId;
 
 import com.google.common.hash.Hashing;
 
-public class DefaultEcScanManager implements EcScanManager {
+public class DefaultEcScanManager implements ScanServerDispatcher {
 
-  private static final long INITIAL_SLEEP_TIME = 100L;
-  private static final long MAX_SLEEP_TIME = 300000L;
-  private final int INITIAL_SERVERS = 3;
-  private final int MAX_DEPTH = 3;
-
-  @Override
-  public EcScanActions determineActions(DaParamaters params) {
-
-    if (params.getScanServers().isEmpty()) {
-      return new EcScanActions() {
+  private static final ScanServerDispatcherResults NO_SCAN_SERVER_RESULT =
+      new ScanServerDispatcherResults() {
         @Override
         public Action getAction(TabletId tablet) {
           return Action.USE_TABLET_SERVER;
@@ -58,8 +51,19 @@ public class DefaultEcScanManager implements EcScanManager {
           return Duration.ZERO;
         }
       };
+
+  private static final SecureRandom RANDOM = new SecureRandom();
+  private static final long INITIAL_SLEEP_TIME = 100L;
+  private static final long MAX_SLEEP_TIME = 300000L;
+  private final int INITIAL_SERVERS = 3;
+  private final int MAX_DEPTH = 3;
+
+  @Override
+  public ScanServerDispatcherResults determineActions(DispatcherParameters params) {
+
+    if (params.getScanServers().isEmpty()) {
+      return NO_SCAN_SERVER_RESULT;
     }
-    Random rand = new Random();
 
     Map<TabletId,String> serversMap = new HashMap<>();
     Map<String,Long> sleepTimes = new HashMap<>();
@@ -93,7 +97,7 @@ public class DefaultEcScanManager implements EcScanManager {
         }
 
         int serverIndex =
-            (hashCode + rand.nextInt(numServers)) % params.getOrderedScanServers().size();
+            (hashCode + RANDOM.nextInt(numServers)) % params.getOrderedScanServers().size();
         serverToUse = params.getOrderedScanServers().get(serverIndex);
 
         if (busyAttempts > MAX_DEPTH) {
@@ -106,7 +110,7 @@ public class DefaultEcScanManager implements EcScanManager {
 
     }
 
-    return new EcScanActions() {
+    return new ScanServerDispatcherResults() {
       @Override
       public Action getAction(TabletId tablet) {
         return Action.USE_SCAN_SERVER;
@@ -127,7 +131,7 @@ public class DefaultEcScanManager implements EcScanManager {
   private int hashTablet(TabletId tablet) {
     var hasher = Hashing.murmur3_32().newHasher();
 
-    hasher.putString(tablet.getTable().canonical(), StandardCharsets.UTF_8);
+    hasher.putString(tablet.getTable().canonical(), UTF_8);
 
     if (tablet.getEndRow() != null) {
       hasher.putBytes(tablet.getEndRow().getBytes(), 0, tablet.getEndRow().getLength());

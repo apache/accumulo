@@ -19,7 +19,11 @@
 package org.apache.accumulo.core.spi.scan;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
 
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -32,7 +36,7 @@ import com.google.common.base.Preconditions;
 // this plugin decides how to handle eventually consistent scans on the client side... long name
 // could be EventuallyConsistentScan(Manager/Dispatcher/Govenor).. shorter name
 // EcScan(Manager/Dispatcher/Govenor)
-public interface EcScanManager {
+public interface ScanServerDispatcher {
 
   public interface InitParameters {
     Map<String,String> getOptions();
@@ -60,7 +64,7 @@ public interface EcScanManager {
 
     Result getResult();
 
-    EcScanManager.Action getAction();
+    ScanServerDispatcher.Action getAction();
 
     String getServer();
 
@@ -75,13 +79,26 @@ public interface EcScanManager {
     SortedSet<ScanAttempt> forTablet(TabletId tablet);
   }
 
-  public interface DaParamaters {
+  public interface DispatcherParameters {
+
+    /**
+     * @return the set of tablets to be scanned
+     */
     Collection<TabletId> getTablets();
 
+    /**
+     * @return the set of live ScanServers
+     */
     Set<String> getScanServers();
 
+    /**
+     * @return a list of ScanServers in order (TODO: what type of order?)
+     */
     List<String> getOrderedScanServers();
 
+    /**
+     * @return scan attempt information (TODO: how is this used?)
+     */
     ScanAttempts getScanAttempts();
   }
 
@@ -94,7 +111,7 @@ public interface EcScanManager {
 
   // TODO need a better name.. this interface is used to communicate what actions the plugin would
   // like Accumulo to take for the scan... maybe EcScanActions
-  public interface EcScanActions {
+  public interface ScanServerDispatcherResults {
 
     Action getAction(TabletId tablet);
 
@@ -103,5 +120,13 @@ public interface EcScanManager {
     Duration getDelay(String server);
   }
 
-  EcScanActions determineActions(DaParamaters params);
+  /**
+   * Uses the DispatcherParameters to determine which, if any, ScanServer should be used for
+   * scanning a tablet.
+   *
+   * @param params
+   *          parameters for the calculation
+   * @return results
+   */
+  ScanServerDispatcherResults determineActions(DispatcherParameters params);
 }

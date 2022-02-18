@@ -18,12 +18,22 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import static org.apache.accumulo.core.clientImpl.ScanServerDiscovery.getScanServers;
-
 import java.io.IOException;
-import java.util.*;
 import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
@@ -39,7 +49,12 @@ import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.data.*;
+import org.apache.accumulo.core.data.Column;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
@@ -50,7 +65,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.scan.EcScanManager;
+import org.apache.accumulo.core.spi.scan.ScanServerDispatcher;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -526,53 +541,54 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private Map<String,Map<KeyExtent,List<Range>>>
       rebinToScanServers(Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
-    EcScanManager ecsm = context.getEcScanManager();
+    ScanServerDispatcher ecsm = context.getScanServerDispatcher();
 
-    var scanServers = getScanServers(context);
+    var scanServers = context.getScanServers();
 
     List<TabletIdImpl> tabletIds =
         binnedRanges.values().stream().flatMap(extentMap -> extentMap.keySet().stream())
             .map(TabletIdImpl::new).collect(Collectors.toList());
 
-    EcScanManager.DaParamaters params = new EcScanManager.DaParamaters() {
-      @Override
-      public Collection<TabletId> getTablets() {
-        return Collections.unmodifiableCollection(tabletIds);
-      }
-
-      @Override
-      public Set<String> getScanServers() {
-        // TODO can copy be avoided?
-        return new HashSet<>(scanServers);
-      }
-
-      @Override
-      public List<String> getOrderedScanServers() {
-        // TODO sort
-        return scanServers;
-      }
-
-      @Override
-      public EcScanManager.ScanAttempts getScanAttempts() {
-        // TODO implement tracking and passing history (also share code w/ scanner)
-        return new EcScanManager.ScanAttempts() {
+    ScanServerDispatcher.DispatcherParameters params =
+        new ScanServerDispatcher.DispatcherParameters() {
           @Override
-          public List<EcScanManager.ScanAttempt> all() {
-            return List.of(); // TODO
+          public Collection<TabletId> getTablets() {
+            return Collections.unmodifiableCollection(tabletIds);
           }
 
           @Override
-          public SortedSet<EcScanManager.ScanAttempt> forServer(String server) {
-            return new TreeSet<>(); // TODO
+          public Set<String> getScanServers() {
+            // TODO can copy be avoided?
+            return new HashSet<>(scanServers);
           }
 
           @Override
-          public SortedSet<EcScanManager.ScanAttempt> forTablet(TabletId tablet) {
-            return new TreeSet<>(); // TODO
+          public List<String> getOrderedScanServers() {
+            // TODO sort
+            return scanServers;
+          }
+
+          @Override
+          public ScanServerDispatcher.ScanAttempts getScanAttempts() {
+            // TODO implement tracking and passing history (also share code w/ scanner)
+            return new ScanServerDispatcher.ScanAttempts() {
+              @Override
+              public List<ScanServerDispatcher.ScanAttempt> all() {
+                return List.of(); // TODO
+              }
+
+              @Override
+              public SortedSet<ScanServerDispatcher.ScanAttempt> forServer(String server) {
+                return new TreeSet<>(); // TODO
+              }
+
+              @Override
+              public SortedSet<ScanServerDispatcher.ScanAttempt> forTablet(TabletId tablet) {
+                return new TreeSet<>(); // TODO
+              }
+            };
           }
         };
-      }
-    };
 
     var actions = ecsm.determineActions(params);
 
@@ -591,7 +607,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     for (TabletIdImpl tablet : tabletIds) {
       String server;
 
-      if (actions.getAction(tablet) == EcScanManager.Action.USE_SCAN_SERVER) {
+      if (actions.getAction(tablet) == ScanServerDispatcher.Action.USE_SCAN_SERVER) {
         server = actions.getScanServer(tablet);
       } else {
         server = extentToTserverMap.get(tablet.toKeyExtent());

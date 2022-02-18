@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import static org.apache.accumulo.core.clientImpl.ScanServerDiscovery.*;
-
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -43,7 +41,14 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.TabletLocator.TabletLocation;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.*;
+import org.apache.accumulo.core.data.Column;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.KeyValue;
+import org.apache.accumulo.core.data.PartialKey;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
@@ -53,8 +58,8 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.scan.EcScanManager;
-import org.apache.accumulo.core.spi.scan.EcScanManager.EcScanActions;
+import org.apache.accumulo.core.spi.scan.ScanServerDispatcher;
+import org.apache.accumulo.core.spi.scan.ScanServerDispatcher.ScanServerDispatcherResults;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
@@ -455,14 +460,14 @@ public class ThriftScanner {
 
     if (scanState.runOnScanServer) {
 
-      var scanServers = getScanServers(context);
+      var scanServers = context.getScanServers();
 
       var tabletId = new TabletIdImpl(loc.tablet_extent);
 
-      var params = new EcScanManager.DaParamaters() {
+      var params = new ScanServerDispatcher.DispatcherParameters() {
 
         // obtain a snapshot once and always use it
-        EcScanManager.ScanAttempts attempts = scanState.scanAttempts.snapshot();
+        ScanServerDispatcher.ScanAttempts attempts = scanState.scanAttempts.snapshot();
 
         @Override
         public List<TabletId> getTablets() {
@@ -482,18 +487,19 @@ public class ThriftScanner {
         }
 
         @Override
-        public EcScanManager.ScanAttempts getScanAttempts() {
+        public ScanServerDispatcher.ScanAttempts getScanAttempts() {
           return attempts;
         }
       };
 
-      EcScanActions actions = context.getEcScanManager().determineActions(params);
+      ScanServerDispatcherResults actions =
+          context.getScanServerDispatcher().determineActions(params);
 
       TabletLocation newLoc;
 
       var action = actions.getAction(tabletId);
 
-      if (actions.getAction(tabletId) == EcScanManager.Action.USE_SCAN_SERVER) {
+      if (actions.getAction(tabletId) == ScanServerDispatcher.Action.USE_SCAN_SERVER) {
         // TODO what to use for session?
         newLoc = new TabletLocation(loc.tablet_extent, actions.getScanServer(tabletId), "none");
       } else {
@@ -504,12 +510,12 @@ public class ThriftScanner {
       try {
         var ret = scanRpc(newLoc, scanState, context);
         scanState.scanAttempts.add(action, actions.getScanServer(tabletId),
-            System.currentTimeMillis(), EcScanManager.ScanAttempt.Result.SUCCESS, tabletId);
+            System.currentTimeMillis(), ScanServerDispatcher.ScanAttempt.Result.SUCCESS, tabletId);
         return ret;
       } catch (AccumuloSecurityException | TException e) {
         // TODO need to handle busy case
         scanState.scanAttempts.add(action, actions.getScanServer(tabletId),
-            System.currentTimeMillis(), EcScanManager.ScanAttempt.Result.ERROR, tabletId);
+            System.currentTimeMillis(), ScanServerDispatcher.ScanAttempt.Result.ERROR, tabletId);
         throw e;
       }
     } else {
@@ -525,8 +531,7 @@ public class ThriftScanner {
 
     final TInfo tinfo = TraceUtil.traceInfo();
 
-    HostAndPort parsedLocation = HostAndPort.fromString(loc.tablet_location);
-    ;
+    final HostAndPort parsedLocation = HostAndPort.fromString(loc.tablet_location);
 
     TabletClientService.Client client = ThriftUtil.getTServerClient(parsedLocation, context);
 
