@@ -596,7 +596,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       throw new TException("ScanServer is busy");
     }
 
-    HashMap<KeyExtent, Tablet> tablets = new HashMap<>();
+    HashMap<KeyExtent,Tablet> tablets = new HashMap<>();
 
     ScanInformation si = null;
 
