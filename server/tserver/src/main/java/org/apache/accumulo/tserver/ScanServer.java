@@ -587,47 +587,39 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       Map<String,String> executionHints)
       throws ThriftSecurityException, TSampleNotPresentException, TException {
 
-    if (tbatch.size() != 1) {
-      // TODO support multiple tablets
-      throw new TException("Scan Server expects scans for one tablet only");
-    }
-    Entry<TKeyExtent,List<TRange>> entry = tbatch.entrySet().iterator().next();
-    TKeyExtent textent = entry.getKey();
-    if (textent == null) {
-      throw new TException("TKeyExtent is missing!");
-    }
+    final Map<KeyExtent,List<TRange>> batch = new HashMap<>();
+    tbatch.forEach((k, v) -> {
+      batch.put(KeyExtent.fromThrift(k), v);
+    });
 
     if (scans.size() == maxConcurrentScans) {
       throw new TException("ScanServer is busy");
     }
-    KeyExtent extent = KeyExtent.fromThrift(textent);
-    try {
-      ScanInformation si = null;
+
+    HashMap<KeyExtent, Tablet> tablets = new HashMap<>();
+
+    ScanInformation si = null;
+
+    for (Entry<KeyExtent,List<TRange>> e : batch.entrySet()) {
       try {
-        si = loadTablet(extent);
+        si = loadTablet(e.getKey());
         if (si == null) {
           throw new NotServingTabletException();
         }
-      } catch (Exception e) {
-        LOG.error("Error loading tablet for extent: " + textent, e);
+        tablets.put(e.getKey(), si.getTablet());
+      } catch (Exception ex) {
+        LOG.error("Error loading tablet for extent: " + e.getKey(), ex);
         if (si != null) {
           endScan(si);
         }
         throw new NotServingTabletException();
       }
-      Map<KeyExtent,List<TRange>> newBatch = new HashMap<>();
-      newBatch.put(extent, entry.getValue());
+    }
 
-      var fsi = si;
-      ScanSession.TabletResolver tabletResolver = ke -> {
-        if (ke.equals(fsi.getExtent())) {
-          return fsi.getTablet();
-        } else {
-          return null;
-        }
-      };
+    try {
+      ScanSession.TabletResolver tabletResolver = tablets::get;
 
-      InitialMultiScan ims = handler.startMultiScan(tinfo, credentials, tcolumns, ssiList, newBatch,
+      InitialMultiScan ims = handler.startMultiScan(tinfo, credentials, tcolumns, ssiList, batch,
           ssio, authorizations, waitForWrites, tSamplerConfig, batchTimeOut, contextArg,
           executionHints, tabletResolver);
       si.setScanId(ims.getScanID());
