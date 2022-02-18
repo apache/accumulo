@@ -72,7 +72,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonReservation;
-import org.apache.accumulo.core.spi.scan.ScanServerLocator;
+import org.apache.accumulo.core.spi.scan.EcScanManager;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
@@ -103,7 +103,7 @@ public class ClientContext implements AccumuloClient {
 
   private Credentials creds;
   private BatchWriterConfig batchWriterConfig;
-  private ScanServerLocator scanServerLocator;
+  private EcScanManager ecScanManager;
   private ConditionalWriterConfig conditionalWriterConfig;
   private final AccumuloConfiguration serverConf;
   private final Configuration hadoopConf;
@@ -323,20 +323,19 @@ public class ClientContext implements AccumuloClient {
     return batchWriterConfig;
   }
 
-  public synchronized ScanServerLocator getScanServerLocator() {
+  public synchronized EcScanManager getEcScanManager() {
     ensureOpen();
-    if (scanServerLocator == null) {
+    if (ecScanManager == null) {
       String clazz = ClientProperty.SCAN_SERVER_LOCATOR.getValue(info.getProperties());
       try {
-        Class<? extends ScanServerLocator> impl =
-            Class.forName(clazz).asSubclass(ScanServerLocator.class);
-        scanServerLocator = impl.getDeclaredConstructor().newInstance();
-        scanServerLocator.setClient(this);
+        Class<? extends EcScanManager> impl = Class.forName(clazz).asSubclass(EcScanManager.class);
+        ecScanManager = impl.getDeclaredConstructor().newInstance();
+        // TODO initialize
       } catch (Exception e) {
         throw new RuntimeException("Error creating ScanServerLocator implemenation: " + clazz, e);
       }
     }
-    return scanServerLocator;
+    return ecScanManager;
   }
 
   static ConditionalWriterConfig getConditionalWriterConfig(Properties props) {

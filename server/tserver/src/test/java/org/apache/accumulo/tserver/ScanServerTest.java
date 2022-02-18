@@ -38,7 +38,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.ScanServerKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
@@ -61,7 +60,7 @@ public class ScanServerTest {
   public class TestScanServer extends ScanServer {
 
     private boolean loadTablet;
-    private ScanServerKeyExtent extent;
+    private KeyExtent extent;
 
     protected TestScanServer(ServerOpts opts, String[] args) {
       super(opts, args);
@@ -73,12 +72,12 @@ public class ScanServerTest {
     }
 
     @Override
-    protected ScanInformation loadTablet(ScanServerKeyExtent textent)
+    protected ScanInformation loadTablet(KeyExtent textent)
         throws IllegalArgumentException, IOException, AccumuloException {
       if (loadTablet) {
         ScanInformation si = new ScanInformation();
         si.setTablet(createNiceMock(Tablet.class));
-        si.setExtent(createNiceMock(ScanServerKeyExtent.class));
+        si.setExtent(createNiceMock(KeyExtent.class));
         return si;
       }
       return null;
@@ -87,11 +86,6 @@ public class ScanServerTest {
     @Override
     protected void endScan(ScanInformation si) {
       scans.remove(si.getScanId(), si);
-    }
-
-    @Override
-    protected ScanServerKeyExtent getScanServerKeyExtent(TKeyExtent textent) {
-      return extent;
     }
 
     @Override
@@ -107,7 +101,7 @@ public class ScanServerTest {
 
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
-    ScanServerKeyExtent sextent = createMock(ScanServerKeyExtent.class);
+    KeyExtent sextent = createMock(KeyExtent.class);
     TRange trange = createMock(TRange.class);
     List<TColumn> tcols = new ArrayList<>();
     List<IterInfo> titer = new ArrayList<>();
@@ -118,7 +112,8 @@ public class ScanServerTest {
     Map<String,String> execHints = new HashMap<>();
 
     expect(handler.startScan(tinfo, tcreds, sextent, trange, tcols, 10, titer, ssio, auths, false,
-        false, 10, tsc, 30L, classLoaderContext, execHints)).andReturn(new InitialScan(15, null));
+        false, 10, tsc, 30L, classLoaderContext, execHints, ke -> null))
+            .andReturn(new InitialScan(15, null));
     expect(handler.continueScan(tinfo, 15)).andReturn(new ScanResult());
     handler.closeScan(tinfo, 15);
 
@@ -156,7 +151,7 @@ public class ScanServerTest {
 
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
-    ScanServerKeyExtent sextent = createMock(ScanServerKeyExtent.class);
+    KeyExtent sextent = createMock(KeyExtent.class);
     TRange trange = createMock(TRange.class);
     List<TColumn> tcols = new ArrayList<>();
     List<IterInfo> titer = new ArrayList<>();
@@ -167,7 +162,8 @@ public class ScanServerTest {
     Map<String,String> execHints = new HashMap<>();
 
     expect(handler.startScan(tinfo, tcreds, sextent, trange, tcols, 10, titer, ssio, auths, false,
-        false, 10, tsc, 30L, classLoaderContext, execHints)).andReturn(new InitialScan(15, null));
+        false, 10, tsc, 30L, classLoaderContext, execHints, ke -> null))
+            .andReturn(new InitialScan(15, null));
     expect(handler.continueScan(tinfo, 15)).andReturn(new ScanResult());
     handler.closeScan(tinfo, 15);
 
@@ -244,7 +240,7 @@ public class ScanServerTest {
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
     List<TRange> ranges = new ArrayList<>();
-    ScanServerKeyExtent sextent = createMock(ScanServerKeyExtent.class);
+    KeyExtent sextent = createMock(KeyExtent.class);
     Map<KeyExtent,List<TRange>> sextents = new HashMap<>();
     sextents.put(sextent, ranges);
     List<TColumn> tcols = new ArrayList<>();
@@ -256,7 +252,7 @@ public class ScanServerTest {
     Map<String,String> execHints = new HashMap<>();
 
     expect(handler.startMultiScan(tinfo, tcreds, tcols, titer, sextents, ssio, auths, false, tsc,
-        30L, classLoaderContext, execHints)).andReturn(new InitialMultiScan(15, null));
+        30L, classLoaderContext, execHints, ke -> null)).andReturn(new InitialMultiScan(15, null));
     expect(handler.continueMultiScan(tinfo, 15)).andReturn(new MultiScanResult());
     handler.closeMultiScan(tinfo, 15);
 
@@ -297,7 +293,7 @@ public class ScanServerTest {
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
     List<TRange> ranges = new ArrayList<>();
-    ScanServerKeyExtent sextent = createMock(ScanServerKeyExtent.class);
+    KeyExtent sextent = createMock(KeyExtent.class);
     Map<KeyExtent,List<TRange>> sextents = new HashMap<>();
     sextents.put(sextent, ranges);
     List<TColumn> tcols = new ArrayList<>();
@@ -309,7 +305,7 @@ public class ScanServerTest {
     Map<String,String> execHints = new HashMap<>();
 
     expect(handler.startMultiScan(tinfo, tcreds, tcols, titer, sextents, ssio, auths, false, tsc,
-        30L, classLoaderContext, execHints)).andReturn(new InitialMultiScan(15, null));
+        30L, classLoaderContext, execHints, ke -> null)).andReturn(new InitialMultiScan(15, null));
     expect(handler.continueMultiScan(tinfo, 15)).andReturn(new MultiScanResult());
     handler.closeMultiScan(tinfo, 15);
 

@@ -136,11 +136,7 @@ import org.apache.accumulo.tserver.data.ServerConditionalMutation;
 import org.apache.accumulo.tserver.scan.LookupTask;
 import org.apache.accumulo.tserver.scan.NextBatchTask;
 import org.apache.accumulo.tserver.scan.ScanParameters;
-import org.apache.accumulo.tserver.session.ConditionalSession;
-import org.apache.accumulo.tserver.session.MultiScanSession;
-import org.apache.accumulo.tserver.session.SingleScanSession;
-import org.apache.accumulo.tserver.session.SummarySession;
-import org.apache.accumulo.tserver.session.UpdateSession;
+import org.apache.accumulo.tserver.session.*;
 import org.apache.accumulo.tserver.tablet.CommitSession;
 import org.apache.accumulo.tserver.tablet.KVEntry;
 import org.apache.accumulo.tserver.tablet.PreparedMutations;
@@ -286,16 +282,16 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
     final KeyExtent extent = KeyExtent.fromThrift(textent);
     return this.startScan(tinfo, credentials, extent, range, columns, batchSize, ssiList, ssio,
         authorizations, waitForWrites, isolated, readaheadThreshold, tSamplerConfig, batchTimeOut,
-        contextArg, executionHints);
+        contextArg, executionHints, ke -> server.getOnlineTablet(ke));
   }
 
   public InitialScan startScan(TInfo tinfo, TCredentials credentials, KeyExtent extent,
       TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
       boolean isolated, long readaheadThreshold, TSamplerConfiguration tSamplerConfig,
-      long batchTimeOut, String contextArg, Map<String,String> executionHints)
-      throws NotServingTabletException, ThriftSecurityException,
-      org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException,
+      long batchTimeOut, String contextArg, Map<String,String> executionHints,
+      ScanSession.TabletResolver tabletResolver) throws NotServingTabletException,
+      ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException,
       TSampleNotPresentException {
 
     TableId tableId = extent.tableId();
@@ -330,7 +326,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       writeTracker.waitForWrites(TabletType.type(extent));
     }
 
-    Tablet tablet = server.getOnlineTablet(extent);
+    Tablet tablet = tabletResolver.getTablet(extent);
     if (tablet == null) {
       throw new NotServingTabletException(extent.toThrift());
     }
@@ -344,8 +340,8 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         columnSet, ssiList, ssio, isolated, SamplerConfigurationImpl.fromThrift(tSamplerConfig),
         batchTimeOut, contextArg);
 
-    final SingleScanSession scanSession =
-        new SingleScanSession(credentials, extent, scanParams, readaheadThreshold, executionHints);
+    final SingleScanSession scanSession = new SingleScanSession(credentials, extent, scanParams,
+        readaheadThreshold, executionHints, tabletResolver);
     scanSession.scanner =
         tablet.createScanner(new Range(range), scanParams, scanSession.interruptFlag);
 
@@ -484,14 +480,15 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
       batch.put(KeyExtent.fromThrift(k), v);
     });
     return this.startMultiScan(tinfo, credentials, tcolumns, ssiList, batch, ssio, authorizations,
-        waitForWrites, tSamplerConfig, batchTimeOut, contextArg, executionHints);
+        waitForWrites, tSamplerConfig, batchTimeOut, contextArg, executionHints,
+        ke -> server.getOnlineTablet(ke));
   }
 
   public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials,
       List<TColumn> tcolumns, List<IterInfo> ssiList, Map<KeyExtent,List<TRange>> tbatch,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
       TSamplerConfiguration tSamplerConfig, long batchTimeOut, String contextArg,
-      Map<String,String> executionHints)
+      Map<String,String> executionHints, ScanSession.TabletResolver tabletResolver)
       throws ThriftSecurityException, TSampleNotPresentException {
 
     // find all of the tables that need to be scanned
@@ -544,8 +541,8 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
         new ScanParameters(-1, new Authorizations(authorizations), columnSet, ssiList, ssio, false,
             SamplerConfigurationImpl.fromThrift(tSamplerConfig), batchTimeOut, contextArg);
 
-    final MultiScanSession mss =
-        new MultiScanSession(credentials, threadPoolExtent, batch, scanParams, executionHints);
+    final MultiScanSession mss = new MultiScanSession(credentials, threadPoolExtent, batch,
+        scanParams, executionHints, tabletResolver);
 
     mss.numTablets = batch.size();
     for (List<Range> ranges : batch.values()) {

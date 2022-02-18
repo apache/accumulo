@@ -25,6 +25,7 @@ import java.util.OptionalLong;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.Column;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.common.IteratorConfiguration;
@@ -32,11 +33,16 @@ import org.apache.accumulo.core.spi.common.Stats;
 import org.apache.accumulo.core.spi.scan.ScanInfo;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.tserver.scan.ScanParameters;
+import org.apache.accumulo.tserver.tablet.Tablet;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 public abstract class ScanSession extends Session implements ScanInfo {
+
+  public static interface TabletResolver {
+    Tablet getTablet(KeyExtent extent);
+  }
 
   public static class ScanMeasurer implements Runnable {
 
@@ -71,9 +77,10 @@ public abstract class ScanSession extends Session implements ScanInfo {
 
   public final ScanParameters scanParams;
   private Map<String,String> executionHints;
+  private final TabletResolver tabletResolver;
 
   ScanSession(TCredentials credentials, ScanParameters scanParams,
-      Map<String,String> executionHints) {
+      Map<String,String> executionHints, TabletResolver tabletResolver) {
     super(credentials);
     this.scanParams = scanParams;
     if (executionHints == null) {
@@ -81,6 +88,7 @@ public abstract class ScanSession extends Session implements ScanInfo {
     } else {
       this.executionHints = Collections.unmodifiableMap(executionHints);
     }
+    this.tabletResolver = tabletResolver;
   }
 
   @Override
@@ -164,5 +172,9 @@ public abstract class ScanSession extends Session implements ScanInfo {
     lastRunTime = OptionalLong.of(finish);
     idleStats.addStat(idleTime);
     runStats.addStat(runTime);
+  }
+
+  public TabletResolver getTabletResolver() {
+    return tabletResolver;
   }
 }

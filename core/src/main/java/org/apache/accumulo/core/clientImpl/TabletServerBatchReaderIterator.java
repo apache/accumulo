@@ -18,20 +18,12 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static org.apache.accumulo.core.clientImpl.ScanServerDiscovery.getScanServers;
+
 import java.io.IOException;
+import java.util.*;
 import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
@@ -47,11 +39,7 @@ import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.data.Column;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
@@ -62,7 +50,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.scan.ScanServerLocator;
+import org.apache.accumulo.core.spi.scan.EcScanManager;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -459,21 +447,25 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       throw new TimedOutException(timedoutServers);
     }
 
-    // when there are lots of threads and a few tablet servers
-    // it is good to break request to tablet servers up, the
-    // following code determines if this is the case
     int maxTabletsPerRequest = Integer.MAX_VALUE;
-    if (numThreads / binnedRanges.size() > 1) {
-      int totalNumberOfTablets = 0;
-      for (Entry<String,Map<KeyExtent,List<Range>>> entry : binnedRanges.entrySet()) {
-        totalNumberOfTablets += entry.getValue().size();
-      }
 
-      maxTabletsPerRequest = totalNumberOfTablets / numThreads;
-      if (maxTabletsPerRequest == 0) {
-        maxTabletsPerRequest = 1;
-      }
+    if (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL)) {
+      binnedRanges = rebinToScanServers(binnedRanges);
+    } else {
+      // when there are lots of threads and a few tablet servers
+      // it is good to break request to tablet servers up, the
+      // following code determines if this is the case
+      if (numThreads / binnedRanges.size() > 1) {
+        int totalNumberOfTablets = 0;
+        for (Entry<String,Map<KeyExtent,List<Range>>> entry : binnedRanges.entrySet()) {
+          totalNumberOfTablets += entry.getValue().size();
+        }
 
+        maxTabletsPerRequest = totalNumberOfTablets / numThreads;
+        if (maxTabletsPerRequest == 0) {
+          maxTabletsPerRequest = 1;
+        }
+      }
     }
 
     Map<KeyExtent,List<Range>> failures = new HashMap<>();
@@ -500,43 +492,25 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     for (final String tsLocation : locations) {
 
       final Map<KeyExtent,List<Range>> tabletsRanges = binnedRanges.get(tsLocation);
-      if (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL)) {
-        // Ignore the tablets location and find a scan server to use
-        ScanServerLocator ssl = context.getScanServerLocator();
-        tabletsRanges.forEach((k, v) -> {
-          try {
-            String location = ssl.reserveScanServer(new TabletIdImpl(k));
-            QueryTask queryTask = new QueryTask(location, Collections.singletonMap(k, v), failures,
-                receiver, columns);
-            queryTasks.add(queryTask);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-          } catch (Exception e) {
-            throw new RuntimeException(e);
-          }
-        });
+      if (maxTabletsPerRequest == Integer.MAX_VALUE || tabletsRanges.size() == 1) {
+        QueryTask queryTask = new QueryTask(tsLocation, tabletsRanges, failures, receiver, columns);
+        queryTasks.add(queryTask);
       } else {
-        if (maxTabletsPerRequest == Integer.MAX_VALUE || tabletsRanges.size() == 1) {
-          QueryTask queryTask =
-              new QueryTask(tsLocation, tabletsRanges, failures, receiver, columns);
-          queryTasks.add(queryTask);
-        } else {
-          HashMap<KeyExtent,List<Range>> tabletSubset = new HashMap<>();
-          for (Entry<KeyExtent,List<Range>> entry : tabletsRanges.entrySet()) {
-            tabletSubset.put(entry.getKey(), entry.getValue());
-            if (tabletSubset.size() >= maxTabletsPerRequest) {
-              QueryTask queryTask =
-                  new QueryTask(tsLocation, tabletSubset, failures, receiver, columns);
-              queryTasks.add(queryTask);
-              tabletSubset = new HashMap<>();
-            }
-          }
-
-          if (!tabletSubset.isEmpty()) {
+        HashMap<KeyExtent,List<Range>> tabletSubset = new HashMap<>();
+        for (Entry<KeyExtent,List<Range>> entry : tabletsRanges.entrySet()) {
+          tabletSubset.put(entry.getKey(), entry.getValue());
+          if (tabletSubset.size() >= maxTabletsPerRequest) {
             QueryTask queryTask =
                 new QueryTask(tsLocation, tabletSubset, failures, receiver, columns);
             queryTasks.add(queryTask);
+            tabletSubset = new HashMap<>();
           }
+        }
+
+        if (!tabletSubset.isEmpty()) {
+          QueryTask queryTask =
+              new QueryTask(tsLocation, tabletSubset, failures, receiver, columns);
+          queryTasks.add(queryTask);
         }
       }
     }
@@ -548,6 +522,84 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       queryTask.setSemaphore(semaphore, queryTasks.size());
       queryThreadPool.execute(queryTask);
     }
+  }
+
+  private Map<String,Map<KeyExtent,List<Range>>>
+      rebinToScanServers(Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
+    EcScanManager ecsm = context.getEcScanManager();
+
+    var scanServers = getScanServers(context);
+
+    List<TabletIdImpl> tabletIds =
+        binnedRanges.values().stream().flatMap(extentMap -> extentMap.keySet().stream())
+            .map(TabletIdImpl::new).collect(Collectors.toList());
+
+    EcScanManager.DaParamaters params = new EcScanManager.DaParamaters() {
+      @Override
+      public Collection<TabletId> getTablets() {
+        return Collections.unmodifiableCollection(tabletIds);
+      }
+
+      @Override
+      public Set<String> getScanServers() {
+        // TODO can copy be avoided?
+        return new HashSet<>(scanServers);
+      }
+
+      @Override
+      public List<String> getOrderedScanServers() {
+        // TODO sort
+        return scanServers;
+      }
+
+      @Override
+      public EcScanManager.ScanAttempts getScanAttempts() {
+        // TODO implement tracking and passing history (also share code w/ scanner)
+        return new EcScanManager.ScanAttempts() {
+          @Override
+          public List<EcScanManager.ScanAttempt> all() {
+            return List.of(); // TODO
+          }
+
+          @Override
+          public SortedSet<EcScanManager.ScanAttempt> forServer(String server) {
+            return new TreeSet<>(); // TODO
+          }
+
+          @Override
+          public SortedSet<EcScanManager.ScanAttempt> forTablet(TabletId tablet) {
+            return new TreeSet<>(); // TODO
+          }
+        };
+      }
+    };
+
+    var actions = ecsm.determineActions(params);
+
+    Map<KeyExtent,String> extentToTserverMap = new HashMap<>();
+    Map<KeyExtent,List<Range>> extentToRangesMap = new HashMap<>();
+
+    binnedRanges.forEach((server, extentMap) -> {
+      extentMap.forEach((extent, ranges) -> {
+        extentToTserverMap.put(extent, server);
+        extentToRangesMap.put(extent, ranges);
+      });
+    });
+
+    Map<String,Map<KeyExtent,List<Range>>> binnedRanges2 = new HashMap<>();
+
+    for (TabletIdImpl tablet : tabletIds) {
+      String server;
+
+      if (actions.getAction(tablet) == EcScanManager.Action.USE_SCAN_SERVER) {
+        server = actions.getScanServer(tablet);
+      } else {
+        server = extentToTserverMap.get(tablet.toKeyExtent());
+      }
+      binnedRanges2.computeIfAbsent(server, k -> new HashMap<>()).put(tablet.toKeyExtent(),
+          extentToRangesMap.get(tablet.toKeyExtent()));
+    }
+    return binnedRanges2;
   }
 
   static void trackScanning(Map<KeyExtent,List<Range>> failures,
@@ -634,6 +686,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     }
 
     /**
+     *
      */
     public long getTimeOut() {
       return timeOut;
