@@ -24,7 +24,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -60,7 +60,7 @@ public class TTimeoutTransportTest {
     expectedSocketSetup(s);
 
     // Connect to the addr
-    s.connect(addr);
+    s.connect(addr, 1);
     expectLastCall().andThrow(new IOException());
 
     // The socket should be closed after the above IOException
@@ -68,12 +68,7 @@ public class TTimeoutTransportTest {
 
     replay(addr, s, timeoutTransport);
 
-    try {
-      timeoutTransport.openSocket(addr);
-      fail("Expected to catch IOException but got none");
-    } catch (IOException e) {
-      // Expected
-    }
+    assertThrows(IOException.class, () -> timeoutTransport.openSocket(addr, 1));
 
     verify(addr, s, timeoutTransport);
   }
@@ -93,7 +88,7 @@ public class TTimeoutTransportTest {
     expectedSocketSetup(s);
 
     // Connect to the addr
-    s.connect(addr);
+    s.connect(addr, (int) timeout);
     expectLastCall().once();
 
     expect(timeoutTransport.wrapInputStream(s, timeout)).andThrow(new IOException());
@@ -103,12 +98,7 @@ public class TTimeoutTransportTest {
 
     replay(addr, s, timeoutTransport);
 
-    try {
-      timeoutTransport.createInternal(addr, timeout);
-      fail("Expected to catch TTransportException but got none");
-    } catch (TTransportException e) {
-      // Expected
-    }
+    assertThrows(TTransportException.class, () -> timeoutTransport.createInternal(addr, timeout));
 
     verify(addr, s, timeoutTransport);
   }
@@ -130,7 +120,7 @@ public class TTimeoutTransportTest {
     expectedSocketSetup(s);
 
     // Connect to the addr
-    s.connect(addr);
+    s.connect(addr, (int) timeout);
     expectLastCall().once();
 
     // Input stream is set up
@@ -143,12 +133,7 @@ public class TTimeoutTransportTest {
 
     replay(addr, s, timeoutTransport);
 
-    try {
-      timeoutTransport.createInternal(addr, timeout);
-      fail("Expected to catch TTransportException but got none");
-    } catch (TTransportException e) {
-      // Expected
-    }
+    assertThrows(TTransportException.class, () -> timeoutTransport.createInternal(addr, timeout));
 
     verify(addr, s, timeoutTransport);
   }

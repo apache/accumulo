@@ -28,6 +28,7 @@ import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.Tables;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -48,7 +49,7 @@ import org.slf4j.LoggerFactory;
 
 class CompactionDriver extends ManagerRepo {
 
-  public static String createCompactionCancellationPath(String instanceId, TableId tableId) {
+  public static String createCompactionCancellationPath(InstanceId instanceId, TableId tableId) {
     return Constants.ZROOT + "/" + instanceId + Constants.ZTABLES + "/" + tableId.canonical()
         + Constants.ZTABLE_COMPACT_CANCEL_ID;
   }

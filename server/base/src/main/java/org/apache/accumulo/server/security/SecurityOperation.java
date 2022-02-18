@@ -163,7 +163,7 @@ public class SecurityOperation {
   }
 
   protected void authenticate(TCredentials credentials) throws ThriftSecurityException {
-    if (!credentials.getInstanceId().equals(context.getInstanceID()))
+    if (!credentials.getInstanceId().equals(context.getInstanceID().canonical()))
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.INVALID_INSTANCEID);
 
@@ -180,7 +180,7 @@ public class SecurityOperation {
               SecurityErrorCode.BAD_CREDENTIALS);
         }
       } else {
-        if (!(context.getCredentials().equals(creds))) {
+        if (!context.getCredentials().equals(creds)) {
           log.debug("Provided credentials did not match server's expected"
               + " credentials. Expected {} but got {}", context.getCredentials(), creds);
           throw new ThriftSecurityException(creds.getPrincipal(),

@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
@@ -76,14 +77,14 @@ public class ServerDirs {
     // all base dirs must have same instance id and data version, any dirs that have neither should
     // be ignored
     String firstDir = null;
-    String firstIid = null;
+    InstanceId firstIid = null;
     Integer firstVersion = null;
     // preserve order from configuration (to match user expectations a bit when volumes get sent to
     // user-implemented VolumeChoosers)
     LinkedHashSet<String> baseDirsList = new LinkedHashSet<>();
     for (String baseDir : configuredBaseDirs) {
       Path path = new Path(baseDir, Constants.INSTANCE_ID_DIR);
-      String currentIid;
+      InstanceId currentIid;
       int currentVersion;
       try {
         currentIid = VolumeManager.getInstanceIDFromHdfs(path, hadoopConf);

@@ -19,8 +19,8 @@
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -120,7 +120,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
     ZooReaderWriter zrw = new ZooReaderWriter(getCluster().getZooKeepers(), (int) zkTimeout,
         defaultConfig.get(Property.INSTANCE_SECRET));
     final String zInstanceRoot =
-        Constants.ZROOT + "/" + client.instanceOperations().getInstanceID();
+        Constants.ZROOT + "/" + client.instanceOperations().getInstanceId();
     while (!AccumuloStatus.isAccumuloOffline(zrw, zInstanceRoot)) {
       log.debug("Accumulo services still have their ZK locks held");
       Thread.sleep(1000);
@@ -184,12 +184,12 @@ public class ExistingMacIT extends ConfigurableMacBase {
           "conf " + new File(getCluster().getConfig().getConfDir(), "accumulo.properties"));
 
       MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
-      try {
-        accumulo2.start();
-        fail("A 2nd MAC instance should not be able to start over an existing MAC instance");
-      } catch (RuntimeException e) {
-        // TODO check message or throw more explicit exception
-      }
+
+      RuntimeException e = assertThrows(
+          "A 2nd MAC instance should not be able to start over an existing MAC instance",
+          RuntimeException.class, accumulo2::start);
+      assertEquals("The Accumulo instance being used is already running. Aborting.",
+          e.getMessage());
     }
   }
 }

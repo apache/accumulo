@@ -20,8 +20,8 @@ package org.apache.accumulo.core.client;
 
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -83,12 +83,7 @@ public class TestThrift1474 {
     ThriftTest.Client client = new ThriftTest.Client(protocol);
     assertTrue(client.success());
     assertFalse(client.fails());
-    try {
-      client.throwsError();
-      fail("no exception thrown");
-    } catch (ThriftSecurityException ex) {
-      // expected
-    }
+    assertThrows(ThriftSecurityException.class, client::throwsError);
     server.stop();
     thread.join();
   }

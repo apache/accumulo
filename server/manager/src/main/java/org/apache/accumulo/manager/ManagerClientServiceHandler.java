@@ -274,9 +274,10 @@ public class ManagerClientServiceHandler extends FateServiceHandler
 
     long tid = manager.fate.startTransaction();
 
-    log.debug("Seeding FATE op to shutdown " + tabletServer + " with tid " + tid);
+    String msg = "Shutdown tserver " + tabletServer;
 
-    manager.fate.seedTransaction(tid, new TraceRepo<>(new ShutdownTServer(doomed, force)), false);
+    manager.fate.seedTransaction(tid, new TraceRepo<>(new ShutdownTServer(doomed, force)), false,
+        msg);
     manager.fate.waitForCompletion(tid);
     manager.fate.delete(tid);
 

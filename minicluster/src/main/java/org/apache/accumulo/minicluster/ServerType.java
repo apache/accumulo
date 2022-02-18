@@ -31,6 +31,8 @@ public enum ServerType {
   ZOOKEEPER("ZooKeeper"),
   TABLET_SERVER("TServer"),
   GARBAGE_COLLECTOR("GC"),
+  COMPACTION_COORDINATOR("CompactionCoordinator"),
+  COMPACTOR("Compactor"),
   /**
    * @deprecated Accumulo-managed Tracer service was removed
    */

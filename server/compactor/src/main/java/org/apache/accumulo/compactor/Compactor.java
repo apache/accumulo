@@ -155,7 +155,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   private ServerAddress compactorAddress = null;
 
   // Exposed for tests
-  protected volatile Boolean shutdown = false;
+  protected volatile boolean shutdown = false;
 
   private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
 
@@ -621,22 +621,19 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    *          number of bytes in input file
    * @return number of seconds to wait between progress checks
    */
-  protected long calculateProgressCheckTime(long numBytes) {
+  static long calculateProgressCheckTime(long numBytes) {
     return Math.max(1, (numBytes / TEN_MEGABYTES));
   }
 
   protected Supplier<UUID> getNextId() {
-    Supplier<UUID> supplier = () -> {
-      return UUID.randomUUID();
-    };
-    return supplier;
+    return UUID::randomUUID;
   }
 
   protected long getWaitTimeBetweenCompactionChecks() {
     // get the total number of compactors assigned to this queue
     int numCompactors = ExternalCompactionUtil.countCompactors(queueName, getContext());
     // Aim for around 3 compactors checking in every second
-    long sleepTime = numCompactors * 1000 / 3;
+    long sleepTime = numCompactors * 1000L / 3;
     // Ensure a compactor sleeps at least around a second
     sleepTime = Math.max(1000, sleepTime);
     // Ensure a compactor sleep not too much more than 5 mins
@@ -763,7 +760,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           }
 
           if (compactionThread.isInterrupted() || JOB_HOLDER.isCancelled()
-              || ((err.get() != null && err.get().getClass().equals(InterruptedException.class)))) {
+              || (err.get() != null && err.get().getClass().equals(InterruptedException.class))) {
             LOG.warn("Compaction thread was interrupted, sending CANCELLED state");
             try {
               TCompactionStatusUpdate update = new TCompactionStatusUpdate(
@@ -831,7 +828,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     } finally {
       // Shutdown local thrift server
       LOG.info("Stopping Thrift Servers");
-      TServerUtils.stopTServer(compactorAddress.server);
+      if (compactorAddress.server != null) {
+        compactorAddress.server.stop();
+      }
 
       try {
         LOG.debug("Closing filesystems");

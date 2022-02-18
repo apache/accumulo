@@ -51,7 +51,7 @@ public class HistoryCommand extends Command {
 
   @Override
   public String description() {
-    return ("generates a list of commands previously executed");
+    return "generates a list of commands previously executed";
   }
 
   @Override

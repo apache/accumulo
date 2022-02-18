@@ -22,7 +22,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -36,7 +35,6 @@ import java.util.TreeSet;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
-import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -68,8 +66,6 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.fate.util.UtilWaitThread;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.compaction.ExternalCompaction_1_IT.TestFilter;
@@ -78,16 +74,20 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.internal.Maps;
 
 public class ExternalCompactionTestUtils {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ExternalCompactionTestUtils.class);
-
   public static final int MAX_DATA = 1000;
+  public static final String QUEUE1 = "DCQ1";
+  public static final String QUEUE2 = "DCQ2";
+  public static final String QUEUE3 = "DCQ3";
+  public static final String QUEUE4 = "DCQ4";
+  public static final String QUEUE5 = "DCQ5";
+  public static final String QUEUE6 = "DCQ6";
+  public static final String QUEUE7 = "DCQ7";
+  public static final String QUEUE8 = "DCQ8";
 
   public static String row(int r) {
     return String.format("r:%04d", r);
@@ -188,22 +188,6 @@ public class ExternalCompactionTestUtils {
     }
   }
 
-  public static void stopProcesses(ProcessInfo... processes) throws Exception {
-    for (ProcessInfo p : processes) {
-      if (p != null) {
-        Process proc = p.getProcess();
-        if (proc.supportsNormalTermination()) {
-          LOG.info("Stopping process {}", proc.pid());
-          proc.destroyForcibly().waitFor();
-        } else {
-          LOG.info("Stopping process {} manually", proc.pid());
-          new ProcessBuilder("kill", Long.toString(proc.pid())).start();
-          proc.waitFor();
-        }
-      }
-    }
-  }
-
   public static void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
 
     // ecomp writes from the TabletServer are not being written to the metadata
@@ -215,35 +199,44 @@ public class ExternalCompactionTestUtils {
     cfg.setProperty("tserver.compaction.major.service.cs1.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs1.planner.opts.executors",
-        "[{'name':'all', 'type': 'external', 'queue': 'DCQ1'}]");
+        "[{'name':'all', 'type': 'external', 'queue': '" + QUEUE1 + "'}]");
     cfg.setProperty("tserver.compaction.major.service.cs2.planner",
         DefaultCompactionPlanner.class.getName());
     cfg.setProperty("tserver.compaction.major.service.cs2.planner.opts.executors",
-        "[{'name':'all', 'type': 'external','queue': 'DCQ2'}]");
+        "[{'name':'all', 'type': 'external','queue': '" + QUEUE2 + "'}]");
+    cfg.setProperty("tserver.compaction.major.service.cs3.planner",
+        DefaultCompactionPlanner.class.getName());
+    cfg.setProperty("tserver.compaction.major.service.cs3.planner.opts.executors",
+        "[{'name':'all', 'type': 'external','queue': '" + QUEUE3 + "'}]");
+    cfg.setProperty("tserver.compaction.major.service.cs4.planner",
+        DefaultCompactionPlanner.class.getName());
+    cfg.setProperty("tserver.compaction.major.service.cs4.planner.opts.executors",
+        "[{'name':'all', 'type': 'external','queue': '" + QUEUE4 + "'}]");
+    cfg.setProperty("tserver.compaction.major.service.cs5.planner",
+        DefaultCompactionPlanner.class.getName());
+    cfg.setProperty("tserver.compaction.major.service.cs5.planner.opts.executors",
+        "[{'name':'all', 'type': 'external','queue': '" + QUEUE5 + "'}]");
+    cfg.setProperty("tserver.compaction.major.service.cs6.planner",
+        DefaultCompactionPlanner.class.getName());
+    cfg.setProperty("tserver.compaction.major.service.cs6.planner.opts.executors",
+        "[{'name':'all', 'type': 'external','queue': '" + QUEUE6 + "'}]");
+    cfg.setProperty("tserver.compaction.major.service.cs7.planner",
+        DefaultCompactionPlanner.class.getName());
+    cfg.setProperty("tserver.compaction.major.service.cs7.planner.opts.executors",
+        "[{'name':'all', 'type': 'external','queue': '" + QUEUE7 + "'}]");
+    cfg.setProperty("tserver.compaction.major.service.cs8.planner",
+        DefaultCompactionPlanner.class.getName());
+    cfg.setProperty("tserver.compaction.major.service.cs8.planner.opts.executors",
+        "[{'name':'all', 'type': 'external','queue': '" + QUEUE8 + "'}]");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_FINALIZER_COMPLETION_CHECK_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL, "3s");
+    cfg.setProperty(Property.COMPACTION_COORDINATOR_THRIFTCLIENT_PORTSEARCH, "true");
     cfg.setProperty(Property.COMPACTOR_PORTSEARCH, "true");
     cfg.setProperty(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE, "10");
     cfg.setProperty(Property.MANAGER_FATE_THREADPOOL_SIZE, "10");
     // use raw local file system so walogs sync and flush will work
     coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-  }
-
-  public static ProcessInfo startCoordinator(MiniAccumuloClusterImpl cluster,
-      Class<? extends CompactionCoordinator> coord, ClientContext context) throws IOException {
-    ProcessInfo pi = cluster.exec(coord);
-    UtilWaitThread.sleep(1000);
-    // Wait for coordinator to start
-    TExternalCompactionList metrics = null;
-    while (null == metrics) {
-      try {
-        metrics = getRunningCompactions(context);
-      } catch (Exception e) {
-        UtilWaitThread.sleep(250);
-      }
-    }
-    return pi;
   }
 
   public static TExternalCompactionList getRunningCompactions(ClientContext context)
@@ -293,10 +286,12 @@ public class ExternalCompactionTestUtils {
       TableId tid) {
     Set<ExternalCompactionId> ecids = new HashSet<>();
     do {
-      UtilWaitThread.sleep(50);
       try (TabletsMetadata tm =
           ctx.getAmple().readTablets().forTable(tid).fetch(ColumnType.ECOMP).build()) {
         tm.stream().flatMap(t -> t.getExternalCompactions().keySet().stream()).forEach(ecids::add);
+      }
+      if (ecids.isEmpty()) {
+        UtilWaitThread.sleep(50);
       }
     } while (ecids.isEmpty());
     return ecids;
@@ -316,7 +311,9 @@ public class ExternalCompactionTestUtils {
           }
         }
       }
-      UtilWaitThread.sleep(250);
+      if (matches == 0) {
+        UtilWaitThread.sleep(50);
+      }
     }
     return matches;
   }
@@ -326,14 +323,18 @@ public class ExternalCompactionTestUtils {
     // The running compaction should be removed
     TExternalCompactionList running = ExternalCompactionTestUtils.getRunningCompactions(ctx);
     while (running.getCompactions() != null) {
-      UtilWaitThread.sleep(250);
       running = ExternalCompactionTestUtils.getRunningCompactions(ctx);
+      if (running.getCompactions() == null) {
+        UtilWaitThread.sleep(250);
+      }
     }
     // The compaction should be in the completed list with the expected state
     TExternalCompactionList completed = ExternalCompactionTestUtils.getCompletedCompactions(ctx);
     while (completed.getCompactions() == null) {
-      UtilWaitThread.sleep(250);
       completed = ExternalCompactionTestUtils.getCompletedCompactions(ctx);
+      if (completed.getCompactions() == null) {
+        UtilWaitThread.sleep(50);
+      }
     }
     for (ExternalCompactionId e : ecids) {
       TExternalCompaction tec = completed.getCompactions().get(e.canonical());

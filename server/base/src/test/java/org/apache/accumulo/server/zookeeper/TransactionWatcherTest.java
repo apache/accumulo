@@ -19,8 +19,8 @@
 package org.apache.accumulo.server.zookeeper;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -96,12 +96,8 @@ public class TransactionWatcherTest {
     final SimpleArbitrator sa = new SimpleArbitrator();
     final TransactionWatcher txw = new TransactionWatcher(sa);
     sa.start(txType, txid);
-    try {
-      sa.start(txType, txid);
-      fail("simple arbitrator did not throw an exception");
-    } catch (Exception ex) {
-      // expected
-    }
+    assertThrows("simple arbitrator did not throw an exception", Exception.class,
+        () -> sa.start(txType, txid));
     txw.isActive(txid);
     assertFalse(txw.isActive(txid));
     txw.run(txType, txid, () -> {
@@ -115,29 +111,15 @@ public class TransactionWatcherTest {
     assertFalse(sa.transactionComplete(txType, txid));
     sa.cleanup(txType, txid);
     assertTrue(sa.transactionComplete(txType, txid));
-    try {
-      txw.run(txType, txid, () -> {
-        fail("Should not be able to start a new work on a discontinued transaction");
-        return null;
-      });
-      fail("work against stopped transaction should fail");
-    } catch (Exception ex) {
-
-    }
+    assertThrows("Should not be able to start a new work on a discontinued transaction",
+        Exception.class, () -> txw.run(txType, txid, () -> null));
     final long txid2 = 9;
     sa.start(txType, txid2);
     txw.run(txType, txid2, () -> {
       assertTrue(txw.isActive(txid2));
       sa.stop(txType, txid2);
-      try {
-        txw.run(txType, txid2, () -> {
-          fail("Should not be able to start a new work on a discontinued transaction");
-          return null;
-        });
-        fail("work against a stopped transaction should fail");
-      } catch (Exception ex) {
-        // expected
-      }
+      assertThrows("Should not be able to start a new work on a discontinued transaction",
+          Exception.class, () -> txw.run(txType, txid2, () -> null));
       assertTrue(txw.isActive(txid2));
       return null;
     });

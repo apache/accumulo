@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.accumulo.fate.zookeeper.ZooCacheFactory;
 import org.easymock.EasyMock;
@@ -37,20 +38,20 @@ import org.junit.Test;
 
 @Deprecated(since = "2.0.0")
 public class ZooKeeperInstanceTest {
-  private static final UUID IID = UUID.randomUUID();
-  private static final String IID_STRING = IID.toString();
+  private static final InstanceId IID = InstanceId.of(UUID.randomUUID());
+  private static final String IID_STRING = IID.canonical();
   private ZooCacheFactory zcf;
   private ZooCache zc;
   private ZooKeeperInstance zki;
 
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ID =
-      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ID;
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_NAME =
-      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_NAME;
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_HOST =
-      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST;
-  private static org.apache.accumulo.core.client.ClientConfiguration.ClientProperty INSTANCE_ZK_TIMEOUT =
-      org.apache.accumulo.core.client.ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT;
+  private static final ClientConfiguration.ClientProperty INSTANCE_ID =
+      ClientConfiguration.ClientProperty.INSTANCE_ID;
+  private static final ClientConfiguration.ClientProperty INSTANCE_NAME =
+      ClientConfiguration.ClientProperty.INSTANCE_NAME;
+  private static final ClientConfiguration.ClientProperty INSTANCE_ZK_HOST =
+      ClientConfiguration.ClientProperty.INSTANCE_ZK_HOST;
+  private static final ClientConfiguration.ClientProperty INSTANCE_ZK_TIMEOUT =
+      ClientConfiguration.ClientProperty.INSTANCE_ZK_TIMEOUT;
 
   private void mockIdConstruction(ClientConfiguration config) {
     expect(config.get(INSTANCE_ID)).andReturn(IID_STRING);

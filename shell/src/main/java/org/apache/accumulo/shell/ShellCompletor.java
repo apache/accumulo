@@ -119,7 +119,7 @@ public class ShellCompletor implements Completer {
             }
           }
           Collections.sort(candidates);
-          return (prefix.length());
+          return prefix.length();
         }
         // need to match current command
         // if we're in -t <table>, -u <user>, or -tn <namespace> complete those
@@ -139,7 +139,7 @@ public class ShellCompletor implements Completer {
           candidates.addAll(current_command_token.getSubcommandNames(current_string_token));
 
         Collections.sort(candidates);
-        return (prefix.length());
+        return prefix.length();
       }
 
       if (current_string_token.trim().equals("-" + Shell.tableOption))

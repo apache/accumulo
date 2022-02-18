@@ -21,7 +21,6 @@ package org.apache.accumulo.server.rpc;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -690,28 +689,6 @@ public class TServerUtils {
       }
     }
     return serverAddress;
-  }
-
-  /**
-   * Stop a Thrift TServer. Existing connections will keep our thread running; use reflection to
-   * forcibly shut down the threadpool.
-   *
-   * @param s
-   *          The TServer to stop
-   */
-  public static void stopTServer(TServer s) {
-    if (s == null) {
-      return;
-    }
-    s.stop();
-    try {
-      Field f = s.getClass().getDeclaredField("executorService_");
-      f.setAccessible(true);
-      ExecutorService es = (ExecutorService) f.get(s);
-      es.shutdownNow();
-    } catch (Exception e) {
-      log.error("Unable to call shutdownNow", e);
-    }
   }
 
   /**

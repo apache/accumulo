@@ -81,6 +81,9 @@ public class Fate<T> {
 
               if (deferTime == 0) {
                 prevOp = op;
+                if (status == TStatus.SUBMITTED) {
+                  store.setStatus(tid, TStatus.IN_PROGRESS);
+                }
                 op = op.call(tid, environment);
               } else
                 continue;
@@ -265,18 +268,18 @@ public class Fate<T> {
 
   // start work in the transaction.. it is safe to call this
   // multiple times for a transaction... but it will only seed once
-  public void seedTransaction(long tid, Repo<T> repo, boolean autoCleanUp) {
+  public void seedTransaction(long tid, Repo<T> repo, boolean autoCleanUp, String goalMessage) {
     store.reserve(tid);
     try {
       if (store.getStatus(tid) == TStatus.NEW) {
         if (store.top(tid) == null) {
           try {
+            log.info("Seeding {} {}", FateTxId.formatTid(tid), goalMessage);
             store.push(tid, repo);
           } catch (StackOverflowException e) {
             // this should not happen
             throw new RuntimeException(e);
           }
-
         }
 
         if (autoCleanUp)
@@ -284,7 +287,7 @@ public class Fate<T> {
 
         store.setProperty(tid, DEBUG_PROP, repo.getDescription());
 
-        store.setStatus(tid, TStatus.IN_PROGRESS);
+        store.setStatus(tid, TStatus.SUBMITTED);
       }
     } finally {
       store.unreserve(tid, 0);
@@ -303,6 +306,7 @@ public class Fate<T> {
     try {
       switch (store.getStatus(tid)) {
         case NEW:
+        case SUBMITTED:
         case FAILED:
         case SUCCESSFUL:
           store.delete(tid);

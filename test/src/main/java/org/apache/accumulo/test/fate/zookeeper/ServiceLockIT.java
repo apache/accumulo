@@ -25,6 +25,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
@@ -53,20 +55,28 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.util.concurrent.Uninterruptibles;
+
 @Category({ZooKeeperTestingServerTests.class})
 public class ServiceLockIT {
+
+  @ClassRule
+  public static final TemporaryFolder TEMP =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
 
   private static ZooKeeperTestingServer szk = null;
 
   @BeforeClass
   public static void setup() throws Exception {
-    szk = new ZooKeeperTestingServer();
-    szk.initPaths("/accumulo/" + UUID.randomUUID());
+    szk = new ZooKeeperTestingServer(TEMP.newFolder());
+    szk.initPaths("/accumulo/" + InstanceId.of(UUID.randomUUID()));
   }
 
   @AfterClass
@@ -190,7 +200,7 @@ public class ServiceLockIT {
 
   private static ServiceLock getZooLock(ServiceLockPath parent, UUID uuid) {
     var zooKeeper = ZooSession.getAuthenticatedSession(szk.getConn(), 30000, "digest",
-        ("accumulo:secret").getBytes(UTF_8));
+        "accumulo:secret".getBytes(UTF_8));
     return new ServiceLock(zooKeeper, parent, uuid);
   }
 
@@ -621,13 +631,7 @@ public class ServiceLockIT {
       workers.forEach(w -> assertNull(w.getException()));
       assertEquals(0, zk.getChildren(parent.toString(), false).size());
 
-      threads.forEach(t -> {
-        try {
-          t.join();
-        } catch (InterruptedException e) {
-          // ignore
-        }
-      });
+      threads.forEach(Uninterruptibles::joinUninterruptibly);
     }
 
   }

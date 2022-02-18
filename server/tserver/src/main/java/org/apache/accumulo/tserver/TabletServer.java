@@ -62,6 +62,7 @@ import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
@@ -380,7 +381,7 @@ public class TabletServer extends AbstractServer {
         TimeUnit.MILLISECONDS);
   }
 
-  public String getInstanceID() {
+  public InstanceId getInstanceID() {
     return getContext().getInstanceID();
   }
 
@@ -920,10 +921,14 @@ public class TabletServer extends AbstractServer {
       }
     }
     log.debug("Stopping Replication Server");
-    TServerUtils.stopTServer(this.replServer);
+    if (this.replServer != null) {
+      this.replServer.stop();
+    }
 
     log.debug("Stopping Thrift Servers");
-    TServerUtils.stopTServer(server);
+    if (server != null) {
+      server.stop();
+    }
 
     try {
       log.debug("Closing filesystems");

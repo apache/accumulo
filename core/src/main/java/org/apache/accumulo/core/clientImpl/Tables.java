@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -50,7 +51,7 @@ public class Tables {
 
   // Per instance cache will expire after 10 minutes in case we
   // encounter an instance not used frequently
-  private static Cache<String,TableMap> instanceToMapCache =
+  private static final Cache<InstanceId,TableMap> instanceToMapCache =
       CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).build();
 
   static {

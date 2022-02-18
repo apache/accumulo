@@ -36,7 +36,7 @@ public class MemValue {
     combinedBytes[0] = (byte) (kv >>> 24);
     combinedBytes[1] = (byte) (kv >>> 16);
     combinedBytes[2] = (byte) (kv >>> 8);
-    combinedBytes[3] = (byte) (kv);
+    combinedBytes[3] = (byte) kv;
     return new Value(combinedBytes);
   }
 

@@ -30,6 +30,7 @@ import java.util.Set;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -59,11 +60,11 @@ public class TableManager {
 
   private final ServerContext context;
   private final String zkRoot;
-  private final String instanceID;
+  private final InstanceId instanceID;
   private final ZooReaderWriter zoo;
   private ZooCache zooStateCache;
 
-  public static void prepareNewNamespaceState(ZooReaderWriter zoo, String instanceId,
+  public static void prepareNewNamespaceState(ZooReaderWriter zoo, InstanceId instanceId,
       NamespaceId namespaceId, String namespace, NodeExistsPolicy existsPolicy)
       throws KeeperException, InterruptedException {
     log.debug("Creating ZooKeeper entries for new namespace {} (ID: {})", namespace, namespaceId);
@@ -75,9 +76,9 @@ public class TableManager {
     zoo.putPersistentData(zPath + Constants.ZNAMESPACE_CONF, new byte[0], existsPolicy);
   }
 
-  public static void prepareNewTableState(ZooReaderWriter zoo, String instanceId, TableId tableId,
-      NamespaceId namespaceId, String tableName, TableState state, NodeExistsPolicy existsPolicy)
-      throws KeeperException, InterruptedException {
+  public static void prepareNewTableState(ZooReaderWriter zoo, InstanceId instanceId,
+      TableId tableId, NamespaceId namespaceId, String tableName, TableState state,
+      NodeExistsPolicy existsPolicy) throws KeeperException, InterruptedException {
     // state gets created last
     log.debug("Creating ZooKeeper entries for new table {} (ID: {}) in namespace (ID: {})",
         tableName, tableId, namespaceId);

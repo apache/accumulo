@@ -19,6 +19,12 @@
 package org.apache.accumulo.test.compaction;
 
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE2;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Collection;
@@ -42,7 +48,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.test.metrics.TestStatsDRegistryFactory;
@@ -73,6 +78,7 @@ public class ExternalCompactionMetricsIT extends AccumuloClusterHarness
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
     ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
+    cfg.setNumCompactors(2);
 
     // Tell the server processes to use a StatsDMeterRegistry that will be configured
     // to push all metrics to the sink we started.
@@ -90,18 +96,17 @@ public class ExternalCompactionMetricsIT extends AccumuloClusterHarness
     assertEquals(2, tservers.size());
     // kill one tserver so that queue metrics are not spread across tservers
     ((MiniAccumuloClusterImpl) getCluster()).killProcess(TABLET_SERVER, tservers.iterator().next());
-    ProcessInfo c1 = null, c2 = null, coord = null;
     String[] names = getUniqueNames(2);
     try (final AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
       String table1 = names[0];
-      ExternalCompactionTestUtils.createTable(client, table1, "cs1", 5);
+      createTable(client, table1, "cs1", 5);
 
       String table2 = names[1];
-      ExternalCompactionTestUtils.createTable(client, table2, "cs2", 10);
+      createTable(client, table2, "cs2", 10);
 
-      ExternalCompactionTestUtils.writeData(client, table1);
-      ExternalCompactionTestUtils.writeData(client, table2);
+      writeData(client, table1);
+      writeData(client, table2);
 
       final LinkedBlockingQueue<Metric> queueMetrics = new LinkedBlockingQueue<>();
       final AtomicBoolean shutdownTailer = new AtomicBoolean(false);
@@ -121,8 +126,8 @@ public class ExternalCompactionMetricsIT extends AccumuloClusterHarness
       });
       thread.start();
 
-      ExternalCompactionTestUtils.compact(client, table1, 7, "DCQ1", false);
-      ExternalCompactionTestUtils.compact(client, table2, 13, "DCQ2", false);
+      compact(client, table1, 7, "DCQ1", false);
+      compact(client, table2, 13, "DCQ2", false);
 
       boolean sawDCQ1_5 = false;
       boolean sawDCQ2_10 = false;
@@ -134,10 +139,9 @@ public class ExternalCompactionMetricsIT extends AccumuloClusterHarness
         sawDCQ2_10 |= match(qm, "DCQ2", "10");
       }
 
-      // start compactors
-      c1 = ((MiniAccumuloClusterImpl) getCluster()).exec(Compactor.class, "-q", "DCQ1");
-      c2 = ((MiniAccumuloClusterImpl) getCluster()).exec(Compactor.class, "-q", "DCQ2");
-      coord = ((MiniAccumuloClusterImpl) getCluster()).exec(CompactionCoordinator.class);
+      cluster.getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
+      cluster.getClusterControl().startCompactors(Compactor.class, 1, QUEUE2);
+      cluster.getClusterControl().startCoordinator(CompactionCoordinator.class);
 
       boolean sawDCQ1_0 = false;
       boolean sawDCQ2_0 = false;
@@ -162,13 +166,14 @@ public class ExternalCompactionMetricsIT extends AccumuloClusterHarness
         }
       } while (count > 0);
 
-      ExternalCompactionTestUtils.verify(client, table1, 7);
-      ExternalCompactionTestUtils.verify(client, table2, 13);
+      verify(client, table1, 7);
+      verify(client, table2, 13);
 
     } finally {
-      ExternalCompactionTestUtils.stopProcesses(c1, c2, coord);
       // We stopped the TServer and started our own, restart the original TabletServers
-      ((MiniAccumuloClusterImpl) getCluster()).getClusterControl().start(ServerType.TABLET_SERVER);
+      // Uncomment this if other tests are added.
+      //
+      // cluster.getClusterControl().start(ServerType.TABLET_SERVER);
     }
   }
 

@@ -410,7 +410,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
       }
     } finally {
       LOG.info("Stopping Thrift Servers");
-      TServerUtils.stopTServer(address.server);
+      address.server.stop();
 
       try {
         LOG.debug("Closing filesystems");

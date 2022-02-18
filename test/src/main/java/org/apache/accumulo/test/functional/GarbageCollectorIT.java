@@ -260,7 +260,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
       ZooReaderWriter zk = new ZooReaderWriter(cluster.getZooKeepers(), 30000, OUR_SECRET);
       var path = ServiceLock
-          .path(ZooUtil.getRoot(client.instanceOperations().getInstanceID()) + Constants.ZGC_LOCK);
+          .path(ZooUtil.getRoot(client.instanceOperations().getInstanceId()) + Constants.ZGC_LOCK);
       for (int i = 0; i < 5; i++) {
         List<String> locks;
         try {

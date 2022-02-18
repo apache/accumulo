@@ -20,8 +20,8 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -69,13 +69,9 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     void check() throws Exception;
   }
 
-  private static void expectClosed(CloseCheck cc) throws Exception {
-    try {
-      cc.check();
-      fail();
-    } catch (IllegalStateException e) {
-      assertTrue(e.getMessage().toLowerCase().contains("closed"));
-    }
+  private static void expectClosed(CloseCheck cc) {
+    var e = assertThrows(IllegalStateException.class, cc::check);
+    assertTrue(e.getMessage().toLowerCase().contains("closed"));
   }
 
   @SuppressWarnings("deprecation")
@@ -235,7 +231,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     expectClosed(c::securityOperations);
     expectClosed(c::namespaceOperations);
     expectClosed(c::properties);
-    expectClosed(() -> c.instanceOperations().getInstanceID());
+    expectClosed(() -> c.instanceOperations().getInstanceId());
 
     // check a few table ops to ensure they fail
     expectClosed(() -> tops.create("expectFail"));

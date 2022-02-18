@@ -459,6 +459,7 @@ public class AdminUtil<T> {
         System.out.printf("Invalid transaction ID: %016x%n", txid);
         break;
 
+      case SUBMITTED:
       case IN_PROGRESS:
       case NEW:
       case FAILED:
@@ -494,6 +495,7 @@ public class AdminUtil<T> {
         System.out.printf("Invalid transaction ID: %016x%n", txid);
         break;
 
+      case SUBMITTED:
       case IN_PROGRESS:
       case NEW:
         System.out.printf("Failing transaction: %016x (%s)%n", txid, ts);

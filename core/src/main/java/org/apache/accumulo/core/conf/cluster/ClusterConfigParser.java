@@ -50,7 +50,7 @@ public class ClusterConfigParser {
   }
 
   private static String addTheDot(String key) {
-    return (key.endsWith(".")) ? "" : ".";
+    return key.endsWith(".") ? "" : ".";
   }
 
   private static void flatten(String parentKey, String key, Object value,

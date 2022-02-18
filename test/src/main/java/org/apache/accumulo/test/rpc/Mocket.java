@@ -130,7 +130,7 @@ public class Mocket {
 
   }
 
-  private class MocketServerTransport extends TServerTransport {
+  private static class MocketServerTransport extends TServerTransport {
 
     private final MocketTransport servTrans;
 
