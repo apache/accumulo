@@ -627,6 +627,7 @@ public class ScanServer extends TabletServer implements TabletClientService.Ifac
         endScan(si);
         throw new TException("ScanServer is busy");
       }
+      //TODO this is a bit odd, it just jams the last scaninfo into the map
       scans.put(si.getScanId(), si);
       LOG.debug("started scan: {}", si.getScanId());
       logOnlineTablets();
