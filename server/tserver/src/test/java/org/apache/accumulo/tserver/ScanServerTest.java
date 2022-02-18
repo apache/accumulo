@@ -51,6 +51,7 @@ import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.server.ServerOpts;
+import org.apache.accumulo.tserver.session.ScanSession.TabletResolver;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.thrift.TException;
 import org.junit.Test;
@@ -61,6 +62,8 @@ public class ScanServerTest {
 
     private boolean loadTablet;
     private KeyExtent extent;
+    private TabletResolver resolver;
+    private Map<KeyExtent,Tablet> tablets;
 
     protected TestScanServer(ServerOpts opts, String[] args) {
       super(opts, args);
@@ -77,7 +80,8 @@ public class ScanServerTest {
       if (loadTablet) {
         ScanInformation si = new ScanInformation();
         si.setTablet(createNiceMock(Tablet.class));
-        si.setExtent(createNiceMock(KeyExtent.class));
+        si.setExtent(textent);
+        tablets.put(textent, si.getTablet());
         return si;
       }
       return null;
@@ -86,6 +90,21 @@ public class ScanServerTest {
     @Override
     protected void endScan(ScanInformation si) {
       scans.remove(si.getScanId(), si);
+    }
+
+    @Override
+    protected KeyExtent getKeyExtent(TKeyExtent textent) {
+      return extent;
+    }
+
+    @Override
+    protected TabletResolver getScanTabletResolver(ScanInformation info) {
+      return resolver;
+    }
+
+    @Override
+    protected TabletResolver getBatchScanTabletResolver(final HashMap<KeyExtent,Tablet> tablets) {
+      return resolver;
     }
 
     @Override
@@ -110,9 +129,10 @@ public class ScanServerTest {
     TSamplerConfiguration tsc = createMock(TSamplerConfiguration.class);
     String classLoaderContext = new String();
     Map<String,String> execHints = new HashMap<>();
+    TabletResolver resolver = createMock(TabletResolver.class);
 
     expect(handler.startScan(tinfo, tcreds, sextent, trange, tcols, 10, titer, ssio, auths, false,
-        false, 10, tsc, 30L, classLoaderContext, execHints, ke -> null))
+        false, 10, tsc, 30L, classLoaderContext, execHints, resolver))
             .andReturn(new InitialScan(15, null));
     expect(handler.continueScan(tinfo, 15)).andReturn(new ScanResult());
     handler.closeScan(tinfo, 15);
@@ -125,6 +145,8 @@ public class ScanServerTest {
     ss.loadTablet = true;
     ss.handler = handler;
     ss.extent = sextent;
+    ss.resolver = resolver;
+    ss.tablets = new HashMap<>();
 
     TKeyExtent textent = createMock(TKeyExtent.class);
     assertEquals(0, ss.scans.size());
@@ -160,9 +182,10 @@ public class ScanServerTest {
     TSamplerConfiguration tsc = createMock(TSamplerConfiguration.class);
     String classLoaderContext = new String();
     Map<String,String> execHints = new HashMap<>();
+    TabletResolver resolver = createMock(TabletResolver.class);
 
     expect(handler.startScan(tinfo, tcreds, sextent, trange, tcols, 10, titer, ssio, auths, false,
-        false, 10, tsc, 30L, classLoaderContext, execHints, ke -> null))
+        false, 10, tsc, 30L, classLoaderContext, execHints, resolver))
             .andReturn(new InitialScan(15, null));
     expect(handler.continueScan(tinfo, 15)).andReturn(new ScanResult());
     handler.closeScan(tinfo, 15);
@@ -175,6 +198,8 @@ public class ScanServerTest {
     ss.loadTablet = true;
     ss.handler = handler;
     ss.extent = sextent;
+    ss.resolver = resolver;
+    ss.tablets = new HashMap<>();
 
     TKeyExtent textent = createMock(TKeyExtent.class);
     assertEquals(0, ss.scans.size());
@@ -224,6 +249,7 @@ public class ScanServerTest {
     ss.scans = new ConcurrentHashMap<>(1, 1.0f, 1);
     ss.loadTablet = false;
     ss.handler = handler;
+    ss.tablets = new HashMap<>();
 
     assertEquals(0, ss.scans.size());
     assertThrows(NotServingTabletException.class, () -> {
@@ -240,9 +266,9 @@ public class ScanServerTest {
     TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
     List<TRange> ranges = new ArrayList<>();
-    KeyExtent sextent = createMock(KeyExtent.class);
-    Map<KeyExtent,List<TRange>> sextents = new HashMap<>();
-    sextents.put(sextent, ranges);
+    KeyExtent extent = createMock(KeyExtent.class);
+    Map<KeyExtent,List<TRange>> batch = new HashMap<>();
+    batch.put(extent, ranges);
     List<TColumn> tcols = new ArrayList<>();
     List<IterInfo> titer = new ArrayList<>();
     Map<String,Map<String,String>> ssio = new HashMap<>();
@@ -250,9 +276,11 @@ public class ScanServerTest {
     TSamplerConfiguration tsc = createMock(TSamplerConfiguration.class);
     String classLoaderContext = new String();
     Map<String,String> execHints = new HashMap<>();
+    Map<KeyExtent,Tablet> tablets = new HashMap<>();
+    TabletResolver resolver = tablets::get;
 
-    expect(handler.startMultiScan(tinfo, tcreds, tcols, titer, sextents, ssio, auths, false, tsc,
-        30L, classLoaderContext, execHints, ke -> null)).andReturn(new InitialMultiScan(15, null));
+    expect(handler.startMultiScan(tinfo, tcreds, tcols, titer, batch, ssio, auths, false, tsc, 30L,
+        classLoaderContext, execHints, resolver)).andReturn(new InitialMultiScan(15, null));
     expect(handler.continueMultiScan(tinfo, 15)).andReturn(new MultiScanResult());
     handler.closeMultiScan(tinfo, 15);
 
@@ -263,7 +291,9 @@ public class ScanServerTest {
     ss.scans = new ConcurrentHashMap<>(1, 1.0f, 1);
     ss.loadTablet = true;
     ss.handler = handler;
-    ss.extent = sextent;
+    ss.extent = extent;
+    ss.resolver = resolver;
+    ss.tablets = tablets;
 
     Map<TKeyExtent,List<TRange>> extents = new HashMap<>();
     extents.put(createMock(TKeyExtent.class), ranges);
@@ -303,9 +333,11 @@ public class ScanServerTest {
     TSamplerConfiguration tsc = createMock(TSamplerConfiguration.class);
     String classLoaderContext = new String();
     Map<String,String> execHints = new HashMap<>();
+    Map<KeyExtent,Tablet> tablets = new HashMap<>();
+    TabletResolver resolver = tablets::get;
 
     expect(handler.startMultiScan(tinfo, tcreds, tcols, titer, sextents, ssio, auths, false, tsc,
-        30L, classLoaderContext, execHints, ke -> null)).andReturn(new InitialMultiScan(15, null));
+        30L, classLoaderContext, execHints, resolver)).andReturn(new InitialMultiScan(15, null));
     expect(handler.continueMultiScan(tinfo, 15)).andReturn(new MultiScanResult());
     handler.closeMultiScan(tinfo, 15);
 
@@ -317,6 +349,8 @@ public class ScanServerTest {
     ss.loadTablet = true;
     ss.handler = handler;
     ss.extent = sextent;
+    ss.resolver = resolver;
+    ss.tablets = new HashMap<>();
 
     Map<TKeyExtent,List<TRange>> extents = new HashMap<>();
     extents.put(createMock(TKeyExtent.class), ranges);
@@ -354,6 +388,8 @@ public class ScanServerTest {
     TSamplerConfiguration tsc = createMock(TSamplerConfiguration.class);
     String classLoaderContext = new String();
     Map<String,String> execHints = new HashMap<>();
+    Map<KeyExtent,Tablet> tablets = new HashMap<>();
+    TabletResolver resolver = tablets::get;
 
     replay(handler);
 
@@ -362,6 +398,8 @@ public class ScanServerTest {
     ss.scans = new ConcurrentHashMap<>(1, 1.0f, 1);
     ss.loadTablet = true;
     ss.handler = handler;
+    ss.resolver = resolver;
+    ss.tablets = new HashMap<>();
 
     assertEquals(0, ss.scans.size());
     assertThrows(TException.class, () -> {
@@ -389,6 +427,8 @@ public class ScanServerTest {
     TSamplerConfiguration tsc = createMock(TSamplerConfiguration.class);
     String classLoaderContext = new String();
     Map<String,String> execHints = new HashMap<>();
+    Map<KeyExtent,Tablet> tablets = new HashMap<>();
+    TabletResolver resolver = tablets::get;
 
     replay(handler);
 
@@ -396,6 +436,7 @@ public class ScanServerTest {
     ss.maxConcurrentScans = 1;
     ss.scans = new ConcurrentHashMap<>(1, 1.0f, 1);
     ss.loadTablet = true;
+    ss.resolver = resolver;
     ss.handler = handler;
 
     assertEquals(0, ss.scans.size());
