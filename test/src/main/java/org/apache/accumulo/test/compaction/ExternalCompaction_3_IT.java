@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.compaction;
 
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE2;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionCompleted;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
@@ -141,15 +142,15 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
   @Test
   public void testCoordinatorRestartsDuringCompaction() throws Exception {
     getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
-    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE1);
+    getCluster().getClusterControl().startCompactors(ExternalDoNothingCompactor.class, 1, QUEUE2);
 
     String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
-      createTable(client, table1, "cs1", 2);
+      createTable(client, table1, "cs2", 2);
       writeData(client, table1);
-      compact(client, table1, 2, QUEUE1, false);
+      compact(client, table1, 2, QUEUE2, false);
 
       TableId tid = Tables.getTableId(getCluster().getServerContext(), table1);
 
