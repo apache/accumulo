@@ -76,7 +76,7 @@ public class KerberosRenewalIT extends AccumuloITBase {
   private static ClusterUser rootUser;
 
   private static final long TICKET_LIFETIME = 6 * 60_000; // Anything less seems to fail when
-                                                             // generating the ticket
+                                                          // generating the ticket
   private static final long TICKET_TEST_LIFETIME = 8 * 60_000; // Run a test for 8 mins
   private static final long TEST_DURATION = 9 * 60_000; // The test should finish within 9 mins
 
