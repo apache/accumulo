@@ -114,7 +114,7 @@ public final class LruBlockCacheConfiguration {
 
     if (this.getSingleFactor() + this.getMultiFactor() + this.getMemoryFactor() != 1) {
       throw new IllegalArgumentException(
-          "Single, multi, and memory factors  should total 1.0");
+          "Single, multi, and memory factors should total 1.0");
     }
     if (this.getMinFactor() >= this.getAcceptableFactor()) {
       throw new IllegalArgumentException("minFactor must be smaller than acceptableFactor");
