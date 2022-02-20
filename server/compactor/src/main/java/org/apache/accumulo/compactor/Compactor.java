@@ -134,7 +134,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   private static final Logger LOG = LoggerFactory.getLogger(Compactor.class);
   private static final long TIME_BETWEEN_GC_CHECKS = 5000;
-  private static final long TIME_BETWEEN_CANCEL_CHECKS = 5 * 60 * 1000;
+  private static final long TIME_BETWEEN_CANCEL_CHECKS = 5 * 60_000;
 
   private static final long TEN_MEGABYTES = 10485760;
   private static final CompactionCoordinatorService.Client.Factory COORDINATOR_CLIENT_FACTORY =

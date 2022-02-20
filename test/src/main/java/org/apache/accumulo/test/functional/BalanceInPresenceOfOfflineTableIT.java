@@ -145,7 +145,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
     log.debug("waiting for balancing, up to ~5 minutes to allow for migration cleanup.");
     final long startTime = System.currentTimeMillis();
-    long currentWait = 10 * 1000;
+    long currentWait = 10_000;
     boolean balancingWorked = false;
 
     Credentials creds = new Credentials(getAdminPrincipal(), getAdminToken());

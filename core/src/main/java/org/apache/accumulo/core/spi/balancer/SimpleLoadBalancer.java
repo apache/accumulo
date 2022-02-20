@@ -380,7 +380,7 @@ public class SimpleLoadBalancer implements TabletBalancer {
         problemReporter.reportProblem(outstandingMigrationsProblem);
       }
     }
-    return 5 * 1000;
+    return 5_000;
   }
 
 }
