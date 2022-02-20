@@ -69,7 +69,7 @@ public class CheckForMetadataProblems {
     }
 
     if (tablets.first().prevEndRow() != null) {
-      System.out.println("...First entry for table " + tableName + " (" + tableId + ") " + " - "
+      System.out.println("...First entry for table " + tableName + " (" + tableId + ")  - "
           + tablets.first() + " - has non null prev end row");
       sawProblems = true;
       return;

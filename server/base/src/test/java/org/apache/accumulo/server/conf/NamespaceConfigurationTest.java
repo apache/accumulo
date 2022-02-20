@@ -125,9 +125,9 @@ public class NamespaceConfigurationTest {
         ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID + Constants.ZNAMESPACE_CONF))
             .andReturn(children);
     expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID
-        + Constants.ZNAMESPACE_CONF + "/" + "foo")).andReturn("bar".getBytes(UTF_8));
+        + Constants.ZNAMESPACE_CONF + "/foo")).andReturn("bar".getBytes(UTF_8));
     expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZNAMESPACES + "/" + NSID
-        + Constants.ZNAMESPACE_CONF + "/" + "ding")).andReturn("dong".getBytes(UTF_8));
+        + Constants.ZNAMESPACE_CONF + "/ding")).andReturn("dong".getBytes(UTF_8));
     replay(zc);
     c.getProperties(props, all);
     assertEquals(2, props.size());

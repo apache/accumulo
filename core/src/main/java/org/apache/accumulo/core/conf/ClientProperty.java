@@ -42,7 +42,7 @@ public enum ClientProperty {
 
   // Instance
   INSTANCE_NAME("instance.name", "", PropertyType.STRING,
-      "Name of Accumulo instance to " + "connect to", "2.0.0", true),
+      "Name of Accumulo instance to connect to", "2.0.0", true),
   INSTANCE_ZOOKEEPERS("instance.zookeepers", "localhost:2181", PropertyType.HOSTLIST,
       "Zookeeper connection information for Accumulo instance", "2.0.0", true),
   INSTANCE_ZOOKEEPERS_TIMEOUT("instance.zookeepers.timeout", "30s", PropertyType.TIMEDURATION,
@@ -238,7 +238,7 @@ public enum ClientProperty {
   }
 
   public void setBytes(Properties properties, Long bytes) {
-    checkState(getType() == PropertyType.BYTES, "Invalid type setting " + "bytes. Type must be "
+    checkState(getType() == PropertyType.BYTES, "Invalid type setting bytes. Type must be "
         + PropertyType.BYTES + ", not " + getType());
     properties.setProperty(getKey(), bytes.toString());
   }

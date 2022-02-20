@@ -305,7 +305,7 @@ public class SetIterCommand extends Command {
     } else {
       writer.flush();
       writer.println("The iterator class does not implement OptionDescriber."
-          + " Consider this for better iterator configuration using this setiter" + " command.");
+          + " Consider this for better iterator configuration using this setiter command.");
       iteratorName = reader.readLine("Name for iterator (enter to skip): ");
       if (iteratorName == null) {
         writer.println();

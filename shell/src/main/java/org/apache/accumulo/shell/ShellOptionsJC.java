@@ -127,7 +127,7 @@ public class ShellOptionsJC {
         if (ClientProperty.SASL_ENABLED.getBoolean(getClientProperties())) {
           if (!UserGroupInformation.isSecurityEnabled()) {
             throw new IllegalArgumentException(
-                "Kerberos security is not" + " enabled. Run with --sasl or set 'sasl.enabled' in"
+                "Kerberos security is not enabled. Run with --sasl or set 'sasl.enabled' in"
                     + " accumulo-client.properties");
           }
           UserGroupInformation ugi = UserGroupInformation.getCurrentUser();

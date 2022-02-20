@@ -128,7 +128,7 @@ public class VisMetricsGatherer
       else
         out.println(localityGroups.get(i));
       out.printf("%-27s", metricWord);
-      out.println("Number of keys" + "\t   " + "Percent of keys" + "\t" + "Number of blocks" + "\t"
+      out.println("Number of keys\t   Percent of keys\tNumber of blocks\t"
           + "Percent of blocks");
       for (Entry<String,Long> entry : metric.get(lGName).asMap().entrySet()) {
         if (hash) {

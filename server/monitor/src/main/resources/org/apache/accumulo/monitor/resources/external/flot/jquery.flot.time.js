@@ -145,8 +145,8 @@ API.txt for details.
                     case 's': c = "" + formatSubSeconds(d.getMilliseconds(), d.getMicroseconds(), decimals); break;
                     case 'y': c = leftPad(d.getFullYear() % 100); break;
                     case 'Y': c = "" + d.getFullYear(); break;
-                    case 'p': c = (isAM) ? ("" + "am") : ("" + "pm"); break;
-                    case 'P': c = (isAM) ? ("" + "AM") : ("" + "PM"); break;
+                    case 'p': c = (isAM) ? ("am") : ("pm"); break;
+                    case 'P': c = (isAM) ? ("AM") : ("PM"); break;
                     case 'w': c = "" + d.getDay(); break;
                 }
                 r.push(c);

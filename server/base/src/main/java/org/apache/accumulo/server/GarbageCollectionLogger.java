@@ -101,7 +101,7 @@ public class GarbageCollectionLogger {
       final long diff = now - lastMemoryCheckTime;
       if (diff > keepAliveTimeout + 1000) {
         log.warn(String.format("GC pause checker not called in a timely"
-            + " fashion. Expected every %.1f seconds but was %.1f seconds since" + " last check",
+            + " fashion. Expected every %.1f seconds but was %.1f seconds since last check",
             keepAliveTimeout / 1000., diff / 1000.));
       }
       lastMemoryCheckTime = now;
