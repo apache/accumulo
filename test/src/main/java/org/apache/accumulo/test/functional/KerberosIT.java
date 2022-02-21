@@ -622,7 +622,7 @@ public class KerberosIT extends AccumuloITBase {
 
     AuthenticationTokenIdentifier identifier = ((DelegationTokenImpl) dt).getIdentifier();
     assertTrue("Expected identifier to expire in no more than 5 minutes: " + identifier,
-        identifier.getExpirationDate() - identifier.getIssueDate() <= (5 * 60 * 1000));
+        identifier.getExpirationDate() - identifier.getIssueDate() <= (5 * 60_000));
   }
 
   @Test

@@ -62,8 +62,8 @@ public class BatchWriterConfigTest {
     bwConfig.setDurability(Durability.NONE);
 
     assertEquals(1123581321L, bwConfig.getMaxMemory());
-    assertEquals(22 * 60 * 60 * 1000L, bwConfig.getMaxLatency(TimeUnit.MILLISECONDS));
-    assertEquals(33 * 24 * 60 * 60 * 1000L, bwConfig.getTimeout(TimeUnit.MILLISECONDS));
+    assertEquals(22 * 60 * 60_000L, bwConfig.getMaxLatency(TimeUnit.MILLISECONDS));
+    assertEquals(33 * 24 * 60 * 60_000L, bwConfig.getTimeout(TimeUnit.MILLISECONDS));
     assertEquals(42, bwConfig.getMaxWriteThreads());
     assertEquals(Durability.NONE, bwConfig.getDurability());
   }

@@ -358,7 +358,7 @@ public class ServerContext extends ClientContext {
       log.info("Backing off due to failure; current sleep period is {} seconds", sleep / 1000.);
       sleepUninterruptibly(sleep, TimeUnit.MILLISECONDS);
       /* Back off to give transient failures more time to clear. */
-      sleep = Math.min(60 * 1000, sleep * 2);
+      sleep = Math.min(60_000, sleep * 2);
     }
     log.info("Connected to HDFS");
   }
@@ -434,7 +434,7 @@ public class ServerContext extends ClientContext {
       } catch (Exception t) {
         log.error("", t);
       }
-    }, 1000, 10 * 60 * 1000, TimeUnit.MILLISECONDS);
+    }, 1000, 10 * 60_000, TimeUnit.MILLISECONDS);
   }
 
   /**

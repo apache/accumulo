@@ -77,7 +77,7 @@ public class ThriftTransportKeyTest {
 
     try {
       assertThrows(RuntimeException.class,
-          () -> new ThriftTransportKey(HostAndPort.fromParts("localhost", 9999), 120 * 1000,
+          () -> new ThriftTransportKey(HostAndPort.fromParts("localhost", 9999), 120_000,
               clientCtx));
     } finally {
       verify(clientCtx);
@@ -137,7 +137,7 @@ public class ThriftTransportKeyTest {
     replay(clientCtx);
 
     ThriftTransportKey ttk =
-        new ThriftTransportKey(HostAndPort.fromParts("localhost", 9999), 120 * 1000, clientCtx);
+        new ThriftTransportKey(HostAndPort.fromParts("localhost", 9999), 120_000, clientCtx);
 
     assertEquals(ttk, ttk, "Normal ThriftTransportKey doesn't equal itself");
   }

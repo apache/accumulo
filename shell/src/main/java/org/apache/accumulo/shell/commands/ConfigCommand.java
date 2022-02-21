@@ -287,7 +287,7 @@ public class ConfigCommand extends Command {
       s2 += " " + Shell.repeat(".", COL2 - s2.length() - 1);
     }
     output.add(String.format("%-" + COL1 + "s | %-" + COL2 + "s | %s", s1, s2, s3.replace("\n",
-        "\n" + Shell.repeat(" ", COL1 + 1) + "|" + Shell.repeat(" ", COL2 + 2) + "|" + " ")));
+        "\n" + Shell.repeat(" ", COL1 + 1) + "|" + Shell.repeat(" ", COL2 + 2) + "| ")));
   }
 
   private void printConfFooter(List<String> output) {

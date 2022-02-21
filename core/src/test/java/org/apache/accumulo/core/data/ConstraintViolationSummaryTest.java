@@ -35,7 +35,7 @@ public class ConstraintViolationSummaryTest {
     cvs = new ConstraintViolationSummary(null, (short) 2, null, 101L);
     assertEquals(
         "ConstraintViolationSummary(constrainClass:null,"
-            + " violationCode:2, violationDescription:null," + " numberOfViolatingMutations:101)",
+            + " violationCode:2, violationDescription:null, numberOfViolatingMutations:101)",
         cvs.toString());
   }
 }

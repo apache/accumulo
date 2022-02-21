@@ -174,9 +174,9 @@ public class BulkImporter {
       for (Entry<Path,List<KeyExtent>> entry : assignmentFailures.entrySet())
         failureCount.put(entry.getKey(), 1);
 
-      long sleepTime = 2 * 1000;
+      long sleepTime = 2_000;
       while (!assignmentFailures.isEmpty()) {
-        sleepTime = Math.min(sleepTime * 2, 60 * 1000);
+        sleepTime = Math.min(sleepTime * 2, 60_000);
         locator.invalidateCache();
         // assumption about assignment failures is that it caused by a split
         // happening or a missing location

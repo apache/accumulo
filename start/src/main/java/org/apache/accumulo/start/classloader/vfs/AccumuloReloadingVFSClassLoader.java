@@ -52,7 +52,7 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
 
   // set to 5 mins. The rationale behind this large time is to avoid a gazillion tservers all asking
   // the name node for info too frequently.
-  private static final int DEFAULT_TIMEOUT = 5 * 60 * 1000;
+  private static final int DEFAULT_TIMEOUT = 5 * 60_000;
 
   private volatile long maxWaitInterval = 60000;
 

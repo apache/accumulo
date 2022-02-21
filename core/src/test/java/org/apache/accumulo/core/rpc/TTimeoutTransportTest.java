@@ -75,7 +75,7 @@ public class TTimeoutTransportTest {
 
   @Test
   public void testFailedInputStreamClosesSocket() throws IOException {
-    long timeout = 2 * 60 * 1000; // 2 mins
+    long timeout = 2 * 60_000; // 2 mins
     SocketAddress addr = createMock(SocketAddress.class);
     Socket s = createMock(Socket.class);
     TTimeoutTransport timeoutTransport = createMockBuilder(TTimeoutTransport.class)
@@ -105,7 +105,7 @@ public class TTimeoutTransportTest {
 
   @Test
   public void testFailedOutputStreamClosesSocket() throws IOException {
-    long timeout = 2 * 60 * 1000; // 2 mins
+    long timeout = 2 * 60_000; // 2 mins
     SocketAddress addr = createMock(SocketAddress.class);
     Socket s = createMock(Socket.class);
     InputStream is = createMock(InputStream.class);

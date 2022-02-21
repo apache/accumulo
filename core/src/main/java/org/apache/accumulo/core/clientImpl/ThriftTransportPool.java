@@ -371,7 +371,7 @@ public class ThriftTransportPool {
   private static final Logger log = LoggerFactory.getLogger(ThriftTransportPool.class);
 
   private static final Long ERROR_THRESHOLD = 20L;
-  private static final int STUCK_THRESHOLD = 2 * 60 * 1000;
+  private static final int STUCK_THRESHOLD = 2 * 60_000;
 
   private static class CachedConnection {
 

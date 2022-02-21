@@ -60,7 +60,7 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         final IteratorSetting cfg = new IteratorSetting(100, SlowIterator.class);
         // Wait long enough to be sure we can catch it, but not indefinitely.
-        SlowIterator.setSeekSleepTime(cfg, 60 * 1000);
+        SlowIterator.setSeekSleepTime(cfg, 60_000);
         scanner.addScanIterator(cfg);
         // create a thread to interrupt the slow scan
         final Thread scanThread = Thread.currentThread();
