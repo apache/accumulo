@@ -24,10 +24,10 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import org.apache.accumulo.core.WithTestNames;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +37,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * Tests the Table ID class, mainly the internal cache.
  */
-public class TableIdTest {
+public class TableIdTest extends WithTestNames {
 
   private static final Logger LOG = LoggerFactory.getLogger(TableIdTest.class);
 
@@ -48,7 +48,7 @@ public class TableIdTest {
   }
 
   @Test
-  public void testCacheNoDuplicates(TestInfo testInfo) {
+  public void testCacheNoDuplicates() {
 
     @SuppressWarnings("deprecation")
     TableId REPL_TABLE_ID = org.apache.accumulo.core.replication.ReplicationTable.ID;
@@ -58,8 +58,7 @@ public class TableIdTest {
     assertNotSame(RootTable.ID, MetadataTable.ID);
     assertNotSame(RootTable.ID, REPL_TABLE_ID);
 
-    String tableString =
-        "table-" + testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName();
+    String tableString = "table-" + testName();
     long initialSize = cacheCount();
     TableId table1 = TableId.of(tableString);
     assertEquals(initialSize + 1, cacheCount());
@@ -83,15 +82,14 @@ public class TableIdTest {
 
   @Test
   @Timeout(30_000)
-  public void testCacheIncreasesAndDecreasesAfterGC(TestInfo testInfo) {
+  public void testCacheIncreasesAndDecreasesAfterGC() {
     long initialSize = cacheCount();
     assertTrue(initialSize < 20); // verify initial amount is reasonably low
     LOG.info("Initial cache size: {}", initialSize);
     LOG.info(TableId.cache.asMap().toString());
 
     // add one and check increase
-    String tableString =
-        "table-" + testInfo.getTestMethod().orElseThrow(IllegalStateException::new).getName();
+    String tableString = "table-" + testName();
     TableId table1 = TableId.of(tableString);
     assertEquals(initialSize + 1, cacheCount());
     assertEquals(tableString, table1.canonical());
