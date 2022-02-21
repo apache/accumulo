@@ -113,7 +113,7 @@ public class CertUtils {
     String issuerDirString = "o=Apache Accumulo";
 
     @Parameter(names = "--accumulo-props",
-        description = "Path to accumulo.properties to load " + "Accumulo configuration from")
+        description = "Path to accumulo.properties to load Accumulo configuration from")
     public String accumuloPropsFile = null;
 
     @Parameter(names = "--signing-algorithm", description = "Algorithm used to sign certificates")
