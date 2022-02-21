@@ -83,9 +83,8 @@ public class ConfigurationDocGen {
     if (depr) {
       description += "*Deprecated since:* " + prefix.deprecatedSince() + "<br>";
       if (prefix.isReplaced())
-        description +=
-            "*Replaced by:* <a href=\"#" + prefix.replacedBy().getKey().replace(".", "_")
-                + "prefix\">" + prefix.replacedBy() + "</a><br>";
+        description += "*Replaced by:* <a href=\"#" + prefix.replacedBy().getKey().replace(".", "_")
+            + "prefix\">" + prefix.replacedBy() + "</a><br>";
     }
     description += strike(sanitize(prefix.getDescription()), depr);
     doc.println("| " + key + " | " + description + " |");
@@ -108,8 +107,8 @@ public class ConfigurationDocGen {
     if (depr) {
       description += "*Deprecated since:* " + prop.deprecatedSince() + "<br>";
       if (prop.isReplaced())
-        description += "*Replaced by:* <a href=\"#"
-            + prop.replacedBy().getKey().replace(".", "_") + "\">" + prop.replacedBy() + "</a><br>";
+        description += "*Replaced by:* <a href=\"#" + prop.replacedBy().getKey().replace(".", "_")
+            + "\">" + prop.replacedBy() + "</a><br>";
     }
     description += strike(sanitize(prop.getDescription()), depr) + "<br>"
         + strike("**type:** " + prop.getType().name(), depr) + ", "

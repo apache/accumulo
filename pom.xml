@@ -1097,6 +1097,11 @@
                   <property name="format" value="import java[.]nio[.]charset[.]StandardCharsets;" />
                   <property name="message" value="Use static imports for StandardCharsets.* constants for consistency" />
                 </module>
+                <module name="RegexpSinglelineJava">
+                  <!-- double escape quotes because checkstyle passes these through another xml parser -->
+                  <property name="format" value="&amp;quot; [+] &amp;quot;" />
+                  <property name="message" value="Unnecessary concatenation of string literals" />
+                </module>
                 <module name="OuterTypeFilename" />
                 <module name="AvoidStarImport" />
                 <module name="NoLineWrap" />
@@ -1119,11 +1124,6 @@
                   <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)" />
                 </module>
                 <module name="NonEmptyAtclauseDescription" />
-                <module name="RegexpSinglelineJava">
-                  <!-- double escape quotes because checkstyle passes these through another xml parser -->
-                  <property name="format" value="&amp;quot; [+] &amp;quot;" />
-                  <property name="message" value="Unnecessary concatenation of string literals" />
-                </module>
                 <module name="JavadocMethod">
                   <property name="allowMissingParamTags" value="true" />
                   <property name="allowMissingReturnTag" value="true" />

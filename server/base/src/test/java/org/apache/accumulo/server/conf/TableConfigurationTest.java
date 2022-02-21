@@ -109,8 +109,8 @@ public class TableConfigurationTest {
     expect(zc
         .getChildren(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF))
             .andReturn(children);
-    expect(zc.get(
-        ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/foo"))
+    expect(zc
+        .get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/foo"))
             .andReturn("bar".getBytes(UTF_8));
     expect(zc.get(ZooUtil.getRoot(iid) + Constants.ZTABLES + "/" + TID + Constants.ZTABLE_CONF + "/"
         + "ding")).andReturn("dong".getBytes(UTF_8));
