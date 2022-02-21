@@ -48,7 +48,7 @@ public class HexFormatterTest {
     formatter.initialize(data.entrySet(), new FormatterConfig());
 
     assertTrue(formatter.hasNext());
-    assertEquals("  " + "  " + " [" + "] ", formatter.next());
+    assertEquals("     [] ", formatter.next());
   }
 
   @Test

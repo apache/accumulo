@@ -179,7 +179,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
         if (queryThreadPool.isShutdown()) {
           String shortMsg =
-              "The BatchScanner was unexpectedly closed while" + " this Iterator was still in use.";
+              "The BatchScanner was unexpectedly closed while this Iterator was still in use.";
           log.error("{} Ensure that a reference to the BatchScanner is retained"
               + " so that it can be closed when this Iterator is exhausted. Not"
               + " retaining a reference to the BatchScanner guarantees that you are"
