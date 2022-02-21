@@ -176,7 +176,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     }
   }
 
-  private static final long ONE_HOUR = 60 * 60 * 1000;
+  private static final long ONE_HOUR = 60 * 60_000;
   private static final Set<KeyExtent> EMPTY_MIGRATIONS = Collections.emptySet();
   private volatile long lastOOBCheck = System.currentTimeMillis();
   private Map<String,SortedMap<TServerInstance,TabletServerStatus>> pools = new HashMap<>();
@@ -384,7 +384,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   @Override
   public long balance(SortedMap<TServerInstance,TabletServerStatus> current,
       Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
-    long minBalanceTime = 20 * 1000;
+    long minBalanceTime = 20_000;
     // Iterate over the tables and balance each of them
     TableOperations t = getTableOperations();
     if (t == null) {

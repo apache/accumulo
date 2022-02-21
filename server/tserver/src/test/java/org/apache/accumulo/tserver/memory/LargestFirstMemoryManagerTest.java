@@ -43,12 +43,12 @@ public class LargestFirstMemoryManagerTest {
   public Timeout timeout = Timeout.seconds(60);
 
   private static final long ZERO = LargestFirstMemoryManager.ZERO_TIME;
-  private static final long LATER = ZERO + 20 * 60 * 1000;
+  private static final long LATER = ZERO + 20 * 60_000;
   private static final long ONE_GIG = 1024 * 1024 * 1024;
   private static final long ONE_MEG = 1024 * 1024;
   private static final long HALF_GIG = ONE_GIG / 2;
   private static final long QGIG = ONE_GIG / 4;
-  private static final long ONE_MINUTE = 60 * 1000;
+  private static final long ONE_MINUTE = 60_000;
 
   private ServerContext context;
 
@@ -207,7 +207,7 @@ public class LargestFirstMemoryManagerTest {
 
     @Override
     protected long getMinCIdleThreshold(KeyExtent extent) {
-      return 15 * 60 * 1000;
+      return 15 * 60_000;
     }
 
     @Override

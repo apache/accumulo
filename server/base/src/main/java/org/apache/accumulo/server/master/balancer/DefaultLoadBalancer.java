@@ -352,13 +352,13 @@ public class DefaultLoadBalancer extends TabletBalancer {
       if (migrations.isEmpty()) {
         resetBalancerErrors();
         if (getMigrations(current, migrationsOut))
-          return 1 * 1000;
+          return 1_000;
       } else {
         outstandingMigrations.migrations = migrations;
         constraintNotMet(outstandingMigrations);
       }
     }
-    return 5 * 1000;
+    return 5_000;
   }
 
 }

@@ -70,7 +70,7 @@ public class GarbageCollectWALIT extends ConfigurableMacBase {
       cluster.getClusterControl().start(ServerType.TABLET_SERVER);
       Iterators.size(c.createScanner(MetadataTable.NAME, Authorizations.EMPTY).iterator());
       // let GC run
-      UtilWaitThread.sleep(3 * 5 * 1000);
+      UtilWaitThread.sleep(3 * 5_000);
       assertEquals(2, countWALsInFS(cluster));
     }
   }

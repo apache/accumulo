@@ -134,7 +134,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     return Collections.synchronizedList(new LinkedList<>() {
 
       private static final long serialVersionUID = 1L;
-      private final long maxDelta = 60 * 60 * 1000;
+      private final long maxDelta = 60 * 60_000;
 
       @Override
       public boolean add(Pair<Long,T> obj) {

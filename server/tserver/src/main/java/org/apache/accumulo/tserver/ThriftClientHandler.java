@@ -166,7 +166,7 @@ public class ThriftClientHandler extends ClientServiceHandler implements TabletC
 
   private static final Logger log = LoggerFactory.getLogger(ThriftClientHandler.class);
   private static final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = 1000;
-  private static final long RECENTLY_SPLIT_MILLIES = 60 * 1000;
+  private static final long RECENTLY_SPLIT_MILLIES = 60_000;
   private final TabletServer server;
   private final WriteTracker writeTracker = new WriteTracker();
   private final RowLocks rowLocks = new RowLocks();
