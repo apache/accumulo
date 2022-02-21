@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class BlockCacheManagerTest {
 

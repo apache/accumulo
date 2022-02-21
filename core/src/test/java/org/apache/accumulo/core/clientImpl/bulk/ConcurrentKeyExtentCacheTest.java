@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.core.clientImpl.bulk;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -33,8 +33,8 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.util.concurrent.Uninterruptibles;
 
@@ -45,7 +45,7 @@ public class ConcurrentKeyExtentCacheTest {
   private static List<KeyExtent> extents = new ArrayList<>();
   private static Set<KeyExtent> extentsSet = new HashSet<>();
 
-  @BeforeClass
+  @BeforeAll
   public static void setupSplits() {
     Text prev = null;
     for (int i = 1; i < 255; i++) {

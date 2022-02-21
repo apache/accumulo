@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.File;
 import java.net.URL;
@@ -36,8 +36,8 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -51,10 +51,10 @@ public class ClientContextTest {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "provided keystoreUrl path isn't user provided")
-  @BeforeClass
+  @BeforeAll
   public static void setUpBeforeClass() {
     URL keystoreUrl = ClientContextTest.class.getResource(keystoreName);
-    assertNotNull("Could not find " + keystoreName, keystoreUrl);
+    assertNotNull(keystoreUrl, "Could not find " + keystoreName);
     keystore = new File(keystoreUrl.getFile());
   }
 

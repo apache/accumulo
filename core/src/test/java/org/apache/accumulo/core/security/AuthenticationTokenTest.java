@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.core.security;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.security.SecureRandom;
 import java.util.stream.IntStream;
@@ -28,7 +28,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.AuthenticationTokenSerializer;
 import org.apache.accumulo.core.client.security.tokens.NullToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AuthenticationTokenTest {
 

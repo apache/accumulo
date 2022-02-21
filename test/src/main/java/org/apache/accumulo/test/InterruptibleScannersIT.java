@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 import java.util.ArrayList;
 
@@ -60,7 +60,7 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         final IteratorSetting cfg = new IteratorSetting(100, SlowIterator.class);
         // Wait long enough to be sure we can catch it, but not indefinitely.
-        SlowIterator.setSeekSleepTime(cfg, 60 * 1000);
+        SlowIterator.setSeekSleepTime(cfg, 60_000);
         scanner.addScanIterator(cfg);
         // create a thread to interrupt the slow scan
         final Thread scanThread = Thread.currentThread();
@@ -89,9 +89,9 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
         thread.start();
         try {
           // Use the scanner, expect problems
-          Iterators.size(scanner.iterator());
-          fail("Scan should not succeed");
-        } catch (Exception ex) {} finally {
+          assertThrows("Scan should not succeed", RuntimeException.class,
+              () -> Iterators.size(scanner.iterator()));
+        } finally {
           thread.join();
         }
       }

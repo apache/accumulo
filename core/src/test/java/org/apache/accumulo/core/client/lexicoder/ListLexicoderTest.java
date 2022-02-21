@@ -19,8 +19,8 @@
 package org.apache.accumulo.core.client.lexicoder;
 
 import static java.util.Collections.emptyList;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,8 +29,8 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoderTest;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ListLexicoderTest extends AbstractLexicoderTest {
 
@@ -40,7 +40,7 @@ public class ListLexicoderTest extends AbstractLexicoderTest {
   private List<Long> data4 = new ArrayList<>();
   private List<Long> data5 = new ArrayList<>();
 
-  @Before
+  @BeforeEach
   public void setUp() {
 
     data1.add(1L);

@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -48,7 +48,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TableOperationsHelperTest {
 
@@ -314,12 +314,13 @@ public class TableOperationsHelperTest {
     assertEquals(20, setting.getPriority());
     assertEquals("some.classname", setting.getIteratorClass());
     assertTrue(setting.getOptions().isEmpty());
-    setting = t.getIteratorSetting("table", "otherName", IteratorScope.majc);
-    assertEquals(20, setting.getPriority());
-    assertEquals("some.classname", setting.getIteratorClass());
-    assertFalse(setting.getOptions().isEmpty());
-    assertEquals(Collections.singletonMap("key", "value"), setting.getOptions());
-    t.attachIterator("table", setting, EnumSet.of(IteratorScope.minc));
+
+    final IteratorSetting setting1 = t.getIteratorSetting("table", "otherName", IteratorScope.majc);
+    assertEquals(20, setting1.getPriority());
+    assertEquals("some.classname", setting1.getIteratorClass());
+    assertFalse(setting1.getOptions().isEmpty());
+    assertEquals(Collections.singletonMap("key", "value"), setting1.getOptions());
+    t.attachIterator("table", setting1, EnumSet.of(IteratorScope.minc));
     check(t, "table",
         new String[] {"table.iterator.majc.otherName=20,some.classname",
             "table.iterator.majc.otherName.opt.key=value",
@@ -327,24 +328,13 @@ public class TableOperationsHelperTest {
             "table.iterator.minc.otherName.opt.key=value",
             "table.iterator.scan.otherName=20,some.classname",});
 
-    try {
-      t.attachIterator("table", setting);
-      fail();
-    } catch (AccumuloException e) {
-      // expected, ignore
-    }
-    setting.setName("thirdName");
-    try {
-      t.attachIterator("table", setting);
-      fail();
-    } catch (AccumuloException e) {}
-    setting.setPriority(10);
+    assertThrows(AccumuloException.class, () -> t.attachIterator("table", setting1));
+    setting1.setName("thirdName");
+    assertThrows(AccumuloException.class, () -> t.attachIterator("table", setting1));
+    setting1.setPriority(10);
     t.setProperty("table", "table.iterator.minc.thirdName.opt.key", "value");
-    try {
-      t.attachIterator("table", setting);
-      fail();
-    } catch (AccumuloException e) {}
+    assertThrows(AccumuloException.class, () -> t.attachIterator("table", setting1));
     t.removeProperty("table", "table.iterator.minc.thirdName.opt.key");
-    t.attachIterator("table", setting);
+    t.attachIterator("table", setting1);
   }
 }

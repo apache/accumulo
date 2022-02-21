@@ -115,7 +115,7 @@ public class ZooSession {
    */
   static ZooKeeper connect(String host, int timeout, String scheme, byte[] auth, Watcher watcher) {
     final int TIME_BETWEEN_CONNECT_CHECKS_MS = 100;
-    int connectTimeWait = Math.min(10 * 1000, timeout);
+    int connectTimeWait = Math.min(10_000, timeout);
     boolean tryAgain = true;
     long sleepTime = 100;
     ZooKeeper zooKeeper = null;

@@ -110,7 +110,7 @@ public class GrepCommand extends ScanCommand {
   @Override
   public String description() {
     return "searches each row, column family, column qualifier and value in a"
-        + " table for a substring (not a regular expression), in parallel, on the" + " server side";
+        + " table for a substring (not a regular expression), in parallel, on the server side";
   }
 
   @Override

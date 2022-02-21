@@ -23,8 +23,8 @@ import static org.easymock.EasyMock.createStrictMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Optional;
 import java.util.Set;
@@ -34,9 +34,9 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.apache.hadoop.io.Text;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class PreferredVolumeChooserTest {
 
@@ -53,7 +53,7 @@ public class PreferredVolumeChooserTest {
   private Configuration systemConf;
   private PreferredVolumeChooser chooser;
 
-  @Before
+  @BeforeEach
   public void before() {
     serviceEnv = createStrictMock(ServiceEnvironment.class);
 
@@ -65,7 +65,7 @@ public class PreferredVolumeChooserTest {
     expect(serviceEnv.getConfiguration()).andReturn(systemConf).anyTimes();
   }
 
-  @After
+  @AfterEach
   public void after() {
     verify(serviceEnv, tableConf, systemConf);
   }

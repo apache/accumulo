@@ -18,17 +18,17 @@
  */
 package org.apache.accumulo.core.data;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import org.apache.accumulo.core.WithTestNames;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,12 +37,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * Tests the Table ID class, mainly the internal cache.
  */
-public class TableIdTest {
+public class TableIdTest extends WithTestNames {
 
   private static final Logger LOG = LoggerFactory.getLogger(TableIdTest.class);
-
-  @Rule
-  public TestName name = new TestName();
 
   private static long cacheCount() {
     // guava cache size() is approximate, and can include garbage-collected entries
@@ -61,7 +58,7 @@ public class TableIdTest {
     assertNotSame(RootTable.ID, MetadataTable.ID);
     assertNotSame(RootTable.ID, REPL_TABLE_ID);
 
-    String tableString = "table-" + name.getMethodName();
+    String tableString = "table-" + testName();
     long initialSize = cacheCount();
     TableId table1 = TableId.of(tableString);
     assertEquals(initialSize + 1, cacheCount());
@@ -83,7 +80,8 @@ public class TableIdTest {
     assertSame(table1, table2);
   }
 
-  @Test(timeout = 30_000)
+  @Test
+  @Timeout(30_000)
   public void testCacheIncreasesAndDecreasesAfterGC() {
     long initialSize = cacheCount();
     assertTrue(initialSize < 20); // verify initial amount is reasonably low
@@ -91,7 +89,7 @@ public class TableIdTest {
     LOG.info(TableId.cache.asMap().toString());
 
     // add one and check increase
-    String tableString = "table-" + name.getMethodName();
+    String tableString = "table-" + testName();
     TableId table1 = TableId.of(tableString);
     assertEquals(initialSize + 1, cacheCount());
     assertEquals(tableString, table1.canonical());

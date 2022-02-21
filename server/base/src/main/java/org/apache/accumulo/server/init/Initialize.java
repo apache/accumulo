@@ -113,7 +113,7 @@ public class Initialize implements KeywordExecutable {
       System.out.println("   bin/accumulo " + ChangeSecret.class.getName());
       System.out.println("You will also need to edit your secret in your configuration"
           + " file by adding the property instance.secret to your"
-          + " accumulo.properties. Without this accumulo will not operate" + " correctly");
+          + " accumulo.properties. Without this accumulo will not operate correctly");
     }
 
     if (isInitialized(fs, initConfig)) {
@@ -528,7 +528,7 @@ public class Initialize implements KeywordExecutable {
       }
       if (!opts.forceResetSecurity) {
         String userEnteredName = System.console().readLine("WARNING: This will remove all"
-            + " users from Accumulo! If you wish to proceed enter the instance" + " name: ");
+            + " users from Accumulo! If you wish to proceed enter the instance name: ");
         if (userEnteredName != null && !context.getInstanceName().equals(userEnteredName)) {
           throw new IllegalStateException(
               "Aborted reset security: Instance name did not match current instance.");

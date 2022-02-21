@@ -19,24 +19,24 @@
 package org.apache.accumulo.fate.zookeeper;
 
 import static org.easymock.EasyMock.createMock;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import org.apache.zookeeper.Watcher;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ZooCacheFactoryTest {
   private ZooCacheFactory zcf;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     zcf = new ZooCacheFactory();
   }
 
-  @After
+  @AfterEach
   public void tearDown() {
     zcf.reset();
   }

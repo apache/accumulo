@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.util;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -31,7 +31,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ValidatorsTest {
 
@@ -48,14 +48,14 @@ public class ValidatorsTest {
   }
 
   private static <T> void assertAllValidate(Validator<T> v, List<T> items) {
-    assertFalse("nothing to check", items.isEmpty());
+    assertFalse(items.isEmpty(), "nothing to check");
     items.forEach(item -> assertSame(item, v.validate(item)));
   }
 
   private static <T> void assertAllThrow(Validator<T> v, List<T> items) {
-    assertFalse("nothing to check", items.isEmpty());
-    items.forEach(item -> assertThrows(String.valueOf(item), IllegalArgumentException.class,
-        () -> v.validate(item)));
+    assertFalse(items.isEmpty(), "nothing to check");
+    items.forEach(item -> assertThrows(IllegalArgumentException.class, () -> v.validate(item),
+        String.valueOf(item)));
   }
 
   @Test

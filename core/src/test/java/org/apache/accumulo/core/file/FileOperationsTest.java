@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.file;
 
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,7 +30,7 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class FileOperationsTest {
 
@@ -65,6 +65,6 @@ public class FileOperationsTest {
       FileUtils.forceDelete(testFile);
     }
 
-    assertFalse("Should not throw with more than 1 dot in filename.", caughtException);
+    assertFalse(caughtException, "Should not throw with more than 1 dot in filename.");
   }
 }

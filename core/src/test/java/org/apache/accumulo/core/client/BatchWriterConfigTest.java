@@ -19,9 +19,9 @@
 package org.apache.accumulo.core.client;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -32,7 +32,7 @@ import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class BatchWriterConfigTest {
 
@@ -62,8 +62,8 @@ public class BatchWriterConfigTest {
     bwConfig.setDurability(Durability.NONE);
 
     assertEquals(1123581321L, bwConfig.getMaxMemory());
-    assertEquals(22 * 60 * 60 * 1000L, bwConfig.getMaxLatency(TimeUnit.MILLISECONDS));
-    assertEquals(33 * 24 * 60 * 60 * 1000L, bwConfig.getTimeout(TimeUnit.MILLISECONDS));
+    assertEquals(22 * 60 * 60_000L, bwConfig.getMaxLatency(TimeUnit.MILLISECONDS));
+    assertEquals(33 * 24 * 60 * 60_000L, bwConfig.getTimeout(TimeUnit.MILLISECONDS));
     assertEquals(42, bwConfig.getMaxWriteThreads());
     assertEquals(Durability.NONE, bwConfig.getDurability());
   }

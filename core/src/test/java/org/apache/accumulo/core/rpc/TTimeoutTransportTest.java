@@ -24,7 +24,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,7 +32,7 @@ import java.net.Socket;
 import java.net.SocketAddress;
 
 import org.apache.thrift.transport.TTransportException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests for {@link TTimeoutTransport}.
@@ -68,19 +68,14 @@ public class TTimeoutTransportTest {
 
     replay(addr, s, timeoutTransport);
 
-    try {
-      timeoutTransport.openSocket(addr, 1);
-      fail("Expected to catch IOException but got none");
-    } catch (IOException e) {
-      // Expected
-    }
+    assertThrows(IOException.class, () -> timeoutTransport.openSocket(addr, 1));
 
     verify(addr, s, timeoutTransport);
   }
 
   @Test
   public void testFailedInputStreamClosesSocket() throws IOException {
-    long timeout = 2 * 60 * 1000; // 2 mins
+    long timeout = 2 * 60_000; // 2 mins
     SocketAddress addr = createMock(SocketAddress.class);
     Socket s = createMock(Socket.class);
     TTimeoutTransport timeoutTransport = createMockBuilder(TTimeoutTransport.class)
@@ -103,19 +98,14 @@ public class TTimeoutTransportTest {
 
     replay(addr, s, timeoutTransport);
 
-    try {
-      timeoutTransport.createInternal(addr, timeout);
-      fail("Expected to catch TTransportException but got none");
-    } catch (TTransportException e) {
-      // Expected
-    }
+    assertThrows(TTransportException.class, () -> timeoutTransport.createInternal(addr, timeout));
 
     verify(addr, s, timeoutTransport);
   }
 
   @Test
   public void testFailedOutputStreamClosesSocket() throws IOException {
-    long timeout = 2 * 60 * 1000; // 2 mins
+    long timeout = 2 * 60_000; // 2 mins
     SocketAddress addr = createMock(SocketAddress.class);
     Socket s = createMock(Socket.class);
     InputStream is = createMock(InputStream.class);
@@ -143,12 +133,7 @@ public class TTimeoutTransportTest {
 
     replay(addr, s, timeoutTransport);
 
-    try {
-      timeoutTransport.createInternal(addr, timeout);
-      fail("Expected to catch TTransportException but got none");
-    } catch (TTransportException e) {
-      // Expected
-    }
+    assertThrows(TTransportException.class, () -> timeoutTransport.createInternal(addr, timeout));
 
     verify(addr, s, timeoutTransport);
   }

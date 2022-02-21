@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.core.conf;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -33,7 +33,7 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration.ScanExecutorConfig;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AccumuloConfigurationTest {
 
@@ -54,7 +54,7 @@ public class AccumuloConfigurationTest {
         assertEquals(p.getDefaultValue(), c.get(p.getKey()));
       }
     }
-    assertTrue("test was a dud, and did nothing", found);
+    assertTrue(found, "test was a dud, and did nothing");
   }
 
   @Test

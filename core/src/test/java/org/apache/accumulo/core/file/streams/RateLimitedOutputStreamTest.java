@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.file.streams;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.OutputStream;
 import java.security.SecureRandom;
@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.easymock.EasyMock;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.io.CountingOutputStream;
 

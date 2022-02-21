@@ -626,10 +626,10 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   public void printInfo() throws IOException {
     ClientInfo info = ClientInfo.from(accumuloClient.properties());
-    writer.print("\n" + SHELL_DESCRIPTION + "\n" + "- \n" + "- version: " + Constants.VERSION + "\n"
-        + "- instance name: " + info.getInstanceName() + "\n" + "- instance id: "
-        + accumuloClient.instanceOperations().getInstanceId() + "\n" + "- \n"
-        + "- type 'help' for a list of available commands\n" + "- \n");
+    writer.print("\n" + SHELL_DESCRIPTION + "\n- \n- version: " + Constants.VERSION + "\n"
+        + "- instance name: " + info.getInstanceName() + "\n- instance id: "
+        + accumuloClient.instanceOperations().getInstanceId() + "\n- \n"
+        + "- type 'help' for a list of available commands\n- \n");
     writer.flush();
   }
 

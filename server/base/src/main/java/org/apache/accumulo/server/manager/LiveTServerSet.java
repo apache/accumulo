@@ -310,7 +310,7 @@ public class LiveTServerSet implements Watcher {
       Long firstSeen = locklessServers.get(zPath);
       if (firstSeen == null) {
         locklessServers.put(zPath, System.currentTimeMillis());
-      } else if (System.currentTimeMillis() - firstSeen > 10 * 60 * 1000) {
+      } else if (System.currentTimeMillis() - firstSeen > 10 * 60_000) {
         deleteServerNode(path + "/" + zPath);
         locklessServers.remove(zPath);
       }

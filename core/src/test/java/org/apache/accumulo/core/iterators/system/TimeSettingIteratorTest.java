@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.iterators.system;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -34,7 +34,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TimeSettingIteratorTest {
 
@@ -110,7 +110,7 @@ public class TimeSettingIteratorTest {
 
     assertTrue(tsi.hasTop());
     final Key topKey = tsi.getTopKey();
-    assertSame("Expected the topKey to be the same object", k, topKey);
+    assertSame(k, topKey, "Expected the topKey to be the same object");
     assertEquals(new Key("r0", "cf1", "cq1", 50L), topKey);
     assertEquals("v0", tsi.getTopValue().toString());
     tsi.next();

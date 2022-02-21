@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -42,7 +42,7 @@ import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
 import org.apache.hadoop.shaded.com.google.common.collect.Iterables;
 import org.easymock.EasyMock;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class DefaultCompactionPlannerTest {
 
@@ -251,9 +251,9 @@ public class DefaultCompactionPlannerTest {
     String executors = getExecutors("'type': 'internal','maxSize':'32M'",
         "'type': 'internal','maxSize':'128M','numThreads':2",
         "'type': 'internal','maxSize':'512M','numThreads':3");
-    var e = assertThrows("Failed to throw error", NullPointerException.class,
-        () -> planner.init(getInitParams(senv, executors)));
-    assertTrue("Error message didn't contain numThreads", e.getMessage().contains("numThreads"));
+    var e = assertThrows(NullPointerException.class,
+        () -> planner.init(getInitParams(senv, executors)), "Failed to throw error");
+    assertTrue(e.getMessage().contains("numThreads"), "Error message didn't contain numThreads");
   }
 
   /**
@@ -272,9 +272,9 @@ public class DefaultCompactionPlannerTest {
     String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
         "'type': 'internal','maxSize':'128M','numThreads':2",
         "'type': 'external','maxSize':'512M','numThreads':3");
-    var e = assertThrows("Failed to throw error", IllegalArgumentException.class,
-        () -> planner.init(getInitParams(senv, executors)));
-    assertTrue("Error message didn't contain numThreads", e.getMessage().contains("numThreads"));
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> planner.init(getInitParams(senv, executors)), "Failed to throw error");
+    assertTrue(e.getMessage().contains("numThreads"), "Error message didn't contain numThreads");
   }
 
   /**
@@ -293,9 +293,9 @@ public class DefaultCompactionPlannerTest {
     String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
         "'type': 'internal','maxSize':'128M','numThreads':2",
         "'type': 'external','maxSize':'512M'");
-    var e = assertThrows("Failed to throw error", NullPointerException.class,
-        () -> planner.init(getInitParams(senv, executors)));
-    assertTrue("Error message didn't contain queue", e.getMessage().contains("queue"));
+    var e = assertThrows(NullPointerException.class,
+        () -> planner.init(getInitParams(senv, executors)), "Failed to throw error");
+    assertTrue(e.getMessage().contains("queue"), "Error message didn't contain queue");
   }
 
   /**
@@ -313,9 +313,9 @@ public class DefaultCompactionPlannerTest {
 
     String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
         "'type': 'internal','numThreads':2", "'type': 'external','queue':'q1'");
-    var e = assertThrows("Failed to throw error", IllegalArgumentException.class,
-        () -> planner.init(getInitParams(senv, executors)));
-    assertTrue("Error message didn't contain maxSize", e.getMessage().contains("maxSize"));
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> planner.init(getInitParams(senv, executors)), "Failed to throw error");
+    assertTrue(e.getMessage().contains("maxSize"), "Error message didn't contain maxSize");
   }
 
   /**
@@ -334,9 +334,9 @@ public class DefaultCompactionPlannerTest {
     String executors = getExecutors("'type': 'internal','maxSize':'32M','numThreads':1",
         "'type': 'internal','maxSize':'128M','numThreads':2",
         "'type': 'external','maxSize':'128M','queue':'q1'");
-    var e = assertThrows("Failed to throw error", IllegalArgumentException.class,
-        () -> planner.init(getInitParams(senv, executors)));
-    assertTrue("Error message didn't contain maxSize", e.getMessage().contains("maxSize"));
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> planner.init(getInitParams(senv, executors)), "Failed to throw error");
+    assertTrue(e.getMessage().contains("maxSize"), "Error message didn't contain maxSize");
   }
 
   private CompactionPlanner.InitParameters getInitParams(ServiceEnvironment senv,
@@ -377,7 +377,7 @@ public class DefaultCompactionPlannerTest {
   }
 
   private String getExecutors(String small, String medium, String large) {
-    String execBldr = "[{'name':'small'," + small + "}," + "{'name':'medium'," + medium + "},"
+    String execBldr = "[{'name':'small'," + small + "},{'name':'medium'," + medium + "},"
         + "{'name':'large'," + large + "}]";
     return execBldr.replaceAll("'", "\"");
   }

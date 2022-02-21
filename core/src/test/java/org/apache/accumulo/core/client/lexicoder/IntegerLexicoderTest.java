@@ -21,7 +21,7 @@ package org.apache.accumulo.core.client.lexicoder;
 import java.util.Arrays;
 
 import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoderTest;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class IntegerLexicoderTest extends AbstractLexicoderTest {
 

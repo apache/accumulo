@@ -56,7 +56,7 @@ public class CompactCommand extends TableOperation {
         + " specified, then all files will be compacted. Options that configure"
         + " output settings are only applied to this compaction and not later"
         + " compactions. If multiple concurrent user initiated compactions specify"
-        + " iterators or a compaction strategy, then all but one will fail to" + " start.";
+        + " iterators or a compaction strategy, then all but one will fail to start.";
   }
 
   @Override

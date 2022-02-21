@@ -66,7 +66,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       }
 
       // A static sleep to just let ZK do its thing
-      Thread.sleep(10 * 1000);
+      Thread.sleep(10_000);
 
       // Then check that the client has at least gotten the updates
       for (String table : tableNames) {

@@ -23,7 +23,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.lang.reflect.UndeclaredThrowableException;
@@ -463,22 +462,21 @@ public class KerberosIT extends AccumuloITBase {
     // make a fake user that won't have krb credentials
     UserGroupInformation userWithoutPrivs =
         UserGroupInformation.createUserForTesting("fake_user", new String[0]);
-    try {
-      // Use the delegation token to try to log in as a different user
-      userWithoutPrivs.doAs((PrivilegedExceptionAction<Void>) () -> {
-        AccumuloClient client = mac.createAccumuloClient("some_other_user", delegationToken);
-        client.securityOperations().authenticateUser("some_other_user", delegationToken);
-        return null;
-      });
-      fail("Using a delegation token as a different user should throw an exception");
-    } catch (UndeclaredThrowableException e) {
-      Throwable cause = e.getCause();
-      assertNotNull(cause);
-      // We should get an AccumuloSecurityException from trying to use a delegation token for the
-      // wrong user
-      assertTrue("Expected cause to be AccumuloSecurityException, but was " + cause.getClass(),
-          cause instanceof AccumuloSecurityException);
-    }
+    // Use the delegation token to try to log in as a different user
+    var e = assertThrows("Using a delegation token as a different user should throw an exception",
+        UndeclaredThrowableException.class,
+        () -> userWithoutPrivs.doAs((PrivilegedExceptionAction<Void>) () -> {
+          AccumuloClient client = mac.createAccumuloClient("some_other_user", delegationToken);
+          client.securityOperations().authenticateUser("some_other_user", delegationToken);
+          return null;
+        }));
+
+    Throwable cause = e.getCause();
+    assertNotNull(cause);
+    // We should get an AccumuloSecurityException from trying to use a delegation token for the
+    // wrong user
+    assertTrue("Expected cause to be AccumuloSecurityException, but was " + cause.getClass(),
+        cause instanceof AccumuloSecurityException);
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
@@ -624,7 +622,7 @@ public class KerberosIT extends AccumuloITBase {
 
     AuthenticationTokenIdentifier identifier = ((DelegationTokenImpl) dt).getIdentifier();
     assertTrue("Expected identifier to expire in no more than 5 minutes: " + identifier,
-        identifier.getExpirationDate() - identifier.getIssueDate() <= (5 * 60 * 1000));
+        identifier.getExpirationDate() - identifier.getIssueDate() <= (5 * 60_000));
   }
 
   @Test

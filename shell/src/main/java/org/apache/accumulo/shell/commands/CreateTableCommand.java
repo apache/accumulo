@@ -316,7 +316,7 @@ public class CreateTableCommand extends Command {
     createTableOptLocalityProps.setArgs(Option.UNLIMITED_VALUES);
 
     createTableOptIteratorProps = new Option("i", "iter", true,
-        "initialize" + " iterator at table creation using profile. If no scope supplied, all"
+        "initialize iterator at table creation using profile. If no scope supplied, all"
             + " scopes are activated.");
     createTableOptIteratorProps.setArgName("profile[:[all]|[scan[,]][minc[,]][majc]]");
     createTableOptIteratorProps.setArgs(Option.UNLIMITED_VALUES);

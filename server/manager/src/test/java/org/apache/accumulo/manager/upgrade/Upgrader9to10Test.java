@@ -28,7 +28,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -211,10 +210,8 @@ public class Upgrader9to10Test {
     expect(fs.exists(anyObject(Path.class))).andReturn(false).anyTimes();
 
     setupMocks(c, fs, map, new ArrayList<>());
-    try {
-      Upgrader9to10.checkForRelativePaths(c, fs, tableName, volumeUpgrade);
-      fail("Expected IllegalArgumentException to be thrown");
-    } catch (IllegalArgumentException e) {}
+    assertThrows(IllegalArgumentException.class,
+        () -> Upgrader9to10.checkForRelativePaths(c, fs, tableName, volumeUpgrade));
   }
 
   @Test
@@ -228,10 +225,8 @@ public class Upgrader9to10Test {
     expect(fs.exists(anyObject(Path.class))).andReturn(false).anyTimes();
 
     setupMocks(c, fs, map, new ArrayList<>());
-    try {
-      Upgrader9to10.checkForRelativePaths(c, fs, tableName, "");
-      fail("Expected IllegalArgumentException to be thrown");
-    } catch (IllegalArgumentException e) {}
+    assertThrows(IllegalArgumentException.class,
+        () -> Upgrader9to10.checkForRelativePaths(c, fs, tableName, ""));
   }
 
   @Test

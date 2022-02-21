@@ -282,7 +282,7 @@ public class TabletServerResourceManager {
       // Still check block cache sizes when using native maps.
       if (dCacheSize + iCacheSize + sCacheSize + totalQueueSize > runtime.maxMemory()) {
         throw new IllegalArgumentException(String.format(
-            "Block cache sizes %,d" + " and mutation queue size %,d is too large for this JVM"
+            "Block cache sizes %,d and mutation queue size %,d is too large for this JVM"
                 + " configuration %,d",
             dCacheSize + iCacheSize + sCacheSize, totalQueueSize, runtime.maxMemory()));
       }

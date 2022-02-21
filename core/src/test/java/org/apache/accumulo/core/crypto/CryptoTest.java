@@ -20,11 +20,11 @@ package org.apache.accumulo.core.crypto;
 
 import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_PREFIX;
 import static org.apache.accumulo.core.crypto.CryptoUtils.getFileDecrypter;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -71,8 +71,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 
@@ -89,7 +89,7 @@ public class CryptoTest {
     CRYPTO_OFF, CRYPTO_ON, CRYPTO_ON_DISABLED
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void setupKeyFiles() throws IOException {
     setupKeyFiles(CryptoTest.class);
   }
@@ -435,7 +435,7 @@ public class CryptoTest {
     FileEncrypter encrypter = cs.getFileEncrypter(env);
     byte[] params = encrypter.getDecryptionParameters();
 
-    assertNotNull("CryptoService returned null FileEncrypter", encrypter);
+    assertNotNull(encrypter, "CryptoService returned null FileEncrypter");
 
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     DataOutputStream dataOut = new DataOutputStream(out);

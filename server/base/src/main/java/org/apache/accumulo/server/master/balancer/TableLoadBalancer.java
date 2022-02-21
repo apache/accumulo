@@ -143,7 +143,7 @@ public class TableLoadBalancer extends TabletBalancer {
   @Override
   public long balance(SortedMap<TServerInstance,TabletServerStatus> current,
       Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
-    long minBalanceTime = 5 * 1000;
+    long minBalanceTime = 5_000;
     // Iterate over the tables and balance each of them
     TableOperations t = getTableOperations();
     if (t == null)

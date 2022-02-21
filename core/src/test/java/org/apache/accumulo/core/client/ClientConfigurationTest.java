@@ -18,14 +18,14 @@
  */
 package org.apache.accumulo.core.client;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("deprecation")
 public class ClientConfigurationTest {
@@ -72,15 +72,15 @@ public class ClientConfigurationTest {
   @Test
   public void testConfPath() throws IOException {
     File target = new File(System.getProperty("user.dir"), "target");
-    assertTrue("'target' build directory does not exist", target.exists());
+    assertTrue(target.exists(), "'target' build directory does not exist");
     File testDir = new File(target, getClass().getName());
     if (!testDir.exists()) {
-      assertTrue("Failed to create test dir " + testDir, testDir.mkdirs());
+      assertTrue(testDir.mkdirs(), "Failed to create test dir " + testDir);
     }
 
     File clientConf = new File(testDir, "client.conf");
     if (!clientConf.exists()) {
-      assertTrue("Failed to create file " + clientConf, clientConf.createNewFile());
+      assertTrue(clientConf.createNewFile(), "Failed to create file " + clientConf);
     }
 
     // A directory should return the path with client.conf appended.

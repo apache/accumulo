@@ -25,6 +25,7 @@ import static org.easymock.EasyMock.replay;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
@@ -51,8 +52,10 @@ import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.TemporaryFolder;
 
 @Category({ZooKeeperTestingServerTests.class})
 public class FateIT {
@@ -89,6 +92,10 @@ public class FateIT {
 
   }
 
+  @ClassRule
+  public static final TemporaryFolder TEMP =
+      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+
   private static ZooKeeperTestingServer szk = null;
   private static final String ZK_ROOT = "/accumulo/" + UUID.randomUUID().toString();
   private static final NamespaceId NS = NamespaceId.of("testNameSpace");
@@ -99,7 +106,7 @@ public class FateIT {
 
   @BeforeClass
   public static void setup() throws Exception {
-    szk = new ZooKeeperTestingServer();
+    szk = new ZooKeeperTestingServer(TEMP.newFolder());
   }
 
   @AfterClass
@@ -143,7 +150,7 @@ public class FateIT {
 
       long txid = fate.startTransaction();
       assertEquals(TStatus.NEW, getTxStatus(zk, txid));
-      fate.seedTransaction(txid, new TestOperation(NS, TID), true);
+      fate.seedTransaction(txid, new TestOperation(NS, TID), true, "Test Op");
       assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
       // wait for call() to be called
       callStarted.await();

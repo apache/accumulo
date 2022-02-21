@@ -19,8 +19,8 @@
 package org.apache.accumulo.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -219,21 +219,13 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
 
       // MTBW is still caching this name to the correct table, but we should invalidate its cache
       // after seeing the rename
-      try {
-        bw1 = mtbw.getBatchWriter(table1);
-        fail("Should not be able to find this table");
-      } catch (TableNotFoundException e) {
-        // pass
-      }
+      assertThrows("Should not be able to find this table", TableNotFoundException.class,
+          () -> mtbw.getBatchWriter(table1));
 
       tops.rename(table2, newTable2);
 
-      try {
-        bw2 = mtbw.getBatchWriter(table2);
-        fail("Should not be able to find this table");
-      } catch (TableNotFoundException e) {
-        // pass
-      }
+      assertThrows("Should not be able to find this table", TableNotFoundException.class,
+          () -> mtbw.getBatchWriter(table2));
 
       bw1 = mtbw.getBatchWriter(newTable1);
       bw2 = mtbw.getBatchWriter(newTable2);
@@ -296,18 +288,11 @@ public class MultiTableBatchWriterIT extends AccumuloClusterHarness {
       tops.rename(table1, newTable1);
       tops.rename(table2, newTable2);
 
-      try {
-        bw1 = mtbw.getBatchWriter(table1);
-        fail("Should not have gotten batchwriter for " + table1);
-      } catch (TableNotFoundException e) {
-        // Pass
-      }
+      assertThrows("Should not have gotten batchwriter for " + table1, TableNotFoundException.class,
+          () -> mtbw.getBatchWriter(table1));
 
-      try {
-        bw2 = mtbw.getBatchWriter(table2);
-      } catch (TableNotFoundException e) {
-        // Pass
-      }
+      assertThrows("Should not have gotten batchwriter for " + table2, TableNotFoundException.class,
+          () -> mtbw.getBatchWriter(table2));
     } finally {
       if (mtbw != null) {
         mtbw.close();

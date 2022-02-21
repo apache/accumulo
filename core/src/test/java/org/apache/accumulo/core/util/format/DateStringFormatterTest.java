@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.core.util.format;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 import java.util.TimeZone;
@@ -27,8 +27,8 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("deprecation")
 public class DateStringFormatterTest {
@@ -36,7 +36,7 @@ public class DateStringFormatterTest {
 
   Map<Key,Value> data;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     formatter = new DateStringFormatter();
     data = new TreeMap<>();
@@ -49,7 +49,7 @@ public class DateStringFormatterTest {
 
     assertTrue(formatter.hasNext());
     final String next = formatter.next();
-    assertTrue(next, next.endsWith("1970/01/01 00:00:00.000"));
+    assertTrue(next.endsWith("1970/01/01 00:00:00.000"), next);
   }
 
   @Test

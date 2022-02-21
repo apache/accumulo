@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.test.shell;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.test.VolumeChooserIT.PERTABLE_CHOOSER_PROP;
@@ -36,7 +36,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.harness.conf.StandaloneAccumuloClusterConfiguration;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.test.ShellServerIT.TestShell;
+import org.apache.accumulo.test.FairVolumeChooser;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -95,13 +95,13 @@ public class ShellConfigIT extends AccumuloClusterHarness {
 
     assertNotNull(clientPropsFile);
 
-    TestShell ts = null;
+    MockShell ts = null;
     if (token instanceof PasswordToken) {
       String passwd = new String(((PasswordToken) token).getPassword(), UTF_8);
-      ts = new TestShell(getAdminPrincipal(), passwd, getCluster().getInstanceName(),
+      ts = new MockShell(getAdminPrincipal(), passwd, getCluster().getInstanceName(),
           getCluster().getZooKeepers(), clientPropsFile);
     } else if (token instanceof KerberosToken) {
-      ts = new TestShell(getAdminPrincipal(), null, getCluster().getInstanceName(),
+      ts = new MockShell(getAdminPrincipal(), null, getCluster().getInstanceName(),
           getCluster().getZooKeepers(), clientPropsFile);
     } else {
       fail("Unknown token type");

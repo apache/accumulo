@@ -18,27 +18,24 @@
  */
 package org.apache.accumulo.core.data;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.apache.accumulo.core.WithTestNames;
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Tests the NamespaceId class, mainly the internal cache.
  */
-public class NamespaceIdTest {
+public class NamespaceIdTest extends WithTestNames {
 
   private static final Logger LOG = LoggerFactory.getLogger(NamespaceIdTest.class);
-
-  @Rule
-  public TestName name = new TestName();
 
   private static long cacheCount() {
     // guava cache size() is approximate, and can include garbage-collected entries
@@ -52,7 +49,7 @@ public class NamespaceIdTest {
     // NamespaceId, and aren't preloaded when the NamespaceId class is referenced
     assertNotSame(Namespace.ACCUMULO.id(), Namespace.DEFAULT.id());
 
-    String namespaceString = "namespace-" + name.getMethodName();
+    String namespaceString = "namespace-" + testName();
     long initialSize = cacheCount();
     NamespaceId nsId = NamespaceId.of(namespaceString);
     assertEquals(initialSize + 1, cacheCount());
@@ -71,7 +68,8 @@ public class NamespaceIdTest {
     assertSame(nsId, nsId2);
   }
 
-  @Test(timeout = 30_000)
+  @Test
+  @Timeout(30_000)
   public void testCacheIncreasesAndDecreasesAfterGC() {
     long initialSize = cacheCount();
     assertTrue(initialSize < 20); // verify initial amount is reasonably low
@@ -79,7 +77,7 @@ public class NamespaceIdTest {
     LOG.info(NamespaceId.cache.asMap().toString());
 
     // add one and check increase
-    String namespaceString = "namespace-" + name.getMethodName();
+    String namespaceString = "namespace-" + testName();
     NamespaceId nsId = NamespaceId.of(namespaceString);
     assertEquals(initialSize + 1, cacheCount());
     assertEquals(namespaceString, nsId.canonical());

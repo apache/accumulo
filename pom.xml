@@ -122,8 +122,10 @@
     <curator.version>5.1.0</curator.version>
     <!-- relative path for Eclipse format; should override in child modules if necessary -->
     <eclipseFormatterStyle>${project.parent.basedir}/contrib/Eclipse-Accumulo-Codestyle.xml</eclipseFormatterStyle>
+    <errorprone.version>2.11.0</errorprone.version>
     <!-- avoid error shutting down built-in ForkJoinPool.commonPool() during exec:java tasks -->
     <exec.cleanupDaemonThreads>false</exec.cleanupDaemonThreads>
+    <extraTestArgs />
     <failsafe.excludedGroups />
     <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
@@ -142,7 +144,7 @@
     <minimalMavenBuildVersion>3.5.0</minimalMavenBuildVersion>
     <powermock.version>2.0.9</powermock.version>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
-    <project.build.outputTimestamp>2020-12-17T22:06:50Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2022-02-08T14:59:16Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
     <slf4j.version>1.7.35</slf4j.version>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
@@ -232,6 +234,13 @@
         <scope>import</scope>
       </dependency>
       <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>5.8.2</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
         <groupId>com.beust</groupId>
         <artifactId>jcommander</artifactId>
         <version>1.82</version>
@@ -312,11 +321,6 @@
         <groupId>commons-logging</groupId>
         <artifactId>commons-logging</artifactId>
         <version>1.2</version>
-      </dependency>
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.13.2</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
@@ -851,7 +855,7 @@
             <systemPropertyVariables>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
-            <argLine>${unitTestMemSize}</argLine>
+            <argLine>${unitTestMemSize} ${extraTestArgs}</argLine>
           </configuration>
         </plugin>
         <plugin>
@@ -865,6 +869,7 @@
             <systemPropertyVariables>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
+            <argLine>${extraTestArgs}</argLine>
             <trimStackTrace>false</trimStackTrace>
           </configuration>
         </plugin>
@@ -969,6 +974,8 @@
                 <usedUndeclaredDependency>org.apache.httpcomponents:httpcore:jar:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-core:jar:*</usedUndeclaredDependency>
                 <usedUndeclaredDependency>org.powermock:powermock-reflect:jar:*</usedUndeclaredDependency>
+                <!-- This should be removed upon completion of migrating junit 4 to 5 -->
+                <usedUndeclaredDependency>junit:junit:jar:*</usedUndeclaredDependency>
               </ignoredUsedUndeclaredDependencies>
               <ignoredUnusedDeclaredDependencies>
                 <!-- auto-service isn't used in every module -->
@@ -982,7 +989,6 @@
                 -
                 <unusedDeclaredDependency>org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-grizzly2:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.powermock:powermock-api-easymock:jar:*</unusedDeclaredDependency>
-                <unusedDeclaredDependency>junit:junit:jar:*</unusedDeclaredDependency>
                 <!-- spotbugs annotations may or may not be used in each module -->
                 <unusedDeclaredDependency>com.github.spotbugs:spotbugs-annotations:jar:*</unusedDeclaredDependency>
                 <!-- ignore unused native; analysis isn't possible with tar.gz dependency -->
@@ -991,6 +997,8 @@
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-1.2-api:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-slf4j-impl:jar:*</unusedDeclaredDependency>
                 <unusedDeclaredDependency>org.apache.logging.log4j:log4j-web:jar:*</unusedDeclaredDependency>
+                <!-- This should be removed upon completion of migrating junit 4 to 5 -->
+                <unusedDeclaredDependency>org.junit.vintage:junit-vintage-engine:jar:*</unusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
@@ -1091,8 +1099,17 @@
                   <property name="message" value="Use static imports for Assert.* methods for consistency" />
                 </module>
                 <module name="RegexpSinglelineJava">
+                  <property name="format" value="org[.]junit[.]jupiter[.]api[.]Assertions;" />
+                  <property name="message" value="Use static imports for Assert.* methods for consistency" />
+                </module>
+                <module name="RegexpSinglelineJava">
                   <property name="format" value="import java[.]nio[.]charset[.]StandardCharsets;" />
                   <property name="message" value="Use static imports for StandardCharsets.* constants for consistency" />
+                </module>
+                <module name="RegexpSinglelineJava">
+                  <!-- double escape quotes because checkstyle passes these through another xml parser -->
+                  <property name="format" value="&amp;quot; [+] &amp;quot;" />
+                  <property name="message" value="Unnecessary concatenation of string literals" />
                 </module>
                 <module name="OuterTypeFilename" />
                 <module name="AvoidStarImport" />
@@ -1621,6 +1638,74 @@
       <properties>
         <failsafe.reuseForks>${reuseForks}</failsafe.reuseForks>
         <surefire.reuseForks>${reuseForks}</surefire.reuseForks>
+      </properties>
+    </profile>
+    <profile>
+      <!-- This profile uses the Google ErrorProne tool to perform static code analysis at
+      compile time. Auto-generated code is not checked.
+      See: https://errorprone.info/bugpatterns for list of available bug patterns.-->
+      <id>errorprone</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <configuration>
+              <compilerArgs>
+                <arg>-XDcompilePolicy=simple</arg>
+                <arg>
+                  -Xplugin:ErrorProne \
+                  -XepExcludedPaths:.*/(proto|thrift|generated-sources)/.* \
+                  -XepDisableWarningsInGeneratedCode \
+                  -XepDisableAllWarnings \
+                  <!-- error/warning patterns to ignore -->
+                  -Xep:Incomparable:OFF \
+                  -Xep:CheckReturnValue:OFF \
+                  -Xep:MustBeClosedChecker:OFF \
+                  -Xep:ReturnValueIgnored:OFF \
+                  -Xep:UnicodeInCode:OFF \
+                  <!-- error/warning patterns to specifically check -->
+                  -Xep:ExpectedExceptionChecker \
+                  -Xep:MissingOverride \
+                  <!-- Items containing 'OFF' are currently flagged by ErrorProne. The 'OFF'
+                  can be removed and the project recompiled to discover location of errors for
+                  further analysis. @SuppressWarnings can be used to ignore errors if desired. -->
+                </arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
+                <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>
+                <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
+              </compilerArgs>
+              <annotationProcessorPaths>
+                <path>
+                  <groupId>com.google.errorprone</groupId>
+                  <artifactId>error_prone_core</artifactId>
+                  <version>${errorprone.version}</version>
+                </path>
+                <path>
+                  <groupId>com.google.auto.service</groupId>
+                  <artifactId>auto-service</artifactId>
+                  <version>1.0</version>
+                </path>
+              </annotationProcessorPaths>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>jdk17</id>
+      <activation>
+        <jdk>[17,)</jdk>
+      </activation>
+      <properties>
+        <extraTestArgs>--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.management/java.lang.management=ALL-UNNAMED --add-opens java.management/sun.management=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED</extraTestArgs>
       </properties>
     </profile>
   </profiles>
