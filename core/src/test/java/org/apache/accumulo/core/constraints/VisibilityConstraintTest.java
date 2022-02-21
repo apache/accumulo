@@ -23,8 +23,8 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.Arrays;
 import java.util.List;
@@ -33,8 +33,8 @@ import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.AuthorizationContainer;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("deprecation")
 public class VisibilityConstraintTest {
@@ -50,7 +50,7 @@ public class VisibilityConstraintTest {
 
   static final List<Short> ENOAUTH = Arrays.asList((short) 2);
 
-  @Before
+  @BeforeEach
   public void setUp() {
     vc = new VisibilityConstraint();
     mutation = new Mutation("r");
@@ -69,33 +69,33 @@ public class VisibilityConstraintTest {
   @Test
   public void testNoVisibility() {
     mutation.put(D, D, D);
-    assertNull("authorized", vc.check(env, mutation));
+    assertNull(vc.check(env, mutation), "authorized");
   }
 
   @Test
   public void testVisibilityNoAuth() {
     mutation.put(D, D, bad, D);
-    assertEquals("unauthorized", ENOAUTH, vc.check(env, mutation));
+    assertEquals(ENOAUTH, vc.check(env, mutation), "unauthorized");
   }
 
   @Test
   public void testGoodVisibilityAuth() {
     mutation.put(D, D, good, D);
-    assertNull("authorized", vc.check(env, mutation));
+    assertNull(vc.check(env, mutation), "authorized");
   }
 
   @Test
   public void testCachedVisibilities() {
     mutation.put(D, D, good, "v");
     mutation.put(D, D, good, "v2");
-    assertNull("authorized", vc.check(env, mutation));
+    assertNull(vc.check(env, mutation), "authorized");
   }
 
   @Test
   public void testMixedVisibilities() {
     mutation.put(D, D, bad, D);
     mutation.put(D, D, good, D);
-    assertEquals("unauthorized", ENOAUTH, vc.check(env, mutation));
+    assertEquals(ENOAUTH, vc.check(env, mutation), "unauthorized");
   }
 
 }

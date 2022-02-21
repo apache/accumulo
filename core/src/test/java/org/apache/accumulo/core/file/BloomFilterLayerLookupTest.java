@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.file;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 
+import org.apache.accumulo.core.WithTestNames;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -40,27 +41,22 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class BloomFilterLayerLookupTest {
+public class BloomFilterLayerLookupTest extends WithTestNames {
 
   private static final Logger log = LoggerFactory.getLogger(BloomFilterLayerLookupTest.class);
   private static final SecureRandom random = new SecureRandom();
 
-  @Rule
-  public TestName testName = new TestName();
-
-  @Rule
-  public TemporaryFolder tempDir =
-      new TemporaryFolder(new File(System.getProperty("user.dir") + "/target"));
+  @TempDir
+  private static final File tempDir = new File(System.getProperty("user.dir") + "/target",
+      BloomFilterLayerLookupTest.class.getSimpleName() + "/");
 
   @Test
   public void test() throws IOException {
@@ -84,7 +80,7 @@ public class BloomFilterLayerLookupTest {
 
     // get output file name
     String suffix = FileOperations.getNewFileExtension(acuconf);
-    String fname = new File(tempDir.getRoot(), testName + "." + suffix).getAbsolutePath();
+    String fname = new File(tempDir, testName() + "." + suffix).getAbsolutePath();
     FileSKVWriter bmfw = FileOperations.getInstance().newWriterBuilder()
         .forFile(fname, fs, conf, CryptoServiceFactory.newDefaultInstance())
         .withTableConfiguration(acuconf).build();

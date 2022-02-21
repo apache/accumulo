@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,8 +38,8 @@ import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ColumnSliceFilterTest {
 
@@ -69,7 +69,7 @@ public class ColumnSliceFilterTest {
     return new Key(new Text(row), new Text(cf), new Text(cq));
   }
 
-  @Before
+  @BeforeEach
   public void setUp() {
     columnSliceFilter.describeOptions();
     iteratorEnvironment = new DefaultIteratorEnvironment();

@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.core.iterators;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.Set;
@@ -32,7 +32,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iteratorsImpl.system.CountingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class FirstEntryInRowIteratorTest {
 

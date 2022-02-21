@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.core.conf;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 import java.net.URL;
@@ -36,8 +36,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,14 +53,14 @@ public class HadoopCredentialProviderTest {
       emptyKeyStoreName = "/empty.jceks";
   private static File emptyKeyStore, populatedKeyStore;
 
-  @BeforeClass
+  @BeforeAll
   public static void checkCredentialProviderAvailable() {
     URL populatedKeyStoreUrl =
         HadoopCredentialProviderTest.class.getResource(populatedKeyStoreName),
         emptyKeyStoreUrl = HadoopCredentialProviderTest.class.getResource(emptyKeyStoreName);
 
-    assertNotNull("Could not find " + populatedKeyStoreName, populatedKeyStoreUrl);
-    assertNotNull("Could not find " + emptyKeyStoreName, emptyKeyStoreUrl);
+    assertNotNull(populatedKeyStoreUrl, "Could not find " + populatedKeyStoreName);
+    assertNotNull(emptyKeyStoreUrl, "Could not find " + emptyKeyStoreName);
 
     populatedKeyStore = new File(populatedKeyStoreUrl.getFile());
     emptyKeyStore = new File(emptyKeyStoreUrl.getFile());

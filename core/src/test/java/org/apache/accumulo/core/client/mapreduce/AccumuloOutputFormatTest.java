@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @Deprecated(since = "2.0.0")
 public class AccumuloOutputFormatTest {

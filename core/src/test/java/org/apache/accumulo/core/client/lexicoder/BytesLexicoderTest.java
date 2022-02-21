@@ -19,7 +19,7 @@
 package org.apache.accumulo.core.client.lexicoder;
 
 import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoderTest;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class BytesLexicoderTest extends AbstractLexicoderTest {
 

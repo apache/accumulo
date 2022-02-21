@@ -19,9 +19,9 @@
 package org.apache.accumulo.core.rpc;
 
 import static org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier.createTAuthIdentifier;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.security.PrivilegedExceptionAction;
 import java.util.Map;
@@ -41,8 +41,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.easymock.EasyMock;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class SaslConnectionParamsTest {
 
@@ -50,7 +50,7 @@ public class SaslConnectionParamsTest {
   private String username;
   private static final String primary = "accumulo";
 
-  @Before
+  @BeforeEach
   public void setup() {
     System.setProperty("java.security.krb5.realm", "accumulo");
     System.setProperty("java.security.krb5.kdc", "fake");

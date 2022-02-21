@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.core.clientImpl.lexicoder;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.apache.accumulo.core.client.lexicoder.AbstractLexicoder;
 import org.apache.accumulo.core.client.lexicoder.LexicoderTest;
@@ -68,20 +68,21 @@ public abstract class AbstractLexicoderTest extends LexicoderTest {
 
   protected static <T> void assertOutOfBoundsFails(AbstractLexicoder<T> lexicoder, byte[] encoded) {
     // decode null; should fail
-    assertThrows("Should throw on null bytes.", NullPointerException.class,
-        () -> lexicoder.decode(null, 0, encoded.length));
+    assertThrows(NullPointerException.class, () -> lexicoder.decode(null, 0, encoded.length),
+        "Should throw on null bytes.");
 
     // decode out of bounds, expect an exception
-    assertThrows("Should throw on exceeding length.", IllegalArgumentException.class,
-        () -> lexicoder.decode(encoded, 0, encoded.length + 1));
+    assertThrows(IllegalArgumentException.class,
+        () -> lexicoder.decode(encoded, 0, encoded.length + 1),
+        "Should throw on exceeding length.");
 
-    assertThrows("Should throw on negative offset.", IllegalArgumentException.class,
-        () -> lexicoder.decode(encoded, -1, encoded.length));
+    assertThrows(IllegalArgumentException.class,
+        () -> lexicoder.decode(encoded, -1, encoded.length), "Should throw on negative offset.");
 
-    assertThrows("Should throw on negative length.", IllegalArgumentException.class,
-        () -> lexicoder.decode(encoded, 0, -1));
+    assertThrows(IllegalArgumentException.class, () -> lexicoder.decode(encoded, 0, -1),
+        "Should throw on negative length.");
 
-    assertThrows("Should throw on negative length, even if (offset+len) is within bounds.",
-        IllegalArgumentException.class, () -> lexicoder.decode(encoded, 1, -1));
+    assertThrows(IllegalArgumentException.class, () -> lexicoder.decode(encoded, 1, -1),
+        "Should throw on negative length, even if (offset+len) is within bounds.");
   }
 }

@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.core.client.security.tokens;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Set;
 
 import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Test class for {@link KerberosToken}.

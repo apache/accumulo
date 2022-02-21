@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.core.conf;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -28,28 +28,25 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.apache.accumulo.core.WithTestNames;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.base.Joiner;
 
-public class PropertyTypeTest {
+public class PropertyTypeTest extends WithTestNames {
 
-  @Rule
-  public TestName testName = new TestName();
-  private PropertyType type = null;
+  private PropertyType type;
 
-  @Before
+  @BeforeEach
   public void getPropertyTypeForTest() {
-    String tn = testName.getMethodName();
-    if (tn.startsWith("testType")) {
+    if (testName().startsWith("testType")) {
+      String tn = testName().substring("testType".length());
       try {
-        type = PropertyType.valueOf(tn.substring(8));
+        type = PropertyType.valueOf(tn);
       } catch (IllegalArgumentException e) {
         throw new AssertionError("Unexpected test method for non-existent "
-            + PropertyType.class.getSimpleName() + "." + tn.substring(8));
+            + PropertyType.class.getSimpleName() + "." + tn);
       }
     }
   }
@@ -78,8 +75,8 @@ public class PropertyTypeTest {
         .collect(Collectors.toList());
 
     types = types.map(t -> {
-      assertTrue(PropertyType.class.getSimpleName() + "." + t + " does not have a test.",
-          typesTested.contains(t));
+      assertTrue(typesTested.contains(t),
+          PropertyType.class.getSimpleName() + "." + t + " does not have a test.");
       return t;
     });
     assertEquals(types.count(), typesTested.size());
@@ -87,17 +84,15 @@ public class PropertyTypeTest {
 
   private void valid(final String... args) {
     for (String s : args) {
-      assertTrue(
-          s + " should be valid for " + PropertyType.class.getSimpleName() + "." + type.name(),
-          type.isValidFormat(s));
+      assertTrue(type.isValidFormat(s),
+          s + " should be valid for " + PropertyType.class.getSimpleName() + "." + type.name());
     }
   }
 
   private void invalid(final String... args) {
     for (String s : args) {
-      assertFalse(
-          s + " should be invalid for " + PropertyType.class.getSimpleName() + "." + type.name(),
-          type.isValidFormat(s));
+      assertFalse(type.isValidFormat(s),
+          s + " should be invalid for " + PropertyType.class.getSimpleName() + "." + type.name());
     }
   }
 

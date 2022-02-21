@@ -18,20 +18,20 @@
  */
 package org.apache.accumulo.core.data;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.nio.ByteBuffer;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ArrayByteSequenceTest {
 
   ArrayByteSequence abs;
   byte[] data;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     data = new byte[] {'s', 'm', 'i', 'l', 'e', 's'};
     abs = new ArrayByteSequence(data);
@@ -104,8 +104,8 @@ public class ArrayByteSequenceTest {
 
   @Test
   public void testToString() {
-    assertEquals("String conversion should round trip correctly", "",
-        new ArrayByteSequence("").toString());
+    assertEquals("", new ArrayByteSequence("").toString(),
+        "String conversion should round trip correctly");
   }
 
 }

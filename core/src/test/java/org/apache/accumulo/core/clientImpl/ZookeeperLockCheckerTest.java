@@ -25,15 +25,15 @@ import static org.easymock.EasyMock.verify;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ZookeeperLockCheckerTest {
   private ClientContext context;
   private ZooCache zc;
   private ZookeeperLockChecker zklc;
 
-  @Before
+  @BeforeEach
   public void setUp() {
     context = createMock(ClientContext.class);
     expect(context.getZooKeeperRoot()).andReturn("/accumulo/iid").anyTimes();

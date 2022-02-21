@@ -18,13 +18,13 @@
  */
 package org.apache.accumulo.core.util;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.security.Security;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,7 +75,7 @@ public class AddressUtilTest {
         fail("The JVM Security settings cache DNS failures forever. "
             + "In this case we expect an exception but didn't get one.");
       }
-      assertEquals("Didn't get the ttl we expected", expectedTtl, result);
+      assertEquals(expectedTtl, result, "Didn't get the ttl we expected");
     } catch (IllegalArgumentException exception) {
       if (!expectException) {
         log.error("Got an exception when we weren't expecting.", exception);
@@ -98,9 +98,8 @@ public class AddressUtilTest {
 
     log.info("AddressUtil is (hopefully) going to spit out an error about DNS lookups. "
         + "you can ignore it.");
-    assertThrows(
-        "The JVM Security settings cache DNS failures forever, this should cause an exception.",
-        IllegalArgumentException.class, () -> AddressUtil.getAddressCacheNegativeTtl(null));
+    assertThrows(IllegalArgumentException.class, () -> AddressUtil.getAddressCacheNegativeTtl(null),
+        "The JVM Security settings cache DNS failures forever, this should cause an exception.");
 
   }
 }

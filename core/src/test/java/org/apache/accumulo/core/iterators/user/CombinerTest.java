@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -53,7 +53,7 @@ import org.apache.accumulo.core.iterators.ValueFormatException;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CombinerTest {
 
@@ -870,9 +870,9 @@ public class CombinerTest {
 
     long logSize = CombinerTestUtil.cacheSize();
     if (expectedLog) {
-      assertTrue("Expected >0 log messages, but got : " + logSize, logSize > 0);
+      assertTrue(logSize > 0, "Expected >0 log messages, but got : " + logSize);
     } else {
-      assertEquals("Expected 0 log messages, but got : " + logSize, 0, logSize);
+      assertEquals(0, logSize, "Expected 0 log messages, but got : " + logSize);
     }
   }
 

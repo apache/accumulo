@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.fate;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -26,7 +26,7 @@ import java.util.Set;
 import org.apache.accumulo.fate.AgeOffStore.TimeSource;
 import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.zookeeper.KeeperException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AgeOffStoreTest {
 

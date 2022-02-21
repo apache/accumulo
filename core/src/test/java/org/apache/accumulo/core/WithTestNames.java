@@ -16,27 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.client.lexicoder;
+package org.apache.accumulo.core;
 
-import java.util.Arrays;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 
-import org.apache.accumulo.core.clientImpl.lexicoder.AbstractLexicoderTest;
-import org.junit.jupiter.api.Test;
+// This is only for the unit tests and integration tests in this module
+// It must be copied for use in other modules, because tests in one module
+// don't have dependencies on other modules, and we can't put this in a
+// regular, non-test jar, because we don't want to add a dependency on
+// JUnit in a non-test jar
+public class WithTestNames {
 
-public class IntegerLexicoderTest extends AbstractLexicoderTest {
+  private String testName;
 
-  @Test
-  public void testSortOrder() {
-    assertSortOrder(new IntegerLexicoder(), Arrays.asList(Integer.MIN_VALUE, 0xff123456, 0xffff3456,
-        0xffffff56, -1, 0, 1, 0x12, 0x1234, 0x123456, 0x1234678, Integer.MAX_VALUE));
+  @BeforeEach
+  public void setTestName(TestInfo info) {
+    testName = info.getTestMethod().get().getName();
   }
 
-  @Test
-  public void testDecode() {
-    assertDecodes(new IntegerLexicoder(), Integer.MIN_VALUE);
-    assertDecodes(new IntegerLexicoder(), -1);
-    assertDecodes(new IntegerLexicoder(), 0);
-    assertDecodes(new IntegerLexicoder(), 1);
-    assertDecodes(new IntegerLexicoder(), Integer.MAX_VALUE);
+  protected String testName() {
+    return testName;
   }
+
 }

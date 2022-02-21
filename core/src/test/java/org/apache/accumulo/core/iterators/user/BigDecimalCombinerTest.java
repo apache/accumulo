@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -39,8 +39,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class BigDecimalCombinerTest {
 
@@ -52,7 +52,7 @@ public class BigDecimalCombinerTest {
   List<Column> columns;
   Combiner ai;
 
-  @Before
+  @BeforeEach
   public void setup() {
     encoder = new BigDecimalCombiner.BigDecimalEncoder();
     tm1 = new TreeMap<>();

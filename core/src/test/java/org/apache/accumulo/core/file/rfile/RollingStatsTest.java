@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.security.SecureRandom;
 import java.util.function.IntSupplier;
@@ -27,7 +27,7 @@ import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.commons.math3.distribution.ZipfDistribution;
 import org.apache.commons.math3.random.Well19937c;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.google.common.math.DoubleMath;
 
@@ -37,8 +37,8 @@ public class RollingStatsTest {
   private static final SecureRandom random = new SecureRandom();
 
   private static void assertFuzzyEquals(double expected, double actual) {
-    assertTrue(String.format("expected: %f, actual: %f diff: %f", expected, actual,
-        Math.abs(expected - actual)), DoubleMath.fuzzyEquals(expected, actual, TOLERANCE));
+    assertTrue(DoubleMath.fuzzyEquals(expected, actual, TOLERANCE), String.format(
+        "expected: %f, actual: %f diff: %f", expected, actual, Math.abs(expected - actual)));
   }
 
   private static void checkAgreement(DescriptiveStatistics ds, RollingStats rs) {
