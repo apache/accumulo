@@ -330,7 +330,7 @@ public class MultiThreadedRFileTest {
           Key key = getKey(part, locality, i);
           Value value = getValue(i);
           assertTrue(trf.iter.hasTop(),
-              "No record found for row " + part + " locality " + locality + " " + "index " + i);
+              "No record found for row " + part + " locality " + locality + " index " + i);
           assertEquals(key, trf.iter.getTopKey(),
               "Invalid key found for row " + part + " locality " + locality + " index " + i);
           assertEquals(value, trf.iter.getTopValue(),

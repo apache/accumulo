@@ -81,8 +81,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     init(DEFAULT_TABLE_PROPERTIES);
     assertEquals(7000, this.getOobCheckMillis(), "OOB check interval value is incorrect");
     assertEquals(4, this.getMaxMigrations(), "Max migrations is incorrect");
-    assertEquals(10, this.getMaxOutstandingMigrations(),
-        "Max outstanding migrations is " + "incorrect");
+    assertEquals(10, this.getMaxOutstandingMigrations(), "Max outstanding migrations is incorrect");
     assertFalse(isIpBasedRegex());
     Map<String,Pattern> patterns = this.getPoolNameToRegexPattern();
     assertEquals(2, patterns.size());

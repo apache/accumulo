@@ -52,7 +52,7 @@ public class PropertyTest {
       // make sure properties default values match their type
       if (prop.getType() == PropertyType.PREFIX) {
         assertNull(prop.getDefaultValue(),
-            "PREFIX property " + prop.name() + " has unexpected non-null " + "default value.");
+            "PREFIX property " + prop.name() + " has unexpected non-null default value.");
       } else {
         assertTrue(prop.getType().isValidFormat(prop.getDefaultValue()),
             "Property " + prop + " has invalid default value " + prop.getDefaultValue()

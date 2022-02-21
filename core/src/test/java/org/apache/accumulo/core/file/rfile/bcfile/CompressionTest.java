@@ -280,7 +280,7 @@ public class CompressionTest {
 
         for (Future<Boolean> result : results) {
           assertTrue(result.get(),
-              al + " resulted in a failed call to getcodec within the thread " + "pool");
+              al + " resulted in a failed call to getcodec within the thread pool");
         }
       }
     }
