@@ -18,10 +18,11 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationTokenConfig;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
  * Handles serialization of {@link DelegationTokenConfig}
@@ -36,7 +37,7 @@ public class DelegationTokenConfigSerializer {
    */
   public static TDelegationTokenConfig serialize(DelegationTokenConfig config) {
     TDelegationTokenConfig tconfig = new TDelegationTokenConfig();
-    tconfig.setLifetime(config.getTokenLifetime(TimeUnit.MILLISECONDS));
+    tconfig.setLifetime(config.getTokenLifetime(MILLISECONDS));
     return tconfig;
   }
 
@@ -49,7 +50,7 @@ public class DelegationTokenConfigSerializer {
   public static DelegationTokenConfig deserialize(TDelegationTokenConfig tconfig) {
     DelegationTokenConfig config = new DelegationTokenConfig();
     if (tconfig.isSetLifetime()) {
-      config.setTokenLifetime(tconfig.getLifetime(), TimeUnit.MILLISECONDS);
+      config.setTokenLifetime(tconfig.getLifetime(), MILLISECONDS);
     }
     return config;
   }

@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.summary;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
@@ -483,13 +484,13 @@ public class Gatherer {
       long t1, t2;
       CompletableFuture<ProcessedFiles> futureRef = updateFuture();
       t1 = System.nanoTime();
-      ProcessedFiles processedFiles = futureRef.get(Long.max(1, nanosLeft), TimeUnit.NANOSECONDS);
+      ProcessedFiles processedFiles = futureRef.get(Long.max(1, nanosLeft), NANOSECONDS);
       t2 = System.nanoTime();
       nanosLeft -= (t2 - t1);
       while (!processedFiles.failedFiles.isEmpty()) {
         futureRef = updateFuture();
         t1 = System.nanoTime();
-        processedFiles = futureRef.get(Long.max(1, nanosLeft), TimeUnit.NANOSECONDS);
+        processedFiles = futureRef.get(Long.max(1, nanosLeft), NANOSECONDS);
         t2 = System.nanoTime();
         nanosLeft -= (t2 - t1);
       }

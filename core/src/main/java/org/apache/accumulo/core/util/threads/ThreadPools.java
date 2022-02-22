@@ -37,6 +37,9 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 public class ThreadPools {
 
   private static final Logger LOG = LoggerFactory.getLogger(ThreadPools.class);
@@ -117,7 +120,7 @@ public class ThreadPools {
             emitThreadPoolMetrics);
       case MANAGER_BULK_THREADPOOL_SIZE:
         return createFixedThreadPool(conf.getCount(p),
-            conf.getTimeInMillis(Property.MANAGER_BULK_THREADPOOL_TIMEOUT), TimeUnit.MILLISECONDS,
+            conf.getTimeInMillis(Property.MANAGER_BULK_THREADPOOL_TIMEOUT), MILLISECONDS,
             "bulk import", emitThreadPoolMetrics);
       case MANAGER_RENAME_THREADS:
         return createFixedThreadPool(conf.getCount(p), "bulk move", emitThreadPoolMetrics);
@@ -126,7 +129,7 @@ public class ThreadPools {
       case MANAGER_STATUS_THREAD_POOL_SIZE:
         int threads = conf.getCount(p);
         if (threads == 0) {
-          return createThreadPool(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS,
+          return createThreadPool(0, Integer.MAX_VALUE, 60L, SECONDS,
               "GatherTableInformation", new SynchronousQueue<>(), emitThreadPoolMetrics);
         } else {
           return createFixedThreadPool(threads, "GatherTableInformation", emitThreadPoolMetrics);
@@ -135,22 +138,22 @@ public class ThreadPools {
         return createFixedThreadPool(conf.getCount(p), "distributed work queue",
             emitThreadPoolMetrics);
       case TSERV_MINC_MAXCONCURRENT:
-        return createFixedThreadPool(conf.getCount(p), 0L, TimeUnit.MILLISECONDS, "minor compactor",
+        return createFixedThreadPool(conf.getCount(p), 0L, MILLISECONDS, "minor compactor",
             emitThreadPoolMetrics);
       case TSERV_MIGRATE_MAXCONCURRENT:
-        return createFixedThreadPool(conf.getCount(p), 0L, TimeUnit.MILLISECONDS,
+        return createFixedThreadPool(conf.getCount(p), 0L, MILLISECONDS,
             "tablet migration", emitThreadPoolMetrics);
       case TSERV_ASSIGNMENT_MAXCONCURRENT:
-        return createFixedThreadPool(conf.getCount(p), 0L, TimeUnit.MILLISECONDS,
+        return createFixedThreadPool(conf.getCount(p), 0L, MILLISECONDS,
             "tablet assignment", emitThreadPoolMetrics);
       case TSERV_SUMMARY_RETRIEVAL_THREADS:
-        return createThreadPool(conf.getCount(p), conf.getCount(p), 60, TimeUnit.SECONDS,
+        return createThreadPool(conf.getCount(p), conf.getCount(p), 60, SECONDS,
             "summary file retriever", emitThreadPoolMetrics);
       case TSERV_SUMMARY_REMOTE_THREADS:
-        return createThreadPool(conf.getCount(p), conf.getCount(p), 60, TimeUnit.SECONDS,
+        return createThreadPool(conf.getCount(p), conf.getCount(p), 60, SECONDS,
             "summary remote", emitThreadPoolMetrics);
       case TSERV_SUMMARY_PARTITION_THREADS:
-        return createThreadPool(conf.getCount(p), conf.getCount(p), 60, TimeUnit.SECONDS,
+        return createThreadPool(conf.getCount(p), conf.getCount(p), 60, SECONDS,
             "summary partition", emitThreadPoolMetrics);
       case GC_DELETE_THREADS:
         return createFixedThreadPool(conf.getCount(p), "deleting", emitThreadPoolMetrics);
@@ -179,7 +182,7 @@ public class ThreadPools {
    */
   public static ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
       boolean emitThreadPoolMetrics) {
-    return createFixedThreadPool(numThreads, DEFAULT_TIMEOUT_MILLISECS, TimeUnit.MILLISECONDS, name,
+    return createFixedThreadPool(numThreads, DEFAULT_TIMEOUT_MILLISECS, MILLISECONDS, name,
         emitThreadPoolMetrics);
   }
 
@@ -204,7 +207,7 @@ public class ThreadPools {
   public static ThreadPoolExecutor createFixedThreadPool(int numThreads, final String name,
       BlockingQueue<Runnable> queue, boolean emitThreadPoolMetrics) {
     return createThreadPool(numThreads, numThreads, DEFAULT_TIMEOUT_MILLISECS,
-        TimeUnit.MILLISECONDS, name, queue, emitThreadPoolMetrics);
+        MILLISECONDS, name, queue, emitThreadPoolMetrics);
   }
 
   /**

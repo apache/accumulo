@@ -20,6 +20,8 @@ package org.apache.accumulo.core.util;
 
 import java.util.concurrent.TimeUnit;
 
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+
 /**
  * Provides a stop watch for timing a single type of event. This code is based on the
  * org.apache.hadoop.util.StopWatch available in hadoop 2.7.0
@@ -92,7 +94,7 @@ public class OpTimer {
    * @return truncated time in unit of specified time unit.
    */
   public long now(TimeUnit timeUnit) {
-    return timeUnit.convert(now(), TimeUnit.NANOSECONDS);
+    return timeUnit.convert(now(), NANOSECONDS);
   }
 
   /**
@@ -108,7 +110,7 @@ public class OpTimer {
    * @return the elapsed time of this instance scaled to the provided time unit.
    */
   public double scale(TimeUnit timeUnit) {
-    return (double) now() / TimeUnit.NANOSECONDS.convert(1L, timeUnit);
+    return (double) now() / NANOSECONDS.convert(1L, timeUnit);
   }
 
   /**

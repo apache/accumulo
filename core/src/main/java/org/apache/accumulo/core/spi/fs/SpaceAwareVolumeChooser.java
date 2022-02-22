@@ -24,7 +24,6 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -37,6 +36,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
  * A {@link PreferredVolumeChooser} that takes remaining HDFS space into account when making a
@@ -84,7 +85,7 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
           ? Long.parseLong(propertyValue) : defaultComputationCacheDuration;
 
       choiceCache = CacheBuilder.newBuilder()
-          .expireAfterWrite(computationCacheDuration, TimeUnit.MILLISECONDS)
+          .expireAfterWrite(computationCacheDuration, MILLISECONDS)
           .build(new CacheLoader<>() {
             @Override
             public WeightedRandomCollection load(Set<String> key) {

@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.concurrent.TimeUnit.HOURS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationTokenConfig;
@@ -31,10 +31,10 @@ public class DelegationTokenConfigSerializerTest {
   @Test
   public void test() {
     DelegationTokenConfig cfg = new DelegationTokenConfig();
-    cfg.setTokenLifetime(8323, TimeUnit.HOURS);
+    cfg.setTokenLifetime(8323, HOURS);
 
     TDelegationTokenConfig tCfg = DelegationTokenConfigSerializer.serialize(cfg);
-    assertEquals(tCfg.getLifetime(), cfg.getTokenLifetime(TimeUnit.MILLISECONDS));
+    assertEquals(tCfg.getLifetime(), cfg.getTokenLifetime(MILLISECONDS));
 
     assertEquals(cfg, DelegationTokenConfigSerializer.deserialize(tCfg));
   }

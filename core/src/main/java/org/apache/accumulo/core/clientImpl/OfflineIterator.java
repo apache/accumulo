@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
@@ -30,7 +31,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
@@ -244,7 +244,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
         }
       }
 
-      sleepUninterruptibly(250, TimeUnit.MILLISECONDS);
+      sleepUninterruptibly(250, MILLISECONDS);
 
       tablet = getTabletFiles(nextRange);
     }

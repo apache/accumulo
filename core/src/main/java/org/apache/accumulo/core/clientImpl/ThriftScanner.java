@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -73,6 +72,8 @@ import org.slf4j.LoggerFactory;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class ThriftScanner {
   private static final Logger log = LoggerFactory.getLogger(ThriftScanner.class);
@@ -517,7 +518,7 @@ public class ThriftScanner {
           timer.stop();
           log.trace("tid={} Finished scan in {} #results={} scanid={}",
               Thread.currentThread().getId(),
-              String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)), sr.results.size(),
+              String.format("%.3f secs", timer.scale(SECONDS)), sr.results.size(),
               scanState.scanID);
         }
       } else {
@@ -530,7 +531,7 @@ public class ThriftScanner {
             timer.stop();
             log.trace("tid={} Completely finished scan in {} #results={}",
                 Thread.currentThread().getId(),
-                String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)), sr.results.size());
+                String.format("%.3f secs", timer.scale(SECONDS)), sr.results.size());
           }
 
         } else if (scanState.range.getEndKey() == null || !scanState.range
@@ -542,7 +543,7 @@ public class ThriftScanner {
             timer.stop();
             log.trace("tid={} Finished scanning tablet in {} #results={}",
                 Thread.currentThread().getId(),
-                String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)), sr.results.size());
+                String.format("%.3f secs", timer.scale(SECONDS)), sr.results.size());
           }
         } else {
           scanState.finished = true;
@@ -550,7 +551,7 @@ public class ThriftScanner {
             timer.stop();
             log.trace("tid={} Completely finished in {} #results={}",
                 Thread.currentThread().getId(),
-                String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)), sr.results.size());
+                String.format("%.3f secs", timer.scale(SECONDS)), sr.results.size());
           }
         }
       }

@@ -35,7 +35,6 @@ import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -72,6 +71,8 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value>> {
 
@@ -169,7 +170,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       try {
         batch = null;
         while (batch == null && fatalException == null && !queryThreadPool.isShutdown())
-          batch = resultsQueue.poll(1, TimeUnit.SECONDS);
+          batch = resultsQueue.poll(1, SECONDS);
 
         if (fatalException != null)
           if (fatalException instanceof RuntimeException)
@@ -699,7 +700,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           log.trace("tid={} Got 1st multi scan results, #results={} {} in {}",
               Thread.currentThread().getId(), scanResult.results.size(),
               (scanResult.more ? "scanID=" + imsr.scanID : ""),
-              String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+              String.format("%.3f secs", timer.scale(SECONDS)));
         }
 
         ArrayList<Entry<Key,Value>> entries = new ArrayList<>(scanResult.results.size());
@@ -734,7 +735,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             log.trace("tid={} oid={} Got more multi scan results, #results={} {} in {}",
                 Thread.currentThread().getId(), nextOpid.getAndIncrement(),
                 scanResult.results.size(), (scanResult.more ? " scanID=" + imsr.scanID : ""),
-                String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+                String.format("%.3f secs", timer.scale(SECONDS)));
           }
 
           entries = new ArrayList<>(scanResult.results.size());

@@ -20,9 +20,8 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
-
-import java.util.concurrent.TimeUnit;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -93,7 +92,7 @@ public class Writer {
 
       if (tabLoc == null) {
         log.trace("No tablet location found for row {}", new String(m.getRow(), UTF_8));
-        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(500, MILLISECONDS);
         continue;
       }
 
@@ -114,7 +113,7 @@ public class Writer {
         TabletLocator.getLocator(context, tableId).invalidateCache(tabLoc.tablet_extent);
       }
 
-      sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+      sleepUninterruptibly(500, MILLISECONDS);
     }
 
   }

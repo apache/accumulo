@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,7 +37,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -233,7 +234,7 @@ public class MultiThreadedRFileTest {
       int maxThreads = 10;
       String name = "MultiThreadedRFileTestThread";
       ThreadPoolExecutor pool = ThreadPools.createThreadPool(maxThreads + 1, maxThreads + 1, 5 * 60,
-          TimeUnit.SECONDS, name, false);
+          SECONDS, name, false);
       try {
         Runnable runnable = () -> {
           try {
@@ -252,7 +253,7 @@ public class MultiThreadedRFileTest {
       } finally {
         pool.shutdown();
         try {
-          pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+          pool.awaitTermination(Long.MAX_VALUE, MILLISECONDS);
         } catch (InterruptedException e) {
           e.printStackTrace();
         }

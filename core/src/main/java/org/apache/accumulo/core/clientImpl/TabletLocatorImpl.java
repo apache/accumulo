@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.util.ArrayList;
@@ -33,7 +35,6 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -227,7 +228,7 @@ public class TabletLocatorImpl extends TabletLocator {
       timer.stop();
       log.trace("tid={} Binned {} mutations for table {} to {} tservers in {}",
           Thread.currentThread().getId(), mutations.size(), tableId, binnedMutations.size(),
-          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+          String.format("%.3f secs", timer.scale(SECONDS)));
     }
 
   }
@@ -373,7 +374,7 @@ public class TabletLocatorImpl extends TabletLocator {
       timer.stop();
       log.trace("tid={} Binned {} ranges for table {} to {} tservers in {}",
           Thread.currentThread().getId(), ranges.size(), tableId, binnedRanges.size(),
-          String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+          String.format("%.3f secs", timer.scale(SECONDS)));
     }
 
     return failures;
@@ -458,7 +459,7 @@ public class TabletLocatorImpl extends TabletLocator {
       TabletLocation tl = _locateTablet(context, row, skipRow, retry, true, lcSession);
 
       if (retry && tl == null) {
-        sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
+        sleepUninterruptibly(100, MILLISECONDS);
         if (log.isTraceEnabled())
           log.trace("Failed to locate tablet containing row {} in table {}, will retry...",
               TextUtil.truncate(row), tableId);
@@ -469,7 +470,7 @@ public class TabletLocatorImpl extends TabletLocator {
         timer.stop();
         log.trace("tid={} Located tablet {} at {} in {}", Thread.currentThread().getId(),
             (tl == null ? "null" : tl.tablet_extent), (tl == null ? "null" : tl.tablet_location),
-            String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
+            String.format("%.3f secs", timer.scale(SECONDS)));
       }
 
       return tl;

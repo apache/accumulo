@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -32,6 +31,9 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 /**
  * Provides the ability to retrieve a {@link RateLimiter} keyed to a specific string, which will
@@ -55,11 +57,11 @@ public class SharedRateLimiterFactory {
       ScheduledThreadPoolExecutor svc = ThreadPools.createGeneralScheduledExecutorService(conf);
       svc.scheduleWithFixedDelay(Threads
           .createNamedRunnable("SharedRateLimiterFactory update polling", instance::updateAll),
-          UPDATE_RATE, UPDATE_RATE, TimeUnit.MILLISECONDS);
+          UPDATE_RATE, UPDATE_RATE, MILLISECONDS);
 
       svc.scheduleWithFixedDelay(Threads
           .createNamedRunnable("SharedRateLimiterFactory report polling", instance::reportAll),
-          REPORT_RATE, REPORT_RATE, TimeUnit.MILLISECONDS);
+          REPORT_RATE, REPORT_RATE, MILLISECONDS);
 
     }
     return instance;
@@ -167,7 +169,7 @@ public class SharedRateLimiterFactory {
     /** Report the current throughput and usage of this rate limiter to the debug log. */
     public void report() {
       if (log.isDebugEnabled()) {
-        long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastUpdate.get());
+        long duration = NANOSECONDS.toMillis(System.nanoTime() - lastUpdate.get());
         if (duration == 0) {
           return;
         }

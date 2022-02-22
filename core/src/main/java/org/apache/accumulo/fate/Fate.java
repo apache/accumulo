@@ -24,7 +24,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
@@ -37,6 +36,9 @@ import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
  * Fault tolerant executor
@@ -160,7 +162,7 @@ public class Fate<T> {
         while (true) {
           // Nothing is going to work well at this point, so why even try. Just wait for the end,
           // preventing this FATE thread from processing further work and likely failing.
-          UtilWaitThread.sleepUninterruptibly(1, TimeUnit.MINUTES);
+          UtilWaitThread.sleepUninterruptibly(1, MINUTES);
         }
       }
     }
@@ -257,7 +259,7 @@ public class Fate<T> {
           }
         }
       }
-    }, 3, TimeUnit.SECONDS);
+    }, 3, SECONDS);
     executor = pool;
   }
 

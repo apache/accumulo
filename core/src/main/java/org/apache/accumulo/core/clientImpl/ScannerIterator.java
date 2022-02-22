@@ -27,7 +27,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableDeletedException;
@@ -43,6 +42,8 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
@@ -65,7 +66,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   private ScannerImpl.Reporter reporter;
 
   private static ThreadPoolExecutor readaheadPool =
-      ThreadPools.createThreadPool(0, Integer.MAX_VALUE, 3L, TimeUnit.SECONDS,
+      ThreadPools.createThreadPool(0, Integer.MAX_VALUE, 3L, SECONDS,
           "Accumulo scanner read ahead thread", new SynchronousQueue<>(), true);
 
   private boolean closed = false;

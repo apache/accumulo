@@ -20,13 +20,13 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 
 import java.security.SecurityPermission;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
@@ -52,7 +52,7 @@ public class Tables {
   // Per instance cache will expire after 10 minutes in case we
   // encounter an instance not used frequently
   private static final Cache<InstanceId,TableMap> instanceToMapCache =
-      CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).build();
+      CacheBuilder.newBuilder().expireAfterAccess(10, MINUTES).build();
 
   static {
     SingletonManager.register(new SingletonService() {
