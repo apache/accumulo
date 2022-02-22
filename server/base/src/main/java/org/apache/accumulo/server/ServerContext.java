@@ -21,6 +21,7 @@ package org.apache.accumulo.server;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.File;
@@ -323,7 +324,7 @@ public class ServerContext extends ClientContext {
         break;
       } catch (InterruptedException | KeeperException ex) {
         log.info("Waiting for accumulo to be initialized");
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        sleepUninterruptibly(1, SECONDS);
       }
     }
     log.info("ZooKeeper connected and initialized, attempting to talk to HDFS");

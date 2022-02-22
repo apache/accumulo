@@ -23,6 +23,7 @@ import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -237,10 +238,8 @@ public class BatchWriterConfigTest {
     createdConfig.readFields(new DataInputStream(bais));
 
     assertEquals(bwConfig.getMaxMemory(), createdConfig.getMaxMemory());
-    assertEquals(bwConfig.getMaxLatency(MILLISECONDS),
-        createdConfig.getMaxLatency(MILLISECONDS));
-    assertEquals(bwConfig.getTimeout(MILLISECONDS),
-        createdConfig.getTimeout(MILLISECONDS));
+    assertEquals(bwConfig.getMaxLatency(MILLISECONDS), createdConfig.getMaxLatency(MILLISECONDS));
+    assertEquals(bwConfig.getTimeout(MILLISECONDS), createdConfig.getTimeout(MILLISECONDS));
     assertEquals(bwConfig.getMaxWriteThreads(), createdConfig.getMaxWriteThreads());
   }
 
