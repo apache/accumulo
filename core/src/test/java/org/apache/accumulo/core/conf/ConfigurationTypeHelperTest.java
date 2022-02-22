@@ -85,7 +85,7 @@ public class ConfigurationTypeHelperTest {
     assertEquals(HOURS.toMillis(42), ConfigurationTypeHelper.getTimeInMillis("42h"));
     assertEquals(MINUTES.toMillis(42), ConfigurationTypeHelper.getTimeInMillis("42m"));
     assertEquals(SECONDS.toMillis(42), ConfigurationTypeHelper.getTimeInMillis("42s"));
-    assertEquals(42_000L, ConfigurationTypeHelper.getTimeInMillis("42"));
+    assertEquals(SECONDS.toMillis(42), ConfigurationTypeHelper.getTimeInMillis("42"));
     assertEquals(42L, ConfigurationTypeHelper.getTimeInMillis("42ms"));
   }
 

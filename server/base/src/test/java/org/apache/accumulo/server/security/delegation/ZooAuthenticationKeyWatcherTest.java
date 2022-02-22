@@ -68,7 +68,7 @@ public class ZooAuthenticationKeyWatcherTest {
   private ZooReader zk;
   private InstanceId instanceId;
   private String baseNode;
-  private long tokenLifetime = DAYS.toMillis(7); // 7days
+  private long tokenLifetime = DAYS.toMillis(7);
   private AuthenticationTokenSecretManager secretManager;
   private ZooAuthenticationKeyWatcher keyWatcher;
 

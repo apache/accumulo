@@ -71,7 +71,7 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
               .collect(Collectors.toSet());
           LOG.trace("{}-cleanup thread, contexts in use: {}", className, contextsInUse);
           AccumuloVFSClassLoader.removeUnusedContexts(contextsInUse);
-        }), MINUTES.toMillis(1), MINUTES.toMillis(1), TimeUnit.MILLISECONDS);
+        }), 1, 1, MINUTES);
     LOG.debug("Context cleanup timer started at 60s intervals");
   }
 

@@ -435,7 +435,7 @@ public class ServerContext extends ClientContext {
       } catch (Exception t) {
         log.error("", t);
       }
-    }, 1000, MINUTES.toMillis(10), TimeUnit.MILLISECONDS);
+    }, SECONDS.toMillis(1), MINUTES.toMillis(10), TimeUnit.MILLISECONDS);
   }
 
   /**

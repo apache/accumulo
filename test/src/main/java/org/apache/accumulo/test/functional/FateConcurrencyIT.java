@@ -136,7 +136,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     OnlineOpTiming timing1 = task.get();
 
     log.trace("Online 1 in {} ms",
-        MILLISECONDS.convert(timing1.runningTime(), NANOSECONDS));
+        NANOSECONDS.toMillis(timing1.runningTime()));
 
     assertEquals("verify table is still online", TableState.ONLINE, getTableState(tableName));
 
