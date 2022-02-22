@@ -66,7 +66,7 @@ public class ManagerTime {
 
     ThreadPools.createGeneralScheduledExecutorService(conf).scheduleWithFixedDelay(
         Threads.createNamedRunnable("Manager time keeper", () -> run()), 0,
-        MILLISECONDS.convert(10, SECONDS), MILLISECONDS);
+        SECONDS.toMillis(10), MILLISECONDS);
   }
 
   /**
@@ -75,7 +75,7 @@ public class ManagerTime {
    * @return Approximate total duration this cluster has had a Manager, in milliseconds.
    */
   public long getTime() {
-    return MILLISECONDS.convert(System.nanoTime() + skewAmount.get(), NANOSECONDS);
+    return NANOSECONDS.toMillis(System.nanoTime() + skewAmount.get());
   }
 
   public void run() {
