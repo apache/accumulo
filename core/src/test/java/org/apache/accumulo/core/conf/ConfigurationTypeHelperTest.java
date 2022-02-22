@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static java.util.concurrent.TimeUnit.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -80,11 +81,11 @@ public class ConfigurationTypeHelperTest {
 
   @Test
   public void testGetTimeInMillis() {
-    assertEquals(42L * 24 * 60 * 60 * 1000, ConfigurationTypeHelper.getTimeInMillis("42d"));
-    assertEquals(42L * 60 * 60 * 1000, ConfigurationTypeHelper.getTimeInMillis("42h"));
-    assertEquals(42L * 60 * 1000, ConfigurationTypeHelper.getTimeInMillis("42m"));
-    assertEquals(42L * 1000, ConfigurationTypeHelper.getTimeInMillis("42s"));
-    assertEquals(42L * 1000, ConfigurationTypeHelper.getTimeInMillis("42"));
+    assertEquals(DAYS.toMillis(42), ConfigurationTypeHelper.getTimeInMillis("42d"));
+    assertEquals(HOURS.toMillis(42), ConfigurationTypeHelper.getTimeInMillis("42h"));
+    assertEquals(MINUTES.toMillis(42), ConfigurationTypeHelper.getTimeInMillis("42m"));
+    assertEquals(SECONDS.toMillis(42), ConfigurationTypeHelper.getTimeInMillis("42s"));
+    assertEquals(42_000L, ConfigurationTypeHelper.getTimeInMillis("42"));
     assertEquals(42L, ConfigurationTypeHelper.getTimeInMillis("42ms"));
   }
 

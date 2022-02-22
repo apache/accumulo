@@ -65,6 +65,8 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
+import static java.util.concurrent.TimeUnit.HOURS;
+
 /**
  * This balancer creates groups of tablet servers using user-provided regular expressions over the
  * tablet server hostnames. Then it delegates to the table balancer to balance the tablets within
@@ -175,7 +177,6 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     }
   }
 
-  private static final long ONE_HOUR = 60 * 60_000;
   private static final Set<TabletId> EMPTY_MIGRATIONS = Collections.emptySet();
   private volatile long lastOOBCheck = System.currentTimeMillis();
   private Map<String,SortedMap<TabletServerId,TServerStatus>> pools = new HashMap<>();
@@ -512,7 +513,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       if (newMigrations.isEmpty()) {
         tableToTimeSinceNoMigrations.remove(tableId);
       } else if (tableToTimeSinceNoMigrations.containsKey(tableId)) {
-        if ((now - tableToTimeSinceNoMigrations.get(tableId)) > ONE_HOUR) {
+        if ((now - tableToTimeSinceNoMigrations.get(tableId)) > HOURS.toMillis(1)) {
           LOG.warn("We have been consistently producing migrations for {}: {}", tableName,
               Iterables.limit(newMigrations, 10));
         }

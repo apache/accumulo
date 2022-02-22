@@ -19,6 +19,8 @@
 package org.apache.accumulo.core.client;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.DAYS;
+import static java.util.concurrent.TimeUnit.HOURS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -56,14 +58,14 @@ public class BatchWriterConfigTest {
   public void testOverridingDefaults() {
     BatchWriterConfig bwConfig = new BatchWriterConfig();
     bwConfig.setMaxMemory(1123581321L);
-    bwConfig.setMaxLatency(22, TimeUnit.HOURS);
-    bwConfig.setTimeout(33, TimeUnit.DAYS);
+    bwConfig.setMaxLatency(22, HOURS);
+    bwConfig.setTimeout(33, DAYS);
     bwConfig.setMaxWriteThreads(42);
     bwConfig.setDurability(Durability.NONE);
 
     assertEquals(1123581321L, bwConfig.getMaxMemory());
-    assertEquals(22 * 60 * 60_000L, bwConfig.getMaxLatency(TimeUnit.MILLISECONDS));
-    assertEquals(33 * 24 * 60 * 60_000L, bwConfig.getTimeout(TimeUnit.MILLISECONDS));
+    assertEquals(HOURS.toMillis(22), bwConfig.getMaxLatency(TimeUnit.MILLISECONDS));
+    assertEquals(DAYS.toMillis(33), bwConfig.getTimeout(TimeUnit.MILLISECONDS));
     assertEquals(42, bwConfig.getMaxWriteThreads());
     assertEquals(Durability.NONE, bwConfig.getDurability());
   }
@@ -89,7 +91,7 @@ public class BatchWriterConfigTest {
   @Test
   public void testNegativeMaxLatency() {
     BatchWriterConfig bwConfig = new BatchWriterConfig();
-    assertThrows(IllegalArgumentException.class, () -> bwConfig.setMaxLatency(-1, TimeUnit.DAYS));
+    assertThrows(IllegalArgumentException.class, () -> bwConfig.setMaxLatency(-1, DAYS));
   }
 
   @Test
@@ -116,7 +118,7 @@ public class BatchWriterConfigTest {
   @Test
   public void testNegativeTimeout() {
     BatchWriterConfig bwConfig = new BatchWriterConfig();
-    assertThrows(IllegalArgumentException.class, () -> bwConfig.setTimeout(-1, TimeUnit.DAYS));
+    assertThrows(IllegalArgumentException.class, () -> bwConfig.setTimeout(-1, DAYS));
   }
 
   @Test

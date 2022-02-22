@@ -34,6 +34,8 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 /**
  * The default implementation of ContextClassLoaderFactory. This implementation is subject to change
  * over time. It currently implements the legacy context class loading behavior based on Accumulo's
@@ -69,7 +71,7 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
               .collect(Collectors.toSet());
           LOG.trace("{}-cleanup thread, contexts in use: {}", className, contextsInUse);
           AccumuloVFSClassLoader.removeUnusedContexts(contextsInUse);
-        }), 60_000, 60_000, TimeUnit.MILLISECONDS);
+        }), MINUTES.toMillis(1), MINUTES.toMillis(1), TimeUnit.MILLISECONDS);
     LOG.debug("Context cleanup timer started at 60s intervals");
   }
 

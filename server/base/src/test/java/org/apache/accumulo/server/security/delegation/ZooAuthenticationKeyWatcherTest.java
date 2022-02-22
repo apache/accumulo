@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.security.delegation;
 
+import static java.util.concurrent.TimeUnit.*;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -35,6 +36,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import javax.crypto.KeyGenerator;
 
@@ -66,7 +68,7 @@ public class ZooAuthenticationKeyWatcherTest {
   private ZooReader zk;
   private InstanceId instanceId;
   private String baseNode;
-  private long tokenLifetime = 7 * 24 * 60 * 60_000; // 7days
+  private long tokenLifetime = DAYS.toMillis(7); // 7days
   private AuthenticationTokenSecretManager secretManager;
   private ZooAuthenticationKeyWatcher keyWatcher;
 

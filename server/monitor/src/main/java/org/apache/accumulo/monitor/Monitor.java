@@ -19,6 +19,7 @@
 package org.apache.accumulo.monitor;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.HOURS;
 import static org.apache.accumulo.fate.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.net.InetAddress;
@@ -134,7 +135,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     return Collections.synchronizedList(new LinkedList<>() {
 
       private static final long serialVersionUID = 1L;
-      private final long maxDelta = 60 * 60_000;
+      private final long maxDelta = HOURS.toMillis(1);
 
       @Override
       public boolean add(Pair<Long,T> obj) {

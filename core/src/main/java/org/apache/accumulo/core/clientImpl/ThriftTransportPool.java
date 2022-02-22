@@ -52,6 +52,8 @@ import com.google.common.base.Suppliers;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 public class ThriftTransportPool {
 
   private static final SecureRandom random = new SecureRandom();
@@ -371,7 +373,7 @@ public class ThriftTransportPool {
   private static final Logger log = LoggerFactory.getLogger(ThriftTransportPool.class);
 
   private static final Long ERROR_THRESHOLD = 20L;
-  private static final int STUCK_THRESHOLD = 2 * 60_000;
+  private static final long STUCK_THRESHOLD = MINUTES.toMillis(2);
 
   private static class CachedConnection {
 

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -616,13 +617,13 @@ public class KerberosIT extends AccumuloITBase {
             assertEquals(rootUser.getPrincipal(), client.whoami());
 
             return client.securityOperations().getDelegationToken(
-                new DelegationTokenConfig().setTokenLifetime(5, TimeUnit.MINUTES));
+                new DelegationTokenConfig().setTokenLifetime(5, MINUTES));
           }
         });
 
     AuthenticationTokenIdentifier identifier = ((DelegationTokenImpl) dt).getIdentifier();
     assertTrue("Expected identifier to expire in no more than 5 minutes: " + identifier,
-        identifier.getExpirationDate() - identifier.getIssueDate() <= (5 * 60_000));
+        identifier.getExpirationDate() - identifier.getIssueDate() <= (MINUTES.toMillis(5)));
   }
 
   @Test
