@@ -29,8 +29,8 @@ import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationExcepti
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.file.FileOperations;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
@@ -51,7 +51,7 @@ class MapImportFileNames extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) throws Exception {
+  public Repo call(long tid, Manager environment) throws Exception {
 
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
       Path path = new Path(dm.importDir, "mappings.txt");

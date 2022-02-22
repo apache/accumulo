@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.clone;
 
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.slf4j.LoggerFactory;
@@ -27,19 +27,14 @@ import org.slf4j.LoggerFactory;
 class CloneMetadata extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
-  private CloneInfo cloneInfo;
+  private final CloneInfo cloneInfo;
 
   public CloneMetadata(CloneInfo cloneInfo) {
     this.cloneInfo = cloneInfo;
   }
 
   @Override
-  public long isReady(long tid, Manager environment) {
-    return 0;
-  }
-
-  @Override
-  public Repo<Manager> call(long tid, Manager environment) throws Exception {
+  public Repo call(long tid, Manager environment) throws Exception {
     LoggerFactory.getLogger(CloneMetadata.class)
         .info(String.format("Cloning %s with tableId %s from srcTableId %s", cloneInfo.tableName,
             cloneInfo.tableId, cloneInfo.srcTableId));

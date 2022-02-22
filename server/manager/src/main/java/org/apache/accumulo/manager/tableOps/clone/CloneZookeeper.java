@@ -23,8 +23,8 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 
@@ -32,7 +32,7 @@ class CloneZookeeper extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private CloneInfo cloneInfo;
+  private final CloneInfo cloneInfo;
 
   public CloneZookeeper(CloneInfo cloneInfo, ClientContext context)
       throws NamespaceNotFoundException {
@@ -53,14 +53,13 @@ class CloneZookeeper extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) throws Exception {
+  public Repo call(long tid, Manager environment) throws Exception {
     Utils.getTableNameLock().lock();
     try {
-      // write tableName & tableId to zookeeper
-
       Utils.checkTableDoesNotExist(environment.getContext(), cloneInfo.tableName, cloneInfo.tableId,
           TableOperation.CLONE);
 
+      // write tableName & tableId to zookeeper
       environment.getTableManager().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId,
           cloneInfo.tableName, cloneInfo.namespaceId, cloneInfo.propertiesToSet,
           cloneInfo.propertiesToExclude);

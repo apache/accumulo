@@ -24,11 +24,11 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.thrift.transport.TTransportException;
@@ -88,7 +88,7 @@ public class ShutdownTServer extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo call(long tid, Manager manager) throws Exception {
     // suppress assignment of tablets to the server
     if (force) {
       ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();

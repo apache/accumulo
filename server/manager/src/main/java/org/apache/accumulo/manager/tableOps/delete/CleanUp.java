@@ -41,8 +41,8 @@ import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -116,7 +116,7 @@ class CleanUp extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) {
+  public Repo call(long tid, Manager manager) {
 
     manager.clearMigrations(tableId);
 

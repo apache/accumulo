@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.accumulo.core.logging;
+package org.apache.accumulo.manager.fate;
 
 import static org.apache.accumulo.fate.FateTxId.formatTid;
 
@@ -26,13 +26,15 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.function.Function;
 
-import org.apache.accumulo.fate.ReadOnlyRepo;
-import org.apache.accumulo.fate.Repo;
+import org.apache.accumulo.core.logging.Logging;
+import org.apache.accumulo.fate.FateTransactionStatus;
 import org.apache.accumulo.fate.StackOverflowException;
-import org.apache.accumulo.fate.TStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Log operations that change persisted data. Operations that only read data will not be logged.
+ */
 public class FateLogger {
   private static final String PREFIX = Logging.PREFIX + "fate.";
 
@@ -40,10 +42,14 @@ public class FateLogger {
   // reproducible problems with FATE transactions.
   private static final Logger storeLog = LoggerFactory.getLogger(PREFIX + "store");
 
-  public static <T> TStore<T> wrap(TStore<T> store, Function<Repo<T>,String> toLogString) {
+  /**
+   * Wrap the given TStore in a generic TStore that only logs. It will only log operations that
+   * change the persisted data. Operations that only read data will not be logged.
+   */
+  public static TStore wrap(TStore store, Function<Repo,String> toLogString) {
 
     // only logging operations that change the persisted data, not operations that only read data
-    return new TStore<>() {
+    return new TStore() {
 
       @Override
       public long reserve() {
@@ -61,17 +67,18 @@ public class FateLogger {
       }
 
       @Override
-      public List<ReadOnlyRepo<T>> getStack(long tid) {
+      public List<ReadOnlyRepo> getStack(long tid) {
         return store.getStack(tid);
       }
 
       @Override
-      public TStatus getStatus(long tid) {
+      public FateTransactionStatus getStatus(long tid) {
         return store.getStatus(tid);
       }
 
       @Override
-      public TStatus waitForStatusChange(long tid, EnumSet<TStatus> expected) {
+      public FateTransactionStatus waitForStatusChange(long tid,
+          EnumSet<FateTransactionStatus> expected) {
         return store.waitForStatusChange(tid, expected);
       }
 
@@ -99,12 +106,12 @@ public class FateLogger {
       }
 
       @Override
-      public Repo<T> top(long tid) {
+      public Repo top(long tid) {
         return store.top(tid);
       }
 
       @Override
-      public void push(long tid, Repo<T> repo) throws StackOverflowException {
+      public void push(long tid, Repo repo) throws StackOverflowException {
         store.push(tid, repo);
         if (storeLog.isTraceEnabled())
           storeLog.trace("pushed {} {}", formatTid(tid), toLogString.apply(repo));
@@ -118,7 +125,7 @@ public class FateLogger {
       }
 
       @Override
-      public void setStatus(long tid, TStatus status) {
+      public void setStatus(long tid, FateTransactionStatus status) {
         store.setStatus(tid, status);
         if (storeLog.isTraceEnabled())
           storeLog.trace("setStatus {} {}", formatTid(tid), status);

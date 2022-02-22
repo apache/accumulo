@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.fate;
+package org.apache.accumulo.manager.fate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -32,42 +32,36 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
+import org.apache.accumulo.fate.FateTransactionStatus;
+import org.apache.accumulo.fate.FateTxId;
+import org.apache.accumulo.fate.FateZooStore;
+import org.apache.accumulo.fate.StackOverflowException;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
-import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-//TODO use zoocache? - ACCUMULO-1297
-//TODO handle zookeeper being down gracefully - ACCUMULO-1297
-//TODO document zookeeper layout - ACCUMULO-1298
-
-public class ZooStore<T> implements TStore<T> {
+/**
+ * ZooKeeper's transaction store for FATE.
+ */
+public class ZooStore extends FateZooStore implements TStore {
 
   private static final Logger log = LoggerFactory.getLogger(ZooStore.class);
-  private String path;
-  private ZooReaderWriter zk;
-  private String lastReserved = "";
-  private Set<Long> reserved;
-  private Map<Long,Long> defered;
-  private static final SecureRandom random = new SecureRandom();
-  private long statusChangeEvents = 0;
-  private int reservationsWaiting = 0;
+  private final static SecureRandom random = new SecureRandom();
+
+  public ZooStore(String path, ZooReaderWriter zk) throws InterruptedException, KeeperException {
+    super(path, zk);
+  }
 
   private byte[] serialize(Object o) {
-
     try {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
       ObjectOutputStream oos = new ObjectOutputStream(baos);
@@ -93,36 +87,13 @@ public class ZooStore<T> implements TStore<T> {
     }
   }
 
-  private String getTXPath(long tid) {
-    return String.format("%s/tx_%016x", path, tid);
-  }
-
-  private long parseTid(String txdir) {
-    return Long.parseLong(txdir.split("_")[1], 16);
-  }
-
-  public ZooStore(String path, ZooReaderWriter zk) throws KeeperException, InterruptedException {
-
-    this.path = path;
-    this.zk = zk;
-    this.reserved = new HashSet<>();
-    this.defered = new HashMap<>();
-
-    zk.putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
-  }
-
-  /**
-   * For testing only
-   */
-  ZooStore() {}
-
   @Override
   public long create() {
     while (true) {
       try {
         // looking at the code for SecureRandom, it appears to be thread safe
         long tid = random.nextLong() & 0x7fffffffffffffffL;
-        zk.putPersistentData(getTXPath(tid), TStatus.NEW.name().getBytes(UTF_8),
+        zk.putPersistentData(getTXPath(tid), FateTransactionStatus.NEW.name().getBytes(UTF_8),
             NodeExistsPolicy.FAIL);
         return tid;
       } catch (NodeExistsException nee) {
@@ -147,8 +118,12 @@ public class ZooStore<T> implements TStore<T> {
         Collections.sort(txdirs);
 
         synchronized (this) {
-          if (!txdirs.isEmpty() && txdirs.get(txdirs.size() - 1).compareTo(lastReserved) <= 0)
-            lastReserved = "";
+          if (!txdirs.isEmpty()) {
+            String lastDir = txdirs.get(txdirs.size() - 1);
+            if (lastDir.compareTo(lastReserved.get()) <= 0) {
+              lastReserved.set("");
+            }
+          }
         }
 
         for (String txdir : txdirs) {
@@ -158,12 +133,12 @@ public class ZooStore<T> implements TStore<T> {
             // this check makes reserve pick up where it left off, so that it cycles through all as
             // it is repeatedly called.... failing to do so can lead to
             // starvation where fate ops that sort higher and hold a lock are never reserved.
-            if (txdir.compareTo(lastReserved) <= 0)
+            if (txdir.compareTo(lastReserved.get()) <= 0)
               continue;
 
-            if (defered.containsKey(tid)) {
-              if (defered.get(tid) < System.currentTimeMillis())
-                defered.remove(tid);
+            if (deferred.containsKey(tid)) {
+              if (deferred.get(tid) < System.currentTimeMillis())
+                deferred.remove(tid);
               else
                 continue;
             }
@@ -171,16 +146,17 @@ public class ZooStore<T> implements TStore<T> {
               continue;
             else {
               reserved.add(tid);
-              lastReserved = txdir;
+              lastReserved.set(txdir);
             }
           }
 
           // have reserved id, status should not change
-
           try {
-            TStatus status = TStatus.valueOf(new String(zk.getData(path + "/" + txdir), UTF_8));
-            if (status == TStatus.SUBMITTED || status == TStatus.IN_PROGRESS
-                || status == TStatus.FAILED_IN_PROGRESS) {
+            FateTransactionStatus status =
+                FateTransactionStatus.valueOf(new String(zk.getData(path + "/" + txdir), UTF_8));
+            if (status == FateTransactionStatus.SUBMITTED
+                || status == FateTransactionStatus.IN_PROGRESS
+                || status == FateTransactionStatus.FAILED_IN_PROGRESS) {
               return tid;
             } else {
               unreserve(tid);
@@ -197,10 +173,10 @@ public class ZooStore<T> implements TStore<T> {
         synchronized (this) {
           // suppress lgtm alert - synchronized variable is not always true
           if (events == statusChangeEvents) { // lgtm [java/constant-comparison]
-            if (defered.isEmpty())
+            if (deferred.isEmpty())
               this.wait(5000);
             else {
-              Long minTime = Collections.min(defered.values());
+              Long minTime = Collections.min(deferred.values());
               long waitTime = minTime - System.currentTimeMillis();
               if (waitTime > 0)
                 this.wait(Math.min(waitTime, 5000));
@@ -215,40 +191,16 @@ public class ZooStore<T> implements TStore<T> {
 
   @Override
   public void reserve(long tid) {
-    synchronized (this) {
-      reservationsWaiting++;
-      try {
-        while (reserved.contains(tid))
-          try {
-            this.wait(1000);
-          } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-          }
-
-        reserved.add(tid);
-      } finally {
-        reservationsWaiting--;
-      }
-    }
+    super.reserve(tid);
   }
 
-  private void unreserve(long tid) {
-    synchronized (this) {
-      if (!reserved.remove(tid))
-        throw new IllegalStateException(
-            "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
-
-      // do not want this unreserve to unesc wake up threads in reserve()... this leads to infinite
-      // loop when tx is stuck in NEW...
-      // only do this when something external has called reserve(tid)...
-      if (reservationsWaiting > 0)
-        this.notifyAll();
-    }
+  @Override
+  public void unreserve(long tid) {
+    super.unreserve(tid);
   }
 
   @Override
   public void unreserve(long tid, long deferTime) {
-
     if (deferTime < 0)
       throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
 
@@ -258,26 +210,14 @@ public class ZooStore<T> implements TStore<T> {
             "Tried to unreserve id that was not reserved " + FateTxId.formatTid(tid));
 
       if (deferTime > 0)
-        defered.put(tid, System.currentTimeMillis() + deferTime);
+        deferred.put(tid, System.currentTimeMillis() + deferTime);
 
       this.notifyAll();
     }
-
   }
 
-  private void verifyReserved(long tid) {
-    synchronized (this) {
-      if (!reserved.contains(tid))
-        throw new IllegalStateException(
-            "Tried to operate on unreserved transaction " + FateTxId.formatTid(tid));
-    }
-  }
-
-  private static final int RETRIES = 10;
-
-  @SuppressWarnings("unchecked")
   @Override
-  public Repo<T> top(long tid) {
+  public Repo top(long tid) {
     verifyReserved(tid);
 
     for (int i = 0; i < RETRIES; i++) {
@@ -294,11 +234,10 @@ public class ZooStore<T> implements TStore<T> {
         }
 
         byte[] ser = zk.getData(txpath + "/" + top);
-        return (Repo<T>) deserialize(ser);
+        return (Repo) deserialize(ser);
       } catch (KeeperException.NoNodeException ex) {
         log.debug("zookeeper error reading " + txpath + ": " + ex, ex);
         sleepUninterruptibly(100, MILLISECONDS);
-        continue;
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -306,25 +245,8 @@ public class ZooStore<T> implements TStore<T> {
     return null;
   }
 
-  private String findTop(String txpath) throws KeeperException, InterruptedException {
-    List<String> ops = zk.getChildren(txpath);
-
-    ops = new ArrayList<>(ops);
-
-    String max = "";
-
-    for (String child : ops)
-      if (child.startsWith("repo_") && child.compareTo(max) > 0)
-        max = child;
-
-    if (max.equals(""))
-      return null;
-
-    return max;
-  }
-
   @Override
-  public void push(long tid, Repo<T> repo) throws StackOverflowException {
+  public void push(long tid, Repo repo) throws StackOverflowException {
     verifyReserved(tid);
 
     String txpath = getTXPath(tid);
@@ -357,31 +279,32 @@ public class ZooStore<T> implements TStore<T> {
     }
   }
 
-  private TStatus _getStatus(long tid) {
+  private FateTransactionStatus _getStatus(long tid) {
     try {
-      return TStatus.valueOf(new String(zk.getData(getTXPath(tid)), UTF_8));
+      return FateTransactionStatus.valueOf(new String(zk.getData(getTXPath(tid)), UTF_8));
     } catch (NoNodeException nne) {
-      return TStatus.UNKNOWN;
+      return FateTransactionStatus.UNKNOWN;
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
 
   @Override
-  public TStatus getStatus(long tid) {
+  public FateTransactionStatus getStatus(long tid) {
     verifyReserved(tid);
     return _getStatus(tid);
   }
 
   @Override
-  public TStatus waitForStatusChange(long tid, EnumSet<TStatus> expected) {
+  public FateTransactionStatus waitForStatusChange(long tid,
+      EnumSet<FateTransactionStatus> expected) {
     while (true) {
       long events;
       synchronized (this) {
         events = statusChangeEvents;
       }
 
-      TStatus status = _getStatus(tid);
+      FateTransactionStatus status = _getStatus(tid);
       if (expected.contains(status))
         return status;
 
@@ -399,7 +322,7 @@ public class ZooStore<T> implements TStore<T> {
   }
 
   @Override
-  public void setStatus(long tid, TStatus status) {
+  public void setStatus(long tid, FateTransactionStatus status) {
     verifyReserved(tid);
 
     try {
@@ -448,56 +371,17 @@ public class ZooStore<T> implements TStore<T> {
   }
 
   @Override
-  public Serializable getProperty(long tid, String prop) {
-    verifyReserved(tid);
-
-    try {
-      byte[] data = zk.getData(getTXPath(tid) + "/prop_" + prop);
-
-      if (data[0] == 'O') {
-        byte[] sera = new byte[data.length - 2];
-        System.arraycopy(data, 2, sera, 0, sera.length);
-        return (Serializable) deserialize(sera);
-      } else if (data[0] == 'S') {
-        return new String(data, 2, data.length - 2, UTF_8);
-      } else {
-        throw new IllegalStateException("Bad property data " + prop);
-      }
-    } catch (NoNodeException nne) {
-      return null;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  @Override
   public List<Long> list() {
-    try {
-      ArrayList<Long> l = new ArrayList<>();
-      List<String> transactions = zk.getChildren(path);
-      for (String txid : transactions) {
-        l.add(parseTid(txid));
-      }
-      return l;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+    return super.listTransactions();
   }
 
   @Override
   public long timeCreated(long tid) {
-    verifyReserved(tid);
-
-    try {
-      Stat stat = zk.getZooKeeper().exists(getTXPath(tid), false);
-      return stat.getCtime();
-    } catch (Exception e) {
-      return 0;
-    }
+    return super.timeCreated(tid);
   }
 
   @Override
-  public List<ReadOnlyRepo<T>> getStack(long tid) {
+  public List<ReadOnlyRepo> getStack(long tid) {
     String txpath = getTXPath(tid);
 
     outer: while (true) {
@@ -513,15 +397,14 @@ public class ZooStore<T> implements TStore<T> {
       ops = new ArrayList<>(ops);
       ops.sort(Collections.reverseOrder());
 
-      ArrayList<ReadOnlyRepo<T>> dops = new ArrayList<>();
+      ArrayList<ReadOnlyRepo> dops = new ArrayList<>();
 
       for (String child : ops) {
         if (child.startsWith("repo_")) {
           byte[] ser;
           try {
             ser = zk.getData(txpath + "/" + child);
-            @SuppressWarnings("unchecked")
-            ReadOnlyRepo<T> repo = (ReadOnlyRepo<T>) deserialize(ser);
+            ReadOnlyRepo repo = (ReadOnlyRepo) deserialize(ser);
             dops.add(repo);
           } catch (KeeperException.NoNodeException e) {
             // children changed so start over

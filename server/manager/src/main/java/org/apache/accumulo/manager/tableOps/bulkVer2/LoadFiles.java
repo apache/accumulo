@@ -60,9 +60,11 @@ import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.FateTxId;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Progress;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -84,28 +86,33 @@ class LoadFiles extends ManagerRepo {
 
   private final BulkInfo bulkInfo;
 
+  @Override
+  public Progress getProgress() {
+    return new Progress(3, 5);
+  }
+
   public LoadFiles(BulkInfo bulkInfo) {
     this.bulkInfo = bulkInfo;
   }
 
   @Override
-  public long isReady(long tid, Manager manager) throws Exception {
-    if (manager.onlineTabletServers().isEmpty()) {
+  public long isReady(long tid, Manager env) throws Exception {
+    if (env.onlineTabletServers().isEmpty()) {
       log.warn("There are no tablet server to process bulkDir import, waiting (tid = "
           + FateTxId.formatTid(tid) + ")");
       return 100;
     }
-    VolumeManager fs = manager.getVolumeManager();
+    VolumeManager fs = env.getContext().getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.bulkDir);
-    manager.updateBulkImportStatus(bulkInfo.sourceDir, BulkImportState.LOADING);
+    env.updateBulkImportStatus(bulkInfo.sourceDir, BulkImportState.LOADING);
     try (LoadMappingIterator lmi =
         BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
-      return loadFiles(bulkInfo.tableId, bulkDir, lmi, manager, tid);
+      return loadFiles(bulkInfo.tableId, bulkDir, lmi, env.getContext(), tid);
     }
   }
 
   @Override
-  public Repo<Manager> call(final long tid, final Manager manager) {
+  public Repo call(final long tid, Manager env) {
     if (bulkInfo.tableState == TableState.ONLINE) {
       return new CompleteBulkImport(bulkInfo);
     } else {
@@ -115,13 +122,14 @@ class LoadFiles extends ManagerRepo {
 
   private abstract static class Loader {
     protected Path bulkDir;
-    protected Manager manager;
+    protected ServerContext serverContext;
     protected long tid;
     protected boolean setTime;
 
-    void start(Path bulkDir, Manager manager, long tid, boolean setTime) throws Exception {
+    void start(Path bulkDir, ServerContext serverContext, long tid, boolean setTime)
+        throws Exception {
       this.bulkDir = bulkDir;
-      this.manager = manager;
+      this.serverContext = serverContext;
       this.tid = tid;
       this.setTime = setTime;
     }
@@ -147,10 +155,12 @@ class LoadFiles extends ManagerRepo {
     private int queuedDataSize = 0;
 
     @Override
-    void start(Path bulkDir, Manager manager, long tid, boolean setTime) throws Exception {
-      super.start(bulkDir, manager, tid, setTime);
+    void start(Path bulkDir, ServerContext serverContext, long tid, boolean setTime)
+        throws Exception {
+      super.start(bulkDir, serverContext, tid, setTime);
 
-      timeInMillis = manager.getConfiguration().getTimeInMillis(Property.MANAGER_BULK_TIMEOUT);
+      timeInMillis =
+          serverContext.getConfiguration().getTimeInMillis(Property.MANAGER_BULK_TIMEOUT);
       fmtTid = FateTxId.formatTid(tid);
 
       loadMsgs = new MapCounter<>();
@@ -169,13 +179,13 @@ class LoadFiles extends ManagerRepo {
 
           TabletClientService.Client client = null;
           try {
-            client = ThriftUtil.getTServerClient(server, manager.getContext(), timeInMillis);
-            client.loadFiles(TraceUtil.traceInfo(), manager.getContext().rpcCreds(), tid,
+            client = ThriftUtil.getTServerClient(server, serverContext, timeInMillis);
+            client.loadFiles(TraceUtil.traceInfo(), serverContext.rpcCreds(), tid,
                 bulkDir.toString(), tabletFiles, setTime);
           } catch (TException ex) {
             log.debug("rpc failed server: " + server + ", " + fmtTid + " " + ex.getMessage(), ex);
           } finally {
-            ThriftUtil.returnClient(client, manager.getContext());
+            ThriftUtil.returnClient(client, serverContext);
           }
         });
 
@@ -264,10 +274,11 @@ class LoadFiles extends ManagerRepo {
     MapCounter<HostAndPort> unloadingTablets;
 
     @Override
-    void start(Path bulkDir, Manager manager, long tid, boolean setTime) throws Exception {
+    void start(Path bulkDir, ServerContext serverContext, long tid, boolean setTime)
+        throws Exception {
       Preconditions.checkArgument(!setTime);
-      super.start(bulkDir, manager, tid, setTime);
-      bw = manager.getContext().createBatchWriter(MetadataTable.NAME);
+      super.start(bulkDir, serverContext, tid, setTime);
+      bw = serverContext.createBatchWriter(MetadataTable.NAME);
       unloadingTablets = new MapCounter<>();
     }
 
@@ -316,14 +327,14 @@ class LoadFiles extends ManagerRepo {
    * all files have been loaded.
    */
   private long loadFiles(TableId tableId, Path bulkDir, LoadMappingIterator loadMapIter,
-      Manager manager, long tid) throws Exception {
+      ServerContext serverContext, long tid) throws Exception {
     PeekingIterator<Map.Entry<KeyExtent,Bulk.Files>> lmi = new PeekingIterator<>(loadMapIter);
     Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.peek();
 
     Text startRow = loadMapEntry.getKey().prevEndRow();
 
     Iterator<TabletMetadata> tabletIter =
-        TabletsMetadata.builder(manager.getContext()).forTable(tableId).overlapping(startRow, null)
+        TabletsMetadata.builder(serverContext).forTable(tableId).overlapping(startRow, null)
             .checkConsistency().fetch(PREV_ROW, LOCATION, LOADED).build().iterator();
 
     Loader loader;
@@ -333,7 +344,7 @@ class LoadFiles extends ManagerRepo {
       loader = new OfflineLoader();
     }
 
-    loader.start(bulkDir, manager, tid, bulkInfo.setTime);
+    loader.start(bulkDir, serverContext, tid, bulkInfo.setTime);
 
     long t1 = System.currentTimeMillis();
     while (lmi.hasNext()) {

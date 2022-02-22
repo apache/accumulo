@@ -23,8 +23,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.accumulo.fate.AdminUtil;
-import org.apache.accumulo.fate.ReadOnlyTStore;
+import org.apache.accumulo.fate.FateTransactionStatus;
+import org.apache.accumulo.fate.TransactionStatus;
+import org.apache.accumulo.manager.fate.FateAdmin;
+import org.apache.accumulo.manager.fate.ReadOnlyTStore;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -104,22 +106,21 @@ class FateMetricValues {
    * @return the current FATE metric values.
    */
   public static FateMetricValues getFromZooKeeper(final ServerContext context,
-      final String fateRootPath, final ReadOnlyTStore<FateMetrics> zooStore) {
+      final String fateRootPath, final ReadOnlyTStore zooStore) {
 
     FateMetricValues.Builder builder = FateMetricValues.builder();
 
-    AdminUtil<FateMetrics> admin = new AdminUtil<>(false);
+    FateAdmin admin = new FateAdmin(false);
 
     try {
 
-      List<AdminUtil.TransactionStatus> currFates =
-          admin.getTransactionStatus(zooStore, null, null);
+      List<TransactionStatus> currFates = admin.getTransactionStatus(zooStore, null, null);
 
       builder.withCurrentFateOps(currFates.size());
 
       // states are enumerated - create new map with counts initialized to 0.
       Map<String,Long> states = new TreeMap<>();
-      for (ReadOnlyTStore.TStatus t : ReadOnlyTStore.TStatus.values()) {
+      for (FateTransactionStatus t : FateTransactionStatus.values()) {
         states.put(t.name(), 0L);
       }
 
@@ -127,7 +128,7 @@ class FateMetricValues {
       // need to be handled by the caller - this is just the counts for current op types.
       Map<String,Long> opTypeCounters = new TreeMap<>();
 
-      for (AdminUtil.TransactionStatus tx : currFates) {
+      for (TransactionStatus tx : currFates) {
 
         String stateName = tx.getStatus().name();
 
@@ -135,7 +136,7 @@ class FateMetricValues {
         states.merge(stateName, 1L, Long::sum);
 
         // incr count for op type for for in_progress transactions.
-        if (ReadOnlyTStore.TStatus.IN_PROGRESS.equals(tx.getStatus())) {
+        if (FateTransactionStatus.IN_PROGRESS.equals(tx.getStatus())) {
           String opType = tx.getDebug();
           if (opType == null || opType.isEmpty()) {
             opType = "UNKNOWN";
@@ -192,7 +193,7 @@ class FateMetricValues {
 
       // states are enumerated - create new map with counts initialized to 0.
       txStateCounters = new TreeMap<>();
-      for (ReadOnlyTStore.TStatus t : ReadOnlyTStore.TStatus.values()) {
+      for (FateTransactionStatus t : FateTransactionStatus.values()) {
         txStateCounters.put(t.name(), 0L);
       }
 

@@ -21,8 +21,8 @@ package org.apache.accumulo.manager.tableOps.namespace.create;
 import java.util.Map;
 
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 
@@ -39,12 +39,7 @@ public class CreateNamespace extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager environment) {
-    return 0;
-  }
-
-  @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo call(long tid, Manager manager) throws Exception {
     Utils.getIdLock().lock();
     try {
       namespaceInfo.namespaceId =

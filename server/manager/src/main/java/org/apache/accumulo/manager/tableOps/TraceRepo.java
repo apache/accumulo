@@ -20,28 +20,31 @@ package org.apache.accumulo.manager.tableOps;
 
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 
 import com.google.gson.Gson;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class TraceRepo<T> implements Repo<T> {
+/**
+ * Trace wrapper for Repeatable persisted operations
+ */
+public class TraceRepo implements Repo {
 
   private static final long serialVersionUID = 1L;
 
   TInfo tinfo;
-  Repo<T> repo;
+  Repo repo;
 
-  public TraceRepo(Repo<T> repo) {
+  public TraceRepo(Repo repo) {
     this.repo = repo;
     tinfo = TraceUtil.traceInfo();
   }
 
   @Override
-  public long isReady(long tid, T environment) throws Exception {
+  public long isReady(long tid, Manager environment) throws Exception {
     Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getDescription(), tinfo);
     try (Scope scope = span.makeCurrent()) {
       return repo.isReady(tid, environment);
@@ -54,13 +57,13 @@ public class TraceRepo<T> implements Repo<T> {
   }
 
   @Override
-  public Repo<T> call(long tid, T environment) throws Exception {
+  public Repo call(long tid, Manager environment) throws Exception {
     Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getDescription(), tinfo);
     try (Scope scope = span.makeCurrent()) {
-      Repo<T> result = repo.call(tid, environment);
+      Repo result = repo.call(tid, environment);
       if (result == null)
         return null;
-      return new TraceRepo<>(result);
+      return new TraceRepo(result);
     } catch (Exception e) {
       TraceUtil.setException(span, e, true);
       throw e;
@@ -70,7 +73,7 @@ public class TraceRepo<T> implements Repo<T> {
   }
 
   @Override
-  public void undo(long tid, T environment) throws Exception {
+  public void undo(long tid, Manager environment) throws Exception {
     Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getDescription(), tinfo);
     try (Scope scope = span.makeCurrent()) {
       repo.undo(tid, environment);
@@ -95,12 +98,12 @@ public class TraceRepo<T> implements Repo<T> {
   /**
    * @return string version of Repo that is suitable for logging
    */
-  public static String toLogString(Repo<Manager> repo) {
+  public static String toLogString(Repo repo) {
     if (repo instanceof TraceRepo) {
       // There are two reasons the repo is unwrapped. First I could not figure out how to get this
       // to work with Gson. Gson kept serializing nothing for the generic pointer TraceRepo.repo.
       // Second I thought this information was not useful for logging.
-      repo = ((TraceRepo<Manager>) repo).repo;
+      repo = ((TraceRepo) repo).repo;
     }
 
     // Inorder for Gson to work with generic types, the following passes repo.getClass() to Gson.

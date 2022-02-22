@@ -45,12 +45,14 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.fate.AdminUtil;
-import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.fate.FateStatus;
+import org.apache.accumulo.fate.TransactionStatus;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.manager.fate.FateAdmin;
+import org.apache.accumulo.manager.fate.ZooStore;
 import org.apache.accumulo.test.util.SlowOps;
 import org.apache.zookeeper.KeeperException;
 import org.junit.After;
@@ -67,7 +69,7 @@ import org.slf4j.LoggerFactory;
  * <li>ACCUMULO-4574. Test to verify that changing table state to online / offline
  * {@link org.apache.accumulo.core.client.admin.TableOperations#online(String)} when the table is
  * already in that state returns without blocking.</li>
- * <li>AdminUtil refactor to provide methods that provide FATE status, one with table lock info
+ * <li>FateAdmin refactor to provide methods that provide FATE status, one with table lock info
  * (original) and additional method without.</li>
  * </ul>
  */
@@ -211,9 +213,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   }
 
   /**
-   * Validate the the AdminUtil.getStatus works correctly after refactor and validate that
+   * Validate the the FateAdmin.getStatus works correctly after refactor and validate that
    * getTransactionStatus can be called without lock map(s). The test starts a long running fate
-   * transaction (slow compaction) and the calls AdminUtil functions to get the FATE.
+   * transaction (slow compaction) and the calls FateAdmin functions to get the FATE.
    */
   @Test
   public void getFateStatus() {
@@ -239,12 +241,12 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     slowOps.startCompactTask();
 
-    AdminUtil.FateStatus withLocks = null;
-    List<AdminUtil.TransactionStatus> noLocks = null;
+    FateStatus withLocks = null;
+    List<TransactionStatus> noLocks = null;
 
     int maxRetries = 3;
 
-    AdminUtil<String> admin = new AdminUtil<>(false);
+    FateAdmin admin = new FateAdmin(false);
 
     while (maxRetries > 0) {
 
@@ -252,7 +254,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
         InstanceId instanceId = context.getInstanceID();
         ZooReaderWriter zk = context.getZooReader().asWriter(secret);
-        ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
+        ZooStore zs = new ZooStore(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
         var lockPath =
             ServiceLock.path(ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId);
 
@@ -287,13 +289,13 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     int matchCount = 0;
 
-    for (AdminUtil.TransactionStatus tx : withLocks.getTransactions()) {
+    for (TransactionStatus tx : withLocks.getTransactions()) {
 
       if (isCompaction(tx)) {
 
         log.trace("Fate id: {}, status: {}", tx.getTxid(), tx.getStatus());
 
-        for (AdminUtil.TransactionStatus tx2 : noLocks) {
+        for (TransactionStatus tx2 : noLocks) {
           if (tx2.getTxid().equals(tx.getTxid())) {
             matchCount++;
           }
@@ -334,7 +336,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    */
   private boolean lookupFateInZookeeper(final String tableName) throws KeeperException {
 
-    AdminUtil<String> admin = new AdminUtil<>(false);
+    FateAdmin admin = new FateAdmin(false);
 
     try {
 
@@ -344,14 +346,14 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       InstanceId instanceId = context.getInstanceID();
       ZooReaderWriter zk = context.getZooReader().asWriter(secret);
-      ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
+      ZooStore zs = new ZooStore(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
       var lockPath =
           ServiceLock.path(ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId);
-      AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk, lockPath, null, null);
+      FateStatus fateStatus = admin.getStatus(zs, zk, lockPath, null, null);
 
       log.trace("current fates: {}", fateStatus.getTransactions().size());
 
-      for (AdminUtil.TransactionStatus tx : fateStatus.getTransactions()) {
+      for (TransactionStatus tx : fateStatus.getTransactions()) {
 
         if (isCompaction(tx))
           return true;
@@ -373,7 +375,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    *          transaction status
    * @return true if tx top and debug have compaction messages.
    */
-  private boolean isCompaction(AdminUtil.TransactionStatus tx) {
+  private boolean isCompaction(TransactionStatus tx) {
 
     if (tx == null) {
       log.trace("Fate tx is null");

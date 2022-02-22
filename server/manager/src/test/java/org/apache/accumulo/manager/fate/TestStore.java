@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.fate;
+package org.apache.accumulo.manager.fate;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,18 +25,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.fate.FateTransactionStatus;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
+import org.apache.zookeeper.KeeperException;
+
 /**
  * Transient in memory store for transactions.
  */
-public class TestStore extends ZooStore<String> {
+public class TestStore extends ZooStore {
 
   private long nextId = 1;
-  private Map<Long,TStatus> statuses = new HashMap<>();
+  private Map<Long,FateTransactionStatus> statuses = new HashMap<>();
   private Set<Long> reserved = new HashSet<>();
+
+  public TestStore(String path, ZooReaderWriter zk) throws KeeperException, InterruptedException {
+    super(path, zk);
+  }
 
   @Override
   public long create() {
-    statuses.put(nextId, TStatus.NEW);
+    statuses.put(nextId, FateTransactionStatus.NEW);
     return nextId++;
   }
 
@@ -56,18 +64,18 @@ public class TestStore extends ZooStore<String> {
   }
 
   @Override
-  public org.apache.accumulo.fate.TStore.TStatus getStatus(long tid) {
+  public FateTransactionStatus getStatus(long tid) {
     if (!reserved.contains(tid))
       throw new IllegalStateException();
 
-    TStatus status = statuses.get(tid);
+    FateTransactionStatus status = statuses.get(tid);
     if (status == null)
-      return TStatus.UNKNOWN;
+      return FateTransactionStatus.UNKNOWN;
     return status;
   }
 
   @Override
-  public void setStatus(long tid, org.apache.accumulo.fate.TStore.TStatus status) {
+  public void setStatus(long tid, FateTransactionStatus status) {
     if (!reserved.contains(tid))
       throw new IllegalStateException();
     if (!statuses.containsKey(tid))

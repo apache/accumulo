@@ -22,8 +22,8 @@ import java.io.IOException;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.hadoop.fs.Path;
@@ -34,14 +34,14 @@ class CreateImportDir extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(CreateImportDir.class);
   private static final long serialVersionUID = 1L;
 
-  private ImportedTableInfo tableInfo;
+  private final ImportedTableInfo tableInfo;
 
   CreateImportDir(ImportedTableInfo ti) {
     this.tableInfo = ti;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo call(long tid, Manager manager) throws Exception {
 
     Set<String> tableDirs = manager.getContext().getTablesDirs();
 

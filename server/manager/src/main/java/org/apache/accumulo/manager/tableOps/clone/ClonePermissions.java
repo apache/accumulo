@@ -24,8 +24,8 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.slf4j.LoggerFactory;
@@ -34,19 +34,14 @@ class ClonePermissions extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private CloneInfo cloneInfo;
+  private final CloneInfo cloneInfo;
 
   public ClonePermissions(CloneInfo cloneInfo) {
     this.cloneInfo = cloneInfo;
   }
 
   @Override
-  public long isReady(long tid, Manager environment) {
-    return 0;
-  }
-
-  @Override
-  public Repo<Manager> call(long tid, Manager environment) throws Exception {
+  public Repo call(long tid, Manager environment) throws Exception {
     // give all table permissions to the creator
     for (TablePermission permission : TablePermission.values()) {
       try {
@@ -73,7 +68,8 @@ class ClonePermissions extends ManagerRepo {
 
   @Override
   public void undo(long tid, Manager environment) throws Exception {
-    AuditedSecurityOperation.getInstance(environment.getContext())
-        .deleteTable(environment.getContext().rpcCreds(), cloneInfo.tableId, cloneInfo.namespaceId);
+    var context = environment.getContext();
+    var securityOperation = AuditedSecurityOperation.getInstance(context);
+    securityOperation.deleteTable(context.rpcCreds(), cloneInfo.tableId, cloneInfo.namespaceId);
   }
 }

@@ -18,17 +18,22 @@
  */
 package org.apache.accumulo.fate;
 
-import java.io.Serializable;
-
 /**
- * Repeatable persisted operation
+ * Possible operational status codes. Serialized by name within stores.
  */
-public interface Repo<T> extends ReadOnlyRepo<T>, Serializable {
-
-  Repo<T> call(long tid, T environment) throws Exception;
-
-  void undo(long tid, T environment) throws Exception;
-
-  // this allows the last fate op to return something to the user
-  String getReturn();
+public enum FateTransactionStatus {
+  /** Unseeded transaction */
+  NEW,
+  /** Transaction that is executing */
+  IN_PROGRESS,
+  /** Transaction has failed, and is in the process of being rolled back */
+  FAILED_IN_PROGRESS,
+  /** Transaction has failed and has been fully rolled back */
+  FAILED,
+  /** Transaction has succeeded */
+  SUCCESSFUL,
+  /** Unrecognized or unknown transaction state */
+  UNKNOWN,
+  /** Transaction that is eligible to be executed */
+  SUBMITTED
 }

@@ -20,8 +20,8 @@ package org.apache.accumulo.manager.tableOps.namespace.delete;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
@@ -46,7 +46,7 @@ class NamespaceCleanUp extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long id, Manager manager) {
+  public Repo call(long id, Manager manager) {
 
     // remove from zookeeper
     try {

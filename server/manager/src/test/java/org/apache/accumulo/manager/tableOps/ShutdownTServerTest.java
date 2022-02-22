@@ -28,8 +28,8 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.easymock.EasyMock;
@@ -88,7 +88,7 @@ public class ShutdownTServerTest {
     wait = op.isReady(tid, manager);
     assertTrue("Expected wait to be 0", wait == 0);
 
-    Repo<Manager> op2 = op.call(tid, manager);
+    Repo op2 = op.call(tid, manager);
     assertNull("Expected no follow on step", op2);
 
     EasyMock.verify(tserverCnxn, manager);

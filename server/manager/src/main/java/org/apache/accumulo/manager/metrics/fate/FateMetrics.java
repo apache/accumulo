@@ -28,8 +28,9 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.fate.ReadOnlyTStore;
-import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.fate.FateTransactionStatus;
+import org.apache.accumulo.manager.fate.ReadOnlyTStore;
+import org.apache.accumulo.manager.fate.ZooStore;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -49,7 +50,7 @@ public class FateMetrics implements MetricsProducer {
   private static final String OP_TYPE_TAG = "op.type";
 
   private final ServerContext context;
-  private final ReadOnlyTStore<FateMetrics> zooStore;
+  private final ReadOnlyTStore zooStore;
   private final String fateRootPath;
   private final long refreshDelay;
 
@@ -71,7 +72,7 @@ public class FateMetrics implements MetricsProducer {
     this.refreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
 
     try {
-      this.zooStore = new ZooStore<>(fateRootPath, context.getZooReaderWriter());
+      this.zooStore = new ZooStore(fateRootPath, context.getZooReaderWriter());
     } catch (KeeperException ex) {
       throw new IllegalStateException(
           "FATE Metrics - Failed to create zoo store - metrics unavailable", ex);
@@ -93,7 +94,7 @@ public class FateMetrics implements MetricsProducer {
     fateErrorsGauge.set(metricValues.getZkConnectionErrors());
 
     for (Entry<String,Long> vals : metricValues.getTxStateCounters().entrySet()) {
-      switch (ReadOnlyTStore.TStatus.valueOf(vals.getKey())) {
+      switch (FateTransactionStatus.valueOf(vals.getKey())) {
         case NEW:
           newTxGauge.set(vals.getValue());
           break;
@@ -134,20 +135,20 @@ public class FateMetrics implements MetricsProducer {
     fateErrorsGauge = registry.gauge(METRICS_FATE_ERRORS,
         Tags.concat(MetricsUtil.getCommonTags(), "type", "zk.connection"), new AtomicLong(0));
     newTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(), "state",
-        ReadOnlyTStore.TStatus.NEW.name().toLowerCase()), new AtomicLong(0));
+        FateTransactionStatus.NEW.name().toLowerCase()), new AtomicLong(0));
     submittedTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyTStore.TStatus.SUBMITTED.name().toLowerCase()), new AtomicLong(0));
+        "state", FateTransactionStatus.SUBMITTED.name().toLowerCase()), new AtomicLong(0));
     inProgressTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyTStore.TStatus.IN_PROGRESS.name().toLowerCase()), new AtomicLong(0));
+        "state", FateTransactionStatus.IN_PROGRESS.name().toLowerCase()), new AtomicLong(0));
     failedInProgressTxGauge =
         registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(), "state",
-            ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS.name().toLowerCase()), new AtomicLong(0));
+            FateTransactionStatus.FAILED_IN_PROGRESS.name().toLowerCase()), new AtomicLong(0));
     failedTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyTStore.TStatus.FAILED.name().toLowerCase()), new AtomicLong(0));
+        "state", FateTransactionStatus.FAILED.name().toLowerCase()), new AtomicLong(0));
     successfulTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyTStore.TStatus.SUCCESSFUL.name().toLowerCase()), new AtomicLong(0));
+        "state", FateTransactionStatus.SUCCESSFUL.name().toLowerCase()), new AtomicLong(0));
     unknownTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyTStore.TStatus.UNKNOWN.name().toLowerCase()), new AtomicLong(0));
+        "state", FateTransactionStatus.UNKNOWN.name().toLowerCase()), new AtomicLong(0));
 
     update();
 

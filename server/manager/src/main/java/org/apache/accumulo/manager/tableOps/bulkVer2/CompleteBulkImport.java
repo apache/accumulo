@@ -19,8 +19,9 @@
 package org.apache.accumulo.manager.tableOps.bulkVer2;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Progress;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 
@@ -28,15 +29,20 @@ public class CompleteBulkImport extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private BulkInfo info;
+  private final BulkInfo info;
+
+  @Override
+  public Progress getProgress() {
+    return new Progress(4, 5);
+  }
 
   public CompleteBulkImport(BulkInfo info) {
     this.info = info;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    ZooArbitrator.stop(manager.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
+  public Repo call(long tid, Manager env) throws Exception {
+    ZooArbitrator.stop(env.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
     return new CleanUpBulkImport(info);
   }
 }

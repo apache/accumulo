@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.fate;
+package org.apache.accumulo.manager.fate;
+
+import org.apache.accumulo.manager.Manager;
 
 /**
  * Read only access to a repeatable persisted operation.
@@ -24,9 +26,11 @@ package org.apache.accumulo.fate;
  * By definition, these methods are safe to call without impacting the state of FATE. They should
  * also be safe to call without impacting the state of system components.
  */
-public interface ReadOnlyRepo<T> {
+public interface ReadOnlyRepo {
 
-  long isReady(long tid, T environment) throws Exception;
+  default long isReady(long tid, Manager environment) throws Exception {
+    return 0;
+  }
 
   String getDescription();
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.fate;
+package org.apache.accumulo.manager.fate;
 
 import java.io.Serializable;
 import java.util.EnumSet;
@@ -26,6 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.fate.FateTransactionStatus;
+import org.apache.accumulo.fate.FateTxId;
+import org.apache.accumulo.fate.StackOverflowException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +38,7 @@ import org.slf4j.LoggerFactory;
  *
  * No external time source is used. It starts tracking idle time when its created.
  */
-public class AgeOffStore<T> implements TStore<T> {
+public class AgeOffStore implements TStore {
 
   public interface TimeSource {
     long currentTimeMillis();
@@ -43,7 +46,7 @@ public class AgeOffStore<T> implements TStore<T> {
 
   private static final Logger log = LoggerFactory.getLogger(AgeOffStore.class);
 
-  private final ZooStore<T> store;
+  private final ZooStore store;
   private Map<Long,Long> candidates;
   private long ageOffTime;
   private long minTime;
@@ -112,7 +115,7 @@ public class AgeOffStore<T> implements TStore<T> {
     }
   }
 
-  public AgeOffStore(ZooStore<T> store, long ageOffTime, TimeSource timeSource) {
+  public AgeOffStore(ZooStore store, long ageOffTime, TimeSource timeSource) {
     this.store = store;
     this.ageOffTime = ageOffTime;
     this.timeSource = timeSource;
@@ -162,12 +165,12 @@ public class AgeOffStore<T> implements TStore<T> {
   }
 
   @Override
-  public Repo<T> top(long tid) {
+  public Repo top(long tid) {
     return store.top(tid);
   }
 
   @Override
-  public void push(long tid, Repo<T> repo) throws StackOverflowException {
+  public void push(long tid, Repo repo) throws StackOverflowException {
     store.push(tid, repo);
   }
 
@@ -177,12 +180,12 @@ public class AgeOffStore<T> implements TStore<T> {
   }
 
   @Override
-  public org.apache.accumulo.fate.TStore.TStatus getStatus(long tid) {
+  public FateTransactionStatus getStatus(long tid) {
     return store.getStatus(tid);
   }
 
   @Override
-  public void setStatus(long tid, org.apache.accumulo.fate.TStore.TStatus status) {
+  public void setStatus(long tid, FateTransactionStatus status) {
     store.setStatus(tid, status);
 
     switch (status) {
@@ -201,8 +204,8 @@ public class AgeOffStore<T> implements TStore<T> {
   }
 
   @Override
-  public org.apache.accumulo.fate.TStore.TStatus waitForStatusChange(long tid,
-      EnumSet<org.apache.accumulo.fate.TStore.TStatus> expected) {
+  public FateTransactionStatus waitForStatusChange(long tid,
+      EnumSet<FateTransactionStatus> expected) {
     return store.waitForStatusChange(tid, expected);
   }
 
@@ -233,7 +236,7 @@ public class AgeOffStore<T> implements TStore<T> {
   }
 
   @Override
-  public List<ReadOnlyRepo<T>> getStack(long tid) {
+  public List<ReadOnlyRepo> getStack(long tid) {
     return store.getStack(tid);
   }
 }

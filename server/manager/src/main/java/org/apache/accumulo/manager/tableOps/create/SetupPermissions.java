@@ -20,8 +20,8 @@ package org.apache.accumulo.manager.tableOps.create;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
@@ -32,14 +32,14 @@ class SetupPermissions extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private TableInfo tableInfo;
+  private final TableInfo tableInfo;
 
   SetupPermissions(TableInfo ti) {
     this.tableInfo = ti;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
+  public Repo call(long tid, Manager env) throws Exception {
     // give all table permissions to the creator
     SecurityOperation security = AuditedSecurityOperation.getInstance(env.getContext());
     if (!tableInfo.getUser().equals(env.getContext().getCredentials().getPrincipal())) {

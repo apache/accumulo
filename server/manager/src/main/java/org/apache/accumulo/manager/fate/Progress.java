@@ -16,23 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.master.util;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+package org.apache.accumulo.manager.fate;
 
 /**
- * A utility to administer FATE operations
- *
- * @deprecated since 2.1.0. Use {@link org.apache.accumulo.manager.util.FateAdmin} instead
+ * Progress of the FATE operation.
  */
-@Deprecated(since = "2.1.0")
-public class FateAdmin {
-  final static private Logger log = LoggerFactory.getLogger(FateAdmin.class);
+public class Progress {
 
-  public static void main(String[] args) throws Exception {
-    log.warn("{} is deprecated. Use {} instead.", FateAdmin.class.getName(),
-        org.apache.accumulo.manager.util.FateAdmin.class.getName());
-    org.apache.accumulo.manager.util.FateAdmin.main(args);
+  final int step;
+  final int totalSteps;
+
+  public Progress(int step, int totalSteps) {
+    this.step = step;
+    this.totalSteps = totalSteps;
+  }
+
+  @Override
+  public String toString() {
+    return "(" + step + "/" + totalSteps + ")";
   }
 }

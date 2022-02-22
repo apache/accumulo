@@ -22,8 +22,8 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -49,8 +49,7 @@ class FinishCreateTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
-
+  public Repo call(long tid, Manager env) throws Exception {
     if (tableInfo.getInitialTableState() == InitialTableState.OFFLINE) {
       env.getContext().getTableManager().transitionTableState(tableInfo.getTableId(),
           TableState.OFFLINE);
@@ -70,7 +69,7 @@ class FinishCreateTable extends ManagerRepo {
     return null;
   }
 
-  private void cleanupSplitFiles(Manager env) throws IOException {
+  private void cleanupSplitFiles(Manager env) {
     // it is sufficient to delete from the parent, because both files are in the same directory, and
     // we want to delete the directory also
     Path p = null;
@@ -87,8 +86,5 @@ class FinishCreateTable extends ManagerRepo {
   public String getReturn() {
     return tableInfo.getTableId().canonical();
   }
-
-  @Override
-  public void undo(long tid, Manager env) {}
 
 }

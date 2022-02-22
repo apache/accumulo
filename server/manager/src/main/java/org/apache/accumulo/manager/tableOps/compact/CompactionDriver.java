@@ -36,13 +36,13 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.MapCounter;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.manager.tableOps.delete.PreDeleteTable;
-import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
+import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.thrift.TException;
 import org.slf4j.LoggerFactory;
 
@@ -134,7 +134,7 @@ class CompactionDriver extends ManagerRepo {
 
     for (TServerInstance tsi : serversToFlush.keySet()) {
       try {
-        final TServerConnection server = manager.getConnection(tsi);
+        final LiveTServerSet.TServerConnection server = manager.getConnection(tsi);
         if (server != null)
           server.compact(manager.getManagerLock(), tableId.canonical(), startRow, endRow);
       } catch (TException ex) {
@@ -156,16 +156,10 @@ class CompactionDriver extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
+  public Repo call(long tid, Manager env) throws Exception {
     CompactRange.removeIterators(env, tid, tableId);
     Utils.getReadLock(env, tableId, tid).unlock();
     Utils.getReadLock(env, namespaceId, tid).unlock();
     return null;
   }
-
-  @Override
-  public void undo(long tid, Manager environment) {
-
-  }
-
 }

@@ -26,8 +26,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.manager.state.MergeInfo;
@@ -64,7 +64,7 @@ public class TableRangeOp extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
+  public Repo call(long tid, Manager env) throws Exception {
 
     if (RootTable.ID.equals(tableId) && Operation.MERGE.equals(op)) {
       log.warn("Attempt to merge tablets for {} does nothing. It is not splittable.",

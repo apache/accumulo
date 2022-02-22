@@ -26,8 +26,8 @@ import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -40,7 +40,7 @@ public class CreateTable extends ManagerRepo {
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(CreateTable.class);
 
-  private TableInfo tableInfo;
+  private final TableInfo tableInfo;
 
   public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props,
       Path splitPath, int splitCount, Path splitDirsPath, InitialTableState initialTableState,
@@ -65,17 +65,14 @@ public class CreateTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo call(long tid, Manager env) throws Exception {
     // first step is to reserve a table id.. if the machine fails during this step
     // it is ok to retry... the only side effect is that a table id may not be used
-    // or skipped
-
-    // assuming only the manager process is creating tables
-
+    // or skipped assuming only the manager process is creating tables
     Utils.getIdLock().lock();
     try {
       String tName = tableInfo.getTableName();
-      tableInfo.setTableId(Utils.getNextId(tName, manager.getContext(), TableId::of));
+      tableInfo.setTableId(Utils.getNextId(tName, env.getContext(), TableId::of));
       return new SetupPermissions(tableInfo);
     } finally {
       Utils.getIdLock().unlock();

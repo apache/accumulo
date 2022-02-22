@@ -35,9 +35,9 @@ import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -59,12 +59,7 @@ class PopulateMetadata extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager environment) {
-    return 0;
-  }
-
-  @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
+  public Repo call(long tid, Manager env) throws Exception {
     KeyExtent extent = new KeyExtent(tableInfo.getTableId(), null, null);
     MetadataTableUtil.addTablet(extent, ServerColumnFamily.DEFAULT_TABLET_DIR_NAME,
         env.getContext(), tableInfo.getTimeType(), env.getManagerLock());

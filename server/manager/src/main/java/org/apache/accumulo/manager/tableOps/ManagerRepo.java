@@ -18,32 +18,24 @@
  */
 package org.apache.accumulo.manager.tableOps;
 
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public abstract class ManagerRepo implements Repo<Manager> {
+public abstract class ManagerRepo implements Repo {
+  protected Logger logger = LoggerFactory.getLogger(ManagerRepo.class);
 
   private static final long serialVersionUID = 1L;
-
-  @Override
-  public long isReady(long tid, Manager environment) throws Exception {
-    return 0;
-  }
-
-  @Override
-  public void undo(long tid, Manager environment) throws Exception {}
 
   @Override
   public String getDescription() {
     return this.getClass().getSimpleName();
   }
 
-  @Override
-  public String getReturn() {
-    return null;
+  public abstract Repo call(long tid, Manager environment) throws Exception;
+
+  protected Logger getLogger() {
+    return logger;
   }
-
-  @Override
-  public abstract Repo<Manager> call(long tid, Manager environment) throws Exception;
-
 }

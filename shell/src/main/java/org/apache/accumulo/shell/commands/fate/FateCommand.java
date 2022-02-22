@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.shell.commands;
+package org.apache.accumulo.shell.commands.fate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -37,13 +37,9 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.fate.AdminUtil;
+import org.apache.accumulo.fate.FateTransactionStatus;
 import org.apache.accumulo.fate.FateTxId;
-import org.apache.accumulo.fate.ReadOnlyRepo;
-import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
-import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.fate.ZooStore;
-import org.apache.accumulo.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.fate.FateZooStore;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -98,9 +94,9 @@ public class FateCommand extends Command {
   // the purpose of this class is to be serialized as JSon for display
   public static class FateStack {
     String txid;
-    List<ReadOnlyRepo<FateCommand>> stack;
+    List<Serializable> stack;
 
-    FateStack(Long txid, List<ReadOnlyRepo<FateCommand>> stack) {
+    FateStack(Long txid, List<Serializable> stack) {
       this.txid = String.format("%016x", txid);
       this.stack = stack;
     }
@@ -130,24 +126,21 @@ public class FateCommand extends Command {
     String cmd = args[0];
     boolean failedCommand = false;
 
-    AdminUtil<FateCommand> admin = new AdminUtil<>(false);
-
     String fatePath = context.getZooKeeperRoot() + Constants.ZFATE;
-    var managerLockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
-    var tableLocksPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS);
+
     ZooReaderWriter zk =
         getZooReaderWriter(context, siteConfig, cl.getOptionValue(secretOption.getOpt()));
-    ZooStore<FateCommand> zs = new ZooStore<>(fatePath, zk);
+    FateZooStore zs = new FateZooStore(fatePath, zk);
+    FateCommandHelper helper = new FateCommandHelper(zs, context, zk, false);
 
     if ("fail".equals(cmd)) {
       validateArgs(args);
-      failedCommand = failTx(admin, zs, zk, managerLockPath, args);
+      failedCommand = failTx(helper, args);
     } else if ("delete".equals(cmd)) {
       validateArgs(args);
-      failedCommand = deleteTx(admin, zs, zk, managerLockPath, args);
+      failedCommand = deleteTx(helper, args);
     } else if ("list".equals(cmd) || "print".equals(cmd)) {
-      printTx(shellState, admin, zs, zk, tableLocksPath, args, cl,
-          cl.hasOption(statusOption.getOpt()));
+      printTx(shellState, helper, args, cl, cl.hasOption(statusOption.getOpt()));
     } else if ("dump".equals(cmd)) {
       String output = dumpTx(zs, args);
       System.out.println(output);
@@ -158,10 +151,10 @@ public class FateCommand extends Command {
     return failedCommand ? 1 : 0;
   }
 
-  String dumpTx(ZooStore<FateCommand> zs, String[] args) {
+  String dumpTx(FateZooStore zs, String[] args) {
     List<Long> txids;
     if (args.length == 1) {
-      txids = zs.list();
+      txids = zs.listTransactions();
     } else {
       txids = new ArrayList<>();
       for (int i = 1; i < args.length; i++) {
@@ -170,21 +163,19 @@ public class FateCommand extends Command {
     }
 
     Gson gson = new GsonBuilder()
-        .registerTypeAdapter(ReadOnlyRepo.class, new InterfaceSerializer<>())
-        .registerTypeAdapter(Repo.class, new InterfaceSerializer<>())
+        .registerTypeAdapter(Serializable.class, new InterfaceSerializer<>())
         .registerTypeAdapter(byte[].class, new ByteArraySerializer()).setPrettyPrinting().create();
 
     List<FateStack> txStacks = new ArrayList<>();
     for (Long txid : txids) {
-      List<ReadOnlyRepo<FateCommand>> repoStack = zs.getStack(txid);
+      List<Serializable> repoStack = zs.getStack(txid);
       txStacks.add(new FateStack(txid, repoStack));
     }
 
     return gson.toJson(txStacks);
   }
 
-  private void printTx(Shell shellState, AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
-      ZooReaderWriter zk, ServiceLock.ServiceLockPath tableLocksPath, String[] args, CommandLine cl,
+  private void printTx(Shell shellState, FateCommandHelper helper, String[] args, CommandLine cl,
       boolean printStatus) throws InterruptedException, KeeperException, IOException {
     // Parse transaction ID filters for print display
     Set<Long> filterTxid = null;
@@ -197,28 +188,27 @@ public class FateCommand extends Command {
     }
 
     // Parse TStatus filters for print display
-    EnumSet<TStatus> filterStatus = null;
+    EnumSet<FateTransactionStatus> filterStatus = null;
     if (printStatus) {
-      filterStatus = EnumSet.noneOf(TStatus.class);
+      filterStatus = EnumSet.noneOf(FateTransactionStatus.class);
       String[] tstat = cl.getOptionValues(statusOption.getOpt());
       for (String element : tstat) {
-        filterStatus.add(TStatus.valueOf(element));
+        filterStatus.add(FateTransactionStatus.valueOf(element));
       }
     }
 
     StringBuilder buf = new StringBuilder(8096);
     Formatter fmt = new Formatter(buf);
-    admin.print(zs, zk, tableLocksPath, fmt, filterTxid, filterStatus);
+    helper.print(fmt, filterTxid, filterStatus);
     shellState.printLines(Collections.singletonList(buf.toString()).iterator(),
         !cl.hasOption(disablePaginationOpt.getOpt()));
   }
 
-  private boolean deleteTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs,
-      ZooReaderWriter zk, ServiceLockPath zLockManagerPath, String[] args)
-      throws InterruptedException, KeeperException {
+  private boolean deleteTx(FateCommandHelper helper, String[] args)
+      throws InterruptedException, KeeperException, AccumuloException {
     for (int i = 1; i < args.length; i++) {
-      if (admin.prepDelete(zs, zk, zLockManagerPath, args[i])) {
-        admin.deleteLocks(zk, zLockManagerPath, args[i]);
+      if (helper.prepDelete(args[i])) {
+        helper.deleteLocks(args[i]);
       } else {
         System.out.printf("Could not delete transaction: %s%n", args[i]);
         return false;
@@ -233,11 +223,10 @@ public class FateCommand extends Command {
     }
   }
 
-  public boolean failTx(AdminUtil<FateCommand> admin, ZooStore<FateCommand> zs, ZooReaderWriter zk,
-      ServiceLockPath managerLockPath, String[] args) {
+  public boolean failTx(FateCommandHelper helper, String[] args) throws AccumuloException {
     boolean success = true;
     for (int i = 1; i < args.length; i++) {
-      if (!admin.prepFail(zs, zk, managerLockPath, args[i])) {
+      if (!helper.prepFail(args[i])) {
         System.out.printf("Could not fail transaction: %s%n", args[i]);
         return !success;
       }

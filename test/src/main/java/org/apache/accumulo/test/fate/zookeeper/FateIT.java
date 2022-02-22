@@ -35,14 +35,14 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.fate.AgeOffStore;
-import org.apache.accumulo.fate.Fate;
-import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
-import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.fate.FateTransactionStatus;
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.AgeOffStore;
+import org.apache.accumulo.manager.fate.Fate;
+import org.apache.accumulo.manager.fate.Repo;
+import org.apache.accumulo.manager.fate.ZooStore;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -85,7 +85,7 @@ public class FateIT {
     }
 
     @Override
-    public Repo<Manager> call(long tid, Manager environment) throws Exception {
+    public Repo call(long tid, Manager environment) throws Exception {
       FateIT.inCall();
       return null;
     }
@@ -124,9 +124,9 @@ public class FateIT {
     zk.mkdirs(ZK_ROOT + Constants.ZTABLE_STATE + "/" + TID.canonical());
     zk.mkdirs(ZK_ROOT + Constants.ZTABLES + "/" + TID.canonical());
 
-    ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 1000 * 60 * 60 * 8, System::currentTimeMillis);
+    ZooStore zooStore = new ZooStore(ZK_ROOT + Constants.ZFATE, zk);
+    final AgeOffStore store =
+        new AgeOffStore(zooStore, 1000 * 60 * 60 * 8, System::currentTimeMillis);
 
     Manager manager = createMock(Manager.class);
     ServerContext sctx = createMock(ServerContext.class);
@@ -135,7 +135,7 @@ public class FateIT {
     expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
     replay(manager, sctx);
 
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
+    Fate fate = new Fate(manager, store, TraceRepo::toLogString);
     try {
       ConfigurationCopy config = new ConfigurationCopy();
       config.set(Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE, "2");
@@ -149,17 +149,17 @@ public class FateIT {
       finishCall = new CountDownLatch(1);
 
       long txid = fate.startTransaction();
-      assertEquals(TStatus.NEW, getTxStatus(zk, txid));
+      assertEquals(FateTransactionStatus.NEW, getTxStatus(zk, txid));
       fate.seedTransaction(txid, new TestOperation(NS, TID), true, "Test Op");
-      assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
+      assertEquals(FateTransactionStatus.SUBMITTED, getTxStatus(zk, txid));
       // wait for call() to be called
       callStarted.await();
-      assertEquals(TStatus.IN_PROGRESS, getTxStatus(zk, txid));
+      assertEquals(FateTransactionStatus.IN_PROGRESS, getTxStatus(zk, txid));
       // tell the op to exit the method
       finishCall.countDown();
       // Check that it transitions to SUCCESSFUL
-      TStatus s = getTxStatus(zk, txid);
-      while (s != TStatus.SUCCESSFUL) {
+      FateTransactionStatus s = getTxStatus(zk, txid);
+      while (s != FateTransactionStatus.SUCCESSFUL) {
         s = getTxStatus(zk, txid);
         Thread.sleep(10);
       }
@@ -194,11 +194,11 @@ public class FateIT {
    * Get the status of the TX from ZK directly. Unable to call ZooStore.getStatus because this test
    * thread does not have the reservation (the FaTE thread does)
    */
-  private static TStatus getTxStatus(ZooReaderWriter zrw, long txid)
+  private static FateTransactionStatus getTxStatus(ZooReaderWriter zrw, long txid)
       throws KeeperException, InterruptedException {
     zrw.sync(ZK_ROOT);
     String txdir = String.format("%s%s/tx_%016x", ZK_ROOT, Constants.ZFATE, txid);
-    return TStatus.valueOf(new String(zrw.getData(txdir), UTF_8));
+    return FateTransactionStatus.valueOf(new String(zrw.getData(txdir), UTF_8));
   }
 
 }

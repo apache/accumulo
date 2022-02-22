@@ -22,8 +22,8 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 
@@ -46,7 +46,7 @@ public class DeleteTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) {
+  public Repo call(long tid, Manager env) {
     env.getTableManager().transitionTableState(tableId, TableState.DELETING);
     env.getEventCoordinator().event("deleting table %s ", tableId);
     return new CleanUp(tableId, namespaceId);

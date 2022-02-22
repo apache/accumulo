@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.namespace.create;
 
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.slf4j.LoggerFactory;
@@ -40,7 +40,7 @@ class FinishCreateNamespace extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long id, Manager env) {
+  public Repo call(long id, Manager env) {
 
     Utils.unreserveNamespace(env, namespaceInfo.namespaceId, id, true);
 

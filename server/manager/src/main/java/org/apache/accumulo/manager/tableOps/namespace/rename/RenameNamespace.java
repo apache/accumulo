@@ -25,9 +25,9 @@ import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationExcepti
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.slf4j.LoggerFactory;
@@ -51,7 +51,7 @@ public class RenameNamespace extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long id, Manager manager) throws Exception {
+  public Repo call(long id, Manager manager) throws Exception {
 
     ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
 

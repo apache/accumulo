@@ -26,8 +26,9 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.fate.FateTxId;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Progress;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.util.MetadataTableUtil;
@@ -42,14 +43,19 @@ public class CleanUpBulkImport extends ManagerRepo {
 
   private static final Logger log = LoggerFactory.getLogger(CleanUpBulkImport.class);
 
-  private BulkInfo info;
+  private final BulkInfo info;
+
+  @Override
+  public Progress getProgress() {
+    return new Progress(5, 5);
+  }
 
   public CleanUpBulkImport(BulkInfo info) {
     this.info = info;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo call(long tid, Manager manager) throws Exception {
     manager.updateBulkImportStatus(info.sourceDir, BulkImportState.CLEANUP);
     log.debug("removing the bulkDir processing flag file in " + info.bulkDir);
     Path bulkDir = new Path(info.bulkDir);

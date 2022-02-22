@@ -38,13 +38,15 @@ import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
 import org.apache.accumulo.core.clientImpl.bulk.LoadMappingIterator;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Progress;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
@@ -86,6 +88,11 @@ public class PrepBulkImport extends ManagerRepo {
   }
 
   @Override
+  public Progress getProgress() {
+    return new Progress(1, 5);
+  }
+
+  @Override
   public long isReady(long tid, Manager manager) throws Exception {
     if (!Utils.getReadLock(manager, bulkInfo.tableId, tid).tryLock())
       return 100;
@@ -107,12 +114,12 @@ public class PrepBulkImport extends ManagerRepo {
   }
 
   /**
-   * Checks a load mapping to ensure all of the rows in the mapping exists in the table and that no
+   * Checks a load mapping to ensure all the rows in the mapping exists in the table and that no
    * file goes to too many tablets.
    */
   @VisibleForTesting
-  static void sanityCheckLoadMapping(String tableId, LoadMappingIterator lmi,
-      TabletIterFactory tabletIterFactory, int maxNumTablets, long tid) throws Exception {
+  static void validateLoadMapping(String tableId, LoadMappingIterator lmi,
+      TabletIterFactory tabletIterFactory, int maxNumTablets) throws ThriftTableOperationException {
     var currRange = lmi.next();
 
     Text startRow = currRange.getKey().prevEndRow();
@@ -178,8 +185,7 @@ public class PrepBulkImport extends ManagerRepo {
     }
   }
 
-  private void checkForMerge(final long tid, final Manager manager) throws Exception {
-
+  private void checkForMerge(final Manager manager) throws Exception {
     VolumeManager fs = manager.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.sourceDir);
 
@@ -194,14 +200,14 @@ public class PrepBulkImport extends ManagerRepo {
               .overlapping(startRow, null).checkConsistency().fetch(PREV_ROW).build().stream()
               .map(TabletMetadata::getExtent).iterator();
 
-      sanityCheckLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets, tid);
+      validateLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets);
     }
   }
 
   @Override
-  public Repo<Manager> call(final long tid, final Manager manager) throws Exception {
+  public Repo call(final long tid, Manager manager) throws Exception {
     // now that table lock is acquired check that all splits in load mapping exists in table
-    checkForMerge(tid, manager);
+    checkForMerge(manager);
 
     bulkInfo.tableState = manager.getContext().getTableState(bulkInfo.tableId);
 

@@ -20,8 +20,8 @@ package org.apache.accumulo.manager.tableOps.merge;
 
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.manager.state.MergeInfo;
@@ -67,7 +67,7 @@ class TableRangeOpWait extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo call(long tid, Manager manager) throws Exception {
     MergeInfo mergeInfo = manager.getMergeInfo(tableId);
     log.info("removing merge information " + mergeInfo);
     manager.clearMergeState(tableId);

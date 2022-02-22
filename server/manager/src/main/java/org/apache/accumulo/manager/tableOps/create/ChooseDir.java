@@ -25,8 +25,8 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -49,14 +49,9 @@ class ChooseDir extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager environment) {
-    return 0;
-  }
-
-  @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo call(long tid, Manager env) throws Exception {
     if (tableInfo.getInitialSplitSize() > 0) {
-      createTableDirectoriesInfo(manager);
+      createTableDirectoriesInfo(env);
     }
     return new PopulateMetadata(tableInfo);
   }
@@ -91,7 +86,7 @@ class ChooseDir extends ManagerRepo {
    * Create a set of unique table directories. These will be associated with splits in a follow-on
    * FATE step.
    */
-  private static SortedSet<Text> createTabletDirectoriesSet(Manager manager, int num) {
+  private SortedSet<Text> createTabletDirectoriesSet(Manager manager, int num) {
     String tabletDir;
     UniqueNameAllocator namer = manager.getContext().getUniqueNameAllocator();
     SortedSet<Text> splitDirs = new TreeSet<>();

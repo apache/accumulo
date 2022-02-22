@@ -20,8 +20,8 @@ package org.apache.accumulo.manager.tableOps.tableExport;
 
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.hadoop.fs.Path;
@@ -45,7 +45,7 @@ public class ExportTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) {
+  public Repo call(long tid, Manager env) {
     return new WriteExportFiles(tableInfo);
   }
 

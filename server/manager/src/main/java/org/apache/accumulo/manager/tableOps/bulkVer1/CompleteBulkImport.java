@@ -20,8 +20,8 @@ package org.apache.accumulo.manager.tableOps.bulkVer1;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 
@@ -42,7 +42,7 @@ public class CompleteBulkImport extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo call(long tid, Manager manager) throws Exception {
     ZooArbitrator.stop(manager.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
     return new CopyFailed(tableId, source, bulk, error);
   }

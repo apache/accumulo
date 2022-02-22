@@ -20,8 +20,8 @@ package org.apache.accumulo.manager.tableOps.namespace.create;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.security.NamespacePermission;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
@@ -38,7 +38,7 @@ class SetupNamespacePermissions extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
+  public Repo call(long tid, Manager env) throws Exception {
     // give all namespace permissions to the creator
     SecurityOperation security = AuditedSecurityOperation.getInstance(env.getContext());
     for (var permission : NamespacePermission.values()) {

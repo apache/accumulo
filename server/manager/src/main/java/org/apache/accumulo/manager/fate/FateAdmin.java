@@ -16,42 +16,50 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.fate;
+package org.apache.accumulo.manager.fate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.EnumSet;
 import java.util.Formatter;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.fate.FateStatus;
+import org.apache.accumulo.fate.FateTransactionStatus;
+import org.apache.accumulo.fate.TransactionStatus;
 import org.apache.accumulo.fate.zookeeper.FateLock;
-import org.apache.accumulo.fate.zookeeper.FateLock.FateLockPath;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.Parameters;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * A utility to administer FATE operations
  */
-public class AdminUtil<T> {
-  private static final Logger log = LoggerFactory.getLogger(AdminUtil.class);
+@SuppressFBWarnings(value = "DM_EXIT", justification = "System.exit okay for CLI tool")
+public class FateAdmin {
+  private static final Logger log = LoggerFactory.getLogger(FateAdmin.class);
 
   private final boolean exitOnError;
 
@@ -61,156 +69,78 @@ public class AdminUtil<T> {
    * @param exitOnError
    *          <code>System.exit(1)</code> on error if true
    */
-  public AdminUtil(boolean exitOnError) {
+  public FateAdmin(boolean exitOnError) {
     this.exitOnError = exitOnError;
   }
 
-  /**
-   * FATE transaction status, including lock information.
-   */
-  public static class TransactionStatus {
-
-    private final long txid;
-    private final TStatus status;
-    private final String debug;
-    private final List<String> hlocks;
-    private final List<String> wlocks;
-    private final String top;
-    private final long timeCreated;
-
-    private TransactionStatus(Long tid, TStatus status, String debug, List<String> hlocks,
-        List<String> wlocks, String top, Long timeCreated) {
-
-      this.txid = tid;
-      this.status = status;
-      this.debug = debug;
-      this.hlocks = Collections.unmodifiableList(hlocks);
-      this.wlocks = Collections.unmodifiableList(wlocks);
-      this.top = top;
-      this.timeCreated = timeCreated;
-
-    }
-
-    /**
-     * @return This fate operations transaction id, formatted in the same way as FATE transactions
-     *         are in the Accumulo logs.
-     */
-    public String getTxid() {
-      return String.format("%016x", txid);
-    }
-
-    public TStatus getStatus() {
-      return status;
-    }
-
-    /**
-     * @return The debug info for the operation on the top of the stack for this Fate operation.
-     */
-    public String getDebug() {
-      return debug;
-    }
-
-    /**
-     * @return list of namespace and table ids locked
-     */
-    public List<String> getHeldLocks() {
-      return hlocks;
-    }
-
-    /**
-     * @return list of namespace and table ids locked
-     */
-    public List<String> getWaitingLocks() {
-      return wlocks;
-    }
-
-    /**
-     * @return The operation on the top of the stack for this Fate operation.
-     */
-    public String getTop() {
-      return top;
-    }
-
-    /**
-     * @return The timestamp of when the operation was created in ISO format with UTC timezone.
-     */
-    public String getTimeCreatedFormatted() {
-      return timeCreated > 0 ? new Date(timeCreated).toInstant().atZone(ZoneOffset.UTC)
-          .format(DateTimeFormatter.ISO_DATE_TIME) : "ERROR";
-    }
-
-    /**
-     * @return The unformatted form of the timestamp.
-     */
-    public long getTimeCreated() {
-      return timeCreated;
-    }
+  static class TxOpts {
+    @Parameter(description = "<txid>...", required = true)
+    List<String> txids = new ArrayList<>();
   }
 
-  public static class FateStatus {
+  @Parameters(commandDescription = "Stop an existing FATE by transaction id")
+  static class FailOpts extends TxOpts {}
 
-    private final List<TransactionStatus> transactions;
-    private final Map<String,List<String>> danglingHeldLocks;
-    private final Map<String,List<String>> danglingWaitingLocks;
+  @Parameters(commandDescription = "Delete an existing FATE by transaction id")
+  static class DeleteOpts extends TxOpts {}
 
-    /**
-     * Convert FATE transactions IDs in keys of map to format that used in printing and logging FATE
-     * transactions ids. This is done so that if the map is printed, the output can be used to
-     * search Accumulo's logs.
-     */
-    private static Map<String,List<String>> convert(Map<Long,List<String>> danglocks) {
-      if (danglocks.isEmpty()) {
-        return Collections.emptyMap();
+  @Parameters(commandDescription = "List the existing FATE transactions")
+  static class PrintOpts {}
+
+  public static void main(String[] args) throws Exception {
+    Help opts = new Help();
+    JCommander jc = new JCommander(opts);
+    jc.setProgramName(FateAdmin.class.getName());
+    LinkedHashMap<String,TxOpts> txOpts = new LinkedHashMap<>(2);
+    txOpts.put("fail", new FailOpts());
+    txOpts.put("delete", new DeleteOpts());
+    for (Entry<String,TxOpts> entry : txOpts.entrySet()) {
+      jc.addCommand(entry.getKey(), entry.getValue());
+    }
+    jc.addCommand("print", new PrintOpts());
+    jc.parse(args);
+    if (opts.help || jc.getParsedCommand() == null) {
+      jc.usage();
+      System.exit(1);
+    }
+
+    System.err.printf("This tool has been deprecated%nFATE administration now"
+        + " available within 'accumulo shell'%n$ fate fail <txid>... | delete"
+        + " <txid>... | print [<txid>...]%n%n");
+
+    FateAdmin admin = new FateAdmin(true);
+
+    try (var context = new ServerContext(SiteConfiguration.auto())) {
+      final String zkRoot = context.getZooKeeperRoot();
+      String path = zkRoot + Constants.ZFATE;
+      var zLockManagerPath = ServiceLock.path(zkRoot + Constants.ZMANAGER_LOCK);
+      var zTableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
+      ZooReaderWriter zk = context.getZooReaderWriter();
+      ZooStore zs = new ZooStore(path, zk);
+
+      if (jc.getParsedCommand().equals("fail")) {
+        for (String txid : txOpts.get(jc.getParsedCommand()).txids) {
+          if (!admin.prepFail(zs, zk, zLockManagerPath, txid)) {
+            System.exit(1);
+          }
+        }
+      } else if (jc.getParsedCommand().equals("delete")) {
+        for (String txid : txOpts.get(jc.getParsedCommand()).txids) {
+          if (!admin.prepDelete(zs, zk, zLockManagerPath, txid)) {
+            System.exit(1);
+          }
+          admin.deleteLocks(zk, zTableLocksPath, txid);
+        }
+      } else if (jc.getParsedCommand().equals("print")) {
+        admin.print(new ReadOnlyStore(zs), zk, zTableLocksPath);
       }
-
-      Map<String,List<String>> ret = new HashMap<>();
-      for (Entry<Long,List<String>> entry : danglocks.entrySet()) {
-        ret.put(String.format("%016x", entry.getKey()),
-            Collections.unmodifiableList(entry.getValue()));
-      }
-      return Collections.unmodifiableMap(ret);
-    }
-
-    private FateStatus(List<TransactionStatus> transactions,
-        Map<Long,List<String>> danglingHeldLocks, Map<Long,List<String>> danglingWaitingLocks) {
-      this.transactions = Collections.unmodifiableList(transactions);
-      this.danglingHeldLocks = convert(danglingHeldLocks);
-      this.danglingWaitingLocks = convert(danglingWaitingLocks);
-    }
-
-    public List<TransactionStatus> getTransactions() {
-      return transactions;
-    }
-
-    /**
-     * Get locks that are held by non existent FATE transactions. These are table or namespace
-     * locks.
-     *
-     * @return map where keys are transaction ids and values are a list of table IDs and/or
-     *         namespace IDs. The transaction IDs are in the same format as transaction IDs in the
-     *         Accumulo logs.
-     */
-    public Map<String,List<String>> getDanglingHeldLocks() {
-      return danglingHeldLocks;
-    }
-
-    /**
-     * Get locks that are waiting to be acquired by non existent FATE transactions. These are table
-     * or namespace locks.
-     *
-     * @return map where keys are transaction ids and values are a list of table IDs and/or
-     *         namespace IDs. The transaction IDs are in the same format as transaction IDs in the
-     *         Accumulo logs.
-     */
-    public Map<String,List<String>> getDanglingWaitingLocks() {
-      return danglingWaitingLocks;
     }
   }
 
   /**
    * Returns a list of the FATE transactions, optionally filtered by transaction id and status. This
    * method does not process lock information, if lock information is desired, use
-   * {@link #getStatus(ReadOnlyTStore, ZooReader, ServiceLockPath, Set, EnumSet)}
+   * {@link #getStatus(ReadOnlyTStore, ZooReader, ServiceLock.ServiceLockPath, Set, EnumSet)}
    *
    * @param zs
    *          read-only zoostore
@@ -220,11 +150,11 @@ public class AdminUtil<T> {
    *          filter results to include only provided status types
    * @return list of FATE transactions that match filter criteria
    */
-  public List<TransactionStatus> getTransactionStatus(ReadOnlyTStore<T> zs, Set<Long> filterTxid,
-      EnumSet<TStatus> filterStatus) {
+  public List<TransactionStatus> getTransactionStatus(ReadOnlyTStore zs, Set<Long> filterTxid,
+      EnumSet<FateTransactionStatus> filterStatus) {
 
-    FateStatus status = getTransactionStatus(zs, filterTxid, filterStatus,
-        Collections.<Long,List<String>>emptyMap(), Collections.<Long,List<String>>emptyMap());
+    FateStatus status = getTransactionStatus(zs, filterTxid, filterStatus, Collections.emptyMap(),
+        Collections.emptyMap());
 
     return status.getTransactions();
   }
@@ -249,8 +179,8 @@ public class AdminUtil<T> {
    * @throws InterruptedException
    *           if process is interrupted.
    */
-  public FateStatus getStatus(ReadOnlyTStore<T> zs, ZooReader zk,
-      ServiceLock.ServiceLockPath lockPath, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
+  public FateStatus getStatus(ReadOnlyTStore zs, ZooReader zk, ServiceLock.ServiceLockPath lockPath,
+      Set<Long> filterTxid, EnumSet<FateTransactionStatus> filterStatus)
       throws KeeperException, InterruptedException {
 
     Map<Long,List<String>> heldLocks = new HashMap<>();
@@ -259,7 +189,6 @@ public class AdminUtil<T> {
     findLocks(zk, lockPath, heldLocks, waitingLocks);
 
     return getTransactionStatus(zs, filterTxid, filterStatus, heldLocks, waitingLocks);
-
   }
 
   /**
@@ -289,7 +218,7 @@ public class AdminUtil<T> {
 
       try {
 
-        FateLockPath fLockPath = FateLock.path(lockPath + "/" + id);
+        FateLock.FateLockPath fLockPath = FateLock.path(lockPath + "/" + id);
         List<String> lockNodes =
             FateLock.validateAndSort(fLockPath, zk.getChildren(fLockPath.toString()));
 
@@ -354,8 +283,8 @@ public class AdminUtil<T> {
    *          populated list of locks held by transaction - or an empty map if none.
    * @return current fate and lock status
    */
-  private FateStatus getTransactionStatus(ReadOnlyTStore<T> zs, Set<Long> filterTxid,
-      EnumSet<TStatus> filterStatus, Map<Long,List<String>> heldLocks,
+  private FateStatus getTransactionStatus(ReadOnlyTStore zs, Set<Long> filterTxid,
+      EnumSet<FateTransactionStatus> filterStatus, Map<Long,List<String>> heldLocks,
       Map<Long,List<String>> waitingLocks) {
 
     List<Long> transactions = zs.list();
@@ -380,11 +309,11 @@ public class AdminUtil<T> {
       }
 
       String top = null;
-      ReadOnlyRepo<T> repo = zs.top(tid);
+      ReadOnlyRepo repo = zs.top(tid);
       if (repo != null)
         top = repo.getDescription();
 
-      TStatus status = zs.getStatus(tid);
+      FateTransactionStatus status = zs.getStatus(tid);
 
       long timeCreated = zs.timeCreated(tid);
 
@@ -401,13 +330,13 @@ public class AdminUtil<T> {
 
   }
 
-  public void print(ReadOnlyTStore<T> zs, ZooReader zk, ServiceLock.ServiceLockPath lockPath)
+  public void print(ReadOnlyTStore zs, ZooReader zk, ServiceLock.ServiceLockPath lockPath)
       throws KeeperException, InterruptedException {
     print(zs, zk, lockPath, new Formatter(System.out), null, null);
   }
 
-  public void print(ReadOnlyTStore<T> zs, ZooReader zk, ServiceLock.ServiceLockPath lockPath,
-      Formatter fmt, Set<Long> filterTxid, EnumSet<TStatus> filterStatus)
+  public void print(ReadOnlyTStore zs, ZooReader zk, ServiceLock.ServiceLockPath lockPath,
+      Formatter fmt, Set<Long> filterTxid, EnumSet<FateTransactionStatus> filterStatus)
       throws KeeperException, InterruptedException {
 
     FateStatus fateStatus = getStatus(zs, zk, lockPath, filterTxid, filterStatus);
@@ -431,8 +360,8 @@ public class AdminUtil<T> {
     }
   }
 
-  public boolean prepDelete(TStore<T> zs, ZooReaderWriter zk, ServiceLockPath path,
-      String txidStr) {
+  public boolean prepDelete(TStore zs, ZooReaderWriter zk, ServiceLock.ServiceLockPath path,
+      String txidStr) throws AccumuloException {
     if (!checkGlobalLock(zk, path)) {
       return false;
     }
@@ -446,7 +375,7 @@ public class AdminUtil<T> {
     }
     boolean state = false;
     zs.reserve(txid);
-    TStatus ts = zs.getStatus(txid);
+    FateTransactionStatus ts = zs.getStatus(txid);
     switch (ts) {
       case UNKNOWN:
         System.out.printf("Invalid transaction ID: %016x%n", txid);
@@ -468,8 +397,8 @@ public class AdminUtil<T> {
     return state;
   }
 
-  public boolean prepFail(TStore<T> zs, ZooReaderWriter zk, ServiceLockPath zLockManagerPath,
-      String txidStr) {
+  public boolean prepFail(TStore zs, ZooReaderWriter zk,
+      ServiceLock.ServiceLockPath zLockManagerPath, String txidStr) throws AccumuloException {
     if (!checkGlobalLock(zk, zLockManagerPath)) {
       return false;
     }
@@ -483,7 +412,7 @@ public class AdminUtil<T> {
     }
     boolean state = false;
     zs.reserve(txid);
-    TStatus ts = zs.getStatus(txid);
+    FateTransactionStatus ts = zs.getStatus(txid);
     switch (ts) {
       case UNKNOWN:
         System.out.printf("Invalid transaction ID: %016x%n", txid);
@@ -493,7 +422,7 @@ public class AdminUtil<T> {
       case IN_PROGRESS:
       case NEW:
         System.out.printf("Failing transaction: %016x (%s)%n", txid, ts);
-        zs.setStatus(txid, TStatus.FAILED_IN_PROGRESS);
+        zs.setStatus(txid, FateTransactionStatus.FAILED_IN_PROGRESS);
         state = true;
         break;
 
@@ -524,7 +453,7 @@ public class AdminUtil<T> {
         byte[] data = zk.getData(path + "/" + id + "/" + node);
         String[] lda = new String(data, UTF_8).split(":");
         if (lda[1].equals(txidStr))
-          zk.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
+          zk.recursiveDelete(lockPath, ZooUtil.NodeMissingPolicy.SKIP);
       }
     }
   }
@@ -532,12 +461,13 @@ public class AdminUtil<T> {
   @SuppressFBWarnings(value = "DM_EXIT",
       justification = "TODO - should probably avoid System.exit here; "
           + "this code is used by the fate admin shell command")
-  public boolean checkGlobalLock(ZooReaderWriter zk, ServiceLockPath zLockManagerPath) {
+  public boolean checkGlobalLock(ZooReaderWriter zk, ServiceLock.ServiceLockPath zLockManagerPath)
+      throws AccumuloException {
     try {
       if (ServiceLock.getLockData(zk.getZooKeeper(), zLockManagerPath) != null) {
         System.err.println("ERROR: Manager lock is held, not running");
         if (this.exitOnError)
-          System.exit(1);
+          throw new AccumuloException("ERROR: Manager lock is held, not running");
         else
           return false;
       }

@@ -16,17 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.fate;
+package org.apache.accumulo.manager.fate;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import java.util.Collections;
 import java.util.EnumSet;
 
-import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
+import org.apache.accumulo.fate.FateTransactionStatus;
 import org.easymock.EasyMock;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 /**
  * Make sure read only decorate passes read methods.
@@ -35,37 +35,38 @@ public class ReadOnlyStoreTest {
 
   @Test
   public void everythingPassesThrough() throws Exception {
-    Repo<String> repo = EasyMock.createMock(Repo.class);
+    Repo repo = EasyMock.createMock(Repo.class);
     EasyMock.expect(repo.getDescription()).andReturn("description");
     EasyMock.expect(repo.isReady(0xdeadbeefL, null)).andReturn(0x0L);
 
-    ZooStore<String> mock = EasyMock.createNiceMock(ZooStore.class);
+    ZooStore mock = EasyMock.createNiceMock(ZooStore.class);
     EasyMock.expect(mock.reserve()).andReturn(0xdeadbeefL);
     mock.reserve(0xdeadbeefL);
     EasyMock.expect(mock.top(0xdeadbeefL)).andReturn(repo);
-    EasyMock.expect(mock.getStatus(0xdeadbeefL)).andReturn(TStatus.UNKNOWN);
+    EasyMock.expect(mock.getStatus(0xdeadbeefL)).andReturn(FateTransactionStatus.UNKNOWN);
     mock.unreserve(0xdeadbeefL, 30);
 
-    EasyMock.expect(mock.waitForStatusChange(0xdeadbeefL, EnumSet.allOf(TStatus.class)))
-        .andReturn(TStatus.UNKNOWN);
+    EasyMock
+        .expect(mock.waitForStatusChange(0xdeadbeefL, EnumSet.allOf(FateTransactionStatus.class)))
+        .andReturn(FateTransactionStatus.UNKNOWN);
     EasyMock.expect(mock.getProperty(0xdeadbeefL, "com.example.anyproperty")).andReturn("property");
     EasyMock.expect(mock.list()).andReturn(Collections.emptyList());
 
     EasyMock.replay(repo);
     EasyMock.replay(mock);
 
-    ReadOnlyTStore<String> store = new ReadOnlyStore<>(mock);
+    ReadOnlyTStore store = new ReadOnlyStore(mock);
     assertEquals(0xdeadbeefL, store.reserve());
     store.reserve(0xdeadbeefL);
-    ReadOnlyRepo<String> top = store.top(0xdeadbeefL);
+    ReadOnlyRepo top = store.top(0xdeadbeefL);
     assertFalse(top instanceof Repo);
     assertEquals("description", top.getDescription());
     assertEquals(0x0L, top.isReady(0xdeadbeefL, null));
-    assertEquals(TStatus.UNKNOWN, store.getStatus(0xdeadbeefL));
+    assertEquals(FateTransactionStatus.UNKNOWN, store.getStatus(0xdeadbeefL));
     store.unreserve(0xdeadbeefL, 30);
 
-    assertEquals(TStatus.UNKNOWN,
-        store.waitForStatusChange(0xdeadbeefL, EnumSet.allOf(TStatus.class)));
+    assertEquals(FateTransactionStatus.UNKNOWN,
+        store.waitForStatusChange(0xdeadbeefL, EnumSet.allOf(FateTransactionStatus.class)));
     assertEquals("property", store.getProperty(0xdeadbeefL, "com.example.anyproperty"));
     assertEquals(Collections.<Long>emptyList(), store.list());
 

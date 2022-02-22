@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.shell.commands;
+package org.apache.accumulo.shell.commands.fate;
 
 import static org.apache.accumulo.fate.zookeeper.ServiceLock.ServiceLockPath;
 import static org.easymock.EasyMock.createMock;
@@ -27,12 +27,13 @@ import static org.easymock.EasyMock.verify;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.Serializable;
 import java.util.List;
 
-import org.apache.accumulo.fate.AdminUtil;
-import org.apache.accumulo.fate.ReadOnlyRepo;
-import org.apache.accumulo.fate.ReadOnlyTStore;
-import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.fate.FateTransactionStatus;
+import org.apache.accumulo.fate.FateZooStore;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -40,43 +41,46 @@ import org.junit.Test;
 public class FateCommandTest {
   private static ZooReaderWriter zk;
   private static ServiceLockPath managerLockPath;
+  private static ServiceLockPath tableLocksPath;
 
   @BeforeClass
   public static void setup() {
     zk = createMock(ZooReaderWriter.class);
     managerLockPath = createMock(ServiceLockPath.class);
+    tableLocksPath = createMock(ServiceLockPath.class);
   }
 
   @Test
   public void testFailTx() throws Exception {
-    ZooStore<FateCommand> zs = createMock(ZooStore.class);
+    FateZooStore zs = createMock(FateZooStore.class);
+    ClientContext cc = createMock(ClientContext.class);
     String tidStr = "12345";
     long tid = Long.parseLong(tidStr, 16);
-    expect(zs.getStatus(tid)).andReturn(ReadOnlyTStore.TStatus.NEW).anyTimes();
+    expect(zs.getTStatus(tid)).andReturn(FateTransactionStatus.NEW).anyTimes();
     zs.reserve(tid);
     expectLastCall().once();
-    zs.setStatus(tid, ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS);
+    zs.setStatus(tid, FateTransactionStatus.FAILED_IN_PROGRESS);
     expectLastCall().once();
-    zs.unreserve(tid, 0);
+    zs.unreserve(tid);
     expectLastCall().once();
 
-    TestHelper helper = new TestHelper(true);
+    TestHelper helper = new TestHelper(zs, cc, zk, false);
 
     replay(zs);
 
     FateCommand cmd = new FateCommand();
     // require number for Tx
-    assertFalse(cmd.failTx(helper, zs, zk, managerLockPath, new String[] {"fail", "tx1"}));
+    assertFalse(cmd.failTx(helper, new String[] {"fail", "tx1"}));
     // fail the long configured above
-    assertTrue(cmd.failTx(helper, zs, zk, managerLockPath, new String[] {"fail", "12345"}));
+    assertTrue(cmd.failTx(helper, new String[] {"fail", "12345"}));
 
     verify(zs);
   }
 
   @Test
   public void testDump() {
-    ZooStore<FateCommand> zs = createMock(ZooStore.class);
-    ReadOnlyRepo<FateCommand> ser = createMock(ReadOnlyRepo.class);
+    FateZooStore zs = createMock(FateZooStore.class);
+    Serializable ser = createMock(Serializable.class);
     long tid1 = Long.parseLong("12345", 16);
     long tid2 = Long.parseLong("23456", 16);
     expect(zs.getStack(tid1)).andReturn(List.of(ser)).once();
@@ -95,14 +99,17 @@ public class FateCommandTest {
     verify(zs);
   }
 
-  static class TestHelper extends AdminUtil<FateCommand> {
+  static class TestHelper extends FateCommandHelper {
 
-    public TestHelper(boolean exitOnError) {
-      super(exitOnError);
+    public TestHelper(FateZooStore zs, ClientContext context, ZooReaderWriter zk,
+        boolean exitOnError) {
+      super(zs, context, zk, exitOnError);
+      setManagerLockPath(managerLockPath);
+      setTableLocksPath(tableLocksPath);
     }
 
     @Override
-    public boolean checkGlobalLock(ZooReaderWriter zk, ServiceLockPath zLockManagerPath) {
+    protected boolean isManagerLockValid() throws AccumuloException {
       return true;
     }
   }

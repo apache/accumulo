@@ -16,11 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.fate;
+package org.apache.accumulo.manager.fate;
 
 import java.io.Serializable;
 import java.util.EnumSet;
 import java.util.List;
+
+import org.apache.accumulo.fate.FateTransactionStatus;
 
 /**
  * Read only access to a Transaction Store.
@@ -28,27 +30,7 @@ import java.util.List;
  * A transaction consists of a number of operations. Instances of this class may check on the queue
  * of outstanding transactions but may neither modify them nor create new ones.
  */
-public interface ReadOnlyTStore<T> {
-
-  /**
-   * Possible operational status codes. Serialized by name within stores.
-   */
-  enum TStatus {
-    /** Unseeded transaction */
-    NEW,
-    /** Transaction that is executing */
-    IN_PROGRESS,
-    /** Transaction has failed, and is in the process of being rolled back */
-    FAILED_IN_PROGRESS,
-    /** Transaction has failed and has been fully rolled back */
-    FAILED,
-    /** Transaction has succeeded */
-    SUCCESSFUL,
-    /** Unrecognized or unknown transaction state */
-    UNKNOWN,
-    /** Transaction that is eligible to be executed */
-    SUBMITTED
-  }
+public interface ReadOnlyTStore {
 
   /**
    * Reserve a transaction that is IN_PROGRESS or FAILED_IN_PROGRESS.
@@ -92,13 +74,13 @@ public interface ReadOnlyTStore<T> {
    *          transaction id, previously reserved.
    * @return a read-only view of the operation
    */
-  ReadOnlyRepo<T> top(long tid);
+  ReadOnlyRepo top(long tid);
 
   /**
    * Get all operations on a transactions stack. Element 0 contains the most recent operation pushed
    * or the top.
    */
-  List<ReadOnlyRepo<T>> getStack(long tid);
+  List<ReadOnlyRepo> getStack(long tid);
 
   /**
    * Get the state of a given transaction.
@@ -109,7 +91,7 @@ public interface ReadOnlyTStore<T> {
    *          transaction id, previously reserved.
    * @return execution status
    */
-  TStatus getStatus(long tid);
+  FateTransactionStatus getStatus(long tid);
 
   /**
    * Wait for the status of a transaction to change
@@ -120,7 +102,7 @@ public interface ReadOnlyTStore<T> {
    *          a set of possible statuses we are interested in being notified about. may not be null.
    * @return execution status.
    */
-  TStatus waitForStatusChange(long tid, EnumSet<TStatus> expected);
+  FateTransactionStatus waitForStatusChange(long tid, EnumSet<FateTransactionStatus> expected);
 
   /**
    * Retrieve a transaction-specific property.

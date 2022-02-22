@@ -62,12 +62,11 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ta
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.fate.AdminUtil;
-import org.apache.accumulo.fate.AdminUtil.FateStatus;
-import org.apache.accumulo.fate.ZooStore;
+import org.apache.accumulo.fate.FateZooStore;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.shell.commands.fate.FateCommandHelper;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FileSystem;
@@ -203,21 +202,21 @@ public class FunctionalTestUtils {
   }
 
   public static void assertNoDanglingFateLocks(AccumuloCluster cluster) {
-    FateStatus fateStatus = getFateStatus(cluster);
+    FateCommandHelper.FateStatus fateStatus = getFateStatus(cluster);
     assertEquals("Dangling FATE locks : " + fateStatus.getDanglingHeldLocks(), 0,
         fateStatus.getDanglingHeldLocks().size());
     assertEquals("Dangling FATE locks : " + fateStatus.getDanglingWaitingLocks(), 0,
         fateStatus.getDanglingWaitingLocks().size());
   }
 
-  private static FateStatus getFateStatus(AccumuloCluster cluster) {
+  private static FateCommandHelper.FateStatus getFateStatus(AccumuloCluster cluster) {
     try {
-      AdminUtil<String> admin = new AdminUtil<>(false);
       ServerContext context = cluster.getServerContext();
       ZooReaderWriter zk = context.getZooReaderWriter();
-      ZooStore<String> zs = new ZooStore<>(context.getZooKeeperRoot() + Constants.ZFATE, zk);
+      FateZooStore zs = new FateZooStore(context.getZooKeeperRoot() + Constants.ZFATE, zk);
+      FateCommandHelper helper = new FateCommandHelper(zs, context, zk, false);
       var lockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS);
-      return admin.getStatus(zs, zk, lockPath, null, null);
+      return helper.getStatus(zs, zk, lockPath, null, null);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }

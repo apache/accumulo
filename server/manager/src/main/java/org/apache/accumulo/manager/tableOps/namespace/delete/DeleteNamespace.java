@@ -20,8 +20,8 @@ package org.apache.accumulo.manager.tableOps.namespace.delete;
 
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 
@@ -41,7 +41,7 @@ public class DeleteNamespace extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) {
+  public Repo call(long tid, Manager environment) {
     environment.getEventCoordinator().event("deleting namespace %s ", namespaceId);
     return new NamespaceCleanUp(namespaceId);
   }

@@ -115,7 +115,7 @@ public class PrepBulkImportTest {
     };
 
     try (LoadMappingIterator lmi = createLoadMappingIter(loadRanges)) {
-      PrepBulkImport.sanityCheckLoadMapping("1", lmi, tabletIterFactory, maxTablets, 10001);
+      PrepBulkImport.validateLoadMapping("1", lmi, tabletIterFactory, maxTablets);
     }
   }
 

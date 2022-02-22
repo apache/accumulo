@@ -16,29 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.tableOps.compact.cancel;
+package org.apache.accumulo.manager.fate;
 
-import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.data.TableId;
+import java.io.Serializable;
+
 import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.fate.Repo;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
-import org.apache.accumulo.manager.tableOps.Utils;
 
-class FinishCancelCompaction extends ManagerRepo {
-  private static final long serialVersionUID = 1L;
-  private TableId tableId;
-  private NamespaceId namespaceId;
+/**
+ * Repeatable persisted operation
+ */
+public interface Repo extends ReadOnlyRepo, Serializable {
 
-  public FinishCancelCompaction(NamespaceId namespaceId, TableId tableId) {
-    this.tableId = tableId;
-    this.namespaceId = namespaceId;
+  Repo call(long tid, Manager environment) throws Exception;
+
+  default void undo(long tid, Manager environment) throws Exception {}
+
+  // this allows the last fate op to return something to the user
+  default String getReturn() {
+    return null;
   }
 
-  @Override
-  public Repo call(long tid, Manager environment) {
-    Utils.unreserveTable(environment, tableId, tid, false);
-    Utils.unreserveNamespace(environment, namespaceId, tid, false);
-    return null;
+  // return the Progress of the current operation
+  default Progress getProgress() {
+    return new Progress(0, 0);
   }
 }

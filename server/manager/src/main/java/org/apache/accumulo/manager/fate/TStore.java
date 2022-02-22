@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.fate;
+package org.apache.accumulo.manager.fate;
 
 import java.io.Serializable;
+
+import org.apache.accumulo.fate.FateTransactionStatus;
+import org.apache.accumulo.fate.StackOverflowException;
 
 /**
  * Transaction Store: a place to save transactions
@@ -28,7 +31,7 @@ import java.io.Serializable;
  * transaction's operation, possibly pushing more operations onto the transaction as each step
  * successfully completes. If a step fails, the stack can be unwound, undoing each operation.
  */
-public interface TStore<T> extends ReadOnlyTStore<T> {
+public interface TStore extends ReadOnlyTStore {
 
   /**
    * Create a new transaction id
@@ -38,7 +41,7 @@ public interface TStore<T> extends ReadOnlyTStore<T> {
   long create();
 
   @Override
-  Repo<T> top(long tid);
+  Repo top(long tid);
 
   /**
    * Update the given transaction with the next operation
@@ -48,7 +51,7 @@ public interface TStore<T> extends ReadOnlyTStore<T> {
    * @param repo
    *          the operation
    */
-  void push(long tid, Repo<T> repo) throws StackOverflowException;
+  void push(long tid, Repo repo) throws StackOverflowException;
 
   /**
    * Remove the last pushed operation from the given transaction.
@@ -63,7 +66,7 @@ public interface TStore<T> extends ReadOnlyTStore<T> {
    * @param status
    *          execution status
    */
-  void setStatus(long tid, TStatus status);
+  void setStatus(long tid, FateTransactionStatus status);
 
   void setProperty(long tid, String prop, Serializable val);
 

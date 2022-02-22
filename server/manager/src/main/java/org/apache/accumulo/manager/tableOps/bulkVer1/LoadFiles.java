@@ -49,8 +49,8 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.fate.FateTxId;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -98,7 +98,7 @@ class LoadFiles extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(final long tid, final Manager manager) throws Exception {
+  public Repo call(final long tid, final Manager manager) throws Exception {
     manager.updateBulkImportStatus(source, BulkImportState.LOADING);
     ExecutorService executor = getThreadPool(manager);
     final AccumuloConfiguration conf = manager.getConfiguration();

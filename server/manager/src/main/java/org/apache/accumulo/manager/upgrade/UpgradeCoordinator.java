@@ -30,10 +30,10 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
-import org.apache.accumulo.fate.ReadOnlyStore;
-import org.apache.accumulo.fate.ReadOnlyTStore;
-import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.manager.EventCoordinator;
+import org.apache.accumulo.manager.fate.ReadOnlyStore;
+import org.apache.accumulo.manager.fate.ReadOnlyTStore;
+import org.apache.accumulo.manager.fate.ZooStore;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
@@ -249,9 +249,8 @@ public class UpgradeCoordinator {
       justification = "Want to immediately stop all manager threads on upgrade error")
   private void abortIfFateTransactions(ServerContext context) {
     try {
-      final ReadOnlyTStore<UpgradeCoordinator> fate =
-          new ReadOnlyStore<>(new ZooStore<>(context.getZooKeeperRoot() + Constants.ZFATE,
-              context.getZooReaderWriter()));
+      final ReadOnlyTStore fate = new ReadOnlyStore(
+          new ZooStore(context.getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()));
       if (!fate.list().isEmpty()) {
         throw new AccumuloException("Aborting upgrade because there are"
             + " outstanding FATE transactions from a previous Accumulo version."

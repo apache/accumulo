@@ -25,11 +25,12 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.fate.FateTxId;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
+import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,8 +54,8 @@ public class CancelCompactions extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) throws Exception {
-    mutateZooKeeper(tid, tableId, environment);
+  public Repo call(long tid, Manager environment) throws Exception {
+    mutateZooKeeper(tid, tableId, environment.getContext());
     return new FinishCancelCompaction(namespaceId, tableId);
   }
 
@@ -64,14 +65,14 @@ public class CancelCompactions extends ManagerRepo {
     Utils.unreserveNamespace(env, namespaceId, tid, false);
   }
 
-  public static void mutateZooKeeper(long tid, TableId tableId, Manager environment)
+  public synchronized static void mutateZooKeeper(long tid, TableId tableId, ServerContext context)
       throws Exception {
-    String zCompactID = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES
-        + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
-    String zCancelID = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES + "/"
+    String zCompactID = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZTABLES + "/"
+        + tableId + Constants.ZTABLE_COMPACT_ID;
+    String zCancelID = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZTABLES + "/"
         + tableId + Constants.ZTABLE_COMPACT_CANCEL_ID;
 
-    ZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = context.getZooReaderWriter();
 
     byte[] currentValue = zoo.getData(zCompactID);
 

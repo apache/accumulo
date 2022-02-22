@@ -24,15 +24,15 @@ import java.util.Set;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 
 public class CloneTable extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
-  private CloneInfo cloneInfo;
+  private final CloneInfo cloneInfo;
 
   public CloneTable(String user, NamespaceId namespaceId, TableId srcTableId, String tableName,
       Map<String,String> propertiesToSet, Set<String> propertiesToExclude, boolean keepOffline) {
@@ -56,13 +56,11 @@ public class CloneTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) throws Exception {
-
+  public Repo call(long tid, Manager environment) throws Exception {
     Utils.getIdLock().lock();
     try {
       cloneInfo.tableId =
           Utils.getNextId(cloneInfo.tableName, environment.getContext(), TableId::of);
-
       return new ClonePermissions(cloneInfo);
     } finally {
       Utils.getIdLock().unlock();

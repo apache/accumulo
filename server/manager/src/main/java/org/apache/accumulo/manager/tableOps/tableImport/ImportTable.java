@@ -39,8 +39,8 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.manager.tableOps.tableExport.ExportTable;
@@ -84,15 +84,12 @@ public class ImportTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
+  public Repo call(long tid, Manager env) throws Exception {
     checkVersions(env);
 
     // first step is to reserve a table id.. if the machine fails during this step
     // it is ok to retry... the only side effect is that a table id may not be used
-    // or skipped
-
-    // assuming only the manager process is creating tables
-
+    // or skipped assuming only the manager process is creating tables
     Utils.getIdLock().lock();
     try {
       tableInfo.tableId = Utils.getNextId(tableInfo.tableName, env.getContext(), TableId::of);
@@ -104,7 +101,7 @@ public class ImportTable extends ManagerRepo {
 
   @SuppressFBWarnings(value = "OS_OPEN_STREAM",
       justification = "closing intermediate readers would close the ZipInputStream")
-  public void checkVersions(Manager env) throws AcceptableThriftTableOperationException {
+  private void checkVersions(Manager env) throws AcceptableThriftTableOperationException {
     Set<String> exportDirs =
         tableInfo.directories.stream().map(dm -> dm.exportDir).collect(Collectors.toSet());
 

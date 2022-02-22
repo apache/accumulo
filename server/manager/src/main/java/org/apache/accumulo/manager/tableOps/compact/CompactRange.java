@@ -34,9 +34,9 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.commons.codec.binary.Hex;
@@ -50,8 +50,8 @@ public class CompactRange extends ManagerRepo {
   private static final long serialVersionUID = 1L;
   private final TableId tableId;
   private final NamespaceId namespaceId;
-  private byte[] startRow;
-  private byte[] endRow;
+  private final byte[] startRow;
+  private final byte[] endRow;
   private byte[] config;
 
   public CompactRange(NamespaceId namespaceId, TableId tableId, CompactionConfig compactionConfig)
@@ -94,7 +94,7 @@ public class CompactRange extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(final long tid, Manager env) throws Exception {
+  public Repo call(final long tid, Manager env) throws Exception {
     String zTablePath = Constants.ZROOT + "/" + env.getInstanceID() + Constants.ZTABLES + "/"
         + tableId + Constants.ZTABLE_COMPACT_ID;
 

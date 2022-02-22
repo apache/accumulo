@@ -23,10 +23,10 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.manager.tableOps.compact.cancel.CancelCompactions;
@@ -63,10 +63,10 @@ public class PreDeleteTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) throws Exception {
+  public Repo call(long tid, Manager environment) throws Exception {
     try {
       preventFutureCompactions(environment);
-      CancelCompactions.mutateZooKeeper(tid, tableId, environment);
+      CancelCompactions.mutateZooKeeper(tid, tableId, environment.getContext());
       return new DeleteTable(namespaceId, tableId);
     } finally {
       Utils.unreserveTable(environment, tableId, tid, false);

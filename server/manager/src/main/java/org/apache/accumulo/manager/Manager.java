@@ -96,8 +96,6 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.fate.AgeOffStore;
-import org.apache.accumulo.fate.Fate;
 import org.apache.accumulo.fate.util.Retry;
 import org.apache.accumulo.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.fate.zookeeper.ServiceLock.LockLossReason;
@@ -106,6 +104,9 @@ import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.manager.fate.AgeOffStore;
+import org.apache.accumulo.manager.fate.Fate;
+import org.apache.accumulo.manager.fate.ZooStore;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.state.TableCounts;
@@ -209,7 +210,7 @@ public class Manager extends AbstractServer
 
   private ManagerState state = ManagerState.INITIAL;
 
-  Fate<Manager> fate;
+  Fate fate;
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = emptySortedMap();
   volatile SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancer = emptySortedMap();
@@ -1143,13 +1144,11 @@ public class Manager extends AbstractServer
     }
 
     try {
-      final AgeOffStore<Manager> store =
-          new AgeOffStore<>(
-              new org.apache.accumulo.fate.ZooStore<>(getZooKeeperRoot() + Constants.ZFATE,
-                  context.getZooReaderWriter()),
-              TimeUnit.HOURS.toMillis(8), System::currentTimeMillis);
+      final AgeOffStore store = new AgeOffStore(
+          new ZooStore(getZooKeeperRoot() + Constants.ZFATE, context.getZooReaderWriter()),
+          TimeUnit.HOURS.toMillis(8), System::currentTimeMillis);
 
-      fate = new Fate<>(this, store, TraceRepo::toLogString);
+      fate = new Fate(this, store, TraceRepo::toLogString);
       fate.startTransactionRunners(getConfiguration());
 
       ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()

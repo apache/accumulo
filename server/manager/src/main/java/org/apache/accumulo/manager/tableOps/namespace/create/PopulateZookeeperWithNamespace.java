@@ -21,9 +21,9 @@ package org.apache.accumulo.manager.tableOps.namespace.create;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
-import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.fate.Repo;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.tables.TableManager;
@@ -46,7 +46,7 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo call(long tid, Manager manager) throws Exception {
 
     Utils.getTableNameLock().lock();
     try {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.fate;
+package org.apache.accumulo.manager.fate;
 
 import static java.util.Objects.requireNonNull;
 
@@ -24,21 +24,24 @@ import java.io.Serializable;
 import java.util.EnumSet;
 import java.util.List;
 
+import org.apache.accumulo.fate.FateTransactionStatus;
+import org.apache.accumulo.manager.Manager;
+
 /**
  * This store decorates a TStore to make sure it can not be modified.
  *
  * Unlike relying directly on the ReadOnlyTStore interface, this class will not allow subsequent
  * users to cast back to a mutable TStore successfully.
  */
-public class ReadOnlyStore<T> implements ReadOnlyTStore<T> {
+public class ReadOnlyStore implements ReadOnlyTStore {
 
-  private final ZooStore<T> store;
+  private final ZooStore store;
 
   /**
    * @param store
    *          may not be null
    */
-  public ReadOnlyStore(ZooStore<T> store) {
+  public ReadOnlyStore(ZooStore store) {
     requireNonNull(store);
     this.store = store;
   }
@@ -64,20 +67,20 @@ public class ReadOnlyStore<T> implements ReadOnlyTStore<T> {
    * Similar to ReadOnlyStore, won't allow subsequent user to cast a ReadOnlyRepo back to a mutable
    * Repo.
    */
-  protected static class ReadOnlyRepoWrapper<X> implements ReadOnlyRepo<X> {
-    private final Repo<X> repo;
+  protected static class ReadOnlyRepoWrapper implements ReadOnlyRepo {
+    private final Repo repo;
 
     /**
      * @param repo
      *          may not be null
      */
-    public ReadOnlyRepoWrapper(Repo<X> repo) {
+    public ReadOnlyRepoWrapper(Repo repo) {
       requireNonNull(repo);
       this.repo = repo;
     }
 
     @Override
-    public long isReady(long tid, X environment) throws Exception {
+    public long isReady(long tid, Manager environment) throws Exception {
       return repo.isReady(tid, environment);
     }
 
@@ -88,17 +91,18 @@ public class ReadOnlyStore<T> implements ReadOnlyTStore<T> {
   }
 
   @Override
-  public ReadOnlyRepo<T> top(long tid) {
-    return new ReadOnlyRepoWrapper<>(store.top(tid));
+  public ReadOnlyRepo top(long tid) {
+    return new ReadOnlyRepoWrapper(store.top(tid));
   }
 
   @Override
-  public TStatus getStatus(long tid) {
+  public FateTransactionStatus getStatus(long tid) {
     return store.getStatus(tid);
   }
 
   @Override
-  public TStatus waitForStatusChange(long tid, EnumSet<TStatus> expected) {
+  public FateTransactionStatus waitForStatusChange(long tid,
+      EnumSet<FateTransactionStatus> expected) {
     return store.waitForStatusChange(tid, expected);
   }
 
@@ -113,7 +117,7 @@ public class ReadOnlyStore<T> implements ReadOnlyTStore<T> {
   }
 
   @Override
-  public List<ReadOnlyRepo<T>> getStack(long tid) {
+  public List<ReadOnlyRepo> getStack(long tid) {
     return store.getStack(tid);
   }
 

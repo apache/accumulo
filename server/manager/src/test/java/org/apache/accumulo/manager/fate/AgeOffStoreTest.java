@@ -16,21 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.fate;
+package org.apache.accumulo.manager.fate;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.accumulo.fate.AgeOffStore.TimeSource;
-import org.apache.accumulo.fate.ReadOnlyTStore.TStatus;
+import org.apache.accumulo.fate.FateTransactionStatus;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
-import org.junit.jupiter.api.Test;
+import org.easymock.EasyMock;
+import org.junit.Test;
 
 public class AgeOffStoreTest {
 
-  private static class TestTimeSource implements TimeSource {
+  private static class TestTimeSource implements AgeOffStore.TimeSource {
     long time = 0;
 
     @Override
@@ -44,30 +45,31 @@ public class AgeOffStoreTest {
   public void testBasic() throws InterruptedException, KeeperException {
 
     TestTimeSource tts = new TestTimeSource();
-    TestStore testStore = new TestStore();
-    AgeOffStore<String> aoStore = new AgeOffStore<>(testStore, 10, tts);
+    ZooReaderWriter zk = EasyMock.createMock(ZooReaderWriter.class);
+    TestStore testStore = new TestStore("test", zk);
+    AgeOffStore aoStore = new AgeOffStore(testStore, 10, tts);
 
     aoStore.ageOff();
 
     long txid1 = aoStore.create();
     aoStore.reserve(txid1);
-    aoStore.setStatus(txid1, TStatus.IN_PROGRESS);
+    aoStore.setStatus(txid1, FateTransactionStatus.IN_PROGRESS);
     aoStore.unreserve(txid1, 0);
 
     aoStore.ageOff();
 
     long txid2 = aoStore.create();
     aoStore.reserve(txid2);
-    aoStore.setStatus(txid2, TStatus.IN_PROGRESS);
-    aoStore.setStatus(txid2, TStatus.FAILED);
+    aoStore.setStatus(txid2, FateTransactionStatus.IN_PROGRESS);
+    aoStore.setStatus(txid2, FateTransactionStatus.FAILED);
     aoStore.unreserve(txid2, 0);
 
     tts.time = 6;
 
     long txid3 = aoStore.create();
     aoStore.reserve(txid3);
-    aoStore.setStatus(txid3, TStatus.IN_PROGRESS);
-    aoStore.setStatus(txid3, TStatus.SUCCESSFUL);
+    aoStore.setStatus(txid3, FateTransactionStatus.IN_PROGRESS);
+    aoStore.setStatus(txid3, FateTransactionStatus.SUCCESSFUL);
     aoStore.unreserve(txid3, 0);
 
     Long txid4 = aoStore.create();
@@ -97,27 +99,28 @@ public class AgeOffStoreTest {
     // test age off when source store starts off non empty
 
     TestTimeSource tts = new TestTimeSource();
-    TestStore testStore = new TestStore();
+    ZooReaderWriter zk = EasyMock.createMock(ZooReaderWriter.class);
+    TestStore testStore = new TestStore("test", zk);
     long txid1 = testStore.create();
     testStore.reserve(txid1);
-    testStore.setStatus(txid1, TStatus.IN_PROGRESS);
+    testStore.setStatus(txid1, FateTransactionStatus.IN_PROGRESS);
     testStore.unreserve(txid1, 0);
 
     long txid2 = testStore.create();
     testStore.reserve(txid2);
-    testStore.setStatus(txid2, TStatus.IN_PROGRESS);
-    testStore.setStatus(txid2, TStatus.FAILED);
+    testStore.setStatus(txid2, FateTransactionStatus.IN_PROGRESS);
+    testStore.setStatus(txid2, FateTransactionStatus.FAILED);
     testStore.unreserve(txid2, 0);
 
     long txid3 = testStore.create();
     testStore.reserve(txid3);
-    testStore.setStatus(txid3, TStatus.IN_PROGRESS);
-    testStore.setStatus(txid3, TStatus.SUCCESSFUL);
+    testStore.setStatus(txid3, FateTransactionStatus.IN_PROGRESS);
+    testStore.setStatus(txid3, FateTransactionStatus.SUCCESSFUL);
     testStore.unreserve(txid3, 0);
 
     Long txid4 = testStore.create();
 
-    AgeOffStore<String> aoStore = new AgeOffStore<>(testStore, 10, tts);
+    AgeOffStore aoStore = new AgeOffStore(testStore, 10, tts);
 
     assertEquals(Set.of(txid1, txid2, txid3, txid4), new HashSet<>(aoStore.list()));
     assertEquals(4, new HashSet<>(aoStore.list()).size());
@@ -135,7 +138,7 @@ public class AgeOffStoreTest {
     assertEquals(1, new HashSet<>(aoStore.list()).size());
 
     aoStore.reserve(txid1);
-    aoStore.setStatus(txid1, TStatus.FAILED_IN_PROGRESS);
+    aoStore.setStatus(txid1, FateTransactionStatus.FAILED_IN_PROGRESS);
     aoStore.unreserve(txid1, 0);
 
     tts.time = 30;
@@ -146,7 +149,7 @@ public class AgeOffStoreTest {
     assertEquals(1, new HashSet<>(aoStore.list()).size());
 
     aoStore.reserve(txid1);
-    aoStore.setStatus(txid1, TStatus.FAILED);
+    aoStore.setStatus(txid1, FateTransactionStatus.FAILED);
     aoStore.unreserve(txid1, 0);
 
     aoStore.ageOff();
