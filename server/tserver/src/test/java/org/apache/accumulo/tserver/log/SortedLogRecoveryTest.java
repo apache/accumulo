@@ -55,6 +55,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
 import org.apache.accumulo.core.file.streams.SeekableDataInputStream;
+import org.apache.accumulo.core.spi.file.rfile.compression.Algorithm;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.data.ServerMutation;
@@ -1141,7 +1142,7 @@ public class SortedLogRecoveryTest {
    */
   private final Utils.Version API_VERSION_3 = new Utils.Version((short) 3, (short) 0);
 
-  private Compression.Algorithm getCompressionFromRFile(FSDataInputStream fsin, long fileLength)
+  private Algorithm getCompressionFromRFile(FSDataInputStream fsin, long fileLength)
       throws IOException {
     try (var in = new SeekableDataInputStream(fsin)) {
       int magicNumberSize = 16; // BCFile.Magic.size();

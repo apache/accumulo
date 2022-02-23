@@ -33,7 +33,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.file.rfile.bcfile.Compression.Algorithm;
+import org.apache.accumulo.core.spi.file.rfile.compression.Algorithm;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.util.ReflectionUtils;
@@ -43,7 +43,7 @@ import org.junit.jupiter.api.Timeout;
 
 public class CompressionTest {
 
-  HashMap<Compression.Algorithm,Boolean> isSupported = new HashMap<>();
+  HashMap<Algorithm,Boolean> isSupported = new HashMap<>();
 
   @BeforeEach
   public void testSupport() {
